@@ -11,7 +11,6 @@
 #include "mesh.h"
 #include "mesh_h5_output.h"
 #include "meshpart.h"
-#include "mesh_common.h"
 
 using namespace std;
 
@@ -31,6 +30,7 @@ int main(int argc, char**argv)
 
     mesh.read_materials("material.input");
     mesh.read_mesh_file(argv[2]);
+    //mesh.write_materials("mater.in");
     mesh.generate_output(NPROCS);
     return 0;
 }

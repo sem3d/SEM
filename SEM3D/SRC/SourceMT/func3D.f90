@@ -18,10 +18,10 @@ SUBROUTINE f3D(f, valx, valy, valz, valt, res)
   
   INTEGER,                             PARAMETER   :: nfunc = 1
   INTEGER,                             PARAMETER   :: nvar = 5
-  CHARACTER (LEN=*), DIMENSION(nvar),  PARAMETER   :: var  = (/ 'x', &
-                                                                'y', &
-                                                                'z', &
-                                                                't', &
+  CHARACTER (LEN=*), DIMENSION(nvar),  PARAMETER   :: var  = (/ 'x ', &
+                                                                'y ', &
+                                                                'z ', &
+                                                                't ', &
                                                                 'pi' /)
   REAL(rn),          DIMENSION(nvar)               :: val 
   CHARACTER (LEN=2), ALLOCATABLE                   :: varfin(:)

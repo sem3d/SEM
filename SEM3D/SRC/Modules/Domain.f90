@@ -61,7 +61,7 @@ module sdomain
        type(logical_array) :: logicD
        type(planew)        :: sPlaneW
        type(Neu_object)    :: Neumann
-       type(bassin)        :: sBassin
+
        type(SurfaceParam), dimension(:), allocatable :: nsurfsource
        type(source)   , dimension (:), allocatable :: sSource
        type(element)  , dimension (:), pointer     :: specel
@@ -84,12 +84,12 @@ module sdomain
 
        real(fpp) :: T1_att, T2_att, T0_modele
        real(fpp), dimension (0:2,0:2) :: rot
-       real(fpp), dimension (:,:), allocatable:: Coord_nodes, GlobCoord
+       real(fpp), dimension (:,:), allocatable:: Coord_nodes
+       real(fpp), dimension (:,:), pointer:: GlobCoord ! No allocate, use pointer: enable pointing to coord (avoid allocate + copy)
 
        integer :: traces_format
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &
            Super_object_file,neumann_file,neumann_dat,check_mesh_file
-       character (len=30) :: file_bassin
        character (len=1)  :: Super_object_type
 
        integer, dimension(0:8) :: out_variables

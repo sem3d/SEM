@@ -6,9 +6,9 @@ module type_STAT
 
     type :: STAT
         !MPI VARIABLES
-        integer :: comm = -1
+        integer :: comm = -1, valid_comm = -1
         integer :: rang = -1
-        integer :: nb_procs = -1
+        integer :: nb_procs = -1, valid_nb_procs = -1
         integer :: log_ID = -1
 
         !GENERATION VARIABLES
@@ -19,6 +19,7 @@ module type_STAT
         integer :: method = -1 !1 for Isotropic, 2 for Shinozuka, 3 for Randomization, 4 for FFT
         integer :: Nmc = -1
         logical :: init = .false.
+        logical :: valid_proc
         logical :: independent
             !nDim dependent
         double precision, dimension(:)   , allocatable :: corrL, corrL_out

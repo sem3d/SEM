@@ -151,9 +151,11 @@ contains
                                             Tdomain%sdom%Lambda_ (i,j,k,bnum,ee) = lambda(ipoint)
                                             Tdomain%sdom%Mu_     (i,j,k,bnum,ee) = interpolatedRF(ipoint, 2)
                                             Tdomain%sdom%Kappa_  (i,j,k,bnum,ee) = interpolatedRF(ipoint, 1)
+#ifdef CPML
+                                            ! Do not use random fields
+#else
                                         case (DM_SOLID_PML)
                                             Tdomain%spmldom%Density_(i,j,k,bnum,ee) = interpolatedRF(ipoint, 0)
-#ifndef CPML
                                             Tdomain%spmldom%Lambda_ (i,j,k,bnum,ee) = lambda(ipoint)
                                             Tdomain%spmldom%Mu_     (i,j,k,bnum,ee) = interpolatedRF(ipoint, 2)
 #endif
@@ -286,9 +288,11 @@ contains
                     do j = 0, ngll-1
                         do k = 0, ngll-1
                             select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                    ! Do not use random fields
+#else
                                 case (DM_SOLID_PML)
                                     pointDens   = Tdomain%spmldom%Density_(LimPML1,j,k,bnum,ee)
-#ifndef CPML
                                     pointLambda = Tdomain%spmldom%Lambda_(LimPML1,j,k,bnum,ee)
                                     pointMu     = Tdomain%spmldom%Mu_(LimPML1,j,k,bnum,ee)
 #endif
@@ -298,9 +302,11 @@ contains
 
                             do i = 0, ngll-1
                                 select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                        ! Do not use random fields
+#else
                                     case (DM_SOLID_PML)
                                         Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-#ifndef CPML
                                         Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
                                         Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
 #endif
@@ -317,9 +323,11 @@ contains
                     do i = 0, ngll-1
                         do k = 0, ngll-1
                             select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                    ! Do not use random fields
+#else
                                 case (DM_SOLID_PML)
                                     pointDens   = Tdomain%spmldom%Density_(i, LimPML2,k,bnum,ee)
-#ifndef CPML
                                     pointLambda = Tdomain%spmldom%Lambda_(i, LimPML2,k,bnum,ee)
                                     pointMu     = Tdomain%spmldom%Mu_(i, LimPML2,k,bnum,ee)
 #endif
@@ -329,9 +337,11 @@ contains
 
                             do j = 0, ngll-1
                                 select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                        ! Do not use random fields
+#else
                                     case (DM_SOLID_PML)
                                         Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-#ifndef CPML
                                         Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
                                         Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
 #endif
@@ -348,9 +358,11 @@ contains
                     do i = 0, ngll-1
                         do j = 0, ngll-1
                             select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                    ! Do not use random fields
+#else
                                 case (DM_SOLID_PML)
                                     pointDens   = Tdomain%spmldom%Density_(i,j,LimPML3,bnum,ee)
-#ifndef CPML
                                     pointLambda = Tdomain%spmldom%Lambda_(i,j,LimPML3,bnum,ee)
                                     pointMu     = Tdomain%spmldom%Mu_(i,j,LimPML3,bnum,ee)
 #endif
@@ -360,9 +372,11 @@ contains
 
                             do k = 0, ngll-1
                                 select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                        ! Do not use random fields
+#else
                                     case (DM_SOLID_PML)
                                         Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-#ifndef CPML
                                         Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
                                         Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
 #endif
@@ -378,9 +392,11 @@ contains
                     if(verbose) write(*,*) "Edge in XY"
                     do k = 0, ngll-1
                         select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                ! Do not use random fields
+#else
                             case (DM_SOLID_PML)
                                 pointDens   = Tdomain%spmldom%Density_(LimPML1,LimPML2,k,bnum,ee)
-#ifndef CPML
                                 pointLambda = Tdomain%spmldom%Lambda_(LimPML1,LimPML2,k,bnum,ee)
                                 pointMu     = Tdomain%spmldom%Mu_(LimPML1,LimPML2,k,bnum,ee)
 #endif
@@ -391,9 +407,11 @@ contains
                         do i = 0, ngll-1
                             do j = 0, ngll-1
                                 select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                        ! Do not use random fields
+#else
                                     case (DM_SOLID_PML)
                                         Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-#ifndef CPML
                                         Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
                                         Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
 #endif
@@ -409,9 +427,11 @@ contains
                     if(verbose) write(*,*) "Edge in YZ"
                     do i = 0, ngll-1
                         select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                ! Do not use random fields
+#else
                             case (DM_SOLID_PML)
                                 pointDens   = Tdomain%spmldom%Density_(i, LimPML2,LimPML3,bnum,ee)
-#ifndef CPML
                                 pointLambda = Tdomain%spmldom%Lambda_(i, LimPML2,LimPML3,bnum,ee)
                                 pointMu     = Tdomain%spmldom%Mu_(i, LimPML2,LimPML3,bnum,ee)
 #endif
@@ -422,9 +442,11 @@ contains
                         do j = 0, ngll-1
                             do k = 0, ngll-1
                                 select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                        ! Do not use random fields
+#else
                                     case (DM_SOLID_PML)
                                         Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-#ifndef CPML
                                         Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
                                         Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
 #endif
@@ -440,9 +462,11 @@ contains
                     if(verbose) write(*,*) "Edge in ZX"
                     do j = 0, ngll-1
                         select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                ! Do not use random fields
+#else
                             case (DM_SOLID_PML)
                                 pointDens   = Tdomain%spmldom%Density_(LimPML1, j,LimPML3,bnum,ee)
-#ifndef CPML
                                 pointLambda = Tdomain%spmldom%Lambda_(LimPML1, j,LimPML3,bnum,ee)
                                 pointMu     = Tdomain%spmldom%Mu_(LimPML1, j,LimPML3,bnum,ee)
 #endif
@@ -453,9 +477,11 @@ contains
                         do i = 0, ngll-1
                             do k = 0, ngll-1
                                 select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                        ! Do not use random fields
+#else
                                     case (DM_SOLID_PML)
                                         Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-#ifndef CPML
                                         Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
                                         Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
 #endif
@@ -470,9 +496,11 @@ contains
                 case(6)
                     if(verbose) write(*,*) "Vertex"
                     select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                            ! Do not use random fields
+#else
                         case (DM_SOLID_PML)
                             pointDens   = Tdomain%spmldom%Density_(LimPML1, LimPML2,LimPML3,bnum,ee)
-#ifndef CPML
                             pointLambda = Tdomain%spmldom%Lambda_(LimPML1, LimPML2,LimPML3,bnum,ee)
                             pointMu     = Tdomain%spmldom%Mu_(LimPML1, LimPML2,LimPML3,bnum,ee)
 #endif
@@ -484,9 +512,11 @@ contains
                         do j = 0, ngll-1
                             do k = 0, ngll-1
                                 select case (Tdomain%specel(n)%domain)
+#ifdef CPML
+                                        ! Do not use random fields
+#else
                                     case (DM_SOLID_PML)
                                         Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-#ifndef CPML
                                         Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
                                         Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
 #endif

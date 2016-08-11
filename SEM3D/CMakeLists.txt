@@ -57,11 +57,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/shape8.F90
     ${PRJ}/SRC/shape27.F90
     ${PRJ}/SRC/ondelette.f90
-    ${PRJ}/SRC/define_random.f90
-    ${PRJ}/SRC/build_prop_files.F90
     ${PRJ}/SRC/find_location.f90
     ${PRJ}/SRC/charFunctions.f90
-    ${PRJ}/SRC/RF_fileCreator.f90
 
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90
@@ -151,7 +148,6 @@ set_target_properties(sem3d.exe PROPERTIES
 				COMPILE_FLAGS "-I${SEMLIBDIR}/ncpl3d -I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
                                 Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/ncpl3d)
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
-
 
 
 add_executable(test_pointlist

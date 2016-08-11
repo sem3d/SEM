@@ -859,9 +859,8 @@ contains
                   if (Tdomain%sdom%PlaneW%Exist) call compute_planeW_Exafield(el%lnum,Tdomain%TimeD%rtime,Tdomain)
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
-
-                  total_P_energy = total_P_energy + sum(P_energy)
-                  total_S_energy = total_S_energy + sum(S_energy)
+                  if (out_variables(OUT_ENERGYP)==1) total_P_energy = total_P_energy + sum(P_energy)
+                  if (out_variables(OUT_ENERGYS)==1) total_S_energy = total_S_energy + sum(S_energy)
 
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
@@ -961,7 +960,7 @@ contains
         write(61,"(a)") '<Grid CollectionType="Spatial" GridType="Collection">'
         !!! XXX: recuperer le nom par semname_*
         do group=0,n_groups-1
-            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',group,'.xmf"/>'
+            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',group,'.xmf" xpointer="xpointer(//Xdmf/Domain/Grid)"/>'
         end do
 
         write(61,"(a)") '</Grid>'
@@ -988,82 +987,62 @@ contains
         end if
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
+        write(61,"(a)") '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
+        write(61,"(a)") '<Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">'
+        write(61,"(a)") '<Domain>'
         write(61,"(a,I4.4,a)") '<Grid CollectionType="Temporal" GridType="Collection" Name="space.',group,'">'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" Datatype="Int"  Dimensions="',ne, &
-            '">geometry',group,'.h5:/Material</DataItem>'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Proc" Format="HDF" Datatype="Int"  Dimensions="',ne, &
-            '">geometry',group,'.h5:/Proc</DataItem>'
-
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Float" Precision="8"  Dimensions="',nn, &
-            '">geometry',group,'.h5:/Mass</DataItem>'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Alpha" Format="HDF" Datatype="Float" Precision="8"  Dimensions="',nn, &
-            '">geometry',group,'.h5:/Alpha</DataItem>'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
-            '">geometry',group,'.h5:/Jac</DataItem>'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" Datatype="Int"  Dimensions="',nn, &
-            '">geometry',group,'.h5:/Dom</DataItem>'
-
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dens" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
-            '">geometry',group,'.h5:/Dens</DataItem>'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Lamb" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
-            '">geometry',group,'.h5:/Lamb</DataItem>'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mu" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
-            '">geometry',group,'.h5:/Mu</DataItem>'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
-            '">geometry',group,'.h5:/Kappa</DataItem>'
-
 
         time = 0
 
         do i=1,isort
             write(61,"(a,I4.4,a,I4.4,a)") '<Grid Name="mesh.',i,'.',group,'">'
             write(61,"(a,F20.10,a)") '<Time Value="', time,'"/>'
-            write(61,"(a,I9,a)") '<Topology Type="Hexahedron" NumberOfElements="',ne,'">'
-            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Int" Dimensions="',ne,' 8">'
+            write(61,"(a,I9,a)") '<Topology TopologyType="Hexahedron" NumberOfElements="',ne,'">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Int" Dimensions="',ne,' 8">'
             write(61,"(a,I4.4,a)") 'geometry',group,'.h5:/Elements'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Topology>'
-            write(61,"(a)") '<Geometry Type="XYZ">'
-            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a)") '<Geometry GeometryType="XYZ">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a)") 'geometry',group,'.h5:/Nodes'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
             ! DISPL
             if (out_variables(OUT_DEPLA) == 1) then
-                write(61,"(a,I9,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+                write(61,"(a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/displ'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
             ! VELOC
             if (out_variables(OUT_VITESSE) == 1) then
-                write(61,"(a,I9,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+                write(61,"(a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/veloc'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
             ! ACCEL
             if (out_variables(OUT_ACCEL) == 1) then
-                write(61,"(a,I9,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+                write(61,"(a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/accel'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
             ! PRESSURE
             if (out_variables(OUT_PRESSION) == 1) then
-                write(61,"(a,I9,a)") '<Attribute Name="Pressure" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="Pressure" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
             ! VOLUMETRIC STRAIN
             if (out_variables(OUT_EPS_VOL) == 1) then
-                write(61,"(a,I9,a)") '<Attribute Name="eps_vol" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="eps_vol" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_vol'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
@@ -1071,38 +1050,38 @@ contains
             ! DEVIATORIC STRAIN
             if (out_variables(OUT_EPS_DEV) == 1) then
                 ! EPS_DEV_XX
-                write(61,"(a,I9,a)") '<Attribute Name="eps_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="eps_dev_xx" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_xx'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! EPS_DEV_XX
-                write(61,"(a,I9,a)") '<Attribute Name="eps_dev_yy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="eps_dev_yy" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_yy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! EPS_DEV_ZZ
-                write(61,"(a,I9,a)") '<Attribute Name="eps_dev_zz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="eps_dev_zz" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_zz'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! EPS_DEV_XY
-                write(61,"(a,I9,a)") '<Attribute Name="eps_dev_xy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="eps_dev_xy" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_xy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! EPS_DEV_XZ
-                write(61,"(a,I9,a)") '<Attribute Name="eps_dev_xz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="eps_dev_xz" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_xz'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! EPS_DEV_YZ
-                write(61,"(a,I9,a)") '<Attribute Name="eps_dev_yz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="eps_dev_yz" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_yz'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
@@ -1110,118 +1089,120 @@ contains
             ! DEVIATORIC STRESS
             if (out_variables(OUT_STRESS_DEV) == 1) then
                 ! SIG_DEV_XX
-                write(61,"(a,I9,a)") '<Attribute Name="sig_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="sig_dev_xx" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_xx'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! SIG_DEV_XX
-                write(61,"(a,I9,a)") '<Attribute Name="sig_dev_yy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="sig_dev_yy" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_yy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! SIG_DEV_ZZ
-                write(61,"(a,I9,a)") '<Attribute Name="sig_dev_zz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="sig_dev_zz" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_zz'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! SIG_DEV_XY
-                write(61,"(a,I9,a)") '<Attribute Name="sig_dev_xy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="sig_dev_xy" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_xy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! SIG_DEV_XZ
-                write(61,"(a,I9,a)") '<Attribute Name="sig_dev_xz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="sig_dev_xz" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_xz'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 ! SIG_DEV_YZ
-                write(61,"(a,I9,a)") '<Attribute Name="sig_dev_yz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="sig_dev_yz" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_yz'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
             ! P_ENERGY
             if (out_variables(OUT_ENERGYP) == 1) then
-                write(61,"(a,I9,a)") '<Attribute Name="P_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="P_energy" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/P_energy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
             ! S_ENERGY
             if (out_variables(OUT_ENERGYS) == 1) then
-                write(61,"(a,I9,a)") '<Attribute Name="S_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                write(61,"(a)") '<Attribute Name="S_energy" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/S_energy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
 
             ! DOMAIN
-            write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
-            write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',group,'</DataItem>'
+            write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
+            write(61,"(a,I4,a)") '<DataItem Format="XML" NumberType="Int"  Dimensions="1">',group,'</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! MAT
-            write(61,"(a,I9,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Mat"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" NumberType="Int"  Dimensions="',ne, &
+                '">geometry',group,'.h5:/Material</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! PROC
-            write(61,"(a,I9,a)") '<Attribute Name="Proc" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Proc"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Proc" Center="Cell" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Proc" Format="HDF" NumberType="Int"  Dimensions="',ne, &
+                '">geometry',group,'.h5:/Proc</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! MASS
-            write(61,"(a,I9,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Mass"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" NumberType="Float" Precision="4"  Dimensions="',nn, &
+                '">geometry',group,'.h5:/Mass</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! ALPHA/DUMPSX
-            write(61,"(a,I9,a)") '<Attribute Name="Alpha" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Alpha"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Alpha" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Alpha" Format="HDF" NumberType="Float" Precision="4"  Dimensions="',nn, &
+                '">geometry',group,'.h5:/Alpha</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! JACOBIAN
-            write(61,"(a,I9,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Jac"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                '">geometry',group,'.h5:/Jac</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! DENSITY
-            write(61,"(a,I9,a)") '<Attribute Name="Dens" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Dens"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Dens" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dens" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                '">geometry',group,'.h5:/Dens</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! LAMBDA
-            write(61,"(a,I9,a)") '<Attribute Name="Lamb" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Lamb"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Lamb" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Lamb" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                '">geometry',group,'.h5:/Lamb</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! MU
-            write(61,"(a,I9,a)") '<Attribute Name="Mu" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Mu"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Mu" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mu" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                '">geometry',group,'.h5:/Mu</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! KAPPA
-            write(61,"(a,I9,a)") '<Attribute Name="Kappa" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Kappa"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Kappa" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                '">geometry',group,'.h5:/Kappa</DataItem>'
             write(61,"(a)") '</Attribute>'
             ! DOMAIN
-            write(61,"(a,I9,a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
-                '"]/DataItem[@Name="Dom"]</DataItem>'
+            write(61,"(a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" NumberType="Int"  Dimensions="',nn, &
+                '">geometry',group,'.h5:/Dom</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a)") '</Grid>'
             ! XXX inexact pour l'instant
             time = time+Tdomain%TimeD%time_snapshots
         end do
         write(61,"(a)") '</Grid>'
+        write(61,"(a)") '</Domain>'
+        write(61,"(a)") '</Xdmf>'
         close(61)
     end subroutine write_xdmf
 
@@ -1362,7 +1343,11 @@ contains
                             case (DM_SOLID)
                                 dens(idx) = Tdomain%sdom%Density_        (i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
+#ifdef CPML
+                                dens(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DDensity
+#else
                                 dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
+#endif
                             case (DM_FLUID)
                                 dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)
@@ -1388,8 +1373,10 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
                                 lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
-#ifndef CPML
                             case (DM_SOLID_PML)
+#ifdef CPML
+                                lamb(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DLambda
+#else
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
 #endif
                             case (DM_FLUID)
@@ -1417,8 +1404,10 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
                                 mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
-#ifndef CPML
                             case (DM_SOLID_PML)
+#ifdef CPML
+                                mu(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DMu
+#else
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
 #endif
                             case (DM_FLUID)

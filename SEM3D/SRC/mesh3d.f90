@@ -31,7 +31,6 @@ contains
 
         if (inter%surf0%n_faces/=0) then
             call read_dataset(fid, trim(pfx)//"_faces", itemp2)
-!            write(*,*) pfx//" Faces:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_faces = itemp2(1,:)
             inter%surf1%if_faces = itemp2(2,:)
             deallocate(itemp2)
@@ -42,14 +41,12 @@ contains
         end if
         if (inter%surf0%n_edges/=0) then
             call read_dataset(fid, trim(pfx)//"_edges", itemp2)
-!            write(*,*) pfx//" Edges:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_edges = itemp2(1,:)
             inter%surf1%if_edges = itemp2(2,:)
             deallocate(itemp2)
         end if
         if (inter%surf0%n_vertices/=0) then
             call read_dataset(fid, trim(pfx)//"_vertices", itemp2)
-!            write(*,*) pfx//" Vertices:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_vertices = itemp2(1,:)
             inter%surf1%if_vertices = itemp2(2,:)
             deallocate(itemp2)
@@ -216,9 +213,9 @@ contains
             Tdomain%sSubDomain(mat)%MinBound_Loc = Tdomain%sSubDomain(mat)%MinBound
             assocMat = Tdomain%sSubDomain(mat)%assocMat
             where(Tdomain%sSubDomain(mat)%MinBound < Tdomain%sSubDomain(assocMat)%MinBound) &
-                  Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
+                Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
             where(Tdomain%sSubDomain(mat)%MaxBound > Tdomain%sSubDomain(assocMat)%MaxBound) &
-                  Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
+                Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
         end do
 
 
@@ -288,11 +285,9 @@ contains
         call read_attr_int(gid, "n_"//trim(pfx)//"_vertices", surf%n_vertices)
 
         call allocate_surface(surf)
-       
+
         if (surf%n_faces/=0) then
-            write(*,1000) "ASSOCIATED DOMAIN : ", trim(pfx)
             call read_dataset(gid, trim(pfx)//"_faces", itemp)
-            write(*,2005) trim(pfx)//" Faces:", size(itemp)
             surf%if_faces = itemp
             deallocate(itemp)
             call read_dataset(gid, trim(pfx)//"_orient", itemp)
@@ -301,54 +296,41 @@ contains
         end if
         if (surf%n_edges/=0) then
             call read_dataset(gid, trim(pfx)//"_edges", itemp)
-            write(*,2006) trim(pfx)//" Edges:", size(itemp)
             surf%if_edges = itemp
             deallocate(itemp)
         end if
         if (surf%n_vertices/=0) then
             call read_dataset(gid, trim(pfx)//"_vertices", itemp)
-            write(*,2007) trim(pfx)//" Vertices:", size(itemp)
             surf%if_vertices = itemp
             deallocate(itemp)
         end if
-        include 'formats.in'
     end subroutine read_one_surface
 
-    subroutine get_surface_domain(gid, isurf, domain) !, mat_index)
+    subroutine get_surface_domain(gid, domain)
 
-    implicit none
-    integer(HSIZE_T), intent(in)       :: isurf
-    integer, intent(inout)             :: domain !, mat_index
-    integer(HID_T), intent(in)         :: gid
-    character(len=4), dimension(4)     :: pfx=(/"sl  ", &
-                                                "fl  ", &
-                                                "spml", &
-                                                "fpml"/)
-    integer, allocatable, dimension(:) :: itemp
-    character(len=40)                  :: char
-    integer                            :: n_faces, i
-    
-    ! domaine associé à la surface 
-    do i=1,4
-       call read_attr_int(gid, "n_"//trim(pfx(i))//"_faces",n_faces)
-       if (n_faces/=0) then
-          call read_dataset(gid, trim(pfx(i))//"_faces_dom", itemp)
-          if (MAXVAL(itemp) /= MINVAL(itemp)) then
-              stop "Error : faces_dom uncorrectly defined. The surface seems to be an interface."
-          endif
-          domain=MINVAL(itemp)
-          deallocate(itemp)
-          ! materiau auquel est associée la surface
-          !call read_dataset(gid, trim(pfx(i))//"_surf_mat", itemp)
-          !if (MAXVAL(itemp) /= MINVAL(itemp)) then
-          !  stop "Error : surface(i)_mat uncorrectly defined. The surface seems to be an interface."       
-          !endif
-          !mat_index=MINVAL(itemp)
-          !deallocate(itemp)
-       endif
-    enddo
+        implicit none
+        integer, intent(inout)             :: domain
+        integer(HID_T), intent(in)         :: gid
+        character(len=4), dimension(4)     :: pfx=(/"sl  ", &
+            "fl  ", &
+            "spml", &
+            "fpml"/)
+        integer, allocatable, dimension(:) :: itemp
+        integer                            :: n_faces, i
 
-    end subroutine
+        do i=1,4
+            call read_attr_int(gid, "n_"//trim(pfx(i))//"_faces",n_faces)
+            if (n_faces/=0) then
+                call read_dataset(gid, trim(pfx(i))//"_faces_dom", itemp)
+                if (MAXVAL(itemp).ne.MINVAL(itemp)) then
+                    stop "Error : faces_dom uncorrectly denied in surfaces list"
+                endif
+                domain=MINVAL(itemp)
+                deallocate(itemp)
+            endif
+        enddo
+
+    end subroutine get_surface_domain
 
     subroutine read_surfaces(Tdomain, gid)
         implicit none
@@ -361,19 +343,13 @@ contains
         integer(HSIZE_T) :: namesz, i
         integer(HID_T) :: surf_id
         call read_attr_int(gid, "n_surfaces", n_surfaces)
-        
+        write(*,*) "NSURFACES=", n_surfaces
         allocate(Tdomain%sSurfaces(0:n_surfaces-1))
         ! Get group info
         call H5Gget_info_f(gid, storage_type, nlinks, max_corder, ierr)
-        write(*,2003) 
-        write(*,*) "SURFACES:", n_surfaces, "/", max_corder, " nlinks=", nlinks
-        write(*,2003) 
 
         do i=0,nlinks-1
             call H5Lget_name_by_idx_f(gid, ".", H5_INDEX_NAME_F, H5_ITER_INC_F, i, surfname, ierr, namesz)
-            write(*,*) 
-            write(*,2004) "SURFACE -> ", i, " :: ", trim(surfname)
-            write(*,2002)
             call H5Gopen_f(gid, trim(surfname), surf_id, ierr)
             !
             ! Read one surface
@@ -384,11 +360,8 @@ contains
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fl  , "fl"  , surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_spml, "spml", surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fpml, "fpml", surf_id)
-            call get_surface_domain(surf_id, i, Tdomain%sSurfaces(i)%domain) !, Tdomain%sSurfaces(i)%Elastic%mat_index)
-            write(*,2008)
-            write(*,*)
+            call get_surface_domain(surf_id, Tdomain%sSurfaces(i)%domain)
         end do
-        include 'formats.in'
     end subroutine read_surfaces
 
     subroutine read_mesh_file_h5(Tdomain)
@@ -478,25 +451,9 @@ contains
         call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
         call read_surfaces(Tdomain, surf_id)
         call h5gclose_f(surf_id, hdferr)
-        !! Rajouter pour vérifier que les surfaces choisies existes
         if (Tdomain%logicD%surfBC) then
             call surface_in_list(Tdomain)
         endif
-        ! Neumann B.C. properties, eventually
-        !if(Tdomain%logicD%Neumann_local_present)then
-        !    write (*,*)
-        !    write (*,1001) " Read Neumann surfaces"
-        !    allocate(Tdomain%Neumann%NeuSurface(0:size(Tdomain%Neumann%Neu_Param%neu_index)-1))
-        !    call read_neu_surface(Tdomain)    
-        !end if
-        
-        ! Plane Wave properties, eventually
-        !if (Tdomain%logicD%super_object_local_present) then
-        !   write (*,*)
-        !   write (*,1001) " Read incidente plane wave surface"
-        !   call read_planeW_surface(Tdomain)
-        !endif
-        !write (*,*)
 
         ! Interproc communications
         Tdomain%tot_comm_proc = 0
@@ -528,8 +485,6 @@ contains
             end do
         end if
         deallocate(nb_elems_per_proc)
-
-      include 'formats.in'
 
     end subroutine read_mesh_file_h5
     !!                                                                                                            !!

@@ -56,12 +56,9 @@ contains
                            case(DM_FLUID)
                                 call surface_force(Tdomain%sSurfaces(n)%surf_fl, Tdomain%nsurfsource(n2), &
                                                    Tdomain%sSurfaces(n),Tdomain)
-                           case(DM_SOLID_PML)
-                                call surface_force(Tdomain%sSurfaces(n)%surf_spml, Tdomain%nsurfsource(n2), &
-                                                   Tdomain%sSurfaces(n),Tdomain)
-                           case(DM_FLUID_PML)
-                                call surface_force(Tdomain%sSurfaces(n)%surf_fpml, Tdomain%nsurfsource(n2), &
-                                                   Tdomain%sSurfaces(n),Tdomain)
+                           case(DM_SOLID_PML,DM_FLUID_PML)
+                                ErrorSMS= "Neumann condition should not be used on PML surface "
+                                call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
                         end select
                         exit bloc
                      endif
@@ -85,12 +82,12 @@ contains
                                    Tdomain%sdom%PlaneW%Exist = .true.
                                    call surface_force(Tdomain%sSurfaces(n)%surf_sl, Tdomain%nsurfsource(n2), &
                                                       Tdomain%sSurfaces(n),Tdomain,Tdomain%sdom%champs0%Veloc)
-                               case(DM_FLUID)
-                                    call surface_force(Tdomain%sSurfaces(n)%surf_fl, Tdomain%nsurfsource(n2), &
-                                                       Tdomain%sSurfaces(n),Tdomain)
-                               case default
+                               !case(DM_FLUID)
+                               !     call surface_force(Tdomain%sSurfaces(n)%surf_fl, Tdomain%nsurfsource(n2), &
+                               !                        Tdomain%sSurfaces(n),Tdomain)
+                               case(DM_SOLID_PML,DM_FLUID_PML,DM_FLUID)
                                    write(char,*) Tdomain%sSurfaces(n)%domain 
-                                   ErrorSMS= "Sorry the plane wave problem is implemented only for solid dom 4 # "//adjustl(char(:len_trim(char)))
+                                   ErrorSMS= "Plane wave problem is implemented only for solid dom 4 # "//adjustl(char(:len_trim(char)))
                                    call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
                         endselect
                         exit blocPW

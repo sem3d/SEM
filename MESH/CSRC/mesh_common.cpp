@@ -6,37 +6,23 @@
 #ifndef _MESH_COMMON_
 #define _MESH_COMMON_
 
-#include <vector>
-#include <string>
 #include <cstdio>
-/*
-#include <map>
-#include "material.h"
-#include "h5helper.h"
-#include "vertex_elem_map.h"
-#include "meshbase.h"
-#include "aabb.h"
-*/
 
-namespace mesh_common{
-	size_t getData_line(char **buffer, size_t linesize, FILE* f)
-	{
-		getline(buffer, &linesize, f);
+// Reads a line skiping it if it starts with #
+void getData_line(char **buffer, size_t* linesize, FILE* f)
+{
+    getline(buffer, linesize, f);
 
-		for(int k=0;k<100;++k) {
-			if(*buffer[0] != '#'){
-				//printf(" NOT A COMMENT!!!!");
-				break;
-			}
-			else{
-				//printf(" IT WAS A COMMENT!!!!");
-				getline(buffer, &linesize, f);
-			}
-		}
-
-		return linesize;
-	}
+    for(int k=0;k<100;++k) {
+        if(*buffer[0] != '#'){
+          break;
+        }
+        else{
+            getline(buffer, linesize, f);
+        }
+    }
 }
+
 
 #endif
 

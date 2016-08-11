@@ -15,7 +15,6 @@
 #include "vertex_elem_map.h"
 #include "meshbase.h"
 #include "aabb.h"
-#include "mesh_common.h"
 
 class Mesh3D
 {
@@ -47,10 +46,8 @@ public:
     int add_elem(int mat_idx, const Elem& el);
 
     int read_materials(const std::string& fname);
-    int read_materials_v1(const std::string& fname);
     int read_materials_v2(const std::string& fname);
     void write_materials(const std::string& fname);
-    void write_materials_v1(const std::string& fname);
     void write_materials_v2(const std::string& fname);
     void read_mesh_file(const std::string& fname);
     void findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int & elmat);
@@ -114,7 +111,6 @@ public:
     std::vector<unsigned int> m_vertex_domains;
     VertexElemMap  m_vertex_to_elem;
     std::vector<std::string> m_surf_matname;
-    std::map<int, std::vector<double> > m_matseting;
     std::map<int, std::pair<std::pair< std::vector<int>, int>, int>  > surfelem; // hexa8_num,<hexa8_id>,hexa8_tag,Quad4_tag
 
     void build_vertex_to_elem_map();

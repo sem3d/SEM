@@ -548,6 +548,10 @@ contains
             read(fileID, fmt=*) line
             lineNb = lineNb + 1
 
+!            call wLog("Line ")
+!            call wLog(lineNb)
+!            call wLog(line)
+
             if(trim(adjustL(line)) == "-1") then
                 call wLog("Line ")
                 call wLog(lineNb)
@@ -588,6 +592,7 @@ contains
         inside = .true.
         nElem = 0
         nElemByType(:) = 0
+        maxConnect = 0
         monoType = .true.
 
         !Jump initials -1
@@ -608,6 +613,11 @@ contains
             read(fileID, fmt=*) line
             lineNb = lineNb + 1
 
+
+            call wLog("Line ")
+            call wLog(lineNb)
+            call wLog(line)
+
             !Read the connectivity header information
             if(trim(adjustL(line)) == "-1") then
                 call wLog("Line ")
@@ -622,6 +632,9 @@ contains
                 read(fileID, *) connectInfo
                 lineNb = lineNb + 1
                 !write(*,*) "connectInfo = ", connectInfo
+
+                if(connectInfo(2) /= 115) cycle
+
                 nElem = nElem + 1
                 !if(nElemByType(connectInfo(6))==0) !!write(get_fileId(),*) "First triangle is element ", nElem
                 nElemByType(connectInfo(6)) = nElemByType(connectInfo(6)) + 1

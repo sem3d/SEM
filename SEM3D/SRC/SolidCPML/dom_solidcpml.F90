@@ -11,19 +11,15 @@
 !!       Rene Matzen
 !!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
+#include "dom_solidcpml_macro.F90"
+
 module dom_solidpml
     use constants
     use sdomain
     use champs_solidpml
+    use ssubdomains
     implicit none
 #include "index.h"
-
-    !! CPML parameters: for the very first implementation, parameters are hard-coded. TODO : read parameters (kappa_* ?) from input.spec ?
-    real(fpp), private, parameter :: c_x = 1., c_y = 1., c_z = 1.
-    integer,   private, parameter :: n_x = 2,  n_y = 2,  n_z = 2
-    real(fpp), private, parameter :: r_c = 0.001
-    integer,   private, parameter :: kappa_0 = 1, kappa_1 = 0
-    real(fpp), private, parameter :: L_x = -1., L_y = -1., L_z = -1.
 
 contains
 
@@ -50,56 +46,72 @@ contains
             nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
             dom%nblocks = nblocks
 
-            allocate(dom%Density_(      0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Cij_    (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-
             allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
 
             allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
-
-            allocate(dom%R1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-            allocate(dom%R2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-            allocate(dom%R3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
+            allocate(dom%champs0%Forces(0:dom%nglltot-1,0:2))
             allocate(dom%champs0%Depla (0:dom%nglltot-1,0:2))
             allocate(dom%champs0%Veloc (0:dom%nglltot-1,0:2))
+            allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
             dom%champs0%Depla  = 0d0
             dom%champs0%Veloc  = 0d0
+            dom%champs0%Forces = 0d0
             dom%champs1%Depla  = 0d0
             dom%champs1%Veloc  = 0d0
+            dom%champs1%Forces = 0d0
 
-            allocate(dom%Forces(0:dom%nglltot-1,0:2))
-            dom%Forces = 0d0
+            allocate(dom%DeplaPrev(0:dom%nglltot-1,0:2))
+            dom%DeplaPrev = 0d0
+
 
             ! Allocation de MassMat pour les PML solides
             allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
+
+            ! Allocation de DumpMat pour les PML solides
+            allocate(dom%DumpMat(0:dom%nglltot-1))
+            dom%DumpMat = 0d0
+
+            ! Allocation de MasUMat pour les PML solides
+            allocate(dom%MasUMat(0:dom%nglltot-1))
+            dom%MasUMat = 0d0
+
+            ! Allocation des Ri pour les PML solides
+            allocate(dom%R1(0:dom%nglltot-1,0:2))
+            dom%R1 = 0d0
+            allocate(dom%R2(0:dom%nglltot-1,0:2))
+            dom%R2 = 0d0
+            allocate(dom%R3(0:dom%nglltot-1,0:2))
+            dom%R3 = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+
+        ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
+        ! TODO : read parameters (kappa_* ?) from input.spec ?
+
+        dom%c = 1.
+        dom%n = 2
+        dom%r_c = 0.001
+        dom%kappa_0 = 1; dom%kappa_1 = 0;
+        dom%alphamax = 0.
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
 
-        if(allocated(dom%m_Density)) deallocate(dom%m_Density)
-        if(allocated(dom%m_Cij    )) deallocate(dom%m_Cij    )
-
         if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
-
-        if(allocated(dom%m_R1)) deallocate(dom%m_R1)
-        if(allocated(dom%m_R2)) deallocate(dom%m_R2)
-        if(allocated(dom%m_R3)) deallocate(dom%m_R3)
 
         if(allocated(dom%gllc))    deallocate(dom%gllc)
         if(allocated(dom%gllw))    deallocate(dom%gllw)
@@ -108,11 +120,20 @@ contains
 
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
+        if(allocated(dom%champs0%Forces )) deallocate(dom%champs0%Forces )
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
+        if(allocated(dom%champs1%Forces )) deallocate(dom%champs1%Forces )
 
-        if(allocated(dom%Forces )) deallocate(dom%Forces )
+        if(allocated(dom%DeplaPrev)) deallocate(dom%DeplaPrev)
+
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+        if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
+        if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
+
+        if(allocated(dom%R1)) deallocate(dom%R1)
+        if(allocated(dom%R2)) deallocate(dom%R2)
+        if(allocated(dom%R3)) deallocate(dom%R3)
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
@@ -193,9 +214,7 @@ contains
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldA(i,j,k,:) = dom%Massmat(ind) * ( dom%Forces(ind,0) + &
-                                                               dom%Forces(ind,1) + &
-                                                               dom%Forces(ind,2) )
+                        fieldA(i,j,k,:) = dom%Massmat(ind) * dom%champs1%Forces(ind,:)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
@@ -240,6 +259,16 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
+    subroutine init_domain_solidpml(Tdomain, dom)
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_solidpml), intent(inout) :: dom
+        !
+        ! Handle on node global coords : mandatory to compute distances in the PML (solidcpml_abk)
+        dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
+        ! Handle on materials
+        dom%sSubDomain => Tdomain%sSubDomain
+    end subroutine init_domain_solidpml
+
     subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -248,16 +277,7 @@ contains
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
         !
-        integer :: bnum, ee
-        bnum = lnum/VCHUNK
-        ee = mod(lnum,VCHUNK)
-
-        if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%Density_(:,:,:,bnum,ee) = density
-        else
-            dom%Density_(i,j,k,bnum,ee) = density
-        end if
-        ! TODO : compute dom%Cij
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine init_material_properties_solidpml
 
     ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
@@ -269,17 +289,45 @@ contains
         real Whei
         !
         integer :: bnum, ee
-        real(fpp) :: ab2
+        real(fpp) :: xi, xoverl, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
+        real(fpp) :: g0, g1, g2 ! solidcpml_gamma_ab
+        real(fpp) :: g101, g212, g002 ! solidcpml_gamma_abc
+        real(fpp) :: a0b, a1b, a2b
+        real(fpp) :: density
+        integer :: mi
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
 
+        ind = dom%Idom_(i,j,k,bnum,ee)
+        if (.not. dom%sSubDomain(specel%mat_index)%material_type == "P") &
+            stop "init_geometric_properties_solidpml : material is not a PML material"
+        density = dom%sSubDomain(specel%mat_index)%Ddensity
+
+        ! Compute alpha, beta, kappa
+        mi = specel%mat_index
+        solidcpml_abk(0,i,j,k,bnum,ee,mi)
+        solidcpml_abk(1,i,j,k,bnum,ee,mi)
+        solidcpml_abk(2,i,j,k,bnum,ee,mi)
+
+        ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
+        a0b = kappa(0)*kappa(1)*kappa(2)
+        dom%MassMat(ind) = dom%MassMat(ind) + density*a0b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+        if (abs(dom%MassMat(ind)) < solidcpml_eps) stop "ERROR : MassMat is null" ! Check
+
+        ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
+        solidcpml_gamma_ab(g0,beta,0,alpha,0)
+        solidcpml_gamma_ab(g1,beta,1,alpha,1)
+        solidcpml_gamma_ab(g2,beta,2,alpha,2)
+        a1b = a0b*(g0+g1+g2)
+        dom%DumpMat(ind) = dom%DumpMat(ind) + density*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+
         ! Delta term from L : (12a) or (14a) from Ref1
-
-        ab2 = 1. ! TODO : compute ab2 !...
-        dom%MassMat(ind) = dom%MassMat(ind) + ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
-
-        ! TODO: compute dom%MassMat
+        solidcpml_gamma_abc(g101,beta,1,alpha,0,alpha,1)
+        solidcpml_gamma_abc(g212,beta,2,alpha,1,alpha,2)
+        solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
+        a2b = a0b*(g0*g101+g1*g212+g2*g002)
+        dom%MasUMat(ind) = dom%MasUMat(ind) + density*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
     end subroutine init_local_mass_solidpml
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
@@ -293,22 +341,17 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine pred_sol_pml
 
-    subroutine update_material_properties_solidpml(dom)
-        type(domain_solidpml), intent (INOUT) :: dom
-        ! TODO : update dom%Cij with dom%m_R1, dom%m_R2, dom%m_R3
-    end subroutine update_material_properties_solidpml
-
-    subroutine forces_int_sol_pml(dom, champs1, bnum)
+    subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
+        use sdomain
         use m_calcul_forces_solidpml
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
         integer :: bnum
+        type (domain), intent (INOUT), target :: Tdomain
         !
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
-
-        call update_material_properties_solidpml(dom)
 
         ngll = dom%ngll
 
@@ -328,7 +371,7 @@ contains
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0
-        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
+        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla,Tdomain)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -337,9 +380,9 @@ contains
                         e = bnum*VCHUNK+ee
                         if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        dom%Forces(idx,0) = dom%Forces(idx,0)-Fox(ee,i,j,k)
-                        dom%Forces(idx,1) = dom%Forces(idx,1)-Foy(ee,i,j,k)
-                        dom%Forces(idx,2) = dom%Forces(idx,2)-Foz(ee,i,j,k)
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -354,10 +397,30 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine init_solidpml_properties
 
-    subroutine finalize_solidpml_properties(dom)
+    subroutine finalize_solidpml_properties(Tdomain, dom)
+        type (domain), intent (INOUT), target :: Tdomain
         type (domain_solidpml), intent (INOUT), target :: dom
         !
-        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
+        real(fpp) :: fmax
+        integer :: nsrc
+
+        ! Compute alphamax (from fmax)
+
+        ! TODO : compute max of all fmax of all procs: need to speak about that with Ludovic: where ? how ?
+        ! My understanding is that all procs process different elements (PML or not), so all procs are NOT
+        ! here (in init_solidpml_properties) at the same time : broadcast fmax of each proc to all procs and get
+        ! the max could NOT work ?!... Right ? Wrong ? Don't know !...
+        ! TODO : replace all this by fmax from read_input.c
+        if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
+
+        fmax = -1.
+        do nsrc = 0, Tdomain%n_source -1
+            if (fmax < Tdomain%sSource(nsrc)%cutoff_freq) then
+                fmax = Tdomain%sSource(nsrc)%cutoff_freq
+            end if
+        end do
+        if (fmax < 0.) stop "SolidCPML : fmax < 0."
+        dom%alphamax = M_PI * fmax
     end subroutine finalize_solidpml_properties
 
     subroutine update_convolution_terms(dom)
@@ -369,9 +432,27 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         type (domain), intent (INOUT) :: Tdomain
         !
+        integer :: n, indpml, indsol
+
+        ! Reset forces
+        dom%champs1%Forces = 0d0
+
+        ! Coupling at solid PML interface
+        do n = 0,Tdomain%intSolPml%surf0%nbtot-1
+            indsol = Tdomain%intSolPml%surf0%map(n)
+            indpml = Tdomain%intSolPml%surf1%map(n)
+            dom%champs0%Veloc(indpml,:) = Tdomain%sdom%champs0%Veloc(indsol,:)
+            dom%champs0%Depla(indpml,:) = Tdomain%sdom%champs0%Depla(indsol,:)
+        enddo
+
+        ! Save depla
+        dom%DeplaPrev = dom%champs0%Depla
+
+        ! The prediction will be based on the current state
         dom%champs1%Depla = dom%champs0%Depla
         dom%champs1%Veloc = dom%champs0%Veloc
-        dom%Forces = 0d0
+
+        ! Update convolution terms
         call update_convolution_terms(dom)
     end subroutine newmark_predictor_solidpml
 
@@ -380,18 +461,32 @@ contains
         double precision :: dt
         !
         integer :: i_dir, n, indpml
-        ! Update velocity in champs0 (Note: dom%MassMat = 1./dom%MassMat in define_arrays::inverse_mass_mat)
+        real(fpp) :: V(0:dom%nglltot-1), A(0:dom%nglltot-1) ! Velocity, Acceleration
+
+        ! Update champs1 velocity from champs0
         do i_dir = 0,2
+            ! Estimate V = V_n+3/2
+            V(:) = dom%champs0%Veloc(:,i_dir) ! V = V_n+1
+            V(:) = 0.5 * ( V(:) + (dom%champs0%Depla(:,i_dir)-dom%DeplaPrev(:,i_dir))/dt ) ! V is corrected with U_n+1/2 to estimate V_n+3/2
+
+            ! Compute acceleration
+            A(:) =   dom%R1(:,i_dir)     + dom%R2(:,i_dir)                           + dom%R3(:,i_dir)           &
+                   - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) - dom%champs1%Forces(:,i_dir) ! (61a) from Ref1
+
+            ! Compute V_n+2
             dom%champs0%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
-                                         dt * ( dom%Forces(:,i_dir) * dom%MassMat(:) ) ! dt * acceleration
+                                         dt * dom%MassMat(:) * A(:) ! dom%MassMat = 1./dom%MassMat (define_arrays inverse_mass_mat)
         enddo
-        ! Apply BC (dirichlet)
+
+        ! Update current state
+        dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
+
+        ! Apply BC for PML (dirichlet)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
             dom%champs0%Veloc(indpml,:) = 0.
+            dom%champs0%Depla(indpml,:) = 0.
         enddo
-        ! Update displacement in champs0
-        dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
     end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 

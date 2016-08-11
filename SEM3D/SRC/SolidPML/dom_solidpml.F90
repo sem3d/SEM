@@ -221,6 +221,13 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
+    subroutine init_domain_solidpml(Tdomain, dom)
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_solidpml), intent(inout) :: dom
+        !
+        ! TODO : useless, kill this method, needed for build compatibility SolidPML / SolidCPML
+    end subroutine init_domain_solidpml
+
     subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -259,10 +266,12 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
-    subroutine forces_int_sol_pml(dom, champs1, bnum)
+    subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
+        use sdomain
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
         integer :: bnum
+        type (domain), intent (INOUT), target :: Tdomain ! Needed for compilation compatibility with SolidCPML
         !
         integer :: ngll
         integer :: i, j, k, l, ind, e, ee
@@ -572,7 +581,8 @@ contains
         deallocate(Vp)
     end subroutine init_solidpml_properties
 
-    subroutine finalize_solidpml_properties(dom)
+    subroutine finalize_solidpml_properties(Tdomain,dom)
+      type (domain), intent (INOUT), target :: Tdomain
       type (domain_solidpml), intent (INOUT), target :: dom
       !
       call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%DumpV)

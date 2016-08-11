@@ -19,9 +19,9 @@ SUBROUTINE f2D(f, valx, valy, valt, res)
   INTEGER,                             PARAMETER     :: nfunc = 1
   
   INTEGER,                             PARAMETER     :: nvar = 4
-  CHARACTER (LEN=*), DIMENSION(nvar),  PARAMETER     :: var  = (/ 'x', &
-                                                                  'y', &
-                                                                  't', &
+  CHARACTER (LEN=*), DIMENSION(nvar),  PARAMETER     :: var  = (/ 'x ', &
+                                                                  'y ', &
+                                                                  't ', &
                                                                   'pi' /)
   REAL(rn),          DIMENSION(nvar)                 :: val 
   CHARACTER (LEN=3),   ALLOCATABLE                   :: varfin(:)

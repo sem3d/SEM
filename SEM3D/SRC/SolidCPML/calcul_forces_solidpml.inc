@@ -3,8 +3,39 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
-!! Note: CPML can be seen as an artificial anisotropic material according to (10) from Ref2.
-!! This file is the same as the one of the Solid domain with ANISO and without ATTENUATION (which is meaningless for CPML).
+!! Convolutional Perfectly Matched Layers implemented according 2 references:
+!! Ref1. Improved forward wave propagation and adjoint-based sensitivity kernel calculations using a numerically stable finite-element PML
+!!       Zhinan Xie, Dimitri Komatitsch, Roland Martin, Rene Matzen
+!!       Geophysical Journal International, 2014, 198, 1714-1747
+!! Ref2. An efficient finite element time-domain formulation for the elastic second-order wave equation: a non-split complex frequency shifted convolutional PML
+!!       Rene Matzen
+!!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
+
+!! CPML can be seen as an artificial anisotropic material according to (10) + (14) + (17c) + (19*) from Ref2.
+!! Convoluting div(sigma) amounts to convoluting Cijkl : this can be seen in (17c) and in the first term at the right hand side of (24c) from Ref2.
+
+!! This file has been initialized from the version of the Solid domain with ANISO and without ATTENUATION (which is meaningless for CPML).
+!! This file differs from the version of the Solid domain by :
+!! 1. Cijkl are convoluted at each time iteration.
+!! 2. Cijkl has 15 terms (upper part).
+!!
+!!      sigij               C0ijkl                 epskl                       Conv = FT^-1(si*sj/sk)
+!!
+!!    | sig11 |   | l+2m l    l                   |   | eps11 |     | L231 L3   L2                                 |
+!!    | sig22 |   | l    l+2m l                   |   | eps22 |     | L3   L132 L1                                 |
+!!    | sig33 | = | l    l    l+2m                |   | eps33 |     | L2   L1   L123                               |
+!!    | sig23 |   |                 m  m          |   | eps23 |     |                L132 L1                       |
+!!    | sig32 |   |                 m  m          | * | eps32 | and |                L1   L123                     |
+!!    | sig13 |   |                      m m      |   | eps13 |     |                          L231 L2             |
+!!    | sig31 |   |                      m m      |   | eps31 |     |                          L2   L123           |
+!!    | sig12 |   |                           m m |   | eps12 |     |                                    L231 L3   |
+!!    | sig21 |   |                           m m |   | eps21 |     |                                    L3   L132 |
+!!
+!!    Li and Lijk (from Conv) are defined in (A.4) from Ref1.
+!!
+!!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
+
+#include "dom_solidcpml_macro.F90"
 
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
@@ -19,23 +50,29 @@
 
 #define USE_LOCAL_MEM
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
+subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Tdomain)
     use champs_solidpml
+    use sdomain
     implicit none
 
     type(domain_solidpml), intent (INOUT) :: dom
-    integer, intent(in) :: bnum
     integer, intent(in) :: ngllvar
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
+    integer, intent(in) :: bnum
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
+    type(domain) :: TDomain
+    !
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
+    real(fpp) :: xi, Li, xj, xk, Lijk, xoverl, kappa(0:2) ! solidcpml_Li, solidcpml_Lijk
+    real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
+    real(fpp) :: EXY,EXZ,EYZ
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp), parameter :: zero = 0.
+    real(fpp) :: t4
 #ifdef USE_LOCAL_MEM
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
@@ -47,7 +84,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
-    real(fpp) :: Eyz, Exz, Exy
+    integer :: mi
+    real(fpp) :: lbd, mu
+    real(fpp) :: C1111,C1122,C1133,C2222,C2233,C3333,C2323,C2332,C1313,C1331,C1212,C1221,C3232,C3131,C2121
 
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -118,17 +157,39 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
                 dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
 
-                Eyz = (DYZ+DZY)*M_SQRT1_2
-                Exz = (DXZ+DZX)*M_SQRT1_2
-                Exy = (DXY+DYX)*M_SQRT1_2
-#define CC(d)  dom%Cij_(d,i,j,k,bnum,ee)
-                sxx = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
-                syy = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
-                szz = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
-                syz = DXX*CC( 3) + DYY*CC( 8) + DZZ*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
-                sxz = DXX*CC( 4) + DYY*CC( 9) + DZZ*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
-                sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
-#undef CC
+                mi = Tdomain%specel(bnum*VCHUNK+ee)%mat_index
+                lbd = dom%sSubDomain(mi)%DLambda
+                mu = dom%sSubDomain(mi)%DMu
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1111 = (lbd+2*mu)*Lijk
+                solidcpml_Li      (2,i,j,k,bnum,ee,mi); C1122 =  lbd      *Li
+                solidcpml_Li      (1,i,j,k,bnum,ee,mi); C1133 =  lbd      *Li
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2222 = (lbd+2*mu)*Lijk
+                solidcpml_Li      (0,i,j,k,bnum,ee,mi); C2233 =  lbd      *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3333 = (lbd+2*mu)*Lijk
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2323 =        mu *Lijk
+                solidcpml_Li      (0,i,j,k,bnum,ee,mi); C2332 =        mu *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3232 =        mu *Lijk
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1313 =        mu *Lijk
+                solidcpml_Li      (1,i,j,k,bnum,ee,mi); C1331 =        mu *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3131 =        mu *Lijk
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1212 =        mu *Lijk
+                solidcpml_Li      (2,i,j,k,bnum,ee,mi); C1221 =        mu *Li
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2121 =        mu *Lijk
+
+                EXY=0.5*(DXY+DYX)
+                EXZ=0.5*(DXZ+DZX)
+                EYZ=0.5*(DYZ+DZY)
+
+                sxx = DXX*C1111 + DYY*C1122 + DZZ*C1133
+                syy = DXX*C1122 + DYY*C2222 + DZZ*C2233
+                szz = DXX*C1133 + DYY*C2233 + DZZ*C3333
+                sxy = EXY*C1212 + EXY*C1221
+                syx = EXY*C1221 + EXY*C2121
+                sxz = EXZ*C1313 + EXZ*C1331
+                szx = EXZ*C1331 + EXZ*C3131
+                syz = EYZ*C2323 + EYZ*C2332
+                szy = EYZ*C2332 + EYZ*C3232
+
                 !
                 !=====================
                 !       FX
@@ -142,17 +203,17 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 !       FY
                 !=====================
                 !
-                xt5 = syy*JYX+sxy*JXX+syz*JZX
-                xt6 = syy*JYY+sxy*JXY+syz*JZY
-                xt7 = syy*JYZ+sxy*JXZ+syz*JZZ
+                xt5 = syx*JXX+syy*JYX+syz*JZX
+                xt6 = syx*JXY+syy*JYY+syz*JZY
+                xt7 = syx*JXZ+syy*JYZ+syz*JZZ
                 !
                 !=====================
                 !       FZ
                 !=====================
                 !
-                xt8 = szz*JZX+sxz*JXX+syz*JYX
-                xt9 = szz*JZY+sxz*JXY+syz*JYY
-                xt10= szz*JZZ+sxz*JXZ+syz*JYZ
+                xt8 = szx*JXX+szy*JYX+szz*JZX
+                xt9 = szx*JXY+szy*JYY+szz*JZY
+                xt10= szx*JXZ+szy*JYZ+szz*JZZ
 
                 !
                 !- Multiplication par le Jacobien et le poids d'integration

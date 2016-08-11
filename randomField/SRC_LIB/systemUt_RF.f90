@@ -122,6 +122,30 @@ contains
 
     end function folderExist
 
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    function fileExist (filePath) result (fileExists)
+        implicit none
+        !INPUT
+        character(len = *), intent(in) :: filePath
+        !OUTPUT
+        logical :: fileExists
+        !LOCAL
+        integer :: fileId=56, error
+
+        fileExists = .false.
+        open (unit = fileId , file = filePath, action = 'read', iostat=error)
+        !write(*,*) "error = ", error
+        if(error==0) then
+            close(fileId)
+            fileExists = .true.
+        end if
+
+
+    end function fileExist
+
 end module systemUt_RF
 
 

@@ -11,6 +11,7 @@ Commande ::
 mesher < mesh.input
 
 Un cube de 14x14x14, 5 pt de gauss par maille
+Il faut un maillage fin pour approcher de la solution exacte
 
 surface
 ------

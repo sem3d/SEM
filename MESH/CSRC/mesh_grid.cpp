@@ -18,31 +18,31 @@ void RectMesh::read_params_old(FILE* fparam)
     int pml_top, pml_bottom;
 
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &xmin);
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &xmax);
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &xstep);
 
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &ymin);
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &ymax);
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &ystep);
 
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &zmax);
 
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &nlayers);
     // Sanity checks
     if (nlayers<0 || nlayers>200) {
@@ -54,12 +54,12 @@ void RectMesh::read_params_old(FILE* fparam)
     zmin = zmax;
     for(int k=0;k<nlayers;++k) {
         //getline(&buffer, &n, fparam);
-    	mesh_common::getData_line(&buffer, n, fparam);
+    	getData_line(&buffer, &n, fparam);
     	sscanf(buffer, "%lf %d", &thickness[k], &nsteps[k]);
         zmin = zmin-thickness[k];
     }
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &has_pml);
     if (has_pml!=0 && has_pml!=1) {
         printf("Check your parameter file : we read has_pml=%d instead of 0 or 1\n", has_pml);
@@ -77,7 +77,7 @@ void RectMesh::read_params_old(FILE* fparam)
         pmls.W = false;
     }
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d %d", &pml_top, &pml_bottom);
     if (has_pml && pml_top) {
         pmls.U = true;
@@ -90,10 +90,10 @@ void RectMesh::read_params_old(FILE* fparam)
         pmls.D = false;
     }
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &ngll_pml);
     //getline(&buffer, &n, fparam);
-    mesh_common::getData_line(&buffer, n, fparam);
+    getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &elem_shape);
     switch(elem_shape) {
     case 1:
@@ -124,7 +124,7 @@ int RectMesh::pointidx27(int i, int j, int k)
 
 int RectMesh::get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, bool U, bool D)
 {
-	if (!has_pml)
+    if (!has_pml)
         return layer;
     W = pmls.W && W;
     E = pmls.E && E;
@@ -145,7 +145,7 @@ int RectMesh::get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, b
     Material new_mat(mat);
     if (new_mat.m_type==DM_SOLID) new_mat.m_type = DM_SOLID_PML;
     if (new_mat.m_type==DM_FLUID) new_mat.m_type = DM_FLUID_PML;
-	new_mat.cinitial_type = new_mat.material_char();
+    new_mat.cinitial_type = new_mat.material_char();
     double xw=0., yw=0., zw=0.;
     double xp=0., yp=0., zp=0.;
 
@@ -170,7 +170,7 @@ void RectMesh::apply_pml_borders(int npml_)
 {
     npml = npml_;
     xmax0 = xmax;
-    xmin0 = ymin;
+    xmin0 = xmin;
     ymax0 = ymax;
     ymin0 = ymin;
     zmax0 = zmax;

@@ -11,7 +11,6 @@
 #include <vector>
 #include <map>
 #include <set>
-#include "mesh_common.h"
 
 template<typename T0, typename T1>
 T1 get(const std::map<T0,T1>& m, const T0& key, const T1& def)

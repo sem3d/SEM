@@ -35,7 +35,7 @@ contains
 
         Nmc     = size(STA%randField, 2)
         xNTotal = size(STA%randField, 1)
-        comm    = STA%comm
+        comm    = STA%valid_comm
 
         !Allocating
         allocate(sumRF(Nmc))
@@ -199,7 +199,7 @@ contains
         !write(*,*) "STA%xNStep_Loc = ", STA%xNStep_Loc
         do i = 1, STA%nDim
             call MPI_ALLREDUCE (STA%xNStep_Loc(i), nPointsMin(i), 1, MPI_INTEGER, &
-                                MPI_MIN, STA%comm, code)
+                                MPI_MIN, STA%valid_comm, code)
         end do
 
         !write(*,*) "nPointsMin BEFORE = ", nPointsMin
@@ -229,11 +229,11 @@ contains
 
         allocate(Temp_SkTot_Dir(size(STA%SkTot_Dir)))
         call MPI_ALLREDUCE (STA%SkTot_Dir, Temp_SkTot_Dir, size(STA%SkTot_Dir), &
-                            MPI_DOUBLE_PRECISION, MPI_SUM, STA%comm, code)
+                            MPI_DOUBLE_PRECISION, MPI_SUM, STA%valid_comm, code)
         STA%SkTot_Dir = Temp_SkTot_Dir/dble(STA%nb_procs)
 
         !call MPI_REDUCE (STA%SkTot_Dir, Temp_SkTot_Dir, size(STA%SkTot_Dir), &
-        !                 MPI_DOUBLE_PRECISION, MPI_SUM, 0, STA%comm, code)
+        !                 MPI_DOUBLE_PRECISION, MPI_SUM, 0, STA%valid_comm, code)
         !if(STA%rang == 0) then
         !    STA%SkTot_Dir = Temp_SkTot_Dir/dble(STA%nb_procs)
         !    write(*,*) "STA%SkTot_Dir = ", STA%SkTot_Dir

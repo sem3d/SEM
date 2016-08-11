@@ -12,7 +12,6 @@
 #include <string>
 #include <cstdlib>
 #include <cassert>
-#include "mesh_common.h"
 
 /// Faces are stored as v1 v2 v3 v4, with v1 < v2 < v4
 /// The nodes are consecutive, the direction is determined by the ordering of
@@ -90,10 +89,10 @@ struct PEdge {
     PEdge( int v0, int v1, int dom ) {
         n[2] = dom;
         set_edge(v0, v1);
-        set_edge_ori(n,refedge);  // Add Mtaro
     }
-    PEdge(const PEdge& ed):Orient(ed.Orient) // Modif Mtaro
-        { for(int k=0;k<3;++k) n[k]=ed.n[k]; }
+    PEdge(const PEdge& ed) {
+        for(int k=0;k<3;++k) n[k]=ed.n[k];
+    }
 
     void set_edge(int v0, int v1) {
         if (v0<v1) {
@@ -124,17 +123,8 @@ struct PEdge {
 	}
 	return true;
     }
-    /// Add by Mtaro
-    void set_edge_ori(int v[2], int ne)
-    {  
-       Orient = 0;
-       if ((ne==2)||(ne==9)) { if (v[0] < v[1]) Orient=1;}
-       else{ if (v[0] > v[1]) Orient=1;}
-    }
     int domain() const { return n[2]; }
     int n[3];
-    /// Add by Mtaro
-    int Orient, refedge;
 };
 
 
@@ -210,7 +200,6 @@ public:
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);
             matdom.push_back(it->first.domain());
-            orient.push_back(it->first.Orient);
         }
     }
     void get_vertices_data(int dom, std::vector<int>& data, std::vector<int>& matdom) const {

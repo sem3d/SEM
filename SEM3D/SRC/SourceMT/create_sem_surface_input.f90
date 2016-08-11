@@ -32,7 +32,8 @@ contains
      character(len=256)           :: FunctionName ='read_surface_input'
      character(len=256)           :: SourceFile = 'create_sem_surface_input'
      character(len=700)           :: ErrorSMS
-   
+  
+  100 format('         ',A40) 
    
      Tdomain%nsurface = config%nsurface
      allocate (Tdomain%nsurfsource(0:Tdomain%nsurface -1))
@@ -69,7 +70,7 @@ contains
             Tdomain%list_NEBC(Tdomain%n_NEBC) = nsurf
             Tdomain%nsurfsource(nsurf)%shape = surf%surface_space
             Tdomain%nsurfsource(nsurf)%size = surf%surface_size
-            if (rg.eq.0) write(*,1004) "Neumann /-> surface"//adjustl(char(1:len_trim(char)))
+            if (rg.eq.0) write(*,100) "Neumann /-> surface"//adjustl(char(1:len_trim(char)))
      
           elseif (surf%surface_whatbc == 2) then
             Tdomain%nsurfsource(nsurf)%what_bc = 'PW'
@@ -83,7 +84,7 @@ contains
             Tdomain%nsurfsource(nsurf)%wave_type = surf%surface_wave
             Tdomain%nsurfsource(nsurf)%Speed= surf%surface_Speed
             Tdomain%nsurfsource(nsurf)%Kdir = surf%surface_dirU
-            if (rg.eq.0) write(*,1004) "Plane Wave /-> surface"//adjustl(char(1:len_trim(char)))
+            if (rg.eq.0) write(*,100) "Plane Wave /-> surface"//adjustl(char(1:len_trim(char)))
      
           elseif (surf%surface_whatbc == 3) then
             Tdomain%nsurfsource(nsurf)%what_bc = 'FT'
@@ -94,7 +95,7 @@ contains
             if (Tdomain%n_FTBC-1.gt.0) Tdomain%list_FTBC(1:Tdomain%n_FTBC-1) = dummylist
             allocate(Tdomain%list_FTBC(1:Tdomain%n_FTBC))
             Tdomain%list_FTBC(Tdomain%n_FTBC) = nsurf
-            if (rg.eq.0) write(*,1004)  "Fault /-> surface"//adjustl(char(1:len_trim(char)))
+            if (rg.eq.0) write(*,100)  "Fault /-> surface"//adjustl(char(1:len_trim(char)))
      
           elseif (surf%surface_whatbc == 4) then
             Tdomain%nsurfsource(nsurf)%what_bc = 'DR'
@@ -105,7 +106,7 @@ contains
             allocate(Tdomain%list_DIRICBC(1:Tdomain%n_DIRIC))
             if (Tdomain%n_DIRIC-1.gt.0) Tdomain%list_DIRICBC(1:Tdomain%n_DIRIC-1) = dummylist
             Tdomain%list_DIRICBC(Tdomain%n_DIRIC) = nsurf
-            if (rg.eq.0) write(*,1004)  "Dirichlet /-> surface"//adjustl(char(1:len_trim(char)))
+            if (rg.eq.0) write(*,100)  "Dirichlet /-> surface"//adjustl(char(1:len_trim(char)))
        
           else 
               ErrorSMS = "unknown surface problem (type : ??? ) /-> surface"//adjustl(char(1:len_trim(char)))
@@ -180,26 +181,26 @@ contains
                    write(*,*)
                    write(*,*) "Surface BC Source analytical defined. "
                    write(*,*) "-------------------------------------"
-                   write(*,1006) "Va = "// adjustr(Tdomain%nsurfsource(nsurf)%varia)
-                   write(*,1005) "F1 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcx)
+                   write(*,'(A12)') "Va = "// adjustr(Tdomain%nsurfsource(nsurf)%varia)
+                   write(*,'(A150)') "F1 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcx)
                    if (Tdomain%nsurfsource(nsurf)%dim.gt.1) then
-                       write(*,1005) "F2 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcy)
+                       write(*,'(A150)') "F2 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcy)
                    endif
                    if (Tdomain%nsurfsource(nsurf)%dim.gt.2) then
-                      write(*,1005) "F3 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcz)
+                      write(*,'(A150)') "F3 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcz)
                    endif
                    if (Tdomain%nsurfsource(nsurf)%source.eq."M") then
-                       write(*,1005) "F4 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcxy)
+                       write(*,'(A150)') "F4 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcxy)
                        if (surf%surface_dim.gt.2) then
-                           write(*,1005) "F5 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcxz)
-                           write(*,1005) "F6 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcyz)
+                           write(*,'(A150)') "F5 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcxz)
+                           write(*,'(A150)') "F6 = "// adjustr(Tdomain%nsurfsource(nsurf)%funcyz)
                        endif
                    endif
                    if (Tdomain%nsurfsource(nsurf)%paramvar==1) then
                        write(*,*)
-                       write(*,1007) "Param"," ParamVal"
+                       write(*,'(2A12)') "Param"," ParamVal"
                        do i=1,Tdomain%nsurfsource(nsurf)%nparamvar
-                          write(*,2017) Tdomain%nsurfsource(nsurf)%paramname(i), &
+                          write(*,'(         A2     ES13.6)') Tdomain%nsurfsource(nsurf)%paramname(i), &
                                         Tdomain%nsurfsource(nsurf)%paravalue(i)
                        enddo
                    endif
@@ -210,26 +211,26 @@ contains
      
                  if (rg==0) then
                           write(*,*) "Surface BC Source  : "//adjustl(sourcename(1:len_trim(sourcename)))
-                          write(*,2019) " Direction          : ", Tdomain%nsurfsource(nsurf)%dir
+                          write(*,'(A22,3ES13.3)') " Direction          : ", Tdomain%nsurfsource(nsurf)%dir
                      
                      sourcename = fromcstr(surf%surface_name)
-                      write(*,2018) " Load shape         : ", sourcename(1:len_trim(sourcename))// &
+                      write(*,'(A22,A12,1ES13.3,A1)') " Load shape         : ", sourcename(1:len_trim(sourcename))// &
                                                   adjustl(" (R="),Tdomain%nsurfsource(nsurf)%size,")" 
-                     if (Tdomain%nsurfsource(nsurf)%f0/=0) write(*,2019) "Ricker Freqence    : ", &
+                     if (Tdomain%nsurfsource(nsurf)%f0/=0) write(*,'(A22,ES13.3)') "Ricker Freqence    : ", &
                                                                    Tdomain%nsurfsource(nsurf)%f0 
-                     if (Tdomain%nsurfsource(nsurf)%Rickertau/=0) write(*,2019) " Ricker tau         : ", &
+                     if (Tdomain%nsurfsource(nsurf)%Rickertau/=0) write(*,'(A22,ES13.3)') " Ricker tau         : ", &
                                                                Tdomain%nsurfsource(nsurf)%Rickertau
                   endif
              endif
      
              if (rg==0) then
-                 write(*,2015) " Source Ref coord   : ", Tdomain%nsurfsource(nsurf)%scoord
-                 write(*,2016) " Associated surface : ",(Tdomain%nsurfsource(nsurf)%index(i), i=1,Count(Boolean))
-                 write(*,2015) " Load amplitude     : ", Tdomain%nsurfsource(nsurf)%amplitude
+                 write(*,'(A21,3ES13.6)') " Source Ref coord   : ", Tdomain%nsurfsource(nsurf)%scoord
+                 write(*,'(A21,30I4)') " Associated surface : ",(Tdomain%nsurfsource(nsurf)%index(i), i=1,Count(Boolean))
+                 write(*,'(A21,ES13.6)') " Load amplitude     : ", Tdomain%nsurfsource(nsurf)%amplitude
              endif
           
           else
-              write(*,2016) "Associated surface : ",(Tdomain%nsurfsource(nsurf)%index(i), i=1,Count(Boolean))
+              write(*,'(A21,30I4)') "Associated surface : ",(Tdomain%nsurfsource(nsurf)%index(i), i=1,Count(Boolean))
               write(*,*)
           endif
           nsurf = nsurf + 1
@@ -245,7 +246,6 @@ contains
      if (nsurf==0) Tdomain%logicD%surfBC = .false.
      write(*,*)
         
-     include 'formats.in'
    end subroutine read_surface_input
    !----------------------------------------------------------------------------------
    !----------------------------------------------------------------------------------
@@ -271,7 +271,7 @@ contains
          j = index(String(k:l),Delimiter)
          if (j == 0) then
             j=l+1
-         else
+        else
             j=j+k-1
          end if
          n=n+1
@@ -300,6 +300,10 @@ contains
       character(len=256)          :: FunctionName ='define_surface_properties'
       character(len=256)          :: SourceFile = 'create_sem_surface_input'
       character(len=700)          :: ErrorSMS
+  
+  2004 format( A20,I4,A4,A)
+  2007 format('        |',A12, I6)
+  2009 format('        |',A12, ES13.6)
       
       ! elastic properties
       do ns = 0, Tdomain%nsurface-1
@@ -340,8 +344,6 @@ contains
          enddo
       end do
       write(*,*)  
-      
-      include 'formats.in'
    
    end subroutine define_surface_properties
    !----------------------------------------------------------------------------------

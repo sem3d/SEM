@@ -2,21 +2,6 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-!>
-!!\file read_input.f90
-!!\brief Contient la subroutine read_input().
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
-!!
-!<
-
-!>
-!! \brief Assure la lecture des fichiers de donn�es en entr�e.
-!!
-!! \param type (domain), intent (INOUT) Tdomain
-!<
-
 module semconfig
     use semdatafiles
     use mesh3d
@@ -28,138 +13,6 @@ module semconfig
     public :: read_input
 
 contains
-
-
-    subroutine read_gradient_desc(Tdomain)
-        use sdomain
-        use semdatafiles
-        use mpi
-        implicit none
-
-        type(domain), intent(inout) :: Tdomain
-        integer :: rg
-        integer :: i,j
-
-        rg = Tdomain%rank
-
-        open(12,file=Tdomain%file_bassin,action="read",status="old")
-        !   x_type 0 : on impose un materiau homogene dans chaque sous domaine
-        !   x_type 1 : on impose un gradient de proprietes en fonction de z et ceci pour chaque colonne
-        read(12,*) Tdomain%sBassin%x_type
-        if ( Tdomain%sBassin%x_type == 2 ) then
-            read(12,*) Tdomain%sBassin%zmin
-            read(12,*) Tdomain%sBassin%zmax
-            if ( rg==0) then
-                write(*,*) ' gradient uniquement pour z entre ', Tdomain%sBassin%zmin,'  et ', Tdomain%sBassin%zmax
-            endif
-        endif
-
-        !   nombre de colonnes
-        read(12,*) Tdomain%sBassin%n_colonne
-        allocate(Tdomain%sBassin%x_coord(0:Tdomain%sBassin%n_colonne))
-        !  lecture des coordonnees en x des colonnes
-        do i = 0,Tdomain%sBassin%n_colonne
-            read(12,*) Tdomain%sBassin%x_coord(i)
-            if ( rg==0) then
-                write(*,*) ' colonne ',Tdomain%sBassin%x_coord(i)
-            endif
-        enddo
-        !   nombre de couches
-        read(12,*) Tdomain%sBassin%n_layer
-        if ( rg==0) then
-            write(*,*) ' n_layer ', Tdomain%sBassin%n_layer
-        endif
-        allocate(Tdomain%sBassin%z_layer(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(  Tdomain%sBassin%z_rho(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(   Tdomain%sBassin%z_Cp(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(   Tdomain%sBassin%z_Cs(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        ! on lit pour chaque colonne
-        !  on lit chaque profondeur et les proprietes mecaniques associees
-        do i = 0,Tdomain%sBassin%n_colonne
-            do j = 0,Tdomain%sBassin%n_layer
-                read(12,*) Tdomain%sBassin%z_layer(i,j),Tdomain%sBassin%z_rho(i,j),Tdomain%sBassin%z_Cp(i,j),Tdomain%sBassin%z_Cs(i,j)
-                if ( rg==0) then
-                    write(*,*) ' gradient ',i,j
-                    write(*,*) Tdomain%sBassin%z_layer(i,j),Tdomain%sBassin%z_rho(i,j),Tdomain%sBassin%z_Cp(i,j),Tdomain%sBassin%z_Cs(i,j)
-                endif
-            enddo
-        enddo
-        if ( rg==0) then
-            write(*,*) ' fin lecture gradient '
-        endif
-        close(12)
-    end subroutine read_gradient_desc
-
-    subroutine echo_input_params(Tdomain, rg)
-        use sdomain
-        use semdatafiles
-        use mpi
-        implicit none
-
-        type(domain), intent(inout) :: Tdomain
-        integer, intent(in)         :: rg
-        character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i
-
-        call semname_read_input_spec(fnamef)
-
-        !    debut ajout ecriture par un seul proc
-        if ( rg == 0 ) then
-            open(91,file=fnamef, form="formatted", status="unknown")
-
-            write (91,*) Tdomain%Title_simulation
-            write (91,*) Tdomain%TimeD%acceleration_scheme
-            write (91,*) Tdomain%TimeD%velocity_scheme
-            write (91,*) Tdomain%TimeD%duration
-            write (91,*) Tdomain%TimeD%alpha
-            write (91,*) Tdomain%TimeD%beta
-            write (91,*) Tdomain%TimeD%gamma
-            write (91,*) Tdomain%mesh_file
-            write (91,*) Tdomain%material_file
-            write (91,*) Tdomain%logicD%save_trace
-            write (91,*) Tdomain%logicD%save_snapshots
-            write (91,*) Tdomain%logicD%save_energy
-            write (91,*) Tdomain%logicD%plot_grid
-            write (91,*) Tdomain%logicD%run_exec
-            write (91,*) Tdomain%logicD%run_debug
-            write (91,*) Tdomain%logicD%run_echo
-
-            if (Tdomain%logicD%save_trace) then
-                write (91,*) Tdomain%station_file
-            else
-                write (91,*) " No parameter ned here"
-            endif
-
-            if (Tdomain%logicD%save_snapshots) then
-                write (91,*) Tdomain%TimeD%time_snapshots
-            else
-                write (91,*) " No parameter ned here"
-            endif
-
-            write(11,*) Tdomain%logicD%Neumann, "  Neumann B.C.?"
-
-            if (Tdomain%logicD%any_source) then
-                write (91,*) Tdomain%n_source
-                do i = 0, Tdomain%n_source - 1
-                    write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Ysource, Tdomain%Ssource(i)%Zsource
-                    write (91,*) Tdomain%Ssource(i)%i_type_source
-                    if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                        write (91,*) Tdomain%Ssource(i)%dir
-                    else
-                        write (91,*) "No parameter need here"
-                    endif
-                    write (91,*) Tdomain%Ssource(i)%i_time_function
-                    write (91,*) Tdomain%Ssource(i)%tau_b
-                    write (91,*) Tdomain%Ssource(i)%cutoff_freq
-                enddo
-            else
-                write (91,*)  "No available sources "
-            endif
-            write (91,*) "All right, runner ?"
-            close (91)
-        endif
-        !   fin  ajout ecriture par un seul proc
-    end subroutine echo_input_params
 
     subroutine read_material_file(Tdomain)
         use sdomain
@@ -178,7 +31,7 @@ contains
         Tdomain%fdom%ngll    = 0
         Tdomain%spmldom%ngll = 0
         Tdomain%fpmldom%ngll = 0
-        
+
         do mat = 0, Tdomain%n_mat-1
             dom = get_domain(Tdomain%sSubDomain(mat))
 
@@ -204,7 +57,7 @@ contains
             mat = Tdomain%specel(i)%mat_index
             Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
         end do
-    
+
         call apply_mat_to_faces(Tdomain)
         call apply_mat_to_edges(Tdomain)
         call apply_mat_to_vertices(Tdomain)
@@ -216,170 +69,21 @@ contains
         call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .true.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .true.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
-    
+
     end subroutine read_material_file
-
-    subroutine read_material_file_v1(Tdomain)
-        use sdomain
-        use semdatafiles
-        use mpi
-        use build_prop_files
-        implicit none
-
-        type(domain), intent(inout) :: Tdomain
-        character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, n_aus, npml
-        integer :: rg, dummy_ngll
-        real :: dummy_dt, dummy_freq
-        logical :: dummy_filtering
-        logical :: px, py, pz, left, forward, down
-
-        rg = Tdomain%rank
-        npml = 0
-        Tdomain%nRandom = 0
-
-        call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
-        open (13, file=fnamef, status="old", form="formatted")
-
-        read(13,*) n_aus
-
-        if(n_aus /= Tdomain%n_mat) then
-            write(*,*) trim(fnamef), n_aus, Tdomain%n_mat
-            stop "Incompatibility between the mesh file and the material file for n_mat"
-        endif
-
-        if (Tdomain%aniso) then
-            print *,"The code can't put anisotropy in a homogeneous media"
-            stop
-        endif
-
-        allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
-        Tdomain%any_Random   = .false.
-        Tdomain%not_PML_List = .true.
-
-        do i = 0,Tdomain%n_mat-1
-            read(13,*) Tdomain%sSubDomain(i)%material_type, &
-                Tdomain%sSubDomain(i)%Pspeed,        &
-                Tdomain%sSubDomain(i)%Sspeed,        &
-                Tdomain%sSubDomain(i)%dDensity,      &
-                Tdomain%sSubDomain(i)%NGLL,          &
-                dummy_NGLL,                          &
-                dummy_NGLL,                          &
-                dummy_Dt,                            &
-                Tdomain%sSubDomain(i)%Qpression,     &
-                Tdomain%sSubDomain(i)%Qmu
-
-
-            if(rg==0 .and. .false.) then
-                write (*,*) ' '
-                write (*,*) ' '
-                write (*,*) 'Material :', i
-                write (*,*) 'type     :', Tdomain%sSubDomain(i)%material_type
-                write (*,*) 'Pspeed   :', Tdomain%sSubDomain(i)%Pspeed
-                write (*,*) 'Sspeed   :', Tdomain%sSubDomain(i)%Sspeed
-                write (*,*) 'Density  :', Tdomain%sSubDomain(i)%dDensity
-                write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLL
-                write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
-                write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
-            endif
-
-            Tdomain%sSubdomain(i)%assocMat = i
-
-            call Lame_coefficients (Tdomain%sSubDomain(i))
-
-            if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
-                npml = npml + 1
-                Tdomain%not_PML_List(i) = .false.
-            else
-            endif
-
-            Tdomain%sSubdomain(i)%initial_material_type = Tdomain%sSubDomain(i)%material_type
-
-            if (Tdomain%sSubDomain(i)%material_type == "R") then
-                Tdomain%nRandom = Tdomain%nRandom + 1
-                Tdomain%sSubDomain(i)%material_type = "S"
-                Tdomain%any_Random = .true.
-            end if
-
-        enddo
-
-        if(npml > 0) then
-            read(13,*) !# PML properties
-            read(13,*) !# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
-            do i = 0,Tdomain%n_mat-1
-                if(.not. Tdomain%not_PML_List(i)) then
-                    read(13,*) dummy_Filtering, &
-                        Tdomain%sSubdomain(i)%npow,      &
-                        Tdomain%sSubdomain(i)%Apow,      &
-                        Px,        &
-                        Left,      &
-                        Py,        &
-                        Forward,   &
-                        Pz,        &
-                        Down,      &
-                        dummy_freq,      &
-                        Tdomain%sSubdomain(i)%assocMat
-                endif
-            enddo
-        endif
-
-        Tdomain%any_PropOnFile = .false.
-        do i = 0,Tdomain%n_mat-1
-            if(propOnFile(Tdomain, i)) then
-                Tdomain%any_PropOnFile = .true.
-                exit
-            end if
-        enddo
-
-        if(Tdomain%nRandom > 0) then
-            read(13,*) !# Random properties
-            read(13,*) !# Parametrization Choice (0 for Kappa, 1 for Lambda)
-            read(13,*) !# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-            read(13,*) !# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-            read(13,*) !# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-
-            do i = 0,Tdomain%n_mat-1
-                !write(*,*) "Reading Random Material (", i, ")"
-                if(Tdomain%sSubdomain(i)%initial_material_type == 'R') then
-
-                    read(13,*) Tdomain%sSubdomain(i)%lambdaSwitch !# Kappa/Lambda (0/1)
-                    read(13,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    read(13,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    read(13,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    write(*,*) "Tdomain%sSubdomain(i)%lambdaSwitch = ", Tdomain%sSubdomain(i)%lambdaSwitch
-!                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
-!                    allocate(Tdomain%sSubdomain(i)%varCoef(0:2))
-!                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
-!
-!                    read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
-!                        Tdomain%sSubdomain(i)%corrL(0),      &
-!                        Tdomain%sSubdomain(i)%corrL(1),      &
-!                        Tdomain%sSubdomain(i)%corrL(2),      &
-!                        Tdomain%sSubdomain(i)%margiFirst(0), &
-!                        Tdomain%sSubdomain(i)%varCoef(0),    &
-!                        Tdomain%sSubdomain(i)%margiFirst(1), &
-!                        Tdomain%sSubdomain(i)%varCoef(1),    &
-!                        Tdomain%sSubdomain(i)%margiFirst(2), &
-!                        Tdomain%sSubdomain(i)%varCoef(2),    &
-!                        Tdomain%sSubdomain(i)%seedStart
-                endif
-            enddo
-        endif
-
-        close(13)
-
-    end subroutine read_material_file_v1
 
     subroutine read_material_file_v2(Tdomain)
         use sdomain
         use semdatafiles
         use mpi
+#ifdef USE_RF
         use build_prop_files
+#endif
         implicit none
 
         type(domain), intent(inout)                  :: Tdomain
         character(Len=MAX_FILE_SIZE)                 :: fnamef, buffer
-        integer                                      :: i, n_aus, npml, isurf
+        integer                                      :: i, n_aus, npml
         integer                                      :: rg, NGLL, fid
 
         rg = Tdomain%rank
@@ -393,7 +97,6 @@ contains
 
         buffer = getLine (fid, "#")
         read(buffer,*) n_aus
-        !read(13,*) n_aus
 
         if(n_aus /= Tdomain%n_mat) then
             write(*,*) trim(fnamef), n_aus, Tdomain%n_mat
@@ -408,10 +111,9 @@ contains
         allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
         Tdomain%any_Random   = .false.
         Tdomain%not_PML_List = .true.
-        
+
         do i = 0,Tdomain%n_mat-1
-            
-            write(*,*) "i = ", i
+
             buffer = getLine (fid, "#")
             read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
                 Tdomain%sSubDomain(i)%Pspeed,        &
@@ -438,24 +140,9 @@ contains
                 Tdomain%any_Random = .true.
             end if
 
-            if(rg==0 .and. .true.) then
-                write (*,*) ' '
-                write (*,*) ' '
-                write (*,*) 'Material     : ', i
-                write (*,*) ' - type      : ', Tdomain%sSubDomain(i)%material_type
-                write (*,*) ' - init_type : ', Tdomain%sSubDomain(i)%initial_material_type
-                write (*,*) ' - Pspeed    : ', Tdomain%sSubDomain(i)%Pspeed
-                write (*,*) ' - Sspeed    : ', Tdomain%sSubDomain(i)%Sspeed
-                write (*,*) ' - Density   : ', Tdomain%sSubDomain(i)%dDensity
-                write (*,*) ' - NGLL      : ', Tdomain%sSubDomain(i)%NGLL
-                write (*,*) ' - Qp        : ', Tdomain%sSubDomain(i)%Qpression
-                write (*,*) ' - Qmu       : ', Tdomain%sSubDomain(i)%Qmu
-            endif
         enddo
 
         if(npml > 0) then
-            !read(13,*) !# PML properties
-            !read(13,*) !# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
             do i = 0,Tdomain%n_mat-1
                 if(.not. Tdomain%not_PML_List(i)) then
                     buffer = getLine (fid, "#")
@@ -468,19 +155,11 @@ contains
                         Tdomain%sSubdomain(i)%pml_pos(2), &
                         Tdomain%sSubdomain(i)%pml_width(2), &
                         Tdomain%sSubdomain(i)%assocMat
-
-                    if(rg==0 .and. .true.) then
-                        write (*,*) 'PML Material : '
-                        write (*,*) ' - assocMat  : ', Tdomain%sSubdomain(i)%assocMat
-                        write (*,*) ' - Apow      : ', Tdomain%sSubdomain(i)%Apow
-                        write (*,*) ' - npow      : ', Tdomain%sSubdomain(i)%npow
-                        write (*,*) ' - pml_pos   : ', Tdomain%sSubdomain(i)%pml_pos(:)
-                        write (*,*) ' - pml_width : ', Tdomain%sSubdomain(i)%pml_width(:)
-                    endif
                 endif
             enddo
         endif
 
+#ifdef USE_RF
         Tdomain%any_PropOnFile = .false.
         do i = 0,Tdomain%n_mat-1
             if(propOnFile(Tdomain, i)) then
@@ -488,16 +167,10 @@ contains
                 exit
             end if
         enddo
+#endif
 
         if(Tdomain%nRandom > 0) then
-            !read(13,*) !# Random properties
-            !read(13,*) !# Kappa/Lambda (0/1)
-            !read(13,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-            !read(13,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-            !read(13,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-
             do i = 0,Tdomain%n_mat-1
-                !write(*,*) "Reading Random Material (", i, ")"
                 if(Tdomain%sSubdomain(i)%initial_material_type == 'R') then
                     buffer = getLine (fid, "#")
                     read(buffer,*) Tdomain%sSubdomain(i)%lambdaSwitch
@@ -505,54 +178,10 @@ contains
                     buffer = getLine (fid, "#") !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
                     buffer = getLine (fid, "#") !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
 
-!                    read(13,*) Tdomain%sSubdomain(i)%lambdaSwitch !# Kappa/Lambda (0/1)
-!                    read(13,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-!                    read(13,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-!                    read(13,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-
                 endif
             enddo
         endif
 
-        do i = 0,Tdomain%n_mat-1
-            if(rg==0 .and. .true.) then
-                write (*,*) ' '
-                write (*,*) ' '
-                write (*,*) 'Material     : ', i
-                write (*,*) '| - type      : ', Tdomain%sSubDomain(i)%material_type
-                write (*,*) '| - init_type : ', Tdomain%sSubDomain(i)%initial_material_type
-                write (*,*) '| - Pspeed    : ', Tdomain%sSubDomain(i)%Pspeed
-                write (*,*) '| - Sspeed    : ', Tdomain%sSubDomain(i)%Sspeed
-                write (*,*) '| - Density   : ', Tdomain%sSubDomain(i)%dDensity
-                write (*,*) '| - NGLL      : ', Tdomain%sSubDomain(i)%NGLL
-                write (*,*) '| - Qp        : ', Tdomain%sSubDomain(i)%Qpression
-                write (*,*) '| - Qmu       : ', Tdomain%sSubDomain(i)%Qmu
-                if(.not. Tdomain%not_PML_List(i)) then
-                    write (*,*) '|   PML Material : '
-                    write (*,*) '|    - assocMat  : ', Tdomain%sSubdomain(i)%assocMat
-                    write (*,*) '|    - Apow      : ', Tdomain%sSubdomain(i)%Apow
-                    write (*,*) '|    - npow      : ', Tdomain%sSubdomain(i)%npow
-                    write (*,*) '|    - pml_pos   : ', Tdomain%sSubdomain(i)%pml_pos(:)
-                    write (*,*) '|    - pml_width : ', Tdomain%sSubdomain(i)%pml_width(:)
-                end if
-                if(Tdomain%sSubDomain(i)%initial_material_type == "R") then
-                    write (*,*) '|   RANDOM Material  : '
-!                    write (*,*) '|    - corrMod       : ', Tdomain%sSubdomain(i)%corrMod
-!                    write (*,*) '|    - corrL_x       : ', Tdomain%sSubdomain(i)%corrL(0)
-!                    write (*,*) '|    - corrL_y       : ', Tdomain%sSubdomain(i)%corrL(1)
-!                    write (*,*) '|    - corrL_z       : ', Tdomain%sSubdomain(i)%corrL(2)
-!                    write (*,*) '|    - FOMarg Prop 0 : ', Tdomain%sSubdomain(i)%margiFirst(0)
-!                    write (*,*) '|    - FOMarg Prop 1 : ', Tdomain%sSubdomain(i)%margiFirst(1)
-!                    write (*,*) '|    - FOMarg Prop 2 : ', Tdomain%sSubdomain(i)%margiFirst(2)
-!                    write (*,*) '|    - Var Coef 0    : ', Tdomain%sSubdomain(i)%varCoef(0)
-!                    write (*,*) '|    - Var Coef 1    : ', Tdomain%sSubdomain(i)%varCoef(1)
-!                    write (*,*) '|    - Var Coef 2    : ', Tdomain%sSubdomain(i)%varCoef(2)
-!                    write (*,*) '|    - Seed Start    : ', Tdomain%sSubdomain(i)%seedStart
-                endif
-                write (*,*) '|----------------------------------------'
-            endif
-        end do
-        
         write (*,*)
         write (*,*)
         close(13)
@@ -698,19 +327,19 @@ contains
         character(Len=MAX_FILE_SIZE) :: fnamef
         logical                      :: logic_scheme
         integer                      :: imat
-        integer                      :: rg, i
+        integer                      :: rg
 
         rg = Tdomain%rank
 
         call semname_file_input_spec(fnamef)
-        
+
         call read_sem_config(Tdomain%config, trim(fnamef)//C_NULL_CHAR, code)
-        
+
         if (code/=1) then
             stop 1
         endif
         if (rg==0) call dump_config(Tdomain%config) !Print of configuration on the screen
-        
+
         ! On copie les parametres renvoyes dans la structure C
         Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
         Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
@@ -719,6 +348,7 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
+
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
@@ -752,7 +382,7 @@ contains
         if (Tdomain%config%mpml/=0) then
             Tdomain%logicD%MPML = .true.
         end if
-        Tdomain%logicD%grad_bassin = .false.
+
         Tdomain%logicD%run_restart = Tdomain%config%prorep .ne. 0
         Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
         Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde
@@ -780,23 +410,15 @@ contains
         !! Add by Mtaro
         call init_surface_source(Tdomain)
         if (Tdomain%logicD%surfBC) then
-           call read_surface_input(Tdomain, Tdomain%config) 
+           call read_surface_input(Tdomain, Tdomain%config)
         endif
 
         ! Create sources from C structures
         call create_sem_sources(Tdomain, Tdomain%config)
 
-        !- Parametrage super object activé
-        Tdomain%logicD%super_object_local_present = .false.!Tdomain%config%plane_wave_present /= 0
-        if (Tdomain%logicD%super_object_local_present) then
-#if 1
-           call read_planeW_input(Tdomain)
-#endif
-        endif
-                
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
-        
+
         !---   Properties of materials.
         call read_material_file(Tdomain)
         call compute_material_boundaries(Tdomain)
@@ -861,7 +483,6 @@ contains
         do i = 1, lineCount
             read(fid, fmt="(A)",IOSTAT = stat) nextLine
             nextLine = adjustL(nextLine)
-            write(*,*) "nextLine = ", nextLine
             if(stat /= 0) then
                 nextLine = " "
                 exit
