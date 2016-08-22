@@ -19,7 +19,6 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/communicating_wall.F90
     ${PRJ}/SRC/Domain.F90
     ${PRJ}/SRC/orientation.F90
-    ${PRJ}/SRC/Capteur.F90
     ${PRJ}/SRC/Couplage.F90
     ${PRJ}/SRC/Newmark.F90
     ${PRJ}/SRC/Midpoint.F90

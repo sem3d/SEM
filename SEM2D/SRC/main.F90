@@ -38,7 +38,7 @@ end program main
 
 subroutine  sem(couplage)
     use sdomain
-    use mCapteur
+    !use mCapteur
     use semdatafiles
     use mpi
     use msnapshots
@@ -59,7 +59,6 @@ subroutine  sem(couplage)
     integer :: ntime,i_snap, ierr
     integer :: isort
     character(len=MAX_FILE_SIZE) :: fnamef
-    integer :: info_capteur
     integer :: getpid, pid
 
 #ifdef COUPLAGE
@@ -73,7 +72,6 @@ subroutine  sem(couplage)
     real(kind=4), dimension(2) :: tarray
     real(kind=4) :: tref, t_fin, t_ini
     integer :: interrupt, rg, code, protection, n_it_max
-    logical :: sortie_capteur_depla, sortie_capteur_vitesse
 
     pid = getpid()
     !write(*,*) "SEM2D[", pid, "] : Demarrage."
@@ -188,18 +186,6 @@ subroutine  sem(couplage)
         call write_snapshot_geom(Tdomain, rg)
     endif
 
-    ! preparation des eventuelles sorties capteur
-    info_capteur = 0
-    if (Tdomain%bCapteur) call read_capteur(Tdomain,info_capteur)
-    if(info_capteur /= 0) then
-        Tdomain%bCapteur = .FALSE.
-        sortie_capteur = .FALSE.
-        sortie_capteur_vitesse = .FALSE.
-        sortie_capteur_depla = .FALSE.
-        sortie_capteur_deformation = .FALSE.
-    endif
-
-
 
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
         Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
@@ -302,13 +288,11 @@ subroutine  sem(couplage)
             protection = 1
         end if
 
-        if (Tdomain%bCapteur) call evalueSortieCapteur(ntime)
-
         if (mod(ntime,100)==0) then
             if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
         endif
 
-        if (i_snap == 0 .or. sortie_capteur) then
+        if (i_snap == 0) then
 
             if (rg==0 .and. display_iter==1) write(*,*) "Snapshot:",isort," iteration=", ntime, " tps=", Tdomain%TimeD%rtime
             call save_field_h5(Tdomain, rg, isort)
@@ -333,7 +317,7 @@ subroutine  sem(couplage)
         if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime)
 
 
-        ! sauvegarde des vitesses ?
+        ! sauvegarde des vitesses
         if (Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime)
 
 
@@ -352,9 +336,6 @@ subroutine  sem(couplage)
         enddo
 
 #endif
-
-        ! sortie des quantites demandees par les capteur
-        if (sortie_capteur) call save_capteur(Tdomain, ntime)
 
         if (protection/=0) then
             call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin,ntime,isort)
@@ -376,10 +357,6 @@ subroutine  sem(couplage)
 
     call END_SEM(Tdomain, ntime)
 
-    if (Tdomain%bCapteur) then
-        deallocate(Tdomain%GrandeurDeformation)
-        deallocate(Tdomain%GrandeurVitesse)
-    endif
 
     if (.not. couplage) then
         call MPI_Finalize  (ierr)
