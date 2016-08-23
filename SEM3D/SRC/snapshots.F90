@@ -848,6 +848,9 @@ contains
         real(fpp) :: P_en_total, S_en_total, total_P_energy_sum, total_S_energy_sum
         integer, dimension(0:8) :: out_variables
         integer :: ierr
+        real(fpp) :: Whei, mult
+        real, dimension(:), allocatable :: GLLw
+        integer :: bnum, ee
 
         !write(*,*) "Inside output_total_energy"
 
@@ -870,18 +873,66 @@ contains
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
-            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
-            domain_type = Tdomain%specel(n)%domain
+            ngll = domain_ngll(Tdomain, el%domain)
+            domain_type = el%domain
+
 
             !write(*,*) "n_elem = ", n
 
             select case(domain_type)
                 case (DM_SOLID)
-                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
-                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                    call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
+                    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+
+                    !write(*,*) "sum(P_energy(:,:,:)) = ", sum(P_energy(:,:,:))
+                    !write(*,*) "sum(S_energy(:,:,:)) = ", sum(S_energy(:,:,:))
+
+                    call domain_gllw(Tdomain, domain_type, GLLw)
+                    do k = 0,ngll-1
+                        do j = 0,ngll-1
+                            do i = 0,ngll-1
+                                Whei = GLLw(i)*GLLw(j)*GLLw(k)
+                                bnum = el%lnum/VCHUNK
+                                ee = mod(el%lnum,VCHUNK)
+                                mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
+
+                                !write(*,*) "mult                 = ", mult
+
+                                !P_en_total = P_en_total + sum(P_energy(:,:,:)) !Sum inside the element
+                                P_en_total = P_en_total + mult*P_energy(i,j,k) !Integral inside the element
+
+                                !S_en_total = S_en_total + sum(S_energy(:,:,:)) !Sum inside the element
+                                S_en_total = S_en_total + mult*S_energy(i,j,k) !Integral inside the element
+
+                            enddo
+                        enddo
+                    enddo
+                    deallocate(GLLw)
+
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+
+                    call domain_gllw(Tdomain, domain_type, GLLw)
+                    do k = 0,ngll-1
+                        do j = 0,ngll-1
+                            do i = 0,ngll-1
+                                Whei = GLLw(i)*GLLw(j)*GLLw(k)
+                                bnum = el%lnum/VCHUNK
+                                ee = mod(el%lnum,VCHUNK)
+                                mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
+
+                                !P_en_total = P_en_total + sum(P_energy(:,:,:)) !Sum inside the element
+                                P_en_total = P_en_total + mult*P_energy(i,j,k) !Integral inside the element
+
+                                !S_en_total = S_en_total + sum(S_energy(:,:,:)) !Sum inside the element
+                                S_en_total = S_en_total + mult*S_energy(i,j,k) !Integral inside the element
+
+                            enddo
+                        enddo
+                    enddo
+                    deallocate(GLLw)
+
                 case (DM_SOLID_PML)
                   cycle !We don't want the energy on PMLs
                   !call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
@@ -894,19 +945,15 @@ contains
                   stop "unknown domain"
             end select
 
-            if (out_variables(OUT_ENERGYP) == 1) &
-                P_en_total = P_en_total + sum(P_energy(:,:,:)) !Sum inside the element
-            if (out_variables(OUT_ENERGYS) == 1) &
-                S_en_total = S_en_total + sum(S_energy(:,:,:)) !Sum inside the element
         enddo
 
         !Average inside the element
-        if (out_variables(OUT_ENERGYP) == 1) &
-            P_en_total = P_en_total/(dble(ngll)**3d0)
-        if (out_variables(OUT_ENERGYS) == 1) &
-            S_en_total = S_en_total/(dble(ngll)**3d0)
-        !write(*,*) "P_en_total = ", P_en_total
-        !write(*,*) "S_en_total = ", S_en_total
+        !if (out_variables(OUT_ENERGYP) == 1) &
+        !    P_en_total = P_en_total/(dble(ngll)**3d0)
+        !if (out_variables(OUT_ENERGYS) == 1) &
+        !    S_en_total = S_en_total/(dble(ngll)**3d0)
+        write(*,*) "P_en_total = ", P_en_total
+        write(*,*) "S_en_total = ", S_en_total
 
         if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_ALLREDUCE(P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
