@@ -42,9 +42,6 @@ module champs_fluid
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_IDensity ! Inverse of density
-
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
         real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
 
@@ -54,6 +51,9 @@ module champs_fluid
 
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
+
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_IDensity ! Inverse of density
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 

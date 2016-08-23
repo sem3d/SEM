@@ -4,7 +4,7 @@
 !!
 !>
 !!\file Domain.f90
-!!\brief Contient le d�finition du type domain
+!!\brief Contient les definition du type domain
 !!
 !<
 
@@ -32,9 +32,6 @@ module sdomain
     use champs_fluidpml
     use constants
     implicit none
-
-
-
 
 
     type :: domain
@@ -113,9 +110,9 @@ module sdomain
        ! Interface Fluide / Solide
        type(SF_object)     :: SF
 
-        ! Communication
-        type(comm_vector) :: Comm_data      ! Comm mass et forces
-        type(comm_vector) :: Comm_SolFlu    ! Comm couplage solide/fluide
+       ! Communication
+       type(comm_vector) :: Comm_data      ! Comm mass et forces
+       type(comm_vector) :: Comm_SolFlu    ! Comm couplage solide/fluide
 
        ! Configuration parameters as returned from read_input.c
        type(sem_config) :: config

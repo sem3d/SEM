@@ -43,10 +43,6 @@ module champs_solid
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        logical :: aniso
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
-
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
         real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
 
@@ -56,6 +52,11 @@ module champs_solid
 
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
+
+        logical :: aniso
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
+
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
