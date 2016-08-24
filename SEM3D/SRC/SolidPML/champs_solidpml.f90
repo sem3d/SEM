@@ -7,6 +7,7 @@
 module champs_solidpml
 
     use constants
+    use sdombase
     implicit none
 
     type :: champssolidpml
@@ -18,40 +19,10 @@ module champs_solidpml
 
     end type champssolidpml
 
-    type domain_solidpml
+    type, extends(dombase) :: domain_solidpml
         ! D'abord, les données membres qui ne sont pas modifiées
 
-        ! Nombre de gll dans chaque element du domaine
-        integer :: ngll
-
-        ! Nombre total de gll du domaine (assembles)
-        integer :: nglltot
-
-        ! Nombre d'elements dans le domaine
-        integer :: nbelem
-        integer :: nblocks
-
-        ! Points, poids de gauss et derivees
-        real(fpp), dimension (:), allocatable :: GLLc
-        real(fpp), dimension (:), allocatable :: GLLw
-        real(fpp), dimension (:,:), allocatable :: hprime
-        real(fpp), dimension (:,:), allocatable :: hTprime
-
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real(fpp), dimension(:), allocatable :: MassMat
-
-        real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
-        real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
-
-        ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
-
         real(fpp), dimension(:,:), allocatable :: DumpMass
-
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
 
 

@@ -7,6 +7,7 @@ set(PRJ ${PROJECT_SOURCE_DIR})
 set(SEM3D_SOURCES_F
     ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
+    ${PRJ}/SRC/dombase.F90
     ${PRJ}/SRC/Solid/champs_solid.f90
     ${PRJ}/SRC/Fluid/champs_fluid.f90
     ${PRJ}/SRC/FluidPML/champs_fluidpml.f90

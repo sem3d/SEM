@@ -7,6 +7,7 @@
 module champs_solid
 
     use constants
+    use sdombase
     implicit none
 
     type :: champssolid
@@ -19,40 +20,8 @@ module champs_solid
     end type champssolid
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
-    type domain_solid
+    type, extends(dombase) :: domain_solid
         ! D'abord, les données membres qui ne sont pas modifiées
-
-        ! Nombre de gll dans chaque element du domaine
-        integer :: ngll
-
-        ! Nombre total de gll du domaine (assembles)
-        integer :: nglltot
-
-        ! Nombre d'elements dans le domaine
-        integer :: nbelem
-
-        ! Nombre d'elements alloues dans le domaine (>=nbelem)
-        integer :: nblocks ! nbelem_alloc == nblocks*VCHUNK
-
-        ! Points, poids de gauss et derivees
-        real(fpp), dimension (:), allocatable :: GLLc
-        real(fpp), dimension (:), allocatable :: GLLw
-        real(fpp), dimension (:,:), allocatable :: hprime
-        real(fpp), dimension (:,:), allocatable :: hTprime
-
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real(fpp), dimension(:), allocatable :: MassMat
-
-        real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
-        real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
-
-        ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
-
         logical :: aniso
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
@@ -104,5 +73,5 @@ end module champs_solid
 !! f90-type-indent: 4
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
-!!! End:
+!! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
