@@ -29,25 +29,18 @@ contains
         nbelem = dom%nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+        call init_dombase(dom)
 
         ! Glls are initialized first, because we can have faces of a domain without elements
         if(nbelem /= 0) then
             ! We can have glls without elements
             ! Do not allocate if not needed (save allocation/RAM)
 
-            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
-            dom%nblocks = nblocks
+            nblocks = dom%nblocks
 
             allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1,0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1,0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-            dom%m_Idom = 0
 
             if(Tdomain%TimeD%velocity_scheme)then
                 allocate(dom%Diagonal_Stress_ (0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
@@ -84,10 +77,6 @@ contains
             dom%champs0%VelocPML = 0d0
             dom%champs0%DumpV = 0d0
 
-            ! Allocation de MassMat pour les PML solides
-            allocate(dom%MassMat(0:dom%nglltot-1))
-            dom%MassMat = 0d0
-
             allocate(dom%DumpMass(0:dom%nglltot-1,0:2))
             dom%DumpMass = 0d0
         endif
@@ -101,16 +90,6 @@ contains
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
-
-        if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
-        if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
-
-        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
-
-        if(allocated(dom%gllc))    deallocate(dom%gllc)
-        if(allocated(dom%gllw))    deallocate(dom%gllw)
-        if(allocated(dom%hprime))  deallocate(dom%hprime)
-        if(allocated(dom%htprime)) deallocate(dom%htprime)
 
         if(allocated(dom%m_Diagonal_Stress )) deallocate(dom%m_Diagonal_Stress )
         if(allocated(dom%m_Diagonal_Stress1)) deallocate(dom%m_Diagonal_Stress1)
@@ -129,9 +108,9 @@ contains
         if(allocated(dom%champs1%VelocPML )) deallocate(dom%champs1%VelocPML )
         if(allocated(dom%champs0%DumpV    )) deallocate(dom%champs0%DumpV    )
 
-        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
-
         if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
+
+        call deallocate_dombase(dom)
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &

@@ -50,7 +50,7 @@ contains
 
     subroutine init_dombase(bz)
         use gll3d
-        type(dombase), intent(inout) :: bz
+        class(dombase), intent(inout) :: bz
         !
         integer :: nbelem, ngll, nblocks
         !
@@ -79,7 +79,7 @@ contains
     end subroutine init_dombase
 
     subroutine deallocate_dombase(bz)
-        type(dombase), intent(inout) :: bz
+        class(dombase), intent(inout) :: bz
         !
         if(allocated(bz%m_Jacob  )) deallocate(bz%m_Jacob  )
         if(allocated(bz%m_InvGrad)) deallocate(bz%m_InvGrad)

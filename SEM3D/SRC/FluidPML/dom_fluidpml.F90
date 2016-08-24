@@ -29,24 +29,17 @@ contains
         ngll   = dom%ngll
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+        call init_dombase(dom)
 
         ! Glls are initialized first, because we can have faces of a domain without elements
         if(nbelem /= 0) then
             ! We can have glls without elements
             ! Do not allocate if not needed (save allocation/RAM)
 
-            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
-            dom%nblocks = nblocks
+            nblocks = dom%nblocks
 
             allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1,0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-            dom%m_Idom = 0
 
             if(Tdomain%TimeD%velocity_scheme)then
                 allocate(dom%PMLVeloc_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
@@ -72,10 +65,6 @@ contains
             dom%champs0%fpml_Phi = 0d0
             dom%champs0%fpml_DumpV = 0d0
 
-            ! Allocation de MassMat pour les PML fluides
-            allocate(dom%MassMat(0:dom%nglltot-1))
-            dom%MassMat = 0d0
-
             allocate(dom%DumpMass(0:dom%nglltot-1,0:2))
             dom%DumpMass = 0d0
         endif
@@ -89,16 +78,6 @@ contains
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
 
-        if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
-        if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
-
-        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
-
-        if(allocated(dom%gllc))    deallocate(dom%gllc)
-        if(allocated(dom%gllw))    deallocate(dom%gllw)
-        if(allocated(dom%hprime))  deallocate(dom%hprime)
-        if(allocated(dom%htprime)) deallocate(dom%htprime)
-
         if(allocated(dom%m_PMLVeloc )) deallocate(dom%m_PMLVeloc )
         if(allocated(dom%m_PMLDumpSx)) deallocate(dom%m_PMLDumpSx)
         if(allocated(dom%m_PMLDumpSy)) deallocate(dom%m_PMLDumpSy)
@@ -110,9 +89,10 @@ contains
         if(allocated(dom%champs1%fpml_VelPhi)) deallocate(dom%champs1%fpml_VelPhi)
         if(allocated(dom%champs0%fpml_DumpV )) deallocate(dom%champs0%fpml_DumpV )
 
-        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
 
         if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
+
+        call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluidpml
 
     subroutine get_fluidpml_dom_var(dom, lnum, out_variables, &

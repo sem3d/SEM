@@ -29,22 +29,14 @@ contains
         write(*,*) "DOM_FLUID nbelem = ", nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+        call init_dombase(dom)
 
         if(nbelem /= 0) then
             ! We can have glls without elements
             ! Do not allocate if not needed (save allocation/RAM)
-            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
-            dom%nblocks = nblocks
-
+            nblocks = dom%nblocks
             allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            dom%m_Idom = 0
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
@@ -58,10 +50,6 @@ contains
             dom%champs0%ForcesFl = 0d0
             dom%champs0%Phi = 0d0
             dom%champs0%VelPhi = 0d0
-
-            ! Allocation de MassMat pour les fluides
-            allocate(dom%MassMat(0:dom%nglltot-1))
-            dom%MassMat = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - fluid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluid
@@ -73,16 +61,6 @@ contains
         if(allocated(dom%m_IDensity)) deallocate(dom%m_IDensity)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
 
-        if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
-        if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
-
-        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
-
-        if(allocated(dom%gllc))    deallocate(dom%gllc)
-        if(allocated(dom%gllw))    deallocate(dom%gllw)
-        if(allocated(dom%hprime))  deallocate(dom%hprime)
-        if(allocated(dom%htprime)) deallocate(dom%htprime)
-
         if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
         if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
         if(allocated(dom%champs0%VelPhi  )) deallocate(dom%champs0%VelPhi  )
@@ -90,7 +68,7 @@ contains
         if(allocated(dom%champs1%Phi     )) deallocate(dom%champs1%Phi     )
         if(allocated(dom%champs1%VelPhi  )) deallocate(dom%champs1%VelPhi  )
 
-        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+        call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluid
 
     subroutine fluid_velocity(ngll,hprime,InvGrad,idensity,phi,veloc)

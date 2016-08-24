@@ -26,7 +26,7 @@ contains
         nbelem  = dom%nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+        call init_dombase(dom)
 
         aniso   = Tdomain%aniso
         n_solid = Tdomain%n_sls
@@ -37,19 +37,12 @@ contains
         if(nbelem /= 0) then
             ! Do not allocate if not needed (save allocation/RAM)
             ! Wexo can have glls without elements
-            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
-            dom%nblocks = nblocks
+            nblocks = dom%nblocks
 
             allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            dom%m_Idom = 0
 
             if (aniso) then
                 allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
@@ -106,10 +99,6 @@ contains
             dom%champs0%Forces = 0d0
             dom%champs0%Depla = 0d0
             dom%champs0%Veloc = 0d0
-
-            ! Allocation de MassMat pour les solides
-            allocate(dom%MassMat(0:dom%nglltot-1))
-            dom%MassMat = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid
@@ -122,16 +111,6 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
         if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
-
-        if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
-        if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
-
-        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
-
-        if(allocated(dom%gllc))    deallocate(dom%gllc)
-        if(allocated(dom%gllw))    deallocate(dom%gllw)
-        if(allocated(dom%hprime))  deallocate(dom%hprime)
-        if(allocated(dom%htprime)) deallocate(dom%htprime)
 
         if(allocated(dom%m_Cij            )) deallocate (dom%m_Cij            )
         if(allocated(dom%m_Q              )) deallocate (dom%m_Q              )
@@ -159,7 +138,8 @@ contains
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
-        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+
+        call deallocate_dombase(dom)
     end subroutine deallocate_dom_solid
 
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
