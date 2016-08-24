@@ -33,7 +33,7 @@ contains
         Tdomain%fpmldom%ngll = 0
 
         do mat = 0, Tdomain%n_mat-1
-            dom = get_domain(Tdomain%sSubDomain(mat))
+            dom = Tdomain%sSubDomain(mat)%dom
 
             select case (dom)
                  case (DM_SOLID)
@@ -55,7 +55,7 @@ contains
         !- GLL properties in elements, on faces, edges.
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
-            Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
+            Tdomain%specel(i)%domain = Tdomain%sSubDomain(mat)%dom
         end do
 
         call apply_mat_to_faces(Tdomain)
@@ -81,14 +81,14 @@ contains
 #endif
         implicit none
 
-        type(domain), intent(inout)                  :: Tdomain
-        character(Len=MAX_FILE_SIZE)                 :: fnamef, buffer
-        integer                                      :: i, n_aus, npml
-        integer                                      :: rg, NGLL, fid
+        type(domain), intent(inout)   :: Tdomain
+        character(Len=MAX_FILE_SIZE)  :: fnamef, buffer
+        integer                       :: i, n_aus, npml
+        integer                       :: rg, NGLL, fid, assocMat
+        character                     :: material_type
 
         rg = Tdomain%rank
         npml = 0
-        Tdomain%nRandom = 0
         fid = 13
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
@@ -108,14 +108,11 @@ contains
             stop
         endif
 
-        allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
-        Tdomain%any_Random   = .false.
-        Tdomain%not_PML_List = .true.
 
         do i = 0,Tdomain%n_mat-1
 
             buffer = getLine (fid, "#")
-            read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
+            read(buffer,*) material_type, &
                 Tdomain%sSubDomain(i)%Pspeed,        &
                 Tdomain%sSubDomain(i)%Sspeed,        &
                 Tdomain%sSubDomain(i)%dDensity,      &
@@ -123,28 +120,18 @@ contains
                 Tdomain%sSubDomain(i)%Qpression,     &
                 Tdomain%sSubDomain(i)%Qmu
             Tdomain%sSubDomain(i)%NGLL = NGLL
-            Tdomain%sSubdomain(i)%assocMat = i
+            Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)
 
             call Lame_coefficients (Tdomain%sSubDomain(i))
 
-            if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
+            if (is_pml(Tdomain%sSubDomain(i)))  then
                 npml = npml + 1
-                Tdomain%not_PML_List(i) = .false.
-            else
             endif
-
-            Tdomain%sSubDomain(i)%initial_material_type = Tdomain%sSubDomain(i)%material_type
-            if (Tdomain%sSubDomain(i)%material_type == "R") then
-                Tdomain%nRandom = Tdomain%nRandom + 1
-                Tdomain%sSubDomain(i)%material_type = "S"
-                Tdomain%any_Random = .true.
-            end if
-
         enddo
 
         if(npml > 0) then
             do i = 0,Tdomain%n_mat-1
-                if(.not. Tdomain%not_PML_List(i)) then
+                if (is_pml(Tdomain%sSubDomain(i)))  then
                     buffer = getLine (fid, "#")
                     read(buffer,*) Tdomain%sSubdomain(i)%npow,  &
                         Tdomain%sSubdomain(i)%Apow,         &
@@ -154,33 +141,11 @@ contains
                         Tdomain%sSubdomain(i)%pml_width(1), &
                         Tdomain%sSubdomain(i)%pml_pos(2), &
                         Tdomain%sSubdomain(i)%pml_width(2), &
-                        Tdomain%sSubdomain(i)%assocMat
+                        assocMat
                 endif
             enddo
         endif
 
-#ifdef USE_RF
-        Tdomain%any_PropOnFile = .false.
-        do i = 0,Tdomain%n_mat-1
-            if(propOnFile(Tdomain, i)) then
-                Tdomain%any_PropOnFile = .true.
-                exit
-            end if
-        enddo
-#endif
-
-        if(Tdomain%nRandom > 0) then
-            do i = 0,Tdomain%n_mat-1
-                if(Tdomain%sSubdomain(i)%initial_material_type == 'R') then
-                    buffer = getLine (fid, "#")
-                    read(buffer,*) Tdomain%sSubdomain(i)%lambdaSwitch
-                    buffer = getLine (fid, "#") !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    buffer = getLine (fid, "#") !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    buffer = getLine (fid, "#") !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-
-                endif
-            enddo
-        endif
 
         write (*,*)
         write (*,*)

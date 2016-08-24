@@ -70,8 +70,6 @@ module sdomain
        type(comm)     , dimension (:), allocatable :: sComm
 
        logical :: aniso
-       logical :: any_Random, any_PropOnFile
-       integer :: nRandom
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
@@ -122,6 +120,25 @@ module sdomain
     end type domain
 
 contains
+
+    function domain_from_type_char(ch)
+        character, intent(in) :: ch
+        integer :: domain_from_type_char
+        select case(ch)
+        case('R')
+            domain_from_type_char = DM_SOLID
+        case('S')
+            domain_from_type_char = DM_SOLID
+        case('P')
+            domain_from_type_char = DM_SOLID_PML
+        case('F')
+            domain_from_type_char = DM_FLUID
+        case('L')
+            domain_from_type_char = DM_FLUID_PML
+        case default
+            stop "Unknown material type"
+        end select
+    end function domain_from_type_char
 
     function domain_nglltot(Tdomain, dom)
         integer, intent(in) :: dom

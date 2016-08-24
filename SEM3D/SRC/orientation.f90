@@ -43,7 +43,7 @@ contains
         end do
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
-            dom = get_domain(Tdomain%sSubDomain(mat))
+            dom = Tdomain%sSubDomain(mat)%dom
             ngll = domain_ngll(Tdomain, Tdomain%specel(i)%domain)
 
             do j = 0,5
@@ -63,32 +63,21 @@ contains
         type(domain), intent(inout) :: Tdomain
         !
         integer :: i, j, k
-        integer, dimension(0:2) :: ngll
+        integer :: ngll
         integer :: ne, mat, dom
         integer, dimension(0:1) :: eledge
 
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
-            dom = get_domain(Tdomain%sSubDomain(mat))
-            select case (Tdomain%specel(i)%domain)
-                 case (DM_SOLID)
-                     ngll(0:2) = Tdomain%sdom%ngll
-                 case (DM_FLUID)
-                     ngll(0:2) = Tdomain%fdom%ngll
-                 case (DM_SOLID_PML)
-                     ngll(0:2) = Tdomain%spmldom%ngll
-                 case (DM_FLUID_PML)
-                     ngll(0:2) = Tdomain%fpmldom%ngll
-                 case default
-                     stop " Fatal error : unknown domain"
-            end select
+            dom = Tdomain%sSubDomain(mat)%dom
+            ngll = domain_ngll(Tdomain, Tdomain%specel(i)%domain)
 
             do j = 0,11
                 ne = Tdomain%specel(i)%Near_Edges(j)
                 do k=0,1
                     eledge(k) = Tdomain%specel(i)%Control_nodes(edge_def(k,j))
                 end do
-                Tdomain%sEdge(ne)%ngll = ngll(edge_axis(j))
+                Tdomain%sEdge(ne)%ngll = ngll
                 if (Tdomain%sEdge(ne)%domain /= dom) then
                     write(*,*) "Error: inconsistency detected in apply_mat_to_edges"
                     stop 1
@@ -114,7 +103,7 @@ contains
 
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
-            dom = get_domain(Tdomain%sSubDomain(mat))
+            dom = Tdomain%sSubDomain(mat)%dom
             do j = 0,7
                 nv = Tdomain%specel(i)%Near_Vertices(j)
                 if (Tdomain%sVertex(nv)%domain /= dom) then

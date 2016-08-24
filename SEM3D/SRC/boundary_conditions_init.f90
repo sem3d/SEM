@@ -457,7 +457,7 @@ subroutine define_FEV_Neumann(Tdomain)
                 ngll2 = Tdomain%Neumann%NeuSurface(i_neu)%neu_Face(nf)%ngll2
                 mat = Tdomain%Neumann%Neu_Param%mat_index
                 ngll = Tdomain%sSubdomain(mat)%ngll
-                call domain_gllw(Tdomain, get_domain(Tdomain%sSubdomain(mat)), GLLw)
+                call domain_gllw(Tdomain, Tdomain%sSubdomain(mat)%dom, GLLw)
                 call normal_face_weighting(Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%dir,ngll, &
                                            ngll1,ngll2,Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%normal, GLLw, &
                                            Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn)

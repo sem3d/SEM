@@ -324,26 +324,6 @@ contains
                 end select
             case( MATERIAL_RANDOM )
                 !Don`t do anything, the basic properties were initialized by file
-                !write (*,*) "--> MATERIAL_RAND "
-                if(materialIsConstant(Tdomain, mat)) then
-                    !write (*,*) "--> but MATERIAL_CONSTANT "
-                    select case (specel%domain)
-                        case (DM_SOLID)
-                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,mat)
-                        case (DM_FLUID)
-                            call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda)
-                        case (DM_SOLID_PML)
-                            call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda,mat%DMu)
-                        case (DM_FLUID_PML)
-                            call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda)
-                        case default
-                            stop "unknown domain"
-                    end select
-                end if
         end select
     end subroutine init_material_properties
 
@@ -390,36 +370,6 @@ contains
         enddo
         deallocate(GLLw)
     end subroutine init_local_mass
-
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    function materialIsConstant(Tdomain, mat) result(authorization)
-
-        !INPUTS
-        type (domain), intent (in), target :: Tdomain
-        type (subdomain), intent(in) :: mat
-
-        !OUTPUT
-        logical :: authorization
-
-        !LOCAL
-        integer :: assocMat
-
-        assocMat = mat%assocMat
-        authorization = .false.
-
-
-        if(Tdomain%sSubDomain(assocMat)%initial_material_type == "S" .or. &
-            Tdomain%sSubDomain(assocMat)%initial_material_type == "P" .or. &
-            Tdomain%sSubDomain(assocMat)%initial_material_type == "F" .or. &
-            Tdomain%sSubDomain(assocMat)%initial_material_type == "L" .or. &
-            Tdomain%sSubDomain(assocMat)%initial_material_type == "T") then
-            authorization = .true.
-        end if
-
-    end function materialIsConstant
 
 end module mdefinitions
 !----------------------------------------------------------------------------------
