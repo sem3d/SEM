@@ -44,18 +44,19 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
+    real(fpp) :: xmu
+#ifdef ATTENUATION
 #ifdef ANISO
     real(fpp) :: Eyz, Exz, Exy
 #endif
-    real(fpp) :: xla, xmu
-#ifdef ATTENUATION
     real(fpp) :: stt, x2mu, xpression, xkappa
     integer   :: i_sls
 #else
-    real(fpp) :: xla2mu
+    real(fpp) :: xla2mu, xla
 #endif
-    real(fpp) :: dS_dxi, dS_deta, dS_dzeta
-
+#ifdef NGLLVAL
+    if (ngll/=ngll0) stop 1
+#endif
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
@@ -336,21 +337,20 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !=-=-=-=-=-=-=-=-=-=-
 #endif
 #ifdef ATTENUATION
-    call PROCNAME_ATN(dom,bnum,dom%hprime,dUx_dxi,dUx_deta,dUx_dzeta,&
+    call PROCNAME_ATN(dom,bnum,dUx_dxi,dUx_deta,dUx_dzeta,&
         dUy_dxi,dUy_deta,dUy_dzeta, &
         dUz_dxi,dUz_deta,dUz_dzeta)
 #endif
 end subroutine PROCNAME
 
 #ifdef ATTENUATION
-subroutine PROCNAME_ATN(dom,bnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
+subroutine PROCNAME_ATN(dom,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
     use champs_solid
     use deriv3d
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
     integer, intent(in) :: bnum
-    real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1), intent(in) :: hprime
     real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDXX,mDXY,mDXZ
     real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDYX,mDYY,mDYZ
     real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDZX,mDZY,mDZZ
@@ -369,11 +369,10 @@ subroutine PROCNAME_ATN(dom,bnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,
     real(fpp) :: epsilondev_xx_loc,epsilondev_yy_loc
     real(fpp) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
     real(fpp) :: epsilonvol_loc
-    integer   :: i_sls,i,j,k, ngll,e,ee,l
+    integer   :: i_sls,i,j,k, ngll,e,ee
     real(fpp) :: factorS_loc,Sn,Snp1
     real(fpp) :: factorP_loc,Pn,Pnp1
     real(fpp) :: epsilon_trace_over_3
-    real(fpp) :: dS_dxi, dS_deta, dS_dzeta
     real(fpp) :: factor_common_3, factor_common_P, omega_tau_s, gamma_mu, gamma_kappa
     real(fpp) :: alphaval, betaval, gammaval
     real(fpp) :: dt_tau

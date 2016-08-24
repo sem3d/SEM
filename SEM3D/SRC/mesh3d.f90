@@ -182,7 +182,7 @@ contains
         implicit none
         type(domain), intent(inout) :: Tdomain
         !
-        integer :: i, j, k, mat, nod, code
+        integer :: i, j, k, mat, nod
         !
         do i = 0, Tdomain%n_mat-1
             Tdomain%sSubDomain(i)%MinBound_loc = MAX_DOUBLE
@@ -353,14 +353,8 @@ contains
         logical :: neumann_log
         !
         integer(HID_T) :: fid, proc_id, surf_id
-        integer :: hdferr, ierr, i_neu, i_surf
-        integer, allocatable, dimension(:,:) :: itemp2, itemp2b, itemp2c
-        integer, allocatable, dimension(:,:) :: itemp
+        integer :: hdferr, ierr
         character(len=10) :: proc_grp
-        character(len=12) ::  schar
-        character(len=100)                   :: surfacename
-        character(len=4)                     :: typemat
-        type(surf_num)                       :: Tsurface
         integer, allocatable, dimension(:)   :: nb_elems_per_proc
         character(Len=MAX_FILE_SIZE) :: fname
         !

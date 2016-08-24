@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+
 
 int sem_mkdir_c(const char* path)
 {

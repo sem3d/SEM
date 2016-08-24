@@ -256,7 +256,6 @@ contains
         double precision, dimension(:,:,:)  , pointer :: BB_3D
         double precision :: weight
         logical :: findPropertyonTable
-        real :: t_0, t_f
         integer :: n, lnum, elem_mat, ngll, ipoint
 
 

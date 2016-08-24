@@ -43,7 +43,6 @@ module stat
         implicit none
         integer :: ierr, rank, sz, r, i
         integer :: status(MPI_STATUS_SIZE)
-        real(fpp) :: calctime
 
         call system_clock(count=stopFullTick)
         deltaTick = stopFullTick-startFullTick

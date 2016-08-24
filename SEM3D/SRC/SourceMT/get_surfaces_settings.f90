@@ -15,8 +15,7 @@ contains
         !
         type(domain), intent(inout)          :: Tdomain
         !
-        integer(HID_T)                       :: fid, proc_id, surf_id
-        integer                              :: hdferr, ierr, i_neu, i_surf, i, index_neu
+        integer                              :: i_neu, i_surf, i, index_neu
         integer, allocatable, dimension(:,:) :: itemp2, itemp2b, itemp2c
         integer, allocatable, dimension(:,:) :: itemp
         character(len=12) ::  schar
