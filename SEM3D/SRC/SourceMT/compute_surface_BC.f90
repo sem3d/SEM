@@ -76,7 +76,7 @@ contains
     end subroutine add_surface_force
     !-------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------
-    subroutine get_surf_gll_coord(surf,Tdomain, Coord)
+    subroutine get_surf_gll_coord(surf, Tdomain, Coord)
         use sdomain
         use sinterface
         use constants
@@ -86,20 +86,20 @@ contains
         type(domain), intent(in)                  :: Tdomain
         type(surf_num), intent(in)                :: surf
         integer                                   :: ngll_if, nv, ne, gll1, gll2, nf, nfs
-        integer                                   :: idx0, nes, nvs, i, j, ngll1, ngll2
+        integer                                   :: idx0, nes, nvs, i, j, ngll
         character(len=256)                        :: FunctionName ='get_surf_gll_coord'
         character(len=256)                        :: SourceFile = 'compute_surface_BC'
         character(len=700)                        :: ErrorSMS
-                      
+
         ngll_if = 0
         allocate(Coord(0:surf%nbtot-1,0:2))
         ! FACES
         do nf=0,surf%n_faces-1
            nfs = surf%if_faces(nf)
-           ngll1 = Tdomain%sFace(nfs)%ngll1
-           ngll2 = Tdomain%sFace(nfs)%ngll2
-           do j=1,ngll2-2
-              do i=1,ngll1-2
+           ngll = Tdomain%sFace(nfs)%ngll
+
+           do j=1,ngll-2
+              do i=1,ngll-2
                  idx0= Tdomain%sFace(nfs)%Iglobnum_Face(i,j)
                  Coord(ngll_if,:) = Tdomain%GlobCoord(:,idx0)
                  ngll_if = ngll_if + 1
@@ -109,8 +109,8 @@ contains
         ! EDGES
         do ne=0,surf%n_edges-1
            nes = surf%if_edges(ne)
-           ngll1 = Tdomain%sEdge(nes)%ngll 
-           do i=1,ngll1-2
+           ngll = Tdomain%sEdge(nes)%ngll
+           do i=1,ngll-2
               idx0 = Tdomain%sEdge(nes)%Iglobnum_Edge(i)
               Coord(ngll_if,:)  = Tdomain%GlobCoord(:,idx0)
               ngll_if = ngll_if + 1

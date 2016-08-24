@@ -227,18 +227,17 @@ contains
         !
         integer :: nif, i, j
         integer :: nf0, nf1, ip0, ip1
-        integer :: ngll1, ngll2
+        integer :: ngll
         real(FPP), dimension(0:2) :: dp, x0, x1
         logical :: bad
         !
         do nif=0,inter%surf0%n_faces-1
             nf0 = inter%surf0%if_faces(nif)
             nf1 = inter%surf1%if_faces(nif)
-            ngll1 = Tdomain%sFace(nf0)%ngll1
-            ngll2 = Tdomain%sFace(nf0)%ngll2
+            ngll = Tdomain%sFace(nf0)%ngll
             bad = .false.
-            do j=0,ngll2-1
-                do i=0,ngll1-1
+            do j=0,ngll-1
+                do i=0,ngll-1
                     ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
                     ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
                     dp = abs(Tdomain%GlobCoord(:,ip0)- Tdomain%GlobCoord(:,ip1))
@@ -255,8 +254,8 @@ contains
                 write(*,*) "IF0: IGLOBN", nf0, "[", Tdomain%sFace(nf0)%Iglobnum_Face, "]"
                 write(*,*) "IF1: IGLOBN", nf1, "[", Tdomain%sFace(nf1)%Iglobnum_Face, "]"
                 write(*,*) "DX:", nf0, nf1, ":"
-                do j=0,ngll2-1
-                    do i=0,ngll1-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
                         ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
                         ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
                         if (ip0>=0) then

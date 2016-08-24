@@ -148,7 +148,7 @@ contains
         call get_surface_numbering(Tdomain,Tdomain%SF%intSolFlu%surf1, DM_FLUID, renum)
 
         do nf=0,Tdomain%n_face-1
-            ngll = Tdomain%sFace(nf)%ngll1
+            ngll = Tdomain%sFace(nf)%ngll
             if (Tdomain%sFace(nf)%domain/=DM_FLUID) cycle
             do j=0,ngll-1
                 do i=0,ngll-1
