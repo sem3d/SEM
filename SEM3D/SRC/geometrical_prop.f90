@@ -125,14 +125,12 @@ contains
     end function der_dz_dzeta
     !------------------------------------------------------------------------
     !------------------------------------------------------------------------
-!    subroutine normal_face(dir,ngllx,nglly,ngllz,ngll1,ngll2,coord,GLLcx,GLLcy,GLLcz,normal)
+!    subroutine normal_face(dir,ngll,ngll1,ngll2,coord,GLLc,normal)
 !        ! determines the normal to a given face
 !        implicit none
-!        integer, intent(in)   :: dir,ngll1,ngll2,ngllx,nglly,ngllz
+!        integer, intent(in)   :: dir,ngll1,ngll2,ngll
 !        real, dimension(0:2,0:7), intent(in)  :: coord
-!        real, dimension(0:ngllx-1), intent(in)  :: GLLcx
-!        real, dimension(0:nglly-1), intent(in)  :: GLLcy
-!        real, dimension(0:ngllz-1), intent(in)  :: GLLcz
+!        real, dimension(0:ngll-1), intent(in)  :: GLLc
 !        real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(out)  :: normal
 !        !
 !        integer   :: i,j
@@ -147,17 +145,17 @@ contains
 !            do i = 0,ngll1-1
 !                select case(dir)
 !                case(0)
-!                    xi = GLLcx(i) ; eta = GLLcy(j) ; zeta = -1d0
+!                    xi = GLLc(i) ; eta = GLLc(j) ; zeta = -1d0
 !                case(1)
-!                    xi = GLLcx(i) ; zeta = GLLcz(j) ; eta = -1d0
-!                case(2)
-!                    eta = GLLcy(i) ; zeta = GLLcz(j) ; xi = 1d0
+!                    xi = GLLc(i) ; zeta = GLLc(j) ; eta = -1d0
+!               case(2)
+!                    eta = GLLc(i) ; zeta = GLLc(j) ; xi = 1d0
 !                case(3)
-!                    xi = GLLcx(i) ; zeta = GLLcz(j) ; eta = 1d0
+!                    xi = GLLc(i) ; zeta = GLLc(j) ; eta = 1d0
 !                case(4)
-!                    eta = GLLcy(i) ; zeta = GLLcz(j) ; xi = -1d0
+!                    eta = GLLc(i) ; zeta = GLLc(j) ; xi = -1d0
 !                case(5)
-!                    xi = GLLcx(i) ; eta = GLLcy(j) ; zeta = 1d0
+!                    xi = GLLc(i) ; eta = GLLc(j) ; zeta = 1d0
 !                case default
 !                    stop 1
 !                end select
@@ -168,7 +166,7 @@ contains
 !        end do
 !
 !    end subroutine normal_face
-    !--------------------------------------------------------------------
+   !--------------------------------------------------------------------
     !--------------------------------------------------------------------
     subroutine normal_vector_def(dir,x,y,z,xi,eta,zeta,n1,n2)
         ! determination of the 2 vectors defining a given face

@@ -16,11 +16,11 @@ module logical_input
        logical :: run_exec, run_debug, run_echo
        logical :: any_source
        logical :: super_object, Neumann, super_object_local_present, Neumann_local_present,Save_Surface
+       logical :: surfBC
        ! solid-fluid
        logical :: solid_fluid, all_fluid, SF_local_present
        ! MPML
        logical :: MPML
-       logical :: grad_bassin
     end type Logical_array
 
 end module logical_input

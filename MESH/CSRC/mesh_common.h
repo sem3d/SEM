@@ -6,21 +6,9 @@
 #ifndef _MESH_COMMON_
 #define _MESH_COMMON_
 
-#include <vector>
-#include <string>
 #include <cstdio>
-/*
-#include <map>
-#include "material.h"
-#include "h5helper.h"
-#include "vertex_elem_map.h"
-#include "meshbase.h"
-#include "aabb.h"
-*/
 
-namespace mesh_common{
-	size_t getData_line(char **buffer, size_t linesize, FILE* f);
-}
+void getData_line(char **buffer, size_t* linesize, FILE* f);
 
 #endif
 

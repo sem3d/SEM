@@ -67,14 +67,6 @@ module sem_c_config
        !! PML informations
        integer(C_INT) :: pml_type
 
-       !! Neumann
-       integer(C_INT) :: neu_present
-       integer(C_INT) :: neu_type
-       integer(C_INT) :: neu_mat
-       real(C_DOUBLE), dimension(3) :: neu_L
-       real(C_DOUBLE), dimension(3) :: neu_C
-       real(C_DOUBLE) :: neu_f0
-
        !!Material
        integer(C_INT) :: material_present
        integer(C_INT) :: material_type
@@ -83,6 +75,10 @@ module sem_c_config
        real(C_DOUBLE) :: delta_lat
 
        type(C_PTR)    :: stations
+
+       integer(C_INT) :: nsurface
+       integer(C_INT) :: surface_find
+       type(C_PTR)    :: surface
     end type sem_config
 
 
@@ -125,6 +121,34 @@ module sem_c_config
        real(C_DOUBLE), dimension(6) :: box
        integer(C_INT) :: material
     end type sem_snapshot_cond
+
+    ! ce type doit correspondre au type surface_t de sem_input.h **a l'ordre pres**
+    type, bind(c) :: sem_surfaces
+       type(C_PTR) :: next
+       integer(C_INT):: surface_list(20)
+       integer(C_INT) :: surface_present
+       integer(C_INT) :: surface_type
+       integer(C_INT) :: surface_mat
+       integer(C_INT) :: surface_whatbc
+       real(C_DOUBLE), dimension(3) :: surface_L
+       real(C_DOUBLE), dimension(3) :: surface_C
+       real(C_DOUBLE) :: surface_f0
+       integer(C_INT) :: surface_dim
+       real(C_DOUBLE) :: surface_paravalue(1:100)
+       type(C_PTR) :: surface_paramname
+       integer(C_INT) :: surface_nparamvar
+       integer(C_INT) :: surface_paramvar
+       type(C_PTR) :: surface_source
+       type(C_PTR) :: surface_funcx
+       type(C_PTR) :: surface_funcy
+       type(C_PTR) :: surface_funcz
+       type(C_PTR) :: surface_funcxy
+       type(C_PTR) :: surface_funcxz
+       type(C_PTR) :: surface_funcyz
+       type(C_PTR) :: surface_varia
+       real(C_DOUBLE) :: amplitude
+       real(C_DOUBLE) :: Rtau
+    end type sem_surfaces
 
     interface
        subroutine read_sem_config(config, spec, err) bind(c)

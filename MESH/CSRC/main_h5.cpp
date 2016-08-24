@@ -11,7 +11,6 @@
 #include "mesh.h"
 #include "mesh_h5_output.h"
 #include "meshpart.h"
-#include "mesh_common.h"
 
 using namespace std;
 
@@ -29,8 +28,9 @@ int main(int argc, char**argv)
     }
     int NPROCS=atoi(argv[1]);
 
-    mesh.read_materials("material.input");
+    mesh.read_materials("mater.in");
     mesh.read_mesh_file(argv[2]);
+    mesh.write_materials("material.input");
     mesh.generate_output(NPROCS);
     return 0;
 }

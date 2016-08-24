@@ -7,12 +7,15 @@
 module champs_solidpml
 
     use constants
+    use ssubdomains
     implicit none
 
+    ! Inconnues du problème : déplacement, vitesse
     type :: champssolidpml
-        ! Inconnues du problème : déplacement, vitesse
-        real(fpp), dimension(:,:), allocatable :: Depla
-        real(fpp), dimension(:,:), allocatable :: Veloc
+        ! Le déplacement et la vitesse sont "staggered" (leap frog) : ceci est imposé par Solid/Fluid
+        real(fpp), dimension(:,:), allocatable :: Depla ! U_n+3/2
+        real(fpp), dimension(:,:), allocatable :: Veloc ! V_n+1
+        real(fpp), dimension(:,:), allocatable :: Forces
     end type champssolidpml
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
@@ -39,13 +42,15 @@ module champs_solidpml
         real(fpp), dimension (:,:), allocatable :: hprime
         real(fpp), dimension (:,:), allocatable :: hTprime
 
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real(fpp), dimension(:), allocatable :: MassMat
+        ! Masse pour elements solide cpml
+        real(fpp), dimension(:), allocatable :: MassMat ! Delta 2d  derivative term in (12a) from Ref1
+        real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
+        real(fpp), dimension(:), allocatable :: MasUMat ! M^U <=> Delta term in (12a) from Ref1
 
-        ! PML is "like" an anisotropic material : do not use Lambda/Mu but use Cij
-        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Density
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
+        ! Element materials
+        type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
+        ! Geometrical information
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
         real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
 
@@ -56,15 +61,29 @@ module champs_solidpml
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
 
+        ! Copy of node global coords : mandatory to compute distances in the PML
+        real(fpp), pointer :: GlobCoord(:,:)
+
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champssolidpml) :: champs0
-        type(champssolidpml) :: champs1
-        real(fpp), dimension(:,:), allocatable :: Forces
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R1 ! Convolutional term R1 (19a) from Ref1
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R2 ! Convolutional term R2 (19b) from Ref1
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R3 ! Convolutional term R3 (19c) from Ref1
+        type(champssolidpml) :: champs0 ! Etat courant
+        type(champssolidpml) :: champs1 ! Prediction (à partir de l'état courant)
+
+        ! Dans le correcteur, on a besoin de V_n+3/2 qu'on ne connait pas : on s'appuie sur U_n+1/2 pour l'estimer
+        real(fpp), dimension(:,:), allocatable :: DeplaPrev ! U_n+1/2
+
+        real(fpp), dimension(:,:), allocatable :: R1 ! Convolutional term R1 (19a) from Ref1
+        real(fpp), dimension(:,:), allocatable :: R2 ! Convolutional term R2 (19b) from Ref1
+        real(fpp), dimension(:,:), allocatable :: R3 ! Convolutional term R3 (19c) from Ref1
+
+        ! CPML parameters
+        real(fpp) :: c(0:2)
+        integer   :: n(0:2)
+        real(fpp) :: r_c
+        integer   :: kappa_0, kappa_1
+        real(fpp) :: alphamax
+
     end type domain_solidpml
 
     contains

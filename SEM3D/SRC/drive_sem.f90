@@ -176,7 +176,9 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
+#ifdef USE_RF
     use build_prop_files
+#endif
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -185,7 +187,6 @@ subroutine RUN_PREPARED(Tdomain)
     type(domain), intent(inout) :: Tdomain
     integer :: rg
     integer :: code, i, ierr, group, subgroup
-    !integer :: mat
 
     rg = Tdomain%rank
     if(rg == 0) print*
@@ -224,11 +225,16 @@ subroutine RUN_PREPARED(Tdomain)
     endif
 
  !- eventual Neumann boundary conditions
-    if (Tdomain%logicD%neumann_local_present) then
-        if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
-        call define_Neumann_properties(Tdomain)
+    !if (Tdomain%logicD%neumann_local_present) then
+    !    if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
+    !    call define_Neumann_properties(Tdomain)
+    !endif
+    if (Tdomain%logicD%surfBC) then
+       if (rg == 0) write(*,*) "--> DEFINING SURFACE PROPERTIES"
+       call define_surface_properties(Tdomain)
     endif
 
+    call MPI_Barrier(Tdomain%communicateur, code)
 
  !- discretization (collocation) points' properties
     if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
@@ -262,10 +268,9 @@ subroutine RUN_PREPARED(Tdomain)
     call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-
-    !if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
+#ifdef USE_RF
     call create_prop_files (Tdomain, rg)
-
+#endif
 
     !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
@@ -425,6 +430,7 @@ subroutine INIT_COUPLING_MKA(Tdomain)
 
     !- new max. number of iterations
     Tdomain%TimeD%ntimeMax = int(Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+    if (Tdomain%TimeD%ntimeMax <= 0) stop "ERROR : nb of time step <= 0 as duration < dt"
     ! this block placed here - is it ok, or not?
     call reception_surface_part_mka(Tdomain)
     call reception_nouveau_pdt_sem(Tdomain)
@@ -560,8 +566,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
 
-        !stop("STOP TEST INSIDE TIME_STEPPING")
-              
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!

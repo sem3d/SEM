@@ -1568,41 +1568,26 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine write_HDF5_attributes(HDF5Path, &
-                                     nb_procs, nDim, Nmc, method, seedStart, &
-                                     corrMod, margiFirst, &
-                                     BT_avg, BT_stdDev, BT_min, BT_max, gen_times, gen_WALL_Time, &
-                                     localizationLevel, nFields, &
-                                     xMinGlob, xMaxGlob, xStep, corrL, overlap, &
-                                     procExtent, kMax_out, kNStep_out)
+    subroutine write_HDF5_time_attributes(HDF5Path, &
+                                          BT_avg, BT_stdDev, BT_min, BT_max, &
+                                          gen_times, gen_WALL_Time)
+
         implicit none
         !INPUTS
         character (len=*), intent(in) :: HDF5Path
-        integer, intent(in) :: nb_procs, nDim, Nmc, method, &
-                               seedStart, corrMod, margiFirst, localizationLevel
         double precision, dimension(:), intent(in) :: BT_avg, BT_stdDev, BT_min, BT_max
         double precision, dimension(:), intent(in) :: gen_times
         double precision, intent(in) :: gen_WALL_Time
-        double precision, dimension(:), intent(in) :: xMinGlob, xMaxGlob, xStep, corrL, overlap
-        double precision, dimension(:), intent(in) :: procExtent, kMax_out
-        integer         , dimension(:), intent(in) :: kNStep_out, nFields
 
         !LOCAL
+        double precision :: GT_avg, GT_stdDev, GT_min, GT_max
         character(len=50) :: attr_name
         integer(HID_T)  :: file_id       !File identifier
         integer :: error
-        double precision :: GT_avg, GT_stdDev, GT_min, GT_max
-        !integer(kind=8) :: sum_xNTotal, sum_kNTotal
-        !logical :: indep
+
 
         call h5open_f(error) ! Initialize FORTRAN interface.
         call h5fopen_f(trim(HDF5Path), H5F_ACC_RDWR_F, file_id, error) !Open File
-
-        !BOOL
-        !indep = RDF%independent
-        !if(MSH%overlap(1) == -2.0D0) indep = .true. !Exception for monoproc cases
-        !attr_name = "independent"
-        !call write_h5attr_bool(file_id, trim(adjustL(attr_name)), indep)
 
         GT_avg = sum(gen_times)/dble(size(gen_times))
         GT_stdDev = sum(gen_times**2.D0)/dble(size(gen_times)) - GT_avg**2.D0
@@ -1610,22 +1595,6 @@ contains
         GT_max = maxval(gen_times)
 
         !INTEGERS
-        attr_name = "nb_procs"
-        call write_h5attr_int(file_id, trim(adjustL(attr_name)), nb_procs)
-        attr_name = "nDim"
-        call write_h5attr_int(file_id, trim(adjustL(attr_name)), nDim)
-        attr_name = "Nmc"
-        call write_h5attr_int(file_id, trim(adjustL(attr_name)), Nmc)
-        attr_name = "method"
-        call write_h5attr_int(file_id, trim(adjustL(attr_name)), method)
-        attr_name = "seedStart"
-        call write_h5attr_int(file_id, trim(adjustL(attr_name)), seedStart)
-        attr_name = "corrMod"
-        call write_h5attr_int(file_id, trim(adjustL(attr_name)), corrMod)
-        attr_name = "margiFirst"
-        call write_h5attr_int(file_id, trim(adjustL(attr_name)), margiFirst)
-        attr_name = "localizationLevel"
-        call write_h5attr_int(file_id, trim(adjustL(attr_name)), localizationLevel)
         attr_name = "BT_size"
         call write_h5attr_int(file_id, trim(adjustL(attr_name)), size(BT_avg))
 
@@ -1648,6 +1617,77 @@ contains
         call write_h5attr_real(file_id, trim(adjustL(attr_name)), GT_min)
         attr_name = "GT_max"
         call write_h5attr_real(file_id, trim(adjustL(attr_name)), GT_max)
+
+        !DOUBLE VEC
+        attr_name = "BT_avg"
+        call write_h5attr_real_vec(file_id, attr_name, BT_avg)
+        attr_name = "BT_stdDev"
+        call write_h5attr_real_vec(file_id, attr_name, BT_stdDev)
+        attr_name = "BT_min"
+        call write_h5attr_real_vec(file_id, attr_name, BT_min)
+        attr_name = "BT_max"
+        call write_h5attr_real_vec(file_id, attr_name, BT_max)
+
+        call h5fclose_f(file_id, error)! Close the file.
+        call h5close_f(error) ! Close FORTRAN interface
+
+    end subroutine write_HDF5_time_attributes
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine write_HDF5_attributes(HDF5Path, &
+                                     nb_procs, nDim, Nmc, method, seedStart, &
+                                     corrMod, margiFirst, &
+                                     localizationLevel, nFields, &
+                                     xMinGlob, xMaxGlob, xStep, corrL, overlap, &
+                                     procExtent, kMax_out, kNStep_out, opened)
+        implicit none
+        !INPUTS
+        character (len=*), intent(in) :: HDF5Path
+        integer, intent(in) :: nb_procs, nDim, Nmc, method, &
+                               seedStart, corrMod, margiFirst, localizationLevel
+        double precision, dimension(:), intent(in) :: xMinGlob, xMaxGlob, xStep, corrL, overlap
+        double precision, dimension(:), intent(in) :: procExtent, kMax_out
+        integer         , dimension(:), intent(in) :: kNStep_out, nFields
+        logical, intent(in) :: opened
+
+        !LOCAL
+        character(len=50) :: attr_name
+        integer(HID_T)  :: file_id       !File identifier
+        integer :: error
+        !integer(kind=8) :: sum_xNTotal, sum_kNTotal
+        !logical :: indep
+
+        if(.not. opened) then
+            call h5open_f(error) ! Initialize FORTRAN interface.
+            call h5fopen_f(trim(HDF5Path), H5F_ACC_RDWR_F, file_id, error) !Open File
+        end if
+
+        !BOOL
+        !indep = RDF%independent
+        !if(MSH%overlap(1) == -2.0D0) indep = .true. !Exception for monoproc cases
+        !attr_name = "independent"
+        !call write_h5attr_bool(file_id, trim(adjustL(attr_name)), indep)
+
+        !INTEGERS
+        attr_name = "nb_procs"
+        call write_h5attr_int(file_id, trim(adjustL(attr_name)), nb_procs)
+        attr_name = "nDim"
+        call write_h5attr_int(file_id, trim(adjustL(attr_name)), nDim)
+        attr_name = "Nmc"
+        call write_h5attr_int(file_id, trim(adjustL(attr_name)), Nmc)
+        attr_name = "method"
+        call write_h5attr_int(file_id, trim(adjustL(attr_name)), method)
+        attr_name = "seedStart"
+        call write_h5attr_int(file_id, trim(adjustL(attr_name)), seedStart)
+        attr_name = "corrMod"
+        call write_h5attr_int(file_id, trim(adjustL(attr_name)), corrMod)
+        attr_name = "margiFirst"
+        call write_h5attr_int(file_id, trim(adjustL(attr_name)), margiFirst)
+        attr_name = "localizationLevel"
+        call write_h5attr_int(file_id, trim(adjustL(attr_name)), localizationLevel)
 
         !INTEGER VEC
         !attr_name = "seed"
@@ -1679,18 +1719,10 @@ contains
         attr_name = "kMax_out"
         call write_h5attr_real_vec(file_id, attr_name, kMax_out)
 
-        attr_name = "BT_avg"
-        call write_h5attr_real_vec(file_id, attr_name, BT_avg)
-        attr_name = "BT_stdDev"
-        call write_h5attr_real_vec(file_id, attr_name, BT_stdDev)
-        attr_name = "BT_min"
-        call write_h5attr_real_vec(file_id, attr_name, BT_min)
-        attr_name = "BT_max"
-        call write_h5attr_real_vec(file_id, attr_name, BT_max)
-
-
-        call h5fclose_f(file_id, error)! Close the file.
-        call h5close_f(error) ! Close FORTRAN interface
+        if(.not. opened) then
+            call h5fclose_f(file_id, error)! Close the file.
+            call h5close_f(error) ! Close FORTRAN interface
+        end if
 
     end subroutine write_HDF5_attributes
 
@@ -1710,7 +1742,7 @@ contains
         open (unit = fileId , file = filePath, action = 'write')
 
         write(fileId,"(A)") '1 #Number of Samples'
-        write(fileId,"(A)") '0 #Calculate Correlation Legth'
+        write(fileId,"(A)") '1 #Calculate Correlation Legth'
         write(fileId,"(A)") '1 #Delete Sample In The End'
         write(fileId,"(A)") '"'//trim(adjustL(h5_path))//'"'
 

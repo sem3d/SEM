@@ -42,7 +42,6 @@ subroutine makeCase(nDim, Nmc, corrMod, margiFirst, corrL, &
         character(len=buf_RF) :: mesh_path
         character(len=buf_RF) :: command_path
         character(len=buf_RF) :: jobName
-        integer :: i
         character :: indepChar
 
         write(*,*) " "
@@ -61,7 +60,7 @@ subroutine makeCase(nDim, Nmc, corrMod, margiFirst, corrL, &
         call write_mesh_file(nDim, xMinGlob, xMaxGlob, pointsPerCorrL, mesh_path)
 
         call write_gen_file(nDim, Nmc, corrMod, margiFirst, corrL, fieldAvg, fieldVar, method, &
-                            seedStart, independent, overlap, gen_path, &
+                            seedStart, overlap, gen_path, &
                             localizationLevel, nFields)
 
         indepChar = "g"
@@ -77,7 +76,7 @@ subroutine makeCase(nDim, Nmc, corrMod, margiFirst, corrL, &
         else if (cluster == 2)  then
             QManagerFile_path  = string_join_many(folderPath,"/","run.slurm")
             call writeSlurmfile(nDim, nProcsTotal, nProcsPerChunk, nChunks, &
-                              memPerChunk, wallTime, queue, QManagerFile_path, &
+                              memPerChunk, wallTime, QManagerFile_path, &
                               jobName, rfPath, statPath)
         else if (cluster == 3) then
             call write_command_file(nProcsTotal, command_path)
@@ -125,12 +124,12 @@ subroutine makeCase(nDim, Nmc, corrMod, margiFirst, corrL, &
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     subroutine write_gen_file(nDim, Nmc, corrMod, margiFirst, corrL, fieldAvg, fieldVar, method, &
-                              seedStart, independent, overlap, gen_path,                         &
+                              seedStart, overlap, gen_path,                         &
                               localizationLevel, nFields)
 
         implicit none
         !INPUT
-        integer, intent(in) :: nDim, Nmc, corrMod, margiFirst, method, seedStart, independent
+        integer, intent(in) :: nDim, Nmc, corrMod, margiFirst, method, seedStart
         double precision, dimension(:), intent(in) :: corrL, overlap
         double precision, intent(in) :: fieldAvg, fieldVar
         character(len=*), intent(in) :: gen_path
@@ -182,7 +181,6 @@ subroutine makeCase(nDim, Nmc, corrMod, margiFirst, corrL, &
         integer, intent(in) :: nProcsTotal
         character(len=*), intent(in) :: folderPath
         !LOCAL
-        integer :: i
         integer :: fileId
         character(len=buf_RF) :: NP
 
@@ -236,14 +234,13 @@ subroutine makeCase(nDim, Nmc, corrMod, margiFirst, corrL, &
         character(len=buf_RF), intent(in) :: rfPath, statPath
 
         !LOCAL
-        integer :: nProcsPerChunk_chSz, nProcsTotal_chSz
+        integer :: nProcsPerChunk_chSz
         integer :: nChunks_chSz
         integer :: memPerChunk_chSz
         integer :: nDim_chSz
         integer :: fileId
-        character(len=200) :: format
+        character(len=buf_RF) :: format
         character(len=50) :: outName
-        integer :: i
 
         fileID = 28
         outName = "out_RF"
@@ -333,14 +330,13 @@ subroutine makeCase(nDim, Nmc, corrMod, margiFirst, corrL, &
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     subroutine writeSlurmfile(nDim, nProcsTotal, nProcsPerChunk, nChunks, memPerChunk, wallTime, &
-                              queue, QManagerFile_path, jobName, rfPath, statPath)
+                              QManagerFile_path, jobName, rfPath, statPath)
 
         implicit none
         !INPUT
         integer, intent(in) :: nDim, nProcsTotal, nProcsPerChunk, nChunks, memPerChunk
         character(len=8), intent(in) :: wallTime
         character(len=buf_RF) :: QManagerFile_path
-        character(len=*), intent(in) :: queue
         !character(len=50) :: name
         character(len=buf_RF), intent(in) :: jobName
         character(len=buf_RF), intent(in) :: rfPath, statPath
@@ -354,7 +350,6 @@ subroutine makeCase(nDim, Nmc, corrMod, margiFirst, corrL, &
         integer :: memTot, memTot_chSz
         character(len=buf_RF) :: format
         character(len=buf_RF) :: outName
-        integer :: i
 
         fileID = 28
         outName = "out_RF"

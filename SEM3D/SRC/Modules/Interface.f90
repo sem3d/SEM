@@ -18,7 +18,7 @@ module sinterface
     ! map donne la correspondance entre numero de point sur la surface et numero
     ! de gll du domaine associé à la surface.
     type :: surf_num
-        integer :: n_faces, n_edges, n_vertices
+        integer :: n_faces, n_edges, n_vertices, domain
         integer :: nbtot ! nombre total de points de gauss de l'interface
         ! A list of gll points from the interface
         integer, dimension(:), allocatable :: map ! dimension(0:nbtot-1)
@@ -26,6 +26,7 @@ module sinterface
         integer, dimension(:), allocatable :: if_faces
         integer, dimension(:), allocatable :: if_edges
         integer, dimension(:), allocatable :: if_vertices
+        integer, dimension(:), allocatable :: if_edge_norm
         ! mapping between face index and a sign to apply whether the local face has
         ! the same orientation as the surface outside normal
         integer, dimension(:), allocatable :: if_norm
@@ -47,6 +48,7 @@ contains
         surf%n_faces = 0
         surf%n_edges = 0
         surf%n_vertices = 0
+        surf%domain=0
     end subroutine init_surface
 
     ! simple initialisation
@@ -66,6 +68,7 @@ contains
         end if
         if (surf%n_edges>0) then
             deallocate(surf%if_edges)
+            deallocate(surf%if_edge_norm)
         end if
         if (surf%n_vertices>0) then
             deallocate(surf%if_vertices)
@@ -82,6 +85,7 @@ contains
         end if
         if (surf%n_edges>0) then
             allocate(surf%if_edges(0:surf%n_edges-1))
+            allocate(surf%if_edge_norm(0:surf%n_edges-1))
         end if
         if (surf%n_vertices>0) then
             allocate(surf%if_vertices(0:surf%n_vertices-1))

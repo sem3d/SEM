@@ -108,7 +108,6 @@ contains
         call show_IPTneigh(IPT, "IPT-Neighbours", .false., forLog=.true.)
 
         if(IPT%rang == 0) call show_IPT_RF(IPT, "IPT")
-
         call build_random_field (IPT, times, t_initial)
 
         call MPI_COMM_FREE (IPT%gen_Comm, code)
@@ -270,12 +269,12 @@ contains
                             if(IPT%nDim == 2) then
                                 call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
                                                 unityPartition, &
-                                                xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                                xMinFiles(:, countFields), &
                                                 xMin_Group, RF_2D_Group=RF_2D_Group)
                            else if(IPT%nDim == 3) then
                                call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
                                                 unityPartition, &
-                                                xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                                xMinFiles(:, countFields), &
                                                 xMin_Group, RF_3D_Group=RF_3D_Group)
                            end if
 
@@ -416,13 +415,24 @@ contains
         times(6) = build_times(4) !External Localization Time
 
         ! TRANSFORMATION AND OUTPUT WRITING
-        if(IPT%rang == 0) write(*,*) "-> TRANFORMING AND WRITING OUTPUT--------------------"
-        call wLog("-> TRANFORMING AND WRITING OUTPUT--------------------")
 
         if(IPT%loc_group == 0) then
+            if(IPT%rang == 0) write(*,*) "-> TRANFORMING AND WRITING OUTPUT--------------------"
+            call wLog("-> TRANFORMING AND WRITING OUTPUT--------------------")
             !Normalizing and Writing files
             call transform_and_write_output(randField_Group, xNStep_Group, origin_Group, &
                                             IPT, build_times, BBoxPath, XMFPath)
+            if(IPT%rang == 0) write(*,*) "BBoxPath = ", trim(BBoxPath)
+            if(IPT%rang == 0) write(*,*) "fileExist = ", fileExist (BBoxPath)
+
+            if(IPT%rang == 0) write(*,*) "-> WRITING ATTRIBUTES--------------------"
+            call wLog("-> WRITING ATTRIBUTES--------------------")
+            if(IPT%rang == 0) call write_HDF5_attributes(BBoxPath, &
+                           IPT%nb_procs, IPT%nDim, IPT%Nmc, IPT%method, IPT%seedStart, &
+                           IPT%corrMod, IPT%margiFirst, &
+                           IPT%localizationLevel, IPT%nFields, &
+                           IPT%xMinGlob, IPT%xMaxGlob, IPT%xStep, IPT%corrL, IPT%overlap, &
+                           IPT%procExtent, kMax_out, kNStep_out, .false.)
         end if
 
         if(IPT%write_intermediate_files) then
@@ -468,7 +478,7 @@ contains
             if(IPT%rang == 0) write(*,*) trim(adjustL(IPT%unv_path))
             allocate(UNV_randField(size(IPT%coordList,2),1))
             if(IPT%rang == 0) write(*,*) "  Source:"
-            if(IPT%rang == 0) write(*,*) BBoxPath
+            if(IPT%rang == 0) write(*,*) trim(adjustL(BBoxPath))
             if(IPT%rang == 0) write(*,*) "-> INTERPOLATING TO GIVEN MESH----------------------------------------"
             call wLog("-> INTERPOLATING TO GIVEN MESH----------------------------------------")
             call interpolateToMesh(BBoxPath, IPT%coordList, UNV_randField, IPT%rang)
@@ -544,13 +554,10 @@ contains
             call wLog("BT_stdDev = ")
             call wLog(BT_stdDev)
 
-            call write_HDF5_attributes(BBoxPath, &
-                IPT%nb_procs, IPT%nDim, IPT%Nmc, IPT%method, IPT%seedStart, &
-                IPT%corrMod, IPT%margiFirst, &
-                BT_avg, BT_stdDev, BT_min, BT_max, gen_times, gen_WALL_Time, &
-                IPT%localizationLevel, IPT%nFields, &
-                IPT%xMinGlob, IPT%xMaxGlob, IPT%xStep, IPT%corrL, IPT%overlap, &
-                IPT%procExtent, kMax_out, kNStep_out)
+            call write_HDF5_time_attributes(BBoxPath, &
+                                            BT_avg, BT_stdDev, BT_min, BT_max, &
+                                            gen_times, gen_WALL_Time)
+
             call getcwd(MONO_FileName)
             !write(*,*) "MONO_FileName(len(trim(MONO_FileName)):len(trim(MONO_FileName))) "
             !write(*,*) MONO_FileName(len(trim(MONO_FileName)):len(trim(MONO_FileName)))

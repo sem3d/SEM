@@ -8,7 +8,6 @@
 
 #include <cstdio>
 #include "meshbase.h"
-#include "mesh_common.h"
 
 // Describe directions of presence of PML elements
 // When generating a structured axis aligned grid

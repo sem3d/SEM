@@ -118,10 +118,6 @@
 #define        PMLDumpSy_(i,j,k,n,eb,ec)        m_PMLDumpSy(IND_IJKNE(i,j,k,n,eb,ec))
 #define        PMLDumpSz_(i,j,k,n,eb,ec)        m_PMLDumpSz(IND_IJKNE(i,j,k,n,eb,ec))
 
-#define R1_(i,j,k,n,eb,ec) m_R1(IND_IJKNE(i,j,k,n,eb,ec))
-#define R2_(i,j,k,n,eb,ec) m_R2(IND_IJKNE(i,j,k,n,eb,ec))
-#define R3_(i,j,k,n,eb,ec) m_R3(IND_IJKNE(i,j,k,n,eb,ec))
-
 #endif
 
 #define part_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \

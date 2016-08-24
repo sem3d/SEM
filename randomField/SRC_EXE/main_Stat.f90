@@ -74,26 +74,31 @@ program main_Stat
 
         if(STA%rang == 0) write(*,*) "-> Reading HDF5 Attributes"
         call read_RF_h5_File_Attributes()
-        if(STA%rang == 0) write(*,*) "-> Setting Local Range"
-        call set_Local_Range()
-        call set_Sk_Dir()
-        if(STA%rang == 0) write(*,*) "-> Reading HDF5 Tables"
-        call read_RF_h5_File_Table()
-        if(STA%rang == 0) write(*,*) "-> Calculating Average and StdVar"
-        call calculate_average_and_stdVar_MPI(STA)
-        if(calculateCorrL == 1) then
-            if(STA%rang == 0) write(*,*) "-> Recontructing Spectrum"
-            call rebuild_Sk(STA)
-            if(STA%rang == 0) write(*,*) "-> Calculating Correlation Length"
-            call rebuild_corrL(STA, STA%corrL_out)
-            if(STA%rang == 0) write(*,*) "-> Writing Statistics on File"
-            if(STA%rang == 0) call write_StatisticsOnH5(STA, resPath)
-        end if
+        if(STA%rang == 0) write(*,*) "-> Set valid Proc"
+        call estimate_nFields_2(STA, STA%procPerDim, STA%valid_proc, STA%valid_comm, STA%valid_nb_procs)
 
-        if(STA%rang == 0) call show_STAT(STA, "Calculated Statistics", 6)
+        if(STA%valid_proc) then
+            if(STA%rang == 0) write(*,*) "-> Setting Local Range"
+            call set_Local_Range()
+            call set_Sk_Dir()
+            if(STA%rang == 0) write(*,*) "-> Reading HDF5 Tables"
+            call read_RF_h5_File_Table()
+            if(STA%rang == 0) write(*,*) "-> Calculating Average and StdVar"
+            call calculate_average_and_stdVar_MPI(STA)
+            if(calculateCorrL == 1) then
+                if(STA%rang == 0) write(*,*) "-> Recontructing Spectrum"
+                call rebuild_Sk(STA)
+                if(STA%rang == 0) write(*,*) "-> Calculating Correlation Length"
+                call rebuild_corrL(STA, STA%corrL_out)
+                if(STA%rang == 0) write(*,*) "-> Writing Statistics on File"
+                if(STA%rang == 0) call write_StatisticsOnH5(STA, resPath)
+            end if
 
-        if(STA%rang == 0) then
-            call makeInfoFile(resPath, STA%nDim, STA, deleteSampleInTheEnd)
+            if(STA%rang == 0) call show_STAT(STA, "Calculated Statistics", 6)
+
+            if(STA%rang == 0) then
+                call makeInfoFile(resPath, STA%nDim, STA, deleteSampleInTheEnd)
+            end if
         end if
 
         call finalize_STAT(STA)
@@ -278,8 +283,7 @@ program main_Stat
 
             periods(:) = .false.
 
-            call set_procPerDim_2 (STA, STA%procPerDim)
-            call MPI_CART_CREATE (STA%comm, STA%nDim, STA%procPerDim, periods, .false., topComm, code)
+            call MPI_CART_CREATE (STA%valid_comm, STA%nDim, STA%procPerDim, periods, .false., topComm, code)
             call MPI_CART_COORDS (topComm, STA%rang, STA%nDim, STA%coords, code)
 
             STA%localRange(:,1) = STA%coords * STA%xNStep/STA%procPerDim + 1
@@ -294,6 +298,161 @@ program main_Stat
             STA%xNStep_Loc = STA%localRange(:,2) - STA%localRange(:,1) + 1
 
         end subroutine set_Local_Range
+
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        subroutine estimate_nFields_2(STA, procPerDim, valid_proc, valid_comm, valid_nb_procs)
+
+            implicit none
+
+            !INPUT
+            type(STAT), intent(in) :: STA
+
+            !OUTPUT
+            integer, dimension(:), intent(out) :: procPerDim
+            logical              , intent(out) :: valid_proc
+            integer,               intent(out) :: valid_comm
+            integer,               intent(out) :: valid_nb_procs
+            !LOCAL
+            integer, dimension(STA%nDim) :: nPoints, nBlocks
+            integer, dimension(STA%nDim) :: nFieldsIdeal, nBlocksIdeal, nFieldsChosen
+            integer, dimension(STA%nDim) :: nPointsBase, nPointsOvlp, ratio
+            !double precision, dimension(IPT%nDim_gen) :: nBlocsDble
+            logical :: nFieldsOK
+            integer, dimension(100) :: factors
+            integer :: i, pos, np, np_total, np_start, np_end
+            double precision :: vol_surf_factor, vol_surf_factor_temp
+            integer :: color, code
+
+
+            if(STA%rang == 0)  write(*,*) "nFields will be decided automatically"
+
+            nPointsBase = ceiling((STA%xMaxGlob - STA%xMinGlob)/STA%xStep)
+            nPointsOvlp = ceiling(STA%overlap/STA%xStep)
+            nBlocks = 1
+
+            nFieldsOK = .false.
+
+            !write(*,*) "nBlocks = ", nBlocks
+            !write(*,*) "nPointsOvlp = ", nPointsOvlp
+
+            !write(*,*) "BEFORE WHILE"
+
+            do while (.not. nFieldsOK)
+                nPoints = nPointsBase + (nBlocks - 1)*2*nPointsOvlp
+                !write(*,*) "nPoints = ", nPoints
+
+                !nBlocks = ceiling(nPoints/200)
+
+                ratio = ceiling(dble(nPoints)/dble(nBlocks))
+                !write(*,*) "ratio = ", ratio
+
+                where(nPoints/nBlocks > 200) nBlocks = nBlocks + 1
+                !write(*,*) "nBlocks = ", nBlocks
+
+                ratio = ceiling(dble(nPoints)/dble(nBlocks))
+
+                if(all(ratio < 200)) nFieldsOK = .true.
+            end do
+
+            nBlocksIdeal = nBlocks
+
+
+            if(STA%rang == 0)  write(*,*) "nBlocks (ideal) = ", nBlocksIdeal
+
+            np_total = STA%nb_procs
+            vol_surf_factor_temp = 0D0
+
+            np_start = ceiling(0.9*np_total)
+            np_end   = np_total
+
+            do np = np_start, np_end
+
+
+                nBlocks = nBlocksIdeal
+
+                factors = 0
+                nFieldsIdeal  = 1
+                !call find_factors(IPT%nb_procs, factors)
+                call find_factors(np, factors)
+                !if(IPT%rang == 0) write(*,*) "factors = ", factors
+                !Adapting to our number of processors
+
+
+                do i = size(factors), 1, -1
+                    !if(IPT%rang == 0) write(*,*) "i = ", i
+
+                    if(factors(i) == 0) cycle
+
+                    if(all(nBlocks == 1)) exit
+
+                    pos = MAXLOC(nBlocks,1)
+                    nFieldsIdeal(pos) = nFieldsIdeal(pos)*factors(i)
+                    nBlocks(pos) = ceiling(dble(nBlocks(pos))/dble(factors(i)))
+
+                end do
+
+                vol_surf_factor_temp = dble(product(nFieldsIdeal))/dble(2*sum(nFieldsIdeal*CSHIFT(nFieldsIdeal, shift=1)))
+
+                !if(IPT%rang == 0) write(*,*) "nBlocks (ideal) = ", nBlocks
+                !if(IPT%rang == 0) write(*,*) "nFieldsIdeal (ideal) = ", nFieldsIdeal
+                !if(IPT%rang == 0) write(*,*) "product(nFieldsIdeal)", product(nFieldsIdeal)
+                !if(IPT%rang == 0) write(*,*) "sum(nFieldsIdeal**2)", sum(nFieldsIdeal*CSHIFT(nFieldsIdeal, shift=1))
+                !if(IPT%rang == 0) write(*,*) "Vol/Surf = ", vol_surf_factor_temp
+
+                if(vol_surf_factor_temp >= vol_surf_factor) then
+                    vol_surf_factor = vol_surf_factor_temp
+                    nFieldsChosen   = nFieldsIdeal
+                end if
+            end do
+
+            procPerDim = nFieldsChosen
+
+            if(STA%rang < product(procPerDim)) then
+                color = 1
+                valid_proc = .true.
+            else
+                color = 0
+                valid_proc = .false.
+            end if
+
+            call MPI_COMM_SPLIT(STA%comm, color, STA%rang, valid_comm, code)
+            call MPI_COMM_SIZE(valid_comm, valid_nb_procs, code)
+
+
+            if(STA%rang == 0) write(*,*) "vol_surf_factor = ", vol_surf_factor
+
+            if(STA%rang == 0) write(*,*) "procPerDim = ", procPerDim
+
+        end subroutine estimate_nFields_2
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine find_factors(n, d)
+            integer, intent(in) :: n
+            integer, dimension(:), intent(out) :: d
+
+            integer :: div, next, rest
+            integer :: i
+
+            i = 1
+            div = 2; next = 3; rest = n
+
+            do while ( rest /= 1 )
+               do while ( mod(rest, div) == 0 )
+                  d(i) = div
+                  i = i + 1
+                  rest = rest / div
+               end do
+               div = next
+               next = next + 2
+            end do
+
+      end subroutine find_factors
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
@@ -459,7 +618,6 @@ program main_Stat
             integer(HID_T)  :: new_file_id, old_file_id       !File identifier
             integer :: error
             integer :: i
-            logical :: attr_exists
             character(len=buf_RF) :: newFile = "Sample_Info.h5"
             character(len=buf_RF) :: newFile_Path, newFile_Folder
             character(len=buf_RF) :: command, absPath

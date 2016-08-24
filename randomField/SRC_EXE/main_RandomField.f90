@@ -24,6 +24,7 @@ program main_RandomField
     character(len=buf_RF) :: path
     double precision, dimension(9) :: times, all_times
     integer :: code, i
+    character(len=buf_RF) :: results_folder_name
 
     !INPUT VARIABLES
     type(IPT_RF)  :: IPT_Temp !Only for sake of practicity
@@ -68,7 +69,7 @@ program main_RandomField
 
     !Initializing folders
     if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize Folders"
-    call init_basic_folders(IPT_Temp%comm, IPT_Temp)
+    call init_basic_folders(IPT_Temp%comm, IPT_Temp, results_folder_name)
 
     !READING INPUTS--------------------------------------------------
     !----------------------------------------------------------------
@@ -78,6 +79,13 @@ program main_RandomField
     if(IPT_Temp%rang == 0) write(*,*)  "     -> Reading Main Input"
     call wLog("     -> Reading Main Input")
     call read_main_input("./RF_main_input", IPT_Temp)
+
+    if(IPT_Temp%sameFolder) then
+        do i =1, IPT_Temp%nSamples
+            IPT_Temp%out_folders(i) = string_join_many("./res/",results_folder_name)
+            IPT_Temp%out_names(i)   = "RF_"//numb2String(i, nCharacters=2)
+        end do
+    end if
 
     call MPI_BARRIER(IPT_Temp%comm, code)
 
@@ -196,7 +204,6 @@ program main_RandomField
         if(IPT_Temp%rang == 0) write(*,*) "Reading Inputs        = ", (all_times(2) - all_times(1))/dble(IPT_Temp%nb_procs)
         if(IPT_Temp%rang == 0) write(*,*) "Pre Organization      = ", (all_times(3) - all_times(2))/dble(IPT_Temp%nb_procs)
         if(IPT_Temp%rang == 0) write(*,*) "Generation            = ", (all_times(4) - all_times(3))/dble(IPT_Temp%nb_procs)
-        !if(IPT_Temp%rang == 0) write(*,*) "Localization Int      = ", (all_times(5) - all_times(4))/dble(IPT_Temp%nb_procs)
         if(IPT_Temp%rang == 0) write(*,*) "Localization Ext      = ", (all_times(5) - all_times(4))/dble(IPT_Temp%nb_procs)
         if(IPT_Temp%rang == 0) write(*,*) "Writing Normalization = ", (all_times(6) - all_times(5))/dble(IPT_Temp%nb_procs)
         if(IPT_Temp%rang == 0) write(*,*) "Transforming          = ", (all_times(7) - all_times(6))/dble(IPT_Temp%nb_procs)
@@ -265,24 +272,24 @@ program main_RandomField
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
-        subroutine init_basic_folders(comm, IPT_Temp)
+        subroutine init_basic_folders(comm, IPT_Temp, results_folder_name)
             implicit none
             !INPUT
             integer, intent(in) :: comm
             type(IPT_RF), intent(inout)  :: IPT_Temp !Only for sake ok practicity
+            !OUTPUT
+            character(len=*), intent(out) :: results_folder_name
             !LOCAL
             integer, dimension(8) :: date_time
             integer :: code
             character(len=10), dimension(3) :: strings
-            character(len=buf_RF) :: results_folder_name
             !    !LOCAL VARIABLES
             character(len=buf_RF) :: logFilePath, log_folder_name
             logical :: folderExist1
 
+            results_folder_name = " "
 
             if(IPT_Temp%sameFolder) then
-                results_folder_name = "res"
-            else
                 !date_time_label
                 if(IPT_Temp%rang == 0) then
                     folderExist1 = .true.
@@ -321,11 +328,6 @@ program main_RandomField
 #else
             if(IPT_Temp%rang == 0) write(*,*) "IFDEF MAKELOG NOT DEFINED"
 #endif
-
-            !create xmf and h5 folders
-            !path = string_join_many(results_path,"/",results_folder_name)
-            !call create_folder("xmf", path, IPT_Temp%rang, comm)
-            !call create_folder("h5", path, IPT_Temp%rang, comm)
 
         end subroutine init_basic_folders
 

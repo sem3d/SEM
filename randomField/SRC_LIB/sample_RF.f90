@@ -271,6 +271,7 @@ contains
             if(validProc) then
 
                 write(*,*) "-> VALID proc ", IPT%rang
+                call  wLog("-> VALID proc ")
 
                 call MPI_COMM_RANK(validComm, newRang, code)
                 call MPI_COMM_SIZE(validComm, newNbProcs, code)
@@ -345,7 +346,7 @@ contains
                 write(*,*) "-> Calculating Sample proc ", IPT%rang
                 call create_RF_Unstruct_Init (RDF, MSH)
 
-                !write(*,*) "After Calculation"
+                !write(*,*) "After Calculation" Verification - proc KO
 
                 call wLog("      maxval(RDF%randField,1) = ")
                 call wLog(maxval(RDF%randField,1))

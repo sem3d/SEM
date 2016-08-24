@@ -61,7 +61,8 @@ module sdomain
        type(logical_array) :: logicD
        type(planew)        :: sPlaneW
        type(Neu_object)    :: Neumann
-       type(bassin)        :: sBassin
+
+       type(SurfaceParam), dimension(:), allocatable :: nsurfsource
        type(source)   , dimension (:), allocatable :: sSource
        type(element)  , dimension (:), pointer     :: specel
        type(face)     , dimension (:), allocatable :: sFace
@@ -76,19 +77,19 @@ module sdomain
        logical :: nl_flag
        integer :: nRandom
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
-       integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
+       integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
        logical :: any_sdom, any_fdom, any_spml, any_fpml
 
        real(fpp) :: T1_att, T2_att, T0_modele
        real(fpp), dimension (0:2,0:2) :: rot
-       real(fpp), dimension (:,:), allocatable:: Coord_nodes, GlobCoord
+       real(fpp), dimension (:,:), allocatable:: Coord_nodes
+       real(fpp), dimension (:,:), pointer:: GlobCoord ! No allocate, use pointer: enable pointing to coord (avoid allocate + copy)
 
        integer :: traces_format
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &
            Super_object_file,neumann_file,neumann_dat,check_mesh_file
-       character (len=30) :: file_bassin
        character (len=1)  :: Super_object_type
 
        integer, dimension(0:8) :: out_variables
@@ -118,6 +119,9 @@ module sdomain
 
        ! Configuration parameters as returned from read_input.c
        type(sem_config) :: config
+
+       ! Rajouter pour le traitement des surface
+       integer :: n_NEBC, n_PWBC, n_FTBC, nsurface
     end type domain
 
 contains

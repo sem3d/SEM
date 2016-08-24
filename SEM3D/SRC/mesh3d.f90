@@ -31,7 +31,6 @@ contains
 
         if (inter%surf0%n_faces/=0) then
             call read_dataset(fid, trim(pfx)//"_faces", itemp2)
-!            write(*,*) pfx//" Faces:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_faces = itemp2(1,:)
             inter%surf1%if_faces = itemp2(2,:)
             deallocate(itemp2)
@@ -42,14 +41,12 @@ contains
         end if
         if (inter%surf0%n_edges/=0) then
             call read_dataset(fid, trim(pfx)//"_edges", itemp2)
-!            write(*,*) pfx//" Edges:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_edges = itemp2(1,:)
             inter%surf1%if_edges = itemp2(2,:)
             deallocate(itemp2)
         end if
         if (inter%surf0%n_vertices/=0) then
             call read_dataset(fid, trim(pfx)//"_vertices", itemp2)
-!            write(*,*) pfx//" Vertices:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_vertices = itemp2(1,:)
             inter%surf1%if_vertices = itemp2(2,:)
             deallocate(itemp2)
@@ -69,6 +66,7 @@ contains
         call read_attr_int(fid, "n_faces",     Tdomain%n_face)
         call read_attr_int(fid, "n_edges",     Tdomain%n_edge)
         call read_attr_int(fid, "n_vertices",  Tdomain%n_vertex)
+        !call read_attr_int(fid, "neumann_present_loc",  Tdomain%n_neumannfind)
         !
         if(Tdomain%n_dime /=3)   &
             stop "No general code for the time being: only 3D propagation"
@@ -214,9 +212,9 @@ contains
             Tdomain%sSubDomain(mat)%MinBound_Loc = Tdomain%sSubDomain(mat)%MinBound
             assocMat = Tdomain%sSubDomain(mat)%assocMat
             where(Tdomain%sSubDomain(mat)%MinBound < Tdomain%sSubDomain(assocMat)%MinBound) &
-                  Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
+                Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
             where(Tdomain%sSubDomain(mat)%MaxBound > Tdomain%sSubDomain(assocMat)%MaxBound) &
-                  Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
+                Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
         end do
 
 
@@ -288,9 +286,7 @@ contains
         call allocate_surface(surf)
 
         if (surf%n_faces/=0) then
-!            write(*,*) "READ: //", trim(pfx)//"_faces","//"
             call read_dataset(gid, trim(pfx)//"_faces", itemp)
-!            write(*,*) trim(pfx)//" Faces:", size(itemp)
             surf%if_faces = itemp
             deallocate(itemp)
             call read_dataset(gid, trim(pfx)//"_orient", itemp)
@@ -299,17 +295,41 @@ contains
         end if
         if (surf%n_edges/=0) then
             call read_dataset(gid, trim(pfx)//"_edges", itemp)
-!            write(*,*) trim(pfx)//" Edges:", size(itemp)
             surf%if_edges = itemp
             deallocate(itemp)
         end if
         if (surf%n_vertices/=0) then
             call read_dataset(gid, trim(pfx)//"_vertices", itemp)
-!            write(*,*) trim(pfx)//" Vertices:", size(itemp)
             surf%if_vertices = itemp
             deallocate(itemp)
         end if
     end subroutine read_one_surface
+
+    subroutine get_surface_domain(gid, domain)
+
+        implicit none
+        integer, intent(inout)             :: domain
+        integer(HID_T), intent(in)         :: gid
+        character(len=4), dimension(4)     :: pfx=(/"sl  ", &
+            "fl  ", &
+            "spml", &
+            "fpml"/)
+        integer, allocatable, dimension(:) :: itemp
+        integer                            :: n_faces, i
+
+        do i=1,4
+            call read_attr_int(gid, "n_"//trim(pfx(i))//"_faces",n_faces)
+            if (n_faces/=0) then
+                call read_dataset(gid, trim(pfx(i))//"_faces_dom", itemp)
+                if (MAXVAL(itemp).ne.MINVAL(itemp)) then
+                    stop "Error : faces_dom uncorrectly denied in surfaces list"
+                endif
+                domain=MINVAL(itemp)
+                deallocate(itemp)
+            endif
+        enddo
+
+    end subroutine get_surface_domain
 
     subroutine read_surfaces(Tdomain, gid)
         implicit none
@@ -322,13 +342,13 @@ contains
         integer(HSIZE_T) :: namesz, i
         integer(HID_T) :: surf_id
         call read_attr_int(gid, "n_surfaces", n_surfaces)
+        write(*,*) "NSURFACES=", n_surfaces
         allocate(Tdomain%sSurfaces(0:n_surfaces-1))
         ! Get group info
         call H5Gget_info_f(gid, storage_type, nlinks, max_corder, ierr)
-!        write(*,*) "SURFACES:", n_surfaces, "/", max_corder, " nlinks=", nlinks
+
         do i=0,nlinks-1
             call H5Lget_name_by_idx_f(gid, ".", H5_INDEX_NAME_F, H5_ITER_INC_F, i, surfname, ierr, namesz)
-!            write(*,*) "SURFACE:", i, " :: ", trim(surfname)
             call H5Gopen_f(gid, trim(surfname), surf_id, ierr)
             !
             ! Read one surface
@@ -339,6 +359,7 @@ contains
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fl  , "fl"  , surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_spml, "spml", surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fpml, "fpml", surf_id)
+            call get_surface_domain(surf_id, Tdomain%sSurfaces(i)%domain)
         end do
     end subroutine read_surfaces
 
@@ -347,6 +368,7 @@ contains
         use sem_c_bindings
         use semdatafiles, only : MAX_FILE_SIZE
         use constants
+
         implicit none
         !
         type(domain), intent(inout) :: Tdomain
@@ -355,10 +377,14 @@ contains
         logical :: neumann_log
         !
         integer(HID_T) :: fid, proc_id, surf_id
-        integer :: hdferr, ierr
-        integer, allocatable, dimension(:,:) :: itemp2, itemp2b
-        integer, allocatable, dimension(:)   :: itemp
+        integer :: hdferr, ierr, i_neu, i_surf
+        integer, allocatable, dimension(:,:) :: itemp2, itemp2b, itemp2c
+        integer, allocatable, dimension(:,:) :: itemp
         character(len=10) :: proc_grp
+        character(len=12) ::  schar
+        character(len=100)                   :: surfacename
+        character(len=4)                     :: typemat
+        type(surf_num)                       :: Tsurface
         integer, allocatable, dimension(:)   :: nb_elems_per_proc
         character(Len=MAX_FILE_SIZE) :: fname
         !
@@ -393,6 +419,12 @@ contains
         !Subdomains allocation
         allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
         !
+        if (Tdomain%logicD%Neumann) then
+            Tdomain%logicD%Neumann_local_present = .true.
+            Tdomain%logicD%Neumann = .true.
+            neumann_log = .true.
+        endif
+
         if(neumann_log .neqv. Tdomain%logicD%Neumann) then
             write(*,*) rg,"neumann (input.spec)=",Tdomain%logicD%Neumann
             write(*,*) rg,"neumann (mesh file)=",neumann_log
@@ -414,50 +446,9 @@ contains
             Tdomain%SF%intSolFluPml%surf0%n_edges + &
             Tdomain%SF%intSolFluPml%surf0%n_vertices) /= 0
 
-
         call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
         call read_surfaces(Tdomain, surf_id)
         call h5gclose_f(surf_id, hdferr)
-        ! Neumann B.C. properties, eventually
-        if(Tdomain%logicD%Neumann_local_present)then
-            ! Neumann properties
-            ! Neumann faces
-            call read_dataset(fid, "neu_face_near_edges", itemp2)
-            ! Edges and their orientation, for each Neumann face
-            call read_dataset(fid, "neu_face_near_edges_orient", itemp2b)
-            Tdomain%Neumann%Neu_n_faces = size(itemp2,2)
-            allocate(Tdomain%Neumann%Neu_face(0:Tdomain%Neumann%Neu_n_faces-1))
-            do i = 0, Tdomain%Neumann%Neu_n_faces-1
-                Tdomain%Neumann%Neu_face(i)%Near_Edges(0:3) = itemp2(:,i+1)
-                Tdomain%Neumann%Neu_face(i)%Near_Edges_Orient(0:3) = itemp2b(:,i+1)
-            end do
-            deallocate(itemp2, itemp2b)
-            ! Vertices for each Neumann face
-            call read_dataset(fid, "neu_face_near_vertices", itemp2)
-            ! associated face
-            call read_dataset(fid, "neu_face_glob_interface", itemp)
-            do i = 0, Tdomain%Neumann%Neu_n_faces-1
-                Tdomain%Neumann%Neu_face(i)%Near_Vertices(0:3) = itemp2(:,i+1)
-                Tdomain%Neumann%Neu_face(i)%Face = itemp(i+1)
-            end do
-            deallocate(itemp, itemp2)
-            ! Neumann edges
-            call read_dataset(fid, "neu_edge_glob_interface", itemp)
-            Tdomain%Neumann%Neu_n_edges = size(itemp,1)
-            allocate(Tdomain%Neumann%Neu_edge(0:Tdomain%Neumann%Neu_n_edges-1))
-            do i = 0, Tdomain%Neumann%Neu_n_edges-1
-                Tdomain%Neumann%Neu_edge(i)%Edge = itemp(i+1)
-            end do
-            deallocate(itemp)
-            ! Neumann vertices
-            call read_dataset(fid,"neu_vertex_glob_interface", itemp)
-            Tdomain%Neumann%Neu_n_vertices = size(itemp,1)
-            allocate(Tdomain%Neumann%Neu_vertex(0:Tdomain%Neumann%Neu_n_vertices-1))
-            do i = 0, Tdomain%Neumann%Neu_n_vertices-1
-                Tdomain%Neumann%Neu_vertex(i)%Vertex = itemp(i+1)
-            end do
-            deallocate(itemp)
-        end if
         ! Interproc communications
         Tdomain%tot_comm_proc = 0
         call read_attr_int(fid, "tot_comm_proc", Tdomain%tot_comm_proc)
@@ -490,26 +481,9 @@ contains
         deallocate(nb_elems_per_proc)
 
     end subroutine read_mesh_file_h5
+    !!                                                                                                            !!
     !!
     !!
-    !!
-    !!subroutine MTreadNeuSurface(Tsurface, gid, surfname,typemat)
-    !!
-    !!   implicit none
-    !!    type(surf_num), intent(inout)             :: Tsurface
-    !    character(len=4), intent(out)             :: typemat
-    !    integer(HID_T), intent(in)                :: gid
-    !    integer(HID_T)                            :: surf_id
-    !    character(len=100), intent(in)            :: surfname
-    !    integer                                   :: ierr
-    !    ! Get group info
-    !    call H5Gopen_f(gid, trim(surfname), surf_id, ierr)
-    !    call read_one_surface(Tsurface, "sl"  , surf_id)
-    !    call read_one_surface(Tsurface, "fl"  , surf_id)
-    !    call read_one_surface(Tsurface, "spml", surf_id)                                                                          call read_one_surface(Tsurface, "fpml", surf_id)
-    !                                                                                                                           end subroutine MTreadNeuSurface
-     !!                                                                                                                        !!
-     !!
 end module mesh3d
 
 !! Local Variables:

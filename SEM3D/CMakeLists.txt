@@ -35,7 +35,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
-#    ${PRJ}/SRC/Solid/attenuation_solid.F90
+#   ${PRJ}/SRC/Solid/attenuation_solid.F90
     ${PRJ}/SRC/Solid/calcul_forces.F90
     ${PRJ}/SRC/Solid/calcul_forces_nl.f90   
     ${PRJ}/SRC/Solid/calcul_forces_atn.F90
@@ -59,11 +59,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/shape8.F90
     ${PRJ}/SRC/shape27.F90
     ${PRJ}/SRC/ondelette.f90
-    ${PRJ}/SRC/define_random.f90
-    ${PRJ}/SRC/build_prop_files.F90
     ${PRJ}/SRC/find_location.f90
     ${PRJ}/SRC/charFunctions.f90
-    ${PRJ}/SRC/RF_fileCreator.f90
 
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90
@@ -77,7 +74,19 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/earth_models/material_prem.F90
     ${PRJ}/SRC/earth_models/model_earthchunk.f90
     ${PRJ}/SRC/earth_models/model_prem.f90
-	
+
+    ${PRJ}/SRC/SourceMT/parameters.f90
+    ${PRJ}/SRC/SourceMT/mathfval.f90
+    ${PRJ}/SRC/SourceMT/fvalue.f90
+    ${PRJ}/SRC/SourceMT/func3D.f90
+    ${PRJ}/SRC/SourceMT/func2D.f90
+    ${PRJ}/SRC/SourceMT/func1D.f90
+    ${PRJ}/SRC/SourceMT/fparser.f90
+    ${PRJ}/SRC/SourceMT/ErrorWarning.f90
+    ${PRJ}/SRC/SourceMT/Dimension.f90
+    ${PRJ}/SRC/SourceMT/create_sem_surface_input.f90
+    ${PRJ}/SRC/SourceMT/compute_surface_BC.f90            	
+    ${PRJ}/SRC/SourceMT/get_surfaces_settings.f90
 )
 
 if (OPT_CPML)
@@ -140,7 +149,6 @@ set_target_properties(sem3d.exe PROPERTIES
 				COMPILE_FLAGS "-I${SEMLIBDIR}/ncpl3d -I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
                                 Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/ncpl3d)
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
-
 
 
 add_executable(test_pointlist

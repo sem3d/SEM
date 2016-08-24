@@ -11,7 +11,6 @@
 #include <vector>
 #include <map>
 #include <set>
-#include "mesh_common.h"
 
 template<typename T0, typename T1>
 T1 get(const std::map<T0,T1>& m, const T0& key, const T1& def)
@@ -101,7 +100,8 @@ public:
     int add_edge(const PEdge& edge, bool border);
     int add_vertex(const PVertex& vertex, bool border);
     int add_node(int v0);
-
+    
+    int get_mat_(int el) const; 
     int n_nodes() const    { return m_nodes_to_id.size(); }
     int n_elems() const    { return m_elems.size(); }
     int n_faces() const    { return m_face_to_id.size(); }
@@ -126,6 +126,7 @@ public:
     void output_int_constant(FILE* f, int indent, const char* aname, const char* atype, int val);
     void reorder_comm(MeshPartComm& comm);
     void global_to_local_ids(std::vector<int>& ids) const;
+    void get_local_surf_face_materials(const Surface* surf, std::vector<int> mats) const;
 
 protected:
     const Mesh3D& m_mesh;

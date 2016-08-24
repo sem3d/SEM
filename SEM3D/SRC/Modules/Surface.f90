@@ -14,15 +14,42 @@
 module ssurf
 
     use sinterface
+
+    type elastic_
+       real(kind=8)                       :: Mu, Lambda
+       real(kind=8)                       :: Sspeed, Pspeed
+       integer                            :: mat_index
+    end type elastic_
+
+    type SurfaceParam
+        real(kind=8)                       :: f0, amplitude, Rickertau
+        real(kind=8)                       :: dir(0:2)
+        real(kind=8)                       :: scoord(0:2)
+        character                          :: wtype
+        character(len=2)                   :: what_bc
+        character(len=1500)                :: funcx, funcy, funcz
+        character(len=1500)                :: funcxy, funcxz, funcyz
+        character(len=12)                  :: varia
+        character                          :: source
+        integer                            :: dim
+        integer, allocatable               :: index(:)
+        real(kind=8), allocatable          :: paravalue(:)
+        character(len=2), dimension(1:100) :: paramname
+        integer                            :: nparamvar, paramvar
+    end type SurfaceParam
+
     type SurfaceT
         type(surf_num) :: surf_sl
         type(surf_num) :: surf_fl
         type(surf_num) :: surf_spml
         type(surf_num) :: surf_fpml
+        type(elastic_) :: Elastic
         character(len=100) :: name
+        integer            :: domain
         integer :: cond_type ! from constants.F90 COND_*
+        real(kind=8), dimension(:,:), allocatable :: Surf_BtN
+        real(kind=8), dimension(:,:), allocatable :: coord
     end type SurfaceT
-
 
 end module ssurf
 

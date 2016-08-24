@@ -15,7 +15,6 @@
 #include "vertex_elem_map.h"
 #include "meshbase.h"
 #include "aabb.h"
-#include "mesh_common.h"
 
 class Mesh3D
 {
@@ -32,7 +31,7 @@ public:
     int n_vertices()  const { return m_xco.size(); }
     int n_elems()     const { return m_mat.size(); }
     int n_parts()     const { return n_procs; }
-    int n_materials() const { return m_materials.size()-n_surface(); }
+    int n_materials() const { return m_materials.size(); }
     int n_surfaces(const std::string c) {int cpt=0;
         for (int i=0; i< m_surf_matname.size(); i++){
             if (m_surf_matname[i].compare(0,c.length(),c)==0) cpt++;}
@@ -47,10 +46,8 @@ public:
     int add_elem(int mat_idx, const Elem& el);
 
     int read_materials(const std::string& fname);
-    int read_materials_v1(const std::string& fname);
     int read_materials_v2(const std::string& fname);
     void write_materials(const std::string& fname);
-    void write_materials_v1(const std::string& fname);
     void write_materials_v2(const std::string& fname);
     void read_mesh_file(const std::string& fname);
     void findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int & elmat);
@@ -113,9 +110,7 @@ public:
     std::vector<Material> m_materials;
     std::vector<unsigned int> m_vertex_domains;
     VertexElemMap  m_vertex_to_elem;
-    std::vector<Material> m_surf_materials;   /// Add by Mtaro to define the number of Neumann surface define
     std::vector<std::string> m_surf_matname;
-    std::map<int, std::vector<double> > m_matseting;
     std::map<int, std::pair<std::pair< std::vector<int>, int>, int>  > surfelem; // hexa8_num,<hexa8_id>,hexa8_tag,Quad4_tag
 
     void build_vertex_to_elem_map();

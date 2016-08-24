@@ -15,7 +15,6 @@
 
 #include "mesh.h"
 #include "reader_ideas.h"
-#include "mesh_common.h"
 
 using namespace std;
 

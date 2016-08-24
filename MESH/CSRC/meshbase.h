@@ -11,7 +11,6 @@
 #include <string>
 #include <cstdlib>
 #include <cassert>
-#include "mesh_common.h"
 
 /// Faces are stored as v1 v2 v3 v4, with v1 < v2 < v4
 /// The nodes are consecutive, the direction is determined by the ordering of
@@ -24,7 +23,7 @@
 /// oriented in the same manner)
 struct PFace {
     PFace() {}
-    PFace( int v[4], int dom ) {
+    PFace( int v[4], int dom) {
         set_domain(dom);
         set_face(v);
     }
@@ -80,6 +79,8 @@ struct PFace {
     // !! This will be only useful for faces at domain interfaces, otherwise
     // there is no way to tell which of the two elements sharing the face appears first
     int orient; // 1 if points inside original element -1 otherwise
+    // Add by Mtaro 
+    int material;
 };
 
 struct PEdge {
@@ -88,8 +89,9 @@ struct PEdge {
         n[2] = dom;
         set_edge(v0, v1);
     }
-    PEdge(const PEdge& ed)
-        { for(int k=0;k<3;++k) n[k]=ed.n[k]; }
+    PEdge(const PEdge& ed) {
+        for(int k=0;k<3;++k) n[k]=ed.n[k];
+    }
 
     void set_edge(int v0, int v1) {
         if (v0<v1) {
@@ -187,9 +189,10 @@ public:
             matdom.push_back(it->first.domain());
         }
     }
-    void get_edges_data(int dom, std::vector<int>& data, std::vector<int>& matdom) const {
+    void get_edges_data(int dom, std::vector<int>& data, std::vector<int>& orient, std::vector<int>& matdom) const {
         data.clear();
         matdom.clear();
+        orient.clear();
         for(edge_map_t::const_iterator it=m_edges.begin();it!=m_edges.end();++it) {
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);

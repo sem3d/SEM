@@ -102,7 +102,7 @@ int main(int argc, char**argv)
     }
     printf("\n   --> How many procs for the run ?\n");
 
-    mesh_common::getData_line(&buffer, linesize, stdin);
+    getData_line(&buffer, &linesize, stdin);
 
     sscanf(buffer,"%d", &NPROCS);
 
@@ -117,7 +117,7 @@ int main(int argc, char**argv)
     printf("      4- HDF5 Hex8 files\n");
     printf("      5- Earth Chunk\n");
 
-    mesh_common::getData_line(&buffer, linesize, stdin);
+    getData_line(&buffer, &linesize, stdin);
 
     sscanf(buffer,"%d", &choice);
     printf("            Your choice is %d \n", choice);

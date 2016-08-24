@@ -31,11 +31,35 @@ contains
         use constants
         use model_earthchunk
         use model_prem
+#ifdef USE_RF
         use build_prop_files
+#endif
         implicit none
 
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg, bnum, ee
+
+        ! Copy Idom from element to domain_XXX
+        ! Note : this must be done first as CPLM domain needs dom%Idom_ to build M, K, ...
+        ! Note : the non-CPML domains (Solid, Fluid, ...) use specel%Idom instead of dom%Idom_ to build M, K...
+        ! TODO : for non-CPML domains, use dom%Idom_ instead of specel%Idom (better memory/cache locality)
+        do n = 0,Tdomain%n_elem-1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+            if      (Tdomain%specel(n)%domain==DM_SOLID    ) then
+                Tdomain%sdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
+                Tdomain%spmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_FLUID    ) then
+                Tdomain%fdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
+                Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
+            else
+                stop "unknown domain"
+            end if
+            !deallocate(Tdomain%specel(n)%Idom) ! TODO : to uncomment when non-CPML domains use dom%Idom_ instead of specel%Idom
+        end do
 
         rg = Tdomain%rank
 
@@ -43,20 +67,21 @@ contains
             call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
         endif
 
+#ifdef USE_RF
         !Applying properties that were written on files
         if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
         !- applying properties files
         call apply_prop_files (Tdomain, rg)
+#endif
 
-        !write (*,*) "--> after apply_prop_files "
-
+        call init_domains(Tdomain)
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
             if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
                 print*, "ERROR : inconsistent material index = ", mat
                 stop
             end if
-! Attribute elastic properties from material !!!
+            ! Attribute elastic properties from material !!!
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             ! Compute MassMat
@@ -92,25 +117,10 @@ contains
             end if
         end do
 
-        ! Copy Idom from element to domain_XXX
         do n = 0,Tdomain%n_elem-1
-            bnum = Tdomain%specel(n)%lnum/VCHUNK
-            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
-            if      (Tdomain%specel(n)%domain==DM_SOLID    ) then
-                Tdomain%sdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
-                Tdomain%spmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_FLUID    ) then
-                Tdomain%fdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
-                Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
-            else
-                stop "unknown domain"
-            end if
-            deallocate(Tdomain%specel(n)%Idom)
+            if(allocated(Tdomain%specel(n)%Idom)) &
+                deallocate(Tdomain%specel(n)%Idom) ! TODO : delete when non-CPML domains use dom%Idom_ instead of specel%Idom
         end do
-
     end subroutine define_arrays
 
 
@@ -256,6 +266,12 @@ contains
 
     end subroutine inverse_mass_mat
 
+    subroutine init_domains(Tdomain)
+        type (domain), intent (INOUT), target :: Tdomain
+        !
+        call init_domain_solidpml(Tdomain, Tdomain%spmldom)
+    end subroutine init_domains
+
     subroutine init_material_properties(Tdomain, specel, mat)
 
         type (domain), intent (INOUT), target   :: Tdomain
@@ -315,10 +331,6 @@ contains
                     case default
                         stop "unknown domain"
                 end select
-                !    si le flag gradient est actif alors on peut changer les proprietes
-                if ( Tdomain%logicD%grad_bassin ) then
-                    call initialize_material_gradient(Tdomain, specel)
-                endif
             case( MATERIAL_RANDOM )
                 !Don`t do anything, the basic properties were initialized by file
                 !write (*,*) "--> MATERIAL_RAND "
@@ -352,8 +364,8 @@ contains
     subroutine finalize_pml_properties(Tdomain)
         type (domain), intent (INOUT), target :: Tdomain
         !
-        if (Tdomain%spmldom%nbelem>0) call finalize_solidpml_properties(Tdomain%spmldom)
-        if (Tdomain%fpmldom%nbelem>0) call finalize_fluidpml_properties(Tdomain%fpmldom)
+        if (Tdomain%spmldom%nbelem>0) call finalize_solidpml_properties(Tdomain, Tdomain%spmldom)
+        if (Tdomain%fpmldom%nbelem>0) call finalize_fluidpml_properties(Tdomain, Tdomain%fpmldom)
     end subroutine finalize_pml_properties
 
     subroutine init_local_mass(Tdomain, specel)
@@ -392,149 +404,6 @@ contains
         enddo
         deallocate(GLLw)
     end subroutine init_local_mass
-
-    subroutine initialize_material_gradient(Tdomain, specel)
-        type (domain), intent (INOUT), target :: Tdomain
-        type (element), intent(inout) :: specel
-        !
-        integer :: i,j,k,ipoint,iflag
-        real :: Mu,Lambda,Kappa
-        integer :: imx,imy,imz
-        real :: xp,yp,zp,xfact
-        real :: zg1,zd1,zg2,zd2,zz1,zz2,zfact
-        real :: xd1,xg1
-        real :: zrho,zrho1,zrho2,zCp,zCp1,zCp2,zCs,zCs1,zCs2
-        integer :: ngll
-        integer :: icolonne,jlayer
-        !
-        ngll = domain_ngll(Tdomain, specel%domain)
-
-        !    debut modification des proprietes des couches de materiaux
-        !    bassin    voir programme Surface.f90
-
-        !     n_layer nombre de couches
-        !     n_colonne nombre de colonnes en x ici uniquement
-        !     x_type == 0 on remet des materiaux  homogenes dans chaque bloc
-        !     x_type == 1 on met des gradients pour chaque colonne en interpolant
-        !     suivant z
-        !       integer  :: n_colonne, n_layer, x_type
-        !    x_coord correspond aux abscisses des colonnes
-        !       real, pointer, dimension(:) :: x_coord
-        !      z_layer profondeur de  linterface pour chaque x de colonne
-        !      on definit egalement le materiaux par rho, Cp , Cs
-        !       real, pointer, dimension(:,:) :: z_layer, z_rho, z_Cp, z_Cs
-
-
-        !     on cherche tout d abord a localiser la maille a partir d un
-        !     point de Gauss interne milieux (imx,imy,imz)
-        imx = 1+(ngll-1)/2
-        imy = 1+(ngll-1)/2
-        imz = 1+(ngll-1)/2
-        !     on impose qu une maille appartienne a un seul groupe de gradient de
-        !     proprietes
-        ipoint = specel%Iglobnum(imx,imy,imz)
-        xp = Tdomain%GlobCoord(0,ipoint)
-        yp = Tdomain%GlobCoord(1,ipoint)
-        zp = Tdomain%GlobCoord(2,ipoint)
-        iflag = 0
-        if ( Tdomain%sBassin%x_type .eq. 2 ) then
-            if ( zp .gt. Tdomain%sBassin%zmax) then
-                iflag = 1
-            endif
-            if ( zp .lt. Tdomain%sBassin%zmin) then
-                iflag = 1
-            endif
-        endif
-        !  si iflag nul on peut faire les modifications  pour toute la maille
-        if ( iflag .eq. 0 ) then
-            icolonne = 0
-            xfact = 0.D0
-            do i = 1, Tdomain%sBassin%n_colonne
-                if ( xp .ge. Tdomain%sBassin%x_coord(i-1) .and.  xp .lt. Tdomain%sBassin%x_coord(i) ) then
-                    icolonne = i-1
-                    xfact = (xp - Tdomain%sBassin%x_coord(i-1))/(Tdomain%sBassin%x_coord(i)-Tdomain%sBassin%x_coord(i-1))
-                endif
-            enddo
-
-            jlayer = 0
-            zfact = 0.D0
-            do j = 1,Tdomain%sBassin%n_layer
-                zg1 = Tdomain%sBassin%z_layer(icolonne,j-1)
-                zd1 = Tdomain%sBassin%z_layer(icolonne+1,j-1)
-                zz1 = zg1 + xfact*(zd1-zg1)
-                zg2 = Tdomain%sBassin%z_layer(icolonne,j)
-                zd2 = Tdomain%sBassin%z_layer(icolonne+1,j)
-                zz2 = zg2 + xfact*(zd2-zg2)
-                if ( zp .ge. zz1 .and. zp .lt. zz2 ) then
-                    jlayer = j-1
-                    zfact = ( zp -zz1)/(zz2-zz1)
-                endif
-            enddo
-            !        limite du sous-domaine de gradient
-            xg1 = Tdomain%sBassin%x_coord(icolonne)
-            xd1 = Tdomain%sBassin%x_coord(icolonne+1)
-            zg1 = Tdomain%sBassin%z_layer(icolonne,jlayer)
-            zd1 = Tdomain%sBassin%z_layer(icolonne+1,jlayer)
-            zg2 = Tdomain%sBassin%z_layer(icolonne,jlayer+1)
-            zd2 = Tdomain%sBassin%z_layer(icolonne+1,jlayer+1)
-            !
-            zrho1 = Tdomain%sBassin%z_rho(icolonne,jlayer)
-            zrho2 = Tdomain%sBassin%z_rho(icolonne,jlayer+1)
-            zCp1 = Tdomain%sBassin%z_Cp(icolonne,jlayer)
-            zCp2 = Tdomain%sBassin%z_Cp(icolonne,jlayer+1)
-            zCs1 = Tdomain%sBassin%z_Cs(icolonne,jlayer)
-            zCs2 = Tdomain%sBassin%z_Cs(icolonne,jlayer+1)
-
-            !     boucle sur les points de Gauss de la maille
-            !     xp, yp, zp coordonnees du point de Gauss
-            do k = 0, ngll -1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-                        ipoint = specel%Iglobnum(i,j,k)
-                        xp = Tdomain%GlobCoord(0,ipoint)
-                        yp = Tdomain%GlobCoord(1,ipoint)
-                        zp = Tdomain%GlobCoord(2,ipoint)
-                        if ( Tdomain%sBassin%x_type .ge. 1 ) then
-                            !    interpolations  pour le calcul du gradient
-                            xfact = ( xp - xg1)/(xd1-xg1)
-                            zz1 = zg1 + xfact*(zd1-zg1)
-                            zz2 = zg2 + xfact*(zd2-zg2)
-                            zfact = ( zp - zz1)/(zz2-zz1)
-                        else
-                            !   on met les memes proprietes dans toute la maille
-                            zfact = 0.D0
-                        endif
-                        zrho   = zrho1 + zfact*(zrho2-zrho1)
-                        zCp   = zCp1 + zfact*(zCp2-zCp1)
-                        zCs   = zCs1 + zfact*(zCs2-zCs1)
-                        !     calcul des coeffcients elastiques
-                        Mu     = zrho*zCs*zCs
-                        Lambda = zrho*(zCp*zCp - zCs*zCs)
-                        Kappa  = Lambda + 2.D0*Mu/3.D0
-
-                        select case (specel%domain)
-                            case (DM_SOLID)
-                                call init_material_properties_solid(Tdomain%sdom,specel%lnum,i,j,k,&
-                                     zrho,Lambda,Mu,Kappa)
-                            case (DM_FLUID)
-                                call init_material_properties_fluid(Tdomain%fdom,specel%lnum,i,j,k,&
-                                     zrho,Lambda)
-                            case (DM_SOLID_PML)
-                                call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,i,j,k,&
-                                     zrho,Lambda,Mu)
-                            case (DM_FLUID_PML)
-                                call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,i,j,k,&
-                                     zrho,Lambda)
-                            case default
-                                stop "unknown domain"
-                        end select
-                    enddo
-                enddo
-            enddo
-            !    fin test iflag nul
-        endif
-        !    fin modification des proprietes des couches de materiaux
-    end subroutine initialize_material_gradient
 
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------

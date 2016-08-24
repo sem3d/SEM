@@ -42,7 +42,7 @@ module ssubdomains
         real(fpp) :: Pspeed, Sspeed, Ddensity
         real(fpp) :: DLambda, DMu
         real(fpp) :: DKappa
-        
+        real(kind=8) :: dt
         !! Definition materiau solide anisotrope
         ! TODO
         
