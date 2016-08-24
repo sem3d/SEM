@@ -29,6 +29,8 @@ set(CMAKE_MODULE_PATH ${HDF5_DIR} ${CMAKE_MODULE_PATH})
 endif(HDF5_DIR)
 
 set(SEMDIR ${PROJECT_SOURCE_DIR})
+set(HDF5_FORTRAN_INCLUDE_DIR "/opt/local/include")
+set(HDF5_C_INCLUDE_DIR "/opt/local/include")
 
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
