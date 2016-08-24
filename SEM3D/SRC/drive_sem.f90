@@ -177,6 +177,7 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
+    use mCourant
 #ifdef USE_RF
     use build_prop_files
 #endif
