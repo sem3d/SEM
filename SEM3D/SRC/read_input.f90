@@ -119,6 +119,7 @@ contains
 
             buffer = getLine (fid, "#")
             if (Tdomain%nl_flag==1) then
+                write(*,*) "=== start debug parser ==="
                 read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
                     Tdomain%sSubDomain(i)%Pspeed,               &
                     Tdomain%sSubDomain(i)%Sspeed,               &
@@ -132,6 +133,8 @@ contains
                     Tdomain%sSubDomain(i)%kkin,                &
                     Tdomain%sSubDomain(i)%biso,                &
                     Tdomain%sSubDomain(i)%Rinf
+                write(*,*) "=== end debug parser ==="
+            
             else
                 read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
                     Tdomain%sSubDomain(i)%Pspeed,               &

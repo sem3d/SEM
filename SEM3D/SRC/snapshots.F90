@@ -915,7 +915,6 @@ contains
         out_variables(0:8) = Tdomain%out_variables(0:8)
 
         call create_dir_sorties(Tdomain, isort)
-
         call compute_saved_elements(Tdomain, irenum, nnodes, domains)
 
         call allocate_fields(nnodes, Tdomain%out_variables, out_fields, nl_flag)
@@ -938,7 +937,8 @@ contains
             select case(domain_type)
                 case (DM_SOLID)
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,&
-                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev,nl_flag, eps_dev_pl)
+                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
+                  nl_flag, eps_dev_pl)
                   if (out_variables(OUT_ENERGYP)==1) total_P_energy = total_P_energy + sum(P_energy)
                   if (out_variables(OUT_ENERGYS)==1) total_S_energy = total_S_energy + sum(S_energy)
                 case (DM_FLUID)
@@ -1004,7 +1004,6 @@ contains
 
             end if
         enddo
-
         if (Tdomain%output_rank==0) then
             group = Tdomain%rank/Tdomain%ngroup
             call semname_snap_result_file(group, isort, fnamef)

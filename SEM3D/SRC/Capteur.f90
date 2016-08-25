@@ -432,7 +432,6 @@ contains
         
         out_variables(0:8) = Tdomain%out_variables(0:8)
         nl_flag = Tdomain%nl_flag
-
         offset = 0
         do i = 0,size(out_variables)-2
             if (out_variables(i) == 1) then
@@ -545,7 +544,7 @@ contains
         if(allocated(S_energy)) deallocate(S_energy)
         if(allocated(eps_vol))  deallocate(eps_vol)
         if(allocated(eps_dev))  deallocate(eps_dev)
-        if(allocated(eps_dev_pl))  deallocate(eps_dev)
+        if(allocated(eps_dev_pl))  deallocate(eps_dev_pl)
         if(allocated(sig_dev))  deallocate(sig_dev)
         if(allocated(grandeur)) deallocate(grandeur)
         deallocate(outx)

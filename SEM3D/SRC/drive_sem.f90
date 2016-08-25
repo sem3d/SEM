@@ -114,7 +114,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
  !----------------------------------------------------------------------------------------------!
  !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
  !----------------------------------------------------------------------------------------------!
-
     call INIT_MESSAGE(rg)
     call START_SEM(rg)
 
@@ -560,12 +559,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
-        write(*,*) "=== DEBUG ==="
-        write(*,*) "SNAPSHOTS"
-        write(*,*)
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
-
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!

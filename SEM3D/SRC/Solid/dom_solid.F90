@@ -234,7 +234,6 @@ contains
         ee = mod(lnum,VCHUNK)
         
         nl_law = dom%nl_law==NLLMC
-
         if (nl_flag.and.nl_law) then
             flag_gradU = (out_variables(OUT_ENERGYP)     + &
                           out_variables(OUT_ENERGYS)     + &
@@ -351,15 +350,16 @@ contains
                                                           - 2 * DYZ * DZY )
                         end if
                     end if
-
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
                         eps_dev(i,j,k,0:5) = zero
                         if (nl_flag .and. nl_law) then
+                            if(.not. allocated(eps_dev_pl)) allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
+                            eps_dev_pl(i,j,k,0:5) = zero
                             eps_dev(i,j,k,:)   = dom%strain_(:,i,j,k,bnum,ee)
                             eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-&
                                 sum(eps_dev(i,j,k,0:2))/3
-                            eps_dev_pl(i,j,k,0:5) = 0.d0
+                            eps_dev_pl(i,j,k,0:5) = 0.0d0
                             eps_dev_pl(i,j,k,:)   = dom%plstrain_(:,i,j,k,bnum,ee)
                             eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-&
                                 sum(eps_dev_pl(i,j,k,0:2))/3
