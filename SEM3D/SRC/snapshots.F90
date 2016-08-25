@@ -660,12 +660,13 @@ contains
 
         integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
-        integer, dimension(:), allocatable :: En_S_int, En_P_int
+        real, dimension(:), allocatable :: En_S_int, En_P_int
         integer :: count
         integer :: i, j, k, n, nb_elem
 
         allocate( En_P_int(0:Tdomain%n_hexa_local-1))
         allocate( En_S_int(0:Tdomain%n_hexa_local-1))
+
         count = 0
         do n = 0,Tdomain%n_elem-1
 
@@ -701,8 +702,8 @@ contains
             end do
         end do
 
-        call grp_write_int_1d(Tdomain, fid, "En_S_int", count, En_S_int, Tdomain%n_hexa)
-        call grp_write_int_1d(Tdomain, fid, "En_P_int", count, En_P_int, Tdomain%n_hexa)
+        call grp_write_real_1d(Tdomain, fid, "En_S_int", count, En_S_int, Tdomain%n_hexa)
+        call grp_write_real_1d(Tdomain, fid, "En_P_int", count, En_P_int, Tdomain%n_hexa)
 
         deallocate( En_P_int )
         deallocate( En_S_int )
@@ -1424,8 +1425,8 @@ contains
                 !En_P_int
                 if(Tdomain%out_energy == 1) then
                     write(61,"(a)") '<Attribute Name="En_P_int" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="En_P_int" Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne, &
-                        '">geometry',group,'.h5:/En_P_int'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_P_int'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                 end if
@@ -1440,11 +1441,19 @@ contains
                 !En_S_int
                 if(Tdomain%out_energy == 1) then
                     write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="En_S_int" Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne, &
-                        '">geometry',group,'.h5:/En_S_int'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_S_int'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                 end if
+!                !En_S_int
+!                if(Tdomain%out_energy == 1) then
+!                    write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
+!                    write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="En_S_int" Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne, &
+!                        '">geometry',group,'.h5:/En_S_int'
+!                    write(61,"(a)") '</DataItem>'
+!                    write(61,"(a)") '</Attribute>'
+!                end if
             end if
 
             ! DOMAIN

@@ -343,7 +343,7 @@ contains
         integer(HSIZE_T) :: namesz, i
         integer(HID_T) :: surf_id
         call read_attr_int(gid, "n_surfaces", n_surfaces)
-        write(*,*) "NSURFACES=", n_surfaces
+        !write(*,*) "NSURFACES=", n_surfaces
         allocate(Tdomain%sSurfaces(0:n_surfaces-1))
         ! Get group info
         call H5Gget_info_f(gid, storage_type, nlinks, max_corder, ierr)
