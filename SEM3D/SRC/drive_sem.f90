@@ -466,7 +466,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     integer :: protection
     integer :: interrupt
     logical :: sortie_capteur
-    logical :: output_total_energies
 #ifdef COUPLAGE
 #else
     real(kind=8) :: remaining_time
@@ -561,6 +560,14 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         call stat_starttick()
 
 !---------------------------------------------------------!
+    !- ENERGY
+!---------------------------------------------------------!
+        Tdomain%out_energy = 1
+        !write(*,*) "BEFORE output_total_energy"
+        if (Tdomain%out_energy == 1) call output_total_energy(Tdomain, dble(ntime)*Tdomain%sdom%dt)
+        !write(*,*) "AFTER output_total_energy"
+
+!---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
@@ -572,11 +579,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         call evalueSortieCapteur(ntime, sortie_capteur)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
-
-        output_total_energies = .true.
-        !write(*,*) "BEFORE output_total_energy"
-        if (output_total_energies) call output_total_energy(Tdomain, dble(ntime)*Tdomain%sdom%dt)
-        !write(*,*) "AFTER output_total_energy"
 
 
         !---------------------------------------------------------!

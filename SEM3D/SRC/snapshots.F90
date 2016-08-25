@@ -109,6 +109,10 @@ contains
             allocate(all_data_1d(0:ntot_nodes-1))
         end if
 
+        if(Tdomain%out_energy == 1) then
+            call write_elem_energy(Tdomain, parent_id)
+        end if
+
         ! P_ENERGY
         if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_Gatherv(outputs%P_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
@@ -648,6 +652,63 @@ contains
         deallocate(nodes)
     end subroutine write_global_nodes
 
+    !------------------------------------------------------
+    subroutine write_elem_energy(Tdomain, fid)
+        implicit none
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: fid
+
+        integer :: ngllx, nglly, ngllz
+        integer(HSIZE_T), dimension(2) :: dims
+        integer, dimension(:), allocatable :: En_S_int, En_P_int
+        integer :: count
+        integer :: i, j, k, n, nb_elem
+
+        allocate( En_P_int(0:Tdomain%n_hexa_local-1))
+        allocate( En_S_int(0:Tdomain%n_hexa_local-1))
+        count = 0
+        do n = 0,Tdomain%n_elem-1
+
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngllx = 0
+            nglly = 0
+            ngllz = 0
+
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngll
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngll
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngll
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngll
+                 case default
+                     stop "unknown domain"
+            end select
+
+            nglly = ngllx
+            ngllz = ngllx
+
+            do k = 0,ngllz-2
+                do j = 0,nglly-2
+                    do i = 0,ngllx-2
+                        En_S_int(count) = Tdomain%specel(n)%En_S_int
+                        En_P_int(count) = Tdomain%specel(n)%En_P_int
+                        count=count+1
+                    end do
+                end do
+            end do
+        end do
+
+        call grp_write_int_1d(Tdomain, fid, "En_S_int", count, En_S_int, Tdomain%n_hexa)
+        call grp_write_int_1d(Tdomain, fid, "En_P_int", count, En_P_int, Tdomain%n_hexa)
+
+        deallocate( En_P_int )
+        deallocate( En_S_int )
+
+    end subroutine write_elem_energy
+
     subroutine write_elem_connectivity(Tdomain, fid, irenum)
         implicit none
         type (domain), intent (INOUT):: Tdomain
@@ -697,6 +758,7 @@ contains
             k = k + 1
         enddo
         nb_elem = k
+        Tdomain%n_hexa_local = count
 
         call grp_write_int_2d(Tdomain, fid, "NGLL", 3, nb_elem, ngll, nb_gll_tot)
 
@@ -875,6 +937,8 @@ contains
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
             ngll = domain_ngll(Tdomain, el%domain)
             domain_type = el%domain
+            el%En_S_int = 0d0
+            el%En_P_int = 0d0
 
 
             !write(*,*) "n_elem = ", n
@@ -888,6 +952,7 @@ contains
                     !write(*,*) "sum(S_energy(:,:,:)) = ", sum(S_energy(:,:,:))
 
                     call domain_gllw(Tdomain, domain_type, GLLw)
+
                     do k = 0,ngll-1
                         do j = 0,ngll-1
                             do i = 0,ngll-1
@@ -896,17 +961,16 @@ contains
                                 ee = mod(el%lnum,VCHUNK)
                                 mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
 
-                                !write(*,*) "mult                 = ", mult
+                                el%En_S_int = el%En_S_int + mult*S_energy(i,j,k)
+                                el%En_P_int = el%En_P_int + mult*P_energy(i,j,k)
 
-                                !P_en_total = P_en_total + sum(P_energy(:,:,:)) !Sum inside the element
-                                P_en_total = P_en_total + mult*P_energy(i,j,k) !Integral inside the element
-
-                                !S_en_total = S_en_total + sum(S_energy(:,:,:)) !Sum inside the element
-                                S_en_total = S_en_total + mult*S_energy(i,j,k) !Integral inside the element
 
                             enddo
                         enddo
                     enddo
+
+
+
                     deallocate(GLLw)
 
                 case (DM_FLUID)
@@ -922,11 +986,8 @@ contains
                                 ee = mod(el%lnum,VCHUNK)
                                 mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
 
-                                !P_en_total = P_en_total + sum(P_energy(:,:,:)) !Sum inside the element
-                                P_en_total = P_en_total + mult*P_energy(i,j,k) !Integral inside the element
-
-                                !S_en_total = S_en_total + sum(S_energy(:,:,:)) !Sum inside the element
-                                S_en_total = S_en_total + mult*S_energy(i,j,k) !Integral inside the element
+                                el%En_S_int = el%En_S_int + mult*S_energy(i,j,k)
+                                el%En_P_int = el%En_P_int + mult*P_energy(i,j,k)
 
                             enddo
                         enddo
@@ -937,31 +998,36 @@ contains
                   cycle !We don't want the energy on PMLs
                   !call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
                   !fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                  el%En_S_int = 0d0
+                  el%En_P_int = 0d0
+
                 case (DM_FLUID_PML)
                   cycle !We don't want the energy on PMLs
                   !call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
                   !fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                  el%En_S_int = 0d0
+                  el%En_P_int = 0d0
                 case default
                   stop "unknown domain"
             end select
 
+            P_en_total = P_en_total + el%En_P_int !Sum of all elements integrals
+            S_en_total = S_en_total + el%En_S_int !Sum of all elements integrals
+
         enddo
 
-        !Average inside the element
-        !if (out_variables(OUT_ENERGYP) == 1) &
-        !    P_en_total = P_en_total/(dble(ngll)**3d0)
-        !if (out_variables(OUT_ENERGYS) == 1) &
-        !    S_en_total = S_en_total/(dble(ngll)**3d0)
-        write(*,*) "P_en_total = ", P_en_total
-        write(*,*) "S_en_total = ", S_en_total
+        total_P_energy_sum = 0d0
+        total_S_energy_sum = 0d0
 
         if (out_variables(OUT_ENERGYP) == 1) then
-            call MPI_ALLREDUCE(P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
-                               MPI_SUM, Tdomain%communicateur_global, ierr)
+            call MPI_REDUCE(P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+                               MPI_SUM, 0, Tdomain%communicateur_global, ierr)
+            if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
         end if
         if (out_variables(OUT_ENERGYS) == 1) then
             call MPI_REDUCE(S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
                                MPI_SUM, 0, Tdomain%communicateur_global, ierr)
+            if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
         end if
         if(Tdomain%rank == 0) then
             open(10, file="En_P.txt", action="write", position="append")
@@ -1094,11 +1160,6 @@ contains
                     enddo
                 enddo
             enddo
-
-            if (out_variables(OUT_ENERGYP) == 1) &
-                out_fields%P_en_total = out_fields%P_en_total + sum(P_energy(:,:,:)) !Sum inside the element
-            if (out_variables(OUT_ENERGYS) == 1) &
-                out_fields%S_en_total = out_fields%S_en_total + sum(S_energy(:,:,:)) !Sum inside the element
         enddo
 
         !if(Tdomain%rank == 0) write(*,*) "nData = ", nData
@@ -1126,12 +1187,6 @@ contains
                     out_fields%sig_dev(0:5,ind) = out_fields%sig_dev(0:5,ind)/dble(nData(ind))
             end if
         end do
-
-        !Average inside the element
-        if (out_variables(OUT_ENERGYP) == 1) &
-            out_fields%P_en_total = out_fields%P_en_total/(dble(ngll)**3d0)
-        if (out_variables(OUT_ENERGYS) == 1) &
-            out_fields%S_en_total = out_fields%S_en_total/(dble(ngll)**3d0)
 
         if(allocated(fieldU)) deallocate(fieldU)
         if(allocated(fieldV)) deallocate(fieldV)
@@ -1366,6 +1421,14 @@ contains
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/P_energy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
+                !En_P_int
+                if(Tdomain%out_energy == 1) then
+                    write(61,"(a)") '<Attribute Name="En_P_int" Center="Cell" AttributeType="Scalar">'
+                    write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="En_P_int" Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne, &
+                        '">geometry',group,'.h5:/En_P_int'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                end if
             end if
             ! S_ENERGY
             if (out_variables(OUT_ENERGYS) == 1) then
@@ -1374,6 +1437,14 @@ contains
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/S_energy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
+                !En_S_int
+                if(Tdomain%out_energy == 1) then
+                    write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
+                    write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="En_S_int" Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne, &
+                        '">geometry',group,'.h5:/En_S_int'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                end if
             end if
 
             ! DOMAIN
