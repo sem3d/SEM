@@ -518,11 +518,11 @@ sdev              bool     0                  tenseur des contraintes déviatori
 Section ``surface``
 ====================
 
-La section ``surface``  est introduite pour définir d'éventuel conditions aux limites 
+La section ``surface``  est introduite pour définir d'éventuelles conditions aux limites 
 imposées sur une (des) surface(s) spécifiée(s).
 
 
-Les type de conditions aux limites concernés sont : 
+Les types de conditions aux limites concernés sont : 
 
 -  `condition de Neumann`
 
@@ -571,7 +571,7 @@ importé sous le format ``.msh`` (cf les Annexes  pour plus de précision).
       index             entier    --                 liste des tags de surfaces concernées
       C                 réel(3)   --                 point de référence
       time              chaîne    --                 type temporel appliqué
-      freq              réel      --                 fréquence de ricker (time=ricker)
+      freq              réel      --                 fréquence de ricker (`time`=`ricker`)
       tau               réel      --                 temps caractéristique (`time` = ricker) :math:`\tau`
       ampli             réel      --                 facteur multiplicatif de la source temporelle 
       shape             chaîne    --                 forme spatiale de la source
@@ -591,7 +591,7 @@ importé sous le format ``.msh`` (cf les Annexes  pour plus de précision).
     
    #. `shape`::
    
-       gaussian, paraboloid, square, cylinder
+       gaussian, paraboloid, square, cylinder, uniform
        
    #. `time`::
       
@@ -605,10 +605,11 @@ importé sous le format ``.msh`` (cf les Annexes  pour plus de précision).
        
        Les conditions de Neumann sont celles qui consistent à imposer des forces surfaciques 
        données sous la forme :math:`\underline{\underline{\sigma}}.\overrightarrow{n}`, où 
-       :math:`\overrightarrow{n}` est la normale extérieure à la surface. Il est admis que le 
+       :math:`\overrightarrow{n}` est la normale extérieure à la surface et `\underline{\underline{\sigma}}`
+       les contraintes imposées sur la surface. Il est admis dans un premier temps, que le 
        champs de contraintes :math:`\underline{\underline{\sigma}}` imposable sur une surface 
        se met sous la forme d'une fonction à varaiables séparées : une fonction `f(x,y,z)` 
-       d'écrivant la distribution spatiale de la contraintes et une fonction `g(t)` qui décrit 
+       d'écrivant la distribution spatiale des contraintes et une fonction `g(t)` qui décrit 
        son allure temporelle. Dans ce cas particulier de conditions de Neumann, 
        les contraintes applicables sont des contraintes de direction sans cisaillement. 
          .. math::
@@ -621,82 +622,88 @@ importé sous le format ``.msh`` (cf les Annexes  pour plus de précision).
              \sigma_{ii}(x,y,z,t) = k_if(x,y,z)g(t), i=1,2,3
        
        où :math:`k_i`  sont les composantes du vecteur définissant la direction de la force 
-       données par le mot clé ``dir``.
-       
-       Les formes spatiales prédéfinies (les noms constituent les valeurs que prends `shape`) 
-       sont présentées ci-dessous. Dans ces expressions, `R` désigne la valeur attribuée à `size` 
-       et `r` désigne la distance radiale du point de coordonées `(x,y,z)` par rapport au point 
-       de référence :math:`C=(x_0,y_0,z_0)`.
-       
-       - ``paraboloid`` :
-       
-         Cette forme est un cas non-uniforme de repartition des contraintes sur la surfaces qui se 
-         limie essentiellement sur un disc de rayon `R`. La distribution des contraintes en espace 
-         présente une forme paraboloide dont l'expression est donnée sous forme.
-       
-        .. math::
-       
-             f(x,y,z) = \sqrt{1-\frac{r^2}{R^2}}
-        
-        .. _fig-surface-para:
-        
-        .. figure:: ../figures/neu_paraboloid.png
-           :scale: 50
-           :align: center
-       
-       - ``gaussian`` :
-        
-         IL s'agit d'une deuxième forme de répartition non uniforme. Cette fois la répartition est 
-         une gaussienne dont l'expression est donnée sous forme :
-       
-        .. math::
-           f(x,y,z) = e^{-\frac{r^2}{R^2}}
-       
-        .. _fig-surface-gau:
+       données par le mot clé ``dir``. Les seuls valeurs possibles sont 1 et 0 pour chaque 
+       composante de ce vecteur. Dans le cas contraire, le programme redéfinit le vecteur en 
+       attribuant la valeur 1 aux composantes non nulles
+           
+           #.  `Forme spatiale`
             
-        .. figure:: ../figures/neu_gaussian.png
-           :scale: 50
-           :align: center
+               Les formes spatiales prédéfinies (les noms constituent les valeurs que prends `shape`) 
+               sont présentées ci-dessous. Dans ces expressions, `R` désigne la valeur attribuée à `size`, 
+               délimitant la zone sur laquelle la forme spatiale `f(x,y,z)` est valable. Au delà de cette zone, 
+               les contraintes sur la surfaces concernée sont nulles. `r` désigne la distance radiale du point 
+               de coordonées `(x,y,z)` par rapport au point de référence :math:`C=(x_0,y_0,z_0)`.
+               
+               - ``paraboloid`` :
+               
+                 Cette forme est un cas non-uniforme de repartition des contraintes sur la surface. La répartition se 
+                 limite essentiellement sur un disc de rayon `R`. La distribution des contraintes en espace 
+                 présente une forme paraboloide dont l'expression est définie comme suit : 
+               
+                .. math::
+               
+                     f(x,y,z) = \sqrt{1-\frac{r^2}{R^2}}
+                
+                .. _fig-surface-para:
+                
+                .. figure:: ../figures/neu_paraboloid.png
+                   :scale: 60
+                   :align: center
+               
+               - ``gaussian`` :
+                
+                 IL s'agit d'une autre forme de répartition non uniforme. Cette répartition est 
+                 une gaussienne dont l'expression est définie comme suit :
+               
+                .. math::
+                   f(x,y,z) = e^{-\frac{r^2}{R^2}}
+               
+                .. _fig-surface-gau:
+                    
+                .. figure:: ../figures/neu_gaussian.png
+                   :scale: 60
+                   :align: center
+               
+               - ``cylinder`` :
+                
+                Il s'agit d'une répartition uniforme et homogène du champ de contraintes sur un disc de rayon `R` 
+                centrée sur le point `C` sur la surface concernée.
+                 
+                .. math::
+                   
+                   f(x,y,z) = 1
+               
+                .. _fig-surface-cyl:
+                 
+                .. figure:: ../figures/neu_cylinder.png
+                   :scale: 60
+                   :align: center
+               
+               - ``square`` :
+                
+                 Il s'agit d'une répartition uniforme et homogène du champ de contraintes sur une portion carrée 
+                 et dont la longueur de chaque côté vaut `2R` sur la surface concernée. Le carré est centré sur le point `C`.
+               
+                .. math::
+                   
+                   f(x,y,z) = 1
+               
+                .. _fig-source-squ:
+                 
+                .. figure:: ../figures/neu_square.png
+                   :scale: 60
+                   :align: center
+               
+               - ``uniform`` :
+               
+                  Cette forme spatiale définie une répartition uniforme et homogène sur toute(s) la(les) surface(s) 
+                  concernée(s).
+               
+           #.  `Forme temporelle`
        
-       - ``cylinder`` :
-        
-        Il s'agit d'une répartition uniforme et homogène du champ de contraintes sur un disc de rayon `R` 
-        centrée sur le point `C` sur la surface concernée.
-         
-        .. math::
-           
-           f(x,y,z) = 1
-       
-        .. _fig-surface-cyl:
-         
-        .. figure:: ../figures/neu_cylinder.png
-           :scale: 50
-           :align: center
-       
-       - ``square`` :
-        
-         Il s'agit d'une répartition uniforme et homogène du champ de contraintes sur une portion carrée de 
-         côté `2R` de la surface concernée. Le carré est centré sur le point `C`.
-       
-        .. math::
-           
-           f(x,y,z) = 1
-       
-        .. _fig-source-squ:
-         
-        .. figure:: ../figures/neu_square.png
-           :scale: 50
-           :align: center
-       
-       - ``uniform`` :
-       
-          Cette forme spatiale définie une répartition uniforme et homogène sur toute(s) la(les) surface(s) 
-          concernée(s).
-       
-       
-       L'évolution temporelle `g(t)` prédéfinie se limite essentiellement à une forme `ricker` 
-       et `gaussienne` déjà définie dans la section `source`.
-       
+               L'évolution temporelle `g(t)` prédéfinie se limite essentiellement à une forme `ricker` 
+               et `gaussienne` déjà définie dans la section `source`.
+               
        
    #.  Généralisation des conditions de Neumann
        
@@ -985,7 +992,7 @@ A noter :
                                                             
                           . ...; ...
  
-       #. Les numéros des tags fournit par le mot clé ``index`` doivent être les mêmes que 
+      #.  Les numéros des tags fournit par le mot clé ``index`` doivent être les mêmes que 
           ceux attribués aux surfaces identifiées dans ``.msh``. En présence d'un tags non 
           identifié, un message d'erreur est retourné entrainant l'arrêt de tous les calculs.
  
