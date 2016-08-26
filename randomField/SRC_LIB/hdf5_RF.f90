@@ -47,11 +47,14 @@ contains
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
+        integer :: tmp_data
+
+        tmp_data = data
 
         dims(1) = 1
         call h5screate_f(H5S_SCALAR_F, space_id, hdferr)
         call h5acreate_f(file_id, attr_name, H5T_STD_I32LE, space_id, attr_id, hdferr, H5P_DEFAULT_F)
-        call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
+        call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, tmp_data, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
     end subroutine write_h5attr_int
@@ -112,12 +115,14 @@ contains
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
+        integer, dimension(size(data)) :: tmp_data
 
+        tmp_data = data
         dims(1) = size(data)
         call h5screate_f(H5S_SIMPLE_F, space_id, hdferr)
         call h5sset_extent_simple_f(space_id, 1, dims, dims, hdferr) !Set the size of the attribute
         call h5acreate_f(file_id, attr_name, H5T_STD_I32LE, space_id, attr_id, hdferr, H5P_DEFAULT_F)
-        call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
+        call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, tmp_data, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
 

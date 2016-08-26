@@ -472,14 +472,14 @@ contains
             integer :: i
             integer :: code
 
-            write(*,*) "Before Datatable"
-            write(*,*) "path = ", path
+            !write(*,*) "Before Datatable"
+            if(IPT%rang == 0) write(*,*) "      path = ", path
             call set_DataTable(path, dataTable)
-            write(*,*) "Before Application"
+            if(IPT%rang == 0) write(*,*) "      Before Application"
             call read_DataTable(dataTable, "application", IPT%application)
 
             if(IPT%application == 1) then
-                write(*,*) "Native lecture"
+                if(IPT%rang == 0) write(*,*) "      Native lecture"
                 call read_DataTable(dataTable, "nSamples", IPT%nSamples)
                 allocate(IPT%out_folders(IPT%nSamples))
                 allocate(IPT%out_names(IPT%nSamples))
@@ -495,7 +495,7 @@ contains
                 IPT%outputName = IPT%out_names(1)
 
             else if (IPT%application == 2) then
-                !SEM
+                if(IPT%rang == 0) write(*,*) "     SEM files lecture"
                 call read_DataTable(dataTable, "folder", SEM_gen_path)
                 IPT%appFolder = SEM_gen_path
                 if(IPT%rang == 0) call generateMain_inputSEM(SEM_gen_path)
@@ -562,6 +562,7 @@ contains
             character(len=7), dimension(3) :: propNames
             character(len=buf_RF) :: mesh_path, gen_path, absPath
             character(len=buf_RF) :: out_folder
+            character(len=buf_RF) :: buffer
             double precision, dimension(:), allocatable :: fieldAvg, fieldVar
             double precision, dimension(:), allocatable :: Pspeed, Sspeed, Dens
             integer, dimension(:), allocatable :: lambdaSwitch
@@ -574,7 +575,8 @@ contains
 
             !READING material.input
             open (unit = fid_2 , file = "./material.input", action = 'read', status="old", form="formatted")
-                read(fid_2,*) nMat
+                buffer = getLine(fid_2, '#')
+                read(buffer,*) nMat
                 write(*,*) "nMat = ", nMat
 
                 allocate(materialType(nMat))
@@ -608,7 +610,8 @@ contains
 
                 !READ material.input
                 do i = 1, nMat
-                    read(fid_2,*) materialType(i), Pspeed(i), Sspeed(i), Dens(i)
+                    buffer = getLine(fid_2, '#')
+                    read(buffer,*) materialType(i), Pspeed(i), Sspeed(i), Dens(i)
 
                     if (materialType(i) == "P" .or. materialType(i) == "L") then
                         npml = npml + 1
@@ -619,31 +622,34 @@ contains
 
                 end do
 
-                if(npml > 0) then
-                    read(fid_2,*) !# PML properties
-                    read(fid_2,*) !# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
-                end if
+!                if(npml > 0) then
+!                    read(fid_2,*) !# PML properties
+!                    read(fid_2,*) !# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
+!                end if
 
                 do i = 1, nMat
                     if (materialType(i) == "P" .or. materialType(i) == "L") then
-                        read(fid_2,*) npow, Apow, posX, widthX, posY, widthY, posZ, widthZ, assocMat(i)
+                        buffer = getLine(fid_2, '#')
+                        read(buffer,*) npow, Apow, posX, widthX, posY, widthY, posZ, widthZ, assocMat(i)
                     end if
                 end do
 
                 if(nRand > 0) then
 
-                    read(fid_2,*) !# Random properties
-                    read(fid_2,*) !# Kappa/Lambda (0/1)
-                    read(fid_2,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    read(fid_2,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    read(fid_2,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+!                    read(fid_2,*) !# Random properties
+!                    read(fid_2,*) !# Kappa/Lambda (0/1)
+!                    read(fid_2,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+!                    read(fid_2,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+!                    read(fid_2,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
 
 
                     do i = 1, nMat
                         if (materialType(i) == "R") then
-                            read(fid_2,*) lambdaSwitch(i)
+                            buffer = getLine(fid_2, '#')
+                            read(buffer,*) lambdaSwitch(i)
                             do j = 1, nprop
-                                read(fid_2,*) corrMod(j, i), corrL(1,j,i), corrL(2,j,i), corrL(3,j,i), margiF(j,i), CV(j,i), seedStart(j, i)
+                                buffer = getLine(fid_2, '#')
+                                read(buffer,*) corrMod(j, i), corrL(1,j,i), corrL(2,j,i), corrL(3,j,i), margiF(j,i), CV(j,i), seedStart(j, i)
                             end do
                         end if
                     end do
@@ -658,7 +664,8 @@ contains
             !READING domains.txt
             open (unit = fid_2 , file = "./domains.txt", action = 'read', status="old", form="formatted")
                 do i = 1, nMat
-                    read(fid_2,*) matNb, bbox_min(1,i), bbox_min(2,i), bbox_min(3,i), &
+                    buffer = getLine(fid_2, '#')
+                    read(buffer,*) matNb, bbox_min(1,i), bbox_min(2,i), bbox_min(3,i), &
                                          bbox_max(1,i), bbox_max(2,i), bbox_max(3,i)
                     where(bbox_min(:,assocMat(i)+1) > bbox_min(:,i)) bbox_min(:,assocMat(i)+1) = bbox_min(:,i)
                     where(bbox_max(:,assocMat(i)+1) < bbox_max(:,i)) bbox_max(:,assocMat(i)+1) = bbox_max(:,i)

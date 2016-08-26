@@ -521,6 +521,8 @@ contains
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
     function modCyclic(dividend,divisor) result(cyclicRest)
         implicit none
         integer :: dividend, divisor, cyclicRest
@@ -531,6 +533,31 @@ contains
             cyclicRest = mod(dividend, divisor);
         endif
     end function modCyclic
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    function getLine (fid, comment_Tag) result(nextLine)
+
+        integer,          intent(in) :: fid
+        character(len=1), intent(in) :: comment_Tag
+        character(len=buf_RF) :: nextLine
+        integer :: lineCount = 200, i, stat
+
+        do i = 1, lineCount
+            read(fid, fmt="(A)",IOSTAT = stat) nextLine
+            nextLine = adjustL(nextLine)
+            if(stat /= 0) then
+                nextLine = " "
+                exit
+            else if(nextLine(1:1) /= comment_Tag) then
+                write(*,*) "nextLine = ", nextLine
+                exit
+            end if
+        end do
+
+    end function getLine
 
 end module readFile_RF
 !! Local Variables:

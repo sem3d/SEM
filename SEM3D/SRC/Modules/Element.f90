@@ -35,6 +35,11 @@ module selement
         integer, dimension (:,:,:), allocatable :: Iglobnum
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:), allocatable :: Idom ! deallocated in define_array + copied into domain_XXX
+
+        ! Integrated Energy inside the Element
+        double precision :: En_S_int
+        double precision :: En_P_int
+
     end type element
 
 contains
@@ -44,6 +49,8 @@ contains
 
         el%mat_index=-1
         el%domain = -1
+        el%En_S_int = -1
+        el%En_P_int = -1
     end subroutine init_element
 
 end module selement

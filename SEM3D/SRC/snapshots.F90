@@ -1,7 +1,7 @@
 !! This file is part of SEM
 !!
 !! Copyright CEA, ECP, IPGP
-!!
+!!total_P_energy_sum
 
 module msnapshots
     use sdomain
@@ -20,7 +20,8 @@ module msnapshots
         real, dimension(:)  , allocatable :: press
         real, dimension(:)  , allocatable :: eps_vol
         real, dimension(:,:), allocatable :: eps_dev, sig_dev
-        real, dimension(:)  , allocatable :: P_energy, S_energy
+        double precision, dimension(:), allocatable :: P_energy, S_energy
+        double precision                  :: P_en_total, S_en_total
         real, dimension(:,:)  , allocatable :: eps_dev_pl
     end type output_var_t
 
@@ -87,7 +88,10 @@ contains
         integer :: n
         integer(HSIZE_T), dimension(2) :: dims
         integer :: hdferr, ierr
+        double precision :: total_P_energy_sum, total_S_energy_sum
 
+        total_P_energy_sum = 0.0
+        total_S_energy_sum = 0.0
 
         if (Tdomain%output_rank==0) then
             allocate(displs(0:Tdomain%nb_output_procs-1))
@@ -105,14 +109,26 @@ contains
             allocate(all_data_1d(0:ntot_nodes-1))
         end if
 
+        if(Tdomain%out_energy == 1) then
+            call write_elem_energy(Tdomain, parent_id)
+        end if
+
         ! P_ENERGY
         if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_Gatherv(outputs%P_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
-                MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+                             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+            !call MPI_ALLREDUCE(outputs%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+            !                   MPI_SUM, Tdomain%communicateur_global, ierr)
+            !call MPI_ALLREDUCE(outputs%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+            !                   MPI_SUM, Tdomain%communicateur_global, ierr)
+            !call MPI_REDUCE(out_fields%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+            !    MPI_SUM, 0, Tdomain%comm_output, ierr)
+            !if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
             if (Tdomain%output_rank==0) then
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "P_energy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                !call write_attr_real(dset_id, "total_P_energy", total_P_energy_sum)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -120,10 +136,14 @@ contains
         if (out_variables(OUT_ENERGYS) == 1) then
             call MPI_Gatherv(outputs%S_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+            !call MPI_REDUCE(out_fields%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+            !    MPI_SUM, 0, Tdomain%comm_output, ierr)
+            !if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
             if (Tdomain%output_rank==0) then
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "S_energy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                !call write_attr_real(dset_id, "total_S_energy", total_S_energy_sum)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -685,6 +705,64 @@ contains
         deallocate(nodes)
     end subroutine write_global_nodes
 
+    !------------------------------------------------------
+    subroutine write_elem_energy(Tdomain, fid)
+        implicit none
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: fid
+
+        integer :: ngllx, nglly, ngllz
+        integer(HSIZE_T), dimension(2) :: dims
+        real, dimension(:), allocatable :: En_S_int, En_P_int
+        integer :: count
+        integer :: i, j, k, n, nb_elem
+
+        allocate( En_P_int(0:Tdomain%n_hexa_local-1))
+        allocate( En_S_int(0:Tdomain%n_hexa_local-1))
+
+        count = 0
+        do n = 0,Tdomain%n_elem-1
+
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngllx = 0
+            nglly = 0
+            ngllz = 0
+
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngll
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngll
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngll
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngll
+                 case default
+                     stop "unknown domain"
+            end select
+
+            nglly = ngllx
+            ngllz = ngllx
+
+            do k = 0,ngllz-2
+                do j = 0,nglly-2
+                    do i = 0,ngllx-2
+                        En_S_int(count) = Tdomain%specel(n)%En_S_int
+                        En_P_int(count) = Tdomain%specel(n)%En_P_int
+                        count=count+1
+                    end do
+                end do
+            end do
+        end do
+
+        call grp_write_real_1d(Tdomain, fid, "En_S_int", count, En_S_int, Tdomain%n_hexa)
+        call grp_write_real_1d(Tdomain, fid, "En_P_int", count, En_P_int, Tdomain%n_hexa)
+
+        deallocate( En_P_int )
+        deallocate( En_S_int )
+
+    end subroutine write_elem_energy
+
     subroutine write_elem_connectivity(Tdomain, fid, irenum)
         implicit none
         type (domain), intent (INOUT):: Tdomain
@@ -734,6 +812,7 @@ contains
             k = k + 1
         enddo
         nb_elem = k
+        Tdomain%n_hexa_local = count
 
         call grp_write_int_2d(Tdomain, fid, "NGLL", 3, nb_elem, ngll, nb_gll_tot)
 
@@ -850,6 +929,8 @@ contains
             endif
             if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev = 0.
         endif
+        fields%P_en_total = 0.
+        fields%S_en_total = 0.
     end subroutine allocate_fields
 
     subroutine deallocate_fields(out_flags, fields, nl_flag)
@@ -873,6 +954,186 @@ contains
         endif
         if (out_flags(OUT_STRESS_DEV) == 1) deallocate(fields%sig_dev)
     end subroutine deallocate_fields
+
+    !---------------------------------------------------------------------
+    !---------------------------------------------------------------------
+    subroutine output_total_energy(Tdomain, timeS)
+        use sdomain
+        use dom_solid
+        use dom_fluid
+        use dom_solidpml
+        use dom_fluidpml
+
+        implicit none
+
+        type (domain), intent (INOUT):: Tdomain
+        double precision, intent(in) :: timeS
+        !
+        character (len=MAX_FILE_SIZE) :: fnamef
+        integer(HID_T) :: fid
+        integer :: domain_type
+        integer :: hdferr
+        integer :: ngll
+        integer :: i, j, k, n, ind
+        !integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
+        integer :: nnodes, group, nnodes_tot
+        integer, dimension(:), allocatable :: domains
+        type(Element), pointer :: el
+        type(subdomain), pointer :: sub_dom_mat
+        !type(output_var_t) :: out_fields
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:), allocatable   :: fieldP
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
+        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real(fpp) :: P_en_total, S_en_total, total_P_energy_sum, total_S_energy_sum
+        integer, dimension(0:8) :: out_variables
+        integer :: ierr
+        real(fpp) :: Whei, mult
+        real, dimension(:), allocatable :: GLLw
+        integer :: bnum, ee
+        logical :: nl_flag
+
+        nl_flag = Tdomain%nl_flag==1
+        !write(*,*) "Inside output_total_energy"
+        out_variables(0:8) = Tdomain%out_variables(0:8)
+        P_en_total = 0d0
+        S_en_total = 0d0
+
+        !call create_dir_sorties(Tdomain, isort)
+
+        !call compute_saved_elements(Tdomain, irenum, nnodes, domains)
+
+        !write(*,*) "Inside output_total_energy 0"
+
+        !call allocate_fields(nnodes, Tdomain%out_variables, out_fields)
+
+        ngll = 0
+
+        !write(*,*) "Inside output_total_energy 1"
+
+        do n = 0,Tdomain%n_elem-1
+            el => Tdomain%specel(n)
+            sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
+            ngll = domain_ngll(Tdomain, el%domain)
+            domain_type = el%domain
+            el%En_S_int = 0d0
+            el%En_P_int = 0d0
+
+
+            !write(*,*) "n_elem = ", n
+
+            select case(domain_type)
+                case (DM_SOLID)
+                    call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables, &
+                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, &
+                        eps_dev, sig_dev, nl_flag, eps_dev_pl)
+
+                    !write(*,*) "sum(P_energy(:,:,:)) = ", sum(P_energy(:,:,:))
+                    !write(*,*) "sum(S_energy(:,:,:)) = ", sum(S_energy(:,:,:))
+
+                    call domain_gllw(Tdomain, domain_type, GLLw)
+
+                    do k = 0,ngll-1
+                        do j = 0,ngll-1
+                            do i = 0,ngll-1
+                                Whei = GLLw(i)*GLLw(j)*GLLw(k)
+                                bnum = el%lnum/VCHUNK
+                                ee = mod(el%lnum,VCHUNK)
+                                mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
+
+                                el%En_S_int = el%En_S_int + mult*S_energy(i,j,k)
+                                el%En_P_int = el%En_P_int + mult*P_energy(i,j,k)
+
+
+                            enddo
+                        enddo
+                    enddo
+
+
+
+                    deallocate(GLLw)
+
+                case (DM_FLUID)
+                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
+                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+
+                    call domain_gllw(Tdomain, domain_type, GLLw)
+                    do k = 0,ngll-1
+                        do j = 0,ngll-1
+                            do i = 0,ngll-1
+                                Whei = GLLw(i)*GLLw(j)*GLLw(k)
+                                bnum = el%lnum/VCHUNK
+                                ee = mod(el%lnum,VCHUNK)
+                                mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
+
+                                el%En_S_int = el%En_S_int + mult*S_energy(i,j,k)
+                                el%En_P_int = el%En_P_int + mult*P_energy(i,j,k)
+
+                            enddo
+                        enddo
+                    enddo
+                    deallocate(GLLw)
+
+                case (DM_SOLID_PML)
+                  cycle !We don't want the energy on PMLs
+                  !call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
+                  !fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                  el%En_S_int = 0d0
+                  el%En_P_int = 0d0
+
+                case (DM_FLUID_PML)
+                  cycle !We don't want the energy on PMLs
+                  !call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
+                  !fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                  el%En_S_int = 0d0
+                  el%En_P_int = 0d0
+                case default
+                  stop "unknown domain"
+            end select
+
+            P_en_total = P_en_total + el%En_P_int !Sum of all elements integrals
+            S_en_total = S_en_total + el%En_S_int !Sum of all elements integrals
+
+        enddo
+
+        total_P_energy_sum = 0d0
+        total_S_energy_sum = 0d0
+
+        if (out_variables(OUT_ENERGYP) == 1) then
+            call MPI_REDUCE(P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+                               MPI_SUM, 0, Tdomain%communicateur_global, ierr)
+            if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
+        end if
+        if (out_variables(OUT_ENERGYS) == 1) then
+            call MPI_REDUCE(S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+                               MPI_SUM, 0, Tdomain%communicateur_global, ierr)
+            if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
+        end if
+        if(Tdomain%rank == 0) then
+            open(10, file="En_P.txt", action="write", position="append")
+            open(11, file="En_S.txt", action="write", position="append")
+            write(10,*) "time= ", timeS, "P_En= ", total_P_energy_sum
+            write(11,*) "time= ", timeS, "S_En= ", total_S_energy_sum
+            close(10)
+            close(11)
+        end if
+
+        if(allocated(fieldU)) deallocate(fieldU)
+        if(allocated(fieldV)) deallocate(fieldV)
+        if(allocated(fieldA)) deallocate(fieldA)
+        if(allocated(fieldP)) deallocate(fieldP)
+        if(allocated(P_energy)) deallocate(P_energy)
+        if(allocated(S_energy)) deallocate(S_energy)
+        if(allocated(eps_vol))  deallocate(eps_vol)
+        if(allocated(eps_dev))  deallocate(eps_dev)
+        if(allocated(sig_dev))  deallocate(sig_dev)
+
+        !call deallocate_fields(out_variables, out_fields)
+
+        call mpi_barrier(Tdomain%communicateur, hdferr)
+
+    end subroutine output_total_energy
 
     subroutine save_field_h5(Tdomain, isort)
         use sdomain
@@ -904,7 +1165,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        double precision :: total_P_energy, total_S_energy, total_P_energy_sum, total_S_energy_sum
+        integer, dimension(:), allocatable :: nData
 
         integer, dimension(0:8) :: out_variables
         logical :: nl_flag
@@ -919,19 +1180,21 @@ contains
 
         call allocate_fields(nnodes, Tdomain%out_variables, out_fields, nl_flag)
         allocate(valence(0:nnodes-1))
+        allocate(nData(0:nnodes-1))
 
         valence(:) = 0
+        nData(:) = 0
 
         ngll = 0
-        total_P_energy = 0d0
-        total_S_energy = 0d0
-        total_P_energy_sum = 0d0
-        total_S_energy_sum = 0d0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
-            if (.not. el%OUTPUT) cycle
+            if (.not. el%OUTPUT ) cycle
+            !if (.not. el%OUTPUT .and. &
+            !  (.not. &
+            !  (out_variables(OUT_ENERGYP   ) == 1 .or. out_variables(OUT_ENERGYS   ) == 1) &
+            !  )) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
@@ -939,8 +1202,6 @@ contains
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,&
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
                   nl_flag, eps_dev_pl)
-                  if (out_variables(OUT_ENERGYP)==1) total_P_energy = total_P_energy + sum(P_energy)
-                  if (out_variables(OUT_ENERGYS)==1) total_S_energy = total_S_energy + sum(S_energy)
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -959,6 +1220,7 @@ contains
                     do i = 0, ngll-1
                         ind = irenum(el%Iglobnum(i,j,k))
                         valence(ind) = valence(ind)+1
+                        nData(ind) = nData(ind) + 1
                         if (out_variables(OUT_DEPLA     ) == 1) out_fields%displ(0:2,ind)   = fieldU(i,j,k,0:2)
                         if (out_variables(OUT_VITESSE   ) == 1) out_fields%veloc(0:2,ind)   = fieldV(i,j,k,0:2)
                         if (out_variables(OUT_ACCEL     ) == 1) out_fields%accel(0:2,ind)   = fieldA(i,j,k,0:2)
@@ -977,6 +1239,36 @@ contains
                 enddo
             enddo
         enddo
+        !if(Tdomain%rank == 0) write(*,*) "nData = ", nData
+
+        !Averaging on coincident GLLs
+        do ind = 0,nnodes-1
+            if(nData(ind) > 1) then
+                if (out_variables(OUT_DEPLA     ) == 1) &
+                    out_fields%displ(0:2,ind)   = out_fields%displ(0:2,ind)/dble(nData(ind))
+                if (out_variables(OUT_VITESSE   ) == 1) &
+                    out_fields%veloc(0:2,ind)   = out_fields%veloc(0:2,ind)/dble(nData(ind))
+                if (out_variables(OUT_ACCEL     ) == 1) &
+                    out_fields%accel(0:2,ind)   = out_fields%accel(0:2,ind)/dble(nData(ind))
+                if (out_variables(OUT_PRESSION  ) == 1) &
+                    out_fields%press(ind)       = out_fields%press(ind)/dble(nData(ind))
+                if (out_variables(OUT_ENERGYP   ) == 1) &
+                    out_fields%P_energy(ind)    = out_fields%P_energy(ind)/dble(nData(ind))
+                if (out_variables(OUT_ENERGYS   ) == 1) &
+                    out_fields%S_energy(ind)    = out_fields%S_energy(ind)/dble(nData(ind))
+                if (out_variables(OUT_EPS_VOL   ) == 1) &
+                    out_fields%eps_vol(ind)     = out_fields%eps_vol(ind)/dble(nData(ind))
+                if (out_variables(OUT_EPS_DEV   ) == 1) then
+                    out_fields%eps_dev(0:5,ind) = out_fields%eps_dev(0:5,ind)/dble(nData(ind))
+                    if (allocated(eps_dev_pl)) then
+                        out_fields%eps_dev_pl(0:5,ind) =  out_fields%eps_dev_pl(0:5,ind)/dble(nData(ind))
+                    endif
+                endif
+                if (out_variables(OUT_STRESS_DEV) == 1) &
+                    out_fields%sig_dev(0:5,ind) = out_fields%sig_dev(0:5,ind)/dble(nData(ind))
+            end if
+        end do
+
         if(allocated(fieldU))       deallocate(fieldU)
         if(allocated(fieldV))       deallocate(fieldV)
         if(allocated(fieldA))       deallocate(fieldA)
@@ -987,6 +1279,7 @@ contains
         if(allocated(eps_dev))      deallocate(eps_dev)
         if(allocated(eps_dev_pl))   deallocate(eps_dev_pl)
         if(allocated(sig_dev))      deallocate(sig_dev)
+        if(allocated(nData))  deallocate(nData)
 
         ! normalization
         do i = 0,nnodes-1
@@ -1020,13 +1313,6 @@ contains
             call write_xdmf(Tdomain, group, isort, nnodes_tot, out_variables)
         endif
 
-        call MPI_REDUCE(total_P_energy, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
-
-        if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
-
-        call MPI_REDUCE(total_S_energy, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
-
-        if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
 
         deallocate(valence)
         call deallocate_fields(out_variables, out_fields, nl_flag)
@@ -1263,6 +1549,14 @@ contains
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/P_energy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
+                !En_P_int
+                if(Tdomain%out_energy == 1) then
+                    write(61,"(a)") '<Attribute Name="En_P_int" Center="Cell" AttributeType="Scalar">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_P_int'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                end if
             end if
             ! S_ENERGY
             if (out_variables(OUT_ENERGYS) == 1) then
@@ -1271,6 +1565,22 @@ contains
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/S_energy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
+                !En_S_int
+                if(Tdomain%out_energy == 1) then
+                    write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_S_int'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                end if
+!                !En_S_int
+!                if(Tdomain%out_energy == 1) then
+!                    write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
+!                    write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="En_S_int" Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne, &
+!                        '">geometry',group,'.h5:/En_S_int'
+!                    write(61,"(a)") '</DataItem>'
+!                    write(61,"(a)") '</Attribute>'
+!                end if
             end if
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'

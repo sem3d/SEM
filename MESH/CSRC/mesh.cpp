@@ -191,8 +191,10 @@ int Mesh3D::read_materials_v2(const std::string& str)
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
 
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
+        //printf("     strcmp(&type,R) = %d\n", strcmp(&type,"R"));
+        //printf("     type == 'R' %d\n", type == 'R');
 
-        if(strcmp(&type,"R") == 0){
+        if(type == 'R'){
 
             getData_line(&buffer, &linesize, f);
             sscanf(buffer,"%d", &lambdaSwitch);
