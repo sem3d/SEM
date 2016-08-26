@@ -39,6 +39,9 @@ module selement
         ! Integrated Energy inside the Element
         double precision :: En_S_int
         double precision :: En_P_int
+        ! Averaged Energy inside the subElements (defined by GLLs division)
+        double precision, dimension (:,:,:), allocatable :: En_S_avg
+        double precision, dimension (:,:,:), allocatable :: En_P_avg
 
     end type element
 

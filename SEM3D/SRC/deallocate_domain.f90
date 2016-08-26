@@ -42,6 +42,8 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%specel(n)%MassMat)
         deallocate (Tdomain%specel(n)%IglobNum)
         deallocate (Tdomain%specel(n)%Control_Nodes)
+        if (allocated(En_P_int)) deallocate( En_P_int )
+        if (allocated(En_S_int)) deallocate( En_S_int )
     enddo
 
     !purge -fuites memoire
