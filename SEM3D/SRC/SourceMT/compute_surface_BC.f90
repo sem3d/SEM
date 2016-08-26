@@ -331,17 +331,17 @@ contains
        force = - Traction_i
        
        !write(*,*) Traction_i
-       if (Param%wave_type==1) then
-             force = - Traction_i
-       elseif (Param%wave_type==2) then
+       !if (Param%wave_type==1) then
+       !      force = - Traction_i
+       !elseif (Param%wave_type==2) then
 
-       elseif (Param%wave_type==3) then
+       !elseif (Param%wave_type==3) then
 
-       elseif (Param%wave_type==4) then
+       !elseif (Param%wave_type==4) then
 
-       else
+       !else
 
-       endif
+       !endif
 
     end subroutine PlaneWane_Reflected
     !----------------------------------------------------------------------------------

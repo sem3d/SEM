@@ -318,7 +318,7 @@ contains
         use mpi
         use constants
         use mcapteur
-        use surface_input, only : read_surface_input
+        use surface_input !, only : read_surface_input,
          
         implicit none
 
@@ -418,6 +418,11 @@ contains
 
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
+
+        !---
+        if (Tdomain%logicD%surfBC) then
+           call surface_in_list(Tdomain)
+        endif
 
         !---   Properties of materials.
         call read_material_file(Tdomain)

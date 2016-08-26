@@ -9,6 +9,13 @@ implicit none
 contains
    !----------------------------------------------------------------------------------
    !----------------------------------------------------------------------------------
+   
+   !!\brief
+   !! Carte maîtresse du traitement de surfaces. cette subroutine permet de définir les
+   !! les différents paramètres fournit comme jeux de données et notamment l'orientation
+   !! des différents problème associée
+   !<
+
    subroutine read_surface_input(Tdomain, config)
      
      use sdomain
@@ -173,7 +180,7 @@ contains
                        Tdomain%nsurfsource(nsurf)%paravalue(i) = surf%surface_Paravalue(i)
                     enddo
                     parametric_var(1:len_trim(fromcstr(surf%surface_paramname))) = trim(fromcstr(surf%surface_paramname))
-                    call Split(parametric_var, surf%surface_nparamvar, Tdomain%nsurfsource(nsurf)%paramname)
+                    call Split(parametric_var, surf%surface_nparamvar, Tdomain%nsurfsource(nsurf)%paramname," ")
                 endif
                 !!
                 !!
@@ -249,13 +256,13 @@ contains
    end subroutine read_surface_input
    !----------------------------------------------------------------------------------
    !----------------------------------------------------------------------------------
-   subroutine Split(String, nstring, SubStrings)
+   subroutine Split(String, nstring, SubStrings,Delimiter)
   
       implicit none
       
       character(len=*), intent(in)                         :: String
       integer, intent(in)                                  :: nstring
-      character, parameter                                 :: Delimiter= " "
+      character, intent(in)                                :: Delimiter
       character(len=*), dimension(nstring), intent(inout)  :: SubStrings
       integer                                              :: i, j, k, l, n, ns
       logical                                              :: EndOfLine
@@ -288,6 +295,12 @@ contains
    end subroutine Split
    !----------------------------------------------------------------------------------
    !----------------------------------------------------------------------------------
+   
+   !!\brief
+   !! Subroutine permettant d'associée au différentes surfaces les propriétés élastiques en fonction
+   !! des materiaux sur lesquel elles sont affectées
+   !<
+
    subroutine define_surface_properties(Tdomain)
      
       use sdomain
@@ -308,7 +321,7 @@ contains
       ! elastic properties
       do ns = 0, Tdomain%nsurface-1
          index = Tdomain%nsurfsource(ns)%mat_index
-         do s = lbound(Tdomain%nsurfsource(ns)%index,1),ubound(Tdomain%nsurfsource(ns)%index,1)
+         do s = 1,size(Tdomain%nsurfsource(ns)%index)
             surf = Tdomain%nsurfsource(ns)%index(s)
             write(char,*) surf
             do n=0,size(Tdomain%sSurfaces)-1
@@ -348,6 +361,12 @@ contains
    end subroutine define_surface_properties
    !----------------------------------------------------------------------------------
    !----------------------------------------------------------------------------------
+   
+   !!\brief
+   !! Subroutine qui permet de définir les principale directions des ondes plane classiques
+   !! et aussi les différentes vitesses de propagations qui leur sont associées
+   !<
+
    subroutine PlaneWaveSpeed(surfsrc,surf)
       
       use ssurf
@@ -400,44 +419,138 @@ contains
    end subroutine PlaneWaveSpeed
    !----------------------------------------------------------------------------------
    !----------------------------------------------------------------------------------
+   
+   !!\brief
+   !! Subroutine permettant de vérifier si les tags de surfaces fournit par l'utilisateur sont
+   !! sont les même que ceux lui dans les mesh4spec. Cette routine nécessite d'être paralléliser
+   !! car toutes les surfaces ne figures pas surtous les proc
+   !<
+
    subroutine  surface_in_list(Tdomain)
       
       use sdomain
+      use mpi
       use Alertes
 
       implicit none
-      type(domain), intent(in)    :: Tdomain
-      integer                     :: n, ns, s, int 
-      logical                     :: find
-      character(len=100)          :: list_index
+      type(domain), intent(in)                   :: Tdomain
+      integer                                    :: n, ns, s, intt, code, pr, rg
+      integer                                    :: nb_proc, som, rg0
+      logical                                    :: find
+      logical,dimension(:), allocatable          :: Tab_logic
+      integer ,dimension(:), allocatable         :: surf_tags
+      integer, dimension(:), allocatable         :: Received, Depla
+      integer, dimension(:), allocatable         :: list_index
+      character(len=100)          :: surflist_index
       character(len=256)          :: FunctionName ='surface_in_list'
       character(len=256)          :: SourceFile = 'create_sem_surface_input'
       character(len=700)          :: ErrorSMS
-      character(len=20)           :: char, string
+      character(len=20)           :: charr
+      integer                     :: surfnum
     
-      list_index =' '
-      do ns = 0, Tdomain%nsurface-1
-         do s = lbound(Tdomain%nsurfsource(ns)%index,1),ubound(Tdomain%nsurfsource(ns)%index,1)
-            find = .false.
-            int = Tdomain%nsurfsource(ns)%index(s)
-            write(char,*) int
-            block : &
-            do n=0,size(Tdomain%sSurfaces)-1
-               string = Tdomain%sSurfaces(n)%name(8:len_trim(Tdomain%sSurfaces(n)%name))
-               list_index = trim(list_index)//adjustl(string(1:len_trim(string)))//";"
-               if (Tdomain%sSurfaces(n)%name == "surface"//adjustl(char(:len_trim(char)))) then
-                  find = .true.
-                  exit block
-               endif
-            enddo block
-            ErrorSMS = "surface (index ="//adjustl(char(1:len_trim(char)))//adjustl(") is not found in tag list: ")// &
-                       adjustl(list_index(:len_trim(list_index)))
-            if (.not.find) call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
-         enddo
-      enddo
+      !! Blocks until all processes have reached this step 
+      call MPI_Barrier(Tdomain%communicateur, code)
+      call MPI_Comm_size(MPI_COMM_WORLD, nb_proc,code)
+      call MPI_Comm_Rank(MPI_COMM_WORLD, rg, code)
       
-   end subroutine surface_in_list
+      allocate(Received(1:nb_proc), Depla(1:nb_proc))
+      Received = 0
+      ! On recherchele nombre de surface lu sur chaque proc
 
+      call MPI_ALLGATHER(size(Tdomain%sSurfaces),1,MPI_INTEGER,Received(:),1, MPI_INTEGER,MPI_COMM_WORLD,code)
+      
+      if (rg==0) then
+         Depla(:)=0
+         do n=2,nb_proc
+            Depla(n)=sum(Received(1:n-1))
+         enddo
+      endif
+      allocate(Tab_logic(nb_proc), surf_tags(sum(Received)), list_index(size(Tdomain%sSurfaces)))
+      list_index =0; Tab_logic = .true.; surf_tags =0
+
+      do ns = 0, Tdomain%nsurface-1
+         do s = 1,size(Tdomain%nsurfsource(ns)%index)
+            find = .false.
+            intt = Tdomain%nsurfsource(ns)%index(s)
+            write(charr,'(I16)') intt
+            do n=0,size(Tdomain%sSurfaces)-1
+                read(Tdomain%sSurfaces(n)%name(8:len_trim(Tdomain%sSurfaces(n)%name)),*) surfnum
+                list_index(n+1) = surfnum
+                if (Tdomain%sSurfaces(n)%name == "surface"//adjustl(charr(1:len_trim(charr)))) then
+                   find = .true.
+                   exit
+                endif
+            enddo
+            ! Récuperation et diffussion de la valeur de find sur tous les proc
+            call MPI_ALLGATHER(find,1,MPI_LOGICAL,Tab_logic,1, MPI_LOGICAL,MPI_COMM_WORLD,code) 
+            ! liste complète des tags retransmise sur le proc 0, surf_tags va contenir toutes les listes
+            ! récupérées sur tous les proc. cette liste peut contenir des doublons
+            call MPI_GATHERV(list_index, size(list_index), MPI_INTEGER, surf_tags, Received, Depla, MPI_INTEGER, 0, MPI_COMM_WORLD, code)
+
+            if ((rg == 0).and.(count(Tab_logic)==0)) then
+               call Unique_string(surf_tags,surflist_index)
+               intt = intt+1; write(charr,'(I16)') intt
+               ErrorSMS = adjustr("surface (index ="//adjustl(charr))//adjustl(") is not found in tag list: ")// &
+               adjustl(surflist_index(:len_trim(surflist_index)))
+               call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
+            endif
+        enddo
+      enddo
+      deallocate(Received, Depla, Tab_logic, surf_tags, list_index)
+
+   end subroutine surface_in_list
+   !----------------------------------------------------------------------------------
+   !----------------------------------------------------------------------------------
+
+   !!\brief
+   !! Reconstruire la liste de tags de surfaces retrouvés dans mesh4spec tout en évitant les
+   !! les répétitions. string est un tableau de chaine de caratères et de taille nb_proc.
+   !! Chaque composante de ce tableau est une liste des tags de surfaces retrouvés sur chaque
+   !! proc. Cette fonction a la même fonctionnalité que celle de C++ (std::unique)
+   !<
+   
+   subroutine  Unique_string(string,Unique)
+   
+       implicit none
+   
+       integer, dimension(:),             intent(in) :: string
+       character(len=*) , intent(out)                :: Unique
+       character(len=10), dimension(:), allocatable :: res
+       character(len=150), dimension(:), allocatable :: Character_list
+       character(len=20)                             :: char
+       integer                                       :: k, i, j
+   
+       write(char,*) string(1)
+       unique = char
+       do i=2,size(string)
+          write(char,*) string(i)
+          Unique=adjustr(Unique(1:len_trim(Unique))//";")//adjustl(char(1:len_trim(char)))
+       enddo
+       j=0
+       do i=1,len_trim(Unique)
+          if (Unique(i:i)==";") j=j+1
+       enddo
+       allocate(Character_list(j))
+       call Split(Unique,j,Character_list,";")
+       k=1;
+       allocate(res(1:i))
+       res(1)=Character_list(1)
+       Unique=adjustl(res(1))
+       block : &
+           do i=2,size(Character_list)
+           do j=1,k
+              if ((trim(res(j))==trim(Character_list(i))).or.(len_trim(Character_list(i))==0)) then
+                   cycle block
+              endif
+           enddo
+           Unique=adjustr(Unique(1:len_trim(Unique))//";")//adjustl(Character_list(i))
+           k=k+1
+           res(k)=Character_list(i)
+       enddo block
+       deallocate(res,Character_list)
+
+   end subroutine Unique_string
+   
 end module surface_input
 
 !! Local Variables:
