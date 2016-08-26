@@ -695,11 +695,11 @@ contains
                 do j = 0,nglly-2
                     do i = 0,ngllx-2
                         !!Output of the integral for every element
-                        !En_S_int(count) = Tdomain%specel(n)%En_S_int !Output of the integral
-                        !En_P_int(count) = Tdomain%specel(n)%En_P_int
+                        En_S_int(count) = Tdomain%specel(n)%En_S_int !Output of the integral
+                        En_P_int(count) = Tdomain%specel(n)%En_P_int
                         !!Output of the average for every sub-element
-                        En_S_int(count) = Tdomain%specel(n)%En_S_avg(i,j,k)
-                        En_P_int(count) = Tdomain%specel(n)%En_P_avg(i,j,k)
+                        !En_S_int(count) = Tdomain%specel(n)%En_S_avg(i,j,k)
+                        !En_P_int(count) = Tdomain%specel(n)%En_P_avg(i,j,k)
                         count=count+1
                     end do
                 end do
@@ -977,8 +977,8 @@ contains
                     do k = 0,ngll-2
                         do j = 0,ngll-2
                             do i = 0,ngll-2
-                    !            el%En_S_avg(k,j,i) =  sum(S_energy(i:i+1,j:j+1,k:k+1))/8d0
-                    !            el%En_P_avg(k,j,i) =  sum(P_energy(i:i+1,j:j+1,k:k+1))/8d0
+                                el%En_S_avg(k,j,i) =  sum(S_energy(i:i+1,j:j+1,k:k+1))/8d0
+                                el%En_P_avg(k,j,i) =  sum(P_energy(i:i+1,j:j+1,k:k+1))/8d0
                             end do
                         end do
                     end do
@@ -1008,8 +1008,8 @@ contains
                     do k = 0,ngll-2
                         do j = 0,ngll-2
                             do i = 0,ngll-2
-                    !           el%En_S_avg(k,j,i) =  sum(S_energy(i:i+1,j:j+1,k:k+1))/8d0
-                    !           el%En_P_avg(k,j,i) =  sum(P_energy(i:i+1,j:j+1,k:k+1))/8d0
+                               el%En_S_avg(k,j,i) =  sum(S_energy(i:i+1,j:j+1,k:k+1))/8d0
+                               el%En_P_avg(k,j,i) =  sum(P_energy(i:i+1,j:j+1,k:k+1))/8d0
                             end do
                         end do
                     end do
