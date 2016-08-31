@@ -747,20 +747,21 @@ contains
             do k = 0,ngllz-2
                 do j = 0,nglly-2
                     do i = 0,ngllx-2
-                        En_S_int(count) = Tdomain%specel(n)%En_S_int
+                        !!Output of the integral for every element
+                        En_S_int(count) = Tdomain%specel(n)%En_S_int !Output of the integral
                         En_P_int(count) = Tdomain%specel(n)%En_P_int
+                        !!Output of the average for every sub-element
+                        !En_S_int(count) = Tdomain%specel(n)%En_S_avg(i,j,k)
+                        !En_P_int(count) = Tdomain%specel(n)%En_P_avg(i,j,k)
                         count=count+1
                     end do
                 end do
             end do
+
         end do
 
         call grp_write_real_1d(Tdomain, fid, "En_S_int", count, En_S_int, Tdomain%n_hexa)
         call grp_write_real_1d(Tdomain, fid, "En_P_int", count, En_P_int, Tdomain%n_hexa)
-
-        deallocate( En_P_int )
-        deallocate( En_S_int )
-
     end subroutine write_elem_energy
 
     subroutine write_elem_connectivity(Tdomain, fid, irenum)
@@ -1020,6 +1021,8 @@ contains
             el%En_S_int = 0d0
             el%En_P_int = 0d0
 
+            !allocate(el%En_S_avg(0:ngll-2, 0:ngll-2, 0:ngll-2))
+            !allocate(el%En_P_avg(0:ngll-2, 0:ngll-2, 0:ngll-2))
 
             !write(*,*) "n_elem = ", n
 
@@ -1049,10 +1052,17 @@ contains
                             enddo
                         enddo
                     enddo
-
-
-
                     deallocate(GLLw)
+
+                    do k = 0,ngll-2
+                        do j = 0,ngll-2
+                            do i = 0,ngll-2
+                                el%En_S_avg(k,j,i) =  sum(S_energy(i:i+1,j:j+1,k:k+1))/8d0
+                                el%En_P_avg(k,j,i) =  sum(P_energy(i:i+1,j:j+1,k:k+1))/8d0
+                            end do
+                        end do
+                    end do
+
 
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
@@ -1074,6 +1084,15 @@ contains
                         enddo
                     enddo
                     deallocate(GLLw)
+
+                    do k = 0,ngll-2
+                        do j = 0,ngll-2
+                            do i = 0,ngll-2
+                               el%En_S_avg(k,j,i) =  sum(S_energy(i:i+1,j:j+1,k:k+1))/8d0
+                               el%En_P_avg(k,j,i) =  sum(P_energy(i:i+1,j:j+1,k:k+1))/8d0
+                            end do
+                        end do
+                    end do
 
                 case (DM_SOLID_PML)
                   cycle !We don't want the energy on PMLs
@@ -1103,12 +1122,12 @@ contains
         if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_REDUCE(P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
                                MPI_SUM, 0, Tdomain%communicateur_global, ierr)
-            if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
+            !if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
         end if
         if (out_variables(OUT_ENERGYS) == 1) then
             call MPI_REDUCE(S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
                                MPI_SUM, 0, Tdomain%communicateur_global, ierr)
-            if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
+            !if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
         end if
         if(Tdomain%rank == 0) then
             open(10, file="En_P.txt", action="write", position="append")
@@ -1215,6 +1234,7 @@ contains
                   stop "unknown domain"
             end select
 
+            
             do k = 0, ngll-1
                 do j = 0, ngll-1
                     do i = 0, ngll-1
@@ -1305,14 +1325,13 @@ contains
         else
             fid = -1
         endif
-
+        
         call grp_write_fields(Tdomain, fid, nnodes, out_variables, out_fields, nnodes_tot)
 
         if (Tdomain%output_rank==0) then
             call h5fclose_f(fid, hdferr)
             call write_xdmf(Tdomain, group, isort, nnodes_tot, out_variables)
         endif
-
 
         deallocate(valence)
         call deallocate_fields(out_variables, out_fields, nl_flag)
