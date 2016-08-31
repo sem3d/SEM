@@ -68,10 +68,6 @@ contains
             dom%champs1%Veloc  = 0d0
             dom%champs1%Forces = 0d0
 
-            allocate(dom%DeplaPrev(0:dom%nglltot-1,0:2))
-            dom%DeplaPrev = 0d0
-
-
             ! Allocation de MassMat pour les PML solides
             allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
@@ -124,8 +120,6 @@ contains
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
         if(allocated(dom%champs1%Forces )) deallocate(dom%champs1%Forces )
-
-        if(allocated(dom%DeplaPrev)) deallocate(dom%DeplaPrev)
 
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
@@ -442,9 +436,6 @@ contains
             dom%champs0%Veloc(indpml,:) = Tdomain%sdom%champs0%Veloc(indsol,:)
             dom%champs0%Depla(indpml,:) = Tdomain%sdom%champs0%Depla(indsol,:)
         enddo
-
-        ! Save depla
-        dom%DeplaPrev = dom%champs0%Depla
 
         ! The prediction will be based on the current state
         dom%champs1%Depla = dom%champs0%Depla
