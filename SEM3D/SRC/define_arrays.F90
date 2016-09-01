@@ -27,10 +27,11 @@ module mdefinitions
 
 contains
 
-    subroutine Define_Arrays(Tdomain)
+    subroutine define_arrays(Tdomain)
         use constants
         use model_earthchunk
         use model_prem
+        use mCourant
 #ifdef USE_RF
         use build_prop_files
 #endif
@@ -84,6 +85,12 @@ contains
             ! Attribute elastic properties from material !!!
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
+        end do
+!        ! We need the timestep to continue with PML defs...
+        call Compute_Courant(Tdomain,rg)
+!
+        do n = 0,Tdomain%n_elem-1
+            mat = Tdomain%specel(n)%mat_index
             ! Compute MassMat
             call init_local_mass(Tdomain, Tdomain%specel(n))
             ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is

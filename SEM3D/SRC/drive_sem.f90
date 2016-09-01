@@ -177,7 +177,6 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
-    use mCourant
 #ifdef USE_RF
     use build_prop_files
 #endif
@@ -238,10 +237,6 @@ subroutine RUN_PREPARED(Tdomain)
 
     call MPI_Barrier(Tdomain%communicateur, code)
 
- !- discretization (collocation) points' properties
-    if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
-    call MPI_Barrier(Tdomain%communicateur, code)
-
  !- from elementary to global numbering
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)
@@ -273,11 +268,6 @@ subroutine RUN_PREPARED(Tdomain)
 #ifdef USE_RF
     call create_prop_files (Tdomain, rg)
 #endif
-
-    !- timestep value - > Courant, or Courant -> timestep
-    if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
-    call Compute_Courant(Tdomain,rg)
-    call MPI_Barrier(Tdomain%communicateur,code)
 
     !- elementary properties (mass matrices, PML factors,..) geometry
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
