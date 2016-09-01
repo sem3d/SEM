@@ -68,10 +68,6 @@ contains
             dom%champs1%Veloc  = 0d0
             dom%champs1%Forces = 0d0
 
-            allocate(dom%DeplaPrev(0:dom%nglltot-1,0:2))
-            dom%DeplaPrev = 0d0
-
-
             ! Allocation de MassMat pour les PML solides
             allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
@@ -124,8 +120,6 @@ contains
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
         if(allocated(dom%champs1%Forces )) deallocate(dom%champs1%Forces )
-
-        if(allocated(dom%DeplaPrev)) deallocate(dom%DeplaPrev)
 
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
@@ -443,9 +437,6 @@ contains
             dom%champs0%Depla(indpml,:) = Tdomain%sdom%champs0%Depla(indsol,:)
         enddo
 
-        ! Save depla
-        dom%DeplaPrev = dom%champs0%Depla
-
         ! The prediction will be based on the current state
         dom%champs1%Depla = dom%champs0%Depla
         dom%champs1%Veloc = dom%champs0%Veloc
@@ -458,33 +449,34 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         double precision :: dt
         !
-        integer :: i_dir, n, indpml
-        real(fpp) :: V(0:dom%nglltot-1), A(0:dom%nglltot-1) ! Velocity, Acceleration
+        integer :: i_dir
+        real(fpp) :: D(0:dom%nglltot-1), V(0:dom%nglltot-1), F(0:dom%nglltot-1) ! Displacement, Velocity, Force
 
-        ! Update champs1 velocity from champs0
+        ! Note: the solid domain use a leap-frop time scheme => we get D_n+3/2 and V_n+1
+        !       to compute V_n+2, we need F_n+1. To compute F_n+1, we need D_n+1 and V_n+1
+        !       D_n+1 is estimated with D_n+3/2 and V_n+1
+
+        ! Update velocity: compute V_n+2
         do i_dir = 0,2
-            ! Estimate V = V_n+3/2
+            ! Get V = V_n+1
             V(:) = dom%champs0%Veloc(:,i_dir) ! V = V_n+1
-            V(:) = 0.5 * ( V(:) + (dom%champs0%Depla(:,i_dir)-dom%DeplaPrev(:,i_dir))/dt ) ! V is corrected with U_n+1/2 to estimate V_n+3/2
 
-            ! Compute acceleration
-            A(:) =   dom%R1(:,i_dir)     + dom%R2(:,i_dir)                           + dom%R3(:,i_dir)           &
+            ! Estimate D = D_n+1
+            D(:) = dom%champs0%Depla(:,i_dir) - V(:)*0.5*dt
+
+            ! Compute F_n+1
+            F(:) =   dom%R1(:,i_dir)     + dom%R2(:,i_dir)                           + dom%R3(:,i_dir)           &
                    - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) - dom%champs1%Forces(:,i_dir) ! (61a) from Ref1
 
             ! Compute V_n+2
-            dom%champs0%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
-                                         dt * dom%MassMat(:) * A(:) ! dom%MassMat = 1./dom%MassMat (define_arrays inverse_mass_mat)
+            dom%champs0%Veloc(:,i_dir) = V(:) + dt*dom%MassMat*F(:) ! dom%MassMat = 1./dom%MassMat (define_arrays inverse_mass_mat)
         enddo
 
-        ! Update current state
+        ! Update displacement: compute D_n+5/2
         dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
 
-        ! Apply BC for PML (dirichlet)
-        do n = 0, dom%n_dirich-1
-            indpml = dom%dirich(n)
-            dom%champs0%Veloc(indpml,:) = 0.
-            dom%champs0%Depla(indpml,:) = 0.
-        enddo
+        ! Note: do NOT apply (dirichlet) BC for PML
+        !       if PML absorption would be turned off <=> solid domain without dirichlet BC (neumann only)
     end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 
