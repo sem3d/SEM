@@ -473,6 +473,18 @@ contains
         enddo
         dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
     end subroutine newmark_corrector_solid
+
+    function solid_Pspeed(dom, lnum, i, j, k) result(Pspeed)
+        type(domain_solid), intent (IN) :: dom
+        integer, intent(in) :: lnum, i, j, k
+        !
+        real(fpp) :: Pspeed, M
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        M = dom%Lambda_(i,j,k,bnum,ee) + 2.*dom%Mu_(i,j,k,bnum,ee)
+        Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
+    end function solid_Pspeed
 end module dom_solid
 
 !! Local Variables:

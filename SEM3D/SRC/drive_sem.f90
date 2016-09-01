@@ -268,7 +268,6 @@ subroutine RUN_PREPARED(Tdomain)
 #ifdef USE_RF
     call create_prop_files (Tdomain, rg)
 #endif
-
     !- elementary properties (mass matrices, PML factors,..) geometry
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)

@@ -297,6 +297,17 @@ contains
         enddo
         dom%champs0%Phi = dom%champs0%Phi + dt * dom%champs0%VelPhi
     end subroutine newmark_corrector_fluid
+
+    function fluid_Pspeed(dom, lnum, i, j, k) result(Pspeed)
+        type(domain_fluid), intent (IN) :: dom
+        integer, intent(in) :: lnum, i, j, k
+        !
+        real(fpp) :: Pspeed
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        Pspeed = sqrt(dom%Lambda_(i,j,k,bnum,ee)*dom%IDensity_(i,j,k,bnum,ee))
+    end function fluid_Pspeed
 end module dom_fluid
 
 !! Local Variables:

@@ -34,15 +34,22 @@ contains
     subroutine Compute_Courant (Tdomain,rg)
 
         use sdomain
+        use constants
+        use dom_solid
+        use dom_fluid
+        use dom_solidpml
+        use dom_fluidpml
         use mpi
         implicit none
         type (Domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: rg
 
         integer :: i,j,k,n,ngll,idef0,idef1, mat, ierr
-        real :: dxmin,courant,courant_max
-        real :: dt_min, dt, dt_loc
-        real :: floc_max, dxmax, f_max
+        integer :: lnum
+        real(fpp) :: dxmin,courant,courant_max
+        real(fpp) :: dt_min, dt, dt_loc
+        real(fpp) :: floc_max, dxmax, f_max
+        real(fpp) :: pspeed, maxPspeed
 
         courant = Tdomain%TimeD%courant
         courant_max = 0
@@ -54,8 +61,8 @@ contains
 
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             do k = 0, ngll-2
-                do j = 0, ngll - 2
-                    do i = 0, ngll -2
+                do j = 0, ngll-2
+                    do i = 0, ngll-2
 
                         idef0 = Tdomain%specel(n)%Iglobnum(i,j,k)
                         idef1 = Tdomain%specel(n)%Iglobnum(i+1,j,k)
@@ -75,10 +82,30 @@ contains
                     enddo
                 enddo
             enddo
+            ! Compute max Pspeed on the cell
+            maxPspeed = 0d0
+            lnum = Tdomain%specel(n)%lnum
+            do k = 0, ngll-1
+                do j = 0, ngll-1
+                    do i = 0, ngll-1
+                        select case(Tdomain%specel(n)%domain)
+                        case (DM_SOLID)
+                            Pspeed = solid_pspeed(Tdomain%sdom, lnum, i, j, k)
+                        case (DM_SOLID_PML)
+                            Pspeed = solidpml_pspeed(Tdomain%spmldom, lnum, i, j, k)
+                        case (DM_FLUID)
+                            Pspeed = fluid_pspeed(Tdomain%fdom, lnum, i, j, k)
+                        case (DM_FLUID_PML)
+                            Pspeed = fluidpml_pspeed(Tdomain%fpmldom, lnum, i, j, k)
+                        end select
+                        if (Pspeed>maxPspeed) maxPspeed = Pspeed
+                    end do
+                end do
+            end do
 
             dxmin = sqrt(dxmin)
             mat = Tdomain%specel(n)%mat_index
-            dt_loc = min(dt_loc, dxmin/Tdomain%sSubdomain(mat)%Pspeed)
+            dt_loc = min(dt_loc, dxmin/maxPspeed)
             dxmax = sqrt(dxmax)
             floc_max  = min(floc_max,  Tdomain%sSubdomain(mat)%Sspeed/30/dxmax)
         enddo

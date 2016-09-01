@@ -606,6 +606,18 @@ contains
             dom%champs0%VelocPML(indpml,:,:) = 0.
         enddo
     end subroutine newmark_corrector_solidpml
+
+    function solidpml_Pspeed(dom, lnum, i, j, k) result(Pspeed)
+        type(domain_solidpml), intent (IN) :: dom
+        integer, intent(in) :: lnum, i, j, k
+        !
+        real(fpp) :: Pspeed, M
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        M = dom%Lambda_(i,j,k,bnum,ee) + 2.*dom%Mu_(i,j,k,bnum,ee)
+        Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
+    end function solidpml_Pspeed
 end module dom_solidpml
 
 !! Local Variables:
