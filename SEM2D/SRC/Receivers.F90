@@ -17,6 +17,10 @@ module sreceivers
        real, dimension(:,:), pointer :: Interp_coeff
        integer, dimension(:), allocatable :: near_faces
        character(Len=100) :: name
+       ! FOR HDG POST-PROCESSING
+       real, dimension(:,:,:,:), pointer :: InvGrad
+       real, dimension(:,:), pointer :: JacobWhei, ReinterpXi, ReinterpEta, hprimex, hprimez
+       real, dimension(:,:), pointer :: MatPostProc
     end type receiver
 
 end module sreceivers
