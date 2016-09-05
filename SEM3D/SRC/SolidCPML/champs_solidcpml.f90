@@ -8,6 +8,7 @@ module champs_solidpml
 
     use constants
     use ssubdomains
+    use selement
     implicit none
 
     ! Inconnues du problème : déplacement, vitesse
@@ -49,6 +50,9 @@ module champs_solidpml
 
         ! Element materials
         type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
+
+        ! Elements
+        type(element), dimension (:), pointer :: specel ! Point to Tdomain%specel
 
         ! Geometrical information
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob

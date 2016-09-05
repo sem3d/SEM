@@ -259,6 +259,8 @@ contains
         dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
         ! Handle on materials
         dom%sSubDomain => Tdomain%sSubDomain
+        ! Handle on elements
+        dom%specel => Tdomain%specel
     end subroutine init_domain_solidpml
 
     subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
@@ -292,7 +294,7 @@ contains
         ee = mod(specel%lnum,VCHUNK)
 
         ind = dom%Idom_(i,j,k,bnum,ee)
-        if (.not. dom%sSubDomain(specel%mat_index)%material_type == "P") &
+        if (.not. dom%sSubDomain(specel%mat_index)%dom == DM_SOLID_PML) &
             stop "init_geometric_properties_solidpml : material is not a PML material"
         density = dom%sSubDomain(specel%mat_index)%Ddensity
 
@@ -478,6 +480,21 @@ contains
         ! Note: do NOT apply (dirichlet) BC for PML
         !       if PML absorption would be turned off <=> solid domain without dirichlet BC (neumann only)
     end subroutine newmark_corrector_solidpml
+
+    function solidpml_Pspeed(dom, lnum, i, j, k) result(Pspeed)
+        type(domain_solidpml), intent (IN) :: dom
+        integer, intent(in) :: lnum, i, j, k
+        !
+        real(fpp) :: lbd, mu, rho, Pspeed
+        integer :: bnum, ee, mi
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        mi = dom%specel(bnum*VCHUNK+ee)%mat_index
+        lbd = dom%sSubDomain(mi)%DLambda
+        mu = dom%sSubDomain(mi)%DMu
+        rho = dom%sSubDomain(mi)%DDensity
+        Pspeed = sqrt((lbd+2.*mu)/rho)
+    end function solidpml_Pspeed
 end module dom_solidpml
 
 !! Local Variables:
