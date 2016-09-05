@@ -10,31 +10,29 @@ module m_calcul_forces_solidpml
     implicit none
 contains
 
-    subroutine calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla,Tdomain)
-        use sdomain
+    subroutine calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: bnum
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1),     intent(out) :: Fox,Foz,Foy
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in)  :: Depla
-        type (domain), intent (INOUT), target :: Tdomain
 
         select case(dom%ngll)
         case(4)
-            call calcul_forces_solidpml_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Tdomain)
+            call calcul_forces_solidpml_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case(5)
-            call calcul_forces_solidpml_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Tdomain)
+            call calcul_forces_solidpml_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (6)
-            call calcul_forces_solidpml_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Tdomain)
+            call calcul_forces_solidpml_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (7)
-            call calcul_forces_solidpml_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Tdomain)
+            call calcul_forces_solidpml_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (8)
-            call calcul_forces_solidpml_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Tdomain)
+            call calcul_forces_solidpml_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (9)
-            call calcul_forces_solidpml_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Tdomain)
+            call calcul_forces_solidpml_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case default
-            call calcul_forces_solidpml_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Tdomain)
+            call calcul_forces_solidpml_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         end select
     end subroutine calcul_forces_solidpml
 

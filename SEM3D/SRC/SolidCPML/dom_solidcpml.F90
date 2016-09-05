@@ -365,7 +365,7 @@ contains
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0
-        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla,Tdomain)
+        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
