@@ -121,7 +121,7 @@ subroutine save_trace (Tdomain, it)
     type (domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: it
 
-    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache, ind
+    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache, ind, mat
     real :: dum0, dum1
     real, dimension (:,:,:), allocatable :: Field
 
@@ -140,6 +140,16 @@ subroutine save_trace (Tdomain, it)
             call gather_elem_veloc(Tdomain, nr, Field, .false.)
             if (Tdomain%type_timeInteg == TIME_INTEG_RK4) &
                 Field = Tdomain%specel(nr)%Veloc
+
+            if (Tdomain%specel(nr)%type_DG==GALERKIN_HDG_RP) then
+                mat = Tdomain%specel(nr)%mat_index
+                call compute_InternalForces_HDG_Weak(Tdomain%specel(nr), &
+                    Tdomain%sSubDomain(mat)%hprimex, Tdomain%sSubDomain(mat)%hTprimez)
+                call get_Vhat_f2el(Tdomain,nr)
+                call Compute_Traces (Tdomain%specel(nr))
+                call inversion_massmat(Tdomain%specel(nr))
+                call postprocess_HDG(Tdomain%specel(nr),Tdomain%sReceiver(ir),Field)
+            endif
 
             do j = 0,ngllz-1
                 do i =0,ngllx -1
@@ -206,6 +216,8 @@ subroutine dump_trace (Tdomain)
     enddo
     return
 end subroutine dump_trace
+
+
 
 subroutine read_receiver_file(Tdomain)
     use sdomain
@@ -324,6 +336,107 @@ end subroutine build_vertex_vhat_for_receiver
 
 ! ###########################################################
 !>
+!! \brief This subroutine computes the postprocessed
+!<
+subroutine postprocess_HDG(Elem,rec,field)
+
+    use selement
+    implicit none
+
+    type(Element), intent(in) :: Elem
+    type(Receiver),intent(in) :: rec
+    real, dimension (:,:,:), allocatable, intent(inout) :: field
+    real, dimension (:,:,:), allocatable :: p
+    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
+    real,  dimension (:),     allocatable :: smbr, solu
+    integer :: i, j, k, l, r, s
+    integer :: ngx, ngz, nlin, nddl
+    real    :: res
+
+    ngx = Elem%ngllx ; ngz = Elem%ngllz ; nddl = (ngx+1)*(ngz+1)
+
+    ! Allocate fields for solving linear system
+    allocate(p(0:ngx-1,0:ngz-1,0:2))
+    allocate(smbr(0:nddl+1))
+    allocate(solu(0:nddl-1))
+    allocate(field(0:ngx,0:ngz,0:1))
+    p = Elem%Forces(:,:,0:2)
+
+    ! Allocate inverse Jacobian functions
+    allocate (xix (0:ngx,0:ngz)) ; allocate (xiz (0:ngx,0:ngz))
+    allocate (etax(0:ngx,0:ngz)) ; allocate (etaz(0:ngx,0:ngz))
+    allocate (Jac(0:ngx,0:ngz))
+    xix  = rec%InvGrad(:,:,0,0) ; xiz  = rec%InvGrad(:,:,1,0)
+    etax = rec%InvGrad(:,:,0,1) ; etaz = rec%InvGrad(:,:,1,1)
+    jac  = rec%JacobWhei(:,:)
+
+    ! Computation of the 2nd member of the linear system for post-processing
+    ! Here, (i,j) indexes corresponds to test function w_ij which gives line number of MatPostProc
+    ! indexes (k,l) correspond to the nodal value of the quantity p_11, p_22, p_12
+    ! Finally, indexes (r,s) correspond to the quadrature points.
+
+    ! Loop over test functions
+    do i = 0,ngx
+        do j = 0,ngz
+            nlin = Ind(i,j,0,ngx,ngz)
+            smbr = 0.
+            do k = 0,ngx-1
+                do l = 0,ngz-1
+                    ! Loop over quadrature points
+                    do r = 0,ngx
+                        res = res + (p(k,l,0)*xix(r,j) + p(k,l,2)*xiz(r,j)) &
+                                    *rec%ReinterpX(k,r)*rec%ReinterpZ(l,j)*jac(r,j)*rec%hprimex(i,r)
+                    enddo
+                    do s = 0,ngz
+                        res = res + (p(k,l,0)*etax(i,s) + p(k,l,2)*etaz(i,s)) &
+                                    *rec%ReinterpX(k,i)*rec%ReinterpZ(l,s)*jac(i,s)*rec%hprimez(j,s)
+                    enddo
+                enddo
+            enddo
+            smbr(nlin) = res
+
+            nlin = Ind(i,j,1,ngx,ngz)
+            smbr = 0.
+            do k = 0,ngx-1
+                do l = 0,ngz-1
+                    ! Loop over quadrature points
+                    do r = 0,ngx
+                        res = res + (p(k,l,1)*xiz(r,j) + p(k,l,2)*xix(r,j)) &
+                                    *rec%ReinterpX(k,r)*rec%ReinterpZ(l,j)*jac(r,j)*rec%hprimex(i,r)
+                    enddo
+                    do s = 0,ngz
+                        res = res + (p(k,l,1)*etaz(i,s) + p(k,l,2)*etax(i,s)) &
+                                    *rec%ReinterpX(k,i)*rec%ReinterpZ(l,s)*jac(i,s)*rec%hprimez(j,s)
+                    enddo
+                enddo
+            enddo
+            smbr(nlin) = res
+        enddo
+    enddo
+
+    ! Deux dernieres lignes du systeme :
+    smbr(nddl)  = sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,0))
+    smbr(nddl+1)= sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,1))
+
+    ! Solve rectangular System using least squares method
+    !!call blabla()
+
+    ! Reorganize result as a matrix
+    do i = 0,ngx
+        do j = 0,ngz
+            nlin = Ind(i,j,0,ngx,ngz)
+            field(i,j,0) = solu(nlin)
+            nlin = Ind(i,j,1,ngx,ngz)
+            field(i,j,1) = solu(nlin)
+        enddo
+    enddo
+    deallocate(p, smbr, solu, xix, xiz, etax, etaz, jac)
+
+end subroutine postprocess_HDG
+
+
+! ###########################################################
+!>
 !! \brief This subroutine builds the matrix to be inverted for the HDG post-process.
 !! It also builds the reinterpolation matrices used for evaluation of N-order polynomials
 !! on a N+1 polynomial Lagrange interpolation.
@@ -340,7 +453,7 @@ subroutine prepare_HDG_postprocess(Tdomain)
     real, dimension (:),   allocatable :: GLLcx, GLLwx, GLLpolx, GLLcz, GLLwz, GLLpolz
     real, dimension (:,:), allocatable :: coord
     real, dimension (0:1,0:1) :: LocInvGrad
-    real    :: xi, eta, Jac
+    real    :: xi, eta, Jac, res, outx, outz
     integer :: nrec, ngx, ngz, nr, i_aus, mat, i, j
 
     do nrec = 0,Tdomain%n_receivers-1
@@ -355,11 +468,13 @@ subroutine prepare_HDG_postprocess(Tdomain)
         ! when in post-traitment, it becomes (ngx,ngz).
         allocate(Tdomain%sReceiver(nrec)%InvGrad(0:ngx,0:ngz,0:1,0:1))
         allocate(Tdomain%sReceiver(nrec)%JacobWhei(0:ngx,0:ngz))
-        allocate(Tdomain%sReceiver(nrec)%ReinterpXi (0:ngx-1,0:ngx))
-        allocate(Tdomain%sReceiver(nrec)%ReinterpEta(0:ngz-1,0:ngz))
+        allocate(Tdomain%sReceiver(nrec)%ReinterpX(0:ngx-1,0:ngx))
+        allocate(Tdomain%sReceiver(nrec)%ReinterpZ(0:ngz-1,0:ngz))
         allocate(Tdomain%sReceiver(nrec)%hprimex(0:ngx,0:ngx))
         allocate(Tdomain%sReceiver(nrec)%hprimez(0:ngz,0:ngz))
         allocate(Tdomain%sReceiver(nrec)%MatPostProc(0:(ngx+ngz+1),0:(ngx+ngz-1)))
+        deallocate(Tdomain%sReceiver(nrec)%Interp_Coeff)
+        allocate(Tdomain%sReceiver(nrec)%Interp_Coeff(0:ngx,0:ngz))
 
         ! Computation of GLL positions, local wheights, and Lagrange polynomial derivatives
         allocate (GLLcx(0:ngx)); allocate(GLLwz(0:ngz)); allocate (GLLpolx(0:ngx))
@@ -403,9 +518,9 @@ subroutine prepare_HDG_postprocess(Tdomain)
                 coord(1,i) = Tdomain%Coord_Nodes(1,i_aus)
             end do
             do j = 0,ngz
-                eta =   Tdomain%sSubdomain(mat)%GLLcz (j)
+                eta =  GLLcz(j)
                 do i = 0,ngx
-                    xi = Tdomain%sSubdomain(mat)%GLLcx (i)
+                    xi = GLLcx(i)
                     ! Computation of the derivative matrix
                     call shape8_local2jacob(coord, xi, eta, LocInvGrad)
                     call invert2(LocInvGrad, Jac)
@@ -414,6 +529,33 @@ subroutine prepare_HDG_postprocess(Tdomain)
                 enddo
             enddo
         endif
+
+        ! Computation of reinterpolation matrices in order to express N-th order polynomials
+        ! on N+1-th order basis polynomials. Computes the L_i(\xi_j)
+        do i=0,ngx-1
+            do j=0,ngx
+                xi = GLLcx(j)
+                call pol_lagrange(ngx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,res)
+                Tdomain%sReceiver(nrec)%ReinterpX(i,j) = res
+            enddo
+        enddo
+        do i=0,ngz-1
+            do j=0,ngz
+                eta = GLLcz(j)
+                call pol_lagrange(ngz,Tdomain%sSubdomain(mat)%GLLcz,i,eta,res)
+                Tdomain%sReceiver(nrec)%ReinterpZ(i,j) = res
+            enddo
+        enddo
+
+        ! Coefficients d'interpolation pour le placement du capteur dans l'element
+        ! As usual for any receiver...
+        do j = 0,ngz
+            call pol_lagrange(ngz+1,GLLcz,j,Tdomain%sReceiver(nrec)%eta,outz)
+            do i = 0,ngx
+                call pol_lagrange(ngx+1,GLLcx,i,Tdomain%sReceiver(nrec)%xi,outx)
+                Tdomain%sReceiver(nrec)%Interp_Coeff(i,j) = outx*outz
+            enddo
+        enddo
 
         deallocate(GLLcx,GLLwx,GLLpolx,GLLcz,GLLwz,GLLpolz,coord)
 
@@ -507,6 +649,17 @@ subroutine build_MatPostProc(Tdomain,nrec,ngx,ngz)
                     rec%MatPostProc(nlin,ncol) = vz
                 enddo
             enddo
+        enddo
+    enddo
+
+    ! Building the two last lines of the matrix system
+    nlin = (ngx+1)*(ngz+1)
+    do k = 0,ngx
+        do l = 0,ngz
+            ncol = Ind(k,l,0,ngx,ngz)
+            rec%MatPostProc(nlin,ncol) = rec%JacobWhei(k,l)
+            ncol = Ind(k,l,1,ngx,ngz)
+            rec%MatPostProc(nlin,ncol) = rec%JacobWhei(k,l)
         enddo
     enddo
 
