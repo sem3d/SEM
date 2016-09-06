@@ -1254,7 +1254,7 @@ contains
         logical :: nl_flag
         integer :: ierr
         integer :: count_press,count_epsvol,count_enp,count_ens
-        integer :: count_epsdev,count_epsdevpl,count_sigdev
+        integer,dimension(0:5) :: count_epsdev,count_epsdevpl,count_sigdev
 
         nl_flag=Tdomain%nl_flag
 
@@ -1275,9 +1275,9 @@ contains
         count_epsvol = 0
         count_enp = 0
         count_ens = 0
-        count_epsdev = 0
-        count_epsdevpl = 0
-        count_sigdev = 0
+        count_epsdev(0:5) = 0
+        count_epsdevpl(0:5) = 0
+        count_sigdev(0:5) = 0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
@@ -1340,9 +1340,7 @@ contains
             ! sortie integrale par sub-element
             call domain_gllw(Tdomain, domain_type, GLLw)
             if (out_variables(OUT_PRESSION) == 1) then 
-                write(*,*) "count_press in",count_press
                 call integrate_on_element(ngll,jac,GLLw,out_fields%press,count_press,Tdomain%n_hexa_local,fieldP)
-                write(*,*) "count_press out",count_press
             endif
             if (out_variables(OUT_ENERGYP) == 1) then 
                 call integrate_on_element(ngll,jac,GLLw,out_fields%P_energy,count_enp,Tdomain%n_hexa_local,P_energy)
@@ -1354,28 +1352,34 @@ contains
                 call integrate_on_element(ngll,jac,GLLw,out_fields%eps_vol,count_epsvol,Tdomain%n_hexa_local,eps_vol)
             endif
             if (out_variables(OUT_EPS_DEV) == 1) then
-                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(0,:),count_epsdev,Tdomain%n_hexa_local,eps_dev(:,:,:,0))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(1,:),count_epsdev,Tdomain%n_hexa_local,eps_dev(:,:,:,1))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(2,:),count_epsdev,Tdomain%n_hexa_local,eps_dev(:,:,:,2))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(3,:),count_epsdev,Tdomain%n_hexa_local,eps_dev(:,:,:,3))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(4,:),count_epsdev,Tdomain%n_hexa_local,eps_dev(:,:,:,4))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(5,:),count_epsdev,Tdomain%n_hexa_local,eps_dev(:,:,:,5)) 
+                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(0,:),count_epsdev(0),Tdomain%n_hexa_local,eps_dev(:,:,:,0))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(1,:),count_epsdev(1),Tdomain%n_hexa_local,eps_dev(:,:,:,1))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(2,:),count_epsdev(2),Tdomain%n_hexa_local,eps_dev(:,:,:,2))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(3,:),count_epsdev(3),Tdomain%n_hexa_local,eps_dev(:,:,:,3))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(4,:),count_epsdev(4),Tdomain%n_hexa_local,eps_dev(:,:,:,4))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev(5,:),count_epsdev(5),Tdomain%n_hexa_local,eps_dev(:,:,:,5)) 
                 if (allocated(eps_dev_pl)) then
-                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(0,:),count_epsdevpl,Tdomain%n_hexa_local,eps_dev_pl(:,:,:,0))
-                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(1,:),count_epsdevpl,Tdomain%n_hexa_local,eps_dev_pl(:,:,:,1))
-                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(2,:),count_epsdevpl,Tdomain%n_hexa_local,eps_dev_pl(:,:,:,2))
-                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(3,:),count_epsdevpl,Tdomain%n_hexa_local,eps_dev_pl(:,:,:,3))
-                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(4,:),count_epsdevpl,Tdomain%n_hexa_local,eps_dev_pl(:,:,:,4))
-                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(5,:),count_epsdevpl,Tdomain%n_hexa_local,eps_dev_pl(:,:,:,5))
+                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(0,:),count_epsdevpl(0),&
+                        Tdomain%n_hexa_local,eps_dev_pl(:,:,:,0))
+                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(1,:),count_epsdevpl(1),&
+                        Tdomain%n_hexa_local,eps_dev_pl(:,:,:,1))
+                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(2,:),count_epsdevpl(2),&
+                        Tdomain%n_hexa_local,eps_dev_pl(:,:,:,2))
+                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(3,:),count_epsdevpl(3),&
+                        Tdomain%n_hexa_local,eps_dev_pl(:,:,:,3))
+                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(4,:),count_epsdevpl(4),&
+                        Tdomain%n_hexa_local,eps_dev_pl(:,:,:,4))
+                    call integrate_on_element(ngll,jac,GLLw,out_fields%eps_dev_pl(5,:),count_epsdevpl(5),&
+                        Tdomain%n_hexa_local,eps_dev_pl(:,:,:,5))
                 endif
             endif
             if (out_variables(OUT_STRESS_DEV) == 1) then 
-                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(0,:),count_sigdev,Tdomain%n_hexa_local,sig_dev(:,:,:,0))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(1,:),count_sigdev,Tdomain%n_hexa_local,sig_dev(:,:,:,1))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(2,:),count_sigdev,Tdomain%n_hexa_local,sig_dev(:,:,:,2))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(3,:),count_sigdev,Tdomain%n_hexa_local,sig_dev(:,:,:,3))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(4,:),count_sigdev,Tdomain%n_hexa_local,sig_dev(:,:,:,4))
-                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(5,:),count_sigdev,Tdomain%n_hexa_local,sig_dev(:,:,:,5))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(0,:),count_sigdev(0),Tdomain%n_hexa_local,sig_dev(:,:,:,0))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(1,:),count_sigdev(1),Tdomain%n_hexa_local,sig_dev(:,:,:,1))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(2,:),count_sigdev(2),Tdomain%n_hexa_local,sig_dev(:,:,:,2))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(3,:),count_sigdev(3),Tdomain%n_hexa_local,sig_dev(:,:,:,3))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(4,:),count_sigdev(4),Tdomain%n_hexa_local,sig_dev(:,:,:,4))
+                call integrate_on_element(ngll,jac,GLLw,out_fields%sig_dev(5,:),count_sigdev(5),Tdomain%n_hexa_local,sig_dev(:,:,:,5))
             endif
             if(allocated(jac)) deallocate(jac)
             if(allocated(GLLw)) deallocate(GLLw)
@@ -1414,7 +1418,6 @@ contains
         endif
         call grp_write_fields(Tdomain, fid, nnodes, nsubelements, &
             out_variables, out_fields, nnodes_tot, nelements_tot)
-
         if (Tdomain%output_rank==0) then
             call h5fclose_f(fid, hdferr)
             call write_xdmf(Tdomain, group, isort, nnodes_tot, out_variables)
@@ -1468,6 +1471,7 @@ contains
 
         nn = nnodes
         ne = Tdomain%n_hexa
+        write(*,*) "NE",ne
         if (ne==0) then
             return
         end if
@@ -1574,37 +1578,37 @@ contains
                 if (Tdomain%nl_flag==1) then
                     ! EPS_DEV_PL_XX
                     write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xx" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',ne,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xx'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PL_XX
                     write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_yy" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',ne,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_yy'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PL_ZZ
                     write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_zz" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',ne,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_zz'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PL_XY
                     write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xy" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',ne,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xy'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PLXZ
                     write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xz" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',ne,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xz'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PL_YZ
                     write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_yz" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',ne,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_yz'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'

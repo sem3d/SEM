@@ -564,10 +564,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
-            write(*,*) "------ DEBUG SNAPSHOTS: kick-off -----"
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
-            write(*,*) "------ DEBUG SNAPSHOTS: OK -----"
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
