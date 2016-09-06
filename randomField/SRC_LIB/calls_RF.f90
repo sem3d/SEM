@@ -59,8 +59,8 @@ contains
                            IPT%global)
 
 
-        if(IPT%rang == 0) write(*,*) "  IPT%loc_Comm = ", IPT%loc_Comm
-        if(IPT%rang == 0) write(*,*) "  IPT%gen_Comm = ", IPT%gen_Comm
+        !if(IPT%rang == 0) write(*,*) "  IPT%loc_Comm = ", IPT%loc_Comm
+        !if(IPT%rang == 0) write(*,*) "  IPT%gen_Comm = ", IPT%gen_Comm
 
 
         call wLog("-----LOCALIZATION---------------")
@@ -136,6 +136,7 @@ contains
         integer               :: fieldNumber
         character(len=buf_RF) :: BBoxPath, XMFPath, MONO_FileName
         character(len=buf_RF), dimension(:), allocatable :: MONO_FileNames
+        character(len=buf_RF) :: HDF5_RePath_out
         double precision, dimension(IPT%nTotalFields) :: gen_times, temp_gen_times
         integer :: i, d, countFields
         integer :: nSamplesInProc
@@ -218,7 +219,6 @@ contains
                 end if
             end if
         end if
-
 
         !call MPI_BARRIER(IPT%comm, code)
         build_times(2) = MPI_Wtime() !Organizing Localization
@@ -313,7 +313,8 @@ contains
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                               IPT%xStep, IPT%nDim, &
                                                               randField_Group(:,1), MONO_FileName, &
-                                                              IPT%outputFolder)
+                                                              IPT%outputFolder, &
+                                                              HDF5_RePath_out)
             end if
 
             !Correcting Borders (From internal localization)
@@ -437,12 +438,30 @@ contains
         end if
 
         if(IPT%write_intermediate_files) then
-            MONO_FileName = string_join_many("TRANS_LOC_L1_P", numb2String(IPT%rang), "-GROUP",numb2String(IPT%gen_group))
+            MONO_FileName = string_join_many("RF_",numb2String(IPT%gen_group))
             if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                           IPT%xStep, IPT%nDim, &
                                                           randField_Group(:,1), MONO_FileName, &
                                                           IPT%outputFolder)
+
+
+!         HDF5_FileName  = trim(MONO_FileName)//".h5"
+!        HDF5_Folder    = string_join(IPT%outputFolder,"/h5")
+!        HDF5_RePath    = string_join(IPT%outputFolder,"/h5","/"//trim(MONO_FileName)//".h5")
+!        XMF_Folder     = string_join(IPT%outputFolder,"/h5","/xmf")
+!        H5_TO_XMF_Path = "../h5"
+
+        write(*,*) "IPT%gen_groupMax = ", IPT%gen_groupMax
+
+        if(IPT%rang == 0) call write_XMF_Elements_per_proc(trim(string_join(MONO_FileName,".h5")), xMin_Group, xMax_Group, IPT%xStep, &
+                                     IPT%nDim, trim(MONO_FileName), trim(string_join(IPT%outputFolder,"/xmf")), &
+                                     "../h5", "RF",IPT%gen_groupMax)
         end if
+
+
+!        call write_XMF_Elements_per_proc(HDF5_FileName, xMin, xMax, xStep, &
+!                                          nDim, fileName, XMF_Folder, &
+!                                          H5_TO_XMF_PATH, dsetname, nGroups)
 
 
         if(IPT%rang == 0) call write_stat_input("./stat_input", BBoxPath)

@@ -280,10 +280,14 @@ contains
     end subroutine init_domains
 
     subroutine init_material_properties(Tdomain, specel, mat)
-        type (domain), intent (INOUT), target :: Tdomain
-        type (element), intent(inout) :: specel
-        type (subdomain), intent(in) :: mat
-        !
+
+        type (domain), intent (INOUT), target   :: Tdomain
+        type (element), intent(inout)           :: specel
+        type (subdomain), intent(in)            :: mat
+        logical                                 :: nl_flag,nl_law
+            
+        nl_flag = Tdomain%nl_flag
+        nl_law  = mat%nl_law
 
         ! integration de la prise en compte du gradient de proprietes
 
@@ -293,7 +297,7 @@ contains
                 select case (specel%domain)
                     case (DM_SOLID)
                         call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+                            mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
@@ -315,8 +319,13 @@ contains
                 !    on copie toujours le materiau de base
                 select case (specel%domain)
                     case (DM_SOLID)
-                        call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,mat)
+                        if (Tdomain%nl_flag==1.and.mat%material_type=='N') then
+                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+                        else
+                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+                        end if
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
@@ -331,6 +340,31 @@ contains
                 end select
             case( MATERIAL_RANDOM )
                 !Don`t do anything, the basic properties were initialized by file
+!                !write (*,*) "--> MATERIAL_RAND "
+!                if(materialIsConstant(Tdomain, mat)) then
+!                    !write (*,*) "--> but MATERIAL_CONSTANT "
+!                    select case (specel%domain)
+!                        case (DM_SOLID)
+!                            if (Tdomain%nl_flag==1.and.mat%nl_law==NLLMC) then
+!                                call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+!                                    mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+!                            else
+!                                call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+!                                     mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+!                            end if
+!                        case (DM_FLUID)
+!                            call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
+!                                 mat%DDensity,mat%DLambda)
+!                        case (DM_SOLID_PML)
+!                            call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
+!                                 mat%DDensity,mat%DLambda,mat%DMu)
+!                        case (DM_FLUID_PML)
+!                            call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
+!                                 mat%DDensity,mat%DLambda)
+!                        case default
+!                            stop "unknown domain"
+!                    end select
+!                end if
         end select
     end subroutine init_material_properties
 
@@ -377,6 +411,36 @@ contains
         enddo
         deallocate(GLLw)
     end subroutine init_local_mass
+
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    function materialIsConstant(Tdomain, mat) result(authorization)
+!
+!        !INPUTS
+!        type (domain), intent (in), target :: Tdomain
+!        type (subdomain), intent(in) :: mat
+!
+!        !OUTPUT
+!        logical :: authorization
+!
+!        !LOCAL
+!        integer :: assocMat
+!
+!        assocMat = mat%assocMat
+!        authorization = .false.
+!
+!        if(Tdomain%sSubDomain(assocMat)%material_type == "S" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "N" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "P" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "F" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "L" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "T") then
+!            authorization = .true.
+!        end if
+!
+!    end function materialIsConstant
 
 end module mdefinitions
 !----------------------------------------------------------------------------------

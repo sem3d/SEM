@@ -14,7 +14,22 @@
 module ssubdomains
     use constants
     implicit none
+    !
+    type LMC_properties
 
+        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
+        real :: sigma_yld   ! first yielding limit
+        real :: C_kin       ! variable for kinematic hardening
+        real :: kapa_kin    ! variable for kinematic hardening
+        real :: b_iso       ! variable for isotropic hardening
+        real :: Rinf_iso    ! variable for isotropic hardening
+
+    end type LMC_properties
+    !
+    type nl_properties
+        type(LMC_properties) :: LMC_prop
+    end type nl_properties
+    !
     type Subdomain
         integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML
         integer          :: material_definition
@@ -26,13 +41,18 @@ module ssubdomains
         real(fpp) :: Pspeed, Sspeed, Ddensity
         real(fpp) :: DLambda, DMu
         real(fpp) :: DKappa
-
+        real(kind=8) :: dt
         !! Definition materiau solide anisotrope
         ! TODO
+        
+        !! NONLINEAR LEMAITRE-CHABOCHE
+        integer   :: nl_law
+        real(fpp) :: Dsyld,DCkin,Dkkin,Drinf,Dbiso
 
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression
-
+        !! NONLINEAR
+        real(fpp) :: syld,ckin,kkin,biso,rinf
         !! PML
         real(fpp), dimension(0:2) :: pml_pos, pml_width
         integer :: npow
@@ -41,6 +61,8 @@ module ssubdomains
         !! Boundaries for material initialisation from file
         real(fpp), dimension(0:2) :: MinBound, MaxBound, MinBound_Loc, MaxBound_Loc
         character(len=1024), dimension(0:2) :: propFilePath
+        integer :: lambdaSwitch = -1
+        type(nl_properties) :: nl_prop
 
     end type Subdomain
 

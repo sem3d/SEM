@@ -49,6 +49,7 @@ module sem_c_config
 
        !! Output Variables
        integer(C_INT), dimension(9) :: out_variables
+       integer(C_INT) :: nl_flag
 
        !! Protection reprise
        integer(C_INT) :: prorep

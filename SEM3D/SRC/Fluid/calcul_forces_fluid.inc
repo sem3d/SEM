@@ -42,7 +42,7 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
     integer :: i,j,k,l,ei,ee
     real(fpp) :: sx,sy,sz,t4
     real(fpp) :: xt1,xt6,xt10
-    real(fpp), parameter :: zero = 0d0
+    !real(fpp), parameter :: zero = 0d0
     real(fpp) :: xdens
 #ifdef USE_LOCAL_MEM
     real(fpp) :: t41,t11,t51,t12,t61,t13,F1

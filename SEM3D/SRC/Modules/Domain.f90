@@ -70,10 +70,13 @@ module sdomain
        type(comm)     , dimension (:), allocatable :: sComm
 
        logical :: aniso
-
+       logical :: any_Random, any_PropOnFile
+       logical :: nl_flag
+       integer :: nRandom
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
+       integer :: n_hexa_local !< Nombre de subelements hexa dans le proc(division aux GLLs)
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
        logical :: any_sdom, any_fdom, any_spml, any_fpml
 
@@ -88,6 +91,7 @@ module sdomain
        character (len=1)  :: Super_object_type
 
        integer, dimension(0:8) :: out_variables
+       integer :: out_energy
        integer                 :: nReqOut ! number of required outputs
        integer :: earthchunk_isInit
        character (len=MAX_FILE_SIZE) :: earthchunk_file

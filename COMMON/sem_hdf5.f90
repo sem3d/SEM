@@ -284,7 +284,6 @@ contains
         if (hdferr .ne. 0) stop "read_dset_1d_int : h5sclose KO"
     end subroutine read_dset_1d_int
 
-
     subroutine read_dset_2d_real(parent, name, data, ibase)
         use HDF5
         character(len=*), INTENT(IN) :: name
@@ -391,12 +390,14 @@ contains
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
+        integer :: value_tmp
 
+        value_tmp = value
         dims(1) = 1
         !write(*,*) "save_attr_int: ", attr, value
         call h5screate_f(H5S_SCALAR_F, space_id, hdferr)
         call h5acreate_f(dset, attr, H5T_STD_I32LE, space_id, attr_id, hdferr, H5P_DEFAULT_F)
-        call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, value, dims, hdferr)
+        call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, value_tmp, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
     end subroutine write_attr_int

@@ -18,7 +18,7 @@ module mCapteur
     use mpi
     use sem_hdf5
     use sem_c_config
-    use constants, only : NCAPT_CACHE, M_1_3, DM_SOLID, DM_FLUID, DM_SOLID_PML, DM_FLUID_PML
+    use constants
     use mshape8
     use mshape27
     implicit none
@@ -26,7 +26,7 @@ module mCapteur
     public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs
     private ::  flushCapteur
     ! start modifs
-    integer, parameter :: CAPT_DIM=26
+    integer, parameter :: CAPT_DIM=32
     ! end modifs
     type :: tCapteur
         type(tCapteur),pointer :: suivant ! pour passer au capteur suivant
@@ -50,7 +50,6 @@ module mCapteur
 
     logical :: traces_h5_created
 contains
-
 
     subroutine create_capteurs(Tdomain)
         implicit none
@@ -400,8 +399,10 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real, dimension(:), allocatable :: GLLc
+        logical :: nl_flag
 
         ! Verification : le capteur est il gere par le proc. ?
 
@@ -428,24 +429,28 @@ contains
 
         allocate(grandeur(0:Tdomain%nReqOut-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
-
+        
         out_variables(0:8) = Tdomain%out_variables(0:8)
-
+        nl_flag = Tdomain%nl_flag
         offset = 0
         do i = 0,size(out_variables)-2
             if (out_variables(i) == 1) then
                 offset(i+1) = offset(i) + OUT_VAR_DIMS_3D(i)
+                if (nl_flag.and.i==OUT_EPS_DEV) then
+                    offset(i+1)=offset(i+1)+OUT_VAR_DIMS_3D(i)
+                end if
             else
                 offset(i+1) = offset(i)
             end if
         end do
 
         ! On recupere les variables de l'element associe au capteur.
-
+        
         select case(Tdomain%specel(n_el)%domain)
             case (DM_SOLID)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
-              fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+              fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
+              nl_flag, eps_dev_pl)
             case (DM_FLUID)
               call get_fluid_dom_var(Tdomain, Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -506,6 +511,10 @@ contains
                         grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
                         + (/weight*eps_dev(i,j,k,0), weight*eps_dev(i,j,k,1), weight*eps_dev(i,j,k,2), &
                             weight*eps_dev(i,j,k,3), weight*eps_dev(i,j,k,4), weight*eps_dev(i,j,k,5)/)
+                        if (nl_flag) then
+                            ioff=ioff+6
+                            grandeur (ioff:ioff+5) = grandeur(ioff:ioff+5)+weight*eps_dev_pl(i,j,k,:)
+                        end if
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
@@ -535,6 +544,7 @@ contains
         if(allocated(S_energy)) deallocate(S_energy)
         if(allocated(eps_vol))  deallocate(eps_vol)
         if(allocated(eps_dev))  deallocate(eps_dev)
+        if(allocated(eps_dev_pl))  deallocate(eps_dev_pl)
         if(allocated(sig_dev))  deallocate(sig_dev)
         if(allocated(grandeur)) deallocate(grandeur)
         deallocate(outx)

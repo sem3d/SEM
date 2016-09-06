@@ -4,7 +4,7 @@
 !!
 !>
 !!\file allocate_domain.f90
-!!\brief G�re l'allocation des domaines.
+!!\brief Gére l'allocation des domaines.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -59,6 +59,9 @@ subroutine allocate_domain (Tdomain)
     do n = 0,Tdomain%n_elem-1
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         allocate(Tdomain%specel(n)%MassMat(0:ngll-1, 0:ngll-1, 0:ngll-1))
+        allocate(Tdomain%specel(n)%En_S_avg(0:ngll-2, 0:ngll-2, 0:ngll-2)) 
+        allocate(Tdomain%specel(n)%En_P_avg(0:ngll-2, 0:ngll-2, 0:ngll-2))
+
     enddo
 end subroutine allocate_domain
 
@@ -74,4 +77,3 @@ end module sdomain_alloc
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :

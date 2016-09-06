@@ -7,7 +7,6 @@
 !!\brief Contient la subroutine read_restart().
 !!
 !! Gère la reprise de Sem3d
-
 subroutine read_EpsilonVol(Tdomain, elem_id)
     use sdomain
     use HDF5
@@ -178,6 +177,205 @@ subroutine read_Stress(Tdomain, elem_id)
     deallocate(stress)
 #endif
 end subroutine read_Stress
+!
+subroutine read_Stress_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: stress_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Stress_nl", stress_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%stress_(i,j,k,0,bnum,ee) = stress_nl(idx+0)
+                    Tdomain%sdom%stress_(i,j,k,1,bnum,ee) = stress_nl(idx+1)
+                    Tdomain%sdom%stress_(i,j,k,2,bnum,ee) = stress_nl(idx+2)
+                    idx = idx + 3
+                    Tdomain%sdom%stress_(i,j,k,0,bnum,ee) = stress_nl(idx+0)
+                    Tdomain%sdom%stress_(i,j,k,1,bnum,ee) = stress_nl(idx+1)
+                    Tdomain%sdom%stress_(i,j,k,2,bnum,ee) = stress_nl(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(stress_nl)
+#endif
+end subroutine read_Stress_nl
+!
+subroutine read_Strain_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: strain_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Strain_nl", strain_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%strain_(i,j,k,0,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%strain_(i,j,k,1,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%strain_(i,j,k,2,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3
+                    Tdomain%sdom%strain_(i,j,k,0,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%strain_(i,j,k,1,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%strain_(i,j,k,2,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(strain_nl)
+#endif
+end subroutine read_Strain_nl
+!
+subroutine read_Pstrain_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: strain_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Pstrain_nl", strain_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%plstrain_(i,j,k,0,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%plstrain_(i,j,k,1,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%plstrain_(i,j,k,2,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3
+                    Tdomain%sdom%plstrain_(i,j,k,0,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%plstrain_(i,j,k,1,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%plstrain_(i,j,k,2,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(strain_nl)
+#endif
+end subroutine read_Pstrain_nl
+!
+subroutine read_Center_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: center_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Center_nl", center_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%center_(i,j,k,0,bnum,ee) = center_nl(idx+0)
+                    Tdomain%sdom%center_(i,j,k,1,bnum,ee) = center_nl(idx+1)
+                    Tdomain%sdom%center_(i,j,k,2,bnum,ee) = center_nl(idx+2)
+                    idx = idx + 3
+                    Tdomain%sdom%center_(i,j,k,0,bnum,ee) = center_nl(idx+0)
+                    Tdomain%sdom%center_(i,j,k,1,bnum,ee) = center_nl(idx+1)
+                    Tdomain%sdom%center_(i,j,k,2,bnum,ee) = center_nl(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(center_nl)
+#endif
+end subroutine read_Center_nl
+!
+subroutine read_Radius_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: radius_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Radius_nl", radius_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%radius_(i,j,k,bnum,ee) = radius_nl(idx+0)
+                    idx = idx + 1 
+                end do
+            end do
+        end do
+    end do
+    deallocate(radius_nl)
+#endif
+end subroutine read_Radius_nl
 
 subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     use sdomain
@@ -211,7 +409,6 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     end do
     deallocate(veloc)
 end subroutine read_Veloc_Fluid_PML
-
 
 subroutine read_restart (Tdomain,rg, isort)
     use HDF5
@@ -279,6 +476,12 @@ subroutine read_restart (Tdomain,rg, isort)
     call read_EpsilonVol(Tdomain, elem_id)
     call read_EpsilonDev(Tdomain, elem_id)
     call read_Stress(Tdomain, elem_id)
+    call read_Stress_nl(Tdomain, elem_id)
+    call read_Strain_nl(Tdomain, elem_id)
+    call read_Pstrain_nl(Tdomain, elem_id)
+    call read_Center_nl(Tdomain, elem_id)
+    call read_Radius_nl(Tdomain, elem_id)
+    
     call read_Veloc_Fluid_PML(Tdomain, elem_id)
     call h5gclose_f(elem_id, hdferr)
     call h5fclose_f(fid, hdferr)
