@@ -234,6 +234,7 @@ contains
         ee = mod(lnum,VCHUNK)
         
         nl_law = dom%nl_law==NLLMC
+        
         if (nl_flag.and.nl_law) then
             flag_gradU = (out_variables(OUT_ENERGYP)     + &
                           out_variables(OUT_ENERGYS)     + &
@@ -263,7 +264,6 @@ contains
                 enddo
             enddo
         end if
-
 
         ! Then, get other variables.
 
@@ -337,7 +337,6 @@ contains
                             P_energy(i,j,k) = .5 * xlambda2mu * eps_vol(i,j,k)**2
                         end if
                     end if
-
                     if (out_variables(OUT_ENERGYS) == 1) then
                         if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         S_energy(i,j,k) = 0.
