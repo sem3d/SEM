@@ -94,7 +94,7 @@ contains
 
         total_P_energy_sum = 0.0
         total_S_energy_sum = 0.0
-
+        write(*,*) "DIM",dim2,dim2_el
         if (Tdomain%output_rank==0) then
             allocate(displs(0:Tdomain%nb_output_procs-1))
             allocate(displs_el(0:Tdomain%nb_output_procs-1))
@@ -189,7 +189,7 @@ contains
             call MPI_Gatherv(outputs%eps_dev(0,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "eps_dev_xx", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -198,7 +198,7 @@ contains
             call MPI_Gatherv(outputs%eps_dev(1,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "eps_dev_yy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -207,7 +207,7 @@ contains
             call MPI_Gatherv(outputs%eps_dev(2,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "eps_dev_zz", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -216,7 +216,7 @@ contains
             call MPI_Gatherv(outputs%eps_dev(3,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "eps_dev_xy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -225,7 +225,7 @@ contains
             call MPI_Gatherv(outputs%eps_dev(4,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "eps_dev_xz", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -234,7 +234,7 @@ contains
             call MPI_Gatherv(outputs%eps_dev(5,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "eps_dev_yz", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -245,7 +245,7 @@ contains
                 call MPI_Gatherv(outputs%eps_dev_pl(0,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_nodes
+                    dims(1) = ntot_elements
                     call create_dset(parent_id, "eps_dev_pl_xx", H5T_IEEE_F32LE, dims(1), dset_id)
                     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
@@ -254,7 +254,7 @@ contains
                 call MPI_Gatherv(outputs%eps_dev_pl(1,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_nodes
+                    dims(1) = ntot_elements
                     call create_dset(parent_id, "eps_dev_pl_yy", H5T_IEEE_F32LE, dims(1), dset_id)
                     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
@@ -263,7 +263,7 @@ contains
                 call MPI_Gatherv(outputs%eps_dev_pl(2,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_nodes
+                    dims(1) = ntot_elements
                     call create_dset(parent_id, "eps_dev_pl_zz", H5T_IEEE_F32LE, dims(1), dset_id)
                     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
@@ -272,7 +272,7 @@ contains
                 call MPI_Gatherv(outputs%eps_dev_pl(3,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_nodes
+                    dims(1) = ntot_elements
                     call create_dset(parent_id, "eps_dev_pl_xy", H5T_IEEE_F32LE, dims(1), dset_id)
                     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
@@ -281,7 +281,7 @@ contains
                 call MPI_Gatherv(outputs%eps_dev_pl(4,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_nodes
+                    dims(1) = ntot_elements
                     call create_dset(parent_id, "eps_dev_pl_xz", H5T_IEEE_F32LE, dims(1), dset_id)
                     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
@@ -290,7 +290,7 @@ contains
                 call MPI_Gatherv(outputs%eps_dev_pl(5,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_nodes
+                    dims(1) = ntot_elements
                     call create_dset(parent_id, "eps_dev_pl_yz", H5T_IEEE_F32LE, dims(1), dset_id)
                     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
@@ -303,7 +303,7 @@ contains
             call MPI_Gatherv(outputs%sig_dev(0,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "sig_dev_xx", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -312,7 +312,7 @@ contains
             call MPI_Gatherv(outputs%sig_dev(1,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "sig_dev_yy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -321,7 +321,7 @@ contains
             call MPI_Gatherv(outputs%sig_dev(2,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "sig_dev_zz", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -330,7 +330,7 @@ contains
             call MPI_Gatherv(outputs%sig_dev(3,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "sig_dev_xy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -339,7 +339,7 @@ contains
             call MPI_Gatherv(outputs%sig_dev(4,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "sig_dev_xz", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -348,7 +348,7 @@ contains
             call MPI_Gatherv(outputs%sig_dev(5,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_nodes
+                dims(1) = ntot_elements
                 call create_dset(parent_id, "sig_dev_yz", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
@@ -1384,6 +1384,10 @@ contains
             if(allocated(jac)) deallocate(jac)
             if(allocated(GLLw)) deallocate(GLLw)
         enddo
+        write(*,*) "out_fields_eps_dev_size",shape(out_fields%eps_dev)
+        write(*,*) "out_fields_eps_dev",out_fields%eps_dev
+        write(*,*) "counter",count_epsdev
+
         !if(Tdomain%rank == 0) write(*,*) "nData = ", nData
         !Averaging on coincident GLLs
         do ind = 0,nnodes-1
@@ -1577,37 +1581,37 @@ contains
                 write(61,"(a)") '</Attribute>'
                 if (Tdomain%nl_flag==1) then
                     ! EPS_DEV_PL_XX
-                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xx" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+                    write(61,"(a)") '<Attribute Name="eps_dev_pl_xx" Center="Cell" AttributeType="Scalar">'
                     write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xx'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PL_XX
-                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_yy" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+                    write(61,"(a)") '<Attribute Name="eps_dev_pl_yy" Center="Cell" AttributeType="Scalar">'
                     write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_yy'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PL_ZZ
-                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_zz" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+                    write(61,"(a)") '<Attribute Name="eps_dev_pl_zz" Center="Cell" AttributeType="Scalar">'
                     write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_zz'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PL_XY
-                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xy" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+                    write(61,"(a)") '<Attribute Name="eps_dev_pl_xy" Center="Cell" AttributeType="Scalar">'
                     write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xy'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
-                    ! EPS_DEV_PLXZ
-                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xz" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+                    ! EPS_DEV_PL_XZ
+                    write(61,"(a)") '<Attribute Name="eps_dev_pl_xz" Center="Cell" AttributeType="Scalar">'
                     write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xz'
                     write(61,"(a)") '</DataItem>'
                     write(61,"(a)") '</Attribute>'
                     ! EPS_DEV_PL_YZ
-                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_yz" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+                    write(61,"(a)") '<Attribute Name="eps_dev_pl_yz" Center="Cell" AttributeType="Scalar">'
                     write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_yz'
                     write(61,"(a)") '</DataItem>'
