@@ -90,6 +90,7 @@ set(SEM_SRC
 
 set(SEM_SRC_C
   ${SEMCOMMON}/read_input.c
+  ${SEMCOMMON}/read_material.c
   ${SEMCOMMON}/file_scan.c
   ${SEMCOMMON}/sem_input.c
   ${SEMCOMMON}/tremain_c.c
