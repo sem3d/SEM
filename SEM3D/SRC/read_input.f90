@@ -162,6 +162,7 @@ contains
                 Tdomain%sSubDomain(i)%Qmu
             Tdomain%sSubDomain(i)%NGLL = NGLL
             Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)
+            Tdomain%sSubdomain(i)%material_definition = MATERIAL_CONSTANT
             Tdomain%sSubDomain(i)%deftype = MATDEF_VP_VS_RHO
 
             ! call Lame_coefficients (Tdomain%sSubDomain(i)) ! XXX Make sure its done in definearrays
