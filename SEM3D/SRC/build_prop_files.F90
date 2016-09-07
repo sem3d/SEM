@@ -6,7 +6,6 @@ module build_prop_files
     use scomm
     use scommutils
     use define_random
-    use interpolation
 
     implicit none
 #include "index.h"

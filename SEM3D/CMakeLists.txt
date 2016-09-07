@@ -25,7 +25,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/partial_deriv.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/Capteur.f90
-    ${PRJ}/SRC/interpolation.f90 
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/SourcePosition.f90

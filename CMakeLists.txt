@@ -150,9 +150,7 @@ set(SEM_EXTRA_LIBS semcommon ${SEM_EXTRA_LIBS})
 #RANDOM FIELD LIBRARY
 option(OPT_RF "RF" OFF)
 if (OPT_RF)
-#  add_definitions(-DUSE_RF)
   add_subdirectory(randomField)
-
 endif (OPT_RF)
 
 add_subdirectory(COMMON/netlib)

@@ -76,9 +76,6 @@ contains
         use sdomain
         use semdatafiles
         use mpi
-#ifdef USE_RF
-        use build_prop_files
-#endif
         implicit none
 
         type(domain), intent(inout)   :: Tdomain
