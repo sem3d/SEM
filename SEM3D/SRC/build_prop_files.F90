@@ -88,6 +88,8 @@ contains
         integer(HID_T) :: file_id, grp_id
         integer(HSIZE_T), dimension(:), allocatable :: dims
         logical :: subgrp
+
+        if (.not. mat%present) return
         call init_hdf5()
         call h5fopen_f(trim(pf%propFilePath), H5F_ACC_RDONLY_F, file_id, hdferr) !Open File
         if(hdferr /= 0) then
@@ -119,6 +121,7 @@ contains
     
     subroutine cleanup_prop_file(mat)
         type(subdomain) :: mat
+        if (.not. mat%present) return
         deallocate(mat%pf(1)%var)
         deallocate(mat%pf(2)%var)
         deallocate(mat%pf(3)%var)

@@ -29,6 +29,7 @@ module ssubdomains
         integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML
         integer          :: material_definition
         integer          :: deftype
+        logical          :: present ! true if an element with this mat exists on this cpu
         !! Numerotation gll
         integer :: NGLL
 
