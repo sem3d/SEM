@@ -38,29 +38,65 @@ contains
         use sem_hdf5
         type(subdomain), intent(inout) :: mat
 
+        select case(mat%deftype)
+        case(MATDEF_VP_VS_RHO)
+            mat%pf(1)%propName = "Vp"
+            mat%pf(2)%propName = "Vs"
+        case(MATDEF_E_NU_RHO)
+            mat%pf(1)%propName = "E"
+            mat%pf(2)%propName = "Nu"
+        case(MATDEF_LAMBDA_MU_RHO)
+            mat%pf(1)%propName = "Lambda"
+            mat%pf(2)%propName = "Mu"
+        case(MATDEF_KAPPA_MU_RHO)
+            mat%pf(1)%propName = "Kappa"
+            mat%pf(2)%propName = "Mu"
+        case(MATDEF_HOOKE_RHO)
+            stop "Not supported yet"
+        end select
+        mat%pf(3)%propName = "Rho"
         call init_prop_file_field(mat, mat%pf(1))
         call init_prop_file_field(mat, mat%pf(2))
         call init_prop_file_field(mat, mat%pf(3))
     end subroutine init_prop_file
+
+    function prop_check_var(pid, pname, gid)
+        use hdf5
+        integer(HID_T), intent(in) :: pid
+        integer(HID_T), intent(out) :: gid
+        character(len=100) :: pname
+        !
+        logical :: ok, prop_check_var
+        integer :: hdferr
+        !
+        prop_check_var = .false.
+        call H5Lexists_f(pid, trim(adjustl(pname)), ok, hdferr)
+        if (ok) then
+            call H5Gopen_f(pid, trim(adjustl(pname)), gid, hdferr)
+            if (hdferr == 0) prop_check_var = .true.
+        endif
+    end function prop_check_var
 
     subroutine init_prop_file_field(mat, pf)
         use hdf5
         use sem_hdf5
         type(subdomain), intent(inout) :: mat
         type(PropertyField), intent(inout) :: pf
-
-        integer, dimension(0:2) :: imin, imax
+        !
         integer :: k, hdferr
         integer(HID_T) :: file_id, grp_id
         integer(HSIZE_T), dimension(:), allocatable :: dims
+        logical :: subgrp
         call init_hdf5()
         call h5fopen_f(trim(pf%propFilePath), H5F_ACC_RDONLY_F, file_id, hdferr) !Open File
         if(hdferr /= 0) then
             write(*,*) "Could not open file:", trim(pf%propFilePath)
             stop 1
         end if
-
-        grp_id = file_id
+        subgrp = prop_check_var(file_id, pf%propName, grp_id)
+        if (.not. subgrp) then
+            grp_id = file_id
+        end if
         call read_attr_real_vec(grp_id, "xMinGlob", pf%MinBound)
         call read_attr_real_vec(grp_id, "xMaxGlob", pf%MaxBound)
         call read_dims(grp_id, "samples", dims)
@@ -74,7 +110,8 @@ contains
             pf%step(k) = (pf%MaxBound(k)-pf%MinBound(k))/pf%NN(k)
         end do
         call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
-
+        if (subgrp) call H5Gclose_f(grp_id, hdferr)
+        call H5Fclose_f(file_id, hdferr)
     end subroutine init_prop_file_field
     
     subroutine cleanup_prop_file(mat)
@@ -140,4 +177,3 @@ contains
     end subroutine interpolate_elem_field
     
 end module build_prop_files
-                     
