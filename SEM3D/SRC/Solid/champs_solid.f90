@@ -7,7 +7,7 @@
 module champs_solid
 
     use constants
-    use sdombase
+    use mdombase
     implicit none
 
     type :: champssolid

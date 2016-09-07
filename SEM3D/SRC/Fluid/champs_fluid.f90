@@ -7,7 +7,7 @@
 module champs_fluid
 
     use constants
-    use sdombase
+    use mdombase
     implicit none
 
     type champsfluid
