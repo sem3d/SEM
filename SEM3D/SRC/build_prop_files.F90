@@ -5,590 +5,139 @@ module build_prop_files
     use constants
     use scomm
     use scommutils
-    use define_random
 
     implicit none
+
+    private :: gcoord, gindex
 #include "index.h"
 
 contains
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    subroutine create_prop_files(Tdomain, rg)
 
-        !INPUTS
-        type (domain), intent (INOUT), target :: Tdomain
-        integer      , intent(IN) :: rg
+    ! etant donne une grille de n points regulierement espaces entre xmin et xmax
+    ! revoie grille(i)
+    function gcoord(i, n, xmin, xmax) result(x)
+        integer, intent(in) :: i,n
+        real(fpp), intent(in) :: xmin, xmax
+        real(fpp) :: x
 
-        !LOCAL
-        integer :: mat, assocMat, code
+        x = xmin + i*(xmax-xmin)/(n-1)
+    end function gcoord
 
+    ! soit une grille de n points reguliers entre xmin et xmax, renvoie
+    ! i tel que x(i)<=x<x(i+1)   x(0) = xmin x(n-1)=xmax
+    function gindex(x, n, xmin, xmax) result(i)
+        integer, intent(in) :: n
+        real(fpp), intent(in) :: x, xmin, xmax
+        integer :: i
 
-        call build_random_properties(Tdomain, rg)
+        i = floor( ((n-1)*(x-xmin))/(xmax-xmin) )
+    end function gindex
 
+    subroutine init_prop_file(mat)
+        use hdf5
+        use sem_hdf5
+        type(subdomain), intent(inout) :: mat
 
-    end subroutine create_prop_files
+        call init_prop_file_field(mat, mat%pf(1))
+        call init_prop_file_field(mat, mat%pf(2))
+        call init_prop_file_field(mat, mat%pf(3))
+    end subroutine init_prop_file
 
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    subroutine apply_prop_files(Tdomain, rg)
+    subroutine init_prop_file_field(mat, pf)
+        use hdf5
+        use sem_hdf5
+        type(subdomain), intent(inout) :: mat
+        type(PropertyField), intent(inout) :: pf
 
-        use interpolation
-
-        implicit none
-        !INPUTS
-        type (domain), intent (INOUT), target :: Tdomain
-        integer      , intent(IN) :: rg
-
-        !LOCAL
-        integer :: mat, n, ipoint, i, j, k, lnum, bnum, ee
-        integer :: ngll, elem_mat
-        double precision, dimension(:, :), allocatable :: interpolatedRF !Properties
-        double precision, dimension(:), allocatable :: lambda
-        integer :: assocMat, propId
-        double precision :: mu_avg
-
-        !Putting properties on elements
-        if(Tdomain%any_Random) then
-            allocate(interpolatedRF(0:size(Tdomain%GlobCoord, 2) - 1, 0:nProp - 1))
-            allocate(lambda(0:size(Tdomain%GlobCoord, 2) - 1))
+        integer, dimension(0:2) :: imin, imax
+        integer :: k, hdferr
+        integer(HID_T) :: file_id, grp_id
+        integer(HSIZE_T), dimension(:), allocatable :: dims
+        call init_hdf5()
+        call h5fopen_f(trim(pf%propFilePath), H5F_ACC_RDONLY_F, file_id, hdferr) !Open File
+        if(hdferr /= 0) then
+            write(*,*) "Could not open file:", trim(pf%propFilePath)
+            stop 1
         end if
 
-        do mat = 0, Tdomain%n_mat - 1
-        !do mat = 0, 0 !For Tests
-
-            write(*,*) "  "
-            write(*,*) "  Analyzing Material ", mat, "------------------- in rg ", rg
-            !write(*,*) "  Tdomain%subD_exist ", Tdomain%subD_exist, "------------------- in rg ", rg
-
-            if(.not. Tdomain%subD_exist(mat)) cycle
-
-            !write(*,*) "  Exists in proc ", rg
-
-            assocMat = Tdomain%sSubdomain(mat)%assocMat
-
-            if(propOnFile(Tdomain, assocMat)) then
-                !write(*,*) "  Material ", mat, " have properties on file"
-                if(is_rand(Tdomain%sSubdomain(assocMat))) then
-
-                    do propId = 0, nProp - 1
-                    !write(*,*) "  Reading and Interpolating Random Properties on:"
-                    !do propId = 0, 0 !For Tests
-                        !write(*,*) " prop = ", propId, "rg = ", rg
-                        write(*,*) trim(Tdomain%sSubDomain(mat)%propFilePath(propId))
-                        call interpolateToMesh_V2(BBoxFileName=Tdomain%sSubDomain(mat)%propFilePath(propId),  &
-                                               coordList=Tdomain%GlobCoord, &
-                                               UNV_randField=interpolatedRF(:,propId:propId), &
-                                               rang=rg, &
-                                               xMinLoc_In = Tdomain%sSubDomain(mat)%MinBound_Loc,  &
-                                               xMaxLoc_In = Tdomain%sSubDomain(mat)%MaxBound_Loc,  &
-                                               mat = mat, &
-                                               Tdomain  = Tdomain)
-                        !write(*,*) " AFTER prop = ", propId, "rg = ", rg
-                    end do
-
-                    !write(*,*) " AFTER 2 rg = ", rg
-
-                    !INFO
-                    !interpolatedRF(:, 0) --Density
-                    !interpolatedRF(:, 1) --Kappa/Lambda
-                    !interpolatedRF(:, 2) --Mu
-
-                    if(Tdomain%sSubDomain(mat)%lambdaSwitch == 1) then
-                        mu_avg = Tdomain%sSubdomain(assocMat)%Ddensity*(Tdomain%sSubdomain(assocMat)%Sspeed**2d0)
-                        lambda(:) = interpolatedRF(:, 1) - 2d0*mu_avg
-                        interpolatedRF(:, 1) = lambda(:) + (2.0d0*interpolatedRF(:, 2)/3.0D0)!Kappa
-                    else
-                        lambda(:) = interpolatedRF(:, 1) - (2.0D0*interpolatedRF(:, 2)/3.0D0)
-                    end if
-                    !S%DMu = S%Sspeed**2 * S%Ddensity
-                    !S%DLambda = (S%Pspeed**2 - 2 * S%Sspeed **2 ) * S%Ddensity
-                    !S%DKappa = S%DLambda + 2.*S%DMu /3.
-                    !S%DLambda = S%DKappa - 2.*S%DMu /3.
-
-                    !Applying properties to elements
-                    do n = 0, Tdomain%n_elem-1
-                        elem_mat = Tdomain%specel(n)%mat_index
-
-                        if(elem_mat /= mat) cycle
-
-                        lnum = Tdomain%specel(n)%lnum
-                        bnum = lnum/VCHUNK
-                        ee = mod(lnum,VCHUNK)
-                        ngll = Tdomain%sSubDomain(mat)%NGLL
-
-                        !Properties by element
-                        select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID)
-                                if (Tdomain%sdom%n_sls>0)  then
-                                    if (Tdomain%sdom%aniso) then
-                                        Tdomain%sdom%Q_(:,:,:,bnum,ee) = Tdomain%sSubDomain(mat)%Qmu
-                                    else
-                                        Tdomain%sdom%Qs_(:,:,:,bnum,ee) = Tdomain%sSubDomain(mat)%Qmu
-                                        Tdomain%sdom%Qp_(:,:,:,bnum,ee) = Tdomain%sSubDomain(mat)%Qpression
-                                    endif
-                                endif
-                            case (DM_FLUID)
-                                !Nothing to do, all definitions are on GLLs
-                            case (DM_SOLID_PML)
-                                !Nothing to do, all definitions are on GLLs
-                            case (DM_FLUID_PML)
-                                !Nothing to do, all definitions are on GLLs
-                        end select
-
-                        !Properties by GLL
-                        do i = 0, ngll-1
-                            do j = 0, ngll-1
-                                do k = 0, ngll-1
-                                    ipoint  = Tdomain%specel(n)%Iglobnum(i,j,k)
-                                    select case (Tdomain%specel(n)%domain)
-                                        case (DM_SOLID)
-                                            Tdomain%sdom%Density_(i,j,k,bnum,ee) = interpolatedRF(ipoint, 0)
-                                            Tdomain%sdom%Lambda_ (i,j,k,bnum,ee) = lambda(ipoint)
-                                            Tdomain%sdom%Mu_     (i,j,k,bnum,ee) = interpolatedRF(ipoint, 2)
-                                            Tdomain%sdom%Kappa_  (i,j,k,bnum,ee) = interpolatedRF(ipoint, 1)
-#ifdef CPML
-                                            ! Do not use random fields
-#else
-                                        case (DM_SOLID_PML)
-                                            Tdomain%spmldom%Density_(i,j,k,bnum,ee) = interpolatedRF(ipoint, 0)
-                                            Tdomain%spmldom%Lambda_ (i,j,k,bnum,ee) = lambda(ipoint)
-                                            Tdomain%spmldom%Mu_     (i,j,k,bnum,ee) = interpolatedRF(ipoint, 2)
-#endif
-                                        case (DM_FLUID)
-                                            Tdomain%fdom%IDensity_(i,j,k,bnum,ee) = 1d0/interpolatedRF(ipoint, 0)
-                                            Tdomain%fdom%Lambda_  (i,j,k,bnum,ee) = lambda(ipoint)
-                                        case (DM_FLUID_PML)
-                                            Tdomain%fpmldom%Density_(i,j,k,bnum,ee) = interpolatedRF(ipoint, 0)
-                                            Tdomain%fpmldom%Lambda_ (i,j,k,bnum,ee) = lambda(ipoint)
-                                    end select
-                                end do
-                            end do
-                        end do
-                    end do
-                    !write(*,*) " AFTER 3 rg = ", rg
-                end if
-                !write(*,*) " AFTER 4 rg = ", rg
-            end if
-            !write(*,*) " AFTER 5 rg = ", rg
+        grp_id = file_id
+        call read_attr_real_vec(grp_id, "xMinGlob", pf%MinBound)
+        call read_attr_real_vec(grp_id, "xMaxGlob", pf%MaxBound)
+        call read_dims(grp_id, "samples", dims)
+        pf%NN = dims
+        ! On va calculer les indices i0,i1 j0,j1,k0,k1 tels que
+        ! i0 plus grand entier tel que x(i0)<MinBound_loc(0), 
+        ! i1 plus petit entier tel que x(i1)>MaxBound_loc(0), etc...
+        do k = 0,2
+            pf%imin(k) = gindex(mat%MinBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
+            pf%imax(k) = gindex(mat%MaxBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
+            pf%step(k) = (pf%MaxBound(k)-pf%MinBound(k))/pf%NN(k)
         end do
+        call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
 
-        !write(*,*) " AFTER 6 rg = ", rg
-
-        !Adjusting PML values
-
-
-        if(allocated(interpolatedRF)) deallocate(interpolatedRF)
-        if(allocated(lambda))         deallocate(lambda)
-
-
-        write(*,*) "  Propagating properties to PML in rg ", rg
-        call propagate_PML_properties(Tdomain)
-
-        !write(*,*) " AFTER 7 rg = ", rg
-
-    end subroutine apply_prop_files
-
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    function propOnFile(Tdomain, mat) result(authorization)
-
-        !INPUTS
-        type (domain), intent (in), target :: Tdomain
-        integer, intent(in) :: mat
-
-        !OUTPUT
-        logical :: authorization
-
-        !LOCAL
-        integer :: assocMat
-
-        assocMat = Tdomain%sSubdomain(mat)%assocMat
-        authorization = .false.
-
-        if(Tdomain%sSubdomain(assocMat)%initial_material_type == 'R') then
-            authorization = .true.
-        end if
-        !end if
-
-    end function
-
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    subroutine propagate_PML_properties(Tdomain)
-        !This subroutine modifies the "prop" table.
-        !In the PML elements it extrudes the properties according to the PML direction
-
-        implicit none
-        !INPUT
-        type(domain)    , intent(inout), target :: Tdomain
-
-        !LOCAL
-        integer :: ngll, lnum, bnum, ee
-        integer :: iPoint
-        integer :: i, j, k, n !counters
-        integer :: LimPML1, LimPML2, LimPML3
-        integer :: dir, mat_index
-        double precision :: pointDens, pointLambda, pointMu;
-        logical :: verbose = .false.
-
-        !Propagating Properties over the PML
-
-        ! With the new PML definition, we can do better:
-        ! We can project x,y,z, on the pml plane, and interpolate the properties from the
-        ! projected coordinates
-
-        write(*,*) "Tdomain%not_PML_List = ", Tdomain%not_PML_List
-
-        do n = 0, Tdomain%n_elem-1
-            mat_index = Tdomain%specel(n)%mat_index
-
-            if(Tdomain%not_PML_List(mat_index)) cycle
-
-            ngll = Tdomain%sSubDomain(mat_index)%NGLL
-            lnum = Tdomain%specel(n)%lnum
-            bnum = lnum/VCHUNK
-            ee = mod(lnum,VCHUNK)
-            !On the lower bound initialization
-            LimPML1 = 0
-            LimPML2 = 0
-            LimPML3 = 0
-            !To the upper bound transformation
-            if (Tdomain%sSubDomain(mat_index)%pml_width(0)<0) LimPML1 = ngll-1
-            if (Tdomain%sSubDomain(mat_index)%pml_width(1)<0) LimPML2 = ngll-1
-            if (Tdomain%sSubDomain(mat_index)%pml_width(2)<0) LimPML3 = ngll-1
-
-            dir = read_PML_Direction(Tdomain, mat_index)
-            if(verbose) write(*,*) "dir = ", dir
-            if(verbose) write(*,*) "Tdomain%specel(n)%domain = ", Tdomain%specel(n)%domain
-            pointDens = 0
-
-            !FOR TESTS
-            !select case (Tdomain%specel(n)%domain)
-            !    case (DM_SOLID_PML)
-            !        Tdomain%spmldom%Density_(:,:,:,bnum,ee) = 0
-            !    case (DM_FLUID_PML)
-            !
-            !end select
+    end subroutine init_prop_file_field
+    
+    subroutine cleanup_prop_file(mat)
+        type(subdomain) :: mat
+        deallocate(mat%pf(1)%var)
+        deallocate(mat%pf(2)%var)
+        deallocate(mat%pf(3)%var)
+    end subroutine cleanup_prop_file
 
 
+    subroutine interpolate_elem_field(Tdomain, specel, mat, pf, field)
+        type(domain), intent(inout) :: Tdomain
+        type(element), intent(inout) :: specel
+        type(subdomain), intent(in) :: mat
+        type(PropertyField), intent(in) :: pf
+        !
+        real(fpp), dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: field
+        real(fpp), dimension(0:2) :: xx ! node coord
+        real(fpp), dimension(0:2) :: aa   ! node interpolation coeffs
+        real(fpp) :: pos, val
+        integer :: i,j,k     ! gll index
+        integer :: idef      ! global coord index
+        integer :: n
+        integer, dimension(0:2) :: ii  ! index of x,y,z inside material domain
+        logical :: pml
 
-            select case(dir)
-                !Face X oriented
-                case(0)
-                    if(verbose) write(*,*) "Face X oriented"
-                    do j = 0, ngll-1
-                        do k = 0, ngll-1
-                            select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                    ! Do not use random fields
-#else
-                                case (DM_SOLID_PML)
-                                    pointDens   = Tdomain%spmldom%Density_(LimPML1,j,k,bnum,ee)
-                                    pointLambda = Tdomain%spmldom%Lambda_(LimPML1,j,k,bnum,ee)
-                                    pointMu     = Tdomain%spmldom%Mu_(LimPML1,j,k,bnum,ee)
-#endif
-                                case (DM_FLUID_PML)
+        pml = is_pml(mat)
+        do k = 0,mat%ngll-1
+            do j = 0,mat%ngll-1
+                do i = 0,mat%ngll-1
 
-                            end select
-
-                            do i = 0, ngll-1
-                                select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                        ! Do not use random fields
-#else
-                                    case (DM_SOLID_PML)
-                                        Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-                                        Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
-                                        Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
-#endif
-                                    case (DM_FLUID_PML)
-
-                                end select
-                            end do
-                        enddo
-                    enddo
-                !
-                !Face Y oriented
-                case(1)
-                    if(verbose) write(*,*) "Face Y oriented"
-                    do i = 0, ngll-1
-                        do k = 0, ngll-1
-                            select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                    ! Do not use random fields
-#else
-                                case (DM_SOLID_PML)
-                                    pointDens   = Tdomain%spmldom%Density_(i, LimPML2,k,bnum,ee)
-                                    pointLambda = Tdomain%spmldom%Lambda_(i, LimPML2,k,bnum,ee)
-                                    pointMu     = Tdomain%spmldom%Mu_(i, LimPML2,k,bnum,ee)
-#endif
-                                case (DM_FLUID_PML)
-
-                            end select
-
-                            do j = 0, ngll-1
-                                select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                        ! Do not use random fields
-#else
-                                    case (DM_SOLID_PML)
-                                        Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-                                        Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
-                                        Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
-#endif
-                                    case (DM_FLUID_PML)
-
-                                end select
-                            end do
-                        enddo
-                    enddo
-
-                !Face Z oriented
-                case(2)
-                    if(verbose) write(*,*) "Face Z oriented"
-                    do i = 0, ngll-1
-                        do j = 0, ngll-1
-                            select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                    ! Do not use random fields
-#else
-                                case (DM_SOLID_PML)
-                                    pointDens   = Tdomain%spmldom%Density_(i,j,LimPML3,bnum,ee)
-                                    pointLambda = Tdomain%spmldom%Lambda_(i,j,LimPML3,bnum,ee)
-                                    pointMu     = Tdomain%spmldom%Mu_(i,j,LimPML3,bnum,ee)
-#endif
-                                case (DM_FLUID_PML)
-
-                            end select
-
-                            do k = 0, ngll-1
-                                select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                        ! Do not use random fields
-#else
-                                    case (DM_SOLID_PML)
-                                        Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-                                        Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
-                                        Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
-#endif
-                                    case (DM_FLUID_PML)
-
-                                end select
-                            end do
-                        enddo
-                    enddo
-
-                !Edge in XY
-                case(3)
-                    if(verbose) write(*,*) "Edge in XY"
-                    do k = 0, ngll-1
-                        select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                ! Do not use random fields
-#else
-                            case (DM_SOLID_PML)
-                                pointDens   = Tdomain%spmldom%Density_(LimPML1,LimPML2,k,bnum,ee)
-                                pointLambda = Tdomain%spmldom%Lambda_(LimPML1,LimPML2,k,bnum,ee)
-                                pointMu     = Tdomain%spmldom%Mu_(LimPML1,LimPML2,k,bnum,ee)
-#endif
-                            case (DM_FLUID_PML)
-
-                        end select
-
-                        do i = 0, ngll-1
-                            do j = 0, ngll-1
-                                select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                        ! Do not use random fields
-#else
-                                    case (DM_SOLID_PML)
-                                        Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-                                        Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
-                                        Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
-#endif
-                                    case (DM_FLUID_PML)
-
-                                end select
-                            end do
-                        end do
-                    enddo
-
-                !Edge in YZ
-                case(4)
-                    if(verbose) write(*,*) "Edge in YZ"
-                    do i = 0, ngll-1
-                        select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                ! Do not use random fields
-#else
-                            case (DM_SOLID_PML)
-                                pointDens   = Tdomain%spmldom%Density_(i, LimPML2,LimPML3,bnum,ee)
-                                pointLambda = Tdomain%spmldom%Lambda_(i, LimPML2,LimPML3,bnum,ee)
-                                pointMu     = Tdomain%spmldom%Mu_(i, LimPML2,LimPML3,bnum,ee)
-#endif
-                            case (DM_FLUID_PML)
-
-                        end select
-
-                        do j = 0, ngll-1
-                            do k = 0, ngll-1
-                                select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                        ! Do not use random fields
-#else
-                                    case (DM_SOLID_PML)
-                                        Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-                                        Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
-                                        Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
-#endif
-                                    case (DM_FLUID_PML)
-
-                                end select
-                            end do
-                        end do
-                    enddo
-
-                !Edge in ZX
-                case(5)
-                    if(verbose) write(*,*) "Edge in ZX"
-                    do j = 0, ngll-1
-                        select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                ! Do not use random fields
-#else
-                            case (DM_SOLID_PML)
-                                pointDens   = Tdomain%spmldom%Density_(LimPML1, j,LimPML3,bnum,ee)
-                                pointLambda = Tdomain%spmldom%Lambda_(LimPML1, j,LimPML3,bnum,ee)
-                                pointMu     = Tdomain%spmldom%Mu_(LimPML1, j,LimPML3,bnum,ee)
-#endif
-                            case (DM_FLUID_PML)
-
-                        end select
-
-                        do i = 0, ngll-1
-                            do k = 0, ngll-1
-                                select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                        ! Do not use random fields
-#else
-                                    case (DM_SOLID_PML)
-                                        Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-                                        Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
-                                        Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
-#endif
-                                    case (DM_FLUID_PML)
-
-                                end select
-                            end do
-                        end do
-                    enddo
-
-                !Vertex
-                case(6)
-                    if(verbose) write(*,*) "Vertex"
-                    select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                            ! Do not use random fields
-#else
-                        case (DM_SOLID_PML)
-                            pointDens   = Tdomain%spmldom%Density_(LimPML1, LimPML2,LimPML3,bnum,ee)
-                            pointLambda = Tdomain%spmldom%Lambda_(LimPML1, LimPML2,LimPML3,bnum,ee)
-                            pointMu     = Tdomain%spmldom%Mu_(LimPML1, LimPML2,LimPML3,bnum,ee)
-#endif
-                        case (DM_FLUID_PML)
-
-                    end select
-
-                    do i = 0, ngll-1
-                        do j = 0, ngll-1
-                            do k = 0, ngll-1
-                                select case (Tdomain%specel(n)%domain)
-#ifdef CPML
-                                        ! Do not use random fields
-#else
-                                    case (DM_SOLID_PML)
-                                        Tdomain%spmldom%Density_(i,j,k,bnum,ee) = pointDens
-                                        Tdomain%spmldom%Lambda_(i,j,k,bnum,ee)  = pointLambda
-                                        Tdomain%spmldom%Mu_(i,j,k,bnum,ee)      = pointMu
-#endif
-                                    case (DM_FLUID_PML)
-
-                                end select
-                            end do
-                        end do
+                    idef = specel%Iglobnum(i,j,k)
+                    do n=0,2
+                        xx(n) = Tdomain%GlobCoord(n,idef)
+                        ! Traitement PML : on echantillonne au bord de la PML uniquement
+                        if (pml) then
+                            if (mat%pml_width(n)>0) then
+                                if (xx(n)>mat%pml_pos(n)) xx(n)=mat%pml_pos(n)
+                            end if
+                            if (mat%pml_width(n)<0) then
+                                if (xx(n)<mat%pml_pos(n)) xx(n)=mat%pml_pos(n)
+                            end if
+                        end if
+                        pos = (xx(n)-pf%MinBound(n))/pf%step(n)
+                        ii(n) = int(pos)
+                        if (ii(n) < pf%imin(n)) ii(n) = pf%imin(n)
+                        if (ii(n) >= pf%imax(n)) ii(n) = pf%imax(n)-1
+                        aa(n) = pos-ii(n)
                     end do
-            end select
+                    ! trilinear interpolation
+                    val =       (1.-aa(0))*(1.-aa(1))*(1.-aa(2))*pf%var(ii(0)  ,ii(1)  ,ii(2)  )
+                    val = val + (   aa(0))*(1.-aa(1))*(1.-aa(2))*pf%var(ii(0)+1,ii(1)  ,ii(2)  )
+                    val = val + (1.-aa(0))*(   aa(1))*(1.-aa(2))*pf%var(ii(0)  ,ii(1)+1,ii(2)  )
+                    val = val + (   aa(0))*(   aa(1))*(1.-aa(2))*pf%var(ii(0)+1,ii(1)+1,ii(2)  )
+                    val = val + (1.-aa(0))*(1.-aa(1))*(   aa(2))*pf%var(ii(0)  ,ii(1)  ,ii(2)+1)
+                    val = val + (   aa(0))*(1.-aa(1))*(   aa(2))*pf%var(ii(0)+1,ii(1)  ,ii(2)+1)
+                    val = val + (1.-aa(0))*(   aa(1))*(   aa(2))*pf%var(ii(0)  ,ii(1)+1,ii(2)+1)
+                    val = val + (   aa(0))*(   aa(1))*(   aa(2))*pf%var(ii(0)+1,ii(1)+1,ii(2)+1)
+                    field(i,j,k) = val
+                end do
+            end do
         end do
-
-    end subroutine propagate_PML_properties
-
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    function read_PML_Direction(Tdomain, mat) result(dir)
-
-        implicit none
-        !INPUT
-        type(domain)    , intent(inout), target :: Tdomain
-        integer         , intent(in)            :: mat
-
-        !OUTPUT
-        integer :: dir
-
-        !LOCAL
-        integer :: error, code
-
-        real :: vx, vy, vz
-
-        !!! XXX: this wont work always, read comments from the call site
-        vx = Tdomain%sSubDomain(mat)%pml_width(0)
-        vy = Tdomain%sSubDomain(mat)%pml_width(1)
-        vz = Tdomain%sSubDomain(mat)%pml_width(2)
-
-        !/////////////Defining PML orientation
-        dir = 0
-        !Face X oriented
-        if  (vx /= 0 .and. vy == 0d0 .and. vz == 0d0) then
-            dir = 0
-        !Face Y oriented
-        elseif (vx == 0 .and. vy /= 0d0 .and. vz == 0d0) then
-            dir = 1
-        !Face Z oriented
-        elseif (vx == 0 .and. vy == 0d0 .and. vz /= 0d0) then
-            dir = 2
-        !Edge in XY
-        elseif (vx /= 0 .and. vy /= 0d0 .and. vz == 0d0) then
-            dir = 3
-
-        !Edge in YZ
-        elseif (vx == 0 .and. vy /= 0d0 .and. vz /= 0d0) then
-            dir = 4
-
-        !Edge in ZX
-        elseif (vx /= 0 .and. vy == 0d0 .and. vz /= 0d0) then
-            dir = 5
-
-        !Vertex in XYZ
-        elseif (vx /= 0 .and. vy /= 0d0 .and. vz /= 0d0) then
-            dir = 6
-
-        !Undefined PML
-        else
-            write(*,*) "ERROR in mat ", mat, " (PML) definition (directions), check 'material.input'"
-            call MPI_ABORT(Tdomain%communicateur, error, code)
-        end if
-
-    end function read_PML_Direction
-
-
+    end subroutine interpolate_elem_field
+    
 end module build_prop_files
                      

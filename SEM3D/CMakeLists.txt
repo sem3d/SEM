@@ -67,6 +67,8 @@ set(SEM3D_SOURCES_F
 
     ${PRJ}/SRC/snapshots.F90
 
+    ${PRJ}/SRC/build_prop_files.F90
+
     ${PRJ}/SRC/earth_models/earth_transform.f90
     ${PRJ}/SRC/earth_models/material_earthchunk.F90
     ${PRJ}/SRC/earth_models/material_prem.F90

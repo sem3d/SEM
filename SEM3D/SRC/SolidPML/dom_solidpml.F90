@@ -207,27 +207,21 @@ contains
         ! TODO : useless, kill this method, needed for build compatibility SolidPML / SolidCPML
     end subroutine init_domain_solidpml
 
-    subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
+    subroutine init_material_properties_solidpml(dom, lnum, mat, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: i, j, k ! -1 means :
-        real(fpp), intent(in) :: density
-        real(fpp), intent(in) :: lambda
-        real(fpp), intent(in) :: mu
+        type (subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%Density_(:,:,:,bnum,ee) = density
-            dom%Lambda_ (:,:,:,bnum,ee) = lambda
-            dom%Mu_     (:,:,:,bnum,ee) = mu
-        else
-            dom%Density_(i,j,k,bnum,ee) = density
-            dom%Lambda_ (i,j,k,bnum,ee) = lambda
-            dom%Mu_     (i,j,k,bnum,ee) = mu
-        end if
+        dom%Density_(:,:,:,bnum,ee) = density
+        dom%Lambda_ (:,:,:,bnum,ee) = lambda
+        dom%Mu_     (:,:,:,bnum,ee) = mu
     end subroutine init_material_properties_solidpml
 
     subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei)

@@ -194,24 +194,19 @@ contains
         if(allocated(vphi)) deallocate(vphi)
     end subroutine get_fluid_dom_var
 
-    subroutine init_material_properties_fluid(dom, lnum, i, j, k, density, lambda)
+    subroutine init_material_properties_fluid(dom, lnum, mat, density, lambda)
         type(domain_fluid), intent(inout) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: i, j, k ! -1 means :
-        real(fpp), intent(in) :: density
-        real(fpp), intent(in) :: lambda
+        type (subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%IDensity_(:,:,:,bnum,ee) = 1d0/density
-            dom%Lambda_ (:,:,:,bnum,ee) = lambda
-        else
-            dom%IDensity_(i,j,k,bnum,ee) = 1d0/density
-            dom%Lambda_ (i,j,k,bnum,ee) = lambda
-        end if
+        dom%IDensity_(:,:,:,bnum,ee) = 1d0/density
+        dom%Lambda_ (:,:,:,bnum,ee) = lambda
     end subroutine init_material_properties_fluid
 
     subroutine init_local_mass_fluid(dom,specel,i,j,k,ind,Whei)

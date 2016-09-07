@@ -307,66 +307,63 @@ contains
 
     end subroutine get_solid_dom_var
 
-    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat)
+    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: i, j, k ! -1 means :
-        real(fpp), intent(in) :: density
-        real(fpp), intent(in) :: lambda
-        real(fpp), intent(in) :: mu
-        real(fpp), intent(in) :: kappa
-        type (subdomain), intent(in), optional :: mat
+        type (subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%Density_(:,:,:,bnum,ee) = density
-            dom%Lambda_ (:,:,:,bnum,ee) = lambda
-            dom%Kappa_  (:,:,:,bnum,ee) = kappa
-            dom%Mu_     (:,:,:,bnum,ee) = mu
-        else
-            dom%Density_(i,j,k,bnum,ee) = density
-            dom%Lambda_ (i,j,k,bnum,ee) = lambda
-            dom%Kappa_  (i,j,k,bnum,ee) = kappa
-            dom%Mu_     (i,j,k,bnum,ee) = mu
-        end if
+        dom%Density_(:,:,:,bnum,ee) = density
+        dom%Lambda_ (:,:,:,bnum,ee) = lambda
+        dom%Mu_     (:,:,:,bnum,ee) = mu
 
-        if (present(mat)) then
-            if (dom%n_sls>0)  then
-                if (dom%aniso) then
-                    dom%Q_(:,:,:,bnum,ee) = mat%Qmu
-                else
-                    dom%Qs_(:,:,:,bnum,ee) = mat%Qmu
-                    dom%Qp_(:,:,:,bnum,ee) = mat%Qpression
-                endif
+        if (dom%n_sls>0)  then
+            dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
+            if (dom%aniso) then
+                dom%Q_(:,:,:,bnum,ee) = mat%Qmu
+            else
+                dom%Qs_(:,:,:,bnum,ee) = mat%Qmu
+                dom%Qp_(:,:,:,bnum,ee) = mat%Qpression
             endif
         endif
     end subroutine init_material_properties_solid
 
-    subroutine init_material_tensor_solid(dom, lnum, i, j, k, density, Cij)
+    subroutine init_material_tensor_solid(dom, lnum, mat, density, Cij)
+        use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: i, j, k
-        real(fpp), intent(in) :: density
-        real(fpp), dimension(1:6,1:6), intent(in) :: Cij
+        type (subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), dimension(1:6,1:6,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: Cij
 
         integer :: idef, ii, jj
+        integer :: i, j, k
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        idef = 0
-        do ii = 1,6
-            do jj = ii,6
-                dom%Cij_(idef,i,j,k,bnum,ee) = Cij(ii,jj)
-                idef = idef + 1
+        do i=0,dom%ngll-1
+            do j=0,dom%ngll-1
+                do k=0,dom%ngll-1
+                    idef = 0
+                    do ii = 1,6
+                        do jj = ii,6
+                            dom%Cij_(idef,i,j,k,bnum,ee) = Cij(ii,jj,i,j,k)
+                            idef = idef + 1
+                        enddo
+                    enddo
+                enddo
             enddo
         enddo
-        dom%Density_(i,j,k,bnum,ee) = density
+        dom%Density_(:,:,:,bnum,ee) = density
     end subroutine init_material_tensor_solid
 
     subroutine init_local_mass_solid(dom,specel,i,j,k,ind,Whei)

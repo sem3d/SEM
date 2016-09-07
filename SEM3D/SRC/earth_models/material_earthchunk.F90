@@ -2,7 +2,7 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
+subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
     use constants, only : DM_SOLID_PML
     use selement
     use ssubdomains
@@ -15,14 +15,17 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
     implicit none
 #include "index.h"
 
-    type (domain), intent (INOUT), target :: Tdomain
+    type (domain), intent (INOUT) :: Tdomain
+    type(subdomain), intent(in) :: mat
     type(element), intent(inout) :: elem
     real, dimension(0:2,0:npts-1), intent(in) :: coorPt
     integer, intent(in) :: npts
 
     integer :: i,j,k,ii,jj,ngll,idef
-    real :: xr, yr, zr, x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi, lon, lat
+    real :: xr, yr, zr, x, y, z, A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi, lon, lat
     real, dimension(1:6,1:6) :: Cij
+    real, dimension(1:6,1:6,0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: gCij
+    real, dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: lambda, mu, rho
     real, dimension(3,3) :: RotMat
 
     ngll = Tdomain%sdom%ngll
@@ -48,7 +51,7 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
                 lon = phi/Pi180
                 lat = 90-0-theta/Pi180
 
-                call get_value_earthchunk (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
+                call get_value_earthchunk(r, lon, lat, rho(i,j,k),A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
                 Cij(:,:) = 0.d0
                 Cij(1,1) = C
@@ -72,18 +75,24 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
                 enddo
 
                 if(elem%domain==DM_SOLID_PML) then
-                    call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,i,j,k,&
-                         rho,lambda_from_Cij(Cij),mu_from_Cij(Cij))
+                    lambda(i,j,k) = lambda_from_Cij(Cij)
+                    mu(i,j,k) = mu_from_Cij(Cij)
                 else if(elem%domain==DM_SOLID) then
                     call c_4tensor(Cij,theta,phi)
                     call rot_4tensor(Cij,transpose(RotMat))
-                    call init_material_tensor_solid(Tdomain%sdom,elem%lnum,i,j,k,rho,Cij)
-                else
-                    stop "initialize earthchunk material KO"
                 endif
+                gCij(:,:,i,j,k) = Cij
             end do
         end do
     end do
+    if(elem%domain==DM_SOLID_PML) then
+        call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,mat,&
+            rho,lambda,mu)
+    else if(elem%domain==DM_SOLID) then
+        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,gCij)
+    else
+        stop "initialize earthchunk material KO"
+    endif
 
 end subroutine initialize_material_earthchunk
 
