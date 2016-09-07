@@ -22,6 +22,8 @@ contains
         integer :: i, mat, dom
 
         call read_material_file_v2(Tdomain)
+        ! Complete the material definition with optional material.spec
+        call read_material_spec(Tdomain)
 
         Tdomain%any_sdom = .false.
         Tdomain%any_fdom = .false.
@@ -71,6 +73,48 @@ contains
         call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
 
     end subroutine read_material_file
+
+    subroutine read_material_spec(Tdomain)
+        use sdomain
+        use semdatafiles
+        implicit none
+        type(domain), intent(inout)                  :: Tdomain
+        !
+        type(sem_material), pointer :: matdesc
+        integer :: code, num
+
+        call read_sem_materials(Tdomain%material_list, "material.spec"//C_NULL_CHAR, code)
+
+        call c_f_pointer(Tdomain%material_list%head, matdesc)
+
+        do while(associated(matdesc))
+            num = matdesc%num
+            select case(matdesc%defspatial)
+            case (0) ! CONSTANT
+                Tdomain%sSubdomain(num)%material_definition = MATERIAL_CONSTANT
+            case (1) ! FILE
+                Tdomain%sSubdomain(num)%material_definition = MATERIAL_FILE
+                Tdomain%sSubdomain(num)%pf(1)%propFilePath = trim(fromcstr(matdesc%filename0))
+                Tdomain%sSubdomain(num)%pf(2)%propFilePath = trim(fromcstr(matdesc%filename1))
+                Tdomain%sSubdomain(num)%pf(3)%propFilePath = trim(fromcstr(matdesc%filename2))
+            end select
+            Tdomain%sSubdomain(num)%deftype  = matdesc%deftype
+            Tdomain%sSubdomain(num)%Ddensity = matdesc%rho
+            Tdomain%sSubdomain(num)%Pspeed   = matdesc%Vp
+            Tdomain%sSubdomain(num)%Sspeed   = matdesc%Vs
+            Tdomain%sSubdomain(num)%DE       = matdesc%E
+            Tdomain%sSubdomain(num)%DNu      = matdesc%nu
+            Tdomain%sSubdomain(num)%DLambda  = matdesc%lambda
+            Tdomain%sSubdomain(num)%DMu      = matdesc%mu
+            Tdomain%sSubdomain(num)%DKappa   = matdesc%kappa
+            !!! TODO Add Qp/Qmu, PML
+            call c_f_pointer(matdesc%next, matdesc)
+        end do
+        if (code<=0) then
+            write(*,*) "Erreur reading material.spec"
+            stop 1
+        endif
+    end subroutine read_material_spec
 
     subroutine read_material_file_v2(Tdomain)
         use sdomain
