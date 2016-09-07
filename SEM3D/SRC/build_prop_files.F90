@@ -60,6 +60,7 @@ contains
         call init_prop_file_field(mat, mat%pf(3))
     end subroutine init_prop_file
 
+    ! Check for existence of a group in HDF5 file
     function prop_check_var(pid, pname, gid)
         use hdf5
         integer(HID_T), intent(in) :: pid
@@ -106,8 +107,10 @@ contains
         ! i1 plus petit entier tel que x(i1)>MaxBound_loc(0), etc...
         do k = 0,2
             pf%imin(k) = gindex(mat%MinBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
-            pf%imax(k) = gindex(mat%MaxBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
-            pf%step(k) = (pf%MaxBound(k)-pf%MinBound(k))/pf%NN(k)
+            pf%imax(k) = gindex(mat%MaxBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))+1
+            pf%step(k) = (pf%MaxBound(k)-pf%MinBound(k))/(pf%NN(k)-1)
+            if (pf%imin(k)<0) pf%imin(k) = 0
+            if (pf%imax(k)>=pf%NN(k)) pf%imax(k) = pf%NN(k)-1
         end do
         call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
         if (subgrp) call H5Gclose_f(grp_id, hdferr)
@@ -156,8 +159,8 @@ contains
                             end if
                         end if
                         pos = (xx(n)-pf%MinBound(n))/pf%step(n)
-                        ii(n) = int(pos)
-                        if (ii(n) < pf%imin(n)) ii(n) = pf%imin(n)
+                        ii(n) = floor(pos)
+                        if (ii(n)  < pf%imin(n)) ii(n) = pf%imin(n)
                         if (ii(n) >= pf%imax(n)) ii(n) = pf%imax(n)-1
                         aa(n) = pos-ii(n)
                     end do
