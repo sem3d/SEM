@@ -116,7 +116,7 @@ contains
 
             buffer = getLine (fid, "#")
             if (Tdomain%nl_flag==1) then
-                read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
+                read(buffer,*) material_type, &
                     Tdomain%sSubDomain(i)%Pspeed,               &
                     Tdomain%sSubDomain(i)%Sspeed,               &
                     Tdomain%sSubDomain(i)%dDensity,             &
@@ -131,7 +131,7 @@ contains
                     Tdomain%sSubDomain(i)%Rinf
             
             else
-                read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
+                read(buffer,*) material_type, &
                     Tdomain%sSubDomain(i)%Pspeed,               &
                     Tdomain%sSubDomain(i)%Sspeed,               &
                     Tdomain%sSubDomain(i)%dDensity,             &
@@ -148,12 +148,6 @@ contains
             if (is_pml(Tdomain%sSubDomain(i)))  then
                 npml = npml + 1
             endif
-            Tdomain%sSubDomain(i)%initial_material_type = Tdomain%sSubDomain(i)%material_type
-            if (Tdomain%sSubDomain(i)%material_type == "R") then
-                Tdomain%nRandom = Tdomain%nRandom + 1
-                Tdomain%sSubDomain(i)%material_type = "S"
-                Tdomain%any_Random = .true.
-            end if
         enddo
 
         if(npml > 0) then

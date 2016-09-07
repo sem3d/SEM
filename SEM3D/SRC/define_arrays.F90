@@ -319,13 +319,8 @@ contains
                 !    on copie toujours le materiau de base
                 select case (specel%domain)
                     case (DM_SOLID)
-                        if (Tdomain%nl_flag==1.and.mat%material_type=='N') then
-                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                                mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
-                        else
-                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
-                        end if
+                        call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                            mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)

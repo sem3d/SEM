@@ -45,7 +45,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
-<<<<<<< HEAD
     real(fpp) :: xmu
 #ifdef NONLINEAR
     real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP,eps0
