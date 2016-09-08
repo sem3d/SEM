@@ -493,7 +493,7 @@ Description des type de capteurs :
   \overrightarrow{P_0 P_2}`
 
 Section ``out_variables``
-==================
+=========================
 
 Chaque mot-clé est associé à un domaine spécifique requis comme sortie (snapshots / traces). Champs de sortie par défaut (lorsque tous les mots clés sont mis à 0) sont ceux de pression et de vitesse.
 
