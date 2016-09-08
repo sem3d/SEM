@@ -284,6 +284,28 @@ contains
         if (hdferr .ne. 0) stop "read_dset_1d_int : h5sclose KO"
     end subroutine read_dset_1d_int
 
+    subroutine read_dims(parent, name, dims)
+        use HDF5
+        character(len=*), INTENT(IN) :: name
+        integer(HID_T), INTENT(IN) :: parent
+        integer(HSIZE_T), dimension(:), allocatable, intent(out) :: dims
+        !
+        integer(HID_T) :: dset_id, space_id
+        integer(HSIZE_T), allocatable, dimension(:) :: maxdims
+        integer :: hdferr, ndims
+        !
+        call h5dopen_f(parent, name, dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dims_3d : h5dopen KO"
+        call h5dget_space_f(dset_id, space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dims_3d : h5dgetspace KO"
+        call h5sget_simple_extent_ndims_f(space_id, ndims, hdferr)
+        if (ndims<0) stop "read_dims_3d: error"
+        allocate(dims(ndims), maxdims(ndims))
+        call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
+        call h5sclose_f(space_id, hdferr)
+        call h5dclose_f(dset_id, hdferr)
+    end subroutine read_dims
+
     subroutine read_dset_2d_real(parent, name, data, ibase)
         use HDF5
         character(len=*), INTENT(IN) :: name
@@ -349,6 +371,37 @@ contains
         call h5sclose_f(space_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5sclose KO"
     end subroutine read_dset_3d_real
+
+    subroutine read_subset_3d_real(parent, name, imin, imax, data)
+        use HDF5
+        character(len=*), INTENT(IN) :: name
+        integer(HID_T), INTENT(IN) :: parent
+        integer, intent(in), dimension(0:2) :: imin, imax
+        double precision, dimension(:,:,:), allocatable, intent(out) :: data
+        !
+        integer(HID_T) :: dset_id, space_id, memspace_id
+        integer(HSIZE_T), dimension(3) :: start, count
+        integer :: hdferr, i0, i1,i2
+
+        start = imin
+        count = imax-imin+[1,1,1]
+        call h5dopen_f(parent, name, dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dopen KO"
+        call h5dget_space_f(dset_id, space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dgetspace KO"
+        call H5Sselect_hyperslab_f(space_id, H5S_SELECT_SET_F, start, count, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_3d_real : h5sgetdim KO "
+        allocate(data(imin(0):imax(0), imin(1):imax(1), imin(2):imax(2)))
+        call H5Screate_simple_f(3, count, memspace_id, hdferr)
+        call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, count, hdferr, memspace_id, space_id)
+        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dread KO"
+        call h5dclose_f(dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dclose KO"
+        call h5sclose_f(space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_3d_real : h5sclose KO"
+        call h5sclose_f(memspace_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_3d_real : h5sclose KO"
+    end subroutine read_subset_3d_real
 
     subroutine read_dset_2d_int(parent, name, data, ibase)
         use HDF5

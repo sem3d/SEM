@@ -8,7 +8,7 @@
 !!
 !<
 
-module sdombase
+module mdombase
     use constants
     implicit none
 #include "index.h"
@@ -90,7 +90,7 @@ contains
         if(allocated(bz%htprime)) deallocate(bz%htprime)
         if(allocated(bz%MassMat)) deallocate(bz%MassMat)
     end subroutine deallocate_dombase
-end module sdombase
+end module mdombase
 
 !! Local Variables:
 !! mode: f90

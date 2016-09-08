@@ -118,6 +118,7 @@ module sdomain
 
        ! Configuration parameters as returned from read_input.c
        type(sem_config) :: config
+       type(sem_material_list) :: material_list
 
        ! Rajouter pour le traitement des surface
        integer :: n_NEBC, n_PWBC, n_FTBC, nsurface

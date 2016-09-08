@@ -44,10 +44,18 @@ MODULE constants
 
     ! Materials
     integer, parameter :: MATERIAL_CONSTANT   = 1
-    integer, parameter :: MATERIAL_GRADIENT   = 2
-    integer, parameter :: MATERIAL_EARTHCHUNK = 3
-    integer, parameter :: MATERIAL_PREM       = 4
-    integer, parameter :: MATERIAL_RANDOM     = 5
+    integer, parameter :: MATERIAL_GRADIENT   = 2 ! DONT USE
+    integer, parameter :: MATERIAL_EARTHCHUNK = 3 ! DONT USE
+    integer, parameter :: MATERIAL_PREM       = 4 ! DONT USE
+    integer, parameter :: MATERIAL_RANDOM     = 5 ! DONT USE
+    integer, parameter :: MATERIAL_FILE       = 6
+
+    ! Material definition
+    integer, parameter :: MATDEF_VP_VS_RHO     = 0
+    integer, parameter :: MATDEF_E_NU_RHO      = 1
+    integer, parameter :: MATDEF_LAMBDA_MU_RHO = 2
+    integer, parameter :: MATDEF_KAPPA_MU_RHO  = 3
+    integer, parameter :: MATDEF_HOOKE_RHO     = 4
     ! Non-linear law
     integer, parameter :: NLLMC               = 1
 

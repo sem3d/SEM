@@ -7,7 +7,7 @@
 module champs_fluidpml
 
     use constants
-    use sdombase
+    use mdombase
     implicit none
 
     type :: champsfluidpml

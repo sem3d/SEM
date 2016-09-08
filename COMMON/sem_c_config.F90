@@ -150,6 +150,33 @@ module sem_c_config
        real(C_DOUBLE) :: Rtau
     end type sem_surfaces
 
+    type, bind(c) :: sem_material
+       integer(C_INT):: num
+       integer(C_INT):: domain
+       integer(C_INT):: deftype
+       integer(C_INT):: defspatial
+       !
+       real(C_DOUBLE) :: rho
+       real(C_DOUBLE) :: Vp
+       real(C_DOUBLE) :: Vs
+       real(C_DOUBLE) :: E
+       real(C_DOUBLE) :: nu
+       real(C_DOUBLE) :: lambda
+       real(C_DOUBLE) :: kappa
+       real(C_DOUBLE) :: mu
+       !
+       type(C_PTR)    :: filename0
+       type(C_PTR)    :: filename1
+       type(C_PTR)    :: filename2
+       !
+       type(C_PTR)    :: next
+    end type sem_material
+
+    type, bind(c) :: sem_material_list
+        integer(C_INT):: count
+        type(C_PTR):: head
+    end type sem_material_list
+
     interface
        subroutine read_sem_config(config, spec, err) bind(c)
            use iso_c_binding
@@ -158,6 +185,14 @@ module sem_c_config
            character(C_CHAR), dimension(*) :: spec
            integer(C_INT), intent(out) :: err
        end subroutine read_sem_config
+
+       subroutine read_sem_materials(materials, spec, err) bind(c)
+           use iso_c_binding
+           import :: sem_material_list
+           type(sem_material_list), intent(in) :: materials
+           character(C_CHAR), dimension(*) :: spec
+           integer(C_INT), intent(out) :: err
+       end subroutine read_sem_materials
 
        subroutine dump_config(config) bind(c)
            use iso_c_binding

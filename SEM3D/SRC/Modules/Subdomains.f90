@@ -14,32 +14,47 @@
 module ssubdomains
     use constants
     implicit none
-    !
-    type LMC_properties
+    ! REQUIRED ATTENTION
+!    type LMC_properties
+!
+!        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
+!        real :: sigma_yld   ! first yielding limit
+!        real :: C_kin       ! variable for kinematic hardening
+!        real :: kapa_kin    ! variable for kinematic hardening
+!        real :: b_iso       ! variable for isotropic hardening
+!        real :: Rinf_iso    ! variable for isotropic hardening
+!
+!    end type LMC_properties
+!    !
+!    type nl_properties
+!        type(LMC_properties) :: LMC_prop
+!    end type nl_properties
+!    !
 
-        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
-        real :: sigma_yld   ! first yielding limit
-        real :: C_kin       ! variable for kinematic hardening
-        real :: kapa_kin    ! variable for kinematic hardening
-        real :: b_iso       ! variable for isotropic hardening
-        real :: Rinf_iso    ! variable for isotropic hardening
+    type PropertyField
+        character(len=1024) :: propFilePath
+        character(len=100) :: propName ! name of property and HDF5 group
+        real(fpp), dimension(0:2) :: MinBound, MaxBound, step
+        ! XXX: need to handle fields of different sizes...
+        integer, dimension(0:2) :: NN ! dimension of the grid for this property
+        integer, dimension(0:2) :: imin, imax
+        real(fpp), dimension(:,:,:), allocatable :: var
+        ! REQUIRED ATTENTION
+        !type(nl_properties) :: nl_prop
+    end type PropertyField
 
-    end type LMC_properties
-    !
-    type nl_properties
-        type(LMC_properties) :: LMC_prop
-    end type nl_properties
-    !
     type Subdomain
         integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML
         integer          :: material_definition
-
+        integer          :: deftype
+        logical          :: present ! true if an element with this mat exists on this cpu
         !! Numerotation gll
         integer :: NGLL
 
         !! Definition materiau solide, isotrope
         real(fpp) :: Pspeed, Sspeed, Ddensity
         real(fpp) :: DLambda, DMu
+        real(fpp) :: DE, DNu
         real(fpp) :: DKappa
         real(kind=8) :: dt
         !! Definition materiau solide anisotrope
@@ -48,21 +63,24 @@ module ssubdomains
         !! NONLINEAR LEMAITRE-CHABOCHE
         integer   :: nl_law
         real(fpp) :: Dsyld,DCkin,Dkkin,Drinf,Dbiso
+        !! NONLINEAR
+        real(fpp) :: syld,ckin,kkin,biso,rinf
 
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression
-        !! NONLINEAR
-        real(fpp) :: syld,ckin,kkin,biso,rinf
         !! PML
         real(fpp), dimension(0:2) :: pml_pos, pml_width
         integer :: npow
         real(fpp) :: Apow
 
         !! Boundaries for material initialisation from file
-        real(fpp), dimension(0:2) :: MinBound, MaxBound, MinBound_Loc, MaxBound_Loc
-        character(len=1024), dimension(0:2) :: propFilePath
-        integer :: lambdaSwitch = -1
-        type(nl_properties) :: nl_prop
+        real(fpp), dimension(0:2) :: MinBound_Loc, MaxBound_Loc
+
+        ! three variables on a 3D grid used for intializing from fields in files
+        ! depending on material_definition we can have
+        ! Vp(v1) Vs(v2) Rho(v3)
+        ! Lambda(v1) Mu(v2) Rho(v3) ...
+        type(PropertyField), dimension(3) :: pf
 
     end type Subdomain
 
