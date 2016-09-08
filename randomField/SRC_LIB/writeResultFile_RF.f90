@@ -868,7 +868,8 @@ contains
 
             !Writing Number of points in each Dimensions in the reverse order
             dimText = ""
-            do i = size(total_xNStep), 1, -1
+            !do i = size(total_xNStep), 1, -1
+            do i = 1, size(total_xNStep)
                 dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
             end do
             dimText = trim(adjustL(dimText))
@@ -900,15 +901,15 @@ contains
             end if
             write (file,'(3A)'     )'   <DataItem Name="origin" Format="XML" DataType="Float" &
                                         &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
-            if(nDim == 1) write (file,'(A,F25.10)'      )'    ', xMin(1)
-            if(nDim == 2) write (file,'(A,F25.10)'      )'    ', xMin(2), ' ', xMin(1)
-            if(nDim == 3) write (file,'(A,F25.10)'      )'    ', xMin(3), ' ', xMin(2), ' ', xMin(1)
+            if(nDim == 1) write (file,'(A,F25.10)'      )' ', xMin(1)
+            if(nDim == 2) write (file,'(A,F25.10)'      )' ', xMin(1), ' ', xMin(2)
+            if(nDim == 3) write (file,'(A,F25.10)'      )' ', xMin(1), ' ', xMin(2), ' ', xMin(3)
             write (file,'(A)'      )'   </DataItem>'
             write (file,'(3A)'     )'   <DataItem Name="step" Format="XML" DataType="Float" &
                                         &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
-            if(nDim == 1) write (file,'(A,F25.10)'      )'    ', xStep(1)
-            if(nDim == 2) write (file,'(A,F25.10)'      )'    ', xStep(2), ' ', xStep(1)
-            if(nDim == 3) write (file,'(A,F25.10)'      )'    ', xStep(3), ' ', xStep(2), ' ', xStep(1)
+            if(nDim == 1) write (file,'(A,F25.10)'      )' ', xStep(1)
+            if(nDim == 2) write (file,'(A,F25.10)'      )' ', xStep(1), ' ', xStep(2)
+            if(nDim == 3) write (file,'(A,F25.10)'      )' ', xStep(1), ' ', xStep(2), ' ', xStep(3)
             write (file,'(A)'      )'   </DataItem>'
             write (file,'(A)'     )'     </Geometry>'
 
@@ -1132,12 +1133,14 @@ contains
 
 
         !PREPARING ENVIROMENT
+        call wLog("HERE")
         info = MPI_INFO_NULL
         rank = nDim
         countND = xNStep
         rank1D = 1
         count1D = product(int(xNStep_Glob,8))
-        dims = int(xNStep_Glob,8)
+        !dims = int(xNStep_Glob,8)
+        dims = int(xNStep_Glob(size(xNStep_Glob):1:-1),8)
         call wLog("dims = ")
         call wLog(int(dims))
 
@@ -1159,7 +1162,12 @@ contains
         call wLog("Parallel writing (localization topology)")
         countND = maxPos - minPos + 1
         offset = origin - 1
-        !dims   = countND
+        call wLog("countND")
+        call wLog(int(countND))
+        call wLog("offset")
+        call wLog(int(offset))
+        countND = countND(size(countND):1:-1)
+        offset  = offset(size(offset):1:-1)
         call wLog("minPos")
         call wLog(int(minPos))
         call wLog("maxPos")
@@ -1180,6 +1188,8 @@ contains
         call wLog(int(offset))
         call h5screate_simple_f(rank, countND, memspace, error)  !NEW memspace
 
+        write(*,*) "TESTE"
+
         !CHOOSING SPACE IN FILE FOR THIS PROC
         call h5dget_space_f(dset_id, filespace, error) !GET filespace
         ! Select hyperslab in the file.
@@ -1196,12 +1206,18 @@ contains
 
         if(nDim == 2) then
             !randFieldLinear = pack(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), .true.)
-            randFieldLinear = reshape(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), &
+            randFieldLinear = reshape( &
+                              reshape(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), &
+                                      shape =[maxPos(2)-minPos(2)+1,maxPos(1)-minPos(1)+1], &
+                                      order =[2,1] ), &
                               [product(maxPos-minPos+1)])
 
         else if (nDim == 3) then
             !randFieldLinear = pack(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), .true.)
-            randFieldLinear = reshape(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), &
+            randFieldLinear = reshape( &
+                              reshape(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), &
+                                      shape =[maxPos(3)-minPos(3)+1, maxPos(2)-minPos(2)+1,maxPos(1)-minPos(1)+1], &
+                                      order =[3,2,1] ), &
                               [product(maxPos-minPos+1)])
 
         end if
