@@ -25,71 +25,44 @@ int check_dimension(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
-int expect_eq_model(yyscan_t scanner, int* model)
-{
-    int tok;
-    int len;
+const keyword_t kw_models[] = {
+    { 0, "CUB" },
+    { 1, "homo" },
+    { 2, "prem" },
+    { 3, "3D_berkeley" },
+    { 4, NULL },
+};
 
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"CUB"))         { *model = 0; return 1; }
-    if (cmp(scanner,"homo"))        { *model = 1; return 1; }
-    if (cmp(scanner,"prem"))        { *model = 2; return 1; }
-    if (cmp(scanner,"3D_berkeley")) { *model = 3; return 1; }
-error:
-    msg_err(scanner, "Expected CUB|homo|prem|3D_berkeley");
-    return 0;
-}
+const keyword_t kw_source_type[] = {
+    { 1, "pulse" },
+    { 1, "impulse"},
+    { 2, "moment"},
+    { 3, "fluidpulse"},
+    { 4, NULL },
+};
 
+const keyword_t kw_pml_type[] = {
+    { 1, "PML"},
+    { 2, "FPML"},
+    { 3, "CPML"},
+    { 4, NULL },
+};
 
-int expect_source_type(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
+const keyword_t kw_file_format[] = {
+    { 1, "text" },
+    { 2, "hdf5" },
+    { 3, NULL },
+};
 
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"pulse"))      { *type = 1; return 1; }
-    if (cmp(scanner,"impulse"))    { *type = 1; return 1; }
-    if (cmp(scanner,"moment"))     { *type = 2; return 1; }
-    if (cmp(scanner,"fluidpulse")) { *type = 3; return 1; }
-error:
-    msg_err(scanner, "Expected pulse|impulse|moment|fluidpulse");
-    return 0;
-}
-
-int expect_pml_type(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"PML"))    { *type = 1; return 1; }
-    if (cmp(scanner,"FPML"))   { *type = 2; return 1; }
-    if (cmp(scanner,"CPML"))   { *type = 3; return 1; }
-error:
-    msg_err(scanner, "Expected PML|FPML|CPML");
-    return 0;
-}
-
-int expect_file_format(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"text"))       { *type = 1; return 1; }
-    if (cmp(scanner,"hdf5"))       { *type = 2; return 1; }
-error:
-    msg_err(scanner, "Expected text|hdf5");
-    return 0;
-}
-
+const keyword_t kw_source_dir[] = {
+    { 0, "x" },
+    { 0, "X" },
+    { 1, "y" },
+    { 1, "Y" },
+    { 2, "z" },
+    { 2, "Z" },
+    { 3, NULL },
+};
 
 int expect_source_dir(yyscan_t scanner, int* dir)
 {
@@ -107,31 +80,22 @@ error:
     return 0;
 }
 
-int expect_source_func(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"gaussian"))     { *type = 1; return 1; }
-    if (cmp(scanner,"ricker"))       { *type = 2; return 1; }
-    if (cmp(scanner,"tf_heaviside")) { *type = 3; return 1; }
-    if (cmp(scanner,"gabor"))        { *type = 4; return 1; }
-    if (cmp(scanner,"file"))         { *type = 5; return 1; }
-    if (cmp(scanner,"spice_bench"))  { *type = 6; return 1; }
-    if (cmp(scanner,"sinus"))        { *type = 7; return 1; }
-    if (cmp(scanner,"square"))       { *type = 8; return 1; }
-    if (cmp(scanner,"tanh"))         { *type = 9; return 1; }
-    if (cmp(scanner,"ricker_fl"))    { *type =10; return 1; }
-    if (cmp(scanner,"triangle"))     { *type =11; return 1; }
-    if (cmp(scanner,"hsf"))          { *type =12; return 1; }
-    if (cmp(scanner,"dm"))           { *type =13; return 1; }
-error:
-    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh|ricker_fl|triangle|hsf");
-    return 0;
-}
+const keyword_t kw_source_func[] = {
+    {  1, "gaussian" },
+    {  2, "ricker" },
+    {  3, "tf_heaviside" },
+    {  4, "gabor" },
+    {  5, "file" },
+    {  6, "spice_bench" },
+    {  7, "sinus" },
+    {  8, "square" },
+    {  9, "tanh" },
+    { 10, "ricker_fl" },
+    { 11, "triangle" },
+    { 12, "hsf" },
+    { 13, "dm" },
+    { 14, NULL },
+};
 
 void init_source(source_t* source)
 {
@@ -162,9 +126,9 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
 	if (cmp(scanner,"coords")) err=expect_eq_float(scanner, source->coords, dim);
-	else if (cmp(scanner,"type")) err=expect_source_type(scanner, &source->type);
+	else if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_source_type, &source->type);
 	else if (cmp(scanner,"dir")) err=expect_eq_float(scanner, source->dir, dim);
-	else if (cmp(scanner,"func")) err=expect_source_func(scanner, &source->func);
+	else if (cmp(scanner,"func")) err=expect_eq_keyword(scanner, kw_source_func, &source->func);
 	else if (cmp(scanner,"moment")) err=expect_eq_float(scanner, source->moments, mdim);
 	else if (cmp(scanner,"tau")) err=expect_eq_float(scanner, &source->tau, 1);
 	else if (cmp(scanner,"freq")) err=expect_eq_float(scanner, &source->freq, 1);
@@ -299,13 +263,22 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
 	if (tok!=K_ID) break;
 
 	// TODO
-	if (cmp(scanner,"pml_type")) err=expect_pml_type(scanner, &config->pml_type);
+	if (cmp(scanner,"pml_type")) err=expect_eq_keyword(scanner, kw_pml_type, &config->pml_type);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
     return 1;
 }
+
+keyword_t kw_material_type[] = {
+    { 1, "constant" },
+    { 2, "gradient" },
+    { 3, "earthchunk" },
+    { 4, "prem" },
+    { 5, "random" },
+    { 6, NULL },
+};
 
 int expect_material_type(yyscan_t scanner, int* type) {
     int tok;
@@ -324,21 +297,13 @@ error:
     return 0;
 }
 
-int expect_station_type(yyscan_t scanner, int* type) {
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"points"))  { *type = 1; return 1; }
-    if (cmp(scanner,"line"))    { *type = 2; return 1; }
-    if (cmp(scanner,"plane"))   { *type = 3; return 1; }
-    if (cmp(scanner,"single"))  { *type = 4; return 1; }
-error:
-    msg_err(scanner, "Expected points|line|plane");
-    return 0;
-}
+const keyword_t kw_station_type[] = {
+    { 1, "points" },
+    { 2, "line" },
+    { 3, "plane" },
+    { 4, "single" },
+    { 5, NULL },
+};
 
 int expect_materials(yyscan_t scanner, sem_config_t* config)
 {
@@ -352,7 +317,7 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
 
-	if (cmp(scanner,"type")) err=expect_material_type(scanner, &config->material_type);
+	if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_material_type, &config->material_type);
 	if (cmp(scanner,"file")) err=expect_eq_string(scanner, &config->model_file,1);
 	if (cmp(scanner,"delta_lon")) err=expect_eq_float(scanner, &config->delta_lon, 1);
 	if (cmp(scanner,"delta_lat")) err=expect_eq_float(scanner, &config->delta_lat, 1);
@@ -635,7 +600,7 @@ int expect_capteurs(yyscan_t scanner, sem_config_t* config)
     do {
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
-	if (cmp(scanner,"type")) err=expect_station_type(scanner, &stations.type);
+	if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_station_type, &stations.type);
 	if (cmp(scanner,"counti")) err=expect_eq_int(scanner, &stations.count[0], 1);
 	if (cmp(scanner,"countj")) err=expect_eq_int(scanner, &stations.count[1], 1);
 	if (cmp(scanner,"period")) err=expect_eq_int(scanner, &stations.period, 1);
@@ -666,7 +631,7 @@ int expect_capteurs(yyscan_t scanner, sem_config_t* config)
 
 int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 {
-    int tok, err;
+    int tok, err=0;
     do {
 	tok = skip_blank(scanner);
 	if (!tok) break;
@@ -695,14 +660,14 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
 	else if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
 	else if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
-	else if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
+	else if (cmp(scanner,"traces_format")) err=expect_eq_keyword(scanner, kw_file_format, &config->traces_format);
 	else if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
 	else if (cmp(scanner,"pml_infos")) err=expect_pml_infos(scanner, config);
 	else if (cmp(scanner,"capteurs")) err=expect_capteurs(scanner, config);
 	// useless (yet or ever)
 	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
-	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
+	else if (cmp(scanner,"model")) err=expect_eq_keyword(scanner, kw_models, &config->model);
 	else if (cmp(scanner,"surface")) err=expect_surfaces(scanner, config);
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
 	//Material

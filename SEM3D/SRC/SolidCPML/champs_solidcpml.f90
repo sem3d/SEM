@@ -70,9 +70,6 @@ module champs_solidpml
         type(champssolidpml) :: champs0 ! Etat courant
         type(champssolidpml) :: champs1 ! Prediction (à partir de l'état courant)
 
-        ! Dans le correcteur, on a besoin de V_n+3/2 qu'on ne connait pas : on s'appuie sur U_n+1/2 pour l'estimer
-        real(fpp), dimension(:,:), allocatable :: DeplaPrev ! U_n+1/2
-
         real(fpp), dimension(:,:), allocatable :: R1 ! Convolutional term R1 (19a) from Ref1
         real(fpp), dimension(:,:), allocatable :: R2 ! Convolutional term R2 (19b) from Ref1
         real(fpp), dimension(:,:), allocatable :: R3 ! Convolutional term R3 (19c) from Ref1

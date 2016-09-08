@@ -22,6 +22,8 @@ contains
         integer :: i, mat, dom
 
         call read_material_file_v2(Tdomain)
+        ! Complete the material definition with optional material.spec
+        call read_material_spec(Tdomain)
 
         Tdomain%any_sdom = .false.
         Tdomain%any_fdom = .false.
@@ -33,7 +35,7 @@ contains
         Tdomain%fpmldom%ngll = 0
 
         do mat = 0, Tdomain%n_mat-1
-            dom = get_domain(Tdomain%sSubDomain(mat))
+            dom = Tdomain%sSubDomain(mat)%dom
 
             select case (dom)
                  case (DM_SOLID)
@@ -55,7 +57,7 @@ contains
         !- GLL properties in elements, on faces, edges.
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
-            Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
+            Tdomain%specel(i)%domain = Tdomain%sSubDomain(mat)%dom
         end do
 
         call apply_mat_to_faces(Tdomain)
@@ -72,23 +74,62 @@ contains
 
     end subroutine read_material_file
 
+    subroutine read_material_spec(Tdomain)
+        use sdomain
+        use semdatafiles
+        implicit none
+        type(domain), intent(inout)                  :: Tdomain
+        !
+        type(sem_material), pointer :: matdesc
+        integer :: code, num
+
+        call read_sem_materials(Tdomain%material_list, "material.spec"//C_NULL_CHAR, code)
+
+        call c_f_pointer(Tdomain%material_list%head, matdesc)
+
+        do while(associated(matdesc))
+            num = matdesc%num
+            select case(matdesc%defspatial)
+            case (0) ! CONSTANT
+                Tdomain%sSubdomain(num)%material_definition = MATERIAL_CONSTANT
+            case (1) ! FILE
+                Tdomain%sSubdomain(num)%material_definition = MATERIAL_FILE
+                Tdomain%sSubdomain(num)%pf(1)%propFilePath = trim(fromcstr(matdesc%filename0))
+                Tdomain%sSubdomain(num)%pf(2)%propFilePath = trim(fromcstr(matdesc%filename1))
+                Tdomain%sSubdomain(num)%pf(3)%propFilePath = trim(fromcstr(matdesc%filename2))
+            end select
+            Tdomain%sSubdomain(num)%deftype  = matdesc%deftype
+            Tdomain%sSubdomain(num)%Ddensity = matdesc%rho
+            Tdomain%sSubdomain(num)%Pspeed   = matdesc%Vp
+            Tdomain%sSubdomain(num)%Sspeed   = matdesc%Vs
+            Tdomain%sSubdomain(num)%DE       = matdesc%E
+            Tdomain%sSubdomain(num)%DNu      = matdesc%nu
+            Tdomain%sSubdomain(num)%DLambda  = matdesc%lambda
+            Tdomain%sSubdomain(num)%DMu      = matdesc%mu
+            Tdomain%sSubdomain(num)%DKappa   = matdesc%kappa
+            !!! TODO Add Qp/Qmu, PML
+            call c_f_pointer(matdesc%next, matdesc)
+        end do
+        if (code<=0) then
+            write(*,*) "Erreur reading material.spec"
+            stop 1
+        endif
+    end subroutine read_material_spec
+
     subroutine read_material_file_v2(Tdomain)
         use sdomain
         use semdatafiles
         use mpi
-#ifdef USE_RF
-        use build_prop_files
-#endif
         implicit none
 
-        type(domain), intent(inout)                  :: Tdomain
-        character(Len=MAX_FILE_SIZE)                 :: fnamef, buffer
-        integer                                      :: i, n_aus, npml
-        integer                                      :: rg, NGLL, fid
+        type(domain), intent(inout)   :: Tdomain
+        character(Len=MAX_FILE_SIZE)  :: fnamef, buffer
+        integer                       :: i, n_aus, npml
+        integer                       :: rg, NGLL, fid, assocMat
+        character                     :: material_type
 
         rg = Tdomain%rank
         npml = 0
-        Tdomain%nRandom = 0
         fid = 13
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
@@ -108,14 +149,11 @@ contains
             stop
         endif
 
-        allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
-        Tdomain%any_Random   = .false.
-        Tdomain%not_PML_List = .true.
 
         do i = 0,Tdomain%n_mat-1
 
             buffer = getLine (fid, "#")
-            read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
+            read(buffer,*) material_type, &
                 Tdomain%sSubDomain(i)%Pspeed,        &
                 Tdomain%sSubDomain(i)%Sspeed,        &
                 Tdomain%sSubDomain(i)%dDensity,      &
@@ -123,28 +161,20 @@ contains
                 Tdomain%sSubDomain(i)%Qpression,     &
                 Tdomain%sSubDomain(i)%Qmu
             Tdomain%sSubDomain(i)%NGLL = NGLL
-            Tdomain%sSubdomain(i)%assocMat = i
+            Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)
+            Tdomain%sSubdomain(i)%material_definition = MATERIAL_CONSTANT
+            Tdomain%sSubDomain(i)%deftype = MATDEF_VP_VS_RHO
 
-            call Lame_coefficients (Tdomain%sSubDomain(i))
+            ! call Lame_coefficients (Tdomain%sSubDomain(i)) ! XXX Make sure its done in definearrays
 
-            if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
+            if (is_pml(Tdomain%sSubDomain(i)))  then
                 npml = npml + 1
-                Tdomain%not_PML_List(i) = .false.
-            else
             endif
-
-            Tdomain%sSubDomain(i)%initial_material_type = Tdomain%sSubDomain(i)%material_type
-            if (Tdomain%sSubDomain(i)%material_type == "R") then
-                Tdomain%nRandom = Tdomain%nRandom + 1
-                Tdomain%sSubDomain(i)%material_type = "S"
-                Tdomain%any_Random = .true.
-            end if
-
         enddo
 
         if(npml > 0) then
             do i = 0,Tdomain%n_mat-1
-                if(.not. Tdomain%not_PML_List(i)) then
+                if (is_pml(Tdomain%sSubDomain(i)))  then
                     buffer = getLine (fid, "#")
                     read(buffer,*) Tdomain%sSubdomain(i)%npow,  &
                         Tdomain%sSubdomain(i)%Apow,         &
@@ -154,33 +184,11 @@ contains
                         Tdomain%sSubdomain(i)%pml_width(1), &
                         Tdomain%sSubdomain(i)%pml_pos(2), &
                         Tdomain%sSubdomain(i)%pml_width(2), &
-                        Tdomain%sSubdomain(i)%assocMat
+                        assocMat
                 endif
             enddo
         endif
 
-#ifdef USE_RF
-        Tdomain%any_PropOnFile = .false.
-        do i = 0,Tdomain%n_mat-1
-            if(propOnFile(Tdomain, i)) then
-                Tdomain%any_PropOnFile = .true.
-                exit
-            end if
-        enddo
-#endif
-
-        if(Tdomain%nRandom > 0) then
-            do i = 0,Tdomain%n_mat-1
-                if(Tdomain%sSubdomain(i)%initial_material_type == 'R') then
-                    buffer = getLine (fid, "#")
-                    read(buffer,*) Tdomain%sSubdomain(i)%lambdaSwitch
-                    buffer = getLine (fid, "#") !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    buffer = getLine (fid, "#") !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-                    buffer = getLine (fid, "#") !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-
-                endif
-            enddo
-        endif
 
         write (*,*)
         write (*,*)
@@ -430,29 +438,29 @@ contains
         endif
 
 
-        if( Tdomain%config%material_present == 1) then
-
-            select case (Tdomain%config%material_type)
-
-            case (MATERIAL_PREM)
-                Tdomain%aniso=.true.
-            case (MATERIAL_EARTHCHUNK)
-                Tdomain%earthchunk_isInit=1
-                Tdomain%aniso=.true.
-                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
-                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
-                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
-
-            end select
-
-            do imat=0,Tdomain%n_mat-1
-                Tdomain%sSubDomain(imat)%material_definition = Tdomain%config%material_type
-            enddo
-        else
-            do imat=0,Tdomain%n_mat-1
-                Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
-            enddo
-        endif
+!        if( Tdomain%config%material_present == 1) then
+!
+!            select case (Tdomain%config%material_type)
+!
+!            case (MATERIAL_PREM)
+!                Tdomain%aniso=.true.
+!            case (MATERIAL_EARTHCHUNK)
+!                Tdomain%earthchunk_isInit=1
+!                Tdomain%aniso=.true.
+!                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
+!                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
+!                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
+!
+!            end select
+!
+!            do imat=0,Tdomain%n_mat-1
+!                Tdomain%sSubDomain(imat)%material_definition = Tdomain%config%material_type
+!            enddo
+!        else
+!            do imat=0,Tdomain%n_mat-1
+!                Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
+!            enddo
+!        endif
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input
 

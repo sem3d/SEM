@@ -26,7 +26,7 @@ contains
         nbelem  = dom%nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+        call init_dombase(dom)
 
         aniso   = Tdomain%aniso
         n_solid = Tdomain%n_sls
@@ -37,19 +37,12 @@ contains
         if(nbelem /= 0) then
             ! Do not allocate if not needed (save allocation/RAM)
             ! Wexo can have glls without elements
-            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
-            dom%nblocks = nblocks
+            nblocks = dom%nblocks
 
             allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            dom%m_Idom = 0
 
             if (aniso) then
                 allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
@@ -106,10 +99,6 @@ contains
             dom%champs0%Forces = 0d0
             dom%champs0%Depla = 0d0
             dom%champs0%Veloc = 0d0
-
-            ! Allocation de MassMat pour les solides
-            allocate(dom%MassMat(0:dom%nglltot-1))
-            dom%MassMat = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid
@@ -122,16 +111,6 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
         if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
-
-        if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
-        if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
-
-        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
-
-        if(allocated(dom%gllc))    deallocate(dom%gllc)
-        if(allocated(dom%gllw))    deallocate(dom%gllw)
-        if(allocated(dom%hprime))  deallocate(dom%hprime)
-        if(allocated(dom%htprime)) deallocate(dom%htprime)
 
         if(allocated(dom%m_Cij            )) deallocate (dom%m_Cij            )
         if(allocated(dom%m_Q              )) deallocate (dom%m_Q              )
@@ -159,7 +138,8 @@ contains
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
-        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+
+        call deallocate_dombase(dom)
     end subroutine deallocate_dom_solid
 
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
@@ -327,66 +307,63 @@ contains
 
     end subroutine get_solid_dom_var
 
-    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat)
+    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: i, j, k ! -1 means :
-        real(fpp), intent(in) :: density
-        real(fpp), intent(in) :: lambda
-        real(fpp), intent(in) :: mu
-        real(fpp), intent(in) :: kappa
-        type (subdomain), intent(in), optional :: mat
+        type (subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%Density_(:,:,:,bnum,ee) = density
-            dom%Lambda_ (:,:,:,bnum,ee) = lambda
-            dom%Kappa_  (:,:,:,bnum,ee) = kappa
-            dom%Mu_     (:,:,:,bnum,ee) = mu
-        else
-            dom%Density_(i,j,k,bnum,ee) = density
-            dom%Lambda_ (i,j,k,bnum,ee) = lambda
-            dom%Kappa_  (i,j,k,bnum,ee) = kappa
-            dom%Mu_     (i,j,k,bnum,ee) = mu
-        end if
+        dom%Density_(:,:,:,bnum,ee) = density
+        dom%Lambda_ (:,:,:,bnum,ee) = lambda
+        dom%Mu_     (:,:,:,bnum,ee) = mu
 
-        if (present(mat)) then
-            if (dom%n_sls>0)  then
-                if (dom%aniso) then
-                    dom%Q_(:,:,:,bnum,ee) = mat%Qmu
-                else
-                    dom%Qs_(:,:,:,bnum,ee) = mat%Qmu
-                    dom%Qp_(:,:,:,bnum,ee) = mat%Qpression
-                endif
+        if (dom%n_sls>0)  then
+            dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
+            if (dom%aniso) then
+                dom%Q_(:,:,:,bnum,ee) = mat%Qmu
+            else
+                dom%Qs_(:,:,:,bnum,ee) = mat%Qmu
+                dom%Qp_(:,:,:,bnum,ee) = mat%Qpression
             endif
         endif
     end subroutine init_material_properties_solid
 
-    subroutine init_material_tensor_solid(dom, lnum, i, j, k, density, Cij)
+    subroutine init_material_tensor_solid(dom, lnum, mat, density, Cij)
+        use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: i, j, k
-        real(fpp), intent(in) :: density
-        real(fpp), dimension(1:6,1:6), intent(in) :: Cij
+        type (subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), dimension(1:6,1:6,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: Cij
 
         integer :: idef, ii, jj
+        integer :: i, j, k
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        idef = 0
-        do ii = 1,6
-            do jj = ii,6
-                dom%Cij_(idef,i,j,k,bnum,ee) = Cij(ii,jj)
-                idef = idef + 1
+        do i=0,dom%ngll-1
+            do j=0,dom%ngll-1
+                do k=0,dom%ngll-1
+                    idef = 0
+                    do ii = 1,6
+                        do jj = ii,6
+                            dom%Cij_(idef,i,j,k,bnum,ee) = Cij(ii,jj,i,j,k)
+                            idef = idef + 1
+                        enddo
+                    enddo
+                enddo
             enddo
         enddo
-        dom%Density_(i,j,k,bnum,ee) = density
+        dom%Density_(:,:,:,bnum,ee) = density
     end subroutine init_material_tensor_solid
 
     subroutine init_local_mass_solid(dom,specel,i,j,k,ind,Whei)
@@ -493,6 +470,18 @@ contains
         enddo
         dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
     end subroutine newmark_corrector_solid
+
+    function solid_Pspeed(dom, lnum, i, j, k) result(Pspeed)
+        type(domain_solid), intent (IN) :: dom
+        integer, intent(in) :: lnum, i, j, k
+        !
+        real(fpp) :: Pspeed, M
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        M = dom%Lambda_(i,j,k,bnum,ee) + 2.*dom%Mu_(i,j,k,bnum,ee)
+        Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
+    end function solid_Pspeed
 end module dom_solid
 
 !! Local Variables:

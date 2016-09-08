@@ -28,11 +28,8 @@ contains
         real(FPP)                            :: xp, yp, zp
         real(FPP), parameter                 :: XEPS=1e-10
         real(FPP)                            :: dxp, dyp, dzp
-        real(FPP),dimension(:,:),allocatable :: BtN
-        integer                              :: bnum, ee, i_neu,  ne, nv, nf,ngllx, nglly, ngllz
-        integer                              :: fc, el, ngll1, ngll2, ed, ve, i_surf
-        integer, allocatable, dimension(:)   :: renum
-        integer, dimension(0:3)              :: loc_vertices, loc_nodes, mat_index
+        integer                              :: bnum, ee
+        integer                              :: ve, i_surf
 
         ! Tdomain%n_glob_points is the number of degrees of fredom
         allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
@@ -148,7 +145,7 @@ contains
         call get_surface_numbering(Tdomain,Tdomain%SF%intSolFlu%surf1, DM_FLUID, renum)
 
         do nf=0,Tdomain%n_face-1
-            ngll = Tdomain%sFace(nf)%ngll1
+            ngll = Tdomain%sFace(nf)%ngll
             if (Tdomain%sFace(nf)%domain/=DM_FLUID) cycle
             do j=0,ngll-1
                 do i=0,ngll-1

@@ -8,13 +8,7 @@
 #define _MATERIAL_H_
 #include <cassert>
 #include <vector>
-
-typedef enum {
-    DM_SOLID = 4,
-    DM_SOLID_PML = 2,
-    DM_FLUID = 3,
-    DM_FLUID_PML = 1
-} material_type_t;
+#include "sem_materials.h"
 
 //#define DM_MAX 4
 #define DM_MAX 4 

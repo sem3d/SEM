@@ -115,6 +115,7 @@ contains
     end subroutine calcul_forces_aniso
 
 #undef ATTENUATION
+#undef PROCNAME
 #define ANISO
 #define NGLLVAL 4
 #define PROCNAME calcul_forces_aniso_4

@@ -42,11 +42,11 @@ subroutine test_index()
     use mindex
     implicit none
     !
-    integer, dimension(0:2) :: ngll
+    integer :: ngll
     integer, dimension(0:3) :: face1, face2
     integer, dimension(0:2) :: i0, di, dj
     integer :: nf
-    ngll = (/3,4,5/)
+    ngll = 5
 
     face1 = (/ 0, 1, 2, 3 /)
     face2 = (/ 3, 0, 1, 2 /)
