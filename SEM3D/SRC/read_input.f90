@@ -274,6 +274,20 @@ contains
             if (pos(i)>box(3+i)) is_in_box = .false.
         end do
     end function is_in_box
+    !
+    ! Renvoie true si le point est a une distance <1 du plane
+    function is_in_plane(pos, plane)
+        real, dimension(3), intent(in) :: pos
+        real, dimension(4), intent(in) :: plane
+        logical :: is_in_plane
+        !
+        integer :: i
+        real :: w
+
+        is_in_plane = .false.
+        w = plane(1)*pos(1)+plane(2)*pos(2)+plane(3)*pos(3)+plane(4)
+        if (abs(w)<1) is_in_plane = .true.
+    end function is_in_plane
     !>
     ! Selectionne les elements pour les inclure ou non dans les snapshots
     !<
@@ -312,6 +326,9 @@ contains
                 case (3)
                     ! Box
                     if (is_in_box(pos, selection%box)) Tdomain%specel(n)%output = sel
+                case (4)
+                    ! Plane
+                    if (is_in_plane(pos, selection%plane)) Tdomain%specel(n)%output = sel
                 end select
 
                 call c_f_pointer(selection%next, selection)

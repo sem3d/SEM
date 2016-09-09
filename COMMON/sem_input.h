@@ -40,6 +40,8 @@ typedef struct snapshot_cond {
     int include;
     /// Dimension de la boite pour le type box
     double box[6];
+    /// Equation d'un plan pour selection
+    double plane[4];
     /// Type de materiau pour le type material
     int material;
 } snapshot_cond_t;

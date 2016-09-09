@@ -118,6 +118,7 @@ module sem_c_config
        integer(C_INT) :: type
        integer(C_INT) :: include
        real(C_DOUBLE), dimension(6) :: box
+       real(C_DOUBLE), dimension(4) :: plane
        integer(C_INT) :: material
     end type sem_snapshot_cond
 

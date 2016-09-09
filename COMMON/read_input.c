@@ -487,7 +487,7 @@ int expect_surfaces(yyscan_t scanner, sem_config_t* config)
 int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
 {
     int tok, err=1;
-    double box[6];
+    double box[6], plane[4];
     int material, type, i;
     snapshot_cond_t* cond;
 
@@ -497,6 +497,7 @@ int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
     if (cmp(scanner,"all")) { type = 1; err=1; }
     if (cmp(scanner,"material")) { type = 2; err=expect_eq_int(scanner, &material, 1); }
     if (cmp(scanner,"box")) { type = 3; err=expect_eq_float(scanner, box, 6); }
+    if (cmp(scanner,"plane")) { type = 4; err=expect_eq_float(scanner, plane, 4); }
     //printf("Found type=%d\n", type);
     if (err<=0) return err;
 
@@ -506,6 +507,7 @@ int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
     cond->type = type;
     cond->include = include;
     config->snapshot_selection = cond;
+    if (type==4) for(i=0;i<4;++i) cond->plane[i] = plane[i];
     if (type==3) for(i=0;i<6;++i) cond->box[i] = box[i];
     if (type==2) cond->material = material;
     return 1;
