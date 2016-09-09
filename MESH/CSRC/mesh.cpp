@@ -144,17 +144,14 @@ int Mesh3D::read_materials(const std::string& str)
 
 int Mesh3D::read_materials_v2(const std::string& str)
 {
-    int nmats;
-    int k=0;
-    char type;
+    int         nmats;
+    int           k=0;
+    char         type;
     char *buffer=NULL;
     size_t linesize=0;
-    double vs, vp, rho;
-    int ngllx;
-    int ineu=0;
-    int ipml=0;
-    int ifai=0;
-    double Qp, Qmu;
+    double  vs,vp,rho;
+    int         ngllx;
+    double    Qp, Qmu;
 
     int    lambdaSwitch;
 
@@ -302,7 +299,6 @@ void Mesh3D::read_mesh_file(const std::string& fname)
     }
     h5h_read_dset(file_id, "/Sem3D/Mat", m_mat);
 
-    // Add by Mtaro
     std::vector<int> domain=m_mat;
     std::sort( domain.begin(), domain.end() );
     domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
@@ -347,39 +343,40 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
         exit(1);
     }
 
-    h5h_read_dset(file_id, "/Mesh_quad4/Mat", m_matQuad);
+  h5h_read_dset(file_id, "/Mesh_quad4/Mat", m_matQuad);
+  
+  std::vector<int> domain=m_matQuad;
+  std::sort( domain.begin(), domain.end() );
+  domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
+  
+  for (int i=0; i< m_matQuad.size(); i++){
+      m_matQuad[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_matQuad[i]));}
 
-    std::vector<int> domain=m_matQuad;
-    std::sort( domain.begin(), domain.end() );
-    domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
+  for (int i=0; i< domain.size(); i++){
+       std::ostringstream convert;
+       convert << domain[i];
+       m_surf_matname.push_back("surface"+convert.str());}
+   
+  printf("\n");
+  printf("Nb surfaces in PythonHDF5.h5 : %d \n\n", m_surf_matname.size());
 
-    for (int i=0; i< m_matQuad.size(); i++){
-        m_matQuad[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_matQuad[i]));}
-
-    for (int i=0; i< domain.size(); i++){
-        std::ostringstream convert;
-        convert << i;
-        m_surf_matname.push_back("surface"+convert.str());}
-
-    printf("\n");
-    printf("Nb surfaces in PythonHDF5.h5 : %d \n\n", m_surf_matname.size());
-
-    elemtrace = m_elems;
-    int imat  = m_mat.size();
-    int mmm   = imat;
-
-    for(int k=0; k< nel; ++k){
-        m_elems_offs.push_back(8*(k+1+mmm));
-        std::vector<int> elemneed, elems;
-        for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
-        int elmat=imat+k;
-        int tg4nodes=m_matQuad[k];
-        findelem(elmat, elemtrace, elems, elemneed, elmat);
-        m_mat.push_back(m_mat[elmat]);
-
-        for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
-        surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[elmat]), tg4nodes);
-    }
+  elemtrace = m_elems;
+  int imat  = m_mat.size();
+  int mmm   = imat;
+   
+  for(int k=0; k< nel; ++k){
+     m_elems_offs.push_back(8*(k+1+mmm));     
+     std::vector<int> elemneed, elems;
+     for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
+     int elmat=imat+k;
+     int tg4nodes=m_matQuad[k]; 
+     int el8mat=-1;
+     findelem(elmat, elemtrace, elems, elemneed,el8mat);
+     m_mat.push_back(m_mat[el8mat]);
+      
+     for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
+     surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[el8mat]), tg4nodes);
+   }
 }
 
 void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int &elmat)
@@ -389,6 +386,7 @@ void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems
 
     for(int i=0; i< eltr.size()/8; i++){
         std::vector<int> elems_i;
+        elems_i.clear();
         for(int j=0; j<8; j++) elems_i.push_back(eltr[i*8+j]);
         if (elems_i.size()==8){
             int p=0;

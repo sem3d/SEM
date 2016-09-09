@@ -85,8 +85,9 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/SourceMT/ErrorWarning.f90
     ${PRJ}/SRC/SourceMT/Dimension.f90
     ${PRJ}/SRC/SourceMT/create_sem_surface_input.f90
-    ${PRJ}/SRC/SourceMT/compute_surface_BC.f90            	
-    ${PRJ}/SRC/SourceMT/get_surfaces_settings.f90
+    ${PRJ}/SRC/SourceMT/compute_surface_BC.f90
+    ${PRJ}/SRC/SourceMT/DimensionalShape.f90
+    ${PRJ}/SRC/SourceMT/selectsurfload.f90 
 )
 
 if (OPT_CPML)

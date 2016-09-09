@@ -447,6 +447,58 @@ contains
         enddo
     end subroutine forces_int_solid
 
+    subroutine compute_planeW_Exafield(lnum,ctime,Tdomain)
+        
+        use sdomain
+        use Surface_prbl_type
+
+        implicit none
+        type(domain),               intent(inout) :: Tdomain
+        real(kind=8),               intent(in  )  :: ctime
+        integer,                    intent(in   ) :: lnum
+        real(kind=8), dimension(0:2):: coord, displ, veloc, accel
+        real(kind=8)                :: PWspeed
+        character(len=20)           :: char
+        integer                     :: ns, im, i, j, k, dom, ipw, ngll
+        integer                     :: bnum, ee, ind, ss
+
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+
+        do ns=1,size(Tdomain%list_PWBC)
+           ipw     = Tdomain%list_PWBC(ns)
+           im      = Tdomain%nsurfsource(ipw)%mat_index
+           dom     = Tdomain%sSubDomain(im)%dom
+           ngll     = Tdomain%sSubDomain(im)%NGLL
+           write(char,*) Tdomain%nsurfsource(ipw)%index(1)
+           block :& 
+           do ss=0,size(Tdomain%sSurfaces)-1
+              if (Tdomain%sSurfaces(ss)%name=="surface"//adjustl(char(:len_trim(char)))) &
+                  exit block
+           enddo block
+           PWspeed = Tdomain%sSurfaces(ss)%Elastic%PWspeed
+           select case (dom)
+                  case (DM_SOLID)
+                       ngll     = Tdomain%sdom%ngll
+                       do k=0,ngll-1
+                          do j=0,ngll-1
+                             do i=0,ngll-1
+                                ind = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
+                                coord = Tdomain%GlobCoord(:,ind)-Tdomain%nsurfsource(ipw)%scoord(:)
+                                call PlaneWavedispl(Tdomain%nsurfsource(ipw),coord,ctime,PWspeed, displ,veloc,accel)
+                               if (allocated(Tdomain%sdom%champs0%Depla))  Tdomain%sdom%champs0%Depla(ind,:)  = Tdomain%sdom%champs0%Depla(ind,:) + displ
+                               if (allocated(Tdomain%sdom%champs0%Veloc))  Tdomain%sdom%champs0%Veloc(ind,:)  = Tdomain%sdom%champs0%Veloc(ind,:) + veloc
+                               if (allocated(Tdomain%sdom%champs0%Forces)) Tdomain%sdom%champs0%Forces(ind,:) = Tdomain%sdom%champs0%Forces(ind,:) + accel
+                             enddo
+                          enddo
+                       enddo
+                   case(DM_FLUID)
+                      ! pas encore implémenté
+           end select
+        enddo
+
+    end subroutine compute_planeW_Exafield
+
     subroutine newmark_predictor_solid(dom)
         type(domain_solid), intent (INOUT) :: dom
         !

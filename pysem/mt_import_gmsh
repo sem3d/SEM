@@ -90,7 +90,7 @@ class Gmsh(object):
         self.tetra4_mat = []
         self.quad4_mat = []
         self.hexa8_mat = []
-        self.tag_mat = 1
+        self.tag_mat = 0
 
     def read(self, f):
         while True:

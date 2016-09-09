@@ -15,7 +15,7 @@ void getData_line(char **buffer, size_t* linesize, FILE* f)
 
     for(int k=0;k<100;++k) {
         if(*buffer[0] != '#'){
-            break;
+          break;
         }
         else{
             getline(buffer, linesize, f);

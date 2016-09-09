@@ -79,7 +79,7 @@ typedef struct station_def_t {
 // structire définissant les surfaces 
 typedef struct surface{
     struct surface* next;
-    int surface_list[20];
+    int surface_list[40];
     int surface_present;
     int surface_type;
     int surface_mat;
@@ -102,6 +102,12 @@ typedef struct surface{
     char* surface_varia;
     double amplitude;
     double Rtau;
+    int surface_space;
+    double surface_size;
+    char * surface_name;
+    int surface_wave;
+    double surface_Speed;
+    double surface_dirU[3];
 }surface_t;
 
 typedef struct {
@@ -195,6 +201,8 @@ int skip_blank(yyscan_t scanner);
 int expect_eq(yyscan_t scanner);
 int expect_eq_bool(yyscan_t scanner, int* bools, int nexpected);
 int expect_eq_float(yyscan_t scanner, double* vals, int nexpected);
+int expect_int_list(yyscan_t scanner, int* vals);
+int expect_eq_int_list(yyscan_t scanner, int* vals);
 int expect_int(yyscan_t scanner, int* vals, int nexpected);
 int expect_eq_int(yyscan_t scanner, int* vals, int nexpected);
 int expect_string(yyscan_t scanner, char** str, int nexpected);

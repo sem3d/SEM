@@ -17,6 +17,7 @@ contains
         use scomm
         use mrenumber
         use surface_load, only : get_surf_gll_coord
+        use DimensionalShape, only : surfaceSource
         implicit none
 
         type(domain), intent(inout)          :: Tdomain
@@ -97,22 +98,26 @@ contains
             deallocate(GLLc)
         enddo ! end of loop onto elements
 
-        ! Neumann Boundary Conditions : normal vectors
+        ! Surface Conditions : normal vectors
         if (Tdomain%logicD%surfBC) then
             do i_surf=0,size(Tdomain%sSurfaces)-1                     
                select case (Tdomain%sSurfaces(i_surf)%domain)
                   case (DM_SOLID)
                      call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sl, DM_SOLID, Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_sl,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                     call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_sl%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
                   case (DM_FLUID)
                      call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fl, DM_FLUID, Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_fl,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                     call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_fl%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
                   case (DM_SOLID_PML)
                      call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_spml, DM_SOLID_PML,Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_spml,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                     call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_spml%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
                   case (DM_FLUID_PML)
                      call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fpml, DM_FLUID_PML,Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_fpml,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                     call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_fpml%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
                 end select
               enddo
          endif 
