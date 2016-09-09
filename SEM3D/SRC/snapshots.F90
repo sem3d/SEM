@@ -1245,7 +1245,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        integer, dimension(:), allocatable :: nData
+        !integer, dimension(:), allocatable :: nData
         integer :: bnum, ee
         real, dimension(:), allocatable :: GLLw
         real(fpp), dimension(:,:,:), allocatable :: jac
@@ -1265,10 +1265,10 @@ contains
 
         call allocate_fields(nnodes, nsubelements, Tdomain%out_variables, out_fields, nl_flag)
         allocate(valence(0:nnodes-1))
-        allocate(nData(0:nnodes-1))
+        !allocate(nData(0:nnodes-1))
 
         valence(:) = 0
-        nData(:) = 0
+        !nData(:) = 0
 
         ngll = 0
         count_press = 0
@@ -1283,10 +1283,6 @@ contains
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
             if (.not. el%OUTPUT ) cycle
-            !if (.not. el%OUTPUT .and. &
-            !  (.not. &
-            !  (out_variables(OUT_ENERGYP   ) == 1 .or. out_variables(OUT_ENERGYS   ) == 1) &
-            !  )) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
@@ -1316,7 +1312,6 @@ contains
                     do i = 0, ngll-1
                         ind = irenum(el%Iglobnum(i,j,k))
                         valence(ind) = valence(ind)+1
-                        nData(ind) = nData(ind) + 1
                         select case (domain_type)
                             case (DM_SOLID)
                                 jac(i,j,k) = Tdomain%sdom%Jacob_   (i,j,k,bnum,ee)
@@ -1384,22 +1379,22 @@ contains
             if(allocated(jac)) deallocate(jac)
             if(allocated(GLLw)) deallocate(GLLw)
         enddo
-        write(*,*) "out_fields_eps_dev_size",shape(out_fields%eps_dev)
-        write(*,*) "out_fields_eps_dev",out_fields%eps_dev
-        write(*,*) "counter",count_epsdev
+        !write(*,*) "out_fields_eps_dev_size",shape(out_fields%eps_dev)
+        !write(*,*) "out_fields_eps_dev",out_fields%eps_dev
+        !write(*,*) "counter",count_epsdev
 
         !if(Tdomain%rank == 0) write(*,*) "nData = ", nData
         !Averaging on coincident GLLs
-        do ind = 0,nnodes-1
-            if(nData(ind) > 1) then
-                if (out_variables(OUT_DEPLA     ) == 1) &
-                    out_fields%displ(0:2,ind)   = out_fields%displ(0:2,ind)/dble(nData(ind))
-                if (out_variables(OUT_VITESSE   ) == 1) &
-                    out_fields%veloc(0:2,ind)   = out_fields%veloc(0:2,ind)/dble(nData(ind))
-                if (out_variables(OUT_ACCEL     ) == 1) &
-                    out_fields%accel(0:2,ind)   = out_fields%accel(0:2,ind)/dble(nData(ind))
-            end if
-        end do
+        !do ind = 0,nnodes-1
+        !    if(nData(ind) > 1) then
+        !        if (out_variables(OUT_DEPLA     ) == 1) &
+        !            out_fields%displ(0:2,ind)   = out_fields%displ(0:2,ind)/dble(nData(ind))
+        !        if (out_variables(OUT_VITESSE   ) == 1) &
+        !            out_fields%veloc(0:2,ind)   = out_fields%veloc(0:2,ind)/dble(nData(ind))
+        !        if (out_variables(OUT_ACCEL     ) == 1) &
+        !            out_fields%accel(0:2,ind)   = out_fields%accel(0:2,ind)/dble(nData(ind))
+        !    end if
+        !end do
 
         if(allocated(fieldU))       deallocate(fieldU)
         if(allocated(fieldV))       deallocate(fieldV)
@@ -1411,7 +1406,6 @@ contains
         if(allocated(eps_dev))      deallocate(eps_dev)
         if(allocated(eps_dev_pl))   deallocate(eps_dev_pl)
         if(allocated(sig_dev))      deallocate(sig_dev)
-        if(allocated(nData))  deallocate(nData)
 
         if (Tdomain%output_rank==0) then
             group = Tdomain%rank/Tdomain%ngroup
