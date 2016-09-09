@@ -96,7 +96,6 @@ subroutine ReceiverPosition(Tdomain)
         call prepare_HDG_postprocess(Tdomain)
 
     ! Prepare to store receiver trace
-
     i = 0
     do nrec = 0, Tdomain%n_receivers-1
         if (Tdomain%sReceiver(nrec)%located_here) i= i + 1
@@ -141,14 +140,18 @@ subroutine save_trace (Tdomain, it)
             if (Tdomain%type_timeInteg == TIME_INTEG_RK4) &
                 Field = Tdomain%specel(nr)%Veloc
 
-            if (Tdomain%specel(nr)%type_DG==GALERKIN_HDG_RP) then
+            if (Tdomain%specel(nr)%type_DG==GALERKIN_HDG_RP .and. ir .LE. 2) then
                 mat = Tdomain%specel(nr)%mat_index
+                ngllx = ngllx +1 ; ngllz = ngllz +1
                 call compute_InternalForces_HDG_Weak(Tdomain%specel(nr), &
                     Tdomain%sSubDomain(mat)%hprimex, Tdomain%sSubDomain(mat)%hTprimez)
                 call get_Vhat_f2el(Tdomain,nr)
                 call Compute_Traces (Tdomain%specel(nr))
                 call inversion_massmat(Tdomain%specel(nr))
                 call postprocess_HDG(Tdomain%specel(nr),Tdomain%sReceiver(ir),Field)
+                call compute_TracFace (Tdomain%specel(nr))
+                Tdomain%specel(nr)%TracFace(:,0) = Tdomain%specel(nr)%TracFace(:,0) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
+                Tdomain%specel(nr)%TracFace(:,1) = Tdomain%specel(nr)%TracFace(:,1) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
             endif
 
             do j = 0,ngllz-1
@@ -347,18 +350,18 @@ subroutine postprocess_HDG(Elem,rec,field)
     type(Receiver),intent(in) :: rec
     real, dimension (:,:,:), allocatable, intent(inout) :: field
     real, dimension (:,:,:), allocatable :: p
-    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
-    real,  dimension (:),     allocatable :: smbr, solu
+    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac, Amat, ATA
+    real,  dimension (:),     allocatable :: smbr, WORK
     integer :: i, j, k, l, r, s
-    integer :: ngx, ngz, nlin, nddl
+    integer :: ngx, ngz, nlin, nddl, lwork, info
     real    :: res
 
-    ngx = Elem%ngllx ; ngz = Elem%ngllz ; nddl = (ngx+1)*(ngz+1)
+    ngx = Elem%ngllx ; ngz = Elem%ngllz ; nddl = 2*(ngx+1)*(ngz+1)
 
     ! Allocate fields for solving linear system
     allocate(p(0:ngx-1,0:ngz-1,0:2))
-    allocate(smbr(0:nddl+1))
-    allocate(solu(0:nddl-1))
+    allocate(smbr(1:nddl+2))
+    deallocate(field)
     allocate(field(0:ngx,0:ngz,0:1))
     p = Elem%Forces(:,:,0:2)
 
@@ -378,8 +381,7 @@ subroutine postprocess_HDG(Elem,rec,field)
     ! Loop over test functions
     do i = 0,ngx
         do j = 0,ngz
-            nlin = Ind(i,j,0,ngx,ngz)
-            smbr = 0.
+            nlin = Ind(i,j,0,ngx,ngz) ; res = 0.
             do k = 0,ngx-1
                 do l = 0,ngz-1
                     ! Loop over quadrature points
@@ -395,8 +397,7 @@ subroutine postprocess_HDG(Elem,rec,field)
             enddo
             smbr(nlin) = res
 
-            nlin = Ind(i,j,1,ngx,ngz)
-            smbr = 0.
+            nlin = Ind(i,j,1,ngx,ngz) ; res = 0.
             do k = 0,ngx-1
                 do l = 0,ngz-1
                     ! Loop over quadrature points
@@ -415,22 +416,61 @@ subroutine postprocess_HDG(Elem,rec,field)
     enddo
 
     ! Deux dernieres lignes du systeme :
-    smbr(nddl)  = sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,0))
-    smbr(nddl+1)= sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,1))
+    smbr(nddl+1) = sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,0))
+    smbr(nddl+2) = sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,1))
 
     ! Solve rectangular System using least squares method
-    !!call blabla()
+    allocate (Amat(1:nddl+2,1:nddl))
+    Amat = rec%MatPostProc
+    allocate (WORK(1:1000))
+    do i=1,nddl+2
+        write(*,*) Amat(i,:)
+    enddo
+    write(*,*)'And Now... SMBR - SMBR - SMBR'
+    do i=1,nddl+2
+        write(*,*) smbr(i)
+    enddo
+    write(*,*)'And Now... p - v - p - v - p - v'
+    do i=0,ngz-1
+        write(*,*) p(i,:,0)
+        write(*,*) p(i,:,1)
+        write(*,*) p(i,:,2)
+        write(*,*)'And Now v'
+        write(*,*) Elem%Veloc(i,:,0)
+        write(*,*) Elem%Veloc(i,:,1)
+    enddo
+    write(*,*)'And Now... ATA - ATA - ATA - ATA - ATA - ATA - ATA'
+    allocate(ATA(1:nddl,1:nddl))
+    ATA = MATMUL(TRANSPOSE(Amat),Amat)
+    do i=1,nddl+2
+        write(*,*) ATA(i,:)
+    enddo
+    ! Query the optimal workspace
+    lwork = -1
+    CALL DGELS('N', nddl+2, nddl, 1, Amat, nddl+2, smbr, nddl+2, WORK, lwork, info)
+
+    lwork = INT(WORK(1))
+    write(*,*)'The LWORK  computed by the querry mode is ', LWORK
+    STOP
+    deallocate(WORK) ; allocate (WORK(lwork))
+    call dgels('N', nddl+2, nddl, 1, Amat, nddl+2, smbr, nddl+2, WORK, lwork, info) !!!! PB ICI !!!!
+    IF( INFO.GT.0 ) THEN
+        WRITE(*,*)'The diagonal element ',INFO,' of the triangular '
+        WRITE(*,*)'factor of A is zero, so that A does not have full '
+        WRITE(*,*)'rank; the least squares solution could not be computed.'
+        STOP
+    END IF
 
     ! Reorganize result as a matrix
     do i = 0,ngx
         do j = 0,ngz
             nlin = Ind(i,j,0,ngx,ngz)
-            field(i,j,0) = solu(nlin)
+            field(i,j,0) = smbr(nlin)
             nlin = Ind(i,j,1,ngx,ngz)
-            field(i,j,1) = solu(nlin)
+            field(i,j,1) = smbr(nlin)
         enddo
     enddo
-    deallocate(p, smbr, solu, xix, xiz, etax, etaz, jac)
+    deallocate(p, smbr, xix, xiz, etax, etaz, jac, WORK, Amat, ATA)
 
 end subroutine postprocess_HDG
 
@@ -454,14 +494,15 @@ subroutine prepare_HDG_postprocess(Tdomain)
     real, dimension (:,:), allocatable :: coord
     real, dimension (0:1,0:1) :: LocInvGrad
     real    :: xi, eta, Jac, res, outx, outz
-    integer :: nrec, ngx, ngz, nr, i_aus, mat, i, j
+    integer :: nrec, ngx, ngz, nr, nddl, i_aus, mat, i, j
 
-    do nrec = 0,Tdomain%n_receivers-1
+    do nrec = 0, 2!Tdomain%n_receivers-1
         ! Matrices Allocation used for Post-Process
         nr = Tdomain%sReceiver(nrec)%nr
         if (Tdomain%specel(nr)%Acoustic) cycle
         ngx = Tdomain%specel(nr)%ngllx
         ngz = Tdomain%specel(nr)%ngllz
+        nddl= 2*(ngx+1)*(ngz+1)
         mat = Tdomain%specel(nr)%mat_index
 
         ! Remark : Element's interpolation order is (ngx-1,ngz-1)
@@ -472,12 +513,12 @@ subroutine prepare_HDG_postprocess(Tdomain)
         allocate(Tdomain%sReceiver(nrec)%ReinterpZ(0:ngz-1,0:ngz))
         allocate(Tdomain%sReceiver(nrec)%hprimex(0:ngx,0:ngx))
         allocate(Tdomain%sReceiver(nrec)%hprimez(0:ngz,0:ngz))
-        allocate(Tdomain%sReceiver(nrec)%MatPostProc(0:(ngx+ngz+1),0:(ngx+ngz-1)))
+        allocate(Tdomain%sReceiver(nrec)%MatPostProc(1:nddl+2,1:nddl))
         deallocate(Tdomain%sReceiver(nrec)%Interp_Coeff)
         allocate(Tdomain%sReceiver(nrec)%Interp_Coeff(0:ngx,0:ngz))
 
         ! Computation of GLL positions, local wheights, and Lagrange polynomial derivatives
-        allocate (GLLcx(0:ngx)); allocate(GLLwz(0:ngz)); allocate (GLLpolx(0:ngx))
+        allocate (GLLcx(0:ngx)); allocate(GLLwx(0:ngz)); allocate (GLLpolx(0:ngx))
         allocate (GLLcz(0:ngx)); allocate(GLLwz(0:ngz)); allocate (GLLpolz(0:ngz))
 
         call zelegl (ngx,GLLcx,GLLpolx)
@@ -592,6 +633,7 @@ subroutine build_MatPostProc(Tdomain,nrec,ngx,ngz)
     xiz  = rec%InvGrad(:,:,1,0)
     etax = rec%InvGrad(:,:,0,1)
     etaz = rec%InvGrad(:,:,1,1)
+    rec%MatPostProc = 0.
 
     ! Compute entries of matrix MatPostProc
     ! Here, (i,j) indexes corresponds to test function w_ij which gives line number of MatPostProc
@@ -653,13 +695,15 @@ subroutine build_MatPostProc(Tdomain,nrec,ngx,ngz)
     enddo
 
     ! Building the two last lines of the matrix system
-    nlin = (ngx+1)*(ngz+1)
+    nlin = 2*(ngx+1)*(ngz+1)+1
     do k = 0,ngx
         do l = 0,ngz
             ncol = Ind(k,l,0,ngx,ngz)
-            rec%MatPostProc(nlin,ncol) = rec%JacobWhei(k,l)
+            rec%MatPostProc(nlin,ncol)  = rec%JacobWhei(k,l)
+            rec%MatPostProc(nlin+1,ncol)= rec%JacobWhei(k,l)
             ncol = Ind(k,l,1,ngx,ngz)
-            rec%MatPostProc(nlin,ncol) = rec%JacobWhei(k,l)
+            rec%MatPostProc(nlin,ncol)  = rec%JacobWhei(k,l)
+            rec%MatPostProc(nlin+1,ncol)= rec%JacobWhei(k,l)
         enddo
     enddo
 
@@ -679,7 +723,7 @@ function Ind(i,j,d,ngx,ngz) result(index)
     integer, intent(in) :: i,j,d,ngx,ngz
     integer             :: index
 
-    index = d*ngx*ngz + i*ngx + j
+    index = d*(ngx+1)*(ngz+1) + i*(ngz+1) + j+1
 
 end function Ind
 
