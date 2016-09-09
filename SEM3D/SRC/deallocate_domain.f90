@@ -75,7 +75,6 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%sVertex(n)%ForcesExt)
     enddo
 #endif
-
     deallocate (Tdomain%specel)
     deallocate (Tdomain%sFace)
     deallocate (Tdomain%sEdge)

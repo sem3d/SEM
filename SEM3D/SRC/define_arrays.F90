@@ -359,7 +359,6 @@ contains
             call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,mat,rho,lambda)
         case default
             stop "unknown domain"
->>>>>>> origin/master
         end select
     end subroutine init_material_properties
 
