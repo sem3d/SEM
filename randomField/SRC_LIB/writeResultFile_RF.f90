@@ -846,6 +846,7 @@ contains
         character(len=*)              , intent(in) :: XMF_Folder
         character(len=*)              , intent(in) :: H5_TO_XMF_Path, dsetname
 
+
         !LOCAL VARIABLES
         integer             :: i, file
         character (len=110) :: dimText;
@@ -868,9 +869,16 @@ contains
 
             !Writing Number of points in each Dimensions in the reverse order
             dimText = ""
-            do i = size(total_xNStep), 1, -1
-                dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
-            end do
+            !do i = size(total_xNStep), 1, -1
+            if(REVERSE_OUT) then
+                do i = size(total_xNStep), 1, -1
+                    dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
+                end do
+            else
+                do i = 1, size(total_xNStep)
+                    dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
+                end do
+            end if
             dimText = trim(adjustL(dimText))
 
             !Building file
@@ -900,15 +908,29 @@ contains
             end if
             write (file,'(3A)'     )'   <DataItem Name="origin" Format="XML" DataType="Float" &
                                         &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
-            if(nDim == 1) write (file,'(A,F25.10)'      )'    ', xMin(1)
-            if(nDim == 2) write (file,'(A,F25.10)'      )'    ', xMin(2), ' ', xMin(1)
-            if(nDim == 3) write (file,'(A,F25.10)'      )'    ', xMin(3), ' ', xMin(2), ' ', xMin(1)
+            if(REVERSE_OUT) then
+                if(nDim == 1) write (file,'(A,F25.10)'      )' ', xMin(3)
+                if(nDim == 2) write (file,'(A,F25.10)'      )' ', xMin(3), ' ', xMin(2)
+                if(nDim == 3) write (file,'(A,F25.10)'      )' ', xMin(3), ' ', xMin(2), ' ', xMin(1)
+            else
+                if(nDim == 1) write (file,'(A,F25.10)'      )' ', xMin(1)
+                if(nDim == 2) write (file,'(A,F25.10)'      )' ', xMin(1), ' ', xMin(2)
+                if(nDim == 3) write (file,'(A,F25.10)'      )' ', xMin(1), ' ', xMin(2), ' ', xMin(3)
+            end if
+
             write (file,'(A)'      )'   </DataItem>'
             write (file,'(3A)'     )'   <DataItem Name="step" Format="XML" DataType="Float" &
                                         &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
-            if(nDim == 1) write (file,'(A,F25.10)'      )'    ', xStep(1)
-            if(nDim == 2) write (file,'(A,F25.10)'      )'    ', xStep(2), ' ', xStep(1)
-            if(nDim == 3) write (file,'(A,F25.10)'      )'    ', xStep(3), ' ', xStep(2), ' ', xStep(1)
+            if(REVERSE_OUT) then
+                if(nDim == 1) write (file,'(A,F25.10)'      )' ', xStep(3)
+                if(nDim == 2) write (file,'(A,F25.10)'      )' ', xStep(3), ' ', xStep(2)
+                if(nDim == 3) write (file,'(A,F25.10)'      )' ', xStep(3), ' ', xStep(2), ' ', xStep(1)
+            else
+                if(nDim == 1) write (file,'(A,F25.10)'      )' ', xStep(1)
+                if(nDim == 2) write (file,'(A,F25.10)'      )' ', xStep(1), ' ', xStep(2)
+                if(nDim == 3) write (file,'(A,F25.10)'      )' ', xStep(1), ' ', xStep(2), ' ', xStep(3)
+            end if
+
             write (file,'(A)'      )'   </DataItem>'
             write (file,'(A)'     )'     </Geometry>'
 
@@ -1137,7 +1159,11 @@ contains
         countND = xNStep
         rank1D = 1
         count1D = product(int(xNStep_Glob,8))
-        dims = int(xNStep_Glob,8)
+        if(REVERSE_OUT) then
+            dims = int(xNStep_Glob,8)
+        else
+            dims = int(xNStep_Glob(size(xNStep_Glob):1:-1),8)
+        end if
         call wLog("dims = ")
         call wLog(int(dims))
 
@@ -1159,7 +1185,10 @@ contains
         call wLog("Parallel writing (localization topology)")
         countND = maxPos - minPos + 1
         offset = origin - 1
-        !dims   = countND
+        if(.not. REVERSE_OUT) then
+            countND = countND(size(countND):1:-1)
+            offset  = offset(size(offset):1:-1)
+        end if
         call wLog("minPos")
         call wLog(int(minPos))
         call wLog("maxPos")
@@ -1195,14 +1224,30 @@ contains
 
 
         if(nDim == 2) then
+            if(REVERSE_OUT) then
             !randFieldLinear = pack(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), .true.)
             randFieldLinear = reshape(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), &
+                                      [product(maxPos-minPos+1)])
+            else
+            randFieldLinear = reshape( &
+                              reshape(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), &
+                                      shape =[maxPos(2)-minPos(2)+1,maxPos(1)-minPos(1)+1], &
+                                      order =[2,1] ), &
                               [product(maxPos-minPos+1)])
+            end if
 
         else if (nDim == 3) then
+            if(REVERSE_OUT) then
             !randFieldLinear = pack(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), .true.)
             randFieldLinear = reshape(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), &
+                                      [product(maxPos-minPos+1)])
+            else
+            randFieldLinear = reshape( &
+                              reshape(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), &
+                                      shape =[maxPos(3)-minPos(3)+1, maxPos(2)-minPos(2)+1,maxPos(1)-minPos(1)+1], &
+                                      order =[3,2,1] ), &
                               [product(maxPos-minPos+1)])
+            end if
 
         end if
 

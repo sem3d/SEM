@@ -211,6 +211,7 @@ contains
             overlap = globMSH%overlap
             xStep   = globMSH%xStep
             !call wLog("-> set_global_extremes")
+
             call set_global_extremes(globMSH, globMSH%xMaxGlob, globMSH%xMinGlob, globMSH%procExtent, &
                                      globMSH%procStart, stepProc)
             call set_communications_topology(globMSH, globMSH%coords, globMSH%neigh, &
@@ -1043,6 +1044,7 @@ contains
                         call wLog(coordPosInt(:)+neighCoord(:,j))
                         call wLog("maxPos = ")
                         call wLog(maxPos)
+                        !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE")
 
                     end if
 

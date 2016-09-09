@@ -650,6 +650,7 @@ contains
 
         !call wLog("RDF%kPoints")
         !call DispCarvalhol(RDF%kPoints, unit_in = RDF%log_ID)
+        !call DispCarvalhol(RDF%kPoints)
         !call wLog("RDF%SkVec")
         !call DispCarvalhol(RDF%SkVec, unit_in = RDF%log_ID)
 

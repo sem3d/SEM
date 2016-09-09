@@ -220,6 +220,7 @@ contains
             end if
         end if
 
+
         !call MPI_BARRIER(IPT%comm, code)
         build_times(2) = MPI_Wtime() !Organizing Localization
         !times(3) = MPI_Wtime() !Organizing Localization
