@@ -8,7 +8,7 @@ Installation du code SEM3D
 
 
 Pre-requis
-=========
+==========
 
 Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa compilation :
 
@@ -99,7 +99,7 @@ paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
   Lorsque l'étape de configuration ne modifie aucune variable, on peut
   générer les Makefile (touche ``g``).
 
-- Si vous voulez compiler la librairie de champs al�atoires lisez le fichier README_random_fields dans sem_src/randomField
+- Si vous voulez compiler la librairie de champs aléatoires lisez le fichier README_random_fields dans sem_src/randomField
 
 Compilation
 -----------

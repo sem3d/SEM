@@ -258,7 +258,7 @@ Conditions de bord
 ------------------
 
 PML classique
-..................
+~~~~~~~~~~~~~
 
 La condition naturelle d'un bord en élément fini est d'être une
 surface libre, donc réfléchissante pour les ondes. Pour simuler des
@@ -307,7 +307,8 @@ partout dans le volume. Une solution est d'allonger en profondeur le modèle. Si
 par la grille numérique, la frontière inférieure du modèle devrait être située à environ 2-3 `\lambda` pour éviter toute interférence avec l'onde de surface qui se propage.
 
 PML filtrante (FPML)
-......................
+~~~~~~~~~~~~~~~~~~~~
+
 Dans le domaine fréquentiel, on peut déplacer le pôle de la transformation :math:`\tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega}` le long
 de l'axe imaginaire, en remplaçant la transformation par:
 
@@ -524,7 +525,7 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
     - La densité
 
-    - L'ordre des élément(La m�me ordre est inpos�e pour X, Y et Z)
+    - L'ordre des élément (Le même ordre est imposée pour X, Y et Z)
 
     - Les atténuations d'ondes P et S par les paramètres :math:`Q_\kappa` et :math:`Q_\mu`.
 
@@ -537,9 +538,9 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
     - paramètres n et A pour les PML filtrantes
 
-    - 3 couples de deux param�tres indicant le point de début de la PML et la taille de l'extrusion de la PML
+    - 3 couples de deux paramètres indicant le point de début de la PML et la taille de l'extrusion de la PML
       Respectivement X, Y et Z  
-      Tailles n�gatives doivent être utiées si l'extrusion est dans le sense négatif de axe. 
+      Tailles négatives doivent être utiées si l'extrusion est dans le sense négatif de axe. 
 
     - La fréquence de coupure en cas de PML filtrant
 
@@ -551,7 +552,7 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
     - Choix de paramétrisation (0 for mu, kappa, rho and 1 for mu, lambda, rho)
 
-    - 3 lignes avec les param�tres statistiques de chaque millieu Random
+    - 3 lignes avec les paramètres statistiques de chaque millieu Random
       
       Modèle de Correlation (1 pour Gaussian)
       3 Tailles de correlation, repectivement X, Y et Z
@@ -937,17 +938,19 @@ On peut cependant aller plus loin et modifier le maillage généré avec quelque
   # Fin
   >>> fmesh.close()
 
-==================
+=================
 Gestion des tests
-==================
+=================
 
 Il y a un outil qui gère le lancement des tests et la génération d'un
-rapport de test. \\
+rapport de test.
+
 Il n’est pas spécifique à SEM. Par contre, des développements
 spécifiques ont été fait pour traiter plus particulièrement
-les sorties de les codes SEM2D et SEM3D.\\
+les sorties de les codes SEM2D et SEM3D.
+
 La documentation Validationtools.pdf [disponible dans le répertoire
-$Valid-tools/doc/source$]décrit en détails l'organisation et la
+``Valid-tools/doc/source``] décrit en détails l'organisation et la
 construction des tests, la structure du rapport de test,la création
 d'un jeu de tests, les données d'entrée que l'auteur d'un cas test
 devra fournir pour s'intégrer correctement dans cette infrastructure

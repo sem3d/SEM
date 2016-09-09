@@ -177,24 +177,19 @@ contains
         enddo
     end subroutine get_fluidpml_dom_var
 
-    subroutine init_material_properties_fluidpml(dom, lnum, i, j, k, density, lambda)
+    subroutine init_material_properties_fluidpml(dom, lnum, mat, density, lambda)
         type(domain_fluidpml), intent(inout) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: i, j, k ! -1 means :
-        real(fpp), intent(in) :: density
-        real(fpp), intent(in) :: lambda
+        type (subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%Density_(:,:,:,bnum,ee) = density
-            dom%Lambda_ (:,:,:,bnum,ee) = lambda
-        else
-            dom%Density_(i,j,k,bnum,ee) = density
-            dom%Lambda_ (i,j,k,bnum,ee) = lambda
-        end if
+        dom%Density_(:,:,:,bnum,ee) = density
+        dom%Lambda_ (:,:,:,bnum,ee) = lambda
     end subroutine init_material_properties_fluidpml
 
     subroutine init_local_mass_fluidpml(dom,specel,i,j,k,ind,Whei)

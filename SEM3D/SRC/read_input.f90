@@ -22,6 +22,8 @@ contains
         integer :: i, mat, dom
 
         call read_material_file_v2(Tdomain)
+        ! Complete the material definition with optional material.spec
+        call read_material_spec(Tdomain)
 
         Tdomain%any_sdom = .false.
         Tdomain%any_fdom = .false.
@@ -72,13 +74,52 @@ contains
 
     end subroutine read_material_file
 
+    subroutine read_material_spec(Tdomain)
+        use sdomain
+        use semdatafiles
+        implicit none
+        type(domain), intent(inout)                  :: Tdomain
+        !
+        type(sem_material), pointer :: matdesc
+        integer :: code, num
+
+        call read_sem_materials(Tdomain%material_list, "material.spec"//C_NULL_CHAR, code)
+
+        call c_f_pointer(Tdomain%material_list%head, matdesc)
+
+        do while(associated(matdesc))
+            num = matdesc%num
+            select case(matdesc%defspatial)
+            case (0) ! CONSTANT
+                Tdomain%sSubdomain(num)%material_definition = MATERIAL_CONSTANT
+            case (1) ! FILE
+                Tdomain%sSubdomain(num)%material_definition = MATERIAL_FILE
+                Tdomain%sSubdomain(num)%pf(1)%propFilePath = trim(fromcstr(matdesc%filename0))
+                Tdomain%sSubdomain(num)%pf(2)%propFilePath = trim(fromcstr(matdesc%filename1))
+                Tdomain%sSubdomain(num)%pf(3)%propFilePath = trim(fromcstr(matdesc%filename2))
+            end select
+            Tdomain%sSubdomain(num)%deftype  = matdesc%deftype
+            Tdomain%sSubdomain(num)%Ddensity = matdesc%rho
+            Tdomain%sSubdomain(num)%Pspeed   = matdesc%Vp
+            Tdomain%sSubdomain(num)%Sspeed   = matdesc%Vs
+            Tdomain%sSubdomain(num)%DE       = matdesc%E
+            Tdomain%sSubdomain(num)%DNu      = matdesc%nu
+            Tdomain%sSubdomain(num)%DLambda  = matdesc%lambda
+            Tdomain%sSubdomain(num)%DMu      = matdesc%mu
+            Tdomain%sSubdomain(num)%DKappa   = matdesc%kappa
+            !!! TODO Add Qp/Qmu, PML
+            call c_f_pointer(matdesc%next, matdesc)
+        end do
+        if (code<=0) then
+            write(*,*) "Erreur reading material.spec"
+            stop 1
+        endif
+    end subroutine read_material_spec
+
     subroutine read_material_file_v2(Tdomain)
         use sdomain
         use semdatafiles
         use mpi
-#ifdef USE_RF
-        use build_prop_files
-#endif
         implicit none
 
         type(domain), intent(inout)   :: Tdomain
@@ -121,8 +162,10 @@ contains
                 Tdomain%sSubDomain(i)%Qmu
             Tdomain%sSubDomain(i)%NGLL = NGLL
             Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)
+            Tdomain%sSubdomain(i)%material_definition = MATERIAL_CONSTANT
+            Tdomain%sSubDomain(i)%deftype = MATDEF_VP_VS_RHO
 
-            call Lame_coefficients (Tdomain%sSubDomain(i))
+            ! call Lame_coefficients (Tdomain%sSubDomain(i)) ! XXX Make sure its done in definearrays
 
             if (is_pml(Tdomain%sSubDomain(i)))  then
                 npml = npml + 1
@@ -395,29 +438,29 @@ contains
         endif
 
 
-        if( Tdomain%config%material_present == 1) then
-
-            select case (Tdomain%config%material_type)
-
-            case (MATERIAL_PREM)
-                Tdomain%aniso=.true.
-            case (MATERIAL_EARTHCHUNK)
-                Tdomain%earthchunk_isInit=1
-                Tdomain%aniso=.true.
-                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
-                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
-                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
-
-            end select
-
-            do imat=0,Tdomain%n_mat-1
-                Tdomain%sSubDomain(imat)%material_definition = Tdomain%config%material_type
-            enddo
-        else
-            do imat=0,Tdomain%n_mat-1
-                Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
-            enddo
-        endif
+!        if( Tdomain%config%material_present == 1) then
+!
+!            select case (Tdomain%config%material_type)
+!
+!            case (MATERIAL_PREM)
+!                Tdomain%aniso=.true.
+!            case (MATERIAL_EARTHCHUNK)
+!                Tdomain%earthchunk_isInit=1
+!                Tdomain%aniso=.true.
+!                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
+!                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
+!                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
+!
+!            end select
+!
+!            do imat=0,Tdomain%n_mat-1
+!                Tdomain%sSubDomain(imat)%material_definition = Tdomain%config%material_type
+!            enddo
+!        else
+!            do imat=0,Tdomain%n_mat-1
+!                Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
+!            enddo
+!        endif
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input
 

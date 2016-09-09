@@ -187,10 +187,12 @@ contains
         do i = 0, Tdomain%n_mat-1
             Tdomain%sSubDomain(i)%MinBound_loc = MAX_DOUBLE
             Tdomain%sSubDomain(i)%MaxBound_loc = -MAX_DOUBLE
+            Tdomain%sSubDomain(i)%present = .false.
         end do
 
         do i = 0, Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
+            Tdomain%sSubDomain(mat)%present = .true.
 
             do j = 0, Tdomain%n_nodes-1
                 nod = Tdomain%specel(i)%Control_Nodes(j)
@@ -204,6 +206,15 @@ contains
                 end do
             end do
         end do
+        do i = 0, Tdomain%n_mat-1
+            do k=0,2
+                if (Tdomain%sSubDomain(i)%MinBound_loc(k)>Tdomain%sSubDomain(i)%MaxBound_loc(k)) then
+                    ! Material is not present on this domain
+                    
+                end if
+            end do
+        end do
+
     end subroutine compute_material_boundaries
 
     subroutine read_comm_proc_data(proc_id, scomm)

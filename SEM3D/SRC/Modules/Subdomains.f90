@@ -15,16 +15,28 @@ module ssubdomains
     use constants
     implicit none
 
+    type PropertyField
+        character(len=1024) :: propFilePath
+        character(len=100) :: propName ! name of property and HDF5 group
+        real(fpp), dimension(0:2) :: MinBound, MaxBound, step
+        ! XXX: need to handle fields of different sizes...
+        integer, dimension(0:2) :: NN ! dimension of the grid for this property
+        integer, dimension(0:2) :: imin, imax
+        real(fpp), dimension(:,:,:), allocatable :: var
+    end type PropertyField
+
     type Subdomain
         integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML
         integer          :: material_definition
-
+        integer          :: deftype
+        logical          :: present ! true if an element with this mat exists on this cpu
         !! Numerotation gll
         integer :: NGLL
 
         !! Definition materiau solide, isotrope
         real(fpp) :: Pspeed, Sspeed, Ddensity
         real(fpp) :: DLambda, DMu
+        real(fpp) :: DE, DNu
         real(fpp) :: DKappa
 
         !! Definition materiau solide anisotrope
@@ -39,8 +51,13 @@ module ssubdomains
         real(fpp) :: Apow
 
         !! Boundaries for material initialisation from file
-        real(fpp), dimension(0:2) :: MinBound, MaxBound, MinBound_Loc, MaxBound_Loc
-        character(len=1024), dimension(0:2) :: propFilePath
+        real(fpp), dimension(0:2) :: MinBound_Loc, MaxBound_Loc
+
+        ! three variables on a 3D grid used for intializing from fields in files
+        ! depending on material_definition we can have
+        ! Vp(v1) Vs(v2) Rho(v3)
+        ! Lambda(v1) Mu(v2) Rho(v3) ...
+        type(PropertyField), dimension(3) :: pf
 
     end type Subdomain
 

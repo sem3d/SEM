@@ -32,9 +32,6 @@ contains
         use model_earthchunk
         use model_prem
         use mCourant
-#ifdef USE_RF
-        use build_prop_files
-#endif
         implicit none
 
         type (domain), intent (INOUT), target :: Tdomain
@@ -68,25 +65,10 @@ contains
             call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
         endif
 
-#ifdef USE_RF
-        !Applying properties that were written on files
-        if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
-        !- applying properties files
-        call apply_prop_files (Tdomain, rg)
-#endif
 
         call init_domains(Tdomain)
-        do n = 0,Tdomain%n_elem-1
-            mat = Tdomain%specel(n)%mat_index
-            if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
-                print*, "ERROR : inconsistent material index = ", mat
-                stop
-            end if
-            ! Attribute elastic properties from material !!!
-            ! Sets Lambda, Mu, Qmu, ... from mat
-            call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
-        end do
-!        ! We need the timestep to continue with PML defs...
+        call init_materials(Tdomain)
+        ! We need the timestep to continue with PML defs...
         call Compute_Courant(Tdomain,rg)
 !
         do n = 0,Tdomain%n_elem-1
@@ -279,58 +261,100 @@ contains
         call init_domain_solidpml(Tdomain, Tdomain%spmldom)
     end subroutine init_domains
 
-    subroutine init_material_properties(Tdomain, specel, mat)
+    subroutine init_materials(Tdomain)
+        use build_prop_files
         type (domain), intent (INOUT), target :: Tdomain
-        type (element), intent(inout) :: specel
-        type (subdomain), intent(in) :: mat
         !
+        integer :: mat, n
+        logical :: isfile
 
+        do mat = 0, Tdomain%n_mat-1
+            isfile = Tdomain%sSubdomain(mat)%material_definition == MATERIAL_FILE
+            if (isfile) then
+                call init_prop_file(Tdomain%sSubdomain(mat))
+            end if
+            do n = 0,Tdomain%n_elem-1
+                ! on traite tous les elements, materiau par materiau...
+                if (Tdomain%specel(n)%mat_index/=mat) cycle
+
+                ! Attribute elastic properties from material !!!
+                ! Sets Lambda, Mu, Qmu, ... from mat
+                call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
+            end do
+            if (isfile) then
+                call cleanup_prop_file(Tdomain%sSubdomain(mat))
+            end if
+        end do
+    end subroutine init_materials
+
+    subroutine init_material_properties(Tdomain, specel, mat)
+        use build_prop_files
+        type(domain), intent(inout) :: Tdomain
+        type(element), intent(inout) :: specel
+        type(subdomain), intent(in) :: mat
+        !
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho
+        real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
+        logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
-
+        aniso = .false.
         select case(mat%material_definition)
             case(MATERIAL_CONSTANT)
                 !    on copie toujours le materiau de base
-                select case (specel%domain)
-                    case (DM_SOLID)
-                        call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
-                    case (DM_FLUID)
-                        call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda)
-                    case (DM_SOLID_PML)
-                        call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu)
-                    case (DM_FLUID_PML)
-                        call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda)
-                    case default
-                        stop "unknown domain"
-                end select
                 !    si le flag gradient est actif alors on peut changer les proprietes
-            case( MATERIAL_EARTHCHUNK )
-                call initialize_material_earthchunk(Tdomain, specel, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
-            case( MATERIAL_PREM )
-                call initialize_material_prem(Tdomain, specel, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
-            case( MATERIAL_GRADIENT )
-                !    on copie toujours le materiau de base
-                select case (specel%domain)
-                    case (DM_SOLID)
-                        call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,mat)
-                    case (DM_FLUID)
-                        call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda)
-                    case (DM_SOLID_PML)
-                        call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu)
-                    case (DM_FLUID_PML)
-                        call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda)
-                    case default
-                        stop "unknown domain"
+                rho = mat%Ddensity
+                select case(mat%deftype)
+                case(MATDEF_VP_VS_RHO)
+                    v0 = mat%Pspeed
+                    v1 = mat%Sspeed
+                case(MATDEF_E_NU_RHO)
+                    v0 = mat%DE
+                    v1 = mat%DNU
+                case(MATDEF_LAMBDA_MU_RHO)
+                    v0 = mat%DLambda
+                    v1 = mat%DMu
+                case(MATDEF_KAPPA_MU_RHO)
+                    v0 = mat%DKappa
+                    v1 = mat%DMu
+                case(MATDEF_HOOKE_RHO)
+                    aniso = .true.
+                    ! XXX TODO
                 end select
-            case( MATERIAL_RANDOM )
-                !Don`t do anything, the basic properties were initialized by file
+            case( MATERIAL_FILE )
+                ! XXX interpolate rho/v0/v1 from file
+                call interpolate_elem_field(Tdomain, specel, mat, mat%pf(1), v0)
+                call interpolate_elem_field(Tdomain, specel, mat, mat%pf(2), v1)
+                call interpolate_elem_field(Tdomain, specel, mat, mat%pf(3), rho)
+        end select
+
+        select case(mat%deftype)
+        case(MATDEF_VP_VS_RHO)
+            mu = rho * v1**2
+            lambda = rho*(v0**2 - 2d0 *v1**2)
+        case(MATDEF_E_NU_RHO)
+            lambda = v0*v1/((1d0+v1)*(1d0-2d0*v1))
+            mu = v0/(2d0*(1d0+v1))
+        case(MATDEF_LAMBDA_MU_RHO)
+            lambda = v0
+            mu = v1
+        case(MATDEF_KAPPA_MU_RHO)
+            mu = v1
+            lambda = v0 - 2d0*mu/3d0
+        case(MATDEF_HOOKE_RHO)
+            ! XXX TODO
+        end select
+
+        select case (specel%domain)
+        case (DM_SOLID)
+            call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu)
+        case (DM_FLUID)
+            call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
+        case (DM_SOLID_PML)
+            call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,mat,rho,lambda,mu)
+        case (DM_FLUID_PML)
+            call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,mat,rho,lambda)
+        case default
+            stop "unknown domain"
         end select
     end subroutine init_material_properties
 
