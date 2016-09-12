@@ -104,9 +104,16 @@ contains
         call read_attr_real_vec(grp_id, "xMaxGlob", pf%MaxBound)
         call read_dims(grp_id, "samples", dims)
         pf%NN = dims
+        !pf%NN = dims(size(dims):1:-1)
         ! On va calculer les indices i0,i1 j0,j1,k0,k1 tels que
         ! i0 plus grand entier tel que x(i0)<MinBound_loc(0), 
-        ! i1 plus petit entier tel que x(i1)>MaxBound_loc(0), etc...
+        ! i1 plus petit entier tel que x(i1)>MaxBound_loc(0), etc... 
+        
+        
+        print *, " pf%NN       = ", pf%NN
+        print *, " pf%MinBound = ", pf%MinBound
+        print *, " pf%MaxBound = ", pf%MaxBound
+
         do k = 0,2
             pf%imin(k) = gindex(mat%MinBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
             pf%imax(k) = gindex(mat%MaxBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))+1
@@ -114,6 +121,11 @@ contains
             if (pf%imin(k)<0) pf%imin(k) = 0
             if (pf%imax(k)>=pf%NN(k)) pf%imax(k) = pf%NN(k)-1
         end do
+        
+        print *, " pf%imin = ", pf%imin 
+        print *, " pf%imax = ", pf%imax
+
+
         call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
         if (subgrp) call H5Gclose_f(grp_id, hdferr)
         call H5Fclose_f(file_id, hdferr)

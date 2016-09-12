@@ -269,6 +269,11 @@ contains
         logical :: isfile
 
         do mat = 0, Tdomain%n_mat-1
+            write(*,*) "" 
+            write(*,*) "Init mat ", mat
+            write(*,*) "Tdomain%sSubdomain(mat)%material_definition = ", Tdomain%sSubdomain(mat)%material_definition
+            write(*,*) "MATERIAL_FILE = ", MATERIAL_FILE
+            
             isfile = Tdomain%sSubdomain(mat)%material_definition == MATERIAL_FILE
             if (isfile) then
                 call init_prop_file(Tdomain%sSubdomain(mat))

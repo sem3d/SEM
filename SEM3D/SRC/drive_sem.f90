@@ -109,7 +109,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #endif
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
-    Tdomain%out_energy = 1
+    Tdomain%out_energy = 0
  !----------------------------------------------------------------------------------------------!
  !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
  !----------------------------------------------------------------------------------------------!

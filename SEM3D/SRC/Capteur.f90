@@ -45,6 +45,7 @@ module mCapteur
     integer           :: dimCapteur        ! nombre total de capteurs
 
     type(Tcapteur), pointer :: listeCapteur
+    type(Tcapteur) :: capt_En_P, capt_En_S
 
     integer,parameter :: fileIdCapteur=200  ! id fichier capteur
 
@@ -75,6 +76,11 @@ contains
         else
             traces_h5_created = .true.
         endif
+
+        ! Energy outputs
+        if(Tdomain%out_energy) then
+        end if
+
         do while (C_ASSOCIATED(station_next))
             call c_f_pointer(station_next, station_ptr)
             xc = station_ptr%coords(1)
