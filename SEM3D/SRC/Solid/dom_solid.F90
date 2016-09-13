@@ -471,11 +471,11 @@ contains
            dom     = Tdomain%sSubDomain(im)%dom
            ngll     = Tdomain%sSubDomain(im)%NGLL
            write(char,*) Tdomain%nsurfsource(ipw)%index(1)
-           block :& 
+
            do ss=0,size(Tdomain%sSurfaces)-1
               if (Tdomain%sSurfaces(ss)%name=="surface"//adjustl(char(:len_trim(char)))) &
-                  exit block
-           enddo block
+                  exit
+           end do
            PWspeed = Tdomain%sSurfaces(ss)%Elastic%PWspeed
            select case (dom)
                   case (DM_SOLID)
@@ -513,9 +513,11 @@ contains
         !
         integer :: i_dir, n, indpml
         do i_dir = 0,2
-            dom%champs0%Forces(:,i_dir) = dom%champs1%Forces(:,i_dir) * dom%MassMat(:)
+            do n = 0,dom%nglltot-1
+                dom%champs0%Forces(n,i_dir) = dom%champs1%Forces(n,i_dir) * dom%MassMat(n)
+                dom%champs0%Veloc(n,i_dir) = dom%champs0%Veloc(n,i_dir) + dt * dom%champs0%Forces(n,i_dir)
+            end do
         enddo
-        dom%champs0%Veloc = dom%champs0%Veloc + dt * dom%champs0%Forces
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
             dom%champs0%Veloc(indpml,:) = 0.
