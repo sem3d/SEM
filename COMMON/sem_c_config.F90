@@ -169,6 +169,12 @@ module sem_c_config
        type(C_PTR)    :: filename1
        type(C_PTR)    :: filename2
        !
+       real(C_DOUBLE) :: syld
+       real(C_DOUBLE) :: ckin
+       real(C_DOUBLE) :: kkin
+       real(C_DOUBLE) :: rinf
+       real(C_DOUBLE) :: biso
+       !
        type(C_PTR)    :: next
     end type sem_material
 

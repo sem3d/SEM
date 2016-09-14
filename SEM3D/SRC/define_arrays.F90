@@ -267,10 +267,6 @@ contains
         !
         integer :: mat, n
         logical :: isfile
-        logical                                 :: nl_flag,nl_law
-!        REQUIRED ATTENTION        
-!        nl_flag = Tdomain%nl_flag
-!        nl_law  = mat%nl_law
 
         do mat = 0, Tdomain%n_mat-1
             isfile = Tdomain%sSubdomain(mat)%material_definition == MATERIAL_FILE
@@ -297,7 +293,7 @@ contains
         type(element), intent(inout) :: specel
         type(subdomain), intent(in) :: mat
         !
-        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu
         real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
         logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
@@ -323,6 +319,10 @@ contains
                 case(MATDEF_HOOKE_RHO)
                     aniso = .true.
                     ! XXX TODO REQUIRED ATTENTION
+                case(MATDEF_MU_SYLD_RHO)
+                    nu = mat%DNu
+                    v0 = mat%DMu
+                    v1 = mat%DSyld
                 end select
             case( MATERIAL_FILE )
                 ! XXX interpolate rho/v0/v1 from file
@@ -346,6 +346,9 @@ contains
             lambda = v0 - 2d0*mu/3d0
         case(MATDEF_HOOKE_RHO)
             ! XXX TODO
+        case(MATDEF_MU_SYLD_RHO)
+            mu = v0
+            lambda = 2.0*nu*v0/(1.0-2.0*nu)                     
         end select
 
         select case (specel%domain)

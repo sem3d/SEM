@@ -53,6 +53,9 @@ contains
             mat%pf(2)%propName = "Mu"
         case(MATDEF_HOOKE_RHO)
             stop "Not supported yet"
+        case(MATDEF_MU_SYLD_RHO)
+            mat%pf(1)%propName = "Syld"
+            mat%pf(2)%propName = "Mu"
         end select
         mat%pf(3)%propName = "Rho"
         call init_prop_file_field(mat, mat%pf(1))

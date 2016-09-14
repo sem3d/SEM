@@ -14,22 +14,21 @@
 module ssubdomains
     use constants
     implicit none
-    ! REQUIRED ATTENTION
-!    type LMC_properties
-!
-!        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
-!        real :: sigma_yld   ! first yielding limit
-!        real :: C_kin       ! variable for kinematic hardening
-!        real :: kapa_kin    ! variable for kinematic hardening
-!        real :: b_iso       ! variable for isotropic hardening
-!        real :: Rinf_iso    ! variable for isotropic hardening
-!
-!    end type LMC_properties
-!    !
-!    type nl_properties
-!        type(LMC_properties) :: LMC_prop
-!    end type nl_properties
-!    !
+    type LMC_properties
+
+        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
+        real :: sigma_yld   ! first yielding limit
+        real :: C_kin       ! variable for kinematic hardening
+        real :: kapa_kin    ! variable for kinematic hardening
+        real :: b_iso       ! variable for isotropic hardening
+        real :: Rinf_iso    ! variable for isotropic hardening
+
+    end type LMC_properties
+    !
+    type nl_properties
+        type(LMC_properties) :: LMC_prop
+    end type nl_properties
+    !
 
     type PropertyField
         character(len=1024) :: propFilePath
@@ -39,8 +38,7 @@ module ssubdomains
         integer, dimension(0:2) :: NN ! dimension of the grid for this property
         integer, dimension(0:2) :: imin, imax
         real(fpp), dimension(:,:,:), allocatable :: var
-        ! REQUIRED ATTENTION
-        !type(nl_properties) :: nl_prop
+        type(nl_properties) :: nl_prop
     end type PropertyField
 
     type Subdomain
@@ -61,11 +59,8 @@ module ssubdomains
         ! TODO
         
         !! NONLINEAR LEMAITRE-CHABOCHE
-        integer   :: nl_law
-        real(fpp) :: Dsyld,DCkin,Dkkin,Drinf,Dbiso
-        !! NONLINEAR
-        real(fpp) :: syld,ckin,kkin,biso,rinf
-
+        real(fpp) :: DSyld,DCkin,DKkin,DRinf,DBiso
+        
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression
         !! PML

@@ -36,13 +36,9 @@ contains
 
         do mat = 0, Tdomain%n_mat-1
             dom = Tdomain%sSubDomain(mat)%dom
-
             select case (dom)
                  case (DM_SOLID)
                      Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     if (Tdomain%nl_flag==1) then
-                         Tdomain%sdom%nl_law = Tdomain%sSubDomain(mat)%nl_law
-                     endif
                      Tdomain%any_sdom = .true.
                  case (DM_FLUID)
                      Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
@@ -110,6 +106,12 @@ contains
             Tdomain%sSubdomain(num)%DLambda  = matdesc%lambda
             Tdomain%sSubdomain(num)%DMu      = matdesc%mu
             Tdomain%sSubdomain(num)%DKappa   = matdesc%kappa
+            Tdomain%sSubdomain(num)%DSyld    = matdesc%syld
+            Tdomain%sSubdomain(num)%DCkin    = matdesc%ckin
+            Tdomain%sSubdomain(num)%DKkin    = matdesc%kkin
+            Tdomain%sSubdomain(num)%DRinf    = matdesc%rinf
+            Tdomain%sSubdomain(num)%DBiso    = matdesc%biso
+
             !!! TODO Add Qp/Qmu, PML
             call c_f_pointer(matdesc%next, matdesc)
         end do
@@ -152,34 +154,16 @@ contains
             stop
         endif
 
-
         do i = 0,Tdomain%n_mat-1
 
             buffer = getLine (fid, "#")
-            if (Tdomain%nl_flag==1) then
-                read(buffer,*) material_type, &
-                    Tdomain%sSubDomain(i)%Pspeed,               &
-                    Tdomain%sSubDomain(i)%Sspeed,               &
-                    Tdomain%sSubDomain(i)%dDensity,             &
-                    NGLL,                                       &
-                    Tdomain%sSubDomain(i)%Qpression,            &
-                    Tdomain%sSubDomain(i)%Qmu,                  &
-                    Tdomain%sSubDomain(i)%nl_law,               &
-                    Tdomain%sSubDomain(i)%syld,                &
-                    Tdomain%sSubDomain(i)%Ckin,                &
-                    Tdomain%sSubDomain(i)%kkin,                &
-                    Tdomain%sSubDomain(i)%biso,                &
-                    Tdomain%sSubDomain(i)%Rinf
-            
-            else
-                read(buffer,*) material_type, &
-                    Tdomain%sSubDomain(i)%Pspeed,               &
-                    Tdomain%sSubDomain(i)%Sspeed,               &
-                    Tdomain%sSubDomain(i)%dDensity,             &
-                    NGLL,                                       &
-                    Tdomain%sSubDomain(i)%Qpression,            &
-                    Tdomain%sSubDomain(i)%Qmu
-            endif
+            read(buffer,*) material_type, &
+                Tdomain%sSubDomain(i)%Pspeed,               &
+                Tdomain%sSubDomain(i)%Sspeed,               &
+                Tdomain%sSubDomain(i)%dDensity,             &
+                NGLL,                                       &
+                Tdomain%sSubDomain(i)%Qpression,            &
+                Tdomain%sSubDomain(i)%Qmu
             
             Tdomain%sSubDomain(i)%NGLL = NGLL
             Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)

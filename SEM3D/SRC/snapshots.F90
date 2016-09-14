@@ -94,7 +94,6 @@ contains
 
         total_P_energy_sum = 0.0
         total_S_energy_sum = 0.0
-        write(*,*) "DIM",dim2,dim2_el
         if (Tdomain%output_rank==0) then
             allocate(displs(0:Tdomain%nb_output_procs-1))
             allocate(displs_el(0:Tdomain%nb_output_procs-1))
@@ -911,8 +910,6 @@ contains
         integer, intent(in) :: nnodes,nsubelements
         logical, intent(in) :: nl_flag
         logical :: flag_gradU
-        
-        write(*,*) "SUBELEMENTS",nsubelements
         
         if (nl_flag) then
             flag_gradU = (out_flags(OUT_ENERGYP)     + &

@@ -19,7 +19,7 @@ contains
         type(domain_solid), intent (INOUT) :: dom
         !
         integer :: nbelem, nblocks, ngll, n_solid
-        logical :: aniso,nl_flag,nl_law
+        logical :: aniso,nl_flag
         !
 
         ngll    = dom%ngll
@@ -33,7 +33,6 @@ contains
         dom%n_sls   = n_solid
         dom%aniso   = Tdomain%aniso
         nl_flag     = Tdomain%nl_flag==1
-        nl_law      = dom%nl_law==NLLMC
 
         ! Glls are initialized first, because we can have faces of a domain without elements
         if(nbelem /= 0) then
@@ -45,7 +44,8 @@ contains
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            if (nl_flag.and.nl_law) then
+            
+            if (nl_flag) then
                 ! nonlinear parameters
                 allocate(dom%nl_param)
                 allocate(dom%nl_param%LMC)
@@ -164,20 +164,19 @@ contains
         call deallocate_dombase(dom)
         
         ! nonlinear parameters
-!        REQUIRED ATTENTION
-!        if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
-!        if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
-!        if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
-!        if(allocated(dom%nl_param%LMC%m_Ckin))  deallocate(dom%nl_param%LMC%m_Ckin)
-!        if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
-!        if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
-!        if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
-!        ! nonlinear internal variables
-!        if(allocated(dom%m_radius)) deallocate(dom%m_radius)
-!        if(allocated(dom%m_stress)) deallocate(dom%m_stress)
-!        if(allocated(dom%m_center)) deallocate(dom%m_center)
-!        if(allocated(dom%m_strain)) deallocate(dom%m_strain)  
-!        if(allocated(dom%m_plstrain)) deallocate(dom%m_plstrain)  
+        if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
+        if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
+        if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
+        if(allocated(dom%nl_param%LMC%m_Ckin))  deallocate(dom%nl_param%LMC%m_Ckin)
+        if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
+        if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
+        if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
+        ! nonlinear internal variables
+        if(allocated(dom%m_radius)) deallocate(dom%m_radius)
+        if(allocated(dom%m_stress)) deallocate(dom%m_stress)
+        if(allocated(dom%m_center)) deallocate(dom%m_center)
+        if(allocated(dom%m_strain)) deallocate(dom%m_strain)  
+        if(allocated(dom%m_plstrain)) deallocate(dom%m_plstrain)  
 
     end subroutine deallocate_dom_solid
 
@@ -209,11 +208,12 @@ contains
         real, dimension(0:2,0:2) :: invgrad_ijk
         !
         integer :: bnum, ee
-
+        
+        nl_law = dom%nl_law==MATDEF_MU_SYLD_RHO
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
         
-        nl_law = dom%nl_law==NLLMC
+        nl_law = dom%nl_law
         
         if (nl_flag.and.nl_law) then
             flag_gradU = (out_variables(OUT_ENERGYP)     + &
@@ -386,6 +386,7 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
+        
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
@@ -394,22 +395,13 @@ contains
         dom%Density_(:,:,:,bnum,ee) = density
         dom%Lambda_ (:,:,:,bnum,ee) = lambda
         dom%Mu_     (:,:,:,bnum,ee) = mu
-!        REQUIRED ATTENTION 
-!        if (mat%nl_law) then
-!           if (i==-1 .and. j==-1 .and. k==-1) then
-!                dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = mat%syld
-!                dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mat%ckin
-!                dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = mat%kkin
-!                dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%rinf 
-!                dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = mat%biso
-!            else
-!                dom%nl_param%LMC%syld_(i,j,k,bnum,ee) = mat%syld
-!                dom%nl_param%LMC%ckin_(i,j,k,bnum,ee) = mat%ckin
-!                dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) = mat%kkin
-!                dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) = mat%rinf 
-!                dom%nl_param%LMC%biso_(i,j,k,bnum,ee) = mat%biso
-!            end if
-!        endif
+        if (mat%deftype==MATDEF_MU_SYLD_RHO) then
+            dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = mat%DSyld
+            dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mat%DCkin
+            dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = mat%DKkin
+            dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%DRinf 
+            dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = mat%DBiso
+        endif
 
         if (dom%n_sls>0)  then
             dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
@@ -491,7 +483,7 @@ contains
         n_solid = dom%n_sls
         aniso   = dom%aniso
         ngll    = dom%ngll
-        nl_law  = dom%nl_law==NLLMC
+        nl_law  = dom%nl_law==MATDEF_MU_SYLD_RHO
 
         do i_dir = 0,2
             do k = 0,ngll-1

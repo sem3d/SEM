@@ -264,7 +264,6 @@ subroutine RUN_PREPARED(Tdomain)
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
-
  !- anelastic properties
     if (Tdomain%n_sls>0) then
         if (Tdomain%aniso) then
