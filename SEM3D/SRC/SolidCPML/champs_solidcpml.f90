@@ -51,8 +51,8 @@ module champs_solidpml
         ! Element materials
         type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
-        ! Elements
-        type(element), dimension (:), pointer :: specel ! Point to Tdomain%specel
+        ! Material index
+        integer, dimension(:,:), allocatable :: mat_index
 
         ! Geometrical information
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob

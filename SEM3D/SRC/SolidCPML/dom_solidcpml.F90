@@ -51,6 +51,9 @@ contains
 
             allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
+
+            allocate(dom%mat_index(0:VCHUNK-1, 0:nblocks-1))
+            dom%mat_index = 0 ! Must be a valid material : it will be referenced if the number of elem != multiple of VCHUNK
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -255,12 +258,22 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
         !
+        integer n, bnum, ee
+
         ! Handle on node global coords : mandatory to compute distances in the PML (solidcpml_abk)
         dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
+
         ! Handle on materials
         dom%sSubDomain => Tdomain%sSubDomain
-        ! Handle on elements
-        dom%specel => Tdomain%specel
+
+        do n = 0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
+                bnum = Tdomain%specel(n)%lnum/VCHUNK
+                ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+                dom%mat_index(ee,bnum) = Tdomain%specel(n)%mat_index
+            end if
+        end do
+        write(*,*) "dbg ", dom%mat_index
     end subroutine init_domain_solidpml
 
     subroutine init_material_properties_solidpml(dom, lnum, mat, density, lambda, mu)
@@ -489,7 +502,7 @@ contains
         integer :: bnum, ee, mi
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
-        mi = dom%specel(bnum*VCHUNK+ee)%mat_index
+        mi = dom%mat_index(ee,bnum)
         lbd = dom%sSubDomain(mi)%DLambda
         mu = dom%sSubDomain(mi)%DMu
         rho = dom%sSubDomain(mi)%DDensity
