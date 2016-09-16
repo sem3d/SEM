@@ -51,6 +51,9 @@ contains
 
             allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
+
+            allocate(dom%mat_index(0:VCHUNK-1, 0:nblocks-1))
+            dom%mat_index = 0 ! Must be a valid material : it will be referenced if the number of elem != multiple of VCHUNK
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -255,19 +258,31 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
         !
+        integer n, bnum, ee
+
         ! Handle on node global coords : mandatory to compute distances in the PML (solidcpml_abk)
         dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
+
         ! Handle on materials
         dom%sSubDomain => Tdomain%sSubDomain
+
+        do n = 0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
+                bnum = Tdomain%specel(n)%lnum/VCHUNK
+                ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+                dom%mat_index(ee,bnum) = Tdomain%specel(n)%mat_index
+            end if
+        end do
+        write(*,*) "dbg ", dom%mat_index
     end subroutine init_domain_solidpml
 
-    subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
+    subroutine init_material_properties_solidpml(dom, lnum, mat, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: i, j, k ! -1 means :
-        real(fpp), intent(in) :: density
-        real(fpp), intent(in) :: lambda
-        real(fpp), intent(in) :: mu
+        type (subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
         !
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine init_material_properties_solidpml
@@ -292,7 +307,7 @@ contains
         ee = mod(specel%lnum,VCHUNK)
 
         ind = dom%Idom_(i,j,k,bnum,ee)
-        if (.not. dom%sSubDomain(specel%mat_index)%material_type == "P") &
+        if (.not. dom%sSubDomain(specel%mat_index)%dom == DM_SOLID_PML) &
             stop "init_geometric_properties_solidpml : material is not a PML material"
         density = dom%sSubDomain(specel%mat_index)%Ddensity
 
@@ -363,7 +378,7 @@ contains
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0
-        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla,Tdomain)
+        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -478,6 +493,21 @@ contains
         ! Note: do NOT apply (dirichlet) BC for PML
         !       if PML absorption would be turned off <=> solid domain without dirichlet BC (neumann only)
     end subroutine newmark_corrector_solidpml
+
+    function solidpml_Pspeed(dom, lnum, i, j, k) result(Pspeed)
+        type(domain_solidpml), intent (IN) :: dom
+        integer, intent(in) :: lnum, i, j, k
+        !
+        real(fpp) :: lbd, mu, rho, Pspeed
+        integer :: bnum, ee, mi
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        mi = dom%mat_index(ee,bnum)
+        lbd = dom%sSubDomain(mi)%DLambda
+        mu = dom%sSubDomain(mi)%DMu
+        rho = dom%sSubDomain(mi)%DDensity
+        Pspeed = sqrt((lbd+2.*mu)/rho)
+    end function solidpml_Pspeed
 end module dom_solidpml
 
 !! Local Variables:

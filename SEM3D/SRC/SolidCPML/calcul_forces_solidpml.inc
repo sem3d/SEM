@@ -50,9 +50,8 @@
 
 #define USE_LOCAL_MEM
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Tdomain)
+subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solidpml
-    use sdomain
     implicit none
 
     type(domain_solidpml), intent (INOUT) :: dom
@@ -63,7 +62,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Tdomain)
     integer, intent(in) :: bnum
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
-    type(domain) :: TDomain
     !
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
@@ -157,7 +155,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Tdomain)
                 dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
                 dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
 
-                mi = Tdomain%specel(bnum*VCHUNK+ee)%mat_index
+                mi = dom%mat_index(ee,bnum)
                 lbd = dom%sSubDomain(mi)%DLambda
                 mu = dom%sSubDomain(mi)%DMu
                 solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1111 = (lbd+2*mu)*Lijk
