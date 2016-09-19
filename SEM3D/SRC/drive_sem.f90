@@ -127,7 +127,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
-
     call TIME_STEPPING(Tdomain,isort,ntime)
 
  !---------------------------------------------------------------------------------------------!
@@ -497,7 +496,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
       !- Newmark reduced to leap-frog
         call NEWMARK(Tdomain, ntime)
 
-
 !---------------------------------------------------------!
     !- logical end of run
 !---------------------------------------------------------!
@@ -543,7 +541,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- ENERGY
 !---------------------------------------------------------!
         if (Tdomain%out_energy == 1) call output_total_energy(Tdomain, dble(ntime)*Tdomain%sdom%dt)
-
 !---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
@@ -553,6 +550,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
         call evalueSortieCapteur(ntime, sortie_capteur)
+        
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
         !---------------------------------------------------------!

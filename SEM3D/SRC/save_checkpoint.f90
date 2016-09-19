@@ -898,7 +898,6 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
 
     call init_hdf5()
     call compute_save_offsets(Tdomain, offset)
-    write(*,*) "OFFSET-save_checkpoint.f90",offset
     
     call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 

@@ -197,7 +197,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real(fpp), dimension(:,:,:,:), allocatable, optional :: eps_dev_pl
         !
-        logical                  :: flag_gradU, nl_law
+        logical                  :: flag_gradU 
         integer                  :: ngll, i, j, k, ind
         real(fpp)                :: DXX, DXY, DXZ
         real(fpp)                :: DYX, DYY, DYZ
@@ -209,13 +209,10 @@ contains
         !
         integer :: bnum, ee
         
-        nl_law = dom%nl_law==MATDEF_MU_SYLD_RHO
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
         
-        nl_law = dom%nl_law
-        
-        if (nl_flag.and.nl_law) then
+        if (nl_flag) then
             flag_gradU = (out_variables(OUT_ENERGYP)     + &
                           out_variables(OUT_ENERGYS)     + &
                           out_variables(OUT_EPS_VOL)     + &
@@ -279,7 +276,7 @@ contains
 
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-                        if (nl_flag .and. nl_law) then
+                        if (nl_flag) then
                             fieldP(i,j,k) = -sum(dom%stress_(0:2,i,j,k,bnum,ee))/3
                         else
                             fieldP(i,j,k) = -(dom%Lambda_(i,j,k,bnum,ee)&
@@ -332,7 +329,7 @@ contains
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
                         eps_dev(i,j,k,0:5) = zero
-                        if (nl_flag .and. nl_law) then
+                        if (nl_flag) then
                             if(.not. allocated(eps_dev_pl)) allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
                             eps_dev_pl(i,j,k,0:5) = zero
                             eps_dev(i,j,k,:)   = dom%strain_(:,i,j,k,bnum,ee)
@@ -357,7 +354,7 @@ contains
                         sig_dev(i,j,k,0:5) = 0.
                         
                         if (.not. dom%aniso) then
-                            if (nl_flag .and. nl_law) then
+                            if (nl_flag) then
                                 sig_dev(i,j,k,:) = dom%stress_(:,i,j,k,bnum,ee)
                                 sig_dev(i,j,k,0:2) = sig_dev(i,j,k,0:2) - &
                                     sum(sig_dev(i,j,k,0:2))/3
@@ -476,14 +473,13 @@ contains
         !
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         integer :: n_solid
-        logical :: aniso,nl_law
+        logical :: aniso
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
 
         n_solid = dom%n_sls
         aniso   = dom%aniso
         ngll    = dom%ngll
-        nl_law  = dom%nl_law==MATDEF_MU_SYLD_RHO
 
         do i_dir = 0,2
             do k = 0,ngll-1
@@ -511,7 +507,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                if (nl_flag.and.nl_law) then
+                if (nl_flag) then
                     call calcul_forces_nl(dom,bnum,Fox,Foy,Foz,Depla)
                 else
                     call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)

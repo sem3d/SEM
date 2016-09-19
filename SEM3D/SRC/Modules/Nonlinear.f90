@@ -293,7 +293,6 @@ contains
         deltaTmin = 0.001d0
         flag_fail = .false.
         counter = 1
-
         do while ((Ttot.lt.one).and.counter.le.10)
             Resk     = zero
             dS1(0:5) = zero

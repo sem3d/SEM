@@ -1466,7 +1466,6 @@ contains
 
         nn = nnodes
         ne = Tdomain%n_hexa
-        write(*,*) "NE",ne
         if (ne==0) then
             return
         end if

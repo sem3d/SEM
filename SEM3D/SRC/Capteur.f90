@@ -426,7 +426,7 @@ contains
             call  pol_lagrange(ngll,GLLc,k,capteur%zeta,outz(k))
         end do
         deallocate(GLLc)
-
+        
         allocate(grandeur(0:Tdomain%nReqOut-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
         
@@ -449,8 +449,8 @@ contains
         select case(Tdomain%specel(n_el)%domain)
             case (DM_SOLID)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
-              fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-              nl_flag, eps_dev_pl)
+                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
+                nl_flag, eps_dev_pl)
             case (DM_FLUID)
               call get_fluid_dom_var(Tdomain, Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -505,12 +505,13 @@ contains
                     if (out_variables(OUT_EPS_VOL) == 1) then
                         grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol(i,j,k)
                     end if
-
+                     
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         ioff = offset(OUT_EPS_DEV)
                         grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
                         + (/weight*eps_dev(i,j,k,0), weight*eps_dev(i,j,k,1), weight*eps_dev(i,j,k,2), &
                             weight*eps_dev(i,j,k,3), weight*eps_dev(i,j,k,4), weight*eps_dev(i,j,k,5)/)
+                        
                         if (nl_flag) then
                             ioff=ioff+6
                             grandeur (ioff:ioff+5) = grandeur(ioff:ioff+5)+weight*eps_dev_pl(i,j,k,:)
@@ -526,7 +527,6 @@ contains
                 enddo
             enddo
         enddo
-
         ! Sauvegarde des valeurs dans le capteur.
 
         i = capteur%icache+1
