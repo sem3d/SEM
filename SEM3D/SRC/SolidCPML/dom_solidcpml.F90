@@ -273,7 +273,6 @@ contains
                 dom%mat_index(ee,bnum) = Tdomain%specel(n)%mat_index
             end if
         end do
-        write(*,*) "dbg ", dom%mat_index
     end subroutine init_domain_solidpml
 
     subroutine init_material_properties_solidpml(dom, lnum, mat, density, lambda, mu)
