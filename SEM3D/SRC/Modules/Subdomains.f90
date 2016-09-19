@@ -15,19 +15,29 @@ module ssubdomains
     use constants
     implicit none
 
-    type Subdomain
-        character(len=1) :: material_type
-        character(len=1) :: initial_material_type
-        integer          :: material_definition
+    type PropertyField
+        character(len=1024) :: propFilePath
+        character(len=100) :: propName ! name of property and HDF5 group
+        real(fpp), dimension(0:2) :: MinBound, MaxBound, step
+        ! XXX: need to handle fields of different sizes...
+        integer, dimension(0:2) :: NN ! dimension of the grid for this property
+        integer, dimension(0:2) :: imin, imax
+        real(fpp), dimension(:,:,:), allocatable :: var
+    end type PropertyField
 
+    type Subdomain
+        integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML
+        integer          :: material_definition
+        integer          :: deftype
+        logical          :: present ! true if an element with this mat exists on this cpu
         !! Numerotation gll
         integer :: NGLL
 
         !! Definition materiau solide, isotrope
         real(fpp) :: Pspeed, Sspeed, Ddensity
         real(fpp) :: DLambda, DMu
+        real(fpp) :: DE, DNu
         real(fpp) :: DKappa
-        real(kind=8) :: dt
 
         !! Definition materiau solide anisotrope
         ! TODO
@@ -40,17 +50,14 @@ module ssubdomains
         integer :: npow
         real(fpp) :: Apow
 
-        !! RANDOM
-        !integer :: corrMod
-        integer :: assocMat = -1
-        !integer :: seedStart
-        !integer  , dimension(:), allocatable :: margiFirst
-        !integer  , dimension(:), allocatable :: chosenSeed
-        !real(fpp), dimension(:), allocatable :: varCoef
-        !real(fpp), dimension(:), allocatable :: corrL
-        real(fpp), dimension(0:2) :: MinBound, MaxBound, MinBound_Loc, MaxBound_Loc
-        character(len=1024), dimension(0:2) :: propFilePath
-        integer :: lambdaSwitch = -1
+        !! Boundaries for material initialisation from file
+        real(fpp), dimension(0:2) :: MinBound_Loc, MaxBound_Loc
+
+        ! three variables on a 3D grid used for intializing from fields in files
+        ! depending on material_definition we can have
+        ! Vp(v1) Vs(v2) Rho(v3)
+        ! Lambda(v1) Mu(v2) Rho(v3) ...
+        type(PropertyField), dimension(3) :: pf
 
     end type Subdomain
 
@@ -76,56 +83,17 @@ contains
         type(Subdomain), intent(in) :: mat
 
         is_pml = .false.
-        select case (mat%material_type)
-        case('S')
+        select case (mat%dom)
+        case(DM_SOLID)
             is_pml = .false.
-        case('P')
+        case(DM_SOLID_PML)
             is_pml = .true.
-        case('F')
+        case(DM_FLUID)
             is_pml = .false.
-        case('L')
+        case(DM_FLUID_PML)
             is_pml = .true.
         end select
     end function is_pml
-
-    integer function get_domain(mat)
-        use constants
-        implicit none
-        type(Subdomain), intent(in) :: mat
-
-        get_domain = DM_SOLID
-        select case (mat%material_type)
-        case('S')
-            get_domain = DM_SOLID
-        case('P')
-            get_domain = DM_SOLID_PML
-        case('F')
-            get_domain = DM_FLUID
-        case('L')
-            get_domain = DM_FLUID_PML
-        case default
-            stop "unknown domain"
-        end select
-        return
-    end function get_domain
-
-    logical function is_rand(mat)
-        type(Subdomain), intent(in) :: mat
-
-        is_rand = .false.
-        select case (mat%initial_material_type)
-        case('R')
-            is_rand = .true.
-        case('S')
-            is_rand = .false.
-        case('P')
-            is_rand = .false.
-        case('F')
-            is_rand = .false.
-        case('L')
-            is_rand = .false.
-        end select
-    end function is_rand
 
 end module ssubdomains
 

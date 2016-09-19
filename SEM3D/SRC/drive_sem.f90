@@ -109,7 +109,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #endif
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
-
+    Tdomain%out_energy = 1
  !----------------------------------------------------------------------------------------------!
  !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
  !----------------------------------------------------------------------------------------------!
@@ -177,9 +177,6 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
-#ifdef USE_RF
-    use build_prop_files
-#endif
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -237,10 +234,6 @@ subroutine RUN_PREPARED(Tdomain)
 
     call MPI_Barrier(Tdomain%communicateur, code)
 
- !- discretization (collocation) points' properties
-    if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
-    call MPI_Barrier(Tdomain%communicateur, code)
-
  !- from elementary to global numbering
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)
@@ -267,15 +260,6 @@ subroutine RUN_PREPARED(Tdomain)
     call check_interface_orient(Tdomain, Tdomain%intFluPml, 1e-10)
     call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1e-10)
     call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10)
-    call MPI_Barrier(Tdomain%communicateur,code)
-
-#ifdef USE_RF
-    call create_prop_files (Tdomain, rg)
-#endif
-
-    !- timestep value - > Courant, or Courant -> timestep
-    if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
-    call Compute_Courant(Tdomain,rg)
     call MPI_Barrier(Tdomain%communicateur,code)
 
     !- elementary properties (mass matrices, PML factors,..) geometry
@@ -560,19 +544,22 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         call stat_starttick()
 
 !---------------------------------------------------------!
+    !- ENERGY
+!---------------------------------------------------------!
+        if (Tdomain%out_energy == 1) call output_total_energy(Tdomain, dble(ntime)*Tdomain%sdom%dt)
+
+!---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
-
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
         call evalueSortieCapteur(ntime, sortie_capteur)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
-
-
+        
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!

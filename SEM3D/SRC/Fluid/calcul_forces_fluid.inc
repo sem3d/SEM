@@ -48,6 +48,9 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
     real(fpp) :: t41,t11,t51,t12,t61,t13,F1
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t6,t10
 #endif
+#ifdef NGLLVAL
+    if (ngll/=ngll0) stop 1
+#endif
     !dir$ ASSUME_ALIGNED PHI: 32
     !dir$ ASSUME_ALIGNED FFL: 32
     !dir$ ASSUME_ALIGNED m_InvGrad: 32

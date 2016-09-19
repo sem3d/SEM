@@ -7,6 +7,7 @@ set(PRJ ${PROJECT_SOURCE_DIR})
 set(SEM3D_SOURCES_F
     ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
+    ${PRJ}/SRC/dombase.F90
     ${PRJ}/SRC/Solid/champs_solid.f90
     ${PRJ}/SRC/Fluid/champs_fluid.f90
     ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
@@ -24,7 +25,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/partial_deriv.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/Capteur.f90
-    ${PRJ}/SRC/interpolation.f90 
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/SourcePosition.f90
@@ -66,6 +66,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/boundary_conditions_init.f90
 
     ${PRJ}/SRC/snapshots.F90
+
+    ${PRJ}/SRC/build_prop_files.F90
 
     ${PRJ}/SRC/earth_models/earth_transform.f90
     ${PRJ}/SRC/earth_models/material_earthchunk.F90

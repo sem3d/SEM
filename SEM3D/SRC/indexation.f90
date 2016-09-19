@@ -117,13 +117,13 @@ contains
     ! nf is the number (0..5) of the face of the element
     ! face describes the nodes of the face nf of the element
     subroutine ind_elem_face(ngll, nf, refface, face, i0, di, dj)
-        integer, intent(in), dimension(0:2) :: ngll
+        integer, intent(in) :: ngll
         integer, intent(in) :: nf
         integer, intent(in), dimension(0:3) :: refface, face
         integer, intent(out), dimension(0:2) :: i0, di, dj
         !
         integer :: node, dir, dir1, dir2, dir3
-        integer :: ngll1, ngll2, ngll3
+        integer :: ngll1
         call rel_orient(refface, face, node, dir)
         ! dir1..dir3 are the axis numbers (0,1,2) of respectively
         ! i index of face, j index of face, fixed index of face within
@@ -133,16 +133,14 @@ contains
         dir3 = 3-dir1-dir2
         di(dir3) = 0
         dj(dir3) = 0
-        ngll1 = ngll(dir1)-1
-        ngll2 = ngll(dir2)-1
-        ngll3 = ngll(dir3)-1
+        ngll1 = ngll-1
         select case (nf)
         case (0,1,4)
             i0(dir3) = 0
             di(dir3) = 0
             dj(dir3) = 0
         case (2,3,5)
-            i0(dir3) = ngll3
+            i0(dir3) = ngll1
             di(dir3) = 0
             dj(dir3) = 0
         end select
@@ -173,7 +171,7 @@ contains
                 ! d c     b a
                 ! a b     c d
                 i0(dir1) = ngll1
-                i0(dir2) = ngll2
+                i0(dir2) = ngll1
                 di(dir1) = -1
                 di(dir2) = 0
                 dj(dir1) = 0
@@ -183,7 +181,7 @@ contains
                 ! d c     a d
                 ! a b     b c
                 i0(dir1) = 0
-                i0(dir2) = ngll2
+                i0(dir2) = ngll1
                 di(dir1) = 0
                 di(dir2) = -1
                 dj(dir1) = 1
@@ -216,7 +214,7 @@ contains
                 ! d c     d a
                 ! a b     c b
                 i0(dir1) = ngll1
-                i0(dir2) = ngll2
+                i0(dir2) = ngll1
                 di(dir1) = 0
                 di(dir2) = -1
                 dj(dir1) = -1
@@ -226,7 +224,7 @@ contains
                 ! d c     a b
                 ! a b     d c
                 i0(dir1) = 0
-                i0(dir2) = ngll2
+                i0(dir2) = ngll1
                 di(dir1) = 1
                 di(dir2) = 0
                 dj(dir1) = 0
@@ -237,7 +235,7 @@ contains
     !------------------------------------------------------------
     !------------------------------------------------------------
     subroutine ind_elem_edge(ngll, ne, refedge, edge, i0, di)
-        integer, intent(in), dimension(0:2) :: ngll
+        integer, intent(in) :: ngll
         integer, intent(in) :: ne
         integer, intent(in), dimension(0:1) :: refedge, edge
         integer, intent(out), dimension(0:2) :: i0, di
@@ -252,18 +250,18 @@ contains
         case (3,11,7,8)
             i0(0) = 0
         case (1,10,5,9)
-            i0(0) = ngll(0)-1
+            i0(0) = ngll-1
         end select
         ! Edges _| to Y
         select case(ne)
         case (0,9,4,8)
             i0(1) = 0
         case (2,10,6,11)
-            i0(1) = ngll(1)-1
+            i0(1) = ngll-1
         end select
         select case(ne)
         case (4,5,6,7)
-            i0(2) = ngll(2)-1
+            i0(2) = ngll-1
         case (0,1,2,3)
             i0(2) = 0
         end select
@@ -271,7 +269,7 @@ contains
             ! direct order
             di(axis) = 1
         else
-            i0(axis) = ngll(axis)-1
+            i0(axis) = ngll-1
             di(axis) = -1
         end if
     end subroutine ind_elem_edge

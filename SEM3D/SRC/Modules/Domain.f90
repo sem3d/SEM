@@ -4,7 +4,7 @@
 !!
 !>
 !!\file Domain.f90
-!!\brief Contient le d�finition du type domain
+!!\brief Contient les definition du type domain
 !!
 !<
 
@@ -32,9 +32,6 @@ module sdomain
     use champs_fluidpml
     use constants
     implicit none
-
-
-
 
 
     type :: domain
@@ -73,12 +70,11 @@ module sdomain
        type(comm)     , dimension (:), allocatable :: sComm
 
        logical :: aniso
-       logical :: any_Random, any_PropOnFile
-       integer :: nRandom
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
+       integer :: n_hexa_local !< Nombre de subelements hexa dans le proc(division aux GLLs)
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
        logical :: any_sdom, any_fdom, any_spml, any_fpml
 
@@ -93,6 +89,7 @@ module sdomain
        character (len=1)  :: Super_object_type
 
        integer, dimension(0:8) :: out_variables
+       integer :: out_energy
        integer                 :: nReqOut ! number of required outputs
        integer :: earthchunk_isInit
        character (len=MAX_FILE_SIZE) :: earthchunk_file
@@ -113,18 +110,38 @@ module sdomain
        ! Interface Fluide / Solide
        type(SF_object)     :: SF
 
-        ! Communication
-        type(comm_vector) :: Comm_data      ! Comm mass et forces
-        type(comm_vector) :: Comm_SolFlu    ! Comm couplage solide/fluide
+       ! Communication
+       type(comm_vector) :: Comm_data      ! Comm mass et forces
+       type(comm_vector) :: Comm_SolFlu    ! Comm couplage solide/fluide
 
        ! Configuration parameters as returned from read_input.c
        type(sem_config) :: config
+       type(sem_material_list) :: material_list
 
        ! Rajouter pour le traitement des surface
        integer :: n_NEBC, n_PWBC, n_FTBC, nsurface
     end type domain
 
 contains
+
+    function domain_from_type_char(ch)
+        character, intent(in) :: ch
+        integer :: domain_from_type_char
+        select case(ch)
+        case('R')
+            domain_from_type_char = DM_SOLID
+        case('S')
+            domain_from_type_char = DM_SOLID
+        case('P')
+            domain_from_type_char = DM_SOLID_PML
+        case('F')
+            domain_from_type_char = DM_FLUID
+        case('L')
+            domain_from_type_char = DM_FLUID_PML
+        case default
+            stop "Unknown material type"
+        end select
+    end function domain_from_type_char
 
     function domain_nglltot(Tdomain, dom)
         integer, intent(in) :: dom
@@ -230,18 +247,17 @@ contains
         !
         integer :: nif, i, j
         integer :: nf0, nf1, ip0, ip1
-        integer :: ngll1, ngll2
+        integer :: ngll
         real(FPP), dimension(0:2) :: dp, x0, x1
         logical :: bad
         !
         do nif=0,inter%surf0%n_faces-1
             nf0 = inter%surf0%if_faces(nif)
             nf1 = inter%surf1%if_faces(nif)
-            ngll1 = Tdomain%sFace(nf0)%ngll1
-            ngll2 = Tdomain%sFace(nf0)%ngll2
+            ngll = Tdomain%sFace(nf0)%ngll
             bad = .false.
-            do j=0,ngll2-1
-                do i=0,ngll1-1
+            do j=0,ngll-1
+                do i=0,ngll-1
                     ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
                     ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
                     dp = abs(Tdomain%GlobCoord(:,ip0)- Tdomain%GlobCoord(:,ip1))
@@ -258,8 +274,8 @@ contains
                 write(*,*) "IF0: IGLOBN", nf0, "[", Tdomain%sFace(nf0)%Iglobnum_Face, "]"
                 write(*,*) "IF1: IGLOBN", nf1, "[", Tdomain%sFace(nf1)%Iglobnum_Face, "]"
                 write(*,*) "DX:", nf0, nf1, ":"
-                do j=0,ngll2-1
-                    do i=0,ngll1-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
                         ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
                         ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
                         if (ip0>=0) then

@@ -182,53 +182,39 @@ contains
         implicit none
         type(domain), intent(inout) :: Tdomain
         !
-        integer :: i, j, k, mat, nod, code, assocMat
-        real(kind=FPP), dimension(0:2) :: tempGlobMin, tempGlobMax
+        integer :: i, j, k, mat, nod
         !
         do i = 0, Tdomain%n_mat-1
-            Tdomain%sSubDomain(i)%MinBound = MAX_DOUBLE
-            Tdomain%sSubDomain(i)%MaxBound = -MAX_DOUBLE
+            Tdomain%sSubDomain(i)%MinBound_loc = MAX_DOUBLE
+            Tdomain%sSubDomain(i)%MaxBound_loc = -MAX_DOUBLE
+            Tdomain%sSubDomain(i)%present = .false.
         end do
-
 
         do i = 0, Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
+            Tdomain%sSubDomain(mat)%present = .true.
 
             do j = 0, Tdomain%n_nodes-1
                 nod = Tdomain%specel(i)%Control_Nodes(j)
                 do k = 0, 2
                     !Max
-                    if(Tdomain%Coord_nodes(k, nod) > Tdomain%sSubDomain(mat)%MaxBound(k)) &
-                        Tdomain%sSubDomain(mat)%MaxBound(k) = Tdomain%Coord_nodes(k, nod)
+                    if(Tdomain%Coord_nodes(k, nod) > Tdomain%sSubDomain(mat)%MaxBound_loc(k)) &
+                        Tdomain%sSubDomain(mat)%MaxBound_loc(k) = Tdomain%Coord_nodes(k, nod)
                     !Min
-                    if(Tdomain%Coord_nodes(k, nod) < Tdomain%sSubDomain(mat)%MinBound(k)) &
-                        Tdomain%sSubDomain(mat)%MinBound(k) = Tdomain%Coord_nodes(k, nod)
+                    if(Tdomain%Coord_nodes(k, nod) < Tdomain%sSubDomain(mat)%MinBound_loc(k)) &
+                        Tdomain%sSubDomain(mat)%MinBound_loc(k) = Tdomain%Coord_nodes(k, nod)
                 end do
             end do
         end do
-
-        !PASSING EXTREMES TO THE ASSOCIATED MATERIAL (Taking into account PML boundaries)
-        do mat = 0, Tdomain%n_mat - 1
-            Tdomain%sSubDomain(mat)%MaxBound_Loc = Tdomain%sSubDomain(mat)%MaxBound
-            Tdomain%sSubDomain(mat)%MinBound_Loc = Tdomain%sSubDomain(mat)%MinBound
-            assocMat = Tdomain%sSubDomain(mat)%assocMat
-            where(Tdomain%sSubDomain(mat)%MinBound < Tdomain%sSubDomain(assocMat)%MinBound) &
-                Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
-            where(Tdomain%sSubDomain(mat)%MaxBound > Tdomain%sSubDomain(assocMat)%MaxBound) &
-                Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
+        do i = 0, Tdomain%n_mat-1
+            do k=0,2
+                if (Tdomain%sSubDomain(i)%MinBound_loc(k)>Tdomain%sSubDomain(i)%MaxBound_loc(k)) then
+                    ! Material is not present on this domain
+                    
+                end if
+            end do
         end do
 
-
-        !COMMUNICATING EXTREMES BETWEEN PROCS
-        do mat = 0, Tdomain%n_mat - 1
-            ! XXX Probleme avec array(0:...) au lieu de array(1:...) ??
-            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MinBound, tempGlobMin, 3, &
-                MPI_DOUBLE_PRECISION,MPI_MIN,Tdomain%communicateur,code)
-            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MaxBound, tempGlobMax, 3, &
-                MPI_DOUBLE_PRECISION,MPI_MAX,Tdomain%communicateur,code)
-            Tdomain%sSubDomain(mat)%MinBound = tempGlobMin
-            Tdomain%sSubDomain(mat)%MaxBound = tempGlobMax
-        end do
     end subroutine compute_material_boundaries
 
     subroutine read_comm_proc_data(proc_id, scomm)
@@ -343,7 +329,7 @@ contains
         integer(HSIZE_T) :: namesz, i
         integer(HID_T) :: surf_id
         call read_attr_int(gid, "n_surfaces", n_surfaces)
-        write(*,*) "NSURFACES=", n_surfaces
+        !write(*,*) "NSURFACES=", n_surfaces
         allocate(Tdomain%sSurfaces(0:n_surfaces-1))
         ! Get group info
         call H5Gget_info_f(gid, storage_type, nlinks, max_corder, ierr)
@@ -378,14 +364,8 @@ contains
         logical :: neumann_log
         !
         integer(HID_T) :: fid, proc_id, surf_id
-        integer :: hdferr, ierr, i_neu, i_surf
-        integer, allocatable, dimension(:,:) :: itemp2, itemp2b, itemp2c
-        integer, allocatable, dimension(:,:) :: itemp
+        integer :: hdferr, ierr
         character(len=10) :: proc_grp
-        character(len=12) ::  schar
-        character(len=100)                   :: surfacename
-        character(len=4)                     :: typemat
-        type(surf_num)                       :: Tsurface
         integer, allocatable, dimension(:)   :: nb_elems_per_proc
         character(Len=MAX_FILE_SIZE) :: fname
         !

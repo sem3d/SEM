@@ -1,29 +1,23 @@
-#####INSTALL (Should work with this makefile if you set all standard paths -- Tested 11/03/2016)
-#Install Xcode from app store
-#Install macports (https://www.macports.org/install.php)
-## On Terminal
-#sudo port selfupdate
-#sudo port upgrade outdated
-#sudo port install gcc5
-#sudo port select --set gcc mp-gcc5
-#sudo port install openmpi-gcc5
-#sudo port select --set mpi openmpi-gcc5-fortran
-#sudo port install hdf5 +gcc5 +fortran +szip +openmpi -cxx
-#sudo port install fftw-3 +gcc5 +fortran +openmpi
-
 # Ce CMakeLists.txt est le projet principal permettant de construire sem2d et sem3d
 # en standalone (hors mka3d)
 PROJECT(SEM)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
-option(OPT_VEC "Vectorize" ON)
-if(OPT_VEC)
-  add_definitions(-DSEM_VEC)
+option(OPT_CPML "CPML" OFF)
+if (OPT_CPML)
+  add_definitions(-DCPML)
+endif(OPT_CPML)
+
+set(OPT_VEC "1" CACHE STRING "Vectorization chunks")
+
+add_definitions(-DVCHUNK=${OPT_VEC})
+if (${OPT_VEC}>1)
   set(EXTRA_IFORT_FLAGS "-qopenmp-simd")
   set(EXTRA_GFORT_FLAGS "-fopenmp")
-endif(OPT_VEC)
+endif(${OPT_VEC}>1)
 
 if (NOT BUILD_WITH_MKA)
 # Hors mka il faut chercher MPI et HDF5 ici
@@ -35,6 +29,8 @@ set(CMAKE_MODULE_PATH ${HDF5_DIR} ${CMAKE_MODULE_PATH})
 endif(HDF5_DIR)
 
 set(SEMDIR ${PROJECT_SOURCE_DIR})
+set(HDF5_FORTRAN_INCLUDE_DIR "/opt/local/include")
+set(HDF5_C_INCLUDE_DIR "/opt/local/include")
 
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
@@ -42,15 +38,6 @@ include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INC
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 include_directories(${PROJECT_BINARY_DIR}/libs/common)
 
-find_path (FFTW_INCLUDES fftw3.h)
-find_library (FFTW_LIBRARIES NAMES fftw3)
-# TODO : find paths automatically
-#Local MAC
-set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/local/lib -lfftw3 -lfftw3_threads -lfftw3_mpi")
-#IGLOO
-#set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/san/bibliotheques/fftw/3.3.4-intelmpi5.0.2/lib -lfftw3_mpi -lfftw3_threads -lfftw3")
-
-#set(CMAKE
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
@@ -100,6 +87,7 @@ set(SEM_SRC
   ${SEMCOMMON}/sem_hdf5.f90
   ${SEMCOMMON}/blas.F90
   ${SEMCOMMON}/leastsq.f90
+  ${SEMCOMMON}/intset.F90
 )
 
 set(SEM_SRC_C
@@ -137,9 +125,6 @@ set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} netlib)
 # HDF5
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 
-#FFTW
-#set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW_LIBRARIES})
-
 # MPI
 if(OPT_MPI OR HDF5_IS_PARALLEL)
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
@@ -161,55 +146,27 @@ set(SEMLIBDIR ${PROJECT_BINARY_DIR}/libs)
 #SEM COMMON LIBRARY
 add_library(semcommon ${SEM_SRC} ${SEM_SRC_C})
 set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
+set(SEM_EXTRA_LIBS semcommon ${SEM_EXTRA_LIBS})
 
 #RANDOM FIELD LIBRARY
-add_library(randomfield
-  ${SEMDIR}/randomfield/SRC_LIB/randomFieldND.f90
-  ${SEMDIR}/randomfield/SRC_LIB/spectra_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/writeResultFile_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/mesh_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/type_MESH.f90
-  ${SEMDIR}/randomfield/SRC_LIB/type_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/topography_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/readUNV_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/localization_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/type_inputRF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/sample_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/calls_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/statistics_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/type_STAT.f90
-  ${SEMDIR}/randomfield/SRC_LIB/charFunctions.f90
-  ${SEMDIR}/randomfield/SRC_LIB/constants_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/common_variables_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/displayCarvalhol.f90
-  ${SEMDIR}/randomfield/SRC_LIB/hdf5_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/write_Log_File.f90
-  ${SEMDIR}/randomfield/SRC_LIB/readFile_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/math_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/systemUt_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/fftw3.f90
-  ${SEMDIR}/randomfield/dcdflib/src/ipmpar.f
-  ${SEMDIR}/randomfield/dcdflib/src/spmpar.f
-  ${SEMDIR}/randomfield/dcdflib/src/cumnor.f
-  ${SEMDIR}/randomfield/dcdflib/src/devlpl.f
-  ${SEMDIR}/randomfield/dcdflib/src/stvaln.f
-  ${SEMDIR}/randomfield/dcdflib/src/dinvnr.f
-  ${SEMDIR}/randomfield/dcdflib/src/cdfnor.f
-  ${SEMDIR}/randomfield/RANDLIB/ranlib.f90
-  ${SEMDIR}/randomfield/RANDLIB/rnglib.f90
-)
-set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
-add_dependencies(randomfield semcommon)
-set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
+option(OPT_RF "RF" OFF)
+if (OPT_RF)
+#  add_definitions(-DUSE_RF)
+  add_subdirectory(randomField)
+
+endif (OPT_RF)
 
 add_subdirectory(COMMON/netlib)
-add_subdirectory(SEM2D)
+option(OPT_SEM2D "Compile SEM2D" OFF) # Save compilation time (in particular with intel : save half an hour !...)
+if(OPT_SEM2D)
+  add_subdirectory(MESH2D)
+  add_subdirectory(SEM2D)
+  SET_TARGET_PROPERTIES(sem2d.exe PROPERTIES LINKER_LANGUAGE Fortran)
+endif(OPT_SEM2D)
 add_subdirectory(SEM3D)
 add_subdirectory(MESH)
-add_subdirectory(MESH2D)
-
 
 add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90   ${SEMCOMMON}/fileutils.c ${SEMCOMMON}/sem_c_bindings.F90 ${SEMCOMMON}/semdatafiles.F90)
 
-SET_TARGET_PROPERTIES(sem2d.exe PROPERTIES LINKER_LANGUAGE Fortran)
 SET_TARGET_PROPERTIES(sem3d.exe PROPERTIES LINKER_LANGUAGE Fortran)
+

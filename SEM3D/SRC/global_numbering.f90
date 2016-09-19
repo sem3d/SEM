@@ -73,7 +73,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
     ! A counter for each domain (0: global)
     integer, dimension(0:4) :: icount ! nombre de glls    par domaine
     integer, dimension(0:4) :: ecount ! nombre d'elements par domaine
-    integer, dimension(0:2) :: ngll
+    integer :: ngll
     integer, dimension(0:3) :: elface
     integer, dimension(0:1) :: eledge
     integer :: dom
@@ -88,28 +88,17 @@ subroutine renumber_global_gll_nodes(Tdomain)
 
     !Elements Inner GLL points
     do n = 0,Tdomain%n_elem-1
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll(0:2) = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll(0:2) = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll(0:2) = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll(0:2) = Tdomain%fpmldom%ngll
-             case default
-                 stop "unknown domain"
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         dom = Tdomain%specel(n)%domain
         Tdomain%specel(n)%lnum = ecount(dom)
         ecount(dom) = ecount(dom)+1
-        allocate(Tdomain%specel(n)%Iglobnum(0:ngll(0)-1,0:ngll(1)-1,0:ngll(2)-1))
-        allocate(Tdomain%specel(n)%Idom    (0:ngll(0)-1,0:ngll(1)-1,0:ngll(2)-1))
+        allocate(Tdomain%specel(n)%Iglobnum(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(Tdomain%specel(n)%Idom    (0:ngll-1,0:ngll-1,0:ngll-1))
         Tdomain%specel(n)%Iglobnum = -1
         Tdomain%specel(n)%Idom = -1
-        do k = 1,ngll(2)-2
-            do j = 1,ngll(1)-2
-                do i = 1,ngll(0)-2
+        do k = 1,ngll-2
+            do j = 1,ngll-2
+                do i = 1,ngll-2
                     Tdomain%specel(n)%Iglobnum(i,j,k) = icount(0)
                     icount(0) = icount(0) + 1
                     Tdomain%specel(n)%Idom(i,j,k) = icount(dom)
@@ -125,15 +114,14 @@ subroutine renumber_global_gll_nodes(Tdomain)
 
     !Faces Inner GLL points
     do n = 0,Tdomain%n_face-1
-        ngll(0) = Tdomain%sFace(n)%ngll1
-        ngll(1) = Tdomain%sFace(n)%ngll2
+        ngll = Tdomain%sFace(n)%ngll
         dom   = Tdomain%sFace(n)%domain
-        allocate(Tdomain%sFace(n)%Iglobnum_Face(0:ngll(0)-1,0:ngll(1)-1))
-        allocate(Tdomain%sFace(n)%Idom         (0:ngll(0)-1,0:ngll(1)-1))
+        allocate(Tdomain%sFace(n)%Iglobnum_Face(0:ngll-1,0:ngll-1))
+        allocate(Tdomain%sFace(n)%Idom         (0:ngll-1,0:ngll-1))
         Tdomain%sFace(n)%Iglobnum_Face = -1
         Tdomain%sFace(n)%Idom = -1
-        do j = 1,ngll(1)-2
-            do i = 1,ngll(0)-2
+        do j = 1,ngll-2
+            do i = 1,ngll-2
                 Tdomain%sFace(n)%Iglobnum_Face(i,j) = icount(0)
                 icount(0) = icount(0) + 1
                 Tdomain%sFace(n)%Idom(i,j) = icount(dom)
@@ -144,13 +132,13 @@ subroutine renumber_global_gll_nodes(Tdomain)
 
     !Edges Inner GLL points
     do n = 0,Tdomain%n_edge-1
-        ngll(0) = Tdomain%sEdge(n)%ngll
+        ngll = Tdomain%sEdge(n)%ngll
         dom   = Tdomain%sEdge(n)%domain
-        allocate(Tdomain%sEdge(n)%Iglobnum_Edge(1:ngll(0)-2))
-        allocate(Tdomain%sEdge(n)%Idom         (1:ngll(0)-2))
+        allocate(Tdomain%sEdge(n)%Iglobnum_Edge(1:ngll-2))
+        allocate(Tdomain%sEdge(n)%Idom         (1:ngll-2))
         Tdomain%sEdge(n)%Iglobnum_Edge = -1
         Tdomain%sEdge(n)%Idom = -1
-        do i = 1,ngll(0)-2
+        do i = 1,ngll-2
             Tdomain%sEdge(n)%Iglobnum_Edge(i) = icount(0)
             icount(0) = icount(0) + 1
             Tdomain%sEdge(n)%Idom(i) = icount(dom)
@@ -176,18 +164,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
 
     !Recollecting at the element level, from faces, edges and vertices.
     do n = 0,Tdomain%n_elem-1
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll(0:2) = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll(0:2) = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll(0:2) = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll(0:2) = Tdomain%fpmldom%ngll
-             case default
-                 stop "unknown domain"
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         !Taking information from faces
         do nf = 0,5
             nnf = Tdomain%specel(n)%Near_Faces(nf)
@@ -196,8 +173,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
             end do
             call ind_elem_face(ngll, nf, Tdomain%sFace(nnf)%inodes, elface, i0, di, dj)
 
-            do i=1,Tdomain%sFace(nnf)%ngll1-2
-                do j=1,Tdomain%sFace(nnf)%ngll2-2
+            do i=1,Tdomain%sFace(nnf)%ngll-2
+                do j=1,Tdomain%sFace(nnf)%ngll-2
                     idxi = i0(0)+i*di(0)+j*dj(0)
                     idxj = i0(1)+i*di(1)+j*dj(1)
                     idxk = i0(2)+i*di(2)+j*dj(2)
@@ -229,9 +206,9 @@ subroutine renumber_global_gll_nodes(Tdomain)
         !Taking information from vertices
         do nv = 0,7
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
-            idxi = vertex_def(0,nv)*(ngll(0)-1)
-            idxj = vertex_def(1,nv)*(ngll(1)-1)
-            idxk = vertex_def(2,nv)*(ngll(2)-1)
+            idxi = vertex_def(0,nv)*(ngll-1)
+            idxj = vertex_def(1,nv)*(ngll-1)
+            idxk = vertex_def(2,nv)*(ngll-1)
 
             Tdomain%specel(n)%Iglobnum(idxi, idxj, idxk) = Tdomain%sVertex(nnv)%Iglobnum_Vertex
             Tdomain%specel(n)%Idom(idxi, idxj, idxk) = Tdomain%sVertex(nnv)%Idom
@@ -241,18 +218,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
 
     ! One last step, copy the borders (edges, vertices) from the elements to the faces
     do n = 0,Tdomain%n_elem-1
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll(0:2) = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll(0:2) = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll(0:2) = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll(0:2) = Tdomain%fpmldom%ngll
-             case default
-                 stop "unknown domain"
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         !Taking information from faces
         do nf = 0,5
             nnf = Tdomain%specel(n)%Near_Faces(nf)
@@ -261,7 +227,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
             end do
             call ind_elem_face(ngll, nf, Tdomain%sFace(nnf)%inodes, elface, i0, di, dj)
 
-            do i=0,Tdomain%sFace(nnf)%ngll1-1
+            do i=0,Tdomain%sFace(nnf)%ngll-1
                 j = 0
                 idxi = i0(0)+i*di(0)+j*dj(0)
                 idxj = i0(1)+i*di(1)+j*dj(1)
@@ -271,7 +237,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
                 ind = Tdomain%specel(n)%Idom(idxi,idxj,idxk)
                 Tdomain%sFace(nnf)%Idom(i,j) = ind
                 !
-                j = Tdomain%sFace(nnf)%ngll2-1
+                j = Tdomain%sFace(nnf)%ngll-1
                 idxi = i0(0)+i*di(0)+j*dj(0)
                 idxj = i0(1)+i*di(1)+j*dj(1)
                 idxk = i0(2)+i*di(2)+j*dj(2)
@@ -280,7 +246,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
                 ind = Tdomain%specel(n)%Idom(idxi,idxj,idxk)
                 Tdomain%sFace(nnf)%Idom(i,j) = ind
             end do
-            do j=0,Tdomain%sFace(nnf)%ngll2-1
+            do j=0,Tdomain%sFace(nnf)%ngll-1
                 i = 0
                 idxi = i0(0)+i*di(0)+j*dj(0)
                 idxj = i0(1)+i*di(1)+j*dj(1)
@@ -290,7 +256,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
                 ind = Tdomain%specel(n)%Idom(idxi,idxj,idxk)
                 Tdomain%sFace(nnf)%Idom(i,j) = ind
                 !
-                i = Tdomain%sFace(nnf)%ngll1-1
+                i = Tdomain%sFace(nnf)%ngll-1
                 idxi = i0(0)+i*di(0)+j*dj(0)
                 idxj = i0(1)+i*di(1)+j*dj(1)
                 idxk = i0(2)+i*di(2)+j*dj(2)
@@ -304,23 +270,12 @@ subroutine renumber_global_gll_nodes(Tdomain)
 #if 1
     ! Check that all glls have an Iglobnum
     do n = 0,Tdomain%n_elem-1
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll(0:2) = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll(0:2) = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll(0:2) = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll(0:2) = Tdomain%fpmldom%ngll
-             case default
-                 stop "unknown domain"
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         dom  = Tdomain%specel(n)%domain
         fail = .false.
-        do k = 0,ngll(2)-1
-            do j = 0,ngll(1)-1
-                do i = 0,ngll(0)-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     ind = Tdomain%specel(n)%Iglobnum(i,j,k)
                     !write(*,*) i,j,k,ind
                     if (ind<0) fail=.true.
@@ -369,7 +324,7 @@ subroutine renumber_surface(Tdomain, surf, dom0)
     integer :: nv, nvs
     integer :: ngll_if
     integer :: i, j
-    integer :: ngll1, ngll2
+    integer :: ngll
     integer :: doms
     integer :: idx0
     ! Count number of gll on the interface
@@ -378,9 +333,8 @@ subroutine renumber_surface(Tdomain, surf, dom0)
     ! elsewhere (ie computation of the face normals)
     do nf=0,surf%n_faces-1
         nfs = surf%if_faces(nf)
-        ngll1 = Tdomain%sFace(nfs)%ngll1
-        ngll2 = Tdomain%sFace(nfs)%ngll2
-        ngll_if = ngll_if + (ngll1-2)*(ngll2-2)
+        ngll = Tdomain%sFace(nfs)%ngll
+        ngll_if = ngll_if + (ngll-2)*(ngll-2)
         ! While we're at it, check coherency...
         doms = Tdomain%sFace(nfs)%domain
         if (doms/=dom0) then
@@ -390,8 +344,8 @@ subroutine renumber_surface(Tdomain, surf, dom0)
     end do
     do ne=0,surf%n_edges-1
         nes = surf%if_edges(ne)
-        ngll1 = Tdomain%sEdge(nes)%ngll
-        ngll_if = ngll_if + ngll1-2
+        ngll = Tdomain%sEdge(nes)%ngll
+        ngll_if = ngll_if + ngll-2
         ! While we're at it, check coherency...
         doms = Tdomain%sEdge(nes)%domain
         if (doms/=dom0) then
@@ -416,10 +370,9 @@ subroutine renumber_surface(Tdomain, surf, dom0)
     ! FACES
     do nf=0,surf%n_faces-1
         nfs = surf%if_faces(nf)
-        ngll1 = Tdomain%sFace(nfs)%ngll1
-        ngll2 = Tdomain%sFace(nfs)%ngll2
-        do j=1,ngll2-2
-            do i=1,ngll1-2
+        ngll = Tdomain%sFace(nfs)%ngll
+        do j=1,ngll-2
+            do i=1,ngll-2
                 surf%map(ngll_if) = Tdomain%sFace(nfs)%Idom(i,j)
                 ngll_if = ngll_if + 1
             end do
@@ -428,8 +381,8 @@ subroutine renumber_surface(Tdomain, surf, dom0)
     ! EDGES
     do ne=0,surf%n_edges-1
         nes = surf%if_edges(ne)
-        ngll1 = Tdomain%sEdge(nes)%ngll
-        do i=1,ngll1-2
+        ngll = Tdomain%sEdge(nes)%ngll
+        do i=1,ngll-2
             idx0 = Tdomain%sEdge(nes)%Idom(i)
             surf%map(ngll_if) = idx0
             ngll_if = ngll_if + 1
@@ -477,7 +430,7 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
     !
     integer :: nglltot0, nglltot1, i, j
     integer :: idx, imap, idom
-    integer :: ngll1, ngll2
+    integer :: ngll
     integer :: nf, nfs0, nfs1
     logical :: face0_orphan, face1_orphan
     nglltot0 = domain_nglltot(Tdomain, dom0)
@@ -505,13 +458,12 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
     do nf=0,inter%surf0%n_faces-1
         nfs0 = inter%surf0%if_faces(nf)
         nfs1 = inter%surf1%if_faces(nf)
-        ngll1 = Tdomain%sFace(nfs0)%ngll1
-        ngll2 = Tdomain%sFace(nfs0)%ngll2
+        ngll = Tdomain%sFace(nfs0)%ngll
         face0_orphan = .false.
         face1_orphan = .false.
 
-        do j=0,ngll2-1
-            do i=0,ngll1-1
+        do j=0,ngll-1
+            do i=0,ngll-1
                 if (Tdomain%sFace(nfs0)%Idom(i,j)==-1) then
                     face0_orphan = .true.
                 end if
@@ -526,8 +478,8 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
         end if
 
         if (face0_orphan) then
-            do j=0,ngll2-1
-                do i=0,ngll1-1
+            do j=0,ngll-1
+                do i=0,ngll-1
                     ! Unconditionnally copy Iglobnum from 'good' face
                     Tdomain%sFace(nfs0)%Iglobnum_Face(i,j) = Tdomain%sFace(nfs1)%Iglobnum_Face(i,j)
                     if (Tdomain%sFace(nfs0)%Idom(i,j)==-1) then
@@ -541,8 +493,8 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
             end do
         end if
         if (face1_orphan) then
-            do j=0,ngll2-1
-                do i=0,ngll1-1
+            do j=0,ngll-1
+                do i=0,ngll-1
                     ! Unconditionnally copy Iglobnum from 'good' face
                     Tdomain%sFace(nfs1)%Iglobnum_Face(i,j) = Tdomain%sFace(nfs0)%Iglobnum_Face(i,j)
                     if (Tdomain%sFace(nfs1)%Idom(i,j)==-1) then
@@ -589,8 +541,8 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
         ! Faces
         do i = 0,Tdomain%sComm(ncomm)%nb_faces-1
             nf = Tdomain%sComm(ncomm)%faces(i)
-            do j = 1,Tdomain%sFace(nf)%ngll2-2
-                do k = 1,Tdomain%sFace(nf)%ngll1-2
+            do j = 1,Tdomain%sFace(nf)%ngll-2
+                do k = 1,Tdomain%sFace(nf)%ngll-2
                     idx = Tdomain%sFace(nf)%Idom(k,j)
                     select case(Tdomain%sFace(nf)%domain)
                     case (DM_SOLID)
@@ -698,7 +650,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         ! Faces
         do i = 0,Tdomain%sComm(n)%nb_faces-1
             nf = Tdomain%sComm(n)%faces(i)
-            temp = (Tdomain%sFace(nf)%ngll1-2) * (Tdomain%sFace(nf)%ngll2-2)
+            temp = (Tdomain%sFace(nf)%ngll-2) * (Tdomain%sFace(nf)%ngll-2)
             select case (Tdomain%sFace(nf)%domain)
             case (DM_SOLID_PML)
                 nsolpml = nsolpml + temp
@@ -813,7 +765,7 @@ subroutine reorder_domains(Tdomain)
     integer, dimension(:,:), allocatable :: reorder
     integer :: n, i, j, k
     integer :: ind, dom, new_ind
-    integer :: ngllx, nglly, ngllz
+    integer :: ngll
     integer, dimension(0:5) :: oind
     ! Initialize new order : set new order to -1
 
@@ -822,34 +774,13 @@ subroutine reorder_domains(Tdomain)
     oind(:) = 0 ! Ordered index
 
     ! Reorder over elements
-    ngllx = 0
-    nglly = 0
-    ngllz = 0
+    ngll = 0
     new_ind = 0
     do n = 0,Tdomain%n_elem-1
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngll
-                 nglly = Tdomain%sdom%ngll
-                 ngllz = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngll
-                 nglly = Tdomain%fdom%ngll
-                 ngllz = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngll
-                 nglly = Tdomain%spmldom%ngll
-                 ngllz = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngll
-                 nglly = Tdomain%fpmldom%ngll
-                 ngllz = Tdomain%fpmldom%ngll
-             case default
-                 stop "unknown domain"
-        end select
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     ind = Tdomain%specel(n)%Idom(i,j,k)
                     dom = Tdomain%specel(n)%domain
                     new_ind = reorder(dom, ind)
@@ -868,10 +799,9 @@ subroutine reorder_domains(Tdomain)
     ! from other cpus
     ! Reorder over faces
     do n = 0, Tdomain%n_face-1
-        ngllx = Tdomain%sFace(n)%ngll1
-        nglly = Tdomain%sFace(n)%ngll2
-        do j = 0,nglly-1
-            do i = 0,ngllx-1
+        ngll = Tdomain%sFace(n)%ngll
+        do j = 0,ngll-1
+            do i = 0,ngll-1
                 ind = Tdomain%sFace(n)%Idom(i,j)
                 dom = Tdomain%sFace(n)%domain
                 new_ind = reorder(dom, ind)
@@ -887,8 +817,8 @@ subroutine reorder_domains(Tdomain)
 
     ! Reorder over edges
     do n = 0, Tdomain%n_edge-1
-        ngllx = Tdomain%sEdge(n)%ngll
-        do i = 0,ngllx-1
+        ngll = Tdomain%sEdge(n)%ngll
+        do i = 0,ngll-1
             ind = Tdomain%sEdge(n)%Idom(i)
             dom = Tdomain%sEdge(n)%domain
             new_ind = reorder(dom, ind)
@@ -926,9 +856,8 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
     integer, intent(in) :: dom
     !
     integer :: n, src, dst, n1, n2
-    integer :: count, idx, nv, ne, i, j
+    integer :: count, idx, i
     integer :: ngll
-    integer, dimension(:), allocatable :: verts, edges
     integer, dimension(:), allocatable :: igive
     integer, allocatable, dimension(:) :: renum
     !

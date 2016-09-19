@@ -7,6 +7,7 @@
 module champs_fluidpml
 
     use constants
+    use mdombase
     implicit none
 
     type :: champsfluidpml
@@ -19,42 +20,11 @@ module champs_fluidpml
 
     end type champsfluidpml
 
-    type domain_fluidpml
+    type, extends(dombase) :: domain_fluidpml
         ! D'abord, les données membres qui ne sont pas modifiées
 
-        ! Nombre de gll dans chaque element du domaine
-        integer :: ngll
-
-        ! Nombre total de gll du domaine (assembles)
-        integer :: nglltot
-
-        ! Nombre d'elements dans le domaine
-        integer :: nbelem
-
-        ! Nombre de blocks d'elements alloues dans le domaine (>=nbelem)
-        integer :: nblocks
-
-        ! Points, poids de gauss et derivees
-        real(fpp), dimension (:), allocatable :: GLLc
-        real(fpp), dimension (:), allocatable :: GLLw
-        real(fpp), dimension (:,:), allocatable :: hprime
-        real(fpp), dimension (:,:), allocatable :: hTprime
-
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
-
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Density
-
-        real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
-        real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
-
-        ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 

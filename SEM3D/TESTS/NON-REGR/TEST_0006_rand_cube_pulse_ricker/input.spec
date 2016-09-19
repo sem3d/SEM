@@ -61,9 +61,6 @@ capteurs "UU" {
     file = "stations.txt";
     period = 40;
 };
-material {
-    type = random;
-};
 out_variables {
     enP = 1;   # P-wave energy (scalar field)
     enS = 1;    # S-wave energy (scalar field)

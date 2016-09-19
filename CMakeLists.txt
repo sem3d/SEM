@@ -92,6 +92,7 @@ set(SEM_SRC
 
 set(SEM_SRC_C
   ${SEMCOMMON}/read_input.c
+  ${SEMCOMMON}/read_material.c
   ${SEMCOMMON}/file_scan.c
   ${SEMCOMMON}/sem_input.c
   ${SEMCOMMON}/tremain_c.c
@@ -151,9 +152,7 @@ set(SEM_EXTRA_LIBS semcommon ${SEM_EXTRA_LIBS})
 #RANDOM FIELD LIBRARY
 option(OPT_RF "RF" OFF)
 if (OPT_RF)
-#  add_definitions(-DUSE_RF)
   add_subdirectory(randomField)
-
 endif (OPT_RF)
 
 add_subdirectory(COMMON/netlib)
