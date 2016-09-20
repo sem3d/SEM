@@ -26,7 +26,7 @@ module constants_RF
     integer, parameter :: buf_RF=1024 !Buffer for text
 
     !Output
-    logical :: REVERSE_OUT=.false. !When true output matrix is XYZ, when false the output is ZYX
+    logical :: DIRECT_OUT=.true. !When true output matrix is XYZ, when false the output is ZYX
 
     integer :: TESTRANK = 0 !ONLY FOR TESTS
     character (len=30), parameter :: mesh_input = "mesh_input"

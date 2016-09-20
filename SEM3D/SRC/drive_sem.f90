@@ -540,7 +540,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- ENERGY
 !---------------------------------------------------------!
-        if (Tdomain%out_energy == 1) call output_total_energy(Tdomain, dble(ntime)*Tdomain%sdom%dt)
+        !if (Tdomain%out_energy == 1) call output_total_energy(Tdomain, dble(ntime)*Tdomain%sdom%dt)
+
 !---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
@@ -549,10 +550,14 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
+        write(*,*)  "Before evalueSortieCapteur"
         call evalueSortieCapteur(ntime, sortie_capteur)
         
         ! sortie des quantites demandees par les capteur
+        write(*,*)  "Before save capteur"
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
+        write(*,*)  "After save capteur"
+        
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!

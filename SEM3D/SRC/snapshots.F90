@@ -15,13 +15,14 @@ module msnapshots
     implicit none
 #include "index.h"
 
+!integrate
+
     type :: output_var_t
         real, dimension(:,:), allocatable :: displ, veloc, accel
         real, dimension(:)  , allocatable :: press
         real, dimension(:)  , allocatable :: eps_vol
         real, dimension(:,:), allocatable :: eps_dev, sig_dev
         double precision, dimension(:), allocatable :: P_energy, S_energy
-        double precision                  :: P_en_total, S_en_total
         real, dimension(:,:)  , allocatable :: eps_dev_pl
     end type output_var_t
 
@@ -117,7 +118,7 @@ contains
         end if
 
         if(Tdomain%out_energy == 1) then
-            call write_elem_energy(Tdomain, parent_id)
+            !call write_elem_energy(Tdomain, parent_id)
         end if
         ! P_ENERGY
         write(*,*) out_variables(OUT_ENERGYP) 
@@ -958,8 +959,6 @@ contains
             endif
             if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev = 0.
         endif
-        fields%P_en_total = 0.
-        fields%S_en_total = 0.
         return
     end subroutine allocate_fields
 
@@ -1042,6 +1041,7 @@ contains
 
         !write(*,*) "Inside output_total_energy 1"
 
+        
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
@@ -1095,7 +1095,7 @@ contains
                                 Whei = GLLw(i)*GLLw(j)*GLLw(k)
                                 bnum = el%lnum/VCHUNK
                                 ee = mod(el%lnum,VCHUNK)
-                                mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
+                                mult = Whei*Tdomain%fdom%Jacob_(i,j,k,bnum,ee)
 
                                 el%En_S_int = el%En_S_int + mult*S_energy(i,j,k)
                                 el%En_P_int = el%En_P_int + mult*P_energy(i,j,k)
@@ -1656,11 +1656,11 @@ contains
                 write(61,"(a)") '</Attribute>'
                 !En_P_int
                 if(Tdomain%out_energy == 1) then
-                    write(61,"(a)") '<Attribute Name="En_P_int" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_P_int'
-                    write(61,"(a)") '</DataItem>'
-                    write(61,"(a)") '</Attribute>'
+                !    write(61,"(a)") '<Attribute Name="En_P_int" Center="Cell" AttributeType="Scalar">'
+                !    write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
+                !    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_P_int'
+                !    write(61,"(a)") '</DataItem>'
+                !    write(61,"(a)") '</Attribute>'
                 end if
             end if
             ! S_ENERGY
@@ -1672,11 +1672,11 @@ contains
                 write(61,"(a)") '</Attribute>'
                 !En_S_int
                 if(Tdomain%out_energy == 1) then
-                    write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_S_int'
-                    write(61,"(a)") '</DataItem>'
-                    write(61,"(a)") '</Attribute>'
+                !    write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
+                !    write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
+                !    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_S_int'
+                !    write(61,"(a)") '</DataItem>'
+                !    write(61,"(a)") '</Attribute>'
                 end if
 !                !En_S_int
 !                if(Tdomain%out_energy == 1) then

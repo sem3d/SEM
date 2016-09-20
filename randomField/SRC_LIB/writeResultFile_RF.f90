@@ -870,7 +870,7 @@ contains
             !Writing Number of points in each Dimensions in the reverse order
             dimText = ""
             !do i = size(total_xNStep), 1, -1
-            if(REVERSE_OUT) then
+            if(DIRECT_OUT) then
                 do i = size(total_xNStep), 1, -1
                     dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
                 end do
@@ -908,7 +908,7 @@ contains
             end if
             write (file,'(3A)'     )'   <DataItem Name="origin" Format="XML" DataType="Float" &
                                         &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
-            if(REVERSE_OUT) then
+            if(DIRECT_OUT) then
                 if(nDim == 1) write (file,'(A,F25.10)'      )' ', xMin(3)
                 if(nDim == 2) write (file,'(A,F25.10)'      )' ', xMin(3), ' ', xMin(2)
                 if(nDim == 3) write (file,'(A,F25.10)'      )' ', xMin(3), ' ', xMin(2), ' ', xMin(1)
@@ -921,7 +921,7 @@ contains
             write (file,'(A)'      )'   </DataItem>'
             write (file,'(3A)'     )'   <DataItem Name="step" Format="XML" DataType="Float" &
                                         &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
-            if(REVERSE_OUT) then
+            if(DIRECT_OUT) then
                 if(nDim == 1) write (file,'(A,F25.10)'      )' ', xStep(3)
                 if(nDim == 2) write (file,'(A,F25.10)'      )' ', xStep(3), ' ', xStep(2)
                 if(nDim == 3) write (file,'(A,F25.10)'      )' ', xStep(3), ' ', xStep(2), ' ', xStep(1)
@@ -1159,7 +1159,7 @@ contains
         countND = xNStep
         rank1D = 1
         count1D = product(int(xNStep_Glob,8))
-        if(REVERSE_OUT) then
+        if(DIRECT_OUT) then
             dims = int(xNStep_Glob,8)
         else
             dims = int(xNStep_Glob(size(xNStep_Glob):1:-1),8)
@@ -1185,7 +1185,7 @@ contains
         call wLog("Parallel writing (localization topology)")
         countND = maxPos - minPos + 1
         offset = origin - 1
-        if(.not. REVERSE_OUT) then
+        if(.not. DIRECT_OUT) then
             countND = countND(size(countND):1:-1)
             offset  = offset(size(offset):1:-1)
         end if
@@ -1224,7 +1224,7 @@ contains
 
 
         if(nDim == 2) then
-            if(REVERSE_OUT) then
+            if(DIRECT_OUT) then
             !randFieldLinear = pack(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), .true.)
             randFieldLinear = reshape(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), &
                                       [product(maxPos-minPos+1)])
@@ -1237,7 +1237,7 @@ contains
             end if
 
         else if (nDim == 3) then
-            if(REVERSE_OUT) then
+            if(DIRECT_OUT) then
             !randFieldLinear = pack(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), .true.)
             randFieldLinear = reshape(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), &
                                       [product(maxPos-minPos+1)])

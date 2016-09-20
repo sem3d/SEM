@@ -17,6 +17,6 @@ R   3535.533   2500.000   2800.000   5   0.0 0.0
 # Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
 # Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
 0
-1 10.00   10.00  10.00   2  0.15 -1
-1 10.00   10.00  10.00   2  0.15 -1
-1 10.00   10.00  10.00   2  0.15 -1
+1 100.00   100.00  100.00   2  0.15 -1
+1 100.00   100.00  100.00   2  0.15 -1
+1 100.00   100.00  100.00   2  0.15 -1
