@@ -39,13 +39,13 @@ module mCapteur
         integer :: numproc               ! numero du proc localisant le capteur
         integer :: icache
         real, dimension(:,:), allocatable :: valuecache
-
+        integer :: type
     end type tCapteur
 
     integer           :: dimCapteur        ! nombre total de capteurs
 
     type(Tcapteur), pointer :: listeCapteur
-    type(Tcapteur) :: capt_En_P, capt_En_S
+    type(Tcapteur), pointer :: capt_En_PS
 
     integer,parameter :: fileIdCapteur=200  ! id fichier capteur
 
@@ -65,6 +65,7 @@ contains
         character(len=MAX_FILE_SIZE) :: fnamef
         integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out
         double precision, allocatable, dimension(:,:) :: coordl
+        integer :: periodeRef
 
 
         station_next = Tdomain%config%stations
@@ -77,9 +78,7 @@ contains
             traces_h5_created = .true.
         endif
 
-        ! Energy outputs
-        if(Tdomain%out_energy) then
-        end if
+
 
         do while (C_ASSOCIATED(station_next))
             call c_f_pointer(station_next, station_ptr)
@@ -136,6 +135,7 @@ contains
 
                 nom = fromcstr(station_ptr%name)
                 capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
+                capteur%type = CPT_INTERP
                 capteur%periode = station_ptr%period
                 capteur%coord(1) = xc
                 capteur%coord(2) = yc
@@ -164,6 +164,32 @@ contains
             station_next = station_ptr%next
         end do
 
+        ! Energy outputs
+        if(Tdomain%out_energy == 1) then
+            allocate(capt_En_PS)
+
+            n_out = 2
+            if (.not.allocated(capt_En_PS%valuecache)) allocate(capt_En_PS%valuecache(1:n_out+1,NCAPT_CACHE))
+
+            capt_En_PS%nom = "En_PS"
+            capt_En_PS%type = CPT_ENERGY
+            capt_En_PS%periode = 1 !TODO
+            capt_En_PS%coord(1) = -1111
+            capt_En_PS%coord(2) = -1111
+            capt_En_PS%coord(3) = -1111
+            capt_En_PS%xi = -1111
+            capt_En_PS%eta = -1111
+            capt_En_PS%zeta = -1111
+            capt_En_PS%n_el = -1
+            capt_En_PS%numproc = Tdomain%rank
+            capt_En_PS%icache = 0
+            capt_En_PS%suivant => listeCapteur
+            listeCapteur => capt_En_PS
+            write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capt_En_PS%nom), &
+                " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
+
+        end if
+
     end subroutine create_capteurs
 
 
@@ -175,14 +201,21 @@ contains
 
         sortie_capteur = .FALSE.
         ! boucle sur les capteurs
-        capteur=>listeCapteur
 
+        !write(*,*)  "Before pointer"
+        capteur=>listeCapteur
+        !write(*,*)  "Before boucle"
         do while (associated(capteur))
+            write(*,*)  "capteur%nom =", capteur%nom
+            write(*,*)  "capteur%periode=", capteur%periode
+            if(capteur%periode < 1) stop "ERROR, station with period smaller than 1"
             if (mod(it,capteur%periode)==0) then ! on fait la sortie
                 sortie_capteur = .TRUE.
             endif
 
+            !write(*,*)  "Before capteur suivant"
             capteur=>capteur%suivant
+            !write(*,*)  "After capteur suivant"
         enddo
     end subroutine evalueSortieCapteur
 
@@ -213,7 +246,11 @@ contains
         capteur=>listeCapteur
         do while (associated(capteur))
             if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
-                call sortieGrandeurCapteur_interp(Tdomain, capteur)
+                if (capteur%type == CPT_INTERP) then
+                    call sortieGrandeurCapteur_interp(Tdomain, capteur)
+                else if (capteur%type == CPT_ENERGY) then
+                    call sortieGrandeurCapteur_energy(Tdomain, capteur)
+                end if
                 if (capteur%icache==NCAPT_CACHE) do_flush = .true.
             end if
             capteur=>capteur%suivant
@@ -547,6 +584,134 @@ contains
         deallocate(outy)
         deallocate(outz)
     end subroutine sortieGrandeurCapteur_interp
+
+    subroutine sortieGrandeurCapteur_energy(Tdomain, capteur)
+        use sdomain
+        use dom_solid
+        use dom_fluid
+        use dom_solidpml
+        use dom_fluidpml
+        implicit none
+        !
+        type(domain)   :: TDomain
+        type(tCapteur) :: capteur
+        !
+        integer :: domain_type
+        integer                                    :: i, j, k, n, ioff
+        integer                                    :: n_el, ngll
+        real(fpp)                                  :: weight
+        real(fpp), dimension(:), allocatable       :: grandeur
+        integer, dimension(0:8)                    :: out_variables, offset
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:), allocatable   :: fieldP
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
+        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real, dimension(:), allocatable :: GLLc
+        real(fpp) :: local_sum_P_energy, local_sum_S_energy
+        real(fpp) :: Whei, mult
+        real, dimension(:), allocatable :: GLLw
+        integer :: bnum, ee
+
+        type(Element), pointer :: el
+        type(subdomain), pointer :: sub_dom_mat
+
+        ! Verification : is an Energy Captor?
+        if(capteur%type /= CPT_ENERGY) return
+
+        out_variables(0:8) = Tdomain%out_variables(0:8)
+        local_sum_P_energy = 0d0
+        local_sum_S_energy = 0d0
+
+
+        do n = 0,Tdomain%n_elem-1
+            el => Tdomain%specel(n)
+            sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
+            ngll = domain_ngll(Tdomain, el%domain)
+            domain_type = el%domain
+
+            select case(domain_type)
+                case (DM_SOLID)
+                    call get_solid_dom_elem_energy(Tdomain%sdom, el%lnum, P_energy, S_energy)
+
+                    call domain_gllw(Tdomain, domain_type, GLLw)
+
+                    do k = 0,ngll-1
+                        do j = 0,ngll-1
+                            do i = 0,ngll-1
+                                Whei = GLLw(i)*GLLw(j)*GLLw(k)
+                                bnum = el%lnum/VCHUNK
+                                ee = mod(el%lnum,VCHUNK)
+                                !mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
+                                mult = 1.0
+
+                                local_sum_P_energy = local_sum_P_energy + mult*P_energy(i,j,k)
+                                local_sum_S_energy = local_sum_S_energy + mult*S_energy(i,j,k)
+
+
+                            enddo
+                        enddo
+                    enddo
+
+                    deallocate(GLLw)
+
+
+                case (DM_FLUID)
+!                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
+!                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+!
+!                    call domain_gllw(Tdomain, domain_type, GLLw)
+!                    do k = 0,ngll-1
+!                        do j = 0,ngll-1
+!                            do i = 0,ngll-1
+!                                Whei = GLLw(i)*GLLw(j)*GLLw(k)
+!                                bnum = el%lnum/VCHUNK
+!                                ee = mod(el%lnum,VCHUNK)
+!                                mult = Whei*Tdomain%fdom%Jacob_(i,j,k,bnum,ee)
+!
+!                                el%En_S_int = el%En_S_int + mult*S_energy(i,j,k)
+!                                el%En_P_int = el%En_P_int + mult*P_energy(i,j,k)
+!
+!                            enddo
+!                        enddo
+!                    enddo
+!                    deallocate(GLLw)
+!
+!                    do k = 0,ngll-2
+!                        do j = 0,ngll-2
+!                            do i = 0,ngll-2
+!                               el%En_S_avg(k,j,i) =  sum(S_energy(i:i+1,j:j+1,k:k+1))/8d0
+!                               el%En_P_avg(k,j,i) =  sum(P_energy(i:i+1,j:j+1,k:k+1))/8d0
+!                            end do
+!                        end do
+!                    end do
+
+                case (DM_SOLID_PML)
+                  cycle !We don't want the energy on PMLs
+
+                case (DM_FLUID_PML)
+                  cycle !We don't want the energy on PMLs
+
+                case default
+                  stop "unknown domain"
+            end select
+
+        enddo
+
+        ! Sauvegarde des valeurs dans le capteur.
+        i = capteur%icache+1
+        capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+        capteur%valuecache(2,i) = local_sum_P_energy
+        capteur%valuecache(3,i) = local_sum_S_energy
+        capteur%icache = i
+
+        ! Deallocation.
+
+        if(allocated(fieldU))   deallocate(fieldU)
+        if(allocated(P_energy)) deallocate(P_energy)
+        if(allocated(S_energy)) deallocate(S_energy)
+        if(allocated(eps_vol))  deallocate(eps_vol)
+    end subroutine sortieGrandeurCapteur_energy
 
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
     !! alors le capteur est sur une face, arete ou sur un sommet

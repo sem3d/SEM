@@ -72,6 +72,8 @@ MODULE constants
     integer, parameter :: OUT_EPS_DEV    = 7
     integer, parameter :: OUT_STRESS_DEV = 8
 
+    integer, parameter :: CPT_INTERP = 0
+    integer, parameter :: CPT_ENERGY = 1
 
     character(len=10), dimension(0:8) :: OUT_VAR_NAMES = (/ &
         "EnergyP   ", &

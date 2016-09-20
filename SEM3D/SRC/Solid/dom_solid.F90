@@ -307,6 +307,98 @@ contains
 
     end subroutine get_solid_dom_var
 
+
+    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, S_energy)
+        use deriv3d
+        implicit none
+        !
+        type(domain_solid), intent(inout)          :: dom
+        integer, intent(in)                        :: lnum
+        real(fpp), dimension(:,:,:), allocatable, intent(out) :: P_energy, S_energy
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU
+
+        integer                  :: ngll, i, j, k, ind
+        real(fpp)                :: DXX, DXY, DXZ
+        real(fpp)                :: DYX, DYY, DYZ
+        real(fpp)                :: DZX, DZY, DZZ
+        real(fpp)                :: xmu, xlambda, xkappa
+        real(fpp)                :: onemSbeta, onemPbeta
+        real(fpp)                :: elem_energy_P, elem_energy_S
+        real(fpp)                :: xeps_vol
+        real, dimension(0:2,0:2) :: invgrad_ijk
+        !
+        integer :: bnum, ee
+
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+
+
+        ngll = dom%ngll
+
+        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        S_energy = -1
+        P_energy = -1
+        if (dom%aniso) return
+
+
+        if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+
+        ! First, get displacement.
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    ind = dom%Idom_(i,j,k,bnum,ee)
+                    fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
+                enddo
+            enddo
+        enddo
+
+        ! Then, get the energies.
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    ! Compute gradU with displacement.
+                    invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
+
+                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                         invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
+                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                         invgrad_ijk,fieldU(:,:,:,1),DXY,DYY,DZY)
+                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                         invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
+
+                    ! Get other variables.
+                    ind = dom%Idom_(i,j,k,bnum,ee)
+                    xeps_vol = DXX + DYY + DZZ
+
+                    xmu     = dom%Mu_    (i,j,k,bnum,ee)
+                    xlambda = dom%Lambda_(i,j,k,bnum,ee)
+                    xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
+
+                    if (dom%n_sls>0) then
+                        onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
+                        onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
+                        xmu    = xmu * onemSbeta
+                        xkappa = xkappa * onemPbeta
+                    endif
+
+                    P_energy(i,j,k) = .5d0 * xlambda + (2d0 * xmu) * xeps_vol**2d0
+                    S_energy(i,j,k) = xmu/2d0 * (     DXY**2d0 + DYX**2d0 &
+                                                +     DXZ**2d0 + DZX**2d0 &
+                                                +     DYZ**2d0 + DZY**2d0 &
+                                                - 2d0 * DXY * DYX     &
+                                                - 2d0 * DXZ * DZX     &
+                                                - 2d0 * DYZ * DZY )
+                enddo
+            enddo
+        enddo
+
+        if(allocated(fieldU)) deallocate(fieldU)
+
+    end subroutine get_solid_dom_elem_energy
+
+
     subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
