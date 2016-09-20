@@ -33,23 +33,32 @@ subroutine deallocate_domain (Tdomain)
     if(allocated(Tdomain%not_PML_List)) deallocate (Tdomain%not_PML_List)
     if(allocated(Tdomain%subD_exist)) deallocate (Tdomain%subD_exist)
 
+    print *, "FLAG 1"
+    call deallocate_dom_solid   (Tdomain%sdom)
+    
+    print *, "FLAG 1B"
     call deallocate_dom_solid   (Tdomain%sdom)
     call deallocate_dom_fluid   (Tdomain%fdom)
     call deallocate_dom_solidpml(Tdomain%spmldom)
     call deallocate_dom_fluidpml(Tdomain%fpmldom)
 
+    print *, "FLAG 2"
+    
+    !call deallocate_dom_solid   (Tdomain%sdom)
     do n = 0,Tdomain%n_elem-1
         deallocate (Tdomain%specel(n)%MassMat)
         deallocate (Tdomain%specel(n)%IglobNum)
         deallocate (Tdomain%specel(n)%Control_Nodes)
-        if (allocated(Tdomain%specel(n)%En_P_avg)) deallocate(Tdomain%specel(n)%En_P_avg)
-        if (allocated(Tdomain%specel(n)%En_S_avg)) deallocate(Tdomain%specel(n)%En_S_avg)
     enddo
 
+    print *, "FLAG 3"
+    
     !purge -fuites memoire
     deallocate (Tdomain%sComm)
     deallocate (Tdomain%sSubdomain)
 
+    print *, "FLAG 4"
+    
     do n = 0, Tdomain%n_source-1
         if (Tdomain%rank==Tdomain%sSource(n)%proc) then
             if (Tdomain%sSource(n)%i_type_source==2) deallocate (Tdomain%sSource(n)%coeff)

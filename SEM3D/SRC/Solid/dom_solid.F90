@@ -161,24 +161,25 @@ contains
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
+        ! nonlinear parameters TODO
+       ! if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
+       ! if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
+       ! if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
+       ! if(allocated(dom%nl_param%LMC%m_Ckin))  deallocate(dom%nl_param%LMC%m_Ckin)
+       ! if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
+       ! if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
+       ! if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
+       ! ! nonlinear internal variables
+       ! if(allocated(dom%m_radius)) deallocate(dom%m_radius)
+       ! if(allocated(dom%m_stress)) deallocate(dom%m_stress)
+       ! if(allocated(dom%m_center)) deallocate(dom%m_center)
+       ! if(allocated(dom%m_strain)) deallocate(dom%m_strain)  
+       ! if(allocated(dom%m_plstrain)) deallocate(dom%m_plstrain)  
+
+
         call deallocate_dombase(dom)
         
-        ! nonlinear parameters
-        if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
-        if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
-        if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
-        if(allocated(dom%nl_param%LMC%m_Ckin))  deallocate(dom%nl_param%LMC%m_Ckin)
-        if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
-        if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
-        if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
-        ! nonlinear internal variables
-        if(allocated(dom%m_radius)) deallocate(dom%m_radius)
-        if(allocated(dom%m_stress)) deallocate(dom%m_stress)
-        if(allocated(dom%m_center)) deallocate(dom%m_center)
-        if(allocated(dom%m_strain)) deallocate(dom%m_strain)  
-        if(allocated(dom%m_plstrain)) deallocate(dom%m_plstrain)  
-
-    end subroutine deallocate_dom_solid
+        end subroutine deallocate_dom_solid
 
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy,&

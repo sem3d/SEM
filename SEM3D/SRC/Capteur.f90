@@ -205,8 +205,8 @@ contains
         capteur=>listeCapteur
         !write(*,*)  "Before boucle"
         do while (associated(capteur))
-            write(*,*)  "capteur%nom =", capteur%nom
-            write(*,*)  "capteur%periode=", capteur%periode
+            !write(*,*)  "capteur%nom =", capteur%nom
+            !write(*,*)  "capteur%periode=", capteur%periode
             if(capteur%periode < 1) stop "ERROR, station with period smaller than 1"
             if (mod(it,capteur%periode)==0) then ! on fait la sortie
                 sortie_capteur = .TRUE.
