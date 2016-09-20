@@ -46,8 +46,10 @@ contains
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             
             if (nl_flag) then
+                write(*,*) "nonlinear activated!",allocated(dom%nl_param) 
                 ! nonlinear parameters
                 allocate(dom%nl_param)
+                write(*,*) allocated(dom%nl_param)  
                 allocate(dom%nl_param%LMC)
                 allocate(dom%nl_param%LMC%syld_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
                 allocate(dom%nl_param%LMC%ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
@@ -126,9 +128,10 @@ contains
         if(Tdomain%rank==0) write(*,*) "INFO - solid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid
 
-    subroutine deallocate_dom_solid (dom)
+    subroutine deallocate_dom_solid (dom,nl_flag)
         implicit none
         type(domain_solid), intent (INOUT) :: dom
+        logical, intent(in) :: nl_flag
 
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
@@ -162,20 +165,21 @@ contains
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
         ! nonlinear parameters TODO
-       ! if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
-       ! if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
-       ! if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
-       ! if(allocated(dom%nl_param%LMC%m_Ckin))  deallocate(dom%nl_param%LMC%m_Ckin)
-       ! if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
-       ! if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
-       ! if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
-       ! ! nonlinear internal variables
-       ! if(allocated(dom%m_radius)) deallocate(dom%m_radius)
-       ! if(allocated(dom%m_stress)) deallocate(dom%m_stress)
-       ! if(allocated(dom%m_center)) deallocate(dom%m_center)
-       ! if(allocated(dom%m_strain)) deallocate(dom%m_strain)  
-       ! if(allocated(dom%m_plstrain)) deallocate(dom%m_plstrain)  
-
+        if (nl_flag) then
+            if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
+            if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
+            if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
+            if(allocated(dom%nl_param%LMC%m_Ckin))  deallocate(dom%nl_param%LMC%m_Ckin)
+            if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
+            if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
+            if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
+            ! nonlinear internal variables
+            if(allocated(dom%m_radius)) deallocate(dom%m_radius)
+            if(allocated(dom%m_stress)) deallocate(dom%m_stress)
+            if(allocated(dom%m_center)) deallocate(dom%m_center)
+            if(allocated(dom%m_strain)) deallocate(dom%m_strain)  
+            if(allocated(dom%m_plstrain)) deallocate(dom%m_plstrain)  
+        endif
 
         call deallocate_dombase(dom)
         
