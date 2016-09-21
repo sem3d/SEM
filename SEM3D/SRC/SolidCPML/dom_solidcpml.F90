@@ -260,7 +260,7 @@ contains
         !
         integer n, bnum, ee
 
-        ! Handle on node global coords : mandatory to compute distances in the PML (solidcpml_abk)
+        ! Handle on node global coords : mandatory to compute distances in the PML (compute_alpha_beta_kappa)
         dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
 
         ! Handle on materials
@@ -286,6 +286,32 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine init_material_properties_solidpml
 
+    subroutine compute_alpha_beta_kappa(dom, xyz, i, j, k, bnum, ee, mi, alpha, beta, kappa)
+        type(domain_solidpml), intent(inout) :: dom
+        integer :: xyz
+        integer :: i, j, k
+        integer :: bnum, ee
+        integer :: mi
+        real(fpp) :: alpha(0:2), beta(0:2), kappa(0:2)
+        !
+        real(fpp) :: xi, xoverl, dxi, d0
+
+        solidcpml_x     (xyz,xi,i,j,k,bnum,ee,mi)
+        solidcpml_xoverl(xyz,xi,mi)
+        alpha(xyz) = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
+        solidcpml_kappa(xyz,xi,mi)
+        d0 = 0. ! d0: (75) from Ref1
+        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then
+            d0 = -1.*(dom%n(xyz)+1)*dom%sSubDomain(mi)%Pspeed*log(dom%r_c)
+            d0 = d0/(2*dom%sSubDomain(mi)%pml_width(xyz))
+        end if
+        dxi = 0. ! dxi: (74) from Ref1
+        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then
+            dxi = dom%c(xyz)*d0*(xi/dom%sSubDomain(mi)%pml_width(xyz))**dom%n(xyz)
+        end if
+        beta(xyz) = alpha(xyz) + dxi / kappa(xyz) ! beta*: (11) from Ref1
+    end subroutine compute_alpha_beta_kappa
+
     ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
     !        attention, ceci impacte le build (compatibilité avec SolidPML)
     subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei)
@@ -295,7 +321,7 @@ contains
         real Whei
         !
         integer :: bnum, ee
-        real(fpp) :: xi, xoverl, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
+        real(fpp) :: alpha(0:2), beta(0:2), kappa(0:2)
         real(fpp) :: g0, g1, g2
         real(fpp) :: g101, g212, g002
         real(fpp) :: a0b, a1b, a2b
@@ -312,9 +338,9 @@ contains
 
         ! Compute alpha, beta, kappa
         mi = specel%mat_index
-        solidcpml_abk(0,i,j,k,bnum,ee,mi)
-        solidcpml_abk(1,i,j,k,bnum,ee,mi)
-        solidcpml_abk(2,i,j,k,bnum,ee,mi)
+        call compute_alpha_beta_kappa(dom, 0, i, j, k, bnum, ee, mi, alpha, beta, kappa)
+        call compute_alpha_beta_kappa(dom, 1, i, j, k, bnum, ee, mi, alpha, beta, kappa)
+        call compute_alpha_beta_kappa(dom, 2, i, j, k, bnum, ee, mi, alpha, beta, kappa)
 
         ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
         a0b = kappa(0)*kappa(1)*kappa(2)

@@ -16,23 +16,6 @@
         solidcpml_xoverl(xyz,xi,mi); \
         kappa(xyz) = dom%kappa_0 + dom%kappa_1 * xoverl;
 
-! alpha*: (76) from Ref1, beta*: (11) from Ref1, dxi: (74) from Ref1, d0: (75) from Ref1
-#define solidcpml_abk(xyz,i,j,k,bnum,ee,mi) \
-        solidcpml_x     (xyz,xi,i,j,k,bnum,ee,mi); \
-        solidcpml_xoverl(xyz,xi,mi); \
-        alpha(xyz) = dom%alphamax*(1. - xoverl); \
-        solidcpml_kappa(xyz,xi,mi); \
-        d0 = 0.; \
-        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then; \
-            d0 = -1.*(dom%n(xyz)+1)*dom%sSubDomain(mi)%Pspeed*log(dom%r_c); \
-            d0 = d0/(2*dom%sSubDomain(mi)%pml_width(xyz)); \
-        end if; \
-        dxi = 0.; \
-        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then; \
-            dxi = dom%c(xyz)*d0*(xi/dom%sSubDomain(mi)%pml_width(xyz))**dom%n(xyz); \
-        end if; \
-        beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
-
 ! (A.18) from Ref1
 #define solidcpml_Li(i,a,b,c,bnum,ee,mi) \
         solidcpml_x    (i,xi,a,b,c,bnum,ee,mi); \
