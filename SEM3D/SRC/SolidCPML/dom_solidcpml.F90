@@ -296,7 +296,7 @@ contains
         !
         integer :: bnum, ee
         real(fpp) :: xi, xoverl, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
-        real(fpp) :: g0, g1, g2 ! solidcpml_gamma_ab
+        real(fpp) :: g0, g1, g2
         real(fpp) :: g101, g212, g002 ! solidcpml_gamma_abc
         real(fpp) :: a0b, a1b, a2b
         real(fpp) :: density
@@ -322,9 +322,9 @@ contains
         if (abs(dom%MassMat(ind)) < solidcpml_eps) stop "ERROR : MassMat is null" ! Check
 
         ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
-        solidcpml_gamma_ab(g0,beta,0,alpha,0)
-        solidcpml_gamma_ab(g1,beta,1,alpha,1)
-        solidcpml_gamma_ab(g2,beta,2,alpha,2)
+        g0=beta(0)-alpha(0)! gamma_ab defined after (12c) in Ref1
+        g1=beta(1)-alpha(1)! gamma_ab defined after (12c) in Ref1
+        g2=beta(2)-alpha(2)! gamma_ab defined after (12c) in Ref1
         a1b = a0b*(g0+g1+g2)
         dom%DumpMat(ind) = dom%DumpMat(ind) + density*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
 

@@ -33,10 +33,6 @@
         end if; \
         beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
 
-! gamma_ab defined after (12c) in Ref1
-#define solidcpml_gamma_ab(g,a_name,a_index,b_name,b_index) \
-        g = a_name(a_index) - b_name(b_index);
-
 ! gamma_abc defined after (12c) in Ref1
 #define solidcpml_gamma_abc(g,a_name,a_index,b_name,b_index,c_name,c_index) \
         g = a_name(a_index) - b_name(b_index) - c_name(c_index);
