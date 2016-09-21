@@ -31,6 +31,7 @@
         solidcpml_kappa(j,xj,mi); \
         solidcpml_x    (k,xk,a,b,c,bnum,ee,mi); \
         solidcpml_kappa(k,xk,mi); \
+        if (abs(kappa(k)) < solidcpml_eps) stop "ERROR: solidcpml_Lijk"; \
         Lijk = kappa(i)*kappa(j)/kappa(k)
 ! TODO : add convolution term to Lijk
 
