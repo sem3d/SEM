@@ -297,7 +297,7 @@ contains
         integer :: bnum, ee
         real(fpp) :: xi, xoverl, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
         real(fpp) :: g0, g1, g2
-        real(fpp) :: g101, g212, g002 ! solidcpml_gamma_abc
+        real(fpp) :: g101, g212, g002
         real(fpp) :: a0b, a1b, a2b
         real(fpp) :: density
         integer :: mi
@@ -329,9 +329,9 @@ contains
         dom%DumpMat(ind) = dom%DumpMat(ind) + density*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
 
         ! Delta term from L : (12a) or (14a) from Ref1
-        solidcpml_gamma_abc(g101,beta,1,alpha,0,alpha,1)
-        solidcpml_gamma_abc(g212,beta,2,alpha,1,alpha,2)
-        solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
+        g101=beta(1)-alpha(0)-alpha(1)! gamma_abc defined after (12c) in Ref1
+        g212=beta(2)-alpha(1)-alpha(2)! gamma_abc defined after (12c) in Ref1
+        g002=beta(0)-alpha(0)-alpha(2)! gamma_abc defined after (12c) in Ref1
         a2b = a0b*(g0*g101+g1*g212+g2*g002)
         dom%MasUMat(ind) = dom%MasUMat(ind) + density*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
     end subroutine init_local_mass_solidpml
