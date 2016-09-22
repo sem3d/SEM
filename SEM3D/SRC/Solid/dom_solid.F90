@@ -285,7 +285,7 @@ contains
                             fieldP(i,j,k) = -sum(dom%stress_(0:2,i,j,k,bnum,ee))/3
                         else
                             fieldP(i,j,k) = -(dom%Lambda_(i,j,k,bnum,ee)&
-                                +2d0/3d0*dom%Mu_(i,j,k,lnum,ee))*(DXX+DYY+DZZ)
+                                +2d0/3d0*dom%Mu_(i,j,k,bnum,ee))*(DXX+DYY+DZZ)
                         endif
                     end if
 
