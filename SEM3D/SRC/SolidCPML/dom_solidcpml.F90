@@ -36,22 +36,14 @@ contains
         nbelem = dom%nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+        call init_dombase(dom)
 
         ! Glls are initialized first, because we can have faces of a domain without elements
         if(nbelem /= 0) then
             ! We can have glls without elements
             ! Do not allocate if not needed (save allocation/RAM)
 
-            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
-            dom%nblocks = nblocks
-
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-            dom%m_Idom = 0
-
+            nblocks = dom%nblocks
             allocate(dom%mat_index(0:VCHUNK-1, 0:nblocks-1))
             dom%mat_index = 0 ! Must be a valid material : it will be referenced if the number of elem != multiple of VCHUNK
         end if
@@ -70,10 +62,6 @@ contains
             dom%champs1%Depla  = 0d0
             dom%champs1%Veloc  = 0d0
             dom%champs1%Forces = 0d0
-
-            ! Allocation de MassMat pour les PML solides
-            allocate(dom%MassMat(0:dom%nglltot-1))
-            dom%MassMat = 0d0
 
             ! Allocation de DumpMat pour les PML solides
             allocate(dom%DumpMat(0:dom%nglltot-1))
@@ -107,15 +95,6 @@ contains
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
 
-        if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
-        if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
-
-        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
-
-        if(allocated(dom%gllc))    deallocate(dom%gllc)
-        if(allocated(dom%gllw))    deallocate(dom%gllw)
-        if(allocated(dom%hprime))  deallocate(dom%hprime)
-        if(allocated(dom%htprime)) deallocate(dom%htprime)
 
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
@@ -124,7 +103,6 @@ contains
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
         if(allocated(dom%champs1%Forces )) deallocate(dom%champs1%Forces )
 
-        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
         if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
 

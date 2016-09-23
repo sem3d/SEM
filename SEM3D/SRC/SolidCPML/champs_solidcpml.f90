@@ -9,6 +9,7 @@ module champs_solidpml
     use constants
     use ssubdomains
     use selement
+    use mdombase
     implicit none
 
     ! Inconnues du problème : déplacement, vitesse
@@ -20,31 +21,15 @@ module champs_solidpml
     end type champssolidpml
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
-    type domain_solidpml
+    type, extends(dombase) :: domain_solidpml
         ! D'abord, les données membres qui ne sont pas modifiées
-
-        ! Nombre de gll dans chaque element du domaine
-        integer :: ngll
-
-        ! Nombre total de gll du domaine (assembles)
-        integer :: nglltot
-
-        ! Nombre d'elements dans le domaine
-        integer :: nbelem
-        integer :: nblocks
 
         ! Nombre d'elements alloues dans le domaine (>=nbelem)
         integer :: nbelem_alloc
         integer :: nb_chunks ! nbelem_alloc == nb_chunks*VCHUNK
 
-        ! Points, poids de gauss et derivees
-        real(fpp), dimension (:), allocatable :: GLLc
-        real(fpp), dimension (:), allocatable :: GLLw
-        real(fpp), dimension (:,:), allocatable :: hprime
-        real(fpp), dimension (:,:), allocatable :: hTprime
 
         ! Masse pour elements solide cpml
-        real(fpp), dimension(:), allocatable :: MassMat ! Delta 2d  derivative term in (12a) from Ref1
         real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
         real(fpp), dimension(:), allocatable :: MasUMat ! M^U <=> Delta term in (12a) from Ref1
 
@@ -53,17 +38,6 @@ module champs_solidpml
 
         ! Material index
         integer, dimension(:,:), allocatable :: mat_index
-
-        ! Geometrical information
-        real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
-        real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
-
-        ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
 
         ! Copy of node global coords : mandatory to compute distances in the PML
         real(fpp), pointer :: GlobCoord(:,:)
