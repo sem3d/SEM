@@ -15,7 +15,7 @@ contains
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: bnum
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1),     intent(out) :: Fox,Foz,Foy
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1),     intent(inout) :: Fox,Foz,Foy
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in)  :: Depla
 
         select case(dom%ngll)
