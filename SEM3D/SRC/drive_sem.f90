@@ -177,6 +177,7 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
+    use surface_input
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -238,7 +239,7 @@ subroutine RUN_PREPARED(Tdomain)
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
-
+ 
  !- allocation of different fields' sizes
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
     call allocate_domain(Tdomain)

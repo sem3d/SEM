@@ -126,7 +126,6 @@ public:
     void output_int_constant(FILE* f, int indent, const char* aname, const char* atype, int val);
     void reorder_comm(MeshPartComm& comm);
     void global_to_local_ids(std::vector<int>& ids) const;
-    void get_local_surf_face_materials(const Surface* surf, std::vector<int> mats) const;
 
 protected:
     const Mesh3D& m_mesh;

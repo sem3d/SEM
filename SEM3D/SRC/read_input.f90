@@ -275,6 +275,20 @@ contains
             if (pos(i)>box(3+i)) is_in_box = .false.
         end do
     end function is_in_box
+    !
+    ! Renvoie true si le point est a une distance <1 du plane
+    function is_in_plane(pos, plane)
+        real, dimension(3), intent(in) :: pos
+        real, dimension(4), intent(in) :: plane
+        logical :: is_in_plane
+        !
+        integer :: i
+        real :: w
+
+        is_in_plane = .false.
+        w = plane(1)*pos(1)+plane(2)*pos(2)+plane(3)*pos(3)+plane(4)
+        if (abs(w)<1) is_in_plane = .true.
+    end function is_in_plane
     !>
     ! Selectionne les elements pour les inclure ou non dans les snapshots
     !<
@@ -313,6 +327,9 @@ contains
                 case (3)
                     ! Box
                     if (is_in_box(pos, selection%box)) Tdomain%specel(n)%output = sel
+                case (4)
+                    ! Plane
+                    if (is_in_plane(pos, selection%plane)) Tdomain%specel(n)%output = sel
                 end select
 
                 call c_f_pointer(selection%next, selection)
@@ -327,7 +344,8 @@ contains
         use mpi
         use constants
         use mcapteur
-
+        use surface_input !, only : read_surface_input,
+         
         implicit none
 
         type(domain), intent(inout)  :: Tdomain
@@ -416,6 +434,7 @@ contains
         ! boundary conditions? If yes: geometrical properties read in the mesh files.
         Tdomain%logicD%surfBC = Tdomain%config%surface_find /= 0
         !! Add by Mtaro
+        call init_surface_source(Tdomain)
         if (Tdomain%logicD%surfBC) then
            call read_surface_input(Tdomain, Tdomain%config)
         endif
@@ -425,6 +444,11 @@ contains
 
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
+
+        !---
+        if (Tdomain%logicD%surfBC) then
+           call surface_in_list(Tdomain)
+        endif
 
         !---   Properties of materials.
         call read_material_file(Tdomain)
@@ -464,6 +488,21 @@ contains
 !        endif
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input
+    
+    subroutine init_surface_source(Tdomain)
+
+       use sdomain
+    
+       implicit none
+       type(domain), intent(inout) :: Tdomain
+    
+       Tdomain%nsurface = 0
+       Tdomain%n_NEBC =0
+       Tdomain%n_PWBC =0
+       Tdomain%n_FTBC =0
+       Tdomain%n_DIRIC=0
+    
+    end subroutine init_surface_source
 
     function getLine (fid, comment_Tag) result(nextLine)
 

@@ -377,6 +377,9 @@ contains
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(e,ee)
+#endif
                         BEGIN_SUBELEM_LOOP(e,ee,bnum)
                         ind = dom%Idom_(i,j,k,bnum,ee)
                         Veloc(ee,i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
