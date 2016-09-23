@@ -220,9 +220,7 @@ contains
         if (nl_flag) then
             flag_gradU = (out_variables(OUT_ENERGYP)     + &
                           out_variables(OUT_ENERGYS)     + &
-                          out_variables(OUT_EPS_VOL)     + &
-                          out_variables(OUT_EPS_DEV)     + &
-                          out_variables(OUT_STRESS_DEV)) /= 0
+                          out_variables(OUT_EPS_VOL))    /= 0
         else
             flag_gradU = (out_variables(OUT_PRESSION)    + &
                           out_variables(OUT_ENERGYP)     + &
@@ -282,7 +280,7 @@ contains
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                         if (nl_flag) then
-                            fieldP(i,j,k) = -sum(dom%stress_(0:2,i,j,k,bnum,ee))/3
+                            fieldP(i,j,k) = -sum(dom%stress_(0:2,i,j,k,bnum,ee))/3d0
                         else
                             fieldP(i,j,k) = -(dom%Lambda_(i,j,k,bnum,ee)&
                                 +2d0/3d0*dom%Mu_(i,j,k,bnum,ee))*(DXX+DYY+DZZ)
@@ -308,22 +306,22 @@ contains
                             xmu    = xmu * onemSbeta
                             xkappa = xkappa * onemPbeta
                         endif
-                        x2mu       = 2. * xmu
+                        x2mu       = two * xmu
                         xlambda2mu = xlambda + x2mu
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
                         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-                        P_energy(i,j,k) = 0.
+                        P_energy(i,j,k) = zero
                         if (.not. dom%aniso) then
-                            P_energy(i,j,k) = .5 * xlambda2mu * eps_vol(i,j,k)**2
+                            P_energy(i,j,k) = half * xlambda2mu * eps_vol(i,j,k)**2
                         end if
                     end if
                     if (out_variables(OUT_ENERGYS) == 1) then
                         if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-                        S_energy(i,j,k) = 0.
+                        S_energy(i,j,k) = zero
                         if (.not. dom%aniso) then
-                            S_energy(i,j,k) =   xmu/2 * (       DXY**2 + DYX**2 &
+                            S_energy(i,j,k) =   half*xmu * (       DXY**2 + DYX**2 &
                                                           +     DXZ**2 + DZX**2 &
                                                           +     DYZ**2 + DZY**2 &
                                                           - 2 * DXY * DYX     &
@@ -336,33 +334,31 @@ contains
                         eps_dev(i,j,k,0:5) = zero
                         if (nl_flag) then
                             if(.not. allocated(eps_dev_pl)) allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
-                            eps_dev_pl(i,j,k,0:5) = zero
                             eps_dev(i,j,k,:)   = dom%strain_(:,i,j,k,bnum,ee)
                             eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-&
-                                sum(eps_dev(i,j,k,0:2))/3
-                            eps_dev_pl(i,j,k,0:5) = 0.0d0
+                                sum(eps_dev(i,j,k,0:2))*M_1_3
+                            eps_dev_pl(i,j,k,0:5) = zero
                             eps_dev_pl(i,j,k,:)   = dom%plstrain_(:,i,j,k,bnum,ee)
                             eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-&
-                                sum(eps_dev_pl(i,j,k,0:2))/3
+                                sum(eps_dev_pl(i,j,k,0:2))*M_1_3
                         else
-                            eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) / 3
-                            eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) / 3
-                            eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) / 3
-                            eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
-                            eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
-                            eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
+                            eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) * M_1_3
+                            eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) * M_1_3
+                            eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) * M_1_3
+                            eps_dev(i,j,k,3) = half * (DXY + DYX)
+                            eps_dev(i,j,k,4) = half * (DZX + DXZ)
+                            eps_dev(i,j,k,5) = half * (DZY + DYZ)
                         endif
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
                         if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                        sig_dev(i,j,k,0:5) = 0.
-                        
+                        sig_dev(i,j,k,0:5) = zero
                         if (.not. dom%aniso) then
                             if (nl_flag) then
                                 sig_dev(i,j,k,:) = dom%stress_(:,i,j,k,bnum,ee)
                                 sig_dev(i,j,k,0:2) = sig_dev(i,j,k,0:2) - &
-                                    sum(sig_dev(i,j,k,0:2))/3
+                                    sum(sig_dev(i,j,k,0:2))*M_1_3
                             else
                                 sig_dev(i,j,k,0) = x2mu * (DXX - eps_vol(i,j,k) * M_1_3)
                                 sig_dev(i,j,k,1) = x2mu * (DYY - eps_vol(i,j,k) * M_1_3)
