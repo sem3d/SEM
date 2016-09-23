@@ -44,6 +44,9 @@ contains
             ! Do not allocate if not needed (save allocation/RAM)
 
             nblocks = dom%nblocks
+            allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%mat_index(0:VCHUNK-1, 0:nblocks-1))
             dom%mat_index = 0 ! Must be a valid material : it will be referenced if the number of elem != multiple of VCHUNK
         end if
@@ -95,6 +98,9 @@ contains
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
 
+        if(allocated(dom%m_Density)) deallocate(dom%m_Density)
+        if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
+        if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
@@ -261,7 +267,13 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
         !
-        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+
+        dom%Density_(:,:,:,bnum,ee) = density
+        dom%Lambda_ (:,:,:,bnum,ee) = lambda
+        dom%Mu_     (:,:,:,bnum,ee) = mu
     end subroutine init_material_properties_solidpml
 
     subroutine compute_alpha_beta_kappa(dom, xyz, i, j, k, bnum, ee, mi, alpha, beta, kappa)
@@ -312,7 +324,7 @@ contains
         ind = dom%Idom_(i,j,k,bnum,ee)
         if (.not. dom%sSubDomain(specel%mat_index)%dom == DM_SOLID_PML) &
             stop "init_geometric_properties_solidpml : material is not a PML material"
-        density = dom%sSubDomain(specel%mat_index)%Ddensity
+        density = dom%Density_(i,j,k,bnum,ee)
 
         ! Compute alpha, beta, kappa
         mi = specel%mat_index

@@ -28,6 +28,8 @@ module champs_solidpml
         integer :: nbelem_alloc
         integer :: nb_chunks ! nbelem_alloc == nb_chunks*VCHUNK
 
+        ! Materiaux
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
 
         ! Masse pour elements solide cpml
         real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
