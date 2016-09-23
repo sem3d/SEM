@@ -76,12 +76,12 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     ! Les indices sont reordonnes, probablement pour la localite memoire
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
     integer :: mi
     real(fpp) :: lbd, mu
     real(fpp) :: C1111,C1122,C1133,C2222,C2233,C3333,C2323,C2332,C1313,C1331,C1212,C1221,C3232,C3131,C2121
