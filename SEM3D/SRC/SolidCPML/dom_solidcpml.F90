@@ -494,9 +494,9 @@ contains
             ! Estimate D = D_n+1
             D(:) = dom%champs0%Depla(:,i_dir) - V(:)*0.5*dt
 
-            ! Compute F_n+1
+            ! Compute F_n+1 : (61a) from Ref1 with F = -F (as we add -Fo* in forces_int_sol_pml)
             F(:) =   dom%R1(:,i_dir)     + dom%R2(:,i_dir)                           + dom%R3(:,i_dir)           &
-                   - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) - dom%champs1%Forces(:,i_dir) ! (61a) from Ref1
+                   - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) + dom%champs1%Forces(:,i_dir)
 
             ! Compute V_n+2
             dom%champs0%Veloc(:,i_dir) = V(:) + dt*dom%MassMat*F(:) ! dom%MassMat = 1./dom%MassMat (define_arrays inverse_mass_mat)
