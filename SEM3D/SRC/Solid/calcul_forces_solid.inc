@@ -189,9 +189,21 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xla2mu = xla + 2. * xmu
 #ifdef NONLINEAR
 
-                eps0(:) = dom%strain_(:,i,j,k,bnum,ee)
-                dom%strain_(0:5,i,j,k,bnum,ee) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
-                dEps_alpha(0:5) = dom%strain_(0:5,i,j,k,bnum,ee) -eps0(0:5)
+                !!eps0(:) = dom%strain_(:,i,j,k,bnum,ee)
+                !!dom%strain_(0:5,i,j,k,bnum,ee) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
+                !!dEps_alpha(0:5) = dom%strain_(0:5,i,j,k,bnum,ee) -eps0(0:5)
+                
+                start       =   dom%stress_(0:5,i,j,k,bnum,ee)
+                center      =   dom%center_(0:5,i,j,k,bnum,ee)
+                radius      =   dom%radius_(i,j,k,bnum,ee)
+                syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
+                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) 
+                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) 
+                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee) 
+                ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
+                
+                dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/) 
+                dom%strain_(0:5,i,j,k,bnum,ee) = dom%strain_(0:5,i,j,k,bnum,ee) + dEps_alpha(0:5) 
                 dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee) 
                 
                 sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
@@ -200,15 +212,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxy = xmu*dEps_alpha(3)
                 sxz = xmu*dEps_alpha(4)
                 syz = xmu*dEps_alpha(5)
-                start       =   dom%stress_(0:5,i,j,k,bnum,ee)
                 trial       =   (/sxx,syy,szz,sxy,sxz,syz/)
-                center      =   dom%center_(0:5,i,j,k,bnum,ee)
-                radius      =   dom%radius_(i,j,k,bnum,ee)
-                syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
-                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) 
-                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) 
-                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee) 
-                ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
                 call check_plasticity(trial, start, center,radius, &
                     syld,st_epl,alpha_epl)
 
