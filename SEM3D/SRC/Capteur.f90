@@ -280,8 +280,11 @@ contains
         call semname_tracefile_h5(Tdomain%rank, fnamef)
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
-
-        call create_capteur_descriptions(Tdomain, fid)
+        if (Tdomain%nl_flag)then
+            call create_capteur_descriptions_nl(Tdomain, fid)
+        else
+            call create_capteur_descriptions(Tdomain, fid)
+        endif
         capteur=>listeCapteur
         do while (associated(capteur))
             dname = dset_capteur_name(capteur)
@@ -329,6 +332,63 @@ contains
         call H5Tclose_f(tid, hdferr)
     end subroutine create_capteur_descriptions
 
+    ! Creates a string dataset describing each columns of the trace file
+    subroutine create_capteur_descriptions_nl(Tdomain, fid)
+        use HDF5
+        use constants, only : OUT_VAR_NAMES_NL, OUT_VAR_DIMS_3D_NL
+        type (domain), intent(inout) :: TDomain
+        integer(HID_T), intent(in) :: fid
+        !
+        integer(HID_T) :: tid, dsetid, spaceid
+        integer :: hdferr
+        character(len=12), dimension(0:32) :: varnames;
+        character(len=12) :: temp
+        integer :: d,k,dim
+        integer(HSIZE_T), dimension(1) :: dims
+        varnames(0) = "Time"
+        d = 1
+        ! before strain tensor
+        do k=0,6
+            if (Tdomain%out_variables(k)==1) then
+                do dim=1,OUT_VAR_DIMS_3D_NL(k)
+                    write(temp,"(A,I2)") OUT_VAR_NAMES_NL(k),dim
+                    varnames(d) = temp
+                    d = d+1
+                end do
+            end if
+        end do
+        ! strain and plastic strain tensor 
+        if (Tdomain%out_variables(7)==1) then
+            do dim=1,OUT_VAR_DIMS_3D_NL(7)
+                write(temp,"(A,I2)") OUT_VAR_NAMES_NL(7),dim
+                varnames(d) = temp
+                d = d+1
+            end do
+            do dim=1,OUT_VAR_DIMS_3D_NL(8)
+                write(temp,"(A,I2)") OUT_VAR_NAMES_NL(8),dim
+                varnames(d) = temp
+                d = d+1
+            end do
+        end if
+        ! stress tensor
+        if (Tdomain%out_variables(8)==1) then
+            do dim=1,OUT_VAR_DIMS_3D_NL(9)
+                write(temp,"(A,I2)") OUT_VAR_NAMES_NL(9),dim
+                varnames(d) = temp
+                d = d+1
+            end do
+        end if
+        dims(1) = d
+        call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
+        call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
+        call H5Screate_simple_f(1, dims, spaceid, hdferr)
+        call H5Dcreate_f(fid, "Variables", tid, spaceid, dsetid, hdferr)
+        call H5Dwrite_f(dsetid, tid, varnames, dims, hdferr, spaceid, spaceid)
+        call H5Dclose_f(dsetid, hdferr)
+        call H5Sclose_f(spaceid, hdferr)
+        call H5Tclose_f(tid, hdferr)
+    end subroutine create_capteur_descriptions_nl
+    
     subroutine append_traces_h5(Tdomain)
         implicit none
         type (domain), intent(inout) :: TDomain

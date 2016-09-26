@@ -203,6 +203,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
                 
                 dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/) 
+                dEps_alpha(0:5) = dEps_alpha(0:5)*dom%dt
                 dom%strain_(0:5,i,j,k,bnum,ee) = dom%strain_(0:5,i,j,k,bnum,ee) + dEps_alpha(0:5) 
                 dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee) 
                 

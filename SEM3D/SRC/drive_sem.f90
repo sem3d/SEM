@@ -562,13 +562,10 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!
         if(protection /= 0)then
-            write(*,*)  "BEFORE flushAllCapteurs"
         
             call flushAllCapteurs(Tdomain)
-            write(*,*)  "BEFORE save_checkpoint"
         
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)
-            write(*,*)  "AFTER save_checkpoint"
        
         endif
         call stat_stoptick(STAT_IO)
