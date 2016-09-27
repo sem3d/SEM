@@ -269,6 +269,11 @@ contains
         logical :: isfile
 
         do mat = 0, Tdomain%n_mat-1
+            write(*,*) "" 
+            write(*,*) "Init mat ", mat
+            write(*,*) "Tdomain%sSubdomain(mat)%material_definition = ", Tdomain%sSubdomain(mat)%material_definition
+            write(*,*) "MATERIAL_FILE = ", MATERIAL_FILE
+            
             isfile = Tdomain%sSubdomain(mat)%material_definition == MATERIAL_FILE
             if (isfile) then
                 call init_prop_file(Tdomain%sSubdomain(mat))
@@ -293,7 +298,7 @@ contains
         type(element), intent(inout) :: specel
         type(subdomain), intent(in) :: mat
         !
-        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu
         real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
         logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
@@ -318,7 +323,11 @@ contains
                     v1 = mat%DMu
                 case(MATDEF_HOOKE_RHO)
                     aniso = .true.
-                    ! XXX TODO
+                    ! XXX TODO REQUIRED ATTENTION
+                case(MATDEF_MU_SYLD_RHO)
+                    nu = mat%DNu
+                    v0 = mat%DMu
+                    v1 = mat%DSyld
                 end select
             case( MATERIAL_FILE )
                 ! XXX interpolate rho/v0/v1 from file
@@ -342,6 +351,9 @@ contains
             lambda = v0 - 2d0*mu/3d0
         case(MATDEF_HOOKE_RHO)
             ! XXX TODO
+        case(MATDEF_MU_SYLD_RHO)
+            mu = v0
+            lambda = 2.0*nu*v0/(1.0-2.0*nu)                     
         end select
 
         select case (specel%domain)
@@ -401,6 +413,36 @@ contains
         enddo
         deallocate(GLLw)
     end subroutine init_local_mass
+
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    function materialIsConstant(Tdomain, mat) result(authorization)
+!
+!        !INPUTS
+!        type (domain), intent (in), target :: Tdomain
+!        type (subdomain), intent(in) :: mat
+!
+!        !OUTPUT
+!        logical :: authorization
+!
+!        !LOCAL
+!        integer :: assocMat
+!
+!        assocMat = mat%assocMat
+!        authorization = .false.
+!
+!        if(Tdomain%sSubDomain(assocMat)%material_type == "S" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "N" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "P" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "F" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "L" .or. &
+!            Tdomain%sSubDomain(assocMat)%material_type == "T") then
+!            authorization = .true.
+!        end if
+!
+!    end function materialIsConstant
 
 end module mdefinitions
 !----------------------------------------------------------------------------------

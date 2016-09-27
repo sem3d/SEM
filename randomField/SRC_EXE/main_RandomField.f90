@@ -15,7 +15,7 @@ program main_RandomField
     use type_inputRF
     use calls_RF
     use sample_RF
-
+    
     implicit none
 
     !INPUTS

@@ -5,6 +5,9 @@
 !>
 !! \fn subroutine Compute_Courant (Tdomain)
 !! \brief Calcul le pas de temps adapte au maillage et Vs/Vp
+!! \brief Vérifie que le pas de temps est adapté aux déplacements évalués
+!!
+!! \param type (Domain), intent (IN) Tdomain
 !<
 module mCourant
 

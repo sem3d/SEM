@@ -4,7 +4,7 @@
 !!
 !>
 !!\file allocate_domain.f90
-!!\brief G�re l'allocation des domaines.
+!!\brief Gére l'allocation des domaines.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -31,26 +31,12 @@ subroutine allocate_domain (Tdomain)
     integer :: n,ngll
     !integer :: mat, randSize, assocMat
 
-!    do mat = 0,Tdomain%n_mat-1
-!        assocMat = Tdomain%sSubdomain(mat)%assocMat
-!        if(is_rand(Tdomain%sSubdomain(assocMat))) then
-!            if (Tdomain%subD_exist(mat)) then
-!                call random_seed(size = randSize)
-!
-!                if(.not.(allocated(Tdomain%sSubdomain(mat)%chosenSeed))) then
-!                    allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
-!                end if
-!            end if
-!        end if
-!    end do
-
     if(.false.) then
         write(*,*) "Tdomain%any_sdom = ", Tdomain%any_sdom
         write(*,*) "Tdomain%any_fdom = ", Tdomain%any_fdom
         write(*,*) "Tdomain%any_spml = ", Tdomain%any_spml
         write(*,*) "Tdomain%any_fpml = ", Tdomain%any_fpml
     end if
-
     if(Tdomain%any_sdom) call allocate_dom_solid   (Tdomain, Tdomain%sdom)
     if(Tdomain%any_fdom) call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
     if(Tdomain%any_spml) call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
@@ -77,4 +63,3 @@ end module sdomain_alloc
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :

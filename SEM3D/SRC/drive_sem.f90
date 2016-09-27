@@ -14,6 +14,7 @@
 module drive_sem
 
 contains
+
 subroutine sem(master_superviseur, communicateur, communicateur_global)
     use sdomain
     use mrenumber
@@ -109,11 +110,10 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #endif
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
-    Tdomain%out_energy = 1
+    Tdomain%out_energy = 0
  !----------------------------------------------------------------------------------------------!
  !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
  !----------------------------------------------------------------------------------------------!
-
     call INIT_MESSAGE(rg)
     call START_SEM(rg)
 
@@ -124,12 +124,9 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
-
-    call stat_stoptick(STAT_START)
- !---------------------------------------------------------------------------------------------!
- !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
- !---------------------------------------------------------------------------------------------!
-
+!---------------------------------------------------------------------------------------------!
+!-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
+!---------------------------------------------------------------------------------------------!
     call TIME_STEPPING(Tdomain,isort,ntime)
 
  !---------------------------------------------------------------------------------------------!
@@ -266,7 +263,6 @@ subroutine RUN_PREPARED(Tdomain)
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
-
  !- anelastic properties
     if (Tdomain%n_sls>0) then
         if (Tdomain%aniso) then
@@ -476,7 +472,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         print*
     end if
     Tdomain%sdom%dt = Tdomain%TimeD%dtmin
-
 !- snapshots counters
 !   (isort already defined for snapshots outputting index)
     i_snap = 1
@@ -500,7 +495,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
       !- Newmark reduced to leap-frog
         call NEWMARK(Tdomain, ntime)
-
 
 !---------------------------------------------------------!
     !- logical end of run
@@ -546,7 +540,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- ENERGY
 !---------------------------------------------------------!
-        if (Tdomain%out_energy == 1) call output_total_energy(Tdomain, dble(ntime)*Tdomain%sdom%dt)
+        !if (Tdomain%out_energy == 1) call output_total_energy(Tdomain, dble(ntime)*Tdomain%sdom%dt)
 
 !---------------------------------------------------------!
     !- SNAPSHOTS
@@ -556,16 +550,26 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
+        !write(*,*)  "Before evalueSortieCapteur"
         call evalueSortieCapteur(ntime, sortie_capteur)
+        
         ! sortie des quantites demandees par les capteur
+        !write(*,*)  "Before save capteur"
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
+        !write(*,*)  "After save capteur"
         
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!
         if(protection /= 0)then
+            write(*,*)  "BEFORE flushAllCapteurs"
+        
             call flushAllCapteurs(Tdomain)
+            write(*,*)  "BEFORE save_checkpoint"
+        
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)
+            write(*,*)  "AFTER save_checkpoint"
+       
         endif
         call stat_stoptick(STAT_IO)
 
@@ -663,7 +667,6 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
         write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
     endif
     call save_field_h5(Tdomain, isort)
-
     if(rg == 0)then
         write(78,*) isort, Tdomain%TimeD%rtime
         call semname_nb_proc(isort,fnamef)

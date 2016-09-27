@@ -33,7 +33,7 @@ subroutine deallocate_domain (Tdomain)
     if(allocated(Tdomain%not_PML_List)) deallocate (Tdomain%not_PML_List)
     if(allocated(Tdomain%subD_exist)) deallocate (Tdomain%subD_exist)
 
-    call deallocate_dom_solid   (Tdomain%sdom)
+    call deallocate_dom_solid   (Tdomain%sdom,Tdomain%nl_flag)
     call deallocate_dom_fluid   (Tdomain%fdom)
     call deallocate_dom_solidpml(Tdomain%spmldom)
     call deallocate_dom_fluidpml(Tdomain%fpmldom)
@@ -42,8 +42,6 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%specel(n)%MassMat)
         deallocate (Tdomain%specel(n)%IglobNum)
         deallocate (Tdomain%specel(n)%Control_Nodes)
-        if (allocated(Tdomain%specel(n)%En_P_avg)) deallocate(Tdomain%specel(n)%En_P_avg)
-        if (allocated(Tdomain%specel(n)%En_S_avg)) deallocate(Tdomain%specel(n)%En_S_avg)
     enddo
 
     !purge -fuites memoire
@@ -75,7 +73,6 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%sVertex(n)%ForcesExt)
     enddo
 #endif
-
     deallocate (Tdomain%specel)
     deallocate (Tdomain%sFace)
     deallocate (Tdomain%sEdge)

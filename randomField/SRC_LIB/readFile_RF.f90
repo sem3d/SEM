@@ -552,7 +552,7 @@ contains
                 nextLine = " "
                 exit
             else if(nextLine(1:1) /= comment_Tag) then
-                write(*,*) "nextLine = ", nextLine
+                !write(*,*) "nextLine = ", nextLine
                 exit
             end if
         end do

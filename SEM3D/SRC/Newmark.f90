@@ -34,13 +34,11 @@ subroutine Newmark(Tdomain,ntime)
     integer :: i,j
 #endif
 
-
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
     ! PML needs to be implemented
     if(.not. Tdomain%TimeD%velocity_scheme)   &
         stop "Newmark scheme implemented only in velocity form."
-
 
     !- Prediction Phase
     call Newmark_Predictor(Tdomain)
@@ -48,14 +46,12 @@ subroutine Newmark(Tdomain,ntime)
     !- Solution phase
     call internal_forces(Tdomain)
 
-
     ! External Forces
     if(Tdomain%logicD%any_source)then
         call stat_starttick()
         call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime)
         call stat_stoptick(STAT_FEXT)
     end if
-
 #ifdef COUPLAGE
 #if 0
     if (ntime>0) then
@@ -101,7 +97,6 @@ subroutine Newmark(Tdomain,ntime)
 
     ! MPI communications
     call comm_forces(Tdomain)
-
     ! Neumann B.C.: associated forces
 !    if(Tdomain%logicD%neumann_local_present)then
 !#if 0
@@ -130,9 +125,8 @@ subroutine Newmark(Tdomain,ntime)
     call Newmark_Corrector_S(Tdomain)
 
     if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
-
+    
     return
-
 end subroutine Newmark
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
@@ -348,7 +342,7 @@ subroutine internal_forces(Tdomain)
     if (Tdomain%sdom%nbelem>0) then
         call stat_starttick()
         do n = 0,Tdomain%sdom%nblocks-1
-            call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs1, n)
+            call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs1, n, Tdomain%nl_flag)
         end do
         call stat_stoptick(STAT_FSOL)
     end if

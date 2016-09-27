@@ -70,7 +70,9 @@ module sdomain
        type(comm)     , dimension (:), allocatable :: sComm
 
        logical :: aniso
-
+       logical :: any_Random, any_PropOnFile
+       logical :: nl_flag
+       integer :: nRandom
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
