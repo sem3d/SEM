@@ -151,7 +151,7 @@ contains
         t0 = Sour%ts
         k = Sour%gamma
 
-        Source_tanh = 0.5*(tanh(k*(time-t0))+1d0)
+        Source_tanh = 0.5d0*(tanh(k*(time-t0))+1d0)
         return
     end function Source_tanh
 
