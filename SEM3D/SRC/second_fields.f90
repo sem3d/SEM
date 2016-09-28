@@ -61,6 +61,7 @@ contains
     !---------------------------------------------------------------------------------------
     !---------------------------------------------------------------------------------------
 
+
     subroutine pressure_solid(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,InvGrad,displ,    &
         lambda,mu,pressure)
         ! gives the isotropic term of the stress tensor = pressure = -1/3 trace(stress tensor)

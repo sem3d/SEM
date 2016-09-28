@@ -21,6 +21,8 @@ module mCapteur
     use constants
     use mshape8
     use mshape27
+    use msnapshots, only : integrate_on_element
+#include "index.h"
     implicit none
 
     public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs
@@ -69,6 +71,7 @@ contains
 
         station_next = Tdomain%config%stations
         nullify(listeCapteur)
+        periodeRef = -1
 
         ! En reprise on ne recree pas le fichier capteur
         if (Tdomain%TimeD%NtimeMin==0) then
@@ -136,6 +139,7 @@ contains
                 capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
                 capteur%type = CPT_INTERP
                 capteur%periode = station_ptr%period
+                periodeRef = capteur%periode
                 capteur%coord(1) = xc
                 capteur%coord(2) = yc
                 capteur%coord(3) = zc
@@ -163,15 +167,19 @@ contains
             station_next = station_ptr%next
         end do
 
+        if(periodeRef < 1) periodeRef = 1
+
         ! Energy outputs
         if(Tdomain%out_energy == 1) then
+
             allocate(capt_En_PS)
 
-            n_out = 2
+            n_out = 5
             if (.not.allocated(capt_En_PS%valuecache)) allocate(capt_En_PS%valuecache(1:n_out+1,NCAPT_CACHE))
 
             capt_En_PS%nom = "En_PS"
             capt_En_PS%type = CPT_ENERGY
+            !capt_En_PS%periode = periodeRef !TODO
             capt_En_PS%periode = 1 !TODO
             capt_En_PS%coord(1) = -1111
             capt_En_PS%coord(2) = -1111
@@ -188,6 +196,7 @@ contains
                 " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
 
         end if
+
 
     end subroutine create_capteurs
 
@@ -248,7 +257,9 @@ contains
                 if (capteur%type == CPT_INTERP) then
                     call sortieGrandeurCapteur_interp(Tdomain, capteur)
                 else if (capteur%type == CPT_ENERGY) then
+                    !print*, "BEFORE sortieGrandeurCapteur_energy"
                     call sortieGrandeurCapteur_energy(Tdomain, capteur)
+                    !print*, "AFTER sortieGrandeurCapteur_energy"
                 end if
                 if (capteur%icache==NCAPT_CACHE) do_flush = .true.
             end if
@@ -611,116 +622,149 @@ contains
         integer                                    :: n_el, ngll
         real(fpp)                                  :: weight
         real(fpp), dimension(:), allocatable       :: grandeur
-        integer, dimension(0:8)                    :: out_variables, offset
-        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        !integer, dimension(0:8)                    :: out_variables, offset
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, R_energy, C_energy
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real, dimension(:), allocatable :: GLLc
-        real(fpp) :: local_sum_P_energy, local_sum_S_energy
+        real(fpp) :: local_sum_P_energy, local_sum_S_energy, local_sum_R_energy, local_sum_C_energy
+        real(fpp) :: global_sum_P_energy, global_sum_S_energy, global_sum_R_energy, global_sum_C_energy
         real(fpp) :: Whei, mult
         real, dimension(:), allocatable :: GLLw
         integer :: bnum, ee
-
+        real(fpp), dimension(:,:,:), allocatable :: jac
+        real(fpp) :: elem_P_En, elem_S_En, elem_R_En, elem_C_En
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
+        !integer :: count_S, count_P, count_R
+        !integer :: ind
+        !integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
+        !integer :: nnodes, nsubelements
+        !integer, dimension(:), allocatable :: domains
+        !real(fpp) :: integral
+        integer :: ierr
+
 
         ! Verification : is an Energy Captor?
         if(capteur%type /= CPT_ENERGY) return
+        !print *, "ENERGY CAPTOR"
 
-        out_variables(0:8) = Tdomain%out_variables(0:8)
+        !out_variables(0:8) = Tdomain%out_variables(0:8)
         local_sum_P_energy = 0d0
         local_sum_S_energy = 0d0
+        local_sum_R_energy = 0d0
+        local_sum_C_energy = 0d0
+        !count_P = 0
+        !count_S = 0
 
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
-            sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
-            ngll = domain_ngll(Tdomain, el%domain)
             domain_type = el%domain
 
             select case(domain_type)
+                case (DM_SOLID_PML)
+                  cycle !We don't want the energy on PMLs
+                case (DM_FLUID_PML)
+                  cycle !We don't want the energy on PMLs
                 case (DM_SOLID)
-                    call get_solid_dom_elem_energy(Tdomain%sdom, el%lnum, P_energy, S_energy)
+                    !We continue calculations
+                case (DM_FLUID)
+                    !We continue calculations
+                case default
+                    stop "unknown domain"
+            end select
 
-                    call domain_gllw(Tdomain, domain_type, GLLw)
+            sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
+            ngll = domain_ngll(Tdomain, el%domain)
+            bnum = el%lnum/VCHUNK
+            ee = mod(el%lnum,VCHUNK)
 
-                    do k = 0,ngll-1
-                        do j = 0,ngll-1
-                            do i = 0,ngll-1
-                                Whei = GLLw(i)*GLLw(j)*GLLw(k)
-                                bnum = el%lnum/VCHUNK
-                                ee = mod(el%lnum,VCHUNK)
-                                !mult = Whei*Tdomain%sdom%Jacob_(i,j,k,bnum,ee)
-                                mult = 1.0
+            !print *, "BEFORE Jac"
 
-                                local_sum_P_energy = local_sum_P_energy + mult*P_energy(i,j,k)
-                                local_sum_S_energy = local_sum_S_energy + mult*S_energy(i,j,k)
+            if(allocated(jac)) then
+                if(size(jac) /= ngll*ngll*ngll) deallocate(jac)
+            end if
 
+            !print *, "INIT allocated(jac) = ", allocated(jac)
+            if(.not. allocated(jac)) allocate(jac(0:ngll-1,0:ngll-1,0:ngll-1))
+            jac (:,:,:) = 0.0d0
 
+            !print *, "END allocated(jac) = ", allocated(jac)
+
+            select case (domain_type)
+                case (DM_SOLID)
+                    do k = 0, ngll-1
+                        do j = 0, ngll-1
+                            do i = 0, ngll-1
+                                jac(i,j,k) = Tdomain%sdom%Jacob_   (i,j,k,bnum,ee)
                             enddo
                         enddo
                     enddo
 
-                    deallocate(GLLw)
-
+                    call get_solid_dom_elem_energy(Tdomain%sdom, el%lnum, &
+                                                   P_energy, S_energy, &
+                                                   R_energy, C_energy)
 
                 case (DM_FLUID)
-!                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
-!                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
-!
-!                    call domain_gllw(Tdomain, domain_type, GLLw)
-!                    do k = 0,ngll-1
-!                        do j = 0,ngll-1
-!                            do i = 0,ngll-1
-!                                Whei = GLLw(i)*GLLw(j)*GLLw(k)
-!                                bnum = el%lnum/VCHUNK
-!                                ee = mod(el%lnum,VCHUNK)
-!                                mult = Whei*Tdomain%fdom%Jacob_(i,j,k,bnum,ee)
-!
-!                                el%En_S_int = el%En_S_int + mult*S_energy(i,j,k)
-!                                el%En_P_int = el%En_P_int + mult*P_energy(i,j,k)
-!
-!                            enddo
-!                        enddo
-!                    enddo
-!                    deallocate(GLLw)
-!
-!                    do k = 0,ngll-2
-!                        do j = 0,ngll-2
-!                            do i = 0,ngll-2
-!                               el%En_S_avg(k,j,i) =  sum(S_energy(i:i+1,j:j+1,k:k+1))/8d0
-!                               el%En_P_avg(k,j,i) =  sum(P_energy(i:i+1,j:j+1,k:k+1))/8d0
-!                            end do
-!                        end do
-!                    end do
+                    do k = 0, ngll-1
+                        do j = 0, ngll-1
+                            do i = 0, ngll-1
+                                jac(i,j,k) = Tdomain%fdom%Jacob_   (i,j,k,bnum,ee)
+                            enddo
+                        enddo
+                    enddo
 
-                case (DM_SOLID_PML)
-                  cycle !We don't want the energy on PMLs
+                    call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, S_energy) !TODO
 
-                case (DM_FLUID_PML)
-                  cycle !We don't want the energy on PMLs
-
-                case default
-                  stop "unknown domain"
             end select
 
+            if(allocated(GLLw)) deallocate(GLLw)
+            call domain_gllw(Tdomain, domain_type, GLLw)
+
+            call integrate_on_element(ngll, jac, GLLw, P_energy, elem_P_En)
+            call integrate_on_element(ngll, jac, GLLw, S_energy, elem_S_En)
+            call integrate_on_element(ngll, jac, GLLw, R_energy, elem_R_En)
+            call integrate_on_element(ngll, jac, GLLw, C_energy, elem_C_En)
+
+            local_sum_P_energy = local_sum_P_energy + elem_P_En
+            local_sum_S_energy = local_sum_S_energy + elem_S_En
+            local_sum_R_energy = local_sum_R_energy + elem_R_En
+            local_sum_C_energy = local_sum_C_energy + elem_C_En
+
         enddo
+
+        !TOTO, take out this part and put only local values (total values on post-processing)
+        call MPI_ALLREDUCE(local_sum_S_energy, global_sum_S_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur_global, ierr)
+        call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur_global, ierr)
+        call MPI_ALLREDUCE(local_sum_R_energy, global_sum_R_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur_global, ierr)
+        call MPI_ALLREDUCE(local_sum_C_energy, global_sum_C_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur_global, ierr)
 
         ! Sauvegarde des valeurs dans le capteur.
         i = capteur%icache+1
         capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-        capteur%valuecache(2,i) = local_sum_P_energy
-        capteur%valuecache(3,i) = local_sum_S_energy
+        capteur%valuecache(2,i) = global_sum_P_energy
+        capteur%valuecache(3,i) = global_sum_S_energy
+        capteur%valuecache(4,i) = global_sum_R_energy
+        capteur%valuecache(5,i) = global_sum_C_energy
+        capteur%valuecache(6,i) = global_sum_P_energy + global_sum_S_energy &
+                                + global_sum_R_energy + global_sum_C_energy
         capteur%icache = i
 
         ! Deallocation.
-
+        if(allocated(jac)) deallocate(jac)
+        if(allocated(GLLw)) deallocate(GLLw)
         if(allocated(fieldU))   deallocate(fieldU)
         if(allocated(P_energy)) deallocate(P_energy)
         if(allocated(S_energy)) deallocate(S_energy)
-        if(allocated(eps_vol))  deallocate(eps_vol)
+        if(allocated(R_energy)) deallocate(R_energy)
+        if(allocated(C_energy)) deallocate(C_energy)
+
     end subroutine sortieGrandeurCapteur_energy
 
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
