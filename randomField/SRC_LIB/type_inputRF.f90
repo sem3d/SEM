@@ -69,6 +69,19 @@ module type_inputRF
 
     end type IPT_RF
 
+    type :: property_RF
+        integer :: mat
+        character(len=buf_RF) :: name
+        double precision :: avg
+        integer :: corrMod
+        double precision, dimension(3) :: corrL
+        integer :: margiF
+        double precision :: CV
+        integer :: seedStart
+        double precision, dimension(3) :: bbox_min, bbox_max
+
+    end type property_RF
+
 contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
@@ -459,26 +472,52 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
-        subroutine read_main_input(path, IPT)
+        subroutine read_main_input(IPT, auto)
 
             implicit none
             !INPUT
-            character(len=*), intent(in) :: path
+            logical, intent(in), optional :: auto
             !OUTPUT
             type(IPT_RF), intent(inout)  :: IPT
             !LOCAL
             character(len=buf_RF) , dimension(:,:), allocatable :: dataTable;
-            character(len=buf_RF) :: SEM_gen_path
+            character(len=buf_RF) :: SEM_gen_path, path
             integer :: i
             integer :: code
+            logical :: fExist
+            logical :: secondStep
 
-            !write(*,*) "Before Datatable"
-            if(IPT%rang == 0) write(*,*) "      path = ", path
-            call set_DataTable(path, dataTable)
-            if(IPT%rang == 0) write(*,*) "      Before Application"
-            call read_DataTable(dataTable, "application", IPT%application)
+            path = "./random.spec"
+            fExist = fileExist(path)
+            print*, "fExist = ", fExist
 
-            if(IPT%application == 1) then
+            secondStep = .false.
+            if(present(auto)) then
+                if(auto) fExist = .false.
+                secondStep = .true.
+            end if
+
+            if(fExist) then
+                path = "./domains.txt"
+                if(.not. fileExist("./domains.txt")) stop "ERROR: ./random.spec file found but domains.txt not (you need to make the mesh before the generating the properties"
+                IPT%application = SEM
+                SEM_gen_path = "./mat"
+            else
+                path = "./RF_main_input"
+                fExist = fileExist(path)
+                if(fExist) then
+                    IPT%application = NATIVE
+                else
+                    stop "ERROR: nor ./RF_main_input  or ./random.spec files found"
+                end if
+                if(fileExist("./domains.txt") .and. (.not. secondStep)) stop "To use the randomfield library with SEM the inputs should be given by random.spec (there's no more RF_main_input file)" 
+                !write(*,*) "Before Datatable"
+                if(IPT%rang == 0) write(*,*) "      path = ", path
+                call set_DataTable(path, dataTable)
+
+           end if
+
+            if(IPT%application == NATIVE) then
                 if(IPT%rang == 0) write(*,*) "      Native lecture"
                 call read_DataTable(dataTable, "nSamples", IPT%nSamples)
                 allocate(IPT%out_folders(IPT%nSamples))
@@ -494,9 +533,8 @@ contains
 
                 IPT%outputName = IPT%out_names(1)
 
-            else if (IPT%application == 2) then
+            else if (IPT%application == SEM) then
                 if(IPT%rang == 0) write(*,*) "     SEM files lecture"
-                call read_DataTable(dataTable, "folder", SEM_gen_path)
                 IPT%appFolder = SEM_gen_path
                 if(IPT%rang == 0) call generateMain_inputSEM(SEM_gen_path)
                 call MPI_BARRIER(IPT%comm, code)
@@ -556,9 +594,8 @@ contains
             !double precision, dimension(:), allocatable :: rho_CV, kappa_CV, mu_CV
             integer, dimension(:,:), allocatable :: margiF
             double precision, dimension(:,:), allocatable :: CV
-            integer :: matNb, randCount
+            integer :: matNb
             double precision, dimension(:,:), allocatable :: bbox_min, bbox_max
-            integer :: nprop
             character(len=7), dimension(3) :: propNames
             character(len=buf_RF) :: mesh_path, gen_path, absPath
             character(len=buf_RF) :: out_folder
@@ -566,12 +603,101 @@ contains
             double precision, dimension(:), allocatable :: fieldAvg, fieldVar
             double precision, dimension(:), allocatable :: Pspeed, Sspeed, Dens
             integer, dimension(:), allocatable :: lambdaSwitch
+            integer, dimension(:), allocatable :: nProp_Mat
+            integer :: mat, nSamples, mat_Nb, prop_count
+            type(property_RF), dimension(:), allocatable :: prop
+            integer :: VP_VS_RHO_flag
+            double precision :: VP, VS, RHO, VAR
 
             fid_2 = 19
             npml  = 0
             nRand = 0
-            randCount = 0
-            nprop = 3
+
+            !READING random.spec
+            open (unit = fid_2 , file = "./random.spec", action = 'read', status="old", form="formatted")
+
+                !!1)  Counting number of samples to be generated
+                mat = -1
+                buffer = getLine(fid_2, '#')
+                read(buffer,*) nMat
+                allocate(nProp_Mat(0:nMat-1))
+                print*, "nMat = ", nMat
+                do mat = 0, nMat - 1
+                    buffer = getLine(fid_2, '#') !Material Number
+                    !print*, "COISA"
+                    buffer = getLine(fid_2, '#') !VP_VS_RHO flag
+                    read(buffer,*) VP_VS_RHO_flag
+                    !print*, "VP_VS_RHO_flag = ", VP_VS_RHO_flag
+                    if(VP_VS_RHO_flag == 1) then
+                        buffer = getLine(fid_2, '#') !VP VS RHO Value
+                    end if
+ 
+                    buffer = getLine(fid_2, '#')
+                    read(buffer,*) nProp_Mat(mat)
+                    
+                    !print*, "nProp_Mat(mat) = ", NProp_Mat(mat)
+                    
+                    do j = 1, nProp_Mat(mat)
+                        buffer = getLine(fid_2, '#')
+                    end do
+                end do
+
+                nSamples = sum(nProp_Mat)
+
+                allocate(prop(0:nSamples-1))
+
+                
+                print*, "size(prop) = ", size(prop)
+
+                !!2) Reading Samples Properties
+                rewind(fid_2)
+                prop_count = 0
+
+                buffer = getLine(fid_2, '#') !nMat
+                read(buffer,*) nMat
+                
+                do mat = 0, nMat - 1
+                    buffer = getLine(fid_2, '#') !Material Number
+                    read(buffer,*) mat_Nb
+                    buffer = getLine(fid_2, '#') !VP_VS_RHO flag
+                    read(buffer,*) VP_VS_RHO_flag
+                    if(VP_VS_RHO_flag == 1) then
+                        buffer = getLine(fid_2, '#') !VP VS RHO Value
+                        read(buffer,*) VP, VS, RHO
+                        print*, "VP = ", VP, "VS = ", VS, "RHO = ", RHO
+                    end if
+                    buffer = getLine(fid_2, '#') !Number of Properties
+                    do j = 1, nProp_Mat(mat)
+                        buffer = getLine(fid_2, '#')
+                        prop(prop_count)%mat = mat_Nb
+
+                        read(buffer,*) prop(prop_count)%name, &
+                                       prop(prop_count)%avg, &
+                                       prop(prop_count)%corrMod,   &
+                                       prop(prop_count)%corrL(1),  &
+                                       prop(prop_count)%corrL(2),  &
+                                       prop(prop_count)%corrL(3),  &
+                                       prop(prop_count)%margiF,    &
+                                       prop(prop_count)%CV,        &
+                                       prop(prop_count)%seedStart
+
+                        if(VP_VS_RHO_flag == 1) then
+                            if(trim(adjustl(prop(prop_count)%name)) == "Lambda") then
+                                prop(prop_count)%avg = 2d0*RHO*VS**2d0
+                            else if(trim(adjustl(prop(prop_count)%name)) == "Kappa") then
+                                prop(prop_count)%avg = RHO*(VP**2d0 - 4d0*(VS**2d0)/3d0)
+                            else if(trim(adjustl(prop(prop_count)%name)) == "Mu") then
+                                prop(prop_count)%avg = RHO*VS**2d0
+                            else if(trim(adjustl(prop(prop_count)%name)) == "Density") then
+                                prop(prop_count)%avg = RHO 
+                            end if
+                        end if
+
+                        prop_count = prop_count + 1
+                    end do
+                end do
+
+            close(fid_2)
 
             !READING material.input
             open (unit = fid_2 , file = "./material.input", action = 'read', status="old", form="formatted")
@@ -584,29 +710,8 @@ contains
                 allocate(Sspeed(nMat))
                 allocate(Dens(nMat))
                 allocate(assocMat(nMat))
-                allocate(corrMod(nprop, nMat))
-                allocate(corrL(3,nprop,nMat))
-                allocate(fieldVar(nprop))
-                allocate(fieldAvg(nprop))
-                allocate(lambdaSwitch(nMat))
-                !allocate(corrL_x(nMat))
-                !allocate(corrL_y(nMat))
-                !allocate(corrL_z(nMat))
-                allocate(margiF(nprop,nMat))
-                allocate(CV(nprop,nMat))
-                !allocate(rho_margiF(nMat))
-                !allocate(kappa_margiF(nMat))
-                !allocate(mu_margiF(nMat))
-                allocate(seedStart(nprop,nMat))
-                !allocate(rho_CV(nMat))
-                !allocate(kappa_CV(nMat))
-                !allocate(mu_CV(nMat))
-                allocate(bbox_min(3,nMat))
-                allocate(bbox_max(3,nMat))
 
                 assocMat = -1
-                bbox_min(:,:) = MAX_DOUBLE
-                bbox_max(:,:) = MIN_DOUBLE
 
                 !READ material.input
                 do i = 1, nMat
@@ -622,11 +727,6 @@ contains
 
                 end do
 
-!                if(npml > 0) then
-!                    read(fid_2,*) !# PML properties
-!                    read(fid_2,*) !# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
-!                end if
-
                 do i = 1, nMat
                     if (materialType(i) == "P" .or. materialType(i) == "L") then
                         buffer = getLine(fid_2, '#')
@@ -634,34 +734,33 @@ contains
                     end if
                 end do
 
-                if(nRand > 0) then
-
-!                    read(fid_2,*) !# Random properties
-!                    read(fid_2,*) !# Kappa/Lambda (0/1)
-!                    read(fid_2,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-!                    read(fid_2,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-!                    read(fid_2,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-
-
-                    do i = 1, nMat
-                        if (materialType(i) == "R") then
-                            buffer = getLine(fid_2, '#')
-                            read(buffer,*) lambdaSwitch(i)
-                            do j = 1, nprop
-                                buffer = getLine(fid_2, '#')
-                                read(buffer,*) corrMod(j, i), corrL(1,j,i), corrL(2,j,i), corrL(3,j,i), margiF(j,i), CV(j,i), seedStart(j, i)
-                            end do
-                        end if
-                    end do
-
-                end if
+!                if(nRand > 0) then
+!
+!                    do i = 1, nMat
+!                        if (materialType(i) == "R") then
+!                            buffer = getLine(fid_2, '#')
+!                            read(buffer,*) lambdaSwitch(i)
+!                            do j = 1, nprop
+!                                buffer = getLine(fid_2, '#')
+!                                read(buffer,*) corrMod(j, i), corrL(1,j,i), corrL(2,j,i), corrL(3,j,i), margiF(j,i), CV(j,i), seedStart(j, i)
+!                            end do
+!                        end if
+!                    end do
+!
+!                end if
 
                 !call DispCarvalhol(materialType, "materialType")
                 !call DispCarvalhol(assocMat, "assocMat")
 
             close(fid_2)
 
-            !READING domains.txt
+            !READING domains.txti
+                allocate(bbox_min(3,nMat))
+                allocate(bbox_max(3,nMat))
+
+                bbox_min(:,:) = MAX_DOUBLE
+                bbox_max(:,:) = MIN_DOUBLE
+
             open (unit = fid_2 , file = "./domains.txt", action = 'read', status="old", form="formatted")
                 do i = 1, nMat
                     buffer = getLine(fid_2, '#')
@@ -676,6 +775,13 @@ contains
 
             close(fid_2)
 
+            do prop_Count = 0, size(prop) - 1
+                mat_Nb = prop(prop_count)%mat
+                prop(prop_Count)%bbox_min = bbox_min(:, mat_Nb+1)
+                prop(prop_Count)%bbox_max = bbox_max(:, mat_Nb+1)
+            end do
+
+
             !CREATING FOLDER
             call create_folder(".", SEM_gen_path, 0, 0, singleProc = .true.)
             call create_folder(".", string_join_many(SEM_gen_path,"/input"), 0, 0, singleProc = .true.)
@@ -684,7 +790,7 @@ contains
 
             fid = 18
 
-            open (unit = fid , file = string_join_many("TEMP_RF_main_input"), action = 'write')
+            open (unit = fid , file = string_join_many("RF_main_input"), action = 'write')
 
             write(fid,"(A)")  "$application 1"
             write(fid,*) " "
@@ -693,70 +799,118 @@ contains
 
             write(*,*) "absPath = ", trim(adjustL(absPath))
 
-            do i = 1, nMat
-                if (materialType(i) == "R") then
-
-                    propNames=["Density", "Kappa  ", "Mu     "]
-
-                    fieldAvg(1) = Dens(i) !Density
-                    fieldAvg(2) = Dens(i)*(Pspeed(i)**2d0 - 4d0*(Sspeed(i)**2d0)/3d0) !Kappa
-                    fieldAvg(3) = Dens(i)*Sspeed(i)**2d0 !Mu
-
-                    if(lambdaSwitch(i) == 1) then
-                        propNames=["Density", "Lambda ", "Mu     "]
-                        !fieldAvg(2) = (Pspeed(i)**2d0 - 2d0*Sspeed(i)**2d0)*Dens(i) !Lambda
-                        fieldAvg(2) = 2d0*Dens(i)*Sspeed(i)**2d0 !Lambda = 2*Mu
-                    end if
-
-                    fieldVar(:) = (CV(:,i)*fieldAvg)**2d0
-
-                    do j = 1, nProp
-
-                        randCount = randCount + 1
-
-                        mesh_path = trim(string_join_many(SEM_gen_path,"/input/", &
-                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_mesh"))
-                        gen_path  = trim(string_join_many(SEM_gen_path,"/input/", &
-                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_gen"))
-
-                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
-                                         trim(string_join_many(absPath,"/",mesh_path,'"'))
-                        call write_mesh_file(3, bbox_min(:,i), bbox_max(:,i), [5, 5, 5], &
-                                             mesh_path)
-
-
-                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
-                                     trim(string_join_many(absPath,'/',gen_path,'"'))
-                        call write_gen_file(3, 1, corrMod(j, i), margiF(j, i), corrL(:,j,i), &
-                                            fieldAvg(j), fieldVar(j), 4, &
-                                            seedStart(j,i), [5d0, 5d0, 5d0], &
-                                            gen_path,  &
-                                            1, [0, 0, 0])
-
-                        out_folder = trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
-                                          ' "'//trim(adjustL(absPath))//"/"//trim(adjustL(SEM_gen_path))//'"'
-                        !out_folder = trim(string_join_many(stringNumb_join("A", randCount)))//&
-                        !             ' "', '"'
-                        !write(*,*) "out_folder = ", out_folder
-                        write(fid,"(A)") trim(adjustL(out_folder))
-                        !write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
-                        !                  ' "',trim(adjustL(absPath)),"/",trim(adjustL(SEM_gen_path)),'"'
-
-
-                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
-                                     trim(stringNumb_join("Mat_", i-1))//"_"//&
-                                     trim(propNames(j))//'"'
-                        write(fid,"(A)") " "
-                    end do
-                end if
+            do prop_Count = 0, size(prop) - 1
+                mat_Nb = prop(prop_count)%mat
+                prop(prop_Count)%bbox_min = bbox_min(:, mat_Nb+1)
+                prop(prop_Count)%bbox_max = bbox_max(:, mat_Nb+1)
             end do
 
-            write(fid,"(A)") "$nSamples "//numb2String(randCount)
+            write(fid,"(A)") "$nSamples "//numb2String(size(prop))
 
-            !write(fid,*) "$$nDim "
+            do prop_Count = 0, size(prop) - 1
+                mat_Nb = prop(prop_count)%mat
+                !randCount = randCount + 1
+                VAR = (prop(prop_Count)%CV*prop(prop_Count)%avg)**2d0
+                mesh_path = trim(string_join_many(SEM_gen_path,"/input/", &
+                             stringNumb_join("Mat_", mat_Nb),"_",prop(prop_Count)%name,"_mesh"))
+                gen_path  = trim(string_join_many(SEM_gen_path,"/input/", &
+                             stringNumb_join("Mat_", mat_Nb),"_",prop(prop_Count)%name,"_gen"))
+  
+                write(fid,"(A)") trim(string_join_many(stringNumb_join("$mesh_input_", prop_Count+1)))//' "'//&
+                                 trim(string_join_many(absPath,"/",mesh_path,'"'))
+                call write_mesh_file(3, prop(prop_Count)%bbox_min(:), prop(prop_Count)%bbox_max(:), [5, 5, 5], &
+                                     mesh_path)
+  
+  
+                write(fid,"(A)") trim(string_join_many(stringNumb_join("$gen_input_", prop_Count+1)))//' "'//&
+                             trim(string_join_many(absPath,'/',gen_path,'"'))
+                call write_gen_file(3, 1, prop(prop_Count)%corrMod, prop(prop_Count)%margiF, prop(prop_Count)%corrL, &
+                                    prop(prop_Count)%avg, VAR, 4, &
+                                    prop(prop_Count)%seedStart, [5d0, 5d0, 5d0], &
+                                    gen_path,  &
+                                    1, [0, 0, 0])
+  
+                out_folder = trim(string_join_many(stringNumb_join("$out_folder_", prop_Count+1)))//&
+                                  ' "'//trim(adjustL(absPath))//"/"//trim(adjustL(SEM_gen_path))//'"'
+                write(fid,"(A)") trim(adjustL(out_folder))
+  
+  
+                write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_name_", prop_Count+1)))//' "'//&
+                             trim(stringNumb_join("Mat_", mat_Nb))//"_"//&
+                             trim(prop(prop_Count)%name)//'"'
+                write(fid,"(A)") " "
+  
+            end do
 
             close(fid)
 
+!
+!            do i = 1, nMat
+!                if (materialType(i) == "R") then
+!
+!                    propNames=["Density", "Kappa  ", "Mu     "]
+!
+!                    fieldAvg(1) = Dens(i) !Density
+!                    fieldAvg(2) = Dens(i)*(Pspeed(i)**2d0 - 4d0*(Sspeed(i)**2d0)/3d0) !Kappa
+!                    fieldAvg(3) = Dens(i)*Sspeed(i)**2d0 !Mu
+!
+!                    if(lambdaSwitch(i) == 1) then
+!                        propNames=["Density", "Lambda ", "Mu     "]
+!                        !fieldAvg(2) = (Pspeed(i)**2d0 - 2d0*Sspeed(i)**2d0)*Dens(i) !Lambda
+!                        fieldAvg(2) = 2d0*Dens(i)*Sspeed(i)**2d0 !Lambda = 2*Mu
+!                    end if
+!
+!                    fieldVar(:) = (CV(:,i)*fieldAvg)**2d0
+!
+!                    do j = 1, nProp
+!
+!                        randCount = randCount + 1
+!
+!                        mesh_path = trim(string_join_many(SEM_gen_path,"/input/", &
+!                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_mesh"))
+!                        gen_path  = trim(string_join_many(SEM_gen_path,"/input/", &
+!                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_gen"))
+!
+!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
+!                                         trim(string_join_many(absPath,"/",mesh_path,'"'))
+!                        call write_mesh_file(3, bbox_min(:,i), bbox_max(:,i), [5, 5, 5], &
+!                                             mesh_path)
+!
+!
+!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
+!                                     trim(string_join_many(absPath,'/',gen_path,'"'))
+!                        call write_gen_file(3, 1, corrMod(j, i), margiF(j, i), corrL(:,j,i), &
+!                                            fieldAvg(j), fieldVar(j), 4, &
+!                                            seedStart(j,i), [5d0, 5d0, 5d0], &
+!                                            gen_path,  &
+!                                            1, [0, 0, 0])
+!
+!                        out_folder = trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
+!                                          ' "'//trim(adjustL(absPath))//"/"//trim(adjustL(SEM_gen_path))//'"'
+!                        !out_folder = trim(string_join_many(stringNumb_join("A", randCount)))//&
+!                        !             ' "', '"'
+!                        !write(*,*) "out_folder = ", out_folder
+!                        write(fid,"(A)") trim(adjustL(out_folder))
+!                        !write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
+!                        !                  ' "',trim(adjustL(absPath)),"/",trim(adjustL(SEM_gen_path)),'"'
+!
+!
+!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
+!                                     trim(stringNumb_join("Mat_", i-1))//"_"//&
+!                                     trim(propNames(j))//'"'
+!                        write(fid,"(A)") " "
+!                    end do
+!                end if
+!            end do
+!
+!            write(fid,"(A)") "$nSamples "//numb2String(randCount)
+!
+!            !write(fid,*) "$$nDim "
+!
+!            close(fid)
+
+            if(allocated(prop)) deallocate(prop)
+            if(allocated(nProp_Mat)) deallocate(nProp_Mat)
             if(allocated(materialType)) deallocate(materialType)
             if(allocated(assocMat)) deallocate(assocMat)
             if(allocated(Pspeed)) deallocate(Pspeed)

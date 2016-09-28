@@ -121,8 +121,8 @@ contains
             !call write_elem_energy(Tdomain, parent_id)
         end if
         ! P_ENERGY
-        write(*,*) out_variables(OUT_ENERGYP) 
-        write(*,*) out_variables(OUT_ENERGYS) 
+        !write(*,*) out_variables(OUT_ENERGYP) 
+        !write(*,*) out_variables(OUT_ENERGYS) 
         if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_Gatherv(outputs%P_energy, dim2_el, MPI_DOUBLE_PRECISION, &
                 all_data_1d_el, counts_el, displs_el, MPI_DOUBLE_PRECISION, 0,&
