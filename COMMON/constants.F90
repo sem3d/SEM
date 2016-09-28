@@ -89,6 +89,18 @@ MODULE constants
         "Eps Dev   ", &
         "Stress Dev" /)
     integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6 /)
+    character(len=10), dimension(0:9) :: OUT_VAR_NAMES_NL = (/ &
+        "EnergyP   ", &
+        "EnergyS   ", &
+        "Eps Vol   ", &
+        "Displ     ", &
+        "Veloc     ", &
+        "Accel     ", &
+        "Pressure  ", &
+        "Eps Dev   ", &
+        "Eps Dev Pl", &
+        "Stress Dev" /)
+    integer, parameter, dimension(0:9) :: OUT_VAR_DIMS_3D_NL = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 6 /)
 
     ! TYPE DE CONDITION pour les surfaces
     integer, parameter :: COND_NONE     = 0  ! not assigned/uninitialized

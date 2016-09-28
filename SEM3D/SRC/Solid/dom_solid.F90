@@ -617,19 +617,36 @@ contains
         n_solid = dom%n_sls
         aniso   = dom%aniso
         ngll    = dom%ngll
-
-        do i_dir = 0,2
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-                        do ee = 0, VCHUNK-1
-                            idx = dom%Idom_(i,j,k,bnum,ee)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+        
+        if (nl_flag) then
+            ! PLASTIC CASE: VELOCITY PREDICTION
+            do i_dir = 0,2
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            do ee = 0, VCHUNK-1
+                                idx = dom%Idom_(i,j,k,bnum,ee)
+                                Depla(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
+                            enddo
                         enddo
                     enddo
                 enddo
             enddo
-        enddo
+        else
+            ! ELASTIC CASE: DISPLACEMENT PREDICTION
+            do i_dir = 0,2
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            do ee = 0, VCHUNK-1
+                                idx = dom%Idom_(i,j,k,bnum,ee)
+                                Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+            enddo
+        endif
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0

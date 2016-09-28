@@ -414,7 +414,7 @@ subroutine external_forces(Tdomain,timer,ntime)
             !   on rajoute le 1/2 pas de temps qui correspond au fait que la
             !    exterieure doive etre prise a t_(n+1/2)
             t = timer+Tdomain%TimeD%dtmin/2d0
-            !
+            ! TAG_SOURCE
             ft = CompSource(Tdomain%sSource(ns), t, ntime)
             if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
                 ! collocated force in solid
