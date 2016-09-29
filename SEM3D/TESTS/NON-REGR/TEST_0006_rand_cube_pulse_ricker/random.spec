@@ -3,9 +3,8 @@
 # Material Number
 0
 # VP_VS_DENS_flag - Calculate Lambda, Kappa, Mu and Density average from Vp Vs Density (0 = false, 1 = true)
-1
-# If previous option = 1, give Vp, Vs and Density
-3535.533   2500.000   2800.000
+# If previous option = 1, give Vp, Vs and Density on the same line
+1 3535.533   2500.000   2800.000
 # Number Of Properties for this material
 3
 # Property_Name  avg corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
