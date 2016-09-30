@@ -94,7 +94,7 @@ contains
         !
         type(domain)                               :: TDomain
         type(domain_fluid), intent(inout)          :: dom
-        integer, dimension(0:8), intent(in)        :: out_variables
+        integer, dimension(0:), intent(in)         :: out_variables
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable   :: phi
         real(fpp), dimension(:,:,:), allocatable   :: vphi

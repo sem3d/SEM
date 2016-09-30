@@ -222,13 +222,13 @@ contains
             Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
             Tdomain%Ssource(nsrc)%i_type_source = src%type
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
-            write(*,*) "source amplitude:",src%amplitude
+            if(Tdomain%rank == 0) write(*,*) "source amplitude:",src%amplitude
             if (src%func .eq. 5) then
                 Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
             end if
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
-            write(*,*) "source type:",src%func
+            if(Tdomain%rank == 0) write(*,*) "source type:",src%func
             Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
             Tdomain%Ssource(nsrc)%tau_b = src%tau ! func=1,2,3,4,5
             Tdomain%Ssource(nsrc)%fh = src%band  ! func=3
@@ -342,6 +342,7 @@ contains
         logical                      :: logic_scheme
         integer                      :: imat
         integer                      :: rg
+        integer i
 
         rg = Tdomain%rank
 
@@ -373,12 +374,19 @@ contains
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
-        Tdomain%out_variables(0:8)=Tdomain%config%out_variables
-        Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ & 
-                             Tdomain%out_variables(OUT_EPS_VOL)+Tdomain%out_variables(OUT_PRESSION))+ &
-                          3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
-                             Tdomain%out_variables(OUT_ACCEL))+&
-                          6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))
+        Tdomain%out_variables(0:9)=Tdomain%config%out_variables
+
+        Tdomain%nReqOut = 0
+        do i = 0, size(Tdomain%out_variables)-1
+            Tdomain%nReqOut = Tdomain%nReqOut + Tdomain%out_variables(i)*OUT_VAR_DIMS_3D(i)
+        end do
+
+        !Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ &
+        !                     Tdomain%out_variables(OUT_EPS_VOL)+Tdomain%out_variables(OUT_PRESSION))+ &
+        !                  3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
+        !                     Tdomain%out_variables(OUT_ACCEL))+&
+        !                  6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))
+
         if (Tdomain%nl_flag==1 .and. Tdomain%out_variables(OUT_EPS_DEV)==1) then
              Tdomain%nReqOut=Tdomain%nReqOut+6
         endif 

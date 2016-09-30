@@ -141,7 +141,7 @@ typedef struct {
     int comp_energ;
 
     // Output Variables
-    int out_variables[9];
+    int out_variables[10];
     int nl_flag;
 
     // Protection reprise

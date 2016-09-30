@@ -192,7 +192,7 @@ contains
         implicit none
         !
         type(domain_solid), intent(inout)          :: dom
-        integer, intent(in), dimension(0:8)        :: out_variables
+        integer, intent(in), dimension(0:)         :: out_variables
         integer, intent(in)                        :: lnum
         logical, intent(in)                        :: nl_flag
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA

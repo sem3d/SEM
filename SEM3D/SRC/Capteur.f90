@@ -170,7 +170,10 @@ contains
         if(periodeRef < 1) periodeRef = 1
 
         ! Energy outputs
-        if(Tdomain%out_energy == 1) then
+        !if(Tdomain%out_energy == 1) then
+        if(Tdomain%out_variables(OUT_TOTAL_ENERGY)) then
+
+            if(Tdomain%rank == 0) write(*,*) "CREATING ENERGY SENSORS"
 
             allocate(capt_En_PS)
 
@@ -196,7 +199,6 @@ contains
                 " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
 
         end if
-
 
     end subroutine create_capteurs
 
@@ -508,7 +510,7 @@ contains
         real(fpp)                                  :: weight
         real(fpp), dimension(:), allocatable       :: outx, outy, outz
         real(fpp), dimension(:), allocatable       :: grandeur
-        integer, dimension(0:8)                    :: out_variables, offset
+        integer, dimension(0:9)                    :: out_variables, offset
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
@@ -544,7 +546,7 @@ contains
         allocate(grandeur(0:Tdomain%nReqOut-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
         
-        out_variables(0:8) = Tdomain%out_variables(0:8)
+        out_variables(0:9) = Tdomain%out_variables(0:9)
         nl_flag = Tdomain%nl_flag
         offset = 0
         do i = 0,size(out_variables)-2
@@ -682,7 +684,6 @@ contains
         integer                                    :: n_el, ngll
         real(fpp)                                  :: weight
         real(fpp), dimension(:), allocatable       :: grandeur
-        !integer, dimension(0:8)                    :: out_variables, offset
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, R_energy, C_energy
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
@@ -697,12 +698,6 @@ contains
         real(fpp) :: elem_P_En, elem_S_En, elem_R_En, elem_C_En
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
-        !integer :: count_S, count_P, count_R
-        !integer :: ind
-        !integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
-        !integer :: nnodes, nsubelements
-        !integer, dimension(:), allocatable :: domains
-        !real(fpp) :: integral
         integer :: ierr
 
 
@@ -710,7 +705,6 @@ contains
         if(capteur%type /= CPT_ENERGY) return
         !print *, "ENERGY CAPTOR"
 
-        !out_variables(0:8) = Tdomain%out_variables(0:8)
         local_sum_P_energy = 0d0
         local_sum_S_energy = 0d0
         local_sum_R_energy = 0d0

@@ -157,7 +157,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err, k;
 
-    for(k=0;k<9;++k) {
+    for(k=0;k<10;++k) {
         config->out_variables[k] = 0;
     }
     tok = skip_blank(scanner);
@@ -176,6 +176,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
         else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &(config->out_variables[7]),1);
         else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
+        else if (cmp(scanner,"eTotal")) err=expect_eq_int(scanner, &(config->out_variables[9]),1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -700,6 +701,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[6] = 1; // Pression
     cfg->out_variables[7] = 0; // Deformation Dev
     cfg->out_variables[8] = 0; // Contrainte Dev
+    cfg->out_variables[9] = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
     cfg->nl_flag = 0; // calcul nonlineaire
 }
 
@@ -729,10 +731,11 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
+    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
     				cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
     				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
-    				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8]);
+    				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
+                    cfg->out_variables[9]);
     // removed by Mtaro
     //printf("Neu present : %d\n", cfg->neu_present);
     //printf("Neu type    : %d\n", cfg->neu_type);

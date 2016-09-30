@@ -78,7 +78,7 @@ contains
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim2
         type(output_var_t), intent(in) :: outputs
-        integer, dimension(0:8), intent(in) :: out_variables
+        integer, dimension(0:), intent(in) :: out_variables
         integer, intent(out) :: ntot_nodes
         !
         integer(HID_T) :: dset_id
@@ -109,7 +109,7 @@ contains
             allocate(all_data_1d(0:ntot_nodes-1))
         end if
 
-        if(Tdomain%out_energy == 1) then
+        if(Tdomain%out_variables(OUT_TOTAL_ENERGY) == 1) then
             call write_elem_energy(Tdomain, parent_id)
         end if
 
@@ -987,7 +987,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real(fpp) :: P_en_total, S_en_total, total_P_energy_sum, total_S_energy_sum
-        integer, dimension(0:8) :: out_variables
+        integer, dimension(0:) :: out_variables
         integer :: ierr
         real(fpp) :: Whei, mult
         real, dimension(:), allocatable :: GLLw
@@ -996,7 +996,7 @@ contains
 
         nl_flag = Tdomain%nl_flag==1
         !write(*,*) "Inside output_total_energy"
-        out_variables(0:8) = Tdomain%out_variables(0:8)
+        out_variables(:) = Tdomain%out_variables(:)
         P_en_total = 0d0
         S_en_total = 0d0
 
@@ -1173,7 +1173,7 @@ contains
 
         nl_flag=Tdomain%nl_flag
 
-        out_variables(0:8) = Tdomain%out_variables(0:8)
+        out_variables(:) = Tdomain%out_variables(:)
 
         call create_dir_sorties(Tdomain, isort)
         call compute_saved_elements(Tdomain, irenum, nnodes, domains)
@@ -1353,7 +1353,7 @@ contains
         implicit none
         type (domain), intent (IN):: Tdomain
         integer, intent(in) :: group, isort, nnodes
-        integer, dimension(0:8), intent(in) :: out_variables
+        integer, dimension(0:), intent(in) :: out_variables
         character (len=MAX_FILE_SIZE) :: fnamef
         integer :: i, nn, ne
         real :: time
@@ -1550,7 +1550,7 @@ contains
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 !En_P_int
-                if(Tdomain%out_energy == 1) then
+                if(Tdomain%out_variables(OUT_TOTAL_ENERGY) == 1) then
                     write(61,"(a)") '<Attribute Name="En_P_int" Center="Cell" AttributeType="Scalar">'
                     write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_P_int'
@@ -1566,7 +1566,7 @@ contains
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
                 !En_S_int
-                if(Tdomain%out_energy == 1) then
+                if(Tdomain%out_variables(OUT_TOTAL_ENERGY) == 1) then
                     write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
                     write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
                     write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/En_S_int'
@@ -1574,7 +1574,7 @@ contains
                     write(61,"(a)") '</Attribute>'
                 end if
 !                !En_S_int
-!                if(Tdomain%out_energy == 1) then
+!                if(Tdomain%out_variables(OUT_TOTAL_ENERGY) == 1) then
 !                    write(61,"(a)") '<Attribute Name="En_S_int" Center="Cell" AttributeType="Scalar">'
 !                    write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="En_S_int" Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne, &
 !                        '">geometry',group,'.h5:/En_S_int'
