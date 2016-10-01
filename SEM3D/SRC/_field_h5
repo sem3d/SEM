@@ -1167,7 +1167,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         integer, dimension(:), allocatable :: nData
 
-        integer, dimension(0:8) :: out_variables
+        integer, dimension(0:9) :: out_variables
         logical :: nl_flag
         integer :: ierr
 

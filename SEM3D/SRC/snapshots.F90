@@ -1022,7 +1022,7 @@ contains
 !
 !        nl_flag = Tdomain%nl_flag==1
 !        !write(*,*) "Inside output_total_energy"
-!        out_variables(0:9) = Tdomain%out_variables(0:9)
+!        out_variables(:) = Tdomain%out_variables(:)
 !        P_en_total = 0d0
 !        S_en_total = 0d0
 !
@@ -1260,7 +1260,7 @@ contains
 
         nl_flag=Tdomain%nl_flag
 
-        out_variables(0:9) = Tdomain%out_variables(0:9)
+        out_variables(:) = Tdomain%out_variables(:)
 
         call create_dir_sorties(Tdomain, isort)
         call compute_saved_elements(Tdomain, irenum, nnodes, nsubelements, domains)
