@@ -95,8 +95,8 @@ subroutine ReceiverPosition(Tdomain)
     enddo
 
     ! Prepare Post-Processing if HDG
-    if(Tdomain%type_elem==GALERKIN_HDG_RP) &
-        call prepare_HDG_postprocess(Tdomain)
+    !if(Tdomain%type_elem==GALERKIN_HDG_RP) &
+    !    call prepare_HDG_postprocess(Tdomain)
 
     ! Prepare to store receiver trace
     i = 0
@@ -143,19 +143,19 @@ subroutine save_trace (Tdomain, it)
             if (Tdomain%type_timeInteg == TIME_INTEG_RK4) &
                 Field = Tdomain%specel(nr)%Veloc
 
-            if (Tdomain%specel(nr)%type_DG==GALERKIN_HDG_RP .and. ir .LE. 2) then
-                mat = Tdomain%specel(nr)%mat_index
-                ngllx = ngllx +1 ; ngllz = ngllz +1
-                call compute_InternalForces_HDG_Weak(Tdomain%specel(nr), &
-                    Tdomain%sSubDomain(mat)%hprimex, Tdomain%sSubDomain(mat)%hTprimez)
-                call get_Vhat_f2el(Tdomain,nr)
-                call Compute_Traces (Tdomain%specel(nr))
-                call inversion_massmat(Tdomain%specel(nr))
-                call postprocess_HDG(Tdomain%specel(nr),Tdomain%sReceiver(ir),Field)
-                call compute_TracFace (Tdomain%specel(nr))
-                Tdomain%specel(nr)%TracFace(:,0) = Tdomain%specel(nr)%TracFace(:,0) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
-                Tdomain%specel(nr)%TracFace(:,1) = Tdomain%specel(nr)%TracFace(:,1) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
-            endif
+            !if (Tdomain%specel(nr)%type_DG==GALERKIN_HDG_RP .and. ir .LE. 2) then
+            !    mat = Tdomain%specel(nr)%mat_index
+            !    ngllx = ngllx +1 ; ngllz = ngllz +1
+            !    call compute_InternalForces_HDG_Weak(Tdomain%specel(nr), &
+            !        Tdomain%sSubDomain(mat)%hprimex, Tdomain%sSubDomain(mat)%hTprimez)
+            !    call get_Vhat_f2el(Tdomain,nr)
+            !    call Compute_Traces (Tdomain%specel(nr))
+            !    call inversion_massmat(Tdomain%specel(nr))
+            !    call postprocess_HDG(Tdomain%specel(nr),Tdomain%sReceiver(ir),Field)
+            !    call compute_TracFace (Tdomain%specel(nr))
+            !    Tdomain%specel(nr)%TracFace(:,0) = Tdomain%specel(nr)%TracFace(:,0) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
+            !    Tdomain%specel(nr)%TracFace(:,1) = Tdomain%specel(nr)%TracFace(:,1) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
+            !endif
 
             do j = 0,ngllz-1
                 do i =0,ngllx -1
