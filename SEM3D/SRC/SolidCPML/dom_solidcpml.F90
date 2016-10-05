@@ -243,13 +243,16 @@ contains
         type(domain_solidpml), intent(inout) :: dom
         !
         integer n, bnum, ee
+        real(fpp) :: fmax
+        integer :: nsrc
 
         ! Handle on node global coords : mandatory to compute distances in the PML (compute_alpha_beta_kappa)
         dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
 
-        ! Handle on materials
+        ! Handle on materials (to get/access pml_pos and pml_width)
         dom%sSubDomain => Tdomain%sSubDomain
 
+        ! Copy material index (caution: dom%mat_index is only a subset of Tdomain%specel)
         do n = 0,Tdomain%n_elem-1
             if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
                 bnum = Tdomain%specel(n)%lnum/VCHUNK
@@ -257,6 +260,24 @@ contains
                 dom%mat_index(ee,bnum) = Tdomain%specel(n)%mat_index
             end if
         end do
+
+        ! Compute alphamax (from fmax)
+
+        ! TODO : compute max of all fmax of all procs: need to speak about that with Ludovic: where ? how ?
+        ! My understanding is that all procs process different elements (PML or not), so all procs are NOT
+        ! here (in init_solidpml_properties) at the same time : broadcast fmax of each proc to all procs and get
+        ! the max could NOT work ?!... Right ? Wrong ? Don't know !...
+        ! TODO : replace all this by fmax from read_input.c
+        if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
+
+        fmax = -1.
+        do nsrc = 0, Tdomain%n_source -1
+            if (fmax < Tdomain%sSource(nsrc)%cutoff_freq) then
+                fmax = Tdomain%sSource(nsrc)%cutoff_freq
+            end if
+        end do
+        if (fmax < 0.) stop "SolidCPML : fmax < 0."
+        dom%alphamax = M_PI * fmax
     end subroutine init_domain_solidpml
 
     subroutine init_material_properties_solidpml(dom, lnum, mat, density, lambda, mu)
@@ -423,26 +444,7 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type (domain_solidpml), intent (INOUT), target :: dom
         !
-        real(fpp) :: fmax
-        integer :: nsrc
-
-        ! Compute alphamax (from fmax)
-
-        ! TODO : compute max of all fmax of all procs: need to speak about that with Ludovic: where ? how ?
-        ! My understanding is that all procs process different elements (PML or not), so all procs are NOT
-        ! here (in init_solidpml_properties) at the same time : broadcast fmax of each proc to all procs and get
-        ! the max could NOT work ?!... Right ? Wrong ? Don't know !...
-        ! TODO : replace all this by fmax from read_input.c
-        if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
-
-        fmax = -1.
-        do nsrc = 0, Tdomain%n_source -1
-            if (fmax < Tdomain%sSource(nsrc)%cutoff_freq) then
-                fmax = Tdomain%sSource(nsrc)%cutoff_freq
-            end if
-        end do
-        if (fmax < 0.) stop "SolidCPML : fmax < 0."
-        dom%alphamax = M_PI * fmax
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine finalize_solidpml_properties
 
     subroutine update_convolution_terms(dom)
