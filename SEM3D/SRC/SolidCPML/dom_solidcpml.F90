@@ -520,13 +520,12 @@ contains
         integer, intent(in) :: lnum, i, j, k
         !
         real(fpp) :: lbd, mu, rho, Pspeed
-        integer :: bnum, ee, mi
+        integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
-        mi = dom%mat_index(ee,bnum)
-        lbd = dom%sSubDomain(mi)%DLambda
-        mu = dom%sSubDomain(mi)%DMu
-        rho = dom%sSubDomain(mi)%DDensity
+        lbd = dom%Lambda_(i,j,k,bnum,ee)
+        mu = dom%Mu_(i,j,k,bnum,ee)
+        rho = dom%Density_(i,j,k,bnum,ee)
         Pspeed = sqrt((lbd+2.*mu)/rho)
     end function solidpml_Pspeed
 end module dom_solidpml
