@@ -48,7 +48,7 @@ module sem_c_config
        integer(C_INT) :: comp_energ
 
        !! Output Variables
-       integer(C_INT), dimension(9) :: out_variables
+       integer(C_INT), dimension(10) :: out_variables
        integer(C_INT) :: nl_flag
 
        !! Protection reprise

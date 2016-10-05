@@ -118,7 +118,7 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src, ngll, GLLc)
     ! point source = moment tensor M (explosion is a special case: M(i,j) = delta _(ij))
 
 end subroutine source_excit_pulse_fluid
-
+! TAG_MOMENT
 subroutine source_excit_moment(src, ngll, GLLc)
     use ssources
     implicit none

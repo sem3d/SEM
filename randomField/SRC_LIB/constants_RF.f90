@@ -28,6 +28,10 @@ module constants_RF
     !Output
     logical :: DIRECT_OUT=.true. !When true output matrix is XYZ, when false the output is ZYX
 
+    !APPLICATION
+    integer, parameter :: NATIVE = 1
+    integer, parameter :: SEM = 2
+
     integer :: TESTRANK = 0 !ONLY FOR TESTS
     character (len=30), parameter :: mesh_input = "mesh_input"
     character (len=30), parameter :: gen_input  = "gen_input"

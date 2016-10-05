@@ -192,7 +192,7 @@ contains
         implicit none
         !
         type(domain_solid), intent(inout)          :: dom
-        integer, intent(in), dimension(0:8)        :: out_variables
+        integer, intent(in), dimension(0:)         :: out_variables
         integer, intent(in)                        :: lnum
         logical, intent(in)                        :: nl_flag
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
@@ -377,24 +377,28 @@ contains
     end subroutine get_solid_dom_var
 
 
-    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, S_energy)
+    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, S_energy, R_energy, C_energy)
         use deriv3d
         implicit none
         !
         type(domain_solid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(out) :: P_energy, S_energy
-        real(fpp), dimension(:,:,:,:), allocatable :: fieldU
+        real(fpp), dimension(:,:,:), allocatable, intent(out) :: P_energy, S_energy, R_energy !R_energy = Residual energy (tend to zero as propagation takes place)
+        real(fpp), dimension(:,:,:), allocatable, intent(out) :: C_energy !Cinetic energy
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV
 
         integer                  :: ngll, i, j, k, ind
-        real(fpp)                :: DXX, DXY, DXZ
-        real(fpp)                :: DYX, DYY, DYZ
-        real(fpp)                :: DZX, DZY, DZZ
-        real(fpp)                :: xmu, xlambda, xkappa
+        !real(fpp)                :: DXX, DXY, DXZ
+        !real(fpp)                :: DYX, DYY, DYZ
+        !real(fpp)                :: DZX, DZY, DZZ
+        real(fpp)                :: xmu, xlambda, xkappa, xdensity
         real(fpp)                :: onemSbeta, onemPbeta
-        real(fpp)                :: elem_energy_P, elem_energy_S
         real(fpp)                :: xeps_vol
-        real, dimension(0:2,0:2) :: invgrad_ijk
+        real(fpp), dimension(0:2,0:2) :: invgrad_ijk
+        real(fpp), dimension(0:2) ::xvel
+        real :: dUx_dx,dUx_dy,dUx_dz,  &
+                dUy_dx,dUy_dy,dUy_dz,  &
+                dUz_dx,dUz_dy,dUz_dz
         !
         integer :: bnum, ee
 
@@ -404,14 +408,43 @@ contains
 
         ngll = dom%ngll
 
+        !Dellocation
+        if(allocated(S_energy)) then
+            if(size(S_energy) /= ngll*ngll*ngll) deallocate(S_energy)
+        end if
+
+        if(allocated(P_energy)) then
+            if(size(P_energy) /= ngll*ngll*ngll) deallocate(P_energy)
+        end if
+
+        if(allocated(R_energy)) then
+            if(size(R_energy) /= ngll*ngll*ngll) deallocate(R_energy)
+        end if
+
+        if(allocated(C_energy)) then
+            if(size(C_energy) /= ngll*ngll*ngll) deallocate(C_energy)
+        end if
+
+        if(allocated(fieldU)) then
+            if(size(fieldU) /= ngll*ngll*ngll) deallocate(fieldU)
+        end if
+
+        if(allocated(fieldV)) then
+            if(size(fieldV) /= ngll*ngll*ngll) deallocate(fieldV)
+        end if
+
+        !Allocation
         if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(R_energy)) allocate(R_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(C_energy)) allocate(C_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         S_energy = -1
         P_energy = -1
         if (dom%aniso) return
 
 
         if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
 
         ! First, get displacement.
         do k=0,ngll-1
@@ -419,6 +452,7 @@ contains
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
+                    fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
                 enddo
             enddo
         enddo
@@ -431,19 +465,22 @@ contains
                     invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
 
                     call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
-                         invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
+                         invgrad_ijk,fieldU(:,:,:,0),dUx_dx,dUx_dy,dUx_dz)
                     call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
-                         invgrad_ijk,fieldU(:,:,:,1),DXY,DYY,DZY)
+                         invgrad_ijk,fieldU(:,:,:,1),dUy_dx,dUy_dy,dUy_dz)
                     call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
-                         invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
+                         invgrad_ijk,fieldU(:,:,:,2),dUz_dx,dUz_dy,dUz_dz)
+
 
                     ! Get other variables.
                     ind = dom%Idom_(i,j,k,bnum,ee)
-                    xeps_vol = DXX + DYY + DZZ
+                    xeps_vol = dUx_dx + dUy_dy + dUz_dz
 
                     xmu     = dom%Mu_    (i,j,k,bnum,ee)
                     xlambda = dom%Lambda_(i,j,k,bnum,ee)
                     xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
+                    xdensity = dom%Density_ (i,j,k,bnum,ee)
+                    xvel     = fieldV(i,j,k,:)
 
                     if (dom%n_sls>0) then
                         onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
@@ -452,18 +489,25 @@ contains
                         xkappa = xkappa * onemPbeta
                     endif
 
-                    P_energy(i,j,k) = .5d0 * xlambda + (2d0 * xmu) * xeps_vol**2d0
-                    S_energy(i,j,k) = xmu/2d0 * (     DXY**2d0 + DYX**2d0 &
-                                                +     DXZ**2d0 + DZX**2d0 &
-                                                +     DYZ**2d0 + DZY**2d0 &
-                                                - 2d0 * DXY * DYX     &
-                                                - 2d0 * DXZ * DZX     &
-                                                - 2d0 * DYZ * DZY )
+                    P_energy(i,j,k) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
+                    S_energy(i,j,k) = xmu/2.0d0 * (                       &
+                                                    (dUz_dy - dUy_dz)**2d0  &
+                                                  + (dUx_dz - dUz_dx)**2d0  &
+                                                  + (dUy_dx - dUx_dy)**2d0  &
+                                                  )
+                    R_energy(i,j,k) = 2.0d0*xmu*(dUx_dy*dUy_dx + dUx_dz*dUz_dx + dUy_dz*dUz_dy) &
+                                     -2.0d0*xmu*(dUx_dx*dUy_dy + dUx_dx*dUz_dz + dUy_dy*dUz_dz)
+
+                    C_energy(i,j,k) = 0.5d0*xdensity*(xvel(0)**2.0d0 + xvel(1)**2.0d0 + xvel(2)**2.0d0)
+
+                    !PAPER: The Energy Partitioning and the Diffusive Character of the Seismic Coda, Shapiro et al, 2000
+
                 enddo
             enddo
         enddo
 
         if(allocated(fieldU)) deallocate(fieldU)
+        if(allocated(fieldV)) deallocate(fieldV)
 
     end subroutine get_solid_dom_elem_energy
 
@@ -573,19 +617,36 @@ contains
         n_solid = dom%n_sls
         aniso   = dom%aniso
         ngll    = dom%ngll
-
-        do i_dir = 0,2
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-                        do ee = 0, VCHUNK-1
-                            idx = dom%Idom_(i,j,k,bnum,ee)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+        
+        if (nl_flag) then
+            ! PLASTIC CASE: VELOCITY PREDICTION
+            do i_dir = 0,2
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            do ee = 0, VCHUNK-1
+                                idx = dom%Idom_(i,j,k,bnum,ee)
+                                Depla(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
+                            enddo
                         enddo
                     enddo
                 enddo
             enddo
-        enddo
+        else
+            ! ELASTIC CASE: DISPLACEMENT PREDICTION
+            do i_dir = 0,2
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            do ee = 0, VCHUNK-1
+                                idx = dom%Idom_(i,j,k,bnum,ee)
+                                Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+            enddo
+        endif
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0

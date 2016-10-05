@@ -112,6 +112,7 @@ Le fichier suivant correspond à celui d'un cas test : ::
     acc  = 0 ;
     edev = 0 ;
     sdev = 0 ;
+    eTotal = 0;
   };
 
 
@@ -509,5 +510,6 @@ vel               bool     1                  vecteur des vitesses
 acc               bool     0                  vecteur des accélérations
 edev              bool     0                  tenseur des déformations déviatoriques
 sdev              bool     0                  tenseur des contraintes déviatoriques
+eTotal            bool     0                  energies de l'ensemble des domaines (sauf PML). Energie P, Energie S, Residu PS, Energie Cinetique, Somme des Energies
 ================  =======  =================  =================================================================
 

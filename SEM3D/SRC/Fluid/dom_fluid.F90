@@ -94,7 +94,7 @@ contains
         !
         type(domain)                               :: TDomain
         type(domain_fluid), intent(inout)          :: dom
-        integer, dimension(0:8), intent(in)        :: out_variables
+        integer, dimension(0:), intent(in)         :: out_variables
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable   :: phi
         real(fpp), dimension(:,:,:), allocatable   :: vphi
@@ -173,7 +173,7 @@ contains
 
         if (out_variables(OUT_ENERGYP) == 1) then
             if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-            P_energy(:,:,:) = 0.
+            P_energy(:,:,:) = 0. !TODO
         end if
 
         if (out_variables(OUT_ENERGYS) == 1) then
@@ -193,6 +193,40 @@ contains
         if(allocated(phi))  deallocate(phi)
         if(allocated(vphi)) deallocate(vphi)
     end subroutine get_fluid_dom_var
+
+
+    subroutine get_fluid_dom_elem_energy(dom, lnum, P_energy, S_energy)
+        use deriv3d
+        implicit none
+        !
+        type(domain_fluid), intent(inout)          :: dom
+        integer, intent(in)                        :: lnum
+        real(fpp), dimension(:,:,:), allocatable, intent(out) :: P_energy, S_energy
+
+        integer                  :: ngll, i, j, k, ind
+        real(fpp)                :: DXX, DXY, DXZ
+        real(fpp)                :: DYX, DYY, DYZ
+        real(fpp)                :: DZX, DZY, DZZ
+        real(fpp)                :: xmu, xlambda, xkappa
+        real(fpp)                :: onemSbeta, onemPbeta
+        real(fpp)                :: elem_energy_P, elem_energy_S
+        real(fpp)                :: xeps_vol
+        real, dimension(0:2,0:2) :: invgrad_ijk
+        !
+        integer :: bnum, ee
+
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+
+
+        ngll = dom%ngll
+
+        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        S_energy = 0.0d0
+        P_energy = 0.0d0 !TODO
+
+    end subroutine get_fluid_dom_elem_energy
 
     subroutine init_material_properties_fluid(dom, lnum, mat, density, lambda)
         type(domain_fluid), intent(inout) :: dom

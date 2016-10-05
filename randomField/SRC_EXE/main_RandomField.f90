@@ -15,7 +15,7 @@ program main_RandomField
     use type_inputRF
     use calls_RF
     use sample_RF
-    
+
     implicit none
 
     !INPUTS
@@ -78,7 +78,7 @@ program main_RandomField
     !Reading Main---------------------------------------------------
     if(IPT_Temp%rang == 0) write(*,*)  "     -> Reading Main Input"
     call wLog("     -> Reading Main Input")
-    call read_main_input("./RF_main_input", IPT_Temp)
+    call read_main_input(IPT_Temp)
 
     if(IPT_Temp%sameFolder) then
         do i =1, IPT_Temp%nSamples
@@ -89,11 +89,11 @@ program main_RandomField
 
     call MPI_BARRIER(IPT_Temp%comm, code)
 
-    if(IPT_Temp%application /= 1) then
+    if(IPT_Temp%application /= NATIVE) then
         if(IPT_Temp%rang == 0) write(*,*)  "     SEM generation"
-        call read_main_input("./TEMP_RF_main_input", IPT_Temp)
+        call read_main_input(IPT_Temp, auto=.true.)
         call MPI_BARRIER(IPT_Temp%comm, code)
-        if(IPT_Temp%rang == 0) call system("mv TEMP_RF_main_input "//IPT_Temp%appFolder)
+        if(IPT_Temp%rang == 0) call system("mv RF_main_input "//IPT_Temp%appFolder)
     end if
 
     !Initial allocation---------------------------------------------

@@ -118,7 +118,7 @@ contains
         implicit none
         !
         type(domain_solidpml)                      :: dom
-        integer, dimension(0:8)                    :: out_variables
+        integer, dimension(0:), intent(in)         :: out_variables
         integer                                    :: lnum
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP

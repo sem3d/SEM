@@ -548,11 +548,12 @@ contains
         do i = 1, lineCount
             read(fid, fmt="(A)",IOSTAT = stat) nextLine
             nextLine = adjustL(nextLine)
+            !print*, "nextLine = ", trim(nextLine)
             if(stat /= 0) then
                 nextLine = " "
                 exit
             else if(nextLine(1:1) /= comment_Tag) then
-                !write(*,*) "nextLine = ", nextLine
+                !write(*,*) "nextLine = ", trim(nextLine)
                 exit
             end if
         end do

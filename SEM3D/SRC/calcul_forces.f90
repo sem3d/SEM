@@ -206,7 +206,7 @@ end subroutine calcul_forces_el
 
 !
 
-subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poidsy, poidsz, &
+subroutine calcul_forces_nl_old(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poidsy, poidsz, &
     DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,eps0,mu_,la_, ngllx, nglly, ngllz, &
     EpsPl_ij_N_el, Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el, &
     sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el)
@@ -260,37 +260,8 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 xmu = mu_(i,j,k)
                 xla = la_(i,j,k)
                 xla2mu = xla + 2. * xmu
-
-                ! ELASTIC PREDICTION (STRESS INCREMENT ON SINGLE NODE) 
-                dEpsilon_ij_alpha(0:5)=(/DXX(i,j,k),DYY(i,j,k),DZZ(i,j,k),&
-                    DXY(i,j,k)+DYX(i,j,k),DXZ(i,j,k)+DZX(i,j,k),DYZ(i,j,k)+DZY(i,j,k)/)
-                dEpsilon_ij_alpha(0:5) = dEpsilon_ij_alpha(0:5) - eps0(0:5,i,j,k)
                 
-                eps0(0:5,i,j,k)=(/DXX(i,j,k),DYY(i,j,k),DZZ(i,j,k),&
-                    DXY(i,j,k)+DYX(i,j,k),DXZ(i,j,k)+DZX(i,j,k),DYZ(i,j,k)+DZY(i,j,k)/)
-                
-                sxx = xla2mu*dEpsilon_ij_alpha(0)+xla*sum(dEpsilon_ij_alpha(1:2))
-                syy = xla2mu*dEpsilon_ij_alpha(1)+xla*(dEpsilon_ij_alpha(0)+dEpsilon_ij_alpha(2))
-                szz = xla2mu*dEpsilon_ij_alpha(2)+xla*sum(dEpsilon_ij_alpha(0:1))
-                sxy = xmu*dEpsilon_ij_alpha(3)
-                sxz = xmu*dEpsilon_ij_alpha(4)
-                syz = xmu*dEpsilon_ij_alpha(5)
-                
-!                sxx = xla2mu*(DXX(i,j,k)-eps0(0,i,j,k))+xla*(DYY(i,j,k)+DZZ(i,j,k)-eps0(1,i,j,k)-eps0(2,i,j,k))
-!                !---
-!                sxy = xmu*(DXY(i,j,k)+DYX(i,j,k)-eps0(3,i,j,k))
-!                !---
-!                sxz = xmu*(DXZ(i,j,k)+DZX(i,j,k)-eps0(4,i,j,k))
-!                !---
-!                syy = xla2mu*(DYY(i,j,k)-eps0(1,i,j,k))+xla*(DXX(i,j,k)+DZZ(i,j,k)-eps0(0,i,j,k)-eps0(2,i,j,k))
-!                !---
-!                syz = xmu*(DYZ(i,j,k)+DZY(i,j,k)-eps0(5,i,j,k))
-!                !---
-!                szz = xla2mu*(DZZ(i,j,k)-eps0(2,i,j,k))+xla*(DXX(i,j,k)+DYY(i,j,k)-eps0(0,i,j,k)-eps0(1,i,j,k))
-!                !---
-!                !
-                ! CHECK PLASTICITY (ON TRIAL STRESS)
-                !
+                ! CURRENT VARIABLES 
                 Xkin_ij_N   = Xkin_ij_N_el(0:5,i,j,k)
                 Riso_N      = Riso_N_el(i,j,k)
                 b_iso       = b_iso_el(i,j,k)
@@ -298,25 +269,45 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 kapa_kin    = kapa_kin_el(i,j,k)
                 Rinf_iso    = Rinf_iso_el(i,j,k)
                 sigma_yld   = sigma_yld_el(i,j,k)
-
                 Sigma_ij_start      = Sigma_ij_N_el(0:5,i,j,k)
-                Xkin_ij_start       = Xkin_ij_N_el(0:5,i,j,k) 
                 dEpsilon_ij_pl(0:5) = EpsPl_ij_N_el(0:5,i,j,k)
+
+                ! TOTAL STRAIN INCREMENT ON SINGLE NODE
+                dEpsilon_ij_alpha(0:5)=(/DXX(i,j,k),DYY(i,j,k),DZZ(i,j,k),&
+                    DXY(i,j,k)+DYX(i,j,k),DXZ(i,j,k)+DZX(i,j,k),DYZ(i,j,k)+DZY(i,j,k)/)
                 
+                ! epsilon_{n+1} = epsilon_{n} + dt*grad(v_{n+1}^{pred})
+                dEpsilon_ij_alpha(0:5) = dtime*dEpsilon_ij_alpha(0:5) 
+
+                ! UPDATE STRAIN ON SINGLE NODE
+                eps0(0:5,i,j,k) = eps0(0:5,i,j,k) + dEpsilon_ij_alpha(0:5) 
+                
+!                ! epsilon_{n+1} = epsilon_{n} + grad(u_{n+1}^{pred})
+!                dEpsilon_ij_alpha(0:5) = dEpsilon_ij_alpha(0:5) - eps0(0:5,i,j,k)
+
+!                ! UPDATE STRAIN ON SINGLE NODE
+!                eps0(0:5,i,j,k)=(/DXX(i,j,k),DYY(i,j,k),DZZ(i,j,k),&
+!                    DXY(i,j,k)+DYX(i,j,k),DXZ(i,j,k)+DZX(i,j,k),DYZ(i,j,k)+DZY(i,j,k)/)
+                
+                ! TRIAL STRESS INCREMENT
+                ! dsigma_{n+1}^{trial} = DEL*depsilon_{n+1} 
+                sxx = xla2mu*dEpsilon_ij_alpha(0) + xla*sum(dEpsilon_ij_alpha(1:2))
+                syy = xla2mu*dEpsilon_ij_alpha(1) + xla*(dEpsilon_ij_alpha(0)+dEpsilon_ij_alpha(2))
+                szz = xla2mu*dEpsilon_ij_alpha(2) + xla*sum(dEpsilon_ij_alpha(0:1))
+                sxy = xmu*dEpsilon_ij_alpha(3)
+                sxz = xmu*dEpsilon_ij_alpha(4)
+                syz = xmu*dEpsilon_ij_alpha(5)
                 Sigma_ij_trial = (/sxx,syy,szz,sxy,sxz,syz/) ! trial stress increment
                 
-                
+                ! CHECK PLASTICITY (ON TRIAL STRESS)
                 call check_plasticity(Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
                     sigma_yld,st_epl,alpha_elp)
                                        
                 ! PLASTIC CORRECTION
                 if (st_epl) then
-                       
                     dEpsilon_ij_alpha(0:5)=(1-alpha_elp)*dEpsilon_ij_alpha(0:5)
-                   
                     call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
                         Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl)
-                
                 end if
                 
                 sxx = Sigma_ij_trial(0)
@@ -469,7 +460,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
     enddo
     !=-=-=-=-=-=-=-=-=-=-
 
-end subroutine calcul_forces_nl
+end subroutine calcul_forces_nl_old
 
 !! Local Variables:
 !! mode: f90

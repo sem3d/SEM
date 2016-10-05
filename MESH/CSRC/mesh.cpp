@@ -242,6 +242,7 @@ void Mesh3D::write_materials_v2(const std::string& str)
 {
     FILE* f = fopen(str.c_str(), "w");
     int nmats = m_materials.size();
+
     fprintf(f, "%d\n", nmats);
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
@@ -250,43 +251,29 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.Pspeed, mat.Sspeed, mat.rho,
                 mat.m_ngll,
                 mat.Qpression, mat.Qmu);
+
+        if (mat.is_pml()) {
+        	m_bbox[k].set_assocMat(mat.associated_material);
+        }
+        else {
+        	m_bbox[k].set_assocMat(k);
+        }
     }
 
     fprintf(f, "# PML properties\n");
     fprintf(f, "# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat\n");
+
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
+
         if (!mat.is_pml()) continue;
         fprintf(f, "2 10. %lf %lf %lf %lf %lf %lf %d\n",
                 mat.xpos, mat.xwidth,
                 mat.ypos, mat.ywidth,
                 mat.zpos, mat.zwidth, mat.associated_material);
-    }
-    fprintf(f,"# Random properties\n");
-    fprintf(f,"# Parametrization Choice (0 for Kappa, 1 for Lambda)\n");
-    fprintf(f,"# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
-    fprintf(f,"# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
-    fprintf(f,"# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
-
-    for(int k=0;k<nmats;++k) {
-        const Material& mat = m_materials[k];
-        if (strcmp(&mat.cinitial_type,"R") != 0) continue;
-
-        fprintf(f, "%d\n", mat.m_lambdaSwitch);
-
-        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
-                mat.m_corrMod_0, mat.m_corrL_x_0, mat.m_corrL_y_0, mat.m_corrL_z_0,
-                mat.m_margiF_0, mat.m_CV_0, mat.m_seedStart_0);
-
-        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
-                mat.m_corrMod_1, mat.m_corrL_x_1, mat.m_corrL_y_1, mat.m_corrL_z_1,
-                mat.m_margiF_1, mat.m_CV_1, mat.m_seedStart_1);
-
-        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
-                mat.m_corrMod_2, mat.m_corrL_x_2, mat.m_corrL_y_2, mat.m_corrL_z_2,
-                mat.m_margiF_2, mat.m_CV_2, mat.m_seedStart_2);
 
     }
+
 }
 
 void Mesh3D::read_mesh_file(const std::string& fname)
@@ -523,13 +510,14 @@ void Mesh3D::save_bbox()
     map<int,AABB>::const_iterator bbox;
     for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
         //fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
-        fprintf(fbbox, "%3d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f\n", bbox->first,
+        fprintf(fbbox, "%6d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f %6d\n", bbox->first,
                 bbox->second.min[0],
                 bbox->second.min[1],
                 bbox->second.min[2],
                 bbox->second.max[0],
                 bbox->second.max[1],
-                bbox->second.max[2]);
+                bbox->second.max[2],
+                bbox->second.assocMat);
     }
 }
 

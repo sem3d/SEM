@@ -55,6 +55,11 @@ public:
             min[0]=vmin[0];min[1]=vmin[1];min[2]=vmin[2];
         }
 
+    void set_assocMat(const int mat_in)
+    	{
+    		assocMat = mat_in;
+    	}
+
     double xmax() const { return max[0]; }
     double ymax() const { return max[1]; }
     double zmax() const { return max[2]; }
@@ -79,6 +84,7 @@ public:
         }
     Vec3 max;
     Vec3 min;
+    int assocMat;
 };
 
 #endif

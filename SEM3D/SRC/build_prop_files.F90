@@ -113,9 +113,9 @@ contains
         ! i1 plus petit entier tel que x(i1)>MaxBound_loc(0), etc... 
         
         
-        print *, " pf%NN       = ", pf%NN
-        print *, " pf%MinBound = ", pf%MinBound
-        print *, " pf%MaxBound = ", pf%MaxBound
+        !print *, " pf%NN       = ", pf%NN
+        !print *, " pf%MinBound = ", pf%MinBound
+        !print *, " pf%MaxBound = ", pf%MaxBound
 
         do k = 0,2
             pf%imin(k) = gindex(mat%MinBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
@@ -125,8 +125,8 @@ contains
             if (pf%imax(k)>=pf%NN(k)) pf%imax(k) = pf%NN(k)-1
         end do
         
-        print *, " pf%imin = ", pf%imin 
-        print *, " pf%imax = ", pf%imax
+        !print *, " pf%imin = ", pf%imin
+        !print *, " pf%imax = ", pf%imax
 
 
         call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
