@@ -320,7 +320,11 @@ contains
         if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then
             dxi = dom%c(xyz)*d0*(xi/dom%sSubDomain(mi)%pml_width(xyz))**dom%n(xyz)
         end if
-        beta(xyz) = alpha(xyz) + dxi / kappa(xyz) ! beta*: (11) from Ref1
+        if (abs(kappa(xyz)) > solidcpml_eps) then
+            beta(xyz) = alpha(xyz) + dxi / kappa(xyz) ! beta*: (11) from Ref1
+        else
+            beta(xyz) = alpha(xyz)                    ! beta*: (11) from Ref1
+        end if
     end subroutine compute_alpha_beta_kappa
 
     ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
