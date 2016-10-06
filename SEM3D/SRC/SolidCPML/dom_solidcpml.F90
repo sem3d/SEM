@@ -115,6 +115,8 @@ contains
         if(allocated(dom%R1)) deallocate(dom%R1)
         if(allocated(dom%R2)) deallocate(dom%R2)
         if(allocated(dom%R3)) deallocate(dom%R3)
+
+        if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
