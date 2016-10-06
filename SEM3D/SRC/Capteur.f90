@@ -293,11 +293,8 @@ contains
         call semname_tracefile_h5(Tdomain%rank, fnamef)
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
-        if (Tdomain%nl_flag)then
-            call create_capteur_descriptions_nl(Tdomain, fid)
-        else
-            call create_capteur_descriptions(Tdomain, fid)
-        endif
+        call create_capteur_descriptions(Tdomain, fid)
+
         capteur=>listeCapteur
         do while (associated(capteur))
             dname = dset_capteur_name(capteur)
@@ -344,63 +341,6 @@ contains
         call H5Sclose_f(spaceid, hdferr)
         call H5Tclose_f(tid, hdferr)
     end subroutine create_capteur_descriptions
-
-    ! Creates a string dataset describing each columns of the trace file
-    subroutine create_capteur_descriptions_nl(Tdomain, fid)
-        use HDF5
-        use constants, only : OUT_VAR_NAMES_NL, OUT_VAR_DIMS_3D_NL
-        type (domain), intent(inout) :: TDomain
-        integer(HID_T), intent(in) :: fid
-        !
-        integer(HID_T) :: tid, dsetid, spaceid
-        integer :: hdferr
-        character(len=12), dimension(0:32) :: varnames;
-        character(len=12) :: temp
-        integer :: d,k,dim
-        integer(HSIZE_T), dimension(1) :: dims
-        varnames(0) = "Time"
-        d = 1
-        ! before strain tensor
-        do k=0,6
-            if (Tdomain%out_variables(k)==1) then
-                do dim=1,OUT_VAR_DIMS_3D_NL(k)
-                    write(temp,"(A,I2)") OUT_VAR_NAMES_NL(k),dim
-                    varnames(d) = temp
-                    d = d+1
-                end do
-            end if
-        end do
-        ! strain and plastic strain tensor 
-        if (Tdomain%out_variables(7)==1) then
-            do dim=1,OUT_VAR_DIMS_3D_NL(7)
-                write(temp,"(A,I2)") OUT_VAR_NAMES_NL(7),dim
-                varnames(d) = temp
-                d = d+1
-            end do
-            do dim=1,OUT_VAR_DIMS_3D_NL(8)
-                write(temp,"(A,I2)") OUT_VAR_NAMES_NL(8),dim
-                varnames(d) = temp
-                d = d+1
-            end do
-        end if
-        ! stress tensor
-        if (Tdomain%out_variables(8)==1) then
-            do dim=1,OUT_VAR_DIMS_3D_NL(9)
-                write(temp,"(A,I2)") OUT_VAR_NAMES_NL(9),dim
-                varnames(d) = temp
-                d = d+1
-            end do
-        end if
-        dims(1) = d
-        call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
-        call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
-        call H5Screate_simple_f(1, dims, spaceid, hdferr)
-        call H5Dcreate_f(fid, "Variables", tid, spaceid, dsetid, hdferr)
-        call H5Dwrite_f(dsetid, tid, varnames, dims, hdferr, spaceid, spaceid)
-        call H5Dclose_f(dsetid, hdferr)
-        call H5Sclose_f(spaceid, hdferr)
-        call H5Tclose_f(tid, hdferr)
-    end subroutine create_capteur_descriptions_nl
     
     subroutine append_traces_h5(Tdomain)
         implicit none
@@ -510,7 +450,7 @@ contains
         real(fpp)                                  :: weight
         real(fpp), dimension(:), allocatable       :: outx, outy, outz
         real(fpp), dimension(:), allocatable       :: grandeur
-        integer, dimension(0:9)                    :: out_variables, offset
+        integer, dimension(0:size(Tdomain%out_variables)-1):: out_variables, offset
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
@@ -519,6 +459,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real, dimension(:), allocatable :: GLLc
         logical :: nl_flag
+        integer :: nComp
 
         ! Verification : le capteur est il gere par le proc. ?
 
@@ -546,15 +487,12 @@ contains
         allocate(grandeur(0:Tdomain%nReqOut-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
         
-        out_variables(0:9) = Tdomain%out_variables(0:9)
+        out_variables(:) = Tdomain%out_variables(:)
         nl_flag = Tdomain%nl_flag
         offset = 0
         do i = 0,size(out_variables)-2
             if (out_variables(i) == 1) then
                 offset(i+1) = offset(i) + OUT_VAR_DIMS_3D(i)
-                if (nl_flag.and.i==OUT_EPS_DEV) then
-                    offset(i+1)=offset(i+1)+OUT_VAR_DIMS_3D(i)
-                end if
             else
                 offset(i+1) = offset(i)
             end if
@@ -589,54 +527,66 @@ contains
 
                     if (out_variables(OUT_DEPLA) == 1 .AND. allocated(fieldU)) then
                         ioff = offset(OUT_DEPLA)
-                        grandeur(ioff:ioff+2) &
-                            = grandeur(ioff:ioff+2) + weight*fieldU(i,j,k,:)
+                        nComp = OUT_VAR_DIMS_3D(OUT_DEPLA)-1
+                        grandeur(ioff:ioff+nComp) &
+                            = grandeur(ioff:ioff+nComp) + weight*fieldU(i,j,k,:)
                     end if
 
                     if (out_variables(OUT_VITESSE) == 1 .AND. allocated(fieldV)) then
                         ioff = offset(OUT_VITESSE)
-                        grandeur(ioff:ioff+2) &
-                            = grandeur(ioff:ioff+2) + weight*fieldV(i,j,k,:)
+                        nComp = OUT_VAR_DIMS_3D(OUT_VITESSE)-1
+                        grandeur(ioff:ioff+nComp) &
+                            = grandeur(ioff:ioff+nComp) + weight*fieldV(i,j,k,:)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1 .AND. allocated(fieldA)) then
                         ioff = offset(OUT_ACCEL)
-                        grandeur(ioff:ioff+2) &
-                            = grandeur(ioff:ioff+2) + weight*fieldA(i,j,k,:)
+                        nComp = OUT_VAR_DIMS_3D(OUT_ACCEL)-1
+                        grandeur(ioff:ioff+nComp) &
+                            = grandeur(ioff:ioff+nComp) + weight*fieldA(i,j,k,:)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1 .AND. allocated(fieldP)) then
-                        grandeur(offset(OUT_PRESSION)) &
-                            = grandeur(offset(OUT_PRESSION)) + weight*fieldP(i,j,k)
+                        ioff = offset(OUT_PRESSION)
+                        nComp = OUT_VAR_DIMS_3D(OUT_PRESSION)-1
+                        grandeur(ioff+nComp) &
+                            = grandeur(ioff+nComp) + weight*fieldP(i,j,k)
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
-                        grandeur (offset(OUT_ENERGYP)) = grandeur (offset(OUT_ENERGYP)) + weight*P_energy(i,j,k)
+                        ioff = offset(OUT_ENERGYP)
+                        nComp = OUT_VAR_DIMS_3D(OUT_ENERGYP)-1
+                        grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*P_energy(i,j,k)
                     end if
 
                     if (out_variables(OUT_ENERGYS) == 1) then
-                        grandeur (offset(OUT_ENERGYS)) = grandeur (offset(OUT_ENERGYS)) + weight*S_energy(i,j,k)
+                        ioff = offset(OUT_ENERGYS)
+                        nComp = OUT_VAR_DIMS_3D(OUT_ENERGYS)-1
+                        grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*S_energy(i,j,k)
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then
-                        grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol(i,j,k)
+                        ioff = offset(OUT_EPS_VOL)
+                        nComp = OUT_VAR_DIMS_3D(OUT_EPS_VOL)-1
+                        grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*eps_vol(i,j,k)
                     end if
                      
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         ioff = offset(OUT_EPS_DEV)
-                        grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
-                        + (/weight*eps_dev(i,j,k,0), weight*eps_dev(i,j,k,1), weight*eps_dev(i,j,k,2), &
-                            weight*eps_dev(i,j,k,3), weight*eps_dev(i,j,k,4), weight*eps_dev(i,j,k,5)/)
-                        
-                        if (nl_flag) then
-                            ioff=ioff+6
-                            grandeur (ioff:ioff+5) = grandeur(ioff:ioff+5)+weight*eps_dev_pl(i,j,k,:)
-                        end if
+                        nComp = OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1
+                        grandeur (ioff:ioff+nComp) = grandeur(ioff:ioff+nComp)+weight*eps_dev(i,j,k,:)
+                    end if
+
+                    if (out_variables(OUT_EPS_DEV_PL) == 1) then
+                        ioff=offset(OUT_EPS_DEV_PL)
+                        nComp = OUT_VAR_DIMS_3D(OUT_EPS_DEV_PL)-1
+                        grandeur (ioff:ioff+nComp) = grandeur(ioff:ioff+nComp)+weight*eps_dev_pl(i,j,k,:)
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
                         ioff = offset(OUT_STRESS_DEV)
-                        grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
+                        nComp = OUT_VAR_DIMS_3D(OUT_STRESS_DEV)-1
+                        grandeur (ioff:ioff+nComp) = grandeur (ioff:ioff+nComp) &
                         + (/weight*sig_dev(i,j,k,0), weight*sig_dev(i,j,k,1), weight*sig_dev(i,j,k,2), &
                             weight*sig_dev(i,j,k,3), weight*sig_dev(i,j,k,4), weight*sig_dev(i,j,k,5)/)
                     end if

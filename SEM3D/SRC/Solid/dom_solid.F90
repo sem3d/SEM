@@ -329,18 +329,13 @@ contains
                                                           - 2 * DYZ * DZY )
                         end if
                     end if
+
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
                         eps_dev(i,j,k,0:5) = zero
                         if (nl_flag) then
-                            if(.not. allocated(eps_dev_pl)) allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
                             eps_dev(i,j,k,:)   = dom%strain_(:,i,j,k,bnum,ee)
-                            eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-&
-                                sum(eps_dev(i,j,k,0:2))*M_1_3
-                            eps_dev_pl(i,j,k,0:5) = zero
-                            eps_dev_pl(i,j,k,:)   = dom%plstrain_(:,i,j,k,bnum,ee)
-                            eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-&
-                                sum(eps_dev_pl(i,j,k,0:2))*M_1_3
+                            eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-sum(eps_dev(i,j,k,0:2))*M_1_3
                         else
                             eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) * M_1_3
                             eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) * M_1_3
@@ -349,6 +344,15 @@ contains
                             eps_dev(i,j,k,4) = half * (DZX + DXZ)
                             eps_dev(i,j,k,5) = half * (DZY + DYZ)
                         endif
+                    endif
+
+                    if (out_variables(OUT_EPS_DEV_PL) == 1) then
+                        if(.not. allocated(eps_dev_pl)) allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+                        eps_dev_pl(i,j,k,0:5) = zero
+                        if (nl_flag) then
+                            eps_dev_pl(i,j,k,:)   = dom%plstrain_(:,i,j,k,bnum,ee)
+                            eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-sum(eps_dev_pl(i,j,k,0:2))*M_1_3
+                        endif
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
@@ -356,9 +360,8 @@ contains
                         sig_dev(i,j,k,0:5) = zero
                         if (.not. dom%aniso) then
                             if (nl_flag) then
-                                sig_dev(i,j,k,:) = dom%stress_(:,i,j,k,bnum,ee)
-                                sig_dev(i,j,k,0:2) = sig_dev(i,j,k,0:2) - &
-                                    sum(sig_dev(i,j,k,0:2))*M_1_3
+                                sig_dev(i,j,k,:)   = dom%stress_(:,i,j,k,bnum,ee)
+                                sig_dev(i,j,k,0:2) = sig_dev(i,j,k,0:2) - sum(sig_dev(i,j,k,0:2))*M_1_3
                             else
                                 sig_dev(i,j,k,0) = x2mu * (DXX - eps_vol(i,j,k) * M_1_3)
                                 sig_dev(i,j,k,1) = x2mu * (DYY - eps_vol(i,j,k) * M_1_3)
@@ -368,7 +371,6 @@ contains
                                 sig_dev(i,j,k,5) = xmu * (DYZ + DZY)
                             endif
                         end if
-
                     end if
                 enddo
             enddo

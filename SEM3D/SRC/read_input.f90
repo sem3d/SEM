@@ -374,16 +374,12 @@ contains
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
-        Tdomain%out_variables(0:9)=Tdomain%config%out_variables
+        Tdomain%out_variables(:)=Tdomain%config%out_variables
 
         Tdomain%nReqOut = 0
         do i = 0, size(Tdomain%out_variables)-1
             Tdomain%nReqOut = Tdomain%nReqOut + Tdomain%out_variables(i)*OUT_VAR_DIMS_3D(i)
         end do
-
-        if (Tdomain%nl_flag .and. Tdomain%out_variables(OUT_EPS_DEV)==1) then
-             Tdomain%nReqOut=Tdomain%nReqOut+6
-        endif 
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)

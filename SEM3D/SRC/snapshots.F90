@@ -237,7 +237,7 @@ contains
                 call h5dclose_f(dset_id, hdferr)
             end if
 
-            if (Tdomain%nl_flag) then
+            if (out_variables(OUT_EPS_DEV_PL) == 1) then
                 ! EPS_DEV_PL_XX
                 call MPI_Gatherv(outputs%eps_dev_pl(0,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
@@ -1071,7 +1071,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable :: jac
         real(fpp) :: integral_value
 
-        integer, dimension(0:9) :: out_variables
+        integer, dimension(0:size(Tdomain%out_variables)-1) :: out_variables
         logical :: nl_flag
         integer :: ierr
         integer :: count_press,count_eps_vol,count_P_energy,count_S_energy
