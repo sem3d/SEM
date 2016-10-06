@@ -42,7 +42,7 @@ module champs_solidpml
         integer, dimension(:,:), allocatable :: mat_index
 
         ! Copy of node global coords : mandatory to compute distances in the PML
-        real(fpp), pointer :: GlobCoord(:,:)
+        real(fpp), allocatable, dimension(:,:) :: GlobCoord
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 

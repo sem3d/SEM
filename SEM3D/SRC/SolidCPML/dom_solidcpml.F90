@@ -245,9 +245,22 @@ contains
         integer n, bnum, ee
         real(fpp) :: fmax
         integer :: nsrc
-
+        integer :: i,j,k, indL, indG
         ! Handle on node global coords : mandatory to compute distances in the PML (compute_alpha_beta_kappa)
-        dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
+        ! TODO precompute usefull coeffs instead of copying coords...
+        allocate(dom%GlobCoord(0:2,dom%nglltot))
+        do n=0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
+            do k = 0,dom%ngll-1
+                do j = 0,dom%ngll-1
+                    do i = 0,dom%ngll-1
+                        indG = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        indL = Tdomain%specel(n)%Idom(i,j,k)
+                        dom%GlobCoord(:,indL) = Tdomain%GlobCoord(:,indG)
+                    end do
+                end do
+            end do
+        end do
 
         ! Handle on materials (to get/access pml_pos and pml_width)
         dom%sSubDomain => Tdomain%sSubDomain
