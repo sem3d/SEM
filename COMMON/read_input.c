@@ -260,13 +260,13 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
     tok = skip_blank(scanner);
     if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
     do {
-	tok = skip_blank(scanner);
-	if (tok!=K_ID) break;
+        tok = skip_blank(scanner);
+        if (tok!=K_ID) break;
 
 	// TODO
 	if (cmp(scanner,"pml_type")) err=expect_eq_keyword(scanner, kw_pml_type, &config->pml_type);
 
-	if (!expect_eos(scanner)) { return 0; }
+        if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
     return 1;
