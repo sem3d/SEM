@@ -177,6 +177,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &(config->out_variables[7]),1);
         else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
         else if (cmp(scanner,"eTotal")) err=expect_eq_int(scanner, &(config->out_variables[9]),1);
+        else if (cmp(scanner,"edevpl")) err=expect_eq_int(scanner, &(config->out_variables[10]),1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -650,7 +651,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"mat_file")) err=expect_eq_string(scanner, &config->mat_file,1);
 	else if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
 	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
-	else if (cmp(scanner,"nonlinear")) err=expect_eq_bool(scanner, &config->nl_flag,1);
+	else if (cmp(scanner,"nonlinear")) err=expect_eq_int(scanner, &config->nl_flag,1);
     else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
 	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
@@ -674,6 +675,9 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
+    //printf("parse_input_spec Scanner : %s\n",scanner);
+    config->nl_flag = 0; //HOTFIX, still to do
+    //printf("parse_input_spec Nonlinear analysis : %d\n",&config->nl_flag);
 
 	if (err==0) { printf("ERR01\n"); return 0;}
 	if (!expect_eos(scanner)) { return 0; }
@@ -692,17 +696,20 @@ void init_sem_config(sem_config_t* cfg)
     cfg->material_type = 1;
     cfg->stations = NULL;
 
-    cfg->out_variables[0] = 0; // Energy P
-    cfg->out_variables[1] = 0; // Energy S
-    cfg->out_variables[2] = 0; // Eps vol
-    cfg->out_variables[3] = 1; // Deplacement
-    cfg->out_variables[4] = 1; // Vitesse
-    cfg->out_variables[5] = 1; // Accel
-    cfg->out_variables[6] = 1; // Pression
-    cfg->out_variables[7] = 0; // Deformation Dev
-    cfg->out_variables[8] = 0; // Contrainte Dev
-    cfg->out_variables[9] = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
+    cfg->out_variables[0]  = 0; // Energy P
+    cfg->out_variables[1]  = 0; // Energy S
+    cfg->out_variables[2]  = 0; // Eps vol
+    cfg->out_variables[3]  = 1; // Deplacement
+    cfg->out_variables[4]  = 1; // Vitesse
+    cfg->out_variables[5]  = 1; // Accel
+    cfg->out_variables[6]  = 1; // Pression
+    cfg->out_variables[7]  = 0; // Deformation Dev
+    cfg->out_variables[8]  = 0; // Contrainte Dev
+    cfg->out_variables[9]  = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
+    cfg->out_variables[10] = 0; //
     cfg->nl_flag = 0; // calcul nonlineaire
+
+    printf("init_sem_config Nonlinear analysis : %d\n",cfg->nl_flag);
 }
 
 

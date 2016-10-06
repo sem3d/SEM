@@ -170,7 +170,6 @@ contains
         if(periodeRef < 1) periodeRef = 1
 
         ! Energy outputs
-        !if(Tdomain%out_energy == 1) then
         if(Tdomain%out_variables(OUT_TOTAL_ENERGY)) then
 
             if(Tdomain%rank == 0) write(*,*) "CREATING ENERGY SENSORS"

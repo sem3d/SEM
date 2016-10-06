@@ -362,7 +362,8 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
-        Tdomain%nl_flag                   = Tdomain%config%nl_flag
+        Tdomain%nl_flag = .false.
+        if(Tdomain%config%nl_flag == 1) Tdomain%nl_flag = .true.
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
