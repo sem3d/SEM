@@ -9,7 +9,8 @@
         xoverl = 0.; \
         if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then; \
             xoverl = xi/abs(dom%sSubDomain(mi)%pml_width(xyz)); \
-        endif;
+        endif; \
+        if (xoverl > 1) stop "ERROR: solidcpml_xoverl";
 
 ! kappa*: (77) from Ref1
 #define solidcpml_kappa(xyz,xi,mi) \
