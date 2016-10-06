@@ -49,29 +49,43 @@ contains
     ! UPDATE STRESS
     !****************************************************************************
 
-    subroutine update_stress(stress0,stress1,dincrement,lambda,mu)
+    subroutine update_stress(stress0,stress1,dincrement)
         implicit none
         ! intent IN
-        real, optional,       intent(in)    :: lambda,mu
+        real, dimension(0:5), intent(in)    :: stress0,dincrement
+        ! intent INOUT
+        real, dimension(0:5), intent(inout) :: stress1
+        !
+        ! dincrement = stress increment
+        stress1 = zero
+        stress1 = stress0 + dincrement
+        !
+        return
+        !
+    end subroutine update_stress
+
+    !****************************************************************************
+    ! UPDATE STRESS CRITICAL
+    !****************************************************************************
+
+    subroutine update_stress_critical(stress0,stress1,dincrement,lambda,mu)
+        implicit none
+        ! intent IN
+        real,                 intent(in)    :: lambda,mu
         real, dimension(0:5), intent(in)    :: stress0,dincrement
         ! intent INOUT
         real, dimension(0:5), intent(inout) :: stress1
         !
         real, dimension(0:5,0:5)            :: DEL
         !
+        ! dincrement = strain increment
         stress1 = zero
-        if (present(mu).and.present(lambda)) then
-            ! dincrement = dstrain
-            call stiff_matrix_critical(stress0,dincrement,lambda,mu,DEL)
-            stress1 = stress0 + matmul(DEL,dincrement)
-        else
-            ! dincrement = dstress
-            stress1 = stress0 + dincrement
-        endif
+        call stiff_matrix_critical(stress0,dincrement,lambda,mu,DEL)
+        stress1 = stress0 + matmul(DEL,dincrement)
         !
         return
         !
-    end subroutine update_stress
+    end subroutine update_stress_critical
 
     !*********************************************************************************
     ! STIFFNESS MATRIX 
@@ -192,8 +206,6 @@ contains
     !****************************************************************************
 
     subroutine check_plasticity(dtrial,stress0,center,radius,syld,st_epl,alpha_epl) 
-        ! ***** CRITICAL STATE EXTENSION *****
-        ! dstrain,lambda,mu)  
         ! intent IN
         real,                 intent(in)    :: radius,syld
         real, dimension(0:5), intent(in)    :: center,stress0
@@ -206,15 +218,10 @@ contains
         logical                             :: flagxit
         real                                :: FS,FT,checkload
         real, dimension(0:5)                :: gradFS,gradFT,stress1
-        ! ***** CRITICAL STATE EXTENSION *****
-        ! real*8, dimension(4), intent(in) :: dstrain
-        ! real*8,               intent(in) :: lambda,mu
 
         !
         ! PREDICTION STRESS
         call update_stress(stress0,stress1,dtrial)
-        ! ***** CRITICAL STATE EXTENSION *****
-        ! call update_stress(stress0,stress1,dstrain,lambda,mu)
         ! 
         ! CHECK MISES FUNCTION
         call mises_yld_locus(stress0,center,radius,syld,FS,gradFS)
@@ -230,8 +237,6 @@ contains
         if ((FS.lt.-FTOL).and.(FT.gt.FTOL)) then
             st_epl = .true.
             call gotoFpegasus(stress0,dtrial,center,radius,syld,1,alpha_epl)
-            ! ***** CRITICAL STATE EXTENSION *****
-            ! call gotoFpegasus(stress0,dtrial,center,radius,syld,1,alpha_epl,dstrain,lambda,mu)
             flagxit = .true.
         endif
 
@@ -244,8 +249,6 @@ contains
                 alpha_epl = zero
             else! PLASTIC UNLOADING  
                 call gotoFpegasus(stress0,dtrial,center,radius,syld,10,alpha_epl)
-                ! ***** CRITICAL STATE EXTENSION *****
-                ! call gotoFpegasus(stress0,dtrial,center,radius,syld,10,alpha_epl,dstrain,lambda,mu)
             endif
             st_epl = .true.
             flagxit = .true.
@@ -259,8 +262,6 @@ contains
         ! ON-LOCUS STRESS STATE 
         call update_stress(stress0,stress1,alpha_epl*dtrial)
         dtrial = stress1
-        ! ***** CRITICAL STATE EXTENSION *****
-        ! call update_stress(stress0,dtrial,alpha_epl*dstrain,lambda,mu)
         call mises_yld_locus(dtrial,center,radius,syld,FS,gradFS)
         !
         return
@@ -392,8 +393,6 @@ contains
         ! PREDICTION
         call mises_yld_locus (Stress,center,radius,syld,Fmises,gradF)
         call stiff_matrix(lambda,mu,DEL)
-        ! ***** CRITICAL STATE EXTENSION *****
-        ! call stiff_matrix_critical(stress,dstrain,lambda,mu,DEL)
         
         ! PLASTIC MULTIPLIER
         call compute_plastic_modulus(dStrain,Stress,center,radius,mu,lambda,syld, &
@@ -430,8 +429,6 @@ contains
         real, dimension(0:5,0:5)         :: DEL
         
         call stiff_matrix(lambda,mu,DEL)
-        ! ***** CRITICAL STATE EXTENSION *****
-        ! call stiff_matrix_critical(stress,dEps,lambda,mu,DEL)
 
         call mises_yld_locus(stress,center,radius,syld,FM,gradFM)
        
@@ -509,8 +506,6 @@ contains
         ! INITIAL PLASTIC CONDITION
         call mises_yld_locus(stress,center,radius,syld,F0,gradF0)
         call stiff_matrix(lambda,mu,DEL)
-        ! ***** CRITICAL STATE EXTENSION *****
-        ! call STIFF_MATRIX_CRITICAL(stress0,dincrement,lambda,mu,DEL)
 
         do counter=0,4
             ! MISES FUNCTION
@@ -627,8 +622,6 @@ contains
     !****************************************************************************
 
     subroutine gotoFpegasus(start0,dtrial,center,radius,s0,nsub,alpha)
-    ! ***** CRITICAL STATE EXTENSION *****
-    ! dstrain,lambda,mu)
         real, dimension(0:5), intent(in)    :: start0,dtrial,center
         real,                 intent(in)    :: radius,s0
         integer,              intent(in)    :: nsub
@@ -637,16 +630,11 @@ contains
         real                                :: dalpha,alpha0,alpha1,F0,F1,FM,Fsave
         integer                             :: counter0,counter1
         logical                             :: flagxit
-        ! ***** CRITICAL STATE EXTENSION *****
-        ! real*8, dimension(0:5), intent(in) :: dstrain
-        ! real*8, intent(in) :: lambda,mu
+
         alpha0  = zero 
         alpha1  = one
         call update_stress(start0,stress0,alpha0*dtrial)
         call update_stress(start0,stress1,alpha1*dtrial)
-        ! ***** CRITICAL STATE EXTENSION *****
-        !call update_stress(start0,stress0,alpha0*dstrain,lambda,mu)
-        !call update_stress(start0,stress1,alpha1*dstrain,lambda,mu)
 
         call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
         call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
@@ -660,8 +648,6 @@ contains
                 do counter1=0,nsub-1
                     alpha  = alpha0+dalpha
                     call update_stress(start0,stress,alpha*dtrial)
-                    ! ***** CRITICAL STATE EXTENSION *****
-                    ! call update_stress(start0,stress,alpha*dstrain,lambda,mu)
                     call mises_yld_locus(stress,center,radius,s0,FM,gradF)
                     if (FM.gt.FTOL) then
                         alpha1=alpha
@@ -684,9 +670,6 @@ contains
             end do
             call update_stress(start0,stress0,alpha0*dtrial)
             call update_stress(start0,stress1,alpha1*dtrial)
-            ! ***** CRITICAL STATE EXTENSION *****
-            ! call update_stress(start0,stress0,alpha0*dstrain,lambda,mu)
-            ! call update_stress(start0,stress1,alpha1*dstrain,lambda,mu)
             call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
             call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
             if ((F0.lt.-FTOL).and.(F1.gt.FTOL)) then
@@ -700,8 +683,6 @@ contains
         do counter0=0,9
             alpha  = alpha1-F1*(alpha1-alpha0)/(F1-F0)
             call update_stress(start0,stress,alpha*dtrial)
-            ! ***** CRITICAL STATE EXTENSION *****
-            !call update_stress(start0,stress,alpha*dstrain,lambda,mu)
 
             call mises_yld_locus(stress,center,radius,s0,FM,gradF)
             if (abs(FM).le.FTOL) then ! abs(FS)<=FTOL ---> INTERSECTION FOUND

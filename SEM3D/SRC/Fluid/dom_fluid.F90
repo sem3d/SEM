@@ -201,7 +201,7 @@ contains
         !
         type(domain_fluid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(out) :: P_energy, S_energy
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy
 
         integer                  :: ngll, i, j, k, ind
         real(fpp)                :: DXX, DXY, DXZ

@@ -383,14 +383,11 @@ contains
         !
         type(domain_solid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(out) :: P_energy, S_energy, R_energy !R_energy = Residual energy (tend to zero as propagation takes place)
-        real(fpp), dimension(:,:,:), allocatable, intent(out) :: C_energy !Cinetic energy
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy, R_energy !R_energy = Residual energy (tend to zero as propagation takes place)
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: C_energy !Cinetic energy
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV
 
         integer                  :: ngll, i, j, k, ind
-        !real(fpp)                :: DXX, DXY, DXZ
-        !real(fpp)                :: DYX, DYY, DYZ
-        !real(fpp)                :: DZX, DZY, DZZ
         real(fpp)                :: xmu, xlambda, xkappa, xdensity
         real(fpp)                :: onemSbeta, onemPbeta
         real(fpp)                :: xeps_vol

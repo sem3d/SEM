@@ -89,7 +89,7 @@ MODULE constants
         "Pressure  ", &
         "Eps Dev   ", &
         "Stress Dev", &
-        "Total_Energies" /)
+        "Tot_Energy" /)
     integer, parameter, dimension(0:9) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5 /)
     character(len=10), dimension(0:9) :: OUT_VAR_NAMES_NL = (/ &
         "EnergyP   ", &
