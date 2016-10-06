@@ -358,7 +358,6 @@ contains
                 qq=max(0.90d0*sqrt(STOL/Resk),0.1d0)
                 deltaTk=max(qq*deltaTk,deltaTmin)
                 flag_fail=.true.
-                write(*,*) "FAILED"
             end if
         end do
         if (counter.eq.10)then
@@ -689,11 +688,6 @@ contains
             ! call update_stress(start0,stress1,alpha1*dstrain,lambda,mu)
             call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
             call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
-            if ((F0.lt.-FTOL).and.(F1.gt.FTOL)) then
-                write(*,*) "LOAD REVERSAL OK"
-            else
-                write(*,*) "LOAD REVERSAL FAILED"
-            endif
         endif
 
         ! ORIGINAL PEGASUS ALGORITHM
