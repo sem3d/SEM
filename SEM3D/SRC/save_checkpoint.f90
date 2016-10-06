@@ -138,7 +138,7 @@ subroutine compute_save_offsets(Tdomain, offset)
             ! pour Stress : 8
             offset(8) = offset(8) + 0
 
-            if (Tdomain%nl_flag==1) then
+            if (Tdomain%nl_flag) then
                 ! for stress computed via nonlinear algorithm
                 offset(9) = offset(9)+ngll2*6
                 ! for strain computed via nonlinear algorithm
@@ -941,7 +941,7 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     call write_Rvol(Tdomain, offset(5), elem_id)
     call write_Rxyz(Tdomain, offset(6), elem_id)
     ! nonlinear
-    if (Tdomain%nl_flag==1) then
+    if (Tdomain%nl_flag) then
         call write_Stress_nl(Tdomain,offset(9),elem_id)
         call write_Strain_nl(Tdomain,offset(10),elem_id)
         call write_Center_nl(Tdomain,offset(11),elem_id)

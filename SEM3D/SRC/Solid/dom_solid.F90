@@ -32,7 +32,7 @@ contains
         n_solid     = Tdomain%n_sls
         dom%n_sls   = n_solid
         dom%aniso   = Tdomain%aniso
-        nl_flag     = Tdomain%nl_flag==1
+        nl_flag     = Tdomain%nl_flag
 
         ! Glls are initialized first, because we can have faces of a domain without elements
         if(nbelem /= 0) then

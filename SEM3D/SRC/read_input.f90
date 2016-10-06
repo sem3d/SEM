@@ -381,13 +381,7 @@ contains
             Tdomain%nReqOut = Tdomain%nReqOut + Tdomain%out_variables(i)*OUT_VAR_DIMS_3D(i)
         end do
 
-        !Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ &
-        !                     Tdomain%out_variables(OUT_EPS_VOL)+Tdomain%out_variables(OUT_PRESSION))+ &
-        !                  3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
-        !                     Tdomain%out_variables(OUT_ACCEL))+&
-        !                  6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))
-
-        if (Tdomain%nl_flag==1 .and. Tdomain%out_variables(OUT_EPS_DEV)==1) then
+        if (Tdomain%nl_flag .and. Tdomain%out_variables(OUT_EPS_DEV)==1) then
              Tdomain%nReqOut=Tdomain%nReqOut+6
         endif 
 
