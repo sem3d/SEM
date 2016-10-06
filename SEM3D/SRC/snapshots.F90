@@ -1035,6 +1035,64 @@ contains
         end do
     end subroutine apply_integrated_value_on_output
 
+    subroutine evaluate_cell_centers(ngll, gllc, input_field, output_field)
+        ! intent IN
+        integer, intent(in)                             :: ngll
+        real(fpp), intent(in), dimension(0:,0:,0:)      :: input_field
+        real(fpp), intent(in), dimension(0:)            :: gllc
+        ! intent INOUT
+        real(fpp), dimension(0:,0:,0:), intent(inout) :: output_field
+        !
+        integer         :: i, j, k
+        real(fpp)       :: xi, eta, zeta
+        !
+        do k=0,ngll-2
+            do j=0,ngll-2
+                do i = 0,ngll-2
+                    xi=(gllc(i)+gllc(i+1))/2
+                    eta=(gllc(j)+gllc(j+1))/2
+                    zeta=(gllc(k)+gllc(k+1))/2
+                    output_field(i,j,k) = evaluate_field(ngll,gllc,xi,eta,zeta,input_field)
+                end do
+            end do
+        end do
+        !
+        return  
+        !
+    end subroutine evaluate_cell_centers
+    
+    function evaluate_field(ngll,gllc,xi,eta,zeta,field) result(r) 
+        ! intent IN
+        integer,   intent(in)                           :: ngll
+        real(fpp)                                       :: xi, eta, zeta
+        real(fpp), intent(in), dimension(0:)            :: gllc
+        real(fpp), intent(in), dimension(0:,0:,0:)      :: field
+        !intent OUT
+        real(fpp) :: r
+        real(fpp), dimension(0:ngll-1) :: hi, hj, hk
+        real(fpp) :: i,j,k
+        !
+        r = 0.0d0
+        do i=0,ngll-1
+            call pol_lagrange(ngll,gllc,i,xi  ,hi(i)) ! P_i(xi)
+            call pol_lagrange(ngll,gllc,i,eta ,hj(i)) ! P_i(eta)
+            call pol_lagrange(ngll,gllc,i,zeta,hk(i)) ! P_i(zeta)
+        end do
+        
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    r = r + field(i,j,k)*hi(i)*hj(j)*hk(k)
+                end do
+            end do
+        end do
+        !
+        return
+        !
+    end function evaluate_field
+
+
+
     subroutine save_field_h5(Tdomain, isort)
         use sdomain
         use dom_solid
