@@ -327,12 +327,9 @@ contains
         d0 = 0. ! d0: (75) from Ref1
         if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then
             d0 = -1.*(dom%n(xyz)+1)*dom%sSubDomain(mi)%Pspeed*log(dom%r_c)
-            d0 = d0/(2*dom%sSubDomain(mi)%pml_width(xyz))
+            d0 = d0/(2*abs(dom%sSubDomain(mi)%pml_width(xyz)))
         end if
-        dxi = 0. ! dxi: (74) from Ref1
-        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then
-            dxi = dom%c(xyz)*d0*(xi/dom%sSubDomain(mi)%pml_width(xyz))**dom%n(xyz)
-        end if
+        dxi = dom%c(xyz)*d0*xoverl**dom%n(xyz) ! dxi: (74) from Ref1
         if (abs(kappa(xyz)) > solidcpml_eps) then
             beta(xyz) = alpha(xyz) + dxi / kappa(xyz) ! beta*: (11) from Ref1
         else
