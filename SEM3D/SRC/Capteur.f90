@@ -288,11 +288,13 @@ contains
         integer(HID_T) :: fid, dset_id
         integer :: hdferr
 
+        
         call init_hdf5()
-        call semname_tracefile_h5(Tdomain%rank, fnamef)
 
+        call semname_tracefile_h5(Tdomain%rank, fnamef)
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
         call create_capteur_descriptions(Tdomain, fid)
+        
 
         capteur=>listeCapteur
         do while (associated(capteur))
@@ -319,13 +321,14 @@ contains
         character(len=12) :: temp
         integer :: d,k,dim,dimtot
         integer(HSIZE_T), dimension(1) :: dims
-
-        dimtot = size(OUT_VAR_DIMS_3D)
+        
+        dimtot = sum(OUT_VAR_DIMS_3D)-OUT_VAR_DIMS_3D(OUT_TOTAL_ENERGY)
         allocate(varnames(0:dimtot))
         varnames(0) = "Time"
         d = 1
         do k=0,dimtot-1
             if (Tdomain%out_variables(k)==1) then
+                if(k == OUT_TOTAL_ENERGY) cycle 
                 do dim=1,OUT_VAR_DIMS_3D(k)
                     write(temp,"(A,I2)") OUT_VAR_NAMES(k),dim
                     varnames(d) = temp
@@ -396,6 +399,7 @@ contains
             if (associated(listeCapteur)) then
                 ! On ne fait rien sur ce proc si on n'a pas de capteur
                 if (.not. traces_h5_created) then
+
                     call create_traces_h5_skel(Tdomain)
                     traces_h5_created = .true.
                 end if

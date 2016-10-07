@@ -675,9 +675,6 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
-    //printf("parse_input_spec Scanner : %s\n",scanner);
-    config->nl_flag = 0; //HOTFIX, still to do
-    //printf("parse_input_spec Nonlinear analysis : %d\n",&config->nl_flag);
 
 	if (err==0) { printf("ERR01\n"); return 0;}
 	if (!expect_eos(scanner)) { return 0; }

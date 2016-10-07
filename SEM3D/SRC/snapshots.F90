@@ -1099,7 +1099,6 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        !integer, dimension(:), allocatable :: nData
         integer :: bnum, ee
         real, dimension(:), allocatable :: GLLw
         real(fpp), dimension(:,:,:), allocatable :: jac
@@ -1117,14 +1116,10 @@ contains
 
         call create_dir_sorties(Tdomain, isort)
         call compute_saved_elements(Tdomain, irenum, nnodes, nsubelements, domains)
-
         call allocate_fields(nnodes, nsubelements, Tdomain%out_variables, out_fields, nl_flag)
         allocate(valence(0:nnodes-1))
-        !allocate(nData(0:nnodes-1))
 
         valence(:) = 0
-        !nData(:) = 0
-
         ngll = 0
         count_press = 0
         count_eps_vol = 0
@@ -1142,6 +1137,7 @@ contains
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
                 case (DM_SOLID)
+                  
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,&
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
                   nl_flag, eps_dev_pl)
@@ -1189,6 +1185,7 @@ contains
             enddo
             ! sortie integrale par sub-element
             call domain_gllw(Tdomain, domain_type, GLLw)
+
             if (out_variables(OUT_PRESSION) == 1) then 
                 call evaluate_cell_centers(ngll, GLLw, count_press, fieldP, out_fields%press)
             endif

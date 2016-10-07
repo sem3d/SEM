@@ -200,7 +200,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real(fpp), dimension(:,:,:,:), allocatable, optional :: eps_dev_pl
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         !
         logical                  :: flag_gradU 
         integer                  :: ngll, i, j, k, ind, nblocks
@@ -232,36 +232,127 @@ contains
         endif
 
         flag_gradU = flag_gradUint /= 0
-
         ngll = dom%ngll
-        
+       
+        if (out_variables(OUT_VITESSE) == 1) then
+            if(allocated(fieldV)) then
+                if(any(shape(fieldV(:,:,:,0)) /= ngll)) deallocate(fieldV)
+            end if
+            if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:OUT_VAR_DIMS_3D(OUT_VITESSE)-1))
+        else
+            if(.not. allocated(fieldV)) allocate(fieldV(0:0,0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_ACCEL) == 1) then
+            if(allocated(fieldA)) then
+                if(any(shape(fieldA(:,:,:,0)) /= ngll)) deallocate(fieldA)
+            end if
+            if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:OUT_VAR_DIMS_3D(OUT_ACCEL)-1))
+        else
+            if(.not. allocated(fieldA)) allocate(fieldA(0:0,0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_DEPLA) == 1) then
+            if(allocated(fieldU)) then
+                if(any(shape(fieldU(:,:,:,0)) /= ngll)) deallocate(fieldU)
+            end if
+            if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:OUT_VAR_DIMS_3D(OUT_DEPLA)-1))
+        else
+            if(.not. allocated(fieldU)) allocate(fieldU(0:0,0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_PRESSION) == 1) then
+            if(allocated(fieldP)) then
+                if(any(shape(fieldP) /= ngll)) deallocate(fieldP)
+            end if
+            if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
+        else
+            if(.not. allocated(fieldP)) allocate(fieldP(0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_EPS_VOL) == 1) then
+            if(allocated(eps_vol)) then
+                if(any(shape(eps_vol) /= ngll)) deallocate(eps_vol)
+            end if
+            if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
+        else
+            if(.not. allocated(eps_vol)) allocate(eps_vol(0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_ENERGYP) == 1) then
+            if(allocated(P_energy)) then
+                if(any(shape(P_energy) /= ngll)) deallocate(P_energy)
+            end if
+            if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        else
+            if(.not. allocated(P_energy)) allocate(P_energy(0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_ENERGYS) == 1) then
+            if(allocated(S_energy)) then
+                if(any(shape(S_energy) /= ngll)) deallocate(S_energy)
+            end if
+            if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        else
+            if(.not. allocated(S_energy)) allocate(S_energy(0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_EPS_DEV) == 1) then
+            if(allocated(eps_dev)) then
+                if(any(shape(eps_dev(:,:,:,0)) /= ngll)) deallocate(eps_dev)
+            end if
+            if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1))
+        else
+            if(.not. allocated(eps_dev)) allocate(eps_dev(0:0,0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_EPS_DEV_PL) == 1) then
+            if(allocated(eps_dev_pl)) then
+                if(any(shape(eps_dev_pl(:,:,:,0)) /= ngll)) deallocate(eps_dev_pl)
+            end if
+            if(.not. allocated(eps_dev_pl)) allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:OUT_VAR_DIMS_3D(OUT_EPS_DEV_PL)-1))
+        else
+            if(.not. allocated(eps_dev_pl)) allocate(eps_dev_pl(0:0,0:0,0:0,0:0))
+        end if
+        !
+        if (out_variables(OUT_STRESS_DEV) == 1) then
+            if(allocated(sig_dev)) then
+                if(any(shape(sig_dev(:,:,:,0)) /= ngll)) deallocate(sig_dev)
+            end if
+            if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:OUT_VAR_DIMS_3D(OUT_STRESS_DEV)-1))
+        else
+            if(.not. allocated(sig_dev)) allocate(sig_dev(0:0,0:0,0:0,0:0))
+        end if
+
+        !print*, "BEFORE GET VELOCITY"
         ! GET VELOCITY (no gradient required)
         if (out_variables(OUT_VITESSE) == 1) then
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
                     enddo
                 enddo
             enddo
         endif
+
+        !print*, "BEFORE GET ACC"
         ! GET ACCLELERATION (no gradient required)
         if (out_variables(OUT_ACCEL) == 1) then
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldA(i,j,k,:) = dom%champs0%Forces(ind,:)
                     enddo
                 enddo
             enddo
         endif
+
+        !print*, "BEFORE GET DISP"
         ! GET DISPLACEMENT (direct output or for gradient calculation)
         if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-            if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
@@ -272,13 +363,19 @@ contains
             enddo
         end if
 
+
+        !print*, "BEFORE GET OTHER"
         ! GET OTHER VARIABLES (gradient required)
         if (flag_gradU) then  
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
+
+                        !print*, "IND "
                         ind = dom%Idom_(i,j,k,bnum,ee)
                         ! GRADIENT
+
+                        !print*, "BEFORE GRADIENT"
                         invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
                         call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
                              invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
@@ -288,16 +385,17 @@ contains
                              invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                         divU = DXX+DYY+DZZ
                         ! PRESSION
+                        !print*, "BEFORE PRESSION"
                         if (out_variables(OUT_PRESSION) == 1) then
-                            if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-                            fieldP(i,j,k) = -(dom%Lambda_(i,j,k,bnum,ee)+two*M_1_3*dom%Mu_(i,j,k,bnum,ee))*(DXX+DYY+DZZ)
+                            fieldP(i,j,k) = -(dom%Lambda_(i,j,k,bnum,ee)+two*M_1_3*dom%Mu_(i,j,k,bnum,ee))*divU
                         endif
                         ! EPSVOL
+                        !print*, "BEFORE EPSVOL"
                         if (out_variables(OUT_EPS_VOL) == 1) then
-                            if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                             eps_vol(i,j,k) = divU
                         end if
                         ! ELASTIC-VISCOELASTIC MODULA
+                        !print*, "BEFORE ELASTIC-VISCO MODULA"
                         if (out_variables(OUT_ENERGYP).or. &
                             out_variables(OUT_ENERGYS).or.&
                             out_variables(OUT_STRESS_DEV)) then
@@ -319,14 +417,14 @@ contains
                         endif
                         ![TODOLUCIANO]
                         ! P-ENERGY
+                        !print*, "BEFORE P_EN"
                         if (out_variables(OUT_ENERGYP) == 1) then
-                            if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                             P_energy(i,j,k) = zero
                             !half * xlambda2mu * eps_vol(i,j,k)**2
                         end if
                         ! S-ENERGY
+                        !print*, "BEFORE S_EN"
                         if (out_variables(OUT_ENERGYS) == 1) then
-                            if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                             S_energy(i,j,k) = zero
 !                            if (.not. dom%aniso) then
 !                                S_energy(i,j,k) =  zero 
@@ -338,8 +436,9 @@ contains
 !                                                              - 2 * DYZ * DZY )
                         end if
                         ! DEVIATORIC STRAIN
+
+                        !print*, "BEFORE DEV STRAIN"
                         if (out_variables(OUT_EPS_DEV) == 1) then
-                            if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
                             eps_dev(i,j,k,0:5) = zero
                             eps_dev(i,j,k,0) = DXX - M_1_3 * divU 
                             eps_dev(i,j,k,1) = DYY - M_1_3 * divU 
@@ -349,8 +448,8 @@ contains
                             eps_dev(i,j,k,5) = (DZY + DYZ)
                         endif
                         ! DEVIATORIC STRESS
+                        !print*, "BEFORE DEV STRESS"
                         if (out_variables(OUT_STRESS_DEV) == 1) then
-                            if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                             sig_dev(i,j,k,0:5) = zero
                             if (dom%aniso) then
                                 EXY = (DXY+DYX)*M_SQRT1_2
@@ -374,31 +473,30 @@ contains
                     enddo
                 enddo
             enddo
+
+            !print*, "AFTER BOUCLE LINEAR "
         else
+
+            !print*, "NON LINEAR -----------------------------------"
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
                         ! PRESSION
                         if (out_variables(OUT_PRESSION) == 1) then
-                            if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                             fieldP(i,j,k) = -sum(dom%stress_(0:2,i,j,k,bnum,ee))*M_1_3
                         endif
                         ! EPSVOL
                         if (out_variables(OUT_EPS_VOL) == 1) then
-                            if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                             eps_vol(i,j,k) = -sum(dom%strain_(0:2,i,j,k,bnum,ee))
                         end if
                         ![TODOLUCIANO]
                         ! P-ENERGY
                         if (out_variables(OUT_ENERGYP) == 1) then
-                            if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                             P_energy(i,j,k) = zero
-                            !half * xlambda2mu * eps_vol(i,j,k)**2
                         end if
                         ! S-ENERGY
                         if (out_variables(OUT_ENERGYS) == 1) then
-                            if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                             S_energy(i,j,k) = zero
 !                            if (.not. dom%aniso) then
 !                                S_energy(i,j,k) =  zero 
@@ -411,21 +509,18 @@ contains
                         end if
                         ! DEVIATORIC TOTAL STRAIN
                         if (out_variables(OUT_EPS_DEV) == 1) then
-                            if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
                             eps_dev(i,j,k,:)   = zero
                             eps_dev(i,j,k,:)   = dom%strain_(:,i,j,k,bnum,ee)
                             eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-sum(eps_dev(i,j,k,0:2))*M_1_3
                         endif
                         ! DEVIATORIC PLASTIC STRAIN
                         if (out_variables(OUT_EPS_DEV_PL) == 1) then
-                            if(.not. allocated(eps_dev_pl)) allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
                             eps_dev_pl(i,j,k,:)   = zero
                             eps_dev_pl(i,j,k,:)   = dom%plstrain_(:,i,j,k,bnum,ee)
                             eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-sum(eps_dev_pl(i,j,k,0:2))*M_1_3
                         endif
                         ! DEVIATORIC STRESS
                         if (out_variables(OUT_STRESS_DEV) == 1) then
-                            if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                             sig_dev(i,j,k,:)   = zero
                             sig_dev(i,j,k,:)   = dom%stress_(:,i,j,k,bnum,ee)
                             sig_dev(i,j,k,0:2) = sig_dev(i,j,k,0:2) - sum(sig_dev(i,j,k,0:2))*M_1_3
@@ -434,8 +529,6 @@ contains
                 enddo
             enddo
         end if
-        !
-        return
         !
     end subroutine get_solid_dom_var
 
