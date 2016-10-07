@@ -19,7 +19,7 @@ module msnapshots
 
     type :: output_var_t
         real, dimension(:,:), allocatable :: displ, veloc, accel
-        real, dimension(:)  , allocatable :: press
+        real, dimension(:)  , allocatable :: press_elem
         real, dimension(:)  , allocatable :: eps_vol
         real, dimension(:,:), allocatable :: eps_dev, sig_dev
         double precision, dimension(:), allocatable :: P_energy, S_energy
@@ -155,12 +155,12 @@ contains
         end if
         ! PRESSION
         if (out_variables(OUT_PRESSION) == 1) then
-            call MPI_Gatherv(outputs%press, dim2_el, MPI_DOUBLE_PRECISION, &
+            call MPI_Gatherv(outputs%press_elem, dim2_el, MPI_DOUBLE_PRECISION, &
                 all_data_1d_el, counts_el, displs_el, MPI_DOUBLE_PRECISION, 0,&
                 Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
                 dims(1) = ntot_elements
-                call create_dset(parent_id, "press", H5T_IEEE_F32LE, dims(1), dset_id)
+                call create_dset(parent_id, "press_elem", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
@@ -915,7 +915,7 @@ contains
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(fields%P_energy(0:nsubelements-1))
         if (out_flags(OUT_ENERGYS   ) == 1) allocate(fields%S_energy(0:nsubelements-1))
         if (out_flags(OUT_EPS_VOL   ) == 1) allocate(fields%eps_vol(0:nsubelements-1))
-        if (out_flags(OUT_PRESSION  ) == 1) allocate(fields%press(0:nsubelements-1))
+        if (out_flags(OUT_PRESSION  ) == 1) allocate(fields%press_elem(0:nsubelements-1))
         if (out_flags(OUT_EPS_DEV   ) == 1) allocate(fields%eps_dev(0:5,0:nsubelements-1))
         if (out_flags(OUT_STRESS_DEV) == 1) allocate(fields%sig_dev(0:5,0:nsubelements-1))
         if (out_flags(OUT_EPS_DEV_PL) == 1) allocate(fields%eps_dev_pl(0:5,0:nsubelements-1))
@@ -926,7 +926,7 @@ contains
         if (out_flags(OUT_ENERGYP   ) == 1) fields%P_energy   = 0.
         if (out_flags(OUT_ENERGYS   ) == 1) fields%S_energy   = 0.
         if (out_flags(OUT_EPS_VOL   ) == 1) fields%eps_vol    = 0.
-        if (out_flags(OUT_PRESSION  ) == 1) fields%press      = 0.
+        if (out_flags(OUT_PRESSION  ) == 1) fields%press_elem = 0.
         if (out_flags(OUT_EPS_DEV   ) == 1) fields%eps_dev    = 0.
         if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev    = 0.
         if (out_flags(OUT_EPS_DEV_PL) == 1) fields%eps_dev_pl = 0.
@@ -945,7 +945,7 @@ contains
         if (out_flags(OUT_ENERGYP   ) == 1) deallocate(fields%P_energy)
         if (out_flags(OUT_ENERGYS   ) == 1) deallocate(fields%S_energy)
         if (out_flags(OUT_EPS_VOL   ) == 1) deallocate(fields%eps_vol)
-        if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press)
+        if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_elem)
         if (out_flags(OUT_EPS_DEV   ) == 1) deallocate(fields%eps_dev)
         if (out_flags(OUT_STRESS_DEV) == 1) deallocate(fields%sig_dev)
         if (out_flags(OUT_EPS_DEV_PL) == 1) deallocate(fields%eps_dev_pl)
@@ -1100,14 +1100,14 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         integer :: bnum, ee
-        real, dimension(:), allocatable :: GLLw
+        real, dimension(:), allocatable :: GLLc ! GLLw
         real(fpp), dimension(:,:,:), allocatable :: jac
         real(fpp) :: integral_value
 
         integer, dimension(0:size(Tdomain%out_variables)-1) :: out_variables
         logical :: nl_flag
         integer :: ierr
-        integer :: count_press,count_eps_vol,count_P_energy,count_S_energy
+        integer :: count_press_elem,count_eps_vol,count_P_energy,count_S_energy
         integer,dimension(0:5) :: count_eps_dev,count_eps_dev_pl,count_sig_dev
 
         nl_flag=Tdomain%nl_flag
@@ -1121,7 +1121,7 @@ contains
 
         valence(:) = 0
         ngll = 0
-        count_press = 0
+        count_press_elem = 0
         count_eps_vol = 0
         count_P_energy = 0
         count_S_energy = 0
@@ -1183,38 +1183,40 @@ contains
                     enddo
                 enddo
             enddo
-            ! sortie integrale par sub-element
-            call domain_gllw(Tdomain, domain_type, GLLw)
+            ! sortie de la valeur au centre par sub-element
+            !call domain_gllw(Tdomain, domain_type, GLLw)
+            call domain_gllc(Tdomain, Tdomain%specel(n)%domain, GLLc)
 
             if (out_variables(OUT_PRESSION) == 1) then 
-                call evaluate_cell_centers(ngll, GLLw, count_press, fieldP, out_fields%press)
+                call evaluate_cell_centers(ngll, GLLc, count_press_elem, fieldP, out_fields%press_elem)
             endif
             if (out_variables(OUT_ENERGYP) == 1) then 
-                call evaluate_cell_centers(ngll, GLLw, count_P_energy, P_energy, out_fields%P_energy)
+                call evaluate_cell_centers(ngll, GLLc, count_P_energy, P_energy, out_fields%P_energy)
             endif
             if (out_variables(OUT_ENERGYS) == 1) then 
-                call evaluate_cell_centers(ngll, GLLw, count_S_energy, S_energy, out_fields%S_energy)
+                call evaluate_cell_centers(ngll, GLLc, count_S_energy, S_energy, out_fields%S_energy)
             endif
             if (out_variables(OUT_EPS_VOL) == 1) then 
-                call evaluate_cell_centers(ngll, GLLw, count_eps_vol, eps_vol, out_fields%eps_vol)  
+                call evaluate_cell_centers(ngll, GLLc, count_eps_vol, eps_vol, out_fields%eps_vol)  
             endif
             if (out_variables(OUT_EPS_DEV) == 1) then
                 do m = 0,OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1 
-                    call evaluate_cell_centers(ngll, GLLw, count_eps_dev(m), eps_dev(:,:,:,m), out_fields%eps_dev(m,:))    
+                    call evaluate_cell_centers(ngll, GLLc, count_eps_dev(m), eps_dev(:,:,:,m), out_fields%eps_dev(m,:))    
                 end do
             endif
             if (out_variables(OUT_EPS_DEV_PL) == 1) then
                 do m = 0,OUT_VAR_DIMS_3D(OUT_EPS_DEV_PL)-1 
-                    call evaluate_cell_centers(ngll, GLLw, count_eps_dev_pl(m), eps_dev_pl(:,:,:,m), out_fields%eps_dev_pl(m,:))    
+                    call evaluate_cell_centers(ngll, GLLc, count_eps_dev_pl(m), eps_dev_pl(:,:,:,m), out_fields%eps_dev_pl(m,:))    
                 end do
             endif
             if (out_variables(OUT_STRESS_DEV) == 1) then 
                 do m = 0,OUT_VAR_DIMS_3D(OUT_STRESS_DEV)-1 
-                    call evaluate_cell_centers(ngll, GLLw, count_sig_dev(m), sig_dev(:,:,:,m), out_fields%sig_dev(m,:))    
+                    call evaluate_cell_centers(ngll, GLLc, count_sig_dev(m), sig_dev(:,:,:,m), out_fields%sig_dev(m,:))    
                 end do
             endif
             if(allocated(jac)) deallocate(jac)
-            if(allocated(GLLw)) deallocate(GLLw)
+            if(allocated(GLLc)) deallocate(GLLc)
+            !if(allocated(GLLw)) deallocate(GLLw)
         enddo
         if(allocated(fieldU))       deallocate(fieldU)
         if(allocated(fieldV))       deallocate(fieldV)
@@ -1340,9 +1342,9 @@ contains
             end if
             ! PRESSURE
             if (out_variables(OUT_PRESSION) == 1) then
-                write(61,"(a)") '<Attribute Name="Pressure" Center="Cell" AttributeType="Scalar">'
+                write(61,"(a)") '<Attribute Name="Press_elem" Center="Cell" AttributeType="Scalar">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press'
+                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press_elem'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
