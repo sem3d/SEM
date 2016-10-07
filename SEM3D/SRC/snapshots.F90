@@ -19,7 +19,7 @@ module msnapshots
 
     type :: output_var_t
         real, dimension(:,:), allocatable :: displ, veloc, accel
-        real, dimension(:)  , allocatable :: press_elem
+        real, dimension(:)  , allocatable :: press_elem, press_gll
         real, dimension(:)  , allocatable :: eps_vol
         real, dimension(:,:), allocatable :: eps_dev, sig_dev
         double precision, dimension(:), allocatable :: P_energy, S_energy
@@ -162,6 +162,15 @@ contains
                 dims(1) = ntot_elements
                 call create_dset(parent_id, "press_elem", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dclose_f(dset_id, hdferr)
+            end if
+            call MPI_Gatherv(outputs%press_gll, dim2, MPI_DOUBLE_PRECISION, &
+                all_data_1d, counts, displs, MPI_DOUBLE_PRECISION, 0,&
+                Tdomain%comm_output, ierr)
+            if (Tdomain%output_rank==0) then
+                dims(1) = ntot_nodes
+                call create_dset(parent_id, "press_gll", H5T_IEEE_F32LE, dims(1), dset_id)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -911,6 +920,7 @@ contains
         if (out_flags(OUT_DEPLA     ) == 1) allocate(fields%displ(0:2,0:nnodes-1))
         if (out_flags(OUT_VITESSE   ) == 1) allocate(fields%veloc(0:2,0:nnodes-1))
         if (out_flags(OUT_ACCEL     ) == 1) allocate(fields%accel(0:2,0:nnodes-1))
+        if (out_flags(OUT_PRESSION  ) == 1) allocate(fields%press_gll(0:nnodes-1))
         ! sortie par element
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(fields%P_energy(0:nsubelements-1))
         if (out_flags(OUT_ENERGYS   ) == 1) allocate(fields%S_energy(0:nsubelements-1))
@@ -927,6 +937,7 @@ contains
         if (out_flags(OUT_ENERGYS   ) == 1) fields%S_energy   = 0.
         if (out_flags(OUT_EPS_VOL   ) == 1) fields%eps_vol    = 0.
         if (out_flags(OUT_PRESSION  ) == 1) fields%press_elem = 0.
+        if (out_flags(OUT_PRESSION  ) == 1) fields%press_gll  = 0.
         if (out_flags(OUT_EPS_DEV   ) == 1) fields%eps_dev    = 0.
         if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev    = 0.
         if (out_flags(OUT_EPS_DEV_PL) == 1) fields%eps_dev_pl = 0.
@@ -946,6 +957,7 @@ contains
         if (out_flags(OUT_ENERGYS   ) == 1) deallocate(fields%S_energy)
         if (out_flags(OUT_EPS_VOL   ) == 1) deallocate(fields%eps_vol)
         if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_elem)
+        if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_gll)
         if (out_flags(OUT_EPS_DEV   ) == 1) deallocate(fields%eps_dev)
         if (out_flags(OUT_STRESS_DEV) == 1) deallocate(fields%sig_dev)
         if (out_flags(OUT_EPS_DEV_PL) == 1) deallocate(fields%eps_dev_pl)
@@ -1107,7 +1119,8 @@ contains
         integer, dimension(0:size(Tdomain%out_variables)-1) :: out_variables
         logical :: nl_flag
         integer :: ierr
-        integer :: count_press_elem,count_eps_vol,count_P_energy,count_S_energy
+        integer :: count_press_elem
+        integer :: count_eps_vol,count_P_energy,count_S_energy
         integer,dimension(0:5) :: count_eps_dev,count_eps_dev_pl,count_sig_dev
 
         nl_flag=Tdomain%nl_flag
@@ -1177,9 +1190,10 @@ contains
                         end select
 
                         ! sortie par noeud
-                        if (out_variables(OUT_DEPLA)   == 1) out_fields%displ(0:2,ind) = fieldU(i,j,k,0:2)
-                        if (out_variables(OUT_VITESSE) == 1) out_fields%veloc(0:2,ind) = fieldV(i,j,k,0:2)
-                        if (out_variables(OUT_ACCEL)   == 1) out_fields%accel(0:2,ind) = fieldA(i,j,k,0:2)
+                        if (out_variables(OUT_DEPLA)   == 1)  out_fields%displ(0:2,ind) = fieldU(i,j,k,0:2)
+                        if (out_variables(OUT_VITESSE) == 1)  out_fields%veloc(0:2,ind) = fieldV(i,j,k,0:2)
+                        if (out_variables(OUT_ACCEL)   == 1)  out_fields%accel(0:2,ind) = fieldA(i,j,k,0:2)
+                        if (out_variables(OUT_PRESSION) == 1) out_fields%press_gll(ind) = fieldP(i,j,k)
                     enddo
                 enddo
             enddo
@@ -1341,6 +1355,13 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! PRESSURE
+            if (out_variables(OUT_PRESSION) == 1) then
+                write(61,"(a)") '<Attribute Name="Press_gll" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
+                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press_gll'
+                write(61,"(a)") '</DataItem>'
+                write(61,"(a)") '</Attribute>'
+            end if
             if (out_variables(OUT_PRESSION) == 1) then
                 write(61,"(a)") '<Attribute Name="Press_elem" Center="Cell" AttributeType="Scalar">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
