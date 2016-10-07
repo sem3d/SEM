@@ -315,13 +315,16 @@ contains
         !
         integer(HID_T) :: tid, dsetid, spaceid
         integer :: hdferr
-        character(len=12), dimension(0:26) :: varnames;
+        character(len=12), dimension(:), allocatable :: varnames
         character(len=12) :: temp
-        integer :: d,k,dim
+        integer :: d,k,dim,dimtot
         integer(HSIZE_T), dimension(1) :: dims
+
+        dimtot = size(OUT_VAR_DIMS_3D)
+        allocate(varnames(0:dimtot))
         varnames(0) = "Time"
         d = 1
-        do k=0,8
+        do k=0,dimtot-1
             if (Tdomain%out_variables(k)==1) then
                 do dim=1,OUT_VAR_DIMS_3D(k)
                     write(temp,"(A,I2)") OUT_VAR_NAMES(k),dim
@@ -339,6 +342,7 @@ contains
         call H5Dclose_f(dsetid, hdferr)
         call H5Sclose_f(spaceid, hdferr)
         call H5Tclose_f(tid, hdferr)
+        !
     end subroutine create_capteur_descriptions
     
     subroutine append_traces_h5(Tdomain)

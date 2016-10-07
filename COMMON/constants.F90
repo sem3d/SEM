@@ -93,7 +93,6 @@ MODULE constants
         "Tot_Energy", &
         "Eps Dev Pl" /)
     integer, parameter, dimension(0:10) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6/)
-!:9
     ! TYPE DE CONDITION pour les surfaces
     integer, parameter :: COND_NONE     = 0  ! not assigned/uninitialized
     integer, parameter :: COND_DIRICH   = 1

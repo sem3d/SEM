@@ -706,7 +706,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[7]  = 0; // Deformation Dev
     cfg->out_variables[8]  = 0; // Contrainte Dev
     cfg->out_variables[9]  = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
-    cfg->out_variables[10] = 0; //
+    cfg->out_variables[10] = 0; // Deformation Dev Pl
     cfg->nl_flag = 0; // calcul nonlineaire
 
     printf("init_sem_config Nonlinear analysis : %d\n",cfg->nl_flag);
@@ -738,25 +738,12 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
-    				cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
-    				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
-    				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
-                    cfg->out_variables[9]);
-    // removed by Mtaro
-    //printf("Neu present : %d\n", cfg->neu_present);
-    //printf("Neu type    : %d\n", cfg->neu_type);
-    //printf("Neu mat     : %d\n", cfg->neu_mat);
+    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
+  	cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
+        cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
+    	cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
+        cfg->out_variables[9], cfg->out_variables[10]);
     printf("Nonlinear analysis : %d\n",cfg->nl_flag);
-//    src = cfg->source;
-//    while(src) {
-//	printf("\nSource %d\n--------\n", ksrc);
-//	dump_source(src);
-//	src = src->next;
-//	++ksrc;
-//    }
-//    printf("\n------------\n\n");
-
 }
 
 
