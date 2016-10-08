@@ -570,7 +570,6 @@ subroutine write_Stress_nl(Tdomain, nmax, elem_id)
         ngll = Tdomain%sdom%ngll
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
@@ -578,13 +577,13 @@ subroutine write_Stress_nl(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%sdom%stress_(i,j,k,0,bnum,ee)
-                    data(idx+ 1) = Tdomain%sdom%stress_(i,j,k,1,bnum,ee)
-                    data(idx+ 2) = Tdomain%sdom%stress_(i,j,k,2,bnum,ee)
+                    data(idx+ 0) = Tdomain%sdom%stress_(0,i,j,k,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%stress_(1,i,j,k,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%stress_(2,i,j,k,bnum,ee)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%sdom%stress_(i,j,k,4,bnum,ee)
-                    data(idx+ 1) = Tdomain%sdom%stress_(i,j,k,5,bnum,ee)
-                    data(idx+ 2) = Tdomain%sdom%stress_(i,j,k,6,bnum,ee)
+                    data(idx+ 0) = Tdomain%sdom%stress_(3,i,j,k,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%stress_(4,i,j,k,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%stress_(5,i,j,k,bnum,ee)
                     idx = idx + 3
                 enddo
             enddo
@@ -626,7 +625,6 @@ subroutine write_Strain_nl(Tdomain, nmax, elem_id)
         ngll = Tdomain%sdom%ngll
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
@@ -634,13 +632,13 @@ subroutine write_Strain_nl(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%sdom%strain_(i,j,k,0,bnum,ee)
-                    data(idx+ 1) = Tdomain%sdom%strain_(i,j,k,1,bnum,ee)
-                    data(idx+ 2) = Tdomain%sdom%strain_(i,j,k,2,bnum,ee)
+                    data(idx+ 0) = Tdomain%sdom%strain_(0,i,j,k,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%strain_(1,i,j,k,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%strain_(2,i,j,k,bnum,ee)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%sdom%strain_(i,j,k,4,bnum,ee)
-                    data(idx+ 1) = Tdomain%sdom%strain_(i,j,k,5,bnum,ee)
-                    data(idx+ 2) = Tdomain%sdom%strain_(i,j,k,6,bnum,ee)
+                    data(idx+ 0) = Tdomain%sdom%strain_(3,i,j,k,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%strain_(4,i,j,k,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%strain_(5,i,j,k,bnum,ee)
                     idx = idx + 3
                 enddo
             enddo
@@ -682,7 +680,6 @@ subroutine write_Pstrain_nl(Tdomain, nmax, elem_id)
         ngll = Tdomain%sdom%ngll
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
@@ -690,13 +687,13 @@ subroutine write_Pstrain_nl(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%sdom%plstrain_(i,j,k,0,bnum,ee)
-                    data(idx+ 1) = Tdomain%sdom%plstrain_(i,j,k,1,bnum,ee)
-                    data(idx+ 2) = Tdomain%sdom%plstrain_(i,j,k,2,bnum,ee)
-                    idx = idx + 3
-                    data(idx+ 0) = Tdomain%sdom%plstrain_(i,j,k,4,bnum,ee)
-                    data(idx+ 1) = Tdomain%sdom%plstrain_(i,j,k,5,bnum,ee)
-                    data(idx+ 2) = Tdomain%sdom%plstrain_(i,j,k,6,bnum,ee)
+                    data(idx+ 0) = Tdomain%sdom%plstrain_(0,i,j,k,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%plstrain_(1,i,j,k,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%plstrain_(2,i,j,k,bnum,ee)
+                    idx = idx + 3                                 
+                    data(idx+ 0) = Tdomain%sdom%plstrain_(3,i,j,k,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%plstrain_(4,i,j,k,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%plstrain_(5,i,j,k,bnum,ee)
                     idx = idx + 3
                 enddo
             enddo
@@ -738,7 +735,6 @@ subroutine write_Center_nl(Tdomain, nmax, elem_id)
         ngll = Tdomain%sdom%ngll
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
@@ -746,13 +742,13 @@ subroutine write_Center_nl(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%sdom%center_(i,j,k,0,bnum,ee)
-                    data(idx+ 1) = Tdomain%sdom%center_(i,j,k,1,bnum,ee)
-                    data(idx+ 2) = Tdomain%sdom%center_(i,j,k,2,bnum,ee)
-                    idx = idx + 3
-                    data(idx+ 0) = Tdomain%sdom%center_(i,j,k,4,bnum,ee)
-                    data(idx+ 1) = Tdomain%sdom%center_(i,j,k,5,bnum,ee)
-                    data(idx+ 2) = Tdomain%sdom%center_(i,j,k,6,bnum,ee)
+                    data(idx+ 0) = Tdomain%sdom%center_(0,i,j,k,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%center_(1,i,j,k,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%center_(2,i,j,k,bnum,ee)
+                    idx = idx + 3                               
+                    data(idx+ 0) = Tdomain%sdom%center_(3,i,j,k,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%center_(4,i,j,k,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%center_(5,i,j,k,bnum,ee)
                     idx = idx + 3
                 enddo
             enddo
@@ -917,6 +913,14 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     if (Tdomain%sdom%nglltot.gt.0) then
         call write_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs0%Veloc)
         call write_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs0%Depla)
+        ! nonlinear
+        if (Tdomain%nl_flag) then
+            call write_Stress_nl(Tdomain,offset(9),elem_id)
+            call write_Strain_nl(Tdomain,offset(10),elem_id)
+            call write_Center_nl(Tdomain,offset(11),elem_id)
+            call write_Radius_nl(Tdomain,offset(12),elem_id)
+            call write_Pstrain_nl(Tdomain,offset(13),elem_id)
+        endif
     end if
     if (Tdomain%fdom%nglltot.gt.0) then
         call write_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs0%VelPhi)
@@ -931,23 +935,15 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     end if
     if (Tdomain%fpmldom%nglltot.gt.0) then
         call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi)
+        call write_Veloc_Fluid_PML(Tdomain, offset(12), elem_id)
     end if
 
     call write_EpsilonVol(Tdomain, offset(4), elem_id)
     call write_EpsilonDev(Tdomain, offset(7), elem_id)
     call write_Stress(Tdomain, offset(8), elem_id)
 
-    call write_Veloc_Fluid_PML(Tdomain, offset(12), elem_id)
     call write_Rvol(Tdomain, offset(5), elem_id)
     call write_Rxyz(Tdomain, offset(6), elem_id)
-    ! nonlinear
-    if (Tdomain%nl_flag) then
-        call write_Stress_nl(Tdomain,offset(9),elem_id)
-        call write_Strain_nl(Tdomain,offset(10),elem_id)
-        call write_Center_nl(Tdomain,offset(11),elem_id)
-        call write_Radius_nl(Tdomain,offset(12),elem_id)
-        call write_Pstrain_nl(Tdomain,offset(13),elem_id)
-    endif
     call h5gclose_f(elem_id, hdferr)
     call h5fclose_f(fid, hdferr)
 end subroutine save_checkpoint

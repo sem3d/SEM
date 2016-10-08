@@ -1034,11 +1034,11 @@ contains
         !
         
         do k=0,ngll-2
+            zeta = half * (gllc(k)+gllc(k+1))
             do j=0,ngll-2
+                eta = half * (gllc(j)+gllc(j+1))
                 do i = 0,ngll-2
-                    xi  =(gllc(i)+gllc(i+1))/2
-                    eta =(gllc(j)+gllc(j+1))/2
-                    zeta=(gllc(k)+gllc(k+1))/2
+                    xi = half * (gllc(i)+gllc(i+1))
                     output_field(count_subel) = evaluate_field(ngll,gllc,xi,eta,zeta,input_field)
                     count_subel = count_subel+1
                 end do
@@ -1150,16 +1150,15 @@ contains
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
                 case (DM_SOLID)
-                  
-                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,&
-                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-                  nl_flag, eps_dev_pl)
+                    call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,    &
+                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,& 
+                        eps_dev, sig_dev, nl_flag, eps_dev_pl)
                 case (DM_FLUID)
-                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
-                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                    call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
+                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_SOLID_PML)
-                  call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
-                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                    call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
+                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_FLUID_PML)
                   call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)

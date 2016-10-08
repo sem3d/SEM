@@ -705,8 +705,6 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[9]  = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
     cfg->out_variables[10] = 0; // Deformation Dev Pl
     cfg->nl_flag = 0; // calcul nonlineaire
-
-    printf("init_sem_config Nonlinear analysis : %d\n",cfg->nl_flag);
 }
 
 

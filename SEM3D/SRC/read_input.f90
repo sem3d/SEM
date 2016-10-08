@@ -222,13 +222,11 @@ contains
             Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
             Tdomain%Ssource(nsrc)%i_type_source = src%type
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
-            if(Tdomain%rank == 0) write(*,*) "source amplitude:",src%amplitude
             if (src%func .eq. 5) then
                 Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
             end if
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
-            if(Tdomain%rank == 0) write(*,*) "source type:",src%func
             Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
             Tdomain%Ssource(nsrc)%tau_b = src%tau ! func=1,2,3,4,5
             Tdomain%Ssource(nsrc)%fh = src%band  ! func=3

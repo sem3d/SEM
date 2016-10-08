@@ -190,7 +190,7 @@ subroutine read_Stress_nl(Tdomain, elem_id)
     integer :: idx, ngll, bnum, ee
     integer :: n, i, j, k
     integer :: n_solid
-
+    
     call read_dset_1d_real(elem_id, "Stress_nl", stress_nl)
     idx = 1
     n_solid = Tdomain%n_sls
@@ -199,17 +199,16 @@ subroutine read_Stress_nl(Tdomain, elem_id)
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Tdomain%sdom%stress_(i,j,k,0,bnum,ee) = stress_nl(idx+0)
-                    Tdomain%sdom%stress_(i,j,k,1,bnum,ee) = stress_nl(idx+1)
-                    Tdomain%sdom%stress_(i,j,k,2,bnum,ee) = stress_nl(idx+2)
+                    Tdomain%sdom%stress_(0,i,j,k,bnum,ee) = stress_nl(idx+0)
+                    Tdomain%sdom%stress_(1,i,j,k,bnum,ee) = stress_nl(idx+1)
+                    Tdomain%sdom%stress_(2,i,j,k,bnum,ee) = stress_nl(idx+2)
                     idx = idx + 3
-                    Tdomain%sdom%stress_(i,j,k,0,bnum,ee) = stress_nl(idx+0)
-                    Tdomain%sdom%stress_(i,j,k,1,bnum,ee) = stress_nl(idx+1)
-                    Tdomain%sdom%stress_(i,j,k,2,bnum,ee) = stress_nl(idx+2)
+                    Tdomain%sdom%stress_(3,i,j,k,bnum,ee) = stress_nl(idx+0)
+                    Tdomain%sdom%stress_(4,i,j,k,bnum,ee) = stress_nl(idx+1)
+                    Tdomain%sdom%stress_(5,i,j,k,bnum,ee) = stress_nl(idx+2)
                     idx = idx + 3
                 end do
             end do
@@ -240,17 +239,16 @@ subroutine read_Strain_nl(Tdomain, elem_id)
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Tdomain%sdom%strain_(i,j,k,0,bnum,ee) = strain_nl(idx+0)
-                    Tdomain%sdom%strain_(i,j,k,1,bnum,ee) = strain_nl(idx+1)
-                    Tdomain%sdom%strain_(i,j,k,2,bnum,ee) = strain_nl(idx+2)
-                    idx = idx + 3
-                    Tdomain%sdom%strain_(i,j,k,0,bnum,ee) = strain_nl(idx+0)
-                    Tdomain%sdom%strain_(i,j,k,1,bnum,ee) = strain_nl(idx+1)
-                    Tdomain%sdom%strain_(i,j,k,2,bnum,ee) = strain_nl(idx+2)
+                    Tdomain%sdom%strain_(0,i,j,k,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%strain_(1,i,j,k,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%strain_(2,i,j,k,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3         
+                    Tdomain%sdom%strain_(3,i,j,k,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%strain_(4,i,j,k,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%strain_(5,i,j,k,bnum,ee) = strain_nl(idx+2)
                     idx = idx + 3
                 end do
             end do
@@ -281,17 +279,16 @@ subroutine read_Pstrain_nl(Tdomain, elem_id)
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Tdomain%sdom%plstrain_(i,j,k,0,bnum,ee) = strain_nl(idx+0)
-                    Tdomain%sdom%plstrain_(i,j,k,1,bnum,ee) = strain_nl(idx+1)
-                    Tdomain%sdom%plstrain_(i,j,k,2,bnum,ee) = strain_nl(idx+2)
-                    idx = idx + 3
-                    Tdomain%sdom%plstrain_(i,j,k,0,bnum,ee) = strain_nl(idx+0)
-                    Tdomain%sdom%plstrain_(i,j,k,1,bnum,ee) = strain_nl(idx+1)
-                    Tdomain%sdom%plstrain_(i,j,k,2,bnum,ee) = strain_nl(idx+2)
+                    Tdomain%sdom%plstrain_(0,i,j,k,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%plstrain_(1,i,j,k,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%plstrain_(2,i,j,k,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3            
+                    Tdomain%sdom%plstrain_(3,i,j,k,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%plstrain_(4,i,j,k,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%plstrain_(5,i,j,k,bnum,ee) = strain_nl(idx+2)
                     idx = idx + 3
                 end do
             end do
@@ -322,17 +319,16 @@ subroutine read_Center_nl(Tdomain, elem_id)
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Tdomain%sdom%center_(i,j,k,0,bnum,ee) = center_nl(idx+0)
-                    Tdomain%sdom%center_(i,j,k,1,bnum,ee) = center_nl(idx+1)
-                    Tdomain%sdom%center_(i,j,k,2,bnum,ee) = center_nl(idx+2)
+                    Tdomain%sdom%center_(0,i,j,k,bnum,ee) = center_nl(idx+0)
+                    Tdomain%sdom%center_(1,i,j,k,bnum,ee) = center_nl(idx+1)
+                    Tdomain%sdom%center_(2,i,j,k,bnum,ee) = center_nl(idx+2)
                     idx = idx + 3
-                    Tdomain%sdom%center_(i,j,k,0,bnum,ee) = center_nl(idx+0)
-                    Tdomain%sdom%center_(i,j,k,1,bnum,ee) = center_nl(idx+1)
-                    Tdomain%sdom%center_(i,j,k,2,bnum,ee) = center_nl(idx+2)
+                    Tdomain%sdom%center_(3,i,j,k,bnum,ee) = center_nl(idx+0)
+                    Tdomain%sdom%center_(4,i,j,k,bnum,ee) = center_nl(idx+1)
+                    Tdomain%sdom%center_(5,i,j,k,bnum,ee) = center_nl(idx+2)
                     idx = idx + 3
                 end do
             end do
@@ -363,7 +359,6 @@ subroutine read_Radius_nl(Tdomain, elem_id)
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         bnum = Tdomain%specel(n)%lnum/VCHUNK
         ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
@@ -458,6 +453,13 @@ subroutine read_restart (Tdomain,rg, isort)
     if (Tdomain%sdom%nglltot.gt.0) then
         call read_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs0%Veloc, ibase=0)
         call read_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs0%Depla, ibase=0)
+        if (Tdomain%nl_flag) then
+            call read_Stress_nl(Tdomain, elem_id)
+            call read_Strain_nl(Tdomain, elem_id)
+            call read_Pstrain_nl(Tdomain, elem_id)
+            call read_Center_nl(Tdomain, elem_id)
+            call read_Radius_nl(Tdomain, elem_id)
+        endif
     end if
     if (Tdomain%fdom%nglltot.gt.0) then
         call read_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs0%VelPhi, ibase=0)
@@ -471,18 +473,12 @@ subroutine read_restart (Tdomain,rg, isort)
 #endif
     end if
     if (Tdomain%fpmldom%nglltot.gt.0) then
-      call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi, ibase=0)
+        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi, ibase=0)
+        call read_Veloc_Fluid_PML(Tdomain, elem_id)
     end if
     call read_EpsilonVol(Tdomain, elem_id)
     call read_EpsilonDev(Tdomain, elem_id)
     call read_Stress(Tdomain, elem_id)
-    call read_Stress_nl(Tdomain, elem_id)
-    call read_Strain_nl(Tdomain, elem_id)
-    call read_Pstrain_nl(Tdomain, elem_id)
-    call read_Center_nl(Tdomain, elem_id)
-    call read_Radius_nl(Tdomain, elem_id)
-    
-    call read_Veloc_Fluid_PML(Tdomain, elem_id)
     call h5gclose_f(elem_id, hdferr)
     call h5fclose_f(fid, hdferr)
 

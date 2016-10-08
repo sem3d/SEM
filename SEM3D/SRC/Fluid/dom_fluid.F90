@@ -88,7 +88,7 @@ contains
         Veloc(:,:,:,2) = dphi_dz(:,:,:) * idensity(:,:,:)
     end subroutine fluid_velocity
 
-    subroutine get_fluid_dom_var(Tdomain, dom, lnum, out_variables, &
+    subroutine get_fluid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
