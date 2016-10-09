@@ -297,7 +297,7 @@ contains
         el => Tdomain%specel(nel)
         select case (el%domain)
             case (DM_SOLID)
-                if (Tdomain%nl_flag==1) then
+                if (Tdomain%nl_flag) then
                     allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:5)) ! stress state (same variable name)
                     call gather_elem_stress_solid(Tdomain, nel, displ)
                     do k=0,nz-1

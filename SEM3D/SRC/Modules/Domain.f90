@@ -90,7 +90,7 @@ module sdomain
            Super_object_file,neumann_file,neumann_dat,check_mesh_file
        character (len=1)  :: Super_object_type
 
-       integer, dimension(0:9) :: out_variables
+       integer, dimension(0:10) :: out_variables
        integer                 :: nReqOut ! number of required outputs
        integer :: earthchunk_isInit
        character (len=MAX_FILE_SIZE) :: earthchunk_file

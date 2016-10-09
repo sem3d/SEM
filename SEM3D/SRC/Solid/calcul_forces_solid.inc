@@ -47,7 +47,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #endif
     real(fpp) :: xmu
 #ifdef NONLINEAR
-    real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP,eps0
+    real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP
     real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_epl
     logical    :: st_epl
 #endif
@@ -188,18 +188,14 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xla = dom%Lambda_(i,j,k,bnum,ee)
                 xla2mu = xla + 2. * xmu
 #ifdef NONLINEAR
-
-                !!eps0(:) = dom%strain_(:,i,j,k,bnum,ee)
-                !!dom%strain_(0:5,i,j,k,bnum,ee) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
-                !!dEps_alpha(0:5) = dom%strain_(0:5,i,j,k,bnum,ee) -eps0(0:5)
                 
                 start       =   dom%stress_(0:5,i,j,k,bnum,ee)
                 center      =   dom%center_(0:5,i,j,k,bnum,ee)
-                radius      =   dom%radius_(i,j,k,bnum,ee)
+                radius      =   zero !dom%radius_(i,j,k,bnum,ee)
                 syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
                 kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) 
-                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) 
-                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee) 
+                rinf        =   zero !dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) 
+                biso        =   zero !dom%nl_param%LMC%biso_(i,j,k,bnum,ee) 
                 ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
                 
                 dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/) 
@@ -233,7 +229,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dom%stress_(0:5,i,j,k,bnum,ee)   = trial(0:5)
                 dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)
                 dom%plstrain_(0:5,i,j,k,bnum,ee) = dEpsP(0:5)
-                dom%radius_(i,j,k,bnum,ee)       = radius
+                dom%radius_(i,j,k,bnum,ee)       = zero !radius
 
 #else
                 sxx = xla2mu * DXX + xla * ( DYY + DZZ )
