@@ -1034,11 +1034,11 @@ contains
         !
         
         do k=0,ngll-2
-            zeta = half * (gllc(k)+gllc(k+1))
+            zeta = .5d0 * (gllc(k)+gllc(k+1))
             do j=0,ngll-2
-                eta = half * (gllc(j)+gllc(j+1))
+                eta = .5d0 * (gllc(j)+gllc(j+1))
                 do i = 0,ngll-2
-                    xi = half * (gllc(i)+gllc(i+1))
+                    xi = .5d0 * (gllc(i)+gllc(i+1))
                     output_field(count_subel) = evaluate_field(ngll,gllc,xi,eta,zeta,input_field)
                     count_subel = count_subel+1
                 end do
@@ -1056,21 +1056,22 @@ contains
         real(fpp), intent(in), dimension(0:)            :: gllc
         real(fpp), intent(in), dimension(0:,0:,0:)      :: field
         !intent OUT
-        real(fpp) :: r
-        real(fpp), dimension(0:ngll-1) :: hi, hj, hk
+        real(fpp) :: r, weight
+        real(fpp), dimension(0:ngll-1) :: outx, outy, outz
         real(fpp) :: i,j,k
         !
         r = 0.0d0
         do i=0,ngll-1
-            call pol_lagrange(ngll,gllc,i,xi  ,hi(i)) ! P_i(xi)
-            call pol_lagrange(ngll,gllc,i,eta ,hj(i)) ! P_i(eta)
-            call pol_lagrange(ngll,gllc,i,zeta,hk(i)) ! P_i(zeta)
+            call pol_lagrange(ngll,gllc,i,xi  ,outx(i)) ! P_i(xi)
+            call pol_lagrange(ngll,gllc,i,eta ,outy(i)) ! P_i(eta)
+            call pol_lagrange(ngll,gllc,i,zeta,outz(i)) ! P_i(zeta)
         end do
         
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
-                    r = r + field(i,j,k)*hi(i)*hj(j)*hk(k)
+                    weight = outx(i)*outy(j)*outz(k)
+                    r = r + (field(i,j,k) * weight)
                 end do
             end do
         end do
@@ -1078,7 +1079,6 @@ contains
         return
         !
     end function evaluate_field
-
 
 
     subroutine save_field_h5(Tdomain, isort)
