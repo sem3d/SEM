@@ -17,12 +17,14 @@ module msnapshots
 !integrate
 
     type :: output_var_t
-        real, dimension(:,:), allocatable :: displ, veloc, accel
-        real, dimension(:)  , allocatable :: press_elem, press_gll
-        real, dimension(:)  , allocatable :: eps_vol
-        real, dimension(:,:), allocatable :: eps_dev, sig_dev
-        double precision, dimension(:), allocatable :: P_energy, S_energy
-        real, dimension(:,:)  , allocatable :: eps_dev_pl
+        ! Nodes fields
+        real(fpp), dimension(:,:), allocatable :: displ, veloc, accel
+        real(fpp), dimension(:)  , allocatable :: press_n
+        ! Cell fields
+        real(fpp), dimension(:)  , allocatable   :: press_c, eps_vol
+        real(fpp), dimension(:,:), allocatable   :: eps_dev, sig_dev
+        real(fpp), dimension(:), allocatable     :: P_energy, S_energy
+        real(fpp), dimension(:,:), allocatable   :: eps_dev_pl
     end type output_var_t
 
 contains
@@ -72,101 +74,101 @@ contains
         end if
     end subroutine grp_write_real_2d
 
-    subroutine grp_write_fields(Tdomain, parent_id, dim2, dim2_el,&
-        out_variables, outputs, ntot_nodes, ntot_elements)
+    subroutine grp_write_fields(Tdomain, parent_id, dim2_n, dim2_c,&
+        out_variables, outputs, ntot_nodes, ntot_cells)
 
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: parent_id
-        integer, intent(in) :: dim2,dim2_el
+        integer, intent(in) :: dim2_c,dim2_n ! Nb (N)odes and (C)ells
         type(output_var_t), intent(in) :: outputs
         integer, dimension(0:), intent(in) :: out_variables
-        integer, intent(out) :: ntot_nodes,ntot_elements
+        integer, intent(out) :: ntot_nodes,ntot_cells
         !
         integer(HID_T) :: dset_id
-        real, dimension(:,:), allocatable :: all_data_2d
-        real, dimension(:), allocatable :: all_data_1d,all_data_1d_el
-        integer, dimension(:), allocatable :: displs, displs_el
-        integer, dimension(:), allocatable :: counts, counts_el
+        real, dimension(:,:), allocatable :: all_data_2d_n
+        real, dimension(:), allocatable :: all_data_1d_n, all_data_1d_c
+        integer, dimension(:), allocatable :: displs_n, displs_c
+        integer, dimension(:), allocatable :: counts_n, counts_c
         integer :: n
         integer(HSIZE_T), dimension(2) :: dims
         integer :: hdferr, ierr
 
         if (Tdomain%output_rank==0) then
-            allocate(displs(0:Tdomain%nb_output_procs-1))
-            allocate(displs_el(0:Tdomain%nb_output_procs-1))
-            allocate(counts(0:Tdomain%nb_output_procs-1))
-            allocate(counts_el(0:Tdomain%nb_output_procs-1)) 
+            allocate(displs_n(0:Tdomain%nb_output_procs-1))
+            allocate(displs_c(0:Tdomain%nb_output_procs-1))
+            allocate(counts_n(0:Tdomain%nb_output_procs-1))
+            allocate(counts_c(0:Tdomain%nb_output_procs-1))
         end if
-        call MPI_Gather(dim2, 1, MPI_INTEGER, counts, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
-        call MPI_Gather(dim2_el, 1, MPI_INTEGER, counts_el, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+        call MPI_Gather(dim2_n, 1, MPI_INTEGER, counts_n, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+        call MPI_Gather(dim2_c, 1, MPI_INTEGER, counts_c, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
         ! 1D FIELDS-NOEUD
         ntot_nodes = 0
-        ntot_elements = 0
+        ntot_cells = 0
         if (Tdomain%output_rank==0) then
             do n=0, Tdomain%nb_output_procs-1
-                displs(n)     = ntot_nodes
-                displs_el(n)  = ntot_elements
-                ntot_nodes    = ntot_nodes+counts(n)
-                ntot_elements = ntot_elements+counts_el(n)
+                displs_n(n)   = ntot_nodes
+                displs_c(n)   = ntot_cells
+                ntot_nodes    = ntot_nodes + counts_n(n)
+                ntot_cells    = ntot_cells + counts_c(n)
             end do
-            allocate(all_data_1d(0:ntot_nodes-1))
-            allocate(all_data_1d_el(0:ntot_elements-1))
+            allocate(all_data_1d_n(0:ntot_nodes-1))
+            allocate(all_data_1d_c(0:ntot_cells-1))
         end if
 
         ! P_ENERGY
         if (out_variables(OUT_ENERGYP) == 1) then
-            call MPI_Gatherv(outputs%P_energy, dim2_el, MPI_DOUBLE_PRECISION, &
-                all_data_1d_el, counts_el, displs_el, MPI_DOUBLE_PRECISION, 0,&
+            call MPI_Gatherv(outputs%P_energy, dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, MPI_DOUBLE_PRECISION, 0,&
                 Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "P_energy", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
         ! S_ENERGY
         if (out_variables(OUT_ENERGYS) == 1) then
-            call MPI_Gatherv(outputs%S_energy, dim2_el, MPI_DOUBLE_PRECISION, &
-                all_data_1d_el, counts_el, displs_el,MPI_DOUBLE_PRECISION, 0, &
+            call MPI_Gatherv(outputs%S_energy, dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c,MPI_DOUBLE_PRECISION, 0, &
                 Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "S_energy", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
         ! VOL_EPS
         if (out_variables(OUT_EPS_VOL) == 1) then
-            call MPI_Gatherv(outputs%eps_vol, dim2_el, MPI_DOUBLE_PRECISION, &
-                all_data_1d_el, counts_el, displs_el,MPI_DOUBLE_PRECISION, 0,&
+            call MPI_Gatherv(outputs%eps_vol, dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c,MPI_DOUBLE_PRECISION, 0,&
                 Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "eps_vol", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
         ! PRESSION
         if (out_variables(OUT_PRESSION) == 1) then
-            call MPI_Gatherv(outputs%press_elem, dim2_el, MPI_DOUBLE_PRECISION, &
-                all_data_1d_el, counts_el, displs_el, MPI_DOUBLE_PRECISION, 0,&
+            call MPI_Gatherv(outputs%press_c, dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, MPI_DOUBLE_PRECISION, 0,&
                 Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "press_elem", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
-            call MPI_Gatherv(outputs%press_gll, dim2, MPI_DOUBLE_PRECISION, &
-                all_data_1d, counts, displs, MPI_DOUBLE_PRECISION, 0,&
+            call MPI_Gatherv(outputs%press_n, dim2_n, MPI_DOUBLE_PRECISION, &
+                all_data_1d_n, counts_n, displs_n, MPI_DOUBLE_PRECISION, 0,&
                 Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "press_gll", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_n, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -174,113 +176,125 @@ contains
         ! EPS_DEV
         if (out_variables(OUT_EPS_DEV) == 1) then
             ! EPS_DEV_XX
-            call MPI_Gatherv(outputs%eps_dev(0,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%eps_dev(0,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "eps_dev_xx", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! EPS_DEV_YY
-            call MPI_Gatherv(outputs%eps_dev(1,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%eps_dev(1,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "eps_dev_yy", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! EPS_DEV_ZZ
-            call MPI_Gatherv(outputs%eps_dev(2,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%eps_dev(2,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "eps_dev_zz", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! EPS_DEV_XY
-            call MPI_Gatherv(outputs%eps_dev(3,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%eps_dev(3,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "eps_dev_xy", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! EPS_DEV_XZ
-            call MPI_Gatherv(outputs%eps_dev(4,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%eps_dev(4,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "eps_dev_xz", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! EPS_DEV_YZ
-            call MPI_Gatherv(outputs%eps_dev(5,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%eps_dev(5,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "eps_dev_yz", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
 
             if (out_variables(OUT_EPS_DEV_PL) == 1) then
                 ! EPS_DEV_PL_XX
-                call MPI_Gatherv(outputs%eps_dev_pl(0,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+                call MPI_Gatherv(outputs%eps_dev_pl(0,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                    all_data_1d_c, counts_c, displs_c, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_elements
+                    dims(1) = ntot_cells
                     call create_dset(parent_id, "eps_dev_pl_xx", H5T_IEEE_F32LE, dims(1), dset_id)
-                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
                 end if
                 ! EPS_DEV_PL_YY
-                call MPI_Gatherv(outputs%eps_dev_pl(1,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+                call MPI_Gatherv(outputs%eps_dev_pl(1,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                    all_data_1d_c, counts_c, displs_c, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_elements
+                    dims(1) = ntot_cells
                     call create_dset(parent_id, "eps_dev_pl_yy", H5T_IEEE_F32LE, dims(1), dset_id)
-                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
                 end if
                 ! EPS_DEV_PL_ZZ
-                call MPI_Gatherv(outputs%eps_dev_pl(2,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+                call MPI_Gatherv(outputs%eps_dev_pl(2,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                    all_data_1d_c, counts_c, displs_c, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_elements
+                    dims(1) = ntot_cells
                     call create_dset(parent_id, "eps_dev_pl_zz", H5T_IEEE_F32LE, dims(1), dset_id)
-                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
                 end if
                 ! EPS_DEV_PL_XY
-                call MPI_Gatherv(outputs%eps_dev_pl(3,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+                call MPI_Gatherv(outputs%eps_dev_pl(3,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                    all_data_1d_c, counts_c, displs_c, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_elements
+                    dims(1) = ntot_cells
                     call create_dset(parent_id, "eps_dev_pl_xy", H5T_IEEE_F32LE, dims(1), dset_id)
-                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
                 end if
                 ! EPS_DEV_PL_XZ
-                call MPI_Gatherv(outputs%eps_dev_pl(4,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+                call MPI_Gatherv(outputs%eps_dev_pl(4,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                    all_data_1d_c, counts_c, displs_c, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_elements
+                    dims(1) = ntot_cells
                     call create_dset(parent_id, "eps_dev_pl_xz", H5T_IEEE_F32LE, dims(1), dset_id)
-                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
                 end if
                 ! EPS_DEV_PL_YZ
-                call MPI_Gatherv(outputs%eps_dev_pl(5,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+                call MPI_Gatherv(outputs%eps_dev_pl(5,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                    all_data_1d_c, counts_c, displs_c, &
                     MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
                 if (Tdomain%output_rank==0) then
-                    dims(1) = ntot_elements
+                    dims(1) = ntot_cells
                     call create_dset(parent_id, "eps_dev_pl_yz", H5T_IEEE_F32LE, dims(1), dset_id)
-                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                     call h5dclose_f(dset_id, hdferr)
                 end if
             end if
@@ -288,57 +302,63 @@ contains
 
         if (out_variables(OUT_STRESS_DEV) == 1) then
             ! SIG_DEV_XX
-            call MPI_Gatherv(outputs%sig_dev(0,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%sig_dev(0,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "sig_dev_xx", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! SIG_DEV_YY
-            call MPI_Gatherv(outputs%sig_dev(1,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%sig_dev(1,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "sig_dev_yy", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! SIG_DEV_ZZ
-            call MPI_Gatherv(outputs%sig_dev(2,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%sig_dev(2,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "sig_dev_zz", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! SIG_DEV_XY
-            call MPI_Gatherv(outputs%sig_dev(3,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%sig_dev(3,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "sig_dev_xy", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! SIG_DEV_XZ
-            call MPI_Gatherv(outputs%sig_dev(4,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%sig_dev(4,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "sig_dev_xz", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
             ! SIG_DEV_YZ
-            call MPI_Gatherv(outputs%sig_dev(5,:), dim2_el, MPI_DOUBLE_PRECISION, all_data_1d_el, counts_el, displs_el, &
+            call MPI_Gatherv(outputs%sig_dev(5,:), dim2_c, MPI_DOUBLE_PRECISION, &
+                all_data_1d_c, counts_c, displs_c, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
-                dims(1) = ntot_elements
+                dims(1) = ntot_cells
                 call create_dset(parent_id, "sig_dev_yz", H5T_IEEE_F32LE, dims(1), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_el, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d_c, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -346,57 +366,60 @@ contains
         ! 3D FIELDS
         if (Tdomain%output_rank==0) then
             do n=0, Tdomain%nb_output_procs-1
-                displs(n) = displs(n)*3
-                counts(n) = counts(n)*3
+                displs_n(n) = displs_n(n)*3
+                counts_n(n) = counts_n(n)*3
             end do
-            allocate(all_data_2d(0:2,0:ntot_nodes-1))
+            allocate(all_data_2d_n(0:2,0:ntot_nodes-1))
         end if
 
         ! VELOCITY
         if (out_variables(OUT_VITESSE) == 1) then
-            call MPI_Gatherv(outputs%veloc, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
+            call MPI_Gatherv(outputs%veloc, 3*dim2_n, MPI_DOUBLE_PRECISION, &
+                all_data_2d_n, counts_n, displs_n, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
                 dims(1) = 3
                 dims(2) = ntot_nodes
                 call create_dset_2d(parent_id, "veloc", H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d_n, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
         ! DISPLACEMENT
         if (out_variables(OUT_DEPLA) == 1) then
-            call MPI_Gatherv(outputs%displ, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
+            call MPI_Gatherv(outputs%displ, 3*dim2_n, MPI_DOUBLE_PRECISION, &
+                all_data_2d_n, counts_n, displs_n, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
                 dims(1) = 3
                 dims(2) = ntot_nodes
                 call create_dset_2d(parent_id, "displ", H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d_n, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
 
         ! ACCELERATION
         if (out_variables(OUT_ACCEL) == 1) then
-            call MPI_Gatherv(outputs%accel, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
+            call MPI_Gatherv(outputs%accel, 3*dim2_n, MPI_DOUBLE_PRECISION, &
+                all_data_2d_n, counts_n, displs_n, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
                 dims(1) = 3
                 dims(2) = ntot_nodes
                 call create_dset_2d(parent_id, "accel", H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
-                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
+                call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d_n, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
         if (Tdomain%output_rank==0) then
-            deallocate(all_data_1d)
-            deallocate(all_data_2d)
-            deallocate(displs)
-            deallocate(counts)
-            deallocate(all_data_1d_el)
-            deallocate(displs_el)
-            deallocate(counts_el)
+            deallocate(all_data_1d_n)
+            deallocate(all_data_2d_n)
+            deallocate(all_data_1d_c)
+            deallocate(displs_n)
+            deallocate(counts_n)
+            deallocate(displs_c)
+            deallocate(counts_c)
         end if
 
     end subroutine grp_write_fields
@@ -532,17 +555,17 @@ contains
         end if
     end subroutine grp_write_real_1d
 
-    subroutine compute_saved_elements(Tdomain, irenum, nnodes, nsubelements, domains)
+    subroutine compute_saved_elements(Tdomain, irenum, nnodes, ncells, domains)
         type (domain), intent (INOUT):: Tdomain
         integer, allocatable, dimension(:), intent(out) :: irenum ! maps Iglobnum to file node number
-        integer, intent(out) :: nnodes,nsubelements
+        integer, intent(out) :: nnodes, ncells
         integer :: n, i, j, k, ngll, ig, gn, ne
         !
         integer :: count
         integer :: ierr, domain_type, imat
         integer, dimension(:), allocatable, intent(out) :: domains
         ! on sauvegarde nsubelements a la place de le calculer
-        nsubelements = Tdomain%n_hexa_local 
+        ncells = Tdomain%n_hexa_local
         allocate(irenum(0:Tdomain%n_glob_points-1))
 
         irenum = -1
@@ -717,10 +740,10 @@ contains
         integer(HID_T), intent(in) :: fid
 
         integer :: ngllx, nglly, ngllz
-        integer(HSIZE_T), dimension(2) :: dims
+
         real, dimension(:), allocatable :: En_S_int, En_P_int
         integer :: count
-        integer :: i, j, k, n, nb_elem
+        integer :: i, j, k, n
 
         allocate( En_P_int(0:Tdomain%n_hexa_local-1))
         allocate( En_S_int(0:Tdomain%n_hexa_local-1))
@@ -895,11 +918,11 @@ contains
 
     subroutine allocate_fields(nnodes, nsubelements, out_flags, fields, nl_flag)
         type (output_var_t), intent(inout) :: fields
-        integer, dimension(0:8), intent(in) :: out_flags
+        integer, dimension(0:N_OUT_VARS-1), intent(in) :: out_flags
         integer, intent(in) :: nnodes,nsubelements
         logical, intent(in) :: nl_flag
         logical :: flag_gradU
-        
+
         if (nl_flag) then
             flag_gradU = (out_flags(OUT_ENERGYP)     + &
                           out_flags(OUT_ENERGYS)     + &
@@ -916,12 +939,12 @@ contains
         if (out_flags(OUT_DEPLA     ) == 1) allocate(fields%displ(0:2,0:nnodes-1))
         if (out_flags(OUT_VITESSE   ) == 1) allocate(fields%veloc(0:2,0:nnodes-1))
         if (out_flags(OUT_ACCEL     ) == 1) allocate(fields%accel(0:2,0:nnodes-1))
-        if (out_flags(OUT_PRESSION  ) == 1) allocate(fields%press_gll(0:nnodes-1))
+        if (out_flags(OUT_PRESSION  ) == 1) allocate(fields%press_n(0:nnodes-1))
         ! sortie par element
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(fields%P_energy(0:nsubelements-1))
         if (out_flags(OUT_ENERGYS   ) == 1) allocate(fields%S_energy(0:nsubelements-1))
         if (out_flags(OUT_EPS_VOL   ) == 1) allocate(fields%eps_vol(0:nsubelements-1))
-        if (out_flags(OUT_PRESSION  ) == 1) allocate(fields%press_elem(0:nsubelements-1))
+        if (out_flags(OUT_PRESSION  ) == 1) allocate(fields%press_c(0:nsubelements-1))
         if (out_flags(OUT_EPS_DEV   ) == 1) allocate(fields%eps_dev(0:5,0:nsubelements-1))
         if (out_flags(OUT_STRESS_DEV) == 1) allocate(fields%sig_dev(0:5,0:nsubelements-1))
         if (out_flags(OUT_EPS_DEV_PL) == 1) allocate(fields%eps_dev_pl(0:5,0:nsubelements-1))
@@ -932,8 +955,8 @@ contains
         if (out_flags(OUT_ENERGYP   ) == 1) fields%P_energy   = 0.
         if (out_flags(OUT_ENERGYS   ) == 1) fields%S_energy   = 0.
         if (out_flags(OUT_EPS_VOL   ) == 1) fields%eps_vol    = 0.
-        if (out_flags(OUT_PRESSION  ) == 1) fields%press_elem = 0.
-        if (out_flags(OUT_PRESSION  ) == 1) fields%press_gll  = 0.
+        if (out_flags(OUT_PRESSION  ) == 1) fields%press_c    = 0.
+        if (out_flags(OUT_PRESSION  ) == 1) fields%press_n    = 0.
         if (out_flags(OUT_EPS_DEV   ) == 1) fields%eps_dev    = 0.
         if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev    = 0.
         if (out_flags(OUT_EPS_DEV_PL) == 1) fields%eps_dev_pl = 0.
@@ -952,8 +975,8 @@ contains
         if (out_flags(OUT_ENERGYP   ) == 1) deallocate(fields%P_energy)
         if (out_flags(OUT_ENERGYS   ) == 1) deallocate(fields%S_energy)
         if (out_flags(OUT_EPS_VOL   ) == 1) deallocate(fields%eps_vol)
-        if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_elem)
-        if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_gll)
+        if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_c)
+        if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_n)
         if (out_flags(OUT_EPS_DEV   ) == 1) deallocate(fields%eps_dev)
         if (out_flags(OUT_STRESS_DEV) == 1) deallocate(fields%sig_dev)
         if (out_flags(OUT_EPS_DEV_PL) == 1) deallocate(fields%eps_dev_pl)
@@ -1016,36 +1039,37 @@ contains
         end do
     end subroutine apply_integrated_value_on_output
 
-    subroutine evaluate_cell_centers(ngll, gllc, count_subel, input_field, output_field)
+    subroutine evaluate_cell_centers(ngll, gllc, start, input_field, output_field)
         ! intent IN
         integer, intent(in)                             :: ngll
         real(fpp), intent(in), dimension(0:,0:,0:)      :: input_field
         real(fpp), intent(in), dimension(0:)            :: gllc
+        integer, intent(in) :: start
         ! intent INOUT
-        integer, intent(inout)                  :: count_subel                
         real(fpp), dimension(0:), intent(inout) :: output_field
         !
-        integer         :: i, j, k
+        integer         :: i, j, k, idx
         real(fpp)       :: xi, eta, zeta
         !
-        
+
+        idx = 0
         do k=0,ngll-2
             zeta = .5d0 * (gllc(k)+gllc(k+1))
             do j=0,ngll-2
                 eta = .5d0 * (gllc(j)+gllc(j+1))
                 do i = 0,ngll-2
                     xi = .5d0 * (gllc(i)+gllc(i+1))
-                    output_field(count_subel) = evaluate_field(ngll,gllc,xi,eta,zeta,input_field)
-                    count_subel = count_subel+1
+                    output_field(start+idx) = evaluate_field(ngll,gllc,xi,eta,zeta,input_field)
+                    idx = idx + 1
                 end do
             end do
         end do
         !
-        return  
+        return
         !
     end subroutine evaluate_cell_centers
-    
-    function evaluate_field(ngll,gllc,xi,eta,zeta,field) result(r) 
+
+    function evaluate_field(ngll,gllc,xi,eta,zeta,field) result(r)
         ! intent IN
         integer,   intent(in)                           :: ngll
         real(fpp)                                       :: xi, eta, zeta
@@ -1054,7 +1078,7 @@ contains
         !intent OUT
         real(fpp) :: r, weight
         real(fpp), dimension(0:ngll-1) :: outx, outy, outz
-        real(fpp) :: i,j,k
+        integer :: i,j,k
         !
         r = 0.0d0
         do i=0,ngll-1
@@ -1062,7 +1086,7 @@ contains
             call pol_lagrange(ngll,gllc,i,eta ,outy(i)) ! P_i(eta)
             call pol_lagrange(ngll,gllc,i,zeta,outz(i)) ! P_i(zeta)
         end do
-        
+
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
@@ -1097,7 +1121,7 @@ contains
         integer :: ngll
         integer :: i, j, k, n, m, ind
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
-        integer :: nnodes, nsubelements, group, nnodes_tot,nelements_tot
+        integer :: nnodes, ncells, group, nnodes_tot,nelements_tot
         integer, dimension(:), allocatable :: domains
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
@@ -1110,34 +1134,24 @@ contains
         integer :: bnum, ee
         real, dimension(:), allocatable :: GLLc ! GLLw
         real(fpp), dimension(:,:,:), allocatable :: jac
-        real(fpp) :: integral_value
 
         integer, dimension(0:size(Tdomain%out_variables)-1) :: out_variables
         logical :: nl_flag
-        integer :: ierr
-        integer :: count_press_elem
-        integer :: count_eps_vol,count_P_energy,count_S_energy
-        integer,dimension(0:5) :: count_eps_dev,count_eps_dev_pl,count_sig_dev
+
+        integer :: cell_start
 
         nl_flag=Tdomain%nl_flag
 
         out_variables(:) = Tdomain%out_variables(:)
 
         call create_dir_sorties(Tdomain, isort)
-        call compute_saved_elements(Tdomain, irenum, nnodes, nsubelements, domains)
-        call allocate_fields(nnodes, nsubelements, Tdomain%out_variables, out_fields, nl_flag)
+        call compute_saved_elements(Tdomain, irenum, nnodes, ncells, domains)
+        call allocate_fields(nnodes, ncells, Tdomain%out_variables, out_fields, nl_flag)
         allocate(valence(0:nnodes-1))
 
         valence(:) = 0
         ngll = 0
-        count_press_elem = 0
-        count_eps_vol = 0
-        count_P_energy = 0
-        count_S_energy = 0
-        count_eps_dev(0:5) = 0
-        count_eps_dev_pl(0:5) = 0
-        count_sig_dev(0:5) = 0
-
+        cell_start = 0
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
@@ -1148,7 +1162,7 @@ contains
                 case (DM_SOLID)
                     if (Tdomain%sdom%PlaneW%Exist) call compute_planeW_Exafield(el%lnum,Tdomain%TimeD%rtime,Tdomain)
                     call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,    &
-                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,& 
+                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
                         eps_dev, sig_dev, nl_flag, eps_dev_pl)
                 case (DM_FLUID)
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
@@ -1165,7 +1179,7 @@ contains
 
             bnum = el%lnum/VCHUNK
             ee = mod(el%lnum,VCHUNK)
-            allocate(jac(0:ngll-1,0:ngll-1,0:ngll-1)) 
+            allocate(jac(0:ngll-1,0:ngll-1,0:ngll-1))
             jac (:,:,:) = 0.0d0
             do k = 0, ngll-1
                 do j = 0, ngll-1
@@ -1189,7 +1203,7 @@ contains
                         if (out_variables(OUT_DEPLA)   == 1)  out_fields%displ(0:2,ind) = fieldU(i,j,k,0:2)
                         if (out_variables(OUT_VITESSE) == 1)  out_fields%veloc(0:2,ind) = fieldV(i,j,k,0:2)
                         if (out_variables(OUT_ACCEL)   == 1)  out_fields%accel(0:2,ind) = fieldA(i,j,k,0:2)
-                        if (out_variables(OUT_PRESSION) == 1) out_fields%press_gll(ind) = fieldP(i,j,k)
+                        if (out_variables(OUT_PRESSION) == 1) out_fields%press_n(ind) = fieldP(i,j,k)
                     enddo
                 enddo
             enddo
@@ -1197,33 +1211,34 @@ contains
             !call domain_gllw(Tdomain, domain_type, GLLw)
             call domain_gllc(Tdomain, Tdomain%specel(n)%domain, GLLc)
 
-            if (out_variables(OUT_PRESSION) == 1) then 
-                call evaluate_cell_centers(ngll, GLLc, count_press_elem, fieldP, out_fields%press_elem)
+            if (out_variables(OUT_PRESSION) == 1) then
+                call evaluate_cell_centers(ngll, GLLc, cell_start, fieldP, out_fields%press_c)
             endif
-            if (out_variables(OUT_ENERGYP) == 1) then 
-                call evaluate_cell_centers(ngll, GLLc, count_P_energy, P_energy, out_fields%P_energy)
+            if (out_variables(OUT_ENERGYP) == 1) then
+                call evaluate_cell_centers(ngll, GLLc, cell_start, P_energy, out_fields%P_energy)
             endif
-            if (out_variables(OUT_ENERGYS) == 1) then 
-                call evaluate_cell_centers(ngll, GLLc, count_S_energy, S_energy, out_fields%S_energy)
+            if (out_variables(OUT_ENERGYS) == 1) then
+                call evaluate_cell_centers(ngll, GLLc, cell_start, S_energy, out_fields%S_energy)
             endif
-            if (out_variables(OUT_EPS_VOL) == 1) then 
-                call evaluate_cell_centers(ngll, GLLc, count_eps_vol, eps_vol, out_fields%eps_vol)  
+            if (out_variables(OUT_EPS_VOL) == 1) then
+                call evaluate_cell_centers(ngll, GLLc, cell_start, eps_vol, out_fields%eps_vol)
             endif
             if (out_variables(OUT_EPS_DEV) == 1) then
-                do m = 0,OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1 
-                    call evaluate_cell_centers(ngll, GLLc, count_eps_dev(m), eps_dev(:,:,:,m), out_fields%eps_dev(m,:))    
+                do m = 0,OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1
+                    call evaluate_cell_centers(ngll, GLLc, cell_start, eps_dev(:,:,:,m), out_fields%eps_dev(m,:))
                 end do
             endif
             if (out_variables(OUT_EPS_DEV_PL) == 1) then
-                do m = 0,OUT_VAR_DIMS_3D(OUT_EPS_DEV_PL)-1 
-                    call evaluate_cell_centers(ngll, GLLc, count_eps_dev_pl(m), eps_dev_pl(:,:,:,m), out_fields%eps_dev_pl(m,:))    
+                do m = 0,OUT_VAR_DIMS_3D(OUT_EPS_DEV_PL)-1
+                    call evaluate_cell_centers(ngll, GLLc, cell_start, eps_dev_pl(:,:,:,m), out_fields%eps_dev_pl(m,:))
                 end do
             endif
-            if (out_variables(OUT_STRESS_DEV) == 1) then 
-                do m = 0,OUT_VAR_DIMS_3D(OUT_STRESS_DEV)-1 
-                    call evaluate_cell_centers(ngll, GLLc, count_sig_dev(m), sig_dev(:,:,:,m), out_fields%sig_dev(m,:))    
+            if (out_variables(OUT_STRESS_DEV) == 1) then
+                do m = 0,OUT_VAR_DIMS_3D(OUT_STRESS_DEV)-1
+                    call evaluate_cell_centers(ngll, GLLc, cell_start, sig_dev(:,:,:,m), out_fields%sig_dev(m,:))
                 end do
             endif
+            cell_start = cell_start + (ngll-1)**3
             if(allocated(jac)) deallocate(jac)
             if(allocated(GLLc)) deallocate(GLLc)
             !if(allocated(GLLw)) deallocate(GLLw)
@@ -1246,7 +1261,7 @@ contains
         else
             fid = -1
         endif
-        call grp_write_fields(Tdomain, fid, nnodes, nsubelements, &
+        call grp_write_fields(Tdomain, fid, nnodes, ncells, &
             out_variables, out_fields, nnodes_tot, nelements_tot)
         if (Tdomain%output_rank==0) then
             call h5fclose_f(fid, hdferr)
