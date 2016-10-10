@@ -285,12 +285,7 @@ contains
         ! TODO : replace all this by fmax from read_input.c
         if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
 
-        fmax = -1.
-        do nsrc = 0, Tdomain%n_source -1
-            if (fmax < Tdomain%sSource(nsrc)%cutoff_freq) then
-                fmax = Tdomain%sSource(nsrc)%cutoff_freq
-            end if
-        end do
+        fmax = Tdomain%TimeD%fmax
         if (fmax < 0.) stop "SolidCPML : fmax < 0."
         dom%alphamax = M_PI * fmax
     end subroutine init_domain_solidpml
