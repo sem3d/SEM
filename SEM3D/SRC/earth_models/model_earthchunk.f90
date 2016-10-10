@@ -278,9 +278,6 @@ contains
             return
         end if
 
-        !write(*,*) "OK"
-
-
         is_modelOpenQ=.true.
 
         allocate(value_pt(0:n_lonlatPt-1))

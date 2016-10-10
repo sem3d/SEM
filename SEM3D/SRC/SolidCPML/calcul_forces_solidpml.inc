@@ -70,7 +70,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: EXY,EXZ,EYZ
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    real(fpp), parameter :: zero = 0.
     real(fpp) :: t4
 #ifdef USE_LOCAL_MEM
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8

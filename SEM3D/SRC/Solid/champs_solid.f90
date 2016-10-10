@@ -26,6 +26,18 @@ module champs_solid
 
     end type champssolid
 
+    type :: lmc_param ! LAMAITRE & CHABOCHE NONLINEAR PARAMETERS
+        real, dimension (:,:,:,:,:), allocatable :: m_biso
+        real, dimension (:,:,:,:,:), allocatable :: m_rinf
+        real, dimension (:,:,:,:,:), allocatable :: m_ckin
+        real, dimension (:,:,:,:,:), allocatable :: m_kkin
+        real, dimension (:,:,:,:,:), allocatable :: m_syld
+    end type lmc_param
+
+    type :: nl_parameters  ! STRUCTURE CONTAINING NL PARAMETER SETS
+        type(lmc_param), allocatable :: LMC
+    end type nl_parameters
+    
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
     type, extends(dombase) :: domain_solid
         ! D'abord, les données membres qui ne sont pas modifiées
@@ -66,6 +78,14 @@ module champs_solid
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_onemPbeta
         ! for plane waves
         type(PWfield)                                  :: PlaneW
+        ! Lemaitre-Chaboche non linear model
+        integer :: nl_law
+        type(nl_parameters),allocatable :: nl_param
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_radius
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_stress 
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_center
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_strain
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_plstrain
     end type domain_solid
 
     contains

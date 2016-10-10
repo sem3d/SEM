@@ -97,7 +97,6 @@ contains
 
         ! Elements (material and solid or fluid and if fluid: Dirichlet boundary?)
         call read_dataset(fid, "material", itemp)
-
         if (Tdomain%n_elem /= size(itemp)) then
             write(*,*) "N_elem:", Tdomain%n_elem
             write(*,*) "itemp:", size(itemp)
@@ -397,6 +396,7 @@ contains
         call init_interface(Tdomain%SF%intSolFluPml)
 
         call read_mesh_attributes(Tdomain, fid)
+
         !Subdomains allocation
         allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
         !
@@ -411,7 +411,6 @@ contains
             write(*,*) rg,"neumann (mesh file)=",neumann_log
             stop "Introduction of Neumann B.C.: mesh and input files not in coincidence."
         endif
-
 
         call read_mesh_elements(Tdomain, fid)
 
@@ -431,7 +430,6 @@ contains
         call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
         call read_surfaces(Tdomain, surf_id)
         call h5gclose_f(surf_id, hdferr)
-
         ! Interproc communications
         Tdomain%tot_comm_proc = 0
         call read_attr_int(fid, "tot_comm_proc", Tdomain%tot_comm_proc)

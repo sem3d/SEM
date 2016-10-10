@@ -179,8 +179,8 @@ contains
             end if
             !if(prodNFields == 1) extLoc = .false.
             call MPI_COMM_SPLIT(IPT%comm, loc_group, IPT%rang, loc_Comm, code)
-            write(*,*) "code loc_Comm = ", code
-            write(*,*) "loc_Comm = ", loc_Comm
+            !write(*,*) "code loc_Comm = ", code
+            !write(*,*) "loc_Comm = ", loc_Comm
             call MPI_COMM_RANK(loc_Comm, loc_rang, code)
 
             !DEFINING GROUPS AND COMMUNICATORS FOR GENERATION
@@ -192,8 +192,8 @@ contains
                 gen_groupMax = 1 !No ExtLoc
             end if
             call MPI_COMM_SPLIT(IPT%comm, gen_group, IPT%rang, gen_Comm, code)
-            write(*,*) "code gen_Comm = ", code
-            write(*,*) "gen_Comm = ", gen_Comm
+            !write(*,*) "code gen_Comm = ", code
+            !write(*,*) "gen_Comm = ", gen_Comm
             call MPI_COMM_SIZE(gen_Comm, gen_nbProcs, code)
             call MPI_COMM_RANK(gen_Comm, gen_rang, code)
 

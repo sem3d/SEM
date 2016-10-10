@@ -29,7 +29,8 @@ typedef enum {
     MD_YOUNG_POISSON_RHO,
     MD_LAMBDA_MU_RHO,
     MD_KAPPA_MU_RHO,
-    MD_HOOKE
+    MD_HOOKE,
+    MD_MU_SYLD_RHO,
 } material_descr_t;
 
 typedef enum {
@@ -58,7 +59,11 @@ typedef struct sem_material_t {
     // TODO
 
     // Description of NL parameters
-    // TODO
+    double syld;
+    double ckin;
+    double kkin;
+    double rinf;
+    double biso;
 
     struct sem_material_t* next;
 } sem_material_t;

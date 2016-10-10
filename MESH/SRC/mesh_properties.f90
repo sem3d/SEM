@@ -1919,23 +1919,6 @@ contains
             write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
         end if
 
-        !! Lines dedicated to Random Field
-        write(10,*) ; write(10,*)
-        count_matR = 0
-        do j = 0,nmat-1
-            if(mattab(j)=='R') then
-                open(20,file="mater.in",action="read",status="old")
-                read(20,*) nblock
-                do jj = 0,(nblock+1+count_matR)
-                    read(20,*)
-                end do
-                read(20,*)  corr, lx, ly, lz, marga ,sigma2a, margb ,sigma2b, margc ,sigma2c,seed
-                write(10,*) corr, lx, ly, lz, marga ,sigma2a, margb ,sigma2b, margc ,sigma2c,seed
-                count_matR = count_matR + 1
-                close(20)
-            end if
-        end do
-
         close(10)
 
 

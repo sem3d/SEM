@@ -86,7 +86,7 @@ contains
             CompSource = Gabor (time,Sour%tau_b,Sour%cutoff_freq,Sour%gamma,Sour%ts)
         case (5)
             !   modif pour benchmark can2
-            CompSource = Source_File (time,Sour%amplitude_factor,Sour)
+            CompSource = Source_File (time,Sour)
             !   modif pour benchmark can2
         case (6)
             ! Source benchmark spice M0*(1-(1+(t/T)**gamma)exp(-(t/T)**gamma)) avec T=1/freq
@@ -151,7 +151,7 @@ contains
         t0 = Sour%ts
         k = Sour%gamma
 
-        Source_tanh = 0.5*(tanh(k*(time-t0))+1d0)
+        Source_tanh = 0.5d0*(tanh(k*(time-t0))+1d0)
         return
     end function Source_tanh
 
@@ -190,11 +190,10 @@ contains
     end function Source_sinewave
 
     
-    real function Source_File(tt,tau,Sour)
+    real function Source_File(tt,Sour)
         implicit none
         type(source), intent(in)  :: Sour
         real, intent(in)          :: tt
-        real :: tau
         integer :: iflag, i
 
         if(tt < Sour%time(0) .or. tt > Sour%time(size(Sour%time)-1))then
@@ -208,17 +207,12 @@ contains
             if(tt >= Sour%time(i) .and. tt < Sour%time(i+1) )then
                 Source_File = Sour%ampli(i) +            &
                     (tt-Sour%time(i))*(Sour%ampli(i+1)-Sour%ampli(i))/(Sour%time(i+1)-Sour%time(i))
-                Source_File = Source_File * tau
                 iflag = 1
-!                print*,'source5 fichier ',Source_File,tau,' temps ',tt
-!                print*,' interval ',i,i+1
                 return
             else
-!                print*,' iflag ',iflag ,i
                 i = i + 1
             end if
         end do
-
 
     end function Source_File
 

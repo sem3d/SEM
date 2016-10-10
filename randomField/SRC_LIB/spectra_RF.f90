@@ -86,16 +86,16 @@ contains
 
             case(SHINOZUKA, RANDOMIZATION)
                 RDF%kDelta(:) = 2.0D0*PI/(periodMult*RDF%xRange)
-                write(*,*)" RDF%kDelta = ", RDF%kDelta
+                !write(*,*)" RDF%kDelta = ", RDF%kDelta
                 RDF%kNStep(:)   = 1 + int(kAdjust*(ceiling(RDF%kMax/RDF%kDelta(:)))); !Number of points in k
-                write(*,*)" RDF%kNStep = ", RDF%kNStep
+                !write(*,*)" RDF%kNStep = ", RDF%kNStep
                 RDF%kDelta(:) = (RDF%kMax)/(RDF%kNStep-1); !Redefining kDelta after ceiling and adjust
                 write(*,*)" RDF%kDelta = ", RDF%kDelta
 
                 allocate(kSign (2**(RDF%nDim-1), RDF%nDim));
                 call set_kSign(kSign) !Set the sign permutations for kVec
 
-                write(*,*)" kSign = ", kSign
+                !write(*,*)" kSign = ", kSign
 
                 kN_unsigned = product(int(RDF%kNStep,8));
                 RDF%kNTotal = kN_unsigned*int(size(kSign,1),8)
@@ -195,13 +195,13 @@ contains
         call wLog("RDF%corrMod")
         call wLog(RDF%corrMod)
 
-        write(*,*) "Inside set_SkVec, corrL = ", corrL
+        !write(*,*) "Inside set_SkVec, corrL = ", corrL
 
         select case(RDF%corrMod)
 
             case(cm_GAUSSIAN)
                 RDF%SkVec(:) = 1.0D0
-                write(*,*) "Gaussian Correlation Model"
+                if(RDF%rang == 0) write(*,*) "Gaussian Correlation Model"
                 call wLog("cm_GAUSSIAN")
                 do i = 1, RDF%nDim
                     RDF%SkVec(:) = RDF%SkVec(:) * corrL(i) * exp(-((RDF%kPoints(i,:)**2.0D0) * (corrL(i)**2.0D0))/(4.0d0*pi))

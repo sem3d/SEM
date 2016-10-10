@@ -1,0 +1,15 @@
+-100.    # xmin
+100.     # xmax
+20      # xstep
+-100.    # ymin
+100.     # ymax
+20      # ystep
+0.     # zmax
+3        # nb. of layers
+200. 10  # upper layer: thickness and nb of steps
+200. 10
+200. 10  # upper layer: thickness and nb of steps
+1  # PMLs? 0: no, 1: yes
+0 1  # PMLs on top? at the bottom? (0: no, 1: yes)
+7   # nb of GLL nodes in the PML
+1   # 8 or 27 control points for elements (1 or 2)
