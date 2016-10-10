@@ -2,9 +2,8 @@
 
 #define solidcpml_eps 1.e-12
 
-#define solidcpml_x(i,xi,a,b,c,bnum,ee,mi) \
-        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%sSubDomain(mi)%pml_pos(i));
 
+! xoverl = xi/pml_width
 #define solidcpml_xoverl(xyz,xi,mi) \
         xoverl = 0.; \
         if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then; \
@@ -19,19 +18,23 @@
 
 ! (A.18) from Ref1
 #define solidcpml_Li(i,a,b,c,bnum,ee,mi) \
-        solidcpml_x    (i,xi,a,b,c,bnum,ee,mi); \
-        solidcpml_kappa(i,xi,mi); \
+        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%sSubDomain(mi)%pml_pos(i)); \
+        solidcpml_xoverl(i,xi,mi); \
+        kappa(i) = dom%kappa_0 + dom%kappa_1 * xoverl; \
         Li = kappa(i)
 ! TODO : add convolution term to Li
 
 ! (A.20) from Ref1
 #define solidcpml_Lijk(i,j,k,a,b,c,bnum,ee,mi) \
-        solidcpml_x    (i,xi,a,b,c,bnum,ee,mi); \
-        solidcpml_kappa(i,xi,mi); \
-        solidcpml_x    (j,xj,a,b,c,bnum,ee,mi); \
-        solidcpml_kappa(j,xj,mi); \
-        solidcpml_x    (k,xk,a,b,c,bnum,ee,mi); \
-        solidcpml_kappa(k,xk,mi); \
+        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%sSubDomain(mi)%pml_pos(i)); \
+        solidcpml_xoverl(i,xi,mi); \
+        kappa(i) = dom%kappa_0 + dom%kappa_1 * xoverl; \
+        xj = abs(dom%GlobCoord(j,dom%Idom_(a,b,c,bnum,ee)) - dom%sSubDomain(mi)%pml_pos(j)); \
+        solidcpml_xoverl(j,xj,mi); \
+        kappa(j) = dom%kappa_0 + dom%kappa_1 * xoverl; \
+        xk = abs(dom%GlobCoord(k,dom%Idom_(a,b,c,bnum,ee)) - dom%sSubDomain(mi)%pml_pos(k)); \
+        solidcpml_xoverl(k,xk,mi); \
+        kappa(k) = dom%kappa_0 + dom%kappa_1 * xoverl; \
         if (abs(kappa(k)) < solidcpml_eps) stop "ERROR: solidcpml_Lijk"; \
         Lijk = kappa(i)*kappa(j)/kappa(k)
 ! TODO : add convolution term to Lijk

@@ -65,7 +65,8 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    real(fpp) :: xi, Li, xj, xk, Lijk, xoverl, kappa(0:2) ! solidcpml_Li, solidcpml_Lijk
+    !real(fpp) :: xi, Li, xj, xk, Lijk, xoverl, kappa(0:2) ! solidcpml_Li, solidcpml_Lijk
+    real(fpp) :: L0, L1, L2, L012, L021, L120
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: EXY,EXZ,EYZ
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
@@ -94,7 +95,15 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
+                dUx_dxi  (ee,i,j,k) = 0.0D+0;
+                dUx_deta (ee,i,j,k) = 0.0D+0;
+                dUx_dzeta(ee,i,j,k) = 0.0D+0;
+                DO L = 0, ngll-1;
+                    dUx_dxi   (ee,i,j,k)= dUx_dxi  (ee,i,j,k)+Depla(ee,L,J,K,0)*dom%hprime(L,I);
+                    dUx_deta  (ee,i,j,k)= dUx_deta (ee,i,j,k)+Depla(ee,I,L,K,0)*dom%hprime(L,J);
+                    dUx_dzeta (ee,i,j,k)= dUx_dzeta(ee,i,j,k)+Depla(ee,I,J,L,0)*dom%hprime(L,K);
+                END DO;
+!                local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
             end do
         end do
@@ -158,21 +167,27 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 mi = dom%mat_index(ee,bnum)
                 lbd = dom%Lambda_(i,j,k,bnum,ee)
                 mu = dom%Mu_(i,j,k,bnum,ee)
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1111 = (lbd+2*mu)*Lijk
-                solidcpml_Li      (2,i,j,k,bnum,ee,mi); C1122 =  lbd      *Li
-                solidcpml_Li      (1,i,j,k,bnum,ee,mi); C1133 =  lbd      *Li
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2222 = (lbd+2*mu)*Lijk
-                solidcpml_Li      (0,i,j,k,bnum,ee,mi); C2233 =  lbd      *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3333 = (lbd+2*mu)*Lijk
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2323 =        mu *Lijk
-                solidcpml_Li      (0,i,j,k,bnum,ee,mi); C2332 =        mu *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3232 =        mu *Lijk
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1313 =        mu *Lijk
-                solidcpml_Li      (1,i,j,k,bnum,ee,mi); C1331 =        mu *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3131 =        mu *Lijk
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1212 =        mu *Lijk
-                solidcpml_Li      (2,i,j,k,bnum,ee,mi); C1221 =        mu *Li
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2121 =        mu *Lijk
+                L0 = dom%Kappa(ee,0,i,j,k,bnum)
+                L1 = dom%Kappa(ee,1,i,j,k,bnum)
+                L2 = dom%Kappa(ee,2,i,j,k,bnum)
+                L120 = L1*L2/L0
+                L021 = L0*L2/L1
+                L012 = L0*L1/L2
+                C1111 = (lbd+2*mu)*L120
+                C1122 =  lbd      *L2
+                C1133 =  lbd      *L1
+                C2222 = (lbd+2*mu)*L021
+                C2233 =  lbd      *L0
+                C3333 = (lbd+2*mu)*L012
+                C2323 =        mu *L021
+                C2332 =        mu *L0
+                C3232 =        mu *L012
+                C1313 =        mu *L120
+                C1331 =        mu *L1
+                C3131 =        mu *L012
+                C1212 =        mu *L120
+                C1221 =        mu *L2
+                C2121 =        mu *L021
 
                 EXY=0.5*(DXY+DYX)
                 EXZ=0.5*(DXZ+DZX)

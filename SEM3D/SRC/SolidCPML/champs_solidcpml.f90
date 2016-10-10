@@ -43,6 +43,7 @@ module champs_solidpml
 
         ! Copy of node global coords : mandatory to compute distances in the PML
         real(fpp), allocatable, dimension(:,:) :: GlobCoord
+        real(fpp), allocatable, dimension(:,:,:,:,:,:) :: Kappa
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
