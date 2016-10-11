@@ -46,10 +46,8 @@ contains
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             
             if (nl_flag) then
-                write(*,*) "nonlinear activated!",allocated(dom%nl_param) 
                 ! nonlinear parameters
                 allocate(dom%nl_param)
-                write(*,*) allocated(dom%nl_param)  
                 allocate(dom%nl_param%LMC)
                 allocate(dom%nl_param%LMC%syld_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
                 allocate(dom%nl_param%LMC%ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
