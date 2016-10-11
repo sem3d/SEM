@@ -444,7 +444,6 @@ contains
                     aniso = .true.
                     ! XXX TODO REQUIRED ATTENTION
                 case(MATDEF_MU_SYLD_RHO)
-                    nu = mat%DNu
                     v0 = mat%DMu
                     v1 = mat%DSyld
                 end select
@@ -471,6 +470,7 @@ contains
         case(MATDEF_HOOKE_RHO)
             ! XXX TODO
         case(MATDEF_MU_SYLD_RHO)
+            nu = mat%DNu
             mu = v0
             lambda = 2.0*nu*v0/(1.0-2.0*nu)                     
         end select
