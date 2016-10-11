@@ -663,7 +663,7 @@ contains
     end subroutine get_solid_dom_elem_energy
 
 
-    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu)
+    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, nlparam)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -671,6 +671,7 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: nlparam
         
         !
         integer :: bnum, ee
@@ -681,7 +682,7 @@ contains
         dom%Lambda_ (:,:,:,bnum,ee) = lambda
         dom%Mu_     (:,:,:,bnum,ee) = mu
         if (mat%deftype==MATDEF_MU_SYLD_RHO) then
-            dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = mat%DSyld
+            dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = nlparam
             dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mat%DCkin
             dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = mat%DKkin
             dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%DRinf 

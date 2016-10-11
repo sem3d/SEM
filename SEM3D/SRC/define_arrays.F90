@@ -412,7 +412,7 @@ contains
         type(element), intent(inout) :: specel
         type(subdomain), intent(in) :: mat
         !
-        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu, syld
         real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
         logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
@@ -451,15 +451,19 @@ contains
 
         select case(mat%deftype)
         case(MATDEF_VP_VS_RHO)
+            syld = 0d0
             mu = rho * v1**2
             lambda = rho*(v0**2 - 2d0 *v1**2)
         case(MATDEF_E_NU_RHO)
+            syld = 0d0
             lambda = v0*v1/((1d0+v1)*(1d0-2d0*v1))
             mu = v0/(2d0*(1d0+v1))
         case(MATDEF_LAMBDA_MU_RHO)
+            syld = 0d0
             lambda = v0
             mu = v1
         case(MATDEF_KAPPA_MU_RHO)
+            syld = 0d0
             mu = v1
             lambda = v0 - 2d0*mu/3d0
         case(MATDEF_HOOKE_RHO)
@@ -467,12 +471,13 @@ contains
         case(MATDEF_MU_SYLD_RHO)
             nu = mat%DNu
             mu = v0
+            syld = v1
             lambda = 2.0*nu*v0/(1.0-2.0*nu)                     
         end select
 
         select case (specel%domain)
         case (DM_SOLID)
-            call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu)
+            call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,syld)
         case (DM_FLUID)
             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
         case (DM_SOLID_PML)
