@@ -59,7 +59,7 @@ module champs_solidpml
         real(fpp) :: c(0:2)
         integer   :: n(0:2)
         real(fpp) :: rc
-        integer   :: kappa_0, kappa_1
+        real(fpp) :: kappa_0, kappa_1
         real(fpp) :: alphamax
 
     end type domain_solidpml
