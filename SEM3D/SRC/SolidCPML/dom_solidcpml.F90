@@ -251,7 +251,7 @@ contains
         integer :: i,j,k, indL, indG
         ! Handle on node global coords : mandatory to compute distances in the PML (compute_alpha_beta_kappa)
         ! TODO precompute usefull coeffs instead of copying coords...
-        allocate(dom%GlobCoord(0:2,dom%nglltot))
+        allocate(dom%GlobCoord(0:2,0:dom%nglltot-1))
         do n=0,Tdomain%n_elem-1
             if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
             do k = 0,dom%ngll-1
