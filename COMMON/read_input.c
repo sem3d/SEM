@@ -265,8 +265,12 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
         tok = skip_blank(scanner);
         if (tok!=K_ID) break;
 
-	// TODO
-	if (cmp(scanner,"pml_type")) err=expect_eq_keyword(scanner, kw_pml_type, &config->pml_type);
+        // TODO
+        if (cmp(scanner,"pml_type")) err=expect_eq_keyword(scanner, kw_pml_type, &config->pml_type);
+        if (cmp(scanner,"cpml_n")) err=expect_eq_int(scanner, &config->cpml_n, 1);
+        if (cmp(scanner,"cpml_rc")) err=expect_eq_float(scanner, &config->cpml_rc, 1);
+        if (cmp(scanner,"cpml_kappa0")) err=expect_eq_float(scanner, &config->cpml_kappa0, 1);
+        if (cmp(scanner,"cpml_kappa1")) err=expect_eq_float(scanner, &config->cpml_kappa1, 1);
 
         if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -772,6 +776,12 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[9]  = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
     cfg->out_variables[10] = 0; // Deformation Dev Pl
     cfg->nl_flag = 0; // calcul nonlineaire
+
+    // CPML
+    cfg->cpml_kappa0 = 1.;
+    cfg->cpml_kappa1 = 0.;
+    cfg->cpml_n = 2;
+    cfg->cpml_rc = 0.001;
 }
 
 

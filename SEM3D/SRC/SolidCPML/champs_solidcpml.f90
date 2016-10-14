@@ -58,7 +58,7 @@ module champs_solidpml
         ! CPML parameters
         real(fpp) :: c(0:2)
         integer   :: n(0:2)
-        real(fpp) :: r_c
+        real(fpp) :: rc
         integer   :: kappa_0, kappa_1
         real(fpp) :: alphamax
 
