@@ -58,8 +58,8 @@ module champs_solidpml
         ! CPML parameters
         real(fpp) :: c(0:2)
         integer   :: n(0:2)
-        real(fpp) :: r_c
-        integer   :: kappa_0, kappa_1
+        real(fpp) :: rc
+        real(fpp) :: kappa_0, kappa_1
         real(fpp) :: alphamax
 
     end type domain_solidpml

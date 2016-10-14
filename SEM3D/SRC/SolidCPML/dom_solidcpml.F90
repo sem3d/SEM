@@ -88,11 +88,12 @@ contains
         ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
         ! TODO : read parameters (kappa_* ?) from input.spec ?
 
-        dom%c = 1.
-        dom%n = 2
-        dom%r_c = 0.001
-        dom%kappa_0 = 1; dom%kappa_1 = 0;
+        dom%c(:) = 1.
+        dom%n(:) = Tdomain%config%cpml_n
+        dom%rc = Tdomain%config%cpml_rc
+        dom%kappa_0 = Tdomain%config%cpml_kappa0; dom%kappa_1 = Tdomain%config%cpml_kappa1;
         dom%alphamax = 0.
+        if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : kappa0 ", dom%kappa_0, " kappa1 ", dom%kappa_1
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
@@ -251,7 +252,7 @@ contains
         integer :: i,j,k, indL, indG
         ! Handle on node global coords : mandatory to compute distances in the PML (compute_alpha_beta_kappa)
         ! TODO precompute usefull coeffs instead of copying coords...
-        allocate(dom%GlobCoord(0:2,dom%nglltot))
+        allocate(dom%GlobCoord(0:2,0:dom%nglltot-1))
         do n=0,Tdomain%n_elem-1
             if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
             do k = 0,dom%ngll-1
@@ -330,7 +331,7 @@ contains
         d0 = 0. ! d0: (75) from Ref1
         pspeed = solidpml_pspeed(dom, lnum, i,j,k)
         if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then
-            d0 = -1.*(dom%n(xyz)+1)*Pspeed*log(dom%r_c)/log(10d0)
+            d0 = -1.*(dom%n(xyz)+1)*Pspeed*log(dom%rc)/log(10d0)
             d0 = d0/abs(2*dom%sSubDomain(mi)%pml_width(xyz))
         end if
         dxi = 0. ! dxi: (74) from Ref1

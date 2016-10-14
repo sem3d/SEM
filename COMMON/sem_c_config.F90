@@ -66,6 +66,10 @@ module sem_c_config
 
        !! PML informations
        integer(C_INT) :: pml_type
+       real(C_DOUBLE) :: cpml_kappa0
+       real(C_DOUBLE) :: cpml_kappa1
+       integer(C_INT) :: cpml_n
+       real(C_DOUBLE) :: cpml_rc
 
        !!Material
        integer(C_INT) :: material_present
