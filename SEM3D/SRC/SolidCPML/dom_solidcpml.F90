@@ -469,6 +469,29 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine finalize_solidpml_properties
 
+    subroutine select_terms(a1,a2,a3,t,t1,t2,t3)
+        real(fpp), intent(in)  :: a1, a2, a3, t
+        real(fpp), intent(out) :: t1, t2, t3
+        t1 = 1d0
+        if (a2==a1) then
+            t2 = t
+        else
+            t2 = 1d0
+        end if
+        if (a3==a1) then
+            if (a3==a2) then
+                t3 = t*t
+            else
+                t3 = t
+            end if
+        else
+            if (a3==a2) then
+                t3 = t
+            else
+                t3 = 1d0
+            end if
+        end if
+    end subroutine select_terms
     subroutine update_convolution_terms(dom)
         type(domain_solidpml), intent (INOUT) :: dom
         ! TODO : compute / update dom%m_R1, dom%m_R2, dom%m_R3
