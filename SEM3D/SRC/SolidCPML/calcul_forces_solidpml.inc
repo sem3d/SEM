@@ -35,8 +35,6 @@
 !!
 !!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
 
-#include "dom_solidcpml_macro.F90"
-
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
 #endif
@@ -65,7 +63,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    !real(fpp) :: xi, Li, xj, xk, Lijk, xoverl, kappa(0:2) ! solidcpml_Li, solidcpml_Lijk
     real(fpp) :: L0, L1, L2, L012, L021, L120
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: EXY,EXZ,EYZ
