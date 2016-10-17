@@ -11,7 +11,7 @@
 !!       Rene Matzen
 !!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
-#define solidcpml_eps 1.e-12
+#include "dom_solidcpml_macro.F90"
 
 module dom_solidpml
     use constants
@@ -354,9 +354,7 @@ contains
         real Whei
         !
         integer :: bnum, ee
-        real(fpp) :: g0, g1, g2
-        real(fpp) :: g101, g212, g002
-        real(fpp) :: a0b, a1b, a2b
+        real(fpp) :: g0, g1, g2, g101, g212, g002, a0b, a1b, a2b ! solidcpml_a0b_a1b_a2b
         real(fpp) :: mass_0
         integer :: mi
 
@@ -374,24 +372,15 @@ contains
         call compute_alpha_kappa_beta(dom, 2, i, j, k, bnum, ee, mi)
 
         ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
-        a0b = dom%Kappa(ee,0,i,j,k,bnum)*dom%Kappa(ee,1,i,j,k,bnum)*dom%Kappa(ee,2,i,j,k,bnum)
+        solidcpml_a0b_a1b_a2b
         mass_0 = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind) = dom%MassMat(ind) + a0b*mass_0
         if (abs(dom%MassMat(ind)) < solidcpml_eps) stop "ERROR : MassMat is null" ! Check
 
         ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
-        g0=dom%Beta(ee,0,i,j,k,bnum)-dom%Alpha(ee,0,i,j,k,bnum) ! gamma_ab defined after (12c) in Ref1
-        g1=dom%Beta(ee,1,i,j,k,bnum)-dom%Alpha(ee,1,i,j,k,bnum) ! gamma_ab defined after (12c) in Ref1
-        g2=dom%Beta(ee,2,i,j,k,bnum)-dom%Alpha(ee,2,i,j,k,bnum) ! gamma_ab defined after (12c) in Ref1
-        a1b = a0b*(g0+g1+g2)
         dom%DumpMat(ind) = dom%DumpMat(ind) + a1b*mass_0
 
         ! Delta term from L : (12a) or (14a) from Ref1
-        g101=dom%Beta(ee,1,i,j,k,bnum)-dom%Alpha(ee,0,i,j,k,bnum)-dom%Alpha(ee,1,i,j,k,bnum) ! gamma_abc defined after (12c) in Ref1
-        g212=dom%Beta(ee,2,i,j,k,bnum)-dom%Alpha(ee,1,i,j,k,bnum)-dom%Alpha(ee,2,i,j,k,bnum) ! gamma_abc defined after (12c) in Ref1
-        g002=dom%Beta(ee,0,i,j,k,bnum)-dom%Alpha(ee,0,i,j,k,bnum)-dom%Alpha(ee,2,i,j,k,bnum) ! gamma_abc defined after (12c) in Ref1
-        a2b = a0b*(g0*g101+g1*g212+g2*g002)
-
         dom%MasUMat(ind) = dom%MasUMat(ind) + a2b*mass_0
     end subroutine init_local_mass_solidpml
 
