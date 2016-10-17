@@ -104,6 +104,8 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
+        if(allocated(dom%mat_index)) deallocate(dom%mat_index)
+
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
         if(allocated(dom%champs0%Forces )) deallocate(dom%champs0%Forces )
