@@ -587,9 +587,9 @@ contains
         dom%champs1%VelocPML = dom%champs0%VelocPML + dt*(0.5-bega)*dom%champs1%ForcesPML
     end subroutine newmark_predictor_solidpml
 
-    subroutine newmark_corrector_solidpml(dom, dt)
+    subroutine newmark_corrector_solidpml(dom, dt, t)
         type(domain_solidpml), intent (INOUT) :: dom
-        double precision :: dt
+        double precision :: dt, t
         !
         integer  :: n, i_dir, indpml
 

@@ -292,13 +292,14 @@ subroutine Newmark_Corrector_S(Tdomain)
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    double precision :: dt
+    double precision :: dt, t
 
     dt = Tdomain%TimeD%dtmin
+    t = Tdomain%TimeD%rtime
     ! Si il existe des éléments PML solides
     if (Tdomain%spmldom%nglltot /= 0) then
         call stat_starttick()
-        call newmark_corrector_solidpml(Tdomain%spmldom, dt)
+        call newmark_corrector_solidpml(Tdomain%spmldom, dt, t)
         call stat_stoptick(STAT_PSOL)
     endif
 

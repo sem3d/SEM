@@ -523,9 +523,9 @@ contains
         call update_convolution_terms(dom)
     end subroutine newmark_predictor_solidpml
 
-    subroutine newmark_corrector_solidpml(dom, dt)
+    subroutine newmark_corrector_solidpml(dom, dt, t)
         type(domain_solidpml), intent (INOUT) :: dom
-        double precision :: dt
+        double precision :: dt, t
         !
         integer :: i_dir
         real(fpp) :: D(0:dom%nglltot-1), V(0:dom%nglltot-1), F(0:dom%nglltot-1) ! Displacement, Velocity, Force
