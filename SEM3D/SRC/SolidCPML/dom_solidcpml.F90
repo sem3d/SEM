@@ -517,12 +517,14 @@ contains
         !
         integer :: i_dir
         real(fpp) :: D(0:dom%nglltot-1), V(0:dom%nglltot-1), F(0:dom%nglltot-1) ! Displacement, Velocity, Force
+        real(fpp) :: a3b, a4b, a5b ! solidcpml_a3b_a4b_a5b
 
         ! Note: the solid domain use a leap-frop time scheme => we get D_n+3/2 and V_n+1
         !       to compute V_n+2, we need F_n+1. To compute F_n+1, we need D_n+1 and V_n+1
         !       D_n+1 is estimated with D_n+3/2 and V_n+1
 
         ! Update velocity: compute V_n+2
+        solidcpml_a3b_a4b_a5b
         do i_dir = 0,2
             ! Get V = V_n+1
             V(:) = dom%champs0%Veloc(:,i_dir) ! V = V_n+1
@@ -531,7 +533,7 @@ contains
             D(:) = dom%champs0%Depla(:,i_dir) - V(:)*0.5*dt
 
             ! Compute F_n+1 : (61a) from Ref1 with F = -F (as we add -Fo* in forces_int_sol_pml)
-            F(:) =   dom%R(0,:,i_dir)    + dom%R(1,:,i_dir)                          + dom%R(2,:,i_dir)          &
+            F(:) =   a3b*dom%R(0,:,i_dir) + a4b*dom%R(1,:,i_dir) + a5b*dom%R(2,:,i_dir) &
                    - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) + dom%champs1%Forces(:,i_dir)
 
             ! Compute V_n+2
