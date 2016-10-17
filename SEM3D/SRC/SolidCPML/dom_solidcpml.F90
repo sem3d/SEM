@@ -77,13 +77,9 @@ contains
             allocate(dom%MasUMat(0:dom%nglltot-1))
             dom%MasUMat = 0d0
 
-            ! Allocation des Ri pour les PML solides
-            allocate(dom%R1(0:dom%nglltot-1,0:2))
-            dom%R1 = 0d0
-            allocate(dom%R2(0:dom%nglltot-1,0:2))
-            dom%R2 = 0d0
-            allocate(dom%R3(0:dom%nglltot-1,0:2))
-            dom%R3 = 0d0
+            ! Allocation des Ri pour les PML solides (i = 0...5)
+            allocate(dom%R(0:5,0:dom%nglltot-1,0:2))
+            dom%R = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
@@ -122,9 +118,7 @@ contains
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
         if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
 
-        if(allocated(dom%R1)) deallocate(dom%R1)
-        if(allocated(dom%R2)) deallocate(dom%R2)
-        if(allocated(dom%R3)) deallocate(dom%R3)
+        if(allocated(dom%R)) deallocate(dom%R)
 
         if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
     end subroutine deallocate_dom_solidpml
@@ -498,9 +492,10 @@ contains
             end if
         end if
     end subroutine select_terms
+
     subroutine update_convolution_terms(dom)
         type(domain_solidpml), intent (INOUT) :: dom
-        ! TODO : compute / update dom%m_R1, dom%m_R2, dom%m_R3
+        ! TODO : compute / update dom%R
     end subroutine update_convolution_terms
 
     subroutine newmark_predictor_solidpml(dom, Tdomain)
@@ -548,7 +543,7 @@ contains
             D(:) = dom%champs0%Depla(:,i_dir) - V(:)*0.5*dt
 
             ! Compute F_n+1 : (61a) from Ref1 with F = -F (as we add -Fo* in forces_int_sol_pml)
-            F(:) =   dom%R1(:,i_dir)     + dom%R2(:,i_dir)                           + dom%R3(:,i_dir)           &
+            F(:) =   dom%R(0,:,i_dir)    + dom%R(1,:,i_dir)                          + dom%R(2,:,i_dir)          &
                    - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) + dom%champs1%Forces(:,i_dir)
 
             ! Compute V_n+2

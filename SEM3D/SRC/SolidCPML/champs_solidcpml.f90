@@ -51,9 +51,7 @@ module champs_solidpml
         type(champssolidpml) :: champs0 ! Etat courant
         type(champssolidpml) :: champs1 ! Prediction (à partir de l'état courant)
 
-        real(fpp), dimension(:,:), allocatable :: R1 ! Convolutional term R1 (19a) from Ref1
-        real(fpp), dimension(:,:), allocatable :: R2 ! Convolutional term R2 (19b) from Ref1
-        real(fpp), dimension(:,:), allocatable :: R3 ! Convolutional term R3 (19c) from Ref1
+        real(fpp), dimension(:,:,:), allocatable :: R ! Convolutional terms R (19*) from Ref1
 
         ! CPML parameters
         real(fpp) :: c(0:2)
