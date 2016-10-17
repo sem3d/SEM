@@ -250,7 +250,6 @@ contains
         !
         integer n, bnum, ee
         real(fpp) :: fmax
-        integer :: nsrc
         integer :: i,j,k, indL, indG
         ! Handle on node global coords : mandatory to compute distances in the PML (compute_alpha_kappa_beta)
         ! TODO precompute usefull coeffs instead of copying coords...
