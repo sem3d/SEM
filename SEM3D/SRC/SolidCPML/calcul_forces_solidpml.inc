@@ -63,7 +63,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    real(fpp), dimension(0:2) :: Li, Lijk
+    real(fpp), dimension(0:2) :: Li, Lijk, B0ijk
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: EXY,EXZ,EYZ
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
@@ -159,7 +159,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
                 dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
 
-                call compute_convolution_terms(dom, i, j, k, bnum, ee, Li, Lijk)
+                call compute_convolution_terms(dom, i, j, k, bnum, ee, B0ijk, Li, Lijk)
 
                 lbd = dom%Lambda_(i,j,k,bnum,ee)
                 mu = dom%Mu_(i,j,k,bnum,ee)
