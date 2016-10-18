@@ -40,7 +40,17 @@ module champs_solidpml
 
         ! Copy of node global coords : mandatory to compute distances in the PML
         real(fpp), allocatable, dimension(:,:) :: GlobCoord
-        real(fpp), allocatable, dimension(:,:,:,:,:,:) :: Alpha, dxi_k, Kappa ! dxi_k = dxi/kappa
+        ! We keep separate variables for the cases where we have 1, 2 or 3 attenuation directions
+        ! since we always have at least one, xxx_1 are indexed by ee,bnum
+        real(fpp), allocatable, dimension(:,:,:,:,:) :: Alpha_1, dxi_k_1, Kappa_1 ! dxi_k = dxi/kappa
+        ! for the other two cases we have much less elements (12*N and 8 in case of cube NxNxN)
+        ! so we maintain two separate indirection indices I2/I3
+        ! I2 = -1 means we have only one dir, I2>=0 and I3==-1 we have two directions, 3 otherwise
+        integer,   allocatable, dimension(:,:) :: I2, I3 ! ee, bnum
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_2, Kappa_2, dxi_k_2
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_3, Kappa_3, dxi_k_3
+        ! the number of elements with 2 (resp. 3) attenuation direction
+        integer :: dir2_count, dir3_count
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
@@ -51,13 +61,17 @@ module champs_solidpml
         ! Convolutional terms R
         ! First dimension : 0, 1, 2 <=> u, t*u, t^2*u
         ! Last  dimension : 0, 1, 2 <=> x,   y,     z
-        real(fpp), dimension(:,:,:), allocatable :: R ! Convolutional terms R (19*) from Ref1
+        ! Convolutional terms R from Ref1 for L and Lijk with only one direction of attenuation
+        ! R1 = L*u,  R2=exp(-a0t)*du/dx,  R3=exp(-b0t)*du/dx
+        ! Dimensions : R1(VS,3,N,N,N,NB) R2(VS,9,N,N,N,NB) R3(VS,9,N,N,N,NB)
+        ! with N=ngll, VS:vector size, NB : Nelements/VS
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_1, R2_1, R3_1
 
         ! CPML parameters
         real(fpp) :: c(0:2)
         integer   :: n(0:2)
         real(fpp) :: rc
-        real(fpp) :: kappa_0, kappa_1
+        real(fpp) :: cpml_kappa_0, cpml_kappa_1
         real(fpp) :: alphamax
 
     end type domain_solidpml
