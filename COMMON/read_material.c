@@ -92,12 +92,12 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
 	if (cmp(scanner,"poisson"))     err=expect_eq_float(scanner, &mat->nu, 1);
 	if (cmp(scanner,"lambda"))      err=expect_eq_float(scanner, &mat->lambda, 1);
 	if (cmp(scanner,"kappa"))       err=expect_eq_float(scanner, &mat->kappa, 1);
-    if (cmp(scanner,"mu"))          err=expect_eq_float(scanner, &mat->mu, 1);
-    if (cmp(scanner,"syld"))        err=expect_eq_float(scanner, &mat->syld, 1);
+        if (cmp(scanner,"mu"))          err=expect_eq_float(scanner, &mat->mu, 1);
+        if (cmp(scanner,"syld"))        err=expect_eq_float(scanner, &mat->syld, 1);
 	if (cmp(scanner,"ckin"))        err=expect_eq_float(scanner, &mat->ckin, 1);
 	if (cmp(scanner,"kkin"))        err=expect_eq_float(scanner, &mat->kkin, 1);
-	if (cmp(scanner,"rinf")) err=expect_eq_float(scanner,&mat->rinf,1);
-	if (cmp(scanner,"biso")) err=expect_eq_float(scanner,&mat->biso,1);
+	if (cmp(scanner,"rinf"))        err=expect_eq_float(scanner,&mat->rinf,1);
+	if (cmp(scanner,"biso"))        err=expect_eq_float(scanner,&mat->biso,1);
 	
     if (cmp(scanner,"copy")) {
             err=expect_eq_int(scanner, &nmat, 1);
