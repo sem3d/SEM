@@ -47,9 +47,9 @@ contains
         real(fpp) :: b1b, b2b, b3b
 
         ind = dom%Idom_(i,j,k,bnum,ee)
-        L0 = dom%Kappa(ee,0,i,j,k,bnum) + dom%dxi(ee,0,i,j,k,bnum)*dom%R(0,ind,0) ! 1, x
-        L1 = dom%Kappa(ee,1,i,j,k,bnum) + dom%dxi(ee,1,i,j,k,bnum)*dom%R(0,ind,1) ! 1, y
-        L2 = dom%Kappa(ee,2,i,j,k,bnum) + dom%dxi(ee,2,i,j,k,bnum)*dom%R(0,ind,2) ! 1, z
+        L0 = dom%Kappa(ee,0,i,j,k,bnum) + dom%Kappa(ee,0,i,j,k,bnum)*dom%dxi_k(ee,0,i,j,k,bnum)*dom%R(0,ind,0) ! 1, x
+        L1 = dom%Kappa(ee,1,i,j,k,bnum) + dom%Kappa(ee,1,i,j,k,bnum)*dom%dxi_k(ee,1,i,j,k,bnum)*dom%R(0,ind,1) ! 1, y
+        L2 = dom%Kappa(ee,2,i,j,k,bnum) + dom%Kappa(ee,2,i,j,k,bnum)*dom%dxi_k(ee,2,i,j,k,bnum)*dom%R(0,ind,2) ! 1, z
         b1b = 0.
         b2b = 0.
         b3b = 0.

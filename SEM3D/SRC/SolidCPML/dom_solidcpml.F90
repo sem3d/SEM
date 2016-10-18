@@ -46,7 +46,7 @@ contains
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Alpha   (0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            allocate(dom%dxi     (0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            allocate(dom%dxi_k   (0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
             allocate(dom%Kappa   (0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
         end if
 
@@ -99,7 +99,7 @@ contains
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
         if(allocated(dom%Alpha)) deallocate(dom%Alpha)
-        if(allocated(dom%dxi ))  deallocate(dom%dxi )
+        if(allocated(dom%dxi_k)) deallocate(dom%dxi_k)
         if(allocated(dom%Kappa)) deallocate(dom%Kappa)
 
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
@@ -320,12 +320,10 @@ contains
             d0 = -1.*(dom%n(xyz)+1)*Pspeed*log(dom%rc)/log(10d0)
             d0 = d0/abs(2*dom%sSubDomain(mi)%pml_width(xyz))
         end if
-        dom%dxi(ee,xyz,i,j,k,bnum) = dom%c(xyz)*d0*(xoverl)**dom%n(xyz)
-
-        dom%Alpha(ee,xyz,i,j,k,bnum) = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
 
         dom%Kappa(ee,xyz,i,j,k,bnum) = dom%kappa_0 + dom%kappa_1 * xoverl
-
+        dom%dxi_k(ee,xyz,i,j,k,bnum) = dom%c(xyz)*d0*(xoverl)**dom%n(xyz) / dom%Kappa(ee,xyz,i,j,k,bnum)
+        dom%Alpha(ee,xyz,i,j,k,bnum) = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
     end subroutine compute_dxi_alpha_kappa
 
     ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
@@ -358,9 +356,9 @@ contains
         ! gamma_abc defined after (12c) in Ref1
         ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
         a0b = dom%Kappa(ee,0,i,j,k,bnum)*dom%Kappa(ee,1,i,j,k,bnum)*dom%Kappa(ee,2,i,j,k,bnum)
-        g0=dom%dxi(ee,0,i,j,k,bnum)/dom%Kappa(ee,0,i,j,k,bnum)
-        g1=dom%dxi(ee,1,i,j,k,bnum)/dom%Kappa(ee,1,i,j,k,bnum)
-        g2=dom%dxi(ee,2,i,j,k,bnum)/dom%Kappa(ee,2,i,j,k,bnum)
+        g0=dom%dxi_k(ee,0,i,j,k,bnum)
+        g1=dom%dxi_k(ee,1,i,j,k,bnum)
+        g2=dom%dxi_k(ee,2,i,j,k,bnum)
         a1b = a0b*(g0+g1+g2)
         mass_0 = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind) = dom%MassMat(ind) + a0b*mass_0

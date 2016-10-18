@@ -35,8 +35,6 @@
 !!
 !!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
 
-#include "dom_solidcpml_macro.F90"
-
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
 #endif
