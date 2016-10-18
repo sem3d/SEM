@@ -30,6 +30,8 @@ MODULE constants
     real(KIND=8), parameter :: M_1_3 =     0.33333333333333333333D0 ! 1/3
     real(KIND=8), parameter :: zero=0.d0,one=1.0d0
     real(KIND=8), parameter :: half=0.5d0,two=2.0d0,three=3.0d0
+    real(KIND=8), parameter :: deps=1.d-12
+
     ! Constantes physiques
 
     ! Parametres systemes

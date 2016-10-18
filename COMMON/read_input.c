@@ -275,6 +275,10 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
         if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+
+    // check
+    if (config->cpml_kappa0 <= 0.) { msg_err(scanner, "cpml_kappa0 <= 0."); return 0; }
+    if (config->cpml_kappa1 <  0.) { msg_err(scanner, "cpml_kappa1 <  0."); return 0; }
     return 1;
 }
 

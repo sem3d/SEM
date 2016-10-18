@@ -38,12 +38,9 @@ module champs_solidpml
         ! Element materials
         type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
-        ! Material index
-        integer, dimension(:,:), allocatable :: mat_index
-
         ! Copy of node global coords : mandatory to compute distances in the PML
         real(fpp), allocatable, dimension(:,:) :: GlobCoord
-        real(fpp), allocatable, dimension(:,:,:,:,:,:) :: Alpha, Beta, Kappa
+        real(fpp), allocatable, dimension(:,:,:,:,:,:) :: Alpha, dxi, Kappa
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 

@@ -81,10 +81,8 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
-    integer :: mi
     real(fpp) :: lbd, mu
     real(fpp) :: C1111,C1122,C1133,C2222,C2233,C3333,C2323,C2332,C1313,C1331,C1212,C1221,C3232,C3131,C2121
-    real(fpp) :: b1b, b2b, b3b ! solidcpml_b1b_b2b_b3b
 
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -163,21 +161,10 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
                 dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
 
-                mi = dom%mat_index(ee,bnum)
+                call compute_convolution_terms(dom, i, j, k, bnum, ee, L0, L1, L2, L012, L021, L120)
+
                 lbd = dom%Lambda_(i,j,k,bnum,ee)
                 mu = dom%Mu_(i,j,k,bnum,ee)
-                L0 = dom%Kappa(ee,0,i,j,k,bnum)
-                L1 = dom%Kappa(ee,1,i,j,k,bnum)
-                L2 = dom%Kappa(ee,2,i,j,k,bnum)
-                L120 = L1*L2/L0
-                L021 = L0*L2/L1
-                L012 = L0*L1/L2
-                solidcpml_b1b_b2b_b3b
-                L120 = L1*L2/L0 + b1b*1. + b2b*1. + b3b*1.
-                solidcpml_b1b_b2b_b3b
-                L021 = L0*L2/L1 + b1b*1. + b2b*1. + b3b*1.
-                solidcpml_b1b_b2b_b3b
-                L012 = L0*L1/L2 + b1b*1. + b2b*1. + b3b*1.
                 C1111 = (lbd+2*mu)*L120
                 C1122 =  lbd      *L2
                 C1133 =  lbd      *L1

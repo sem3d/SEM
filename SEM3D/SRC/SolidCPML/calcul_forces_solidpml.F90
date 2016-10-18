@@ -36,6 +36,34 @@ contains
         end select
     end subroutine calcul_forces_solidpml
 
+    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, L0, L1, L2, L012, L021, L120)
+        use champs_solidpml
+        implicit none
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: i, j, k, bnum, ee
+        real(fpp), intent(out) :: L0, L1, L2, L012, L021, L120
+        !
+        integer :: ind
+        real(fpp) :: b1b, b2b, b3b
+
+        ind = dom%Idom_(i,j,k,bnum,ee)
+        L0 = dom%Kappa(ee,0,i,j,k,bnum) + dom%dxi(ee,0,i,j,k,bnum)*dom%R(0,ind,0) ! 1, x
+        L1 = dom%Kappa(ee,1,i,j,k,bnum) + dom%dxi(ee,1,i,j,k,bnum)*dom%R(0,ind,1) ! 1, y
+        L2 = dom%Kappa(ee,2,i,j,k,bnum) + dom%dxi(ee,2,i,j,k,bnum)*dom%R(0,ind,2) ! 1, z
+        b1b = 0.
+        b2b = 0.
+        b3b = 0.
+        L120 = L1*L2/L0 + b1b*1. + b2b*1. + b3b*1.
+        b1b = 0.
+        b2b = 0.
+        b3b = 0.
+        L021 = L0*L2/L1 + b1b*1. + b2b*1. + b3b*1.
+        b1b = 0.
+        b2b = 0.
+        b3b = 0.
+        L012 = L0*L1/L2 + b1b*1. + b2b*1. + b3b*1.
+    end subroutine compute_convolution_terms
+
 #define NGLLVAL 4
 #define PROCNAME calcul_forces_solidpml_4
 #include "calcul_forces_solidpml.inc"

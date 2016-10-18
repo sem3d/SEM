@@ -11,8 +11,6 @@
 !!       Rene Matzen
 !!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
-#include "dom_solidcpml_macro.F90"
-
 module dom_solidpml
     use constants
     use sdomain
@@ -48,10 +46,8 @@ contains
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Alpha   (0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            allocate(dom%Beta    (0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            allocate(dom%dxi     (0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
             allocate(dom%Kappa   (0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            allocate(dom%mat_index(0:VCHUNK-1, 0:nblocks-1))
-            dom%mat_index = 0 ! Must be a valid material : it will be referenced if the number of elem != multiple of VCHUNK
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -103,10 +99,8 @@ contains
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
         if(allocated(dom%Alpha)) deallocate(dom%Alpha)
-        if(allocated(dom%Beta))  deallocate(dom%Beta)
+        if(allocated(dom%dxi ))  deallocate(dom%dxi )
         if(allocated(dom%Kappa)) deallocate(dom%Kappa)
-
-        if(allocated(dom%mat_index)) deallocate(dom%mat_index)
 
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
@@ -251,7 +245,7 @@ contains
         integer n, bnum, ee
         real(fpp) :: fmax
         integer :: i,j,k, indL, indG
-        ! Handle on node global coords : mandatory to compute distances in the PML (compute_alpha_kappa_beta)
+        ! Handle on node global coords : mandatory to compute distances in the PML (compute_dxi_alpha_kappa)
         ! TODO precompute usefull coeffs instead of copying coords...
         allocate(dom%GlobCoord(0:2,0:dom%nglltot-1))
         do n=0,Tdomain%n_elem-1
@@ -269,15 +263,6 @@ contains
 
         ! Handle on materials (to get/access pml_pos and pml_width)
         dom%sSubDomain => Tdomain%sSubDomain
-
-        ! Copy material index (caution: dom%mat_index is only a subset of Tdomain%specel)
-        do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
-                bnum = Tdomain%specel(n)%lnum/VCHUNK
-                ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-                dom%mat_index(ee,bnum) = Tdomain%specel(n)%mat_index
-            end if
-        end do
 
         ! Compute alphamax (from fmax)
 
@@ -310,39 +295,38 @@ contains
         dom%Mu_     (:,:,:,bnum,ee) = mu
     end subroutine init_material_properties_solidpml
 
-    subroutine compute_alpha_kappa_beta(dom, xyz, i, j, k, bnum, ee, mi)
+    subroutine compute_dxi_alpha_kappa(dom, xyz, i, j, k, bnum, ee, mi)
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
         integer :: bnum, ee
-        integer :: mi, lnum
+        integer :: mi
         !
         real(fpp) :: xi, xoverl, dxi, d0, pspeed
+        integer :: lnum
 
-        xi = abs(dom%GlobCoord(xyz,dom%Idom_(i,j,k,bnum,ee)) - dom%sSubDomain(mi)%pml_pos(xyz));
+        ! d0: (75) from Ref1
+        ! dxi: (74) from Ref1
+        xi = abs(dom%GlobCoord(xyz,dom%Idom_(i,j,k,bnum,ee)) - dom%sSubDomain(mi)%pml_pos(xyz))
         xoverl = 0.
-        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then
+        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > deps) then
             xoverl = xi/abs(dom%sSubDomain(mi)%pml_width(xyz))
             if (xoverl > 1) xoverl = 1d0
         endif
+        lnum = bnum*VCHUNK+ee
+        pspeed = solidpml_pspeed(dom,lnum,i,j,k)
+        d0 = 0.
+        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > deps) then
+            d0 = -1.*(dom%n(xyz)+1)*Pspeed*log(dom%rc)/log(10d0)
+            d0 = d0/abs(2*dom%sSubDomain(mi)%pml_width(xyz))
+        end if
+        dom%dxi(ee,xyz,i,j,k,bnum) = dom%c(xyz)*d0*(xoverl)**dom%n(xyz)
+
         dom%Alpha(ee,xyz,i,j,k,bnum) = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
 
         dom%Kappa(ee,xyz,i,j,k,bnum) = dom%kappa_0 + dom%kappa_1 * xoverl
 
-        lnum = bnum*VCHUNK+ee
-        pspeed = solidpml_pspeed(dom, lnum, i,j,k)
-        d0 = 0. ! d0: (75) from Ref1
-        if (abs(dom%sSubDomain(mi)%pml_width(xyz)) > solidcpml_eps) then
-            d0 = -1.*(dom%n(xyz)+1)*Pspeed*log(dom%rc)/log(10d0)
-            d0 = d0/abs(2*dom%sSubDomain(mi)%pml_width(xyz))
-        end if
-        dxi = 0. ! dxi: (74) from Ref1
-        dxi = dom%c(xyz)*d0*(xoverl)**dom%n(xyz)
-        dom%Beta(ee,xyz,i,j,k,bnum) = dom%Alpha(ee,xyz,i,j,k,bnum) ! beta*: (11) from Ref1
-        if (abs(dom%Kappa(ee,xyz,i,j,k,bnum)) > solidcpml_eps) then
-          dom%Beta(ee,xyz,i,j,k,bnum) = dom%Beta(ee,xyz,i,j,k,bnum) + dxi / dom%Kappa(ee,xyz,i,j,k,bnum) ! beta*: (11) from Ref1
-        end if
-    end subroutine compute_alpha_kappa_beta
+    end subroutine compute_dxi_alpha_kappa
 
     ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
     !        attention, ceci impacte le build (compatibilité avec SolidPML)
@@ -366,20 +350,30 @@ contains
             stop "init_geometric_properties_solidpml : material is not a PML material"
 
         ! Compute alpha, beta, kappa
-        call compute_alpha_kappa_beta(dom, 0, i, j, k, bnum, ee, mi)
-        call compute_alpha_kappa_beta(dom, 1, i, j, k, bnum, ee, mi)
-        call compute_alpha_kappa_beta(dom, 2, i, j, k, bnum, ee, mi)
+        call compute_dxi_alpha_kappa(dom, 0, i, j, k, bnum, ee, mi)
+        call compute_dxi_alpha_kappa(dom, 1, i, j, k, bnum, ee, mi)
+        call compute_dxi_alpha_kappa(dom, 2, i, j, k, bnum, ee, mi)
 
+        ! gamma_ab  defined after (12c) in Ref1
+        ! gamma_abc defined after (12c) in Ref1
         ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
-        solidcpml_a0b_a1b_a2b
+        a0b = dom%Kappa(ee,0,i,j,k,bnum)*dom%Kappa(ee,1,i,j,k,bnum)*dom%Kappa(ee,2,i,j,k,bnum)
+        g0=dom%dxi(ee,0,i,j,k,bnum)/dom%Kappa(ee,0,i,j,k,bnum)
+        g1=dom%dxi(ee,1,i,j,k,bnum)/dom%Kappa(ee,1,i,j,k,bnum)
+        g2=dom%dxi(ee,2,i,j,k,bnum)/dom%Kappa(ee,2,i,j,k,bnum)
+        a1b = a0b*(g0+g1+g2)
         mass_0 = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind) = dom%MassMat(ind) + a0b*mass_0
-        if (abs(dom%MassMat(ind)) < solidcpml_eps) stop "ERROR : MassMat is null" ! Check
+        if (abs(dom%MassMat(ind)) < deps) stop "ERROR : MassMat is null" ! Check
 
         ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
         dom%DumpMat(ind) = dom%DumpMat(ind) + a1b*mass_0
 
         ! Delta term from L : (12a) or (14a) from Ref1
+        g101=g1-dom%Alpha(ee,0,i,j,k,bnum)
+        g212=g2-dom%Alpha(ee,1,i,j,k,bnum)
+        g002=g0-dom%Alpha(ee,2,i,j,k,bnum)
+        a2b = a0b*(g0*g101+g1*g212+g2*g002);
         dom%MasUMat(ind) = dom%MasUMat(ind) + a2b*mass_0
     end subroutine init_local_mass_solidpml
 
@@ -517,14 +511,16 @@ contains
         !
         integer :: i_dir
         real(fpp) :: D(0:dom%nglltot-1), V(0:dom%nglltot-1), F(0:dom%nglltot-1) ! Displacement, Velocity, Force
-        real(fpp) :: a3b, a4b, a5b ! solidcpml_a3b_a4b_a5b
+        real(fpp) :: a3b, a4b, a5b
 
         ! Note: the solid domain use a leap-frop time scheme => we get D_n+3/2 and V_n+1
         !       to compute V_n+2, we need F_n+1. To compute F_n+1, we need D_n+1 and V_n+1
         !       D_n+1 is estimated with D_n+3/2 and V_n+1
 
         ! Update velocity: compute V_n+2
-        solidcpml_a3b_a4b_a5b
+        a3b = 0.
+        a4b = 0.
+        a5b = 0.
         do i_dir = 0,2
             ! Get V = V_n+1
             V(:) = dom%champs0%Veloc(:,i_dir) ! V = V_n+1
