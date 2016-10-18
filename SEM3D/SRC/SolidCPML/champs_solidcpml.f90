@@ -41,16 +41,19 @@ module champs_solidpml
         ! Copy of node global coords : mandatory to compute distances in the PML
         real(fpp), allocatable, dimension(:,:) :: GlobCoord
         ! We keep separate variables for the cases where we have 1, 2 or 3 attenuation directions
-        ! since we always have at least one, xxx_1 are indexed by ee,bnum
-        real(fpp), allocatable, dimension(:,:,:,:,:) :: Alpha_1, dxi_k_1, Kappa_1 ! dxi_k = dxi/kappa
+        ! since we always have at least one, xxx_0 are indexed by ee,bnum
+        real(fpp), allocatable, dimension(:,:,:,:,:) :: Alpha_0, dxi_k_0, Kappa_0 ! dxi_k = dxi/kappa
         ! for the other two cases we have much less elements (12*N and 8 in case of cube NxNxN)
-        ! so we maintain two separate indirection indices I2/I3
-        ! I2 = -1 means we have only one dir, I2>=0 and I3==-1 we have two directions, 3 otherwise
-        integer,   allocatable, dimension(:,:) :: I2, I3 ! ee, bnum
+        ! so we maintain two separate indirection indices I1/I2
+        ! I1 = -1 means we have only one dir, I1>=0 and I2==-1 we have two directions, 3 otherwise
+        ! D0 : index of first direction with pml!=0
+        ! D1 : index of second direction with pml!=0
+        ! There is no D2 because with 3 dirs!=0 we have D0=0 D1=1 D2=2
+        integer,   allocatable, dimension(:,:) :: I1, I2, D0, D1 ! ee, bnum
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_1, Kappa_1, dxi_k_1
         real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_2, Kappa_2, dxi_k_2
-        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_3, Kappa_3, dxi_k_3
         ! the number of elements with 2 (resp. 3) attenuation direction
-        integer :: dir2_count, dir3_count
+        integer :: dir1_count, dir2_count
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
@@ -65,7 +68,7 @@ module champs_solidpml
         ! R1 = L*u,  R2=exp(-a0t)*du/dx,  R3=exp(-b0t)*du/dx
         ! Dimensions : R1(VS,3,N,N,N,NB) R2(VS,9,N,N,N,NB) R3(VS,9,N,N,N,NB)
         ! with N=ngll, VS:vector size, NB : Nelements/VS
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_1, R2_1, R3_1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_0, R2_0, R3_0
 
         ! CPML parameters
         real(fpp) :: c(0:2)

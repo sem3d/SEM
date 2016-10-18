@@ -63,7 +63,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    real(fpp) :: L0, L1, L2, L012, L021, L120
+    real(fpp), dimension(0:2) :: Li, Lijk
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: EXY,EXZ,EYZ
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
@@ -159,25 +159,25 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
                 dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
 
-                call compute_convolution_terms(dom, i, j, k, bnum, ee, L0, L1, L2, L012, L021, L120)
+                call compute_convolution_terms(dom, i, j, k, bnum, ee, Li, Lijk)
 
                 lbd = dom%Lambda_(i,j,k,bnum,ee)
                 mu = dom%Mu_(i,j,k,bnum,ee)
-                C1111 = (lbd+2*mu)*L120
-                C1122 =  lbd      *L2
-                C1133 =  lbd      *L1
-                C2222 = (lbd+2*mu)*L021
-                C2233 =  lbd      *L0
-                C3333 = (lbd+2*mu)*L012
-                C2323 =        mu *L021
-                C2332 =        mu *L0
-                C3232 =        mu *L012
-                C1313 =        mu *L120
-                C1331 =        mu *L1
-                C3131 =        mu *L012
-                C1212 =        mu *L120
-                C1221 =        mu *L2
-                C2121 =        mu *L021
+                C1111 = (lbd+2*mu)*Lijk(k120)
+                C1122 =  lbd      *Li(2)
+                C1133 =  lbd      *Li(1)
+                C2222 = (lbd+2*mu)*Lijk(k021)
+                C2233 =  lbd      *Li(0)
+                C3333 = (lbd+2*mu)*Lijk(k012)
+                C2323 =        mu *Lijk(k021)
+                C2332 =        mu *Li(0)
+                C3232 =        mu *Lijk(k012)
+                C1313 =        mu *Lijk(k120)
+                C1331 =        mu *Li(1)
+                C3131 =        mu *Lijk(k012)
+                C1212 =        mu *Lijk(k120)
+                C1221 =        mu *Li(2)
+                C2121 =        mu *Lijk(k021)
 
                 EXY=0.5*(DXY+DYX)
                 EXZ=0.5*(DXZ+DZX)

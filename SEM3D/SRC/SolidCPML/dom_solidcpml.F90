@@ -27,9 +27,9 @@ contains
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
         !
-        integer :: dir2_count, dir3_count, ndir, mi, n, ngll
+        integer :: dir1_count, dir2_count, ndir, mi, n, ngll
+        dir1_count = 0
         dir2_count = 0
-        dir3_count = 0
         ngll = dom%ngll
         do n=0,Tdomain%n_elem-1
             if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
@@ -38,18 +38,18 @@ contains
             if (Tdomain%sSubDomain(mi)%pml_width(0)/=0d0) ndir = ndir + 1
             if (Tdomain%sSubDomain(mi)%pml_width(1)/=0d0) ndir = ndir + 1
             if (Tdomain%sSubDomain(mi)%pml_width(2)/=0d0) ndir = ndir + 1
-            if (ndir>=2) dir2_count = dir2_count + 1
-            if (ndir>=3) dir3_count = dir3_count + 1
+            if (ndir>=2) dir1_count = dir1_count + 1
+            if (ndir>=3) dir2_count = dir2_count + 1
         end do
+        if (dir1_count>0) then
+            allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            allocate(dom%dxi_k_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+        endif
         if (dir2_count>0) then
             allocate(dom%Alpha_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-        endif
-        if (dir3_count>0) then
-            allocate(dom%Alpha_3(0:ngll-1,0:ngll-1,0:ngll-1,0:dir3_count-1))
-            allocate(dom%Kappa_3(0:ngll-1,0:ngll-1,0:ngll-1,0:dir3_count-1))
-            allocate(dom%dxi_k_3(0:ngll-1,0:ngll-1,0:ngll-1,0:dir3_count-1))
         end if
     end subroutine allocate_multi_dir_pml
 
@@ -71,8 +71,8 @@ contains
         call allocate_multi_dir_pml(Tdomain, dom)
         ! We reset the count here, since we will use them to renumber the specel that
         ! have more than one direction of attenuation
+        dom%dir1_count = 0
         dom%dir2_count = 0
-        dom%dir3_count = 0
 
         ! Glls are initialized first, because we can have faces of a domain without elements
         if(nbelem /= 0) then
@@ -84,18 +84,20 @@ contains
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
 
+            allocate(dom%I1      (0:VCHUNK-1, 0:nblocks-1))
             allocate(dom%I2      (0:VCHUNK-1, 0:nblocks-1))
-            allocate(dom%I3      (0:VCHUNK-1, 0:nblocks-1))
-            allocate(dom%Alpha_1 (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            allocate(dom%dxi_k_1 (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            allocate(dom%Kappa_1 (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            allocate(dom%D0      (0:VCHUNK-1, 0:nblocks-1))
+            allocate(dom%D1      (0:VCHUNK-1, 0:nblocks-1))
+            allocate(dom%Alpha_0 (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            allocate(dom%dxi_k_0 (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            allocate(dom%Kappa_0 (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
             ! Allocation des Ri pour les PML solides (i = 0...5)
-            allocate(dom%R1_1(0:VCHUNK-1,0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            allocate(dom%R2_1(0:VCHUNK-1,0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            dom%R1_1 = 0d0
-            dom%R2_1 = 0d0
+            allocate(dom%R1_0(0:VCHUNK-1,0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            allocate(dom%R2_0(0:VCHUNK-1,0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            dom%R1_0 = 0d0
+            dom%R2_0 = 0d0
+            dom%I1(:,:) = -1
             dom%I2(:,:) = -1
-            dom%I3(:,:) = -1
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -146,6 +148,10 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
+        if(allocated(dom%Alpha_0)) deallocate(dom%Alpha_0)
+        if(allocated(dom%dxi_k_0)) deallocate(dom%dxi_k_0)
+        if(allocated(dom%Kappa_0)) deallocate(dom%Kappa_0)
+
         if(allocated(dom%Alpha_1)) deallocate(dom%Alpha_1)
         if(allocated(dom%dxi_k_1)) deallocate(dom%dxi_k_1)
         if(allocated(dom%Kappa_1)) deallocate(dom%Kappa_1)
@@ -154,12 +160,8 @@ contains
         if(allocated(dom%dxi_k_2)) deallocate(dom%dxi_k_2)
         if(allocated(dom%Kappa_2)) deallocate(dom%Kappa_2)
 
-        if(allocated(dom%Alpha_3)) deallocate(dom%Alpha_3)
-        if(allocated(dom%dxi_k_3)) deallocate(dom%dxi_k_3)
-        if(allocated(dom%Kappa_3)) deallocate(dom%Kappa_3)
-
+        if(allocated(dom%I1)) deallocate(dom%I1)
         if(allocated(dom%I2)) deallocate(dom%I2)
-        if(allocated(dom%I3)) deallocate(dom%I3)
 
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
@@ -171,9 +173,9 @@ contains
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
         if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
 
-        if(allocated(dom%R1_1)) deallocate(dom%R1_1)
-        if(allocated(dom%R2_1)) deallocate(dom%R2_1)
-        if(allocated(dom%R3_1)) deallocate(dom%R3_1)
+        if(allocated(dom%R1_0)) deallocate(dom%R1_0)
+        if(allocated(dom%R2_0)) deallocate(dom%R2_0)
+        if(allocated(dom%R3_0)) deallocate(dom%R3_0)
 
         if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
     end subroutine deallocate_dom_solidpml
@@ -384,7 +386,7 @@ contains
     end subroutine compute_dxi_alpha_kappa
 
     ! Compute parameters for the first direction of attenuation (maybe the only one)
-    subroutine compute_dxi_alpha_kappa_dir1(dom, xyz, i, j, k, bnum, ee, mi)
+    subroutine compute_dxi_alpha_kappa_dir0(dom, xyz, i, j, k, bnum, ee, mi)
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
@@ -395,12 +397,34 @@ contains
 
         call compute_dxi_alpha_kappa(dom, xyz, i, j, k, bnum, ee, mi, alpha, kappa, dxi)
 
-        dom%Kappa_1(ee,i,j,k,bnum) = kappa
-        dom%dxi_k_1(ee,i,j,k,bnum) = dxi
-        dom%Alpha_1(ee,i,j,k,bnum) = alpha
-    end subroutine compute_dxi_alpha_kappa_dir1
+        dom%D0(ee,bnum) = xyz
+        dom%Kappa_0(ee,i,j,k,bnum) = kappa
+        dom%dxi_k_0(ee,i,j,k,bnum) = dxi
+        dom%Alpha_0(ee,i,j,k,bnum) = alpha
+    end subroutine compute_dxi_alpha_kappa_dir0
 
     ! Compute parameters for the second direction of attenuation
+    subroutine compute_dxi_alpha_kappa_dir1(dom, xyz, i, j, k, bnum, ee, mi)
+        type(domain_solidpml), intent(inout) :: dom
+        integer :: xyz
+        integer :: i, j, k
+        integer :: bnum, ee
+        integer :: mi
+        !
+        real(fpp) :: alpha, kappa, dxi
+        integer :: nd
+
+        nd = get_dir1_index(dom, ee, bnum)
+        call compute_dxi_alpha_kappa(dom, xyz, i, j, k, bnum, ee, mi, alpha, kappa, dxi)
+
+        if (kappa==0d0) stop 1
+        dom%D1(ee,bnum) = xyz
+        dom%Kappa_1(i,j,k,nd) = kappa
+        dom%dxi_k_1(i,j,k,nd) = dxi
+        dom%Alpha_1(i,j,k,nd) = alpha
+    end subroutine compute_dxi_alpha_kappa_dir1
+
+    ! Compute parameters for the third direction of attenuation
     subroutine compute_dxi_alpha_kappa_dir2(dom, xyz, i, j, k, bnum, ee, mi)
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
@@ -419,25 +443,19 @@ contains
         dom%Alpha_2(i,j,k,nd) = alpha
     end subroutine compute_dxi_alpha_kappa_dir2
 
-    ! Compute parameters for the third direction of attenuation
-    subroutine compute_dxi_alpha_kappa_dir3(dom, xyz, i, j, k, bnum, ee, mi)
-        type(domain_solidpml), intent(inout) :: dom
-        integer :: xyz
-        integer :: i, j, k
-        integer :: bnum, ee
-        integer :: mi
+    function get_dir1_index(dom, ee, bnum) result(nd)
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: ee, bnum
         !
-        real(fpp) :: alpha, kappa, dxi
         integer :: nd
-
-        nd = get_dir3_index(dom, ee, bnum)
-        call compute_dxi_alpha_kappa(dom, xyz, i, j, k, bnum, ee, mi, alpha, kappa, dxi)
-
-        dom%Kappa_3(i,j,k,nd) = kappa
-        dom%dxi_k_3(i,j,k,nd) = dxi
-        dom%Alpha_3(i,j,k,nd) = alpha
-    end subroutine compute_dxi_alpha_kappa_dir3
-
+        nd = dom%I1(ee,bnum)
+        if (nd==-1) then
+            nd = dom%dir1_count
+            dom%I1(ee,bnum)=nd
+            dom%dir1_count = nd+1
+        endif
+    end function get_dir1_index
+    !
     function get_dir2_index(dom, ee, bnum) result(nd)
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: ee, bnum
@@ -450,19 +468,6 @@ contains
             dom%dir2_count = nd+1
         endif
     end function get_dir2_index
-    !
-    function get_dir3_index(dom, ee, bnum) result(nd)
-        type(domain_solidpml), intent (INOUT) :: dom
-        integer, intent(in) :: ee, bnum
-        !
-        integer :: nd
-        nd = dom%I3(ee,bnum)
-        if (nd==-1) then
-            nd = dom%dir3_count
-            dom%I3(ee,bnum)=nd
-            dom%dir3_count = nd+1
-        endif
-    end function get_dir3_index
     ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
     !        attention, ceci impacte le build (compatibilité avec SolidPML)
     subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei)
@@ -475,7 +480,7 @@ contains
         real(fpp) :: k0, k1, k2, a0, a1, a2, d0, d1, d2
         real(fpp) :: a0b, a1b, a2b ! solidcpml_a0b_a1b_a2b
         real(fpp) :: mass_0
-        integer :: mi, nd, ndir, i2, i3
+        integer :: mi, nd, ndir, i1, i2
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
@@ -488,29 +493,29 @@ contains
 
         ! Compute alpha, beta, kappa
         if (dom%sSubDomain(mi)%pml_width(0)/=0) then
-            call compute_dxi_alpha_kappa_dir1(dom, 0, i, j, k, bnum, ee, mi)
+            call compute_dxi_alpha_kappa_dir0(dom, 0, i, j, k, bnum, ee, mi)
             if (dom%sSubDomain(mi)%pml_width(1)/=0) then
-                call compute_dxi_alpha_kappa_dir2(dom, 1, i, j, k, bnum, ee, mi)
+                call compute_dxi_alpha_kappa_dir1(dom, 1, i, j, k, bnum, ee, mi)
                 if (dom%sSubDomain(mi)%pml_width(2)/=0) then
-                    call compute_dxi_alpha_kappa_dir3(dom, 2, i, j, k, bnum, ee, mi)
+                    call compute_dxi_alpha_kappa_dir2(dom, 2, i, j, k, bnum, ee, mi)
                     ndir = 3
                 else
                     ndir = 2
                 endif
             else if (dom%sSubDomain(mi)%pml_width(1)/=0) then
-                call compute_dxi_alpha_kappa_dir2(dom, 2, i, j, k, bnum, ee, mi)
+                call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
                 ndir = 2
             endif
         else if (dom%sSubDomain(mi)%pml_width(1)/=0) then
-            call compute_dxi_alpha_kappa_dir1(dom, 1, i, j, k, bnum, ee, mi)
+            call compute_dxi_alpha_kappa_dir0(dom, 1, i, j, k, bnum, ee, mi)
             if (dom%sSubDomain(mi)%pml_width(2)/=0) then
-                call compute_dxi_alpha_kappa_dir2(dom, 2, i, j, k, bnum, ee, mi)
+                call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
                 ndir = 2
             else
                 ndir = 1
             endif
         else if (dom%sSubDomain(mi)%pml_width(2)/=0) then
-            call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
+            call compute_dxi_alpha_kappa_dir0(dom, 2, i, j, k, bnum, ee, mi)
             ndir = 1
         else
             stop 1
@@ -519,31 +524,31 @@ contains
         ! gamma_ab  defined after (12c) in Ref1
         ! gamma_abc defined after (12c) in Ref1
         ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
-        k0 = dom%Kappa_1(ee,i,j,k,bnum)
-        a0 = dom%Alpha_1(ee,i,j,k,bnum)
-        d0 = dom%dxi_k_1(ee,i,j,k,bnum)
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         select case(ndir)
         case (1)
             a0b = k0
             a1b = k0*d0
             a2b = k0*d0*a0
         case (2)
-            i2 = dom%I2(ee,bnum)
-            k1 = dom%Kappa_2(i,j,k,i2)
-            a1 = dom%Alpha_2(i,j,k,i2)
-            d1 = dom%dxi_k_2(i,j,k,i2)
+            i1 = dom%I1(ee,bnum)
+            k1 = dom%Kappa_1(i,j,k,i1)
+            a1 = dom%Alpha_1(i,j,k,i1)
+            d1 = dom%dxi_k_1(i,j,k,i1)
             a0b = k0*k1
             a1b = a0b*(d0+d1)
             a2b = a0b*(d0*(d1-a0) - d1*a1)
         case (3)
+            i1 = dom%I1(ee,bnum)
+            k1 = dom%Kappa_1(i,j,k,i1)
+            a1 = dom%Alpha_1(i,j,k,i1)
+            d1 = dom%dxi_k_1(i,j,k,i1)
             i2 = dom%I2(ee,bnum)
-            k1 = dom%Kappa_2(i,j,k,i2)
-            a1 = dom%Alpha_2(i,j,k,i2)
-            d1 = dom%dxi_k_2(i,j,k,i2)
-            i3 = dom%I3(ee,bnum)
-            k2 = dom%Kappa_3(i,j,k,i3)
-            a2 = dom%Alpha_3(i,j,k,i3)
-            d2 = dom%dxi_k_3(i,j,k,i3)
+            k2 = dom%Kappa_2(i,j,k,i2)
+            a2 = dom%Alpha_2(i,j,k,i2)
+            d2 = dom%dxi_k_2(i,j,k,i2)
             a0b = k0*k1*k2
             a1b = a0b*(d0+d1+d2)
             ! Delta term from L : (12a) or (14a) from Ref1

@@ -63,7 +63,17 @@ contains
         real(fpp), intent(out) :: Rx, Ry, Rz
         !
         real(fpp) :: a3b, a4b, a5b
-        call compute_a3a4a5_bar(dom, i, j, k, bnum, ee, a3b, a4b, a5b)
+        real(fpp) :: k0, d0, a0
+        ! XXX valable pour ndir=1
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+        a3b = k0*a0*a0*d0
+        Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
+        Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
+        Rz = a3b*dom%R1_0(ee,2,i,j,k,bnum)
+
+!        call compute_a3a4a5_bar(dom, i, j, k, bnum, ee, a3b, a4b, a5b)
 !        Rx = wijk*( &
 !            a3b*dom%R(ee,0,0,i,j,k,bnum) + &
 !            a4b*dom%R(ee,1,0,i,j,k,bnum) + &
@@ -77,12 +87,27 @@ contains
 !            a4b*dom%R(ee,1,2,i,j,k,bnum) + &
 !            a5b*dom%R(ee,2,2,i,j,k,bnum))
     end subroutine compute_L_convolution_terms
-    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, L0, L1, L2, L012, L021, L120)
+
+    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, Li, Lijk)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent(out) :: L0, L1, L2, L012, L021, L120
+        real(fpp), intent(out), dimension(0:2) :: Li, Lijk
+        integer   :: id0, id1
+        real(fpp) :: k0, d0, a0
+
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+
+        Li(0) = 1d0
+        Li(1) = 1d0
+        Li(2) = 1d0
+        Lijk(k012) = 1d0
+        Lijk(k021) = 1d0
+        Lijk(k120) = 1d0
+
 !        !
 !        integer :: ind
 !        real(fpp) :: b1b, b2b, b3b
