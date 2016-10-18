@@ -188,21 +188,21 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xla = dom%Lambda_(i,j,k,bnum,ee)
                 xla2mu = xla + 2. * xmu
 #ifdef NONLINEAR
-                
+
                 start       =   dom%stress_(0:5,i,j,k,bnum,ee)
                 center      =   dom%center_(0:5,i,j,k,bnum,ee)
                 radius      =   zero !dom%radius_(i,j,k,bnum,ee)
                 syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
-                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) 
-                rinf        =   zero !dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) 
-                biso        =   zero !dom%nl_param%LMC%biso_(i,j,k,bnum,ee) 
+                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee)
+                rinf        =   zero !dom%nl_param%LMC%rinf_(i,j,k,bnum,ee)
+                biso        =   zero !dom%nl_param%LMC%biso_(i,j,k,bnum,ee)
                 ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
-                
-                dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/) 
+
+                dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
                 dEps_alpha(0:5) = dEps_alpha(0:5)*dom%dt
-                dom%strain_(0:5,i,j,k,bnum,ee) = dom%strain_(0:5,i,j,k,bnum,ee) + dEps_alpha(0:5) 
-                dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee) 
-                
+                dom%strain_(0:5,i,j,k,bnum,ee) = dom%strain_(0:5,i,j,k,bnum,ee) + dEps_alpha(0:5)
+                dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee)
+
                 sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
                 syy = xla2mu*dEps_alpha(1)+xla*(dEps_alpha(0)+dEps_alpha(2))
                 szz = xla2mu*dEps_alpha(2)+xla*sum(dEps_alpha(0:1))
@@ -225,7 +225,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxy = trial(3)
                 sxz = trial(4)
                 syz = trial(5)
-                
+
                 dom%stress_(0:5,i,j,k,bnum,ee)   = trial(0:5)
                 dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)
                 dom%plstrain_(0:5,i,j,k,bnum,ee) = dEpsP(0:5)
@@ -551,4 +551,3 @@ end subroutine PROCNAME_ATN
 !! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent :
-

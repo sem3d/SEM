@@ -82,7 +82,7 @@ module champs_solid
         integer :: nl_law
         type(nl_parameters),allocatable :: nl_param
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_radius
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_stress 
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_stress
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_center
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_strain
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_plstrain
