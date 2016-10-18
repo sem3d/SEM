@@ -17,3 +17,8 @@
     a3b = 0.; \
     a4b = 0.; \
     a5b = 0.;
+
+#define solidcpml_b1b_b2b_b3b \
+    b1b = 0.; \
+    b2b = 0.; \
+    b3b = 0.;

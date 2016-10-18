@@ -35,6 +35,8 @@
 !!
 !!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
 
+#include "dom_solidcpml_macro.F90"
+
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
 #endif
@@ -82,6 +84,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     integer :: mi
     real(fpp) :: lbd, mu
     real(fpp) :: C1111,C1122,C1133,C2222,C2233,C3333,C2323,C2332,C1313,C1331,C1212,C1221,C3232,C3131,C2121
+    real(fpp) :: b1b, b2b, b3b ! solidcpml_b1b_b2b_b3b
 
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -169,6 +172,12 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 L120 = L1*L2/L0
                 L021 = L0*L2/L1
                 L012 = L0*L1/L2
+                solidcpml_b1b_b2b_b3b
+                L120 = L1*L2/L0 + b1b*1. + b2b*1. + b3b*1.
+                solidcpml_b1b_b2b_b3b
+                L021 = L0*L2/L1 + b1b*1. + b2b*1. + b3b*1.
+                solidcpml_b1b_b2b_b3b
+                L012 = L0*L1/L2 + b1b*1. + b2b*1. + b3b*1.
                 C1111 = (lbd+2*mu)*L120
                 C1122 =  lbd      *L2
                 C1133 =  lbd      *L1
