@@ -38,11 +38,22 @@ module champs_solidpml
         ! Element materials
         type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
-        ! Material index
-        integer, dimension(:,:), allocatable :: mat_index
-
         ! Copy of node global coords : mandatory to compute distances in the PML
-        real(fpp), pointer :: GlobCoord(:,:)
+        real(fpp), allocatable, dimension(:,:) :: GlobCoord
+        ! We keep separate variables for the cases where we have 1, 2 or 3 attenuation directions
+        ! since we always have at least one, xxx_0 are indexed by ee,bnum
+        real(fpp), allocatable, dimension(:,:,:,:,:) :: Alpha_0, dxi_k_0, Kappa_0 ! dxi_k = dxi/kappa
+        ! for the other two cases we have much less elements (12*N and 8 in case of cube NxNxN)
+        ! so we maintain two separate indirection indices I1/I2
+        ! I1 = -1 means we have only one dir, I1>=0 and I2==-1 we have two directions, 3 otherwise
+        ! D0 : index of first direction with pml!=0
+        ! D1 : index of second direction with pml!=0
+        ! There is no D2 because with 3 dirs!=0 we have D0=0 D1=1 D2=2
+        integer,   allocatable, dimension(:,:) :: I1, I2, D0, D1 ! ee, bnum
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_1, Kappa_1, dxi_k_1
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_2, Kappa_2, dxi_k_2
+        ! the number of elements with 2 (resp. 3) attenuation direction
+        integer :: dir1_count, dir2_count
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
@@ -50,15 +61,20 @@ module champs_solidpml
         type(champssolidpml) :: champs0 ! Etat courant
         type(champssolidpml) :: champs1 ! Prediction (à partir de l'état courant)
 
-        real(fpp), dimension(:,:), allocatable :: R1 ! Convolutional term R1 (19a) from Ref1
-        real(fpp), dimension(:,:), allocatable :: R2 ! Convolutional term R2 (19b) from Ref1
-        real(fpp), dimension(:,:), allocatable :: R3 ! Convolutional term R3 (19c) from Ref1
+        ! Convolutional terms R
+        ! First dimension : 0, 1, 2 <=> u, t*u, t^2*u
+        ! Last  dimension : 0, 1, 2 <=> x,   y,     z
+        ! Convolutional terms R from Ref1 for L and Lijk with only one direction of attenuation
+        ! R1 = L*u,  R2=exp(-a0t)*du/dx,  R3=exp(-b0t)*du/dx
+        ! Dimensions : R1(VS,3,N,N,N,NB) R2(VS,9,N,N,N,NB) R3(VS,9,N,N,N,NB)
+        ! with N=ngll, VS:vector size, NB : Nelements/VS
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_0, R2_0, R3_0
 
         ! CPML parameters
         real(fpp) :: c(0:2)
         integer   :: n(0:2)
-        real(fpp) :: r_c
-        integer   :: kappa_0, kappa_1
+        real(fpp) :: rc
+        real(fpp) :: cpml_kappa_0, cpml_kappa_1
         real(fpp) :: alphamax
 
     end type domain_solidpml

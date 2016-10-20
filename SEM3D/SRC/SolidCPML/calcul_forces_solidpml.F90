@@ -36,6 +36,88 @@ contains
         end select
     end subroutine calcul_forces_solidpml
 
+    subroutine compute_a3a4a5_bar(dom, i, j, k, bnum, ee, a3b, a4b, a5b)
+        use sdomain
+        type(domain_solidpml), intent(inout) :: dom
+        integer, intent(in) :: i, j, k, bnum, ee
+        real(fpp), intent (OUT) :: a3b, a4b, a5b
+!        !
+!        real(fpp) :: k012,a0,a1,a2,b0,b1,b2
+!        k012 = dom%Kappa(ee, 0, i, j, k, bnum)*dom%Kappa(ee, 1, i, j, k, bnum)*dom%Kappa(ee, 2, i, j, k, bnum)
+!        a0 = dom%Alpha(ee, 0, i, j, k, bnum)
+!        a1 = dom%Alpha(ee, 1, i, j, k, bnum)
+!        a2 = dom%Alpha(ee, 2, i, j, k, bnum)
+!        b0 = a0 + dom%dxi_k(ee, 0, i, j, k, bnum)
+!        b1 = a1 + dom%dxi_k(ee, 1, i, j, k, bnum)
+!        b2 = a2 + dom%dxi_k(ee, 2, i, j, k, bnum)
+!        a3b = k012*(b0-a0)*(b1-a0)*(b2-a0)/((a1-a0)*(a2-a0)) ! a_012
+!        a4b = k012 ! a_
+!        a5b = k012
+    end subroutine compute_a3a4a5_bar
+    !
+    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, Rx, Ry, Rz)
+        use champs_solidpml
+        implicit none
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: i, j, k, bnum, ee
+        real(fpp), intent(out) :: Rx, Ry, Rz
+        !
+        real(fpp) :: a3b, a4b, a5b
+        real(fpp) :: k0, d0, a0
+        ! XXX valable pour ndir=1
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+        a3b = k0*a0*a0*d0
+        Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
+        Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
+        Rz = a3b*dom%R1_0(ee,2,i,j,k,bnum)
+    end subroutine compute_L_convolution_terms
+
+    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, B0ijk, Li, Lijk)
+        use champs_solidpml
+        implicit none
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: i, j, k, bnum, ee
+        real(fpp), intent(out), dimension(0:2) :: Li, Lijk, B0ijk
+        integer   :: id0, id1
+        real(fpp) :: k0, d0, a0
+
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+
+        id0 = dom%D0(ee,bnum)
+        Li(0) = 1d0
+        Li(1) = 1d0
+        Li(2) = 1d0
+        Li(id0) = 2d0
+        Lijk(k012) = 1d0
+        Lijk(k021) = 1d0
+        Lijk(k120) = 1d0
+
+!        !
+!        integer :: ind
+!        real(fpp) :: b1b, b2b, b3b
+!
+!        ind = dom%Idom_(i,j,k,bnum,ee)
+!        L0 = dom%Kappa(ee,0,i,j,k,bnum) + dom%Kappa(ee,0,i,j,k,bnum)*dom%dxi_k(ee,0,i,j,k,bnum)*dom%R(0,ind,0) ! 1, x
+!        L1 = dom%Kappa(ee,1,i,j,k,bnum) + dom%Kappa(ee,1,i,j,k,bnum)*dom%dxi_k(ee,1,i,j,k,bnum)*dom%R(0,ind,1) ! 1, y
+!        L2 = dom%Kappa(ee,2,i,j,k,bnum) + dom%Kappa(ee,2,i,j,k,bnum)*dom%dxi_k(ee,2,i,j,k,bnum)*dom%R(0,ind,2) ! 1, z
+!        b1b = 0.
+!        b2b = 0.
+!        b3b = 0.
+!        L120 = L1*L2/L0 + b1b*1. + b2b*1. + b3b*1.
+!        b1b = 0.
+!        b2b = 0.
+!        b3b = 0.
+!        L021 = L0*L2/L1 + b1b*1. + b2b*1. + b3b*1.
+!        b1b = 0.
+!        b2b = 0.
+!        b3b = 0.
+!        L012 = L0*L1/L2 + b1b*1. + b2b*1. + b3b*1.
+    end subroutine compute_convolution_terms
+
 #define NGLLVAL 4
 #define PROCNAME calcul_forces_solidpml_4
 #include "calcul_forces_solidpml.inc"

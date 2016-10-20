@@ -35,8 +35,6 @@
 !!
 !!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
 
-#include "dom_solidcpml_macro.F90"
-
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
 #endif
@@ -65,11 +63,10 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    real(fpp) :: xi, Li, xj, xk, Lijk, xoverl, kappa(0:2) ! solidcpml_Li, solidcpml_Lijk
+    real(fpp), dimension(0:2) :: Li, Lijk, B0ijk
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: EXY,EXZ,EYZ
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    real(fpp), parameter :: zero = 0.
     real(fpp) :: t4
 #ifdef USE_LOCAL_MEM
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
@@ -82,7 +79,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
-    integer :: mi
     real(fpp) :: lbd, mu
     real(fpp) :: C1111,C1122,C1133,C2222,C2233,C3333,C2323,C2332,C1313,C1331,C1212,C1221,C3232,C3131,C2121
 
@@ -94,7 +90,15 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
+                dUx_dxi  (ee,i,j,k) = 0.0D+0;
+                dUx_deta (ee,i,j,k) = 0.0D+0;
+                dUx_dzeta(ee,i,j,k) = 0.0D+0;
+                DO L = 0, ngll-1;
+                    dUx_dxi   (ee,i,j,k)= dUx_dxi  (ee,i,j,k)+Depla(ee,L,J,K,0)*dom%hprime(L,I);
+                    dUx_deta  (ee,i,j,k)= dUx_deta (ee,i,j,k)+Depla(ee,I,L,K,0)*dom%hprime(L,J);
+                    dUx_dzeta (ee,i,j,k)= dUx_dzeta(ee,i,j,k)+Depla(ee,I,J,L,0)*dom%hprime(L,K);
+                END DO;
+!                local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
             end do
         end do
@@ -155,24 +159,25 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
                 dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
 
-                mi = dom%mat_index(ee,bnum)
+                call compute_convolution_terms(dom, i, j, k, bnum, ee, B0ijk, Li, Lijk)
+
                 lbd = dom%Lambda_(i,j,k,bnum,ee)
                 mu = dom%Mu_(i,j,k,bnum,ee)
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1111 = (lbd+2*mu)*Lijk
-                solidcpml_Li      (2,i,j,k,bnum,ee,mi); C1122 =  lbd      *Li
-                solidcpml_Li      (1,i,j,k,bnum,ee,mi); C1133 =  lbd      *Li
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2222 = (lbd+2*mu)*Lijk
-                solidcpml_Li      (0,i,j,k,bnum,ee,mi); C2233 =  lbd      *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3333 = (lbd+2*mu)*Lijk
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2323 =        mu *Lijk
-                solidcpml_Li      (0,i,j,k,bnum,ee,mi); C2332 =        mu *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3232 =        mu *Lijk
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1313 =        mu *Lijk
-                solidcpml_Li      (1,i,j,k,bnum,ee,mi); C1331 =        mu *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3131 =        mu *Lijk
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1212 =        mu *Lijk
-                solidcpml_Li      (2,i,j,k,bnum,ee,mi); C1221 =        mu *Li
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2121 =        mu *Lijk
+                C1111 = (lbd+2*mu)*Lijk(k120)
+                C1122 =  lbd      *Li(2)
+                C1133 =  lbd      *Li(1)
+                C2222 = (lbd+2*mu)*Lijk(k021)
+                C2233 =  lbd      *Li(0)
+                C3333 = (lbd+2*mu)*Lijk(k012)
+                C2323 =        mu *Lijk(k021)
+                C2332 =        mu *Li(0)
+                C3232 =        mu *Lijk(k012)
+                C1313 =        mu *Lijk(k120)
+                C1331 =        mu *Li(1)
+                C3131 =        mu *Lijk(k012)
+                C1212 =        mu *Lijk(k120)
+                C1221 =        mu *Li(2)
+                C2121 =        mu *Lijk(k021)
 
                 EXY=0.5*(DXY+DYX)
                 EXZ=0.5*(DXZ+DZX)

@@ -846,6 +846,7 @@ contains
         character(len=*)              , intent(in) :: XMF_Folder
         character(len=*)              , intent(in) :: H5_TO_XMF_Path, dsetname
 
+
         !LOCAL VARIABLES
         integer             :: i, file
         character (len=110) :: dimText;
@@ -868,9 +869,16 @@ contains
 
             !Writing Number of points in each Dimensions in the reverse order
             dimText = ""
-            do i = size(total_xNStep), 1, -1
-                dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
-            end do
+            !do i = size(total_xNStep), 1, -1
+            if(DIRECT_OUT) then
+                do i = size(total_xNStep), 1, -1
+                    dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
+                end do
+            else
+                do i = 1, size(total_xNStep)
+                    dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
+                end do
+            end if
             dimText = trim(adjustL(dimText))
 
             !Building file
@@ -900,15 +908,29 @@ contains
             end if
             write (file,'(3A)'     )'   <DataItem Name="origin" Format="XML" DataType="Float" &
                                         &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
-            if(nDim == 1) write (file,'(A,F25.10)'      )'    ', xMin(1)
-            if(nDim == 2) write (file,'(A,F25.10)'      )'    ', xMin(2), ' ', xMin(1)
-            if(nDim == 3) write (file,'(A,F25.10)'      )'    ', xMin(3), ' ', xMin(2), ' ', xMin(1)
+            if(DIRECT_OUT) then
+                if(nDim == 1) write (file,'(A,F25.10)'      )' ', xMin(3)
+                if(nDim == 2) write (file,'(A,F25.10)'      )' ', xMin(3), ' ', xMin(2)
+                if(nDim == 3) write (file,'(A,F25.10)'      )' ', xMin(3), ' ', xMin(2), ' ', xMin(1)
+            else
+                if(nDim == 1) write (file,'(A,F25.10)'      )' ', xMin(1)
+                if(nDim == 2) write (file,'(A,F25.10)'      )' ', xMin(1), ' ', xMin(2)
+                if(nDim == 3) write (file,'(A,F25.10)'      )' ', xMin(1), ' ', xMin(2), ' ', xMin(3)
+            end if
+
             write (file,'(A)'      )'   </DataItem>'
             write (file,'(3A)'     )'   <DataItem Name="step" Format="XML" DataType="Float" &
                                         &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
-            if(nDim == 1) write (file,'(A,F25.10)'      )'    ', xStep(1)
-            if(nDim == 2) write (file,'(A,F25.10)'      )'    ', xStep(2), ' ', xStep(1)
-            if(nDim == 3) write (file,'(A,F25.10)'      )'    ', xStep(3), ' ', xStep(2), ' ', xStep(1)
+            if(DIRECT_OUT) then
+                if(nDim == 1) write (file,'(A,F25.10)'      )' ', xStep(3)
+                if(nDim == 2) write (file,'(A,F25.10)'      )' ', xStep(3), ' ', xStep(2)
+                if(nDim == 3) write (file,'(A,F25.10)'      )' ', xStep(3), ' ', xStep(2), ' ', xStep(1)
+            else
+                if(nDim == 1) write (file,'(A,F25.10)'      )' ', xStep(1)
+                if(nDim == 2) write (file,'(A,F25.10)'      )' ', xStep(1), ' ', xStep(2)
+                if(nDim == 3) write (file,'(A,F25.10)'      )' ', xStep(1), ' ', xStep(2), ' ', xStep(3)
+            end if
+
             write (file,'(A)'      )'   </DataItem>'
             write (file,'(A)'     )'     </Geometry>'
 
@@ -936,6 +958,124 @@ contains
         call wLog("------------END Writing XMF Mono Processor (Elements)----------------")
 
     end subroutine write_XMF_Elements
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine write_XMF_Elements_per_proc(HDF5_FileName, xMin, xMax, xStep, &
+                                          nDim, fileName, XMF_Folder, &
+                                          H5_TO_XMF_PATH, dsetname, nGroups)
+
+        implicit none
+
+        !INPUTS
+        double precision, dimension(:), intent(in) :: xMin, xMax, xStep
+        character(len=*), intent(in) :: HDF5_FileName
+        character(len=*)              , intent(in) :: filename;
+        integer, intent(in) :: nDim, nGroups
+        character(len=*)              , intent(in) :: XMF_Folder
+        character(len=*)              , intent(in) :: H5_TO_XMF_Path, dsetname
+
+        !LOCAL VARIABLES
+        integer             :: i, j, file
+        character (len=110) :: dimText;
+        integer(kind=8), dimension(nDim) :: total_xNStep
+        character(len=buf_RF) :: XMF_FileName, XMF_RePath, text
+
+
+        call wLog("------------Writing XMF Mono Processor (Elements)--------------------")
+
+        if(nDim == 2 .or. nDim == 3) then
+
+            XMF_FileName = trim(fileName)//".xmf"
+            XMF_RePath   = string_join(XMF_Folder,"/"//XMF_FileName)
+            !HDF5path = string_join(H5_TO_XMF_PATH, "/")
+            !write(*,*) "fileXMFName = ", fileXMFName
+            !write(*,*) "fullPathXMF = ", fullPathXMF
+            !write(*,*) "HDF5path    = ", HDF5path
+
+            total_xNStep = nint((xMax - xMin)/xStep,8) + 1
+
+            !Writing Number of points in each Dimensions in the reverse order
+            dimText = ""
+            do i = size(total_xNStep), 1, -1
+                dimText = trim(dimText)//" "//trim(numb2StringLong(total_xNStep(i)))
+            end do
+            dimText = trim(adjustL(dimText))
+
+            !Building file
+            file=21;
+            open (unit = file , file = XMF_RePath, action = 'write')
+
+            write (file,'(A)'      )'<?xml version="1.0" ?>'
+            write (file,'(A)'      )'<Xdmf Version="2.0">'
+            write (file,'(A)'      )' <Domain>'
+            do j = 1, nGroups
+                text = '   <DataItem Name="RF_'//trim(numb2String(j))//' Format="HDF" DataType="Float" Precision="8" Dimensions="'//trim(dimText)//'">'
+                write (file,'(A)'     ) trim(text)
+!                !write (file,'(3A)'     )'   <DataItem Name="RF_1" Format="HDF" DataType="Float" Precision="8" &
+!                !                         &Dimensions="',trim(dimText),'">'
+                write (file,'(A)'     )'        '//trim(H5_TO_XMF_PATH)//'/'//trim(HDF5_FileName)//'-G'//trim(numb2String(j))//':/'//trim(adjustL(dsetname))
+                write (file,'(A)'      )'   </DataItem>'
+            end do
+            write (file,'(A)'      )'  <Grid GridType="Collection" CollectionType="Spatial">' !Opens the Collection
+            do j = 1, nGroups
+            write (file,'(A)'     )'   <Grid Name="Group'//trim(numb2String(j))//'">'
+            if(nDim == 1) then
+                write (file,'(3A)'    )'     <Topology TopologyType="1DCoRectMesh" Dimensions="',trim(dimText),'"/>'
+                write (file,'(A)'      )'     <Geometry GeometryType="ORIGIN_DX">'
+            else if(nDim == 2) then
+                write (file,'(3A)'    )'     <Topology TopologyType="2DCoRectMesh" Dimensions="',trim(dimText),'"/>'
+                write (file,'(A)'      )'     <Geometry GeometryType="ORIGIN_DXDY">'
+            else if(nDim == 3) then
+                write (file,'(3A)'    )'     <Topology TopologyType="3DCoRectMesh" Dimensions="',trim(dimText),'"/>'
+                write (file,'(A)'      )'     <Geometry GeometryType="ORIGIN_DXDYDZ">'
+            end if
+            write (file,'(3A)'     )'   <DataItem Name="origin" Format="XML" DataType="Float" &
+                                        &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
+            if(nDim == 1) write (file,'(A,F25.10)'      )'    ', xMin(1)
+            if(nDim == 2) write (file,'(A,F25.10)'      )'    ', xMin(2), ' ', xMin(1)
+            if(nDim == 3) write (file,'(A,F25.10)'      )'    ', xMin(3), ' ', xMin(2), ' ', xMin(1)
+            write (file,'(A)'      )'   </DataItem>'
+            write (file,'(3A)'     )'   <DataItem Name="step" Format="XML" DataType="Float" &
+                                        &Precision="8" Dimensions="',trim(numb2String(nDim)),'">'
+            if(nDim == 1) write (file,'(A,F25.10)'      )'    ', xStep(1)
+            if(nDim == 2) write (file,'(A,F25.10)'      )'    ', xStep(2), ' ', xStep(1)
+            if(nDim == 3) write (file,'(A,F25.10)'      )'    ', xStep(3), ' ', xStep(2), ' ', xStep(1)
+            write (file,'(A)'      )'   </DataItem>'
+            write (file,'(A)'     )'     </Geometry>'
+
+            !TODO, DEAL WITH SEVERAL SAMPLES
+                text = '     <Attribute Name="RF_'//trim(numb2String(j))//'" Center="Node" AttributeType="Scalar">'
+                write(*,*) "text = ",trim(text)
+                write (file,'(A)'     ) trim(text)
+                !write (file,'(A)'     )'     <Attribute Name="RF_'//trim(numb2String(j))//'" Center="Node" AttributeType="Scalar">'
+                write (file,'(A)'     )'       <DataItem Reference="XML">'
+                text = '         /Xdmf/Domain/DataItem[@Name="RF_'//trim(numb2String(j))//'"]'
+                write(*,*) "text = ",trim(text)
+                write (file,'(A)'     ) trim(text)
+                !write (file,'(3A)'     )'         /Xdmf/Domain/DataItem[@Name="RF_1"]'
+                write (file,'(A)'     )'       </DataItem>'
+                write (file,'(A)'      )'     </Attribute>'
+
+            end do
+
+            write (file,'(A)'      )'   </Grid>' !END Writing the data of one subdomain
+            write (file,'(A)'      )'  </Grid>' !Closes the Collection
+            write (file,'(A)'      )' </Domain>'
+            write (file,'(A)'      )'</Xdmf>'
+
+            close(file)
+        else
+            write(*,*) "No XDMF Model prepared for this dimension"
+            write(*,*) "nDim = ", nDim
+            write(*,*) "The file won't be created"
+        end if
+
+        call wLog("------------END Writing XMF Mono Processor (Elements)----------------")
+
+    end subroutine write_XMF_Elements_per_proc
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
@@ -1019,7 +1159,11 @@ contains
         countND = xNStep
         rank1D = 1
         count1D = product(int(xNStep_Glob,8))
-        dims = int(xNStep_Glob,8)
+        if(DIRECT_OUT) then
+            dims = int(xNStep_Glob,8)
+        else
+            dims = int(xNStep_Glob(size(xNStep_Glob):1:-1),8)
+        end if
         call wLog("dims = ")
         call wLog(int(dims))
 
@@ -1041,7 +1185,10 @@ contains
         call wLog("Parallel writing (localization topology)")
         countND = maxPos - minPos + 1
         offset = origin - 1
-        !dims   = countND
+        if(.not. DIRECT_OUT) then
+            countND = countND(size(countND):1:-1)
+            offset  = offset(size(offset):1:-1)
+        end if
         call wLog("minPos")
         call wLog(int(minPos))
         call wLog("maxPos")
@@ -1077,14 +1224,30 @@ contains
 
 
         if(nDim == 2) then
+            if(DIRECT_OUT) then
             !randFieldLinear = pack(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), .true.)
             randFieldLinear = reshape(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), &
+                                      [product(maxPos-minPos+1)])
+            else
+            randFieldLinear = reshape( &
+                              reshape(RF_2D(minPos(1):maxPos(1),minPos(2):maxPos(2)), &
+                                      shape =[maxPos(2)-minPos(2)+1,maxPos(1)-minPos(1)+1], &
+                                      order =[2,1] ), &
                               [product(maxPos-minPos+1)])
+            end if
 
         else if (nDim == 3) then
+            if(DIRECT_OUT) then
             !randFieldLinear = pack(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), .true.)
             randFieldLinear = reshape(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), &
+                                      [product(maxPos-minPos+1)])
+            else
+            randFieldLinear = reshape( &
+                              reshape(RF_3D(minPos(1):maxPos(1),minPos(2):maxPos(2),minPos(3):maxPos(3)), &
+                                      shape =[maxPos(3)-minPos(3)+1, maxPos(2)-minPos(2)+1,maxPos(1)-minPos(1)+1], &
+                                      order =[3,2,1] ), &
                               [product(maxPos-minPos+1)])
+            end if
 
         end if
 

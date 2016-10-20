@@ -18,6 +18,7 @@
 
 subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solid
+    use nonlinear
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
@@ -32,7 +33,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    real(fpp), parameter :: zero = 0.
+    !!real(fpp), parameter :: zero = 0.
 #ifdef USE_LOCAL_MEM
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
@@ -45,6 +46,11 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: F1,F2,F3
 #endif
     real(fpp) :: xmu
+#ifdef NONLINEAR
+    real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP
+    real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_epl
+    logical    :: st_epl
+#endif
 #ifdef ATTENUATION
 #ifdef ANISO
     real(fpp) :: Eyz, Exz, Exy
@@ -181,13 +187,58 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xmu = dom%Mu_    (i,j,k,bnum,ee)
                 xla = dom%Lambda_(i,j,k,bnum,ee)
                 xla2mu = xla + 2. * xmu
+#ifdef NONLINEAR
 
+                start       =   dom%stress_(0:5,i,j,k,bnum,ee)
+                center      =   dom%center_(0:5,i,j,k,bnum,ee)
+                radius      =   zero !dom%radius_(i,j,k,bnum,ee)
+                syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
+                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee)
+                rinf        =   zero !dom%nl_param%LMC%rinf_(i,j,k,bnum,ee)
+                biso        =   zero !dom%nl_param%LMC%biso_(i,j,k,bnum,ee)
+                ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
+
+                dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
+                dEps_alpha(0:5) = dEps_alpha(0:5)*dom%dt
+                dom%strain_(0:5,i,j,k,bnum,ee) = dom%strain_(0:5,i,j,k,bnum,ee) + dEps_alpha(0:5)
+                dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee)
+
+                sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
+                syy = xla2mu*dEps_alpha(1)+xla*(dEps_alpha(0)+dEps_alpha(2))
+                szz = xla2mu*dEps_alpha(2)+xla*sum(dEps_alpha(0:1))
+                sxy = xmu*dEps_alpha(3)
+                sxz = xmu*dEps_alpha(4)
+                syz = xmu*dEps_alpha(5)
+                trial       =   (/sxx,syy,szz,sxy,sxz,syz/)
+                call check_plasticity(trial, start, center,radius, &
+                    syld,st_epl,alpha_epl)
+
+                if (st_epl) then
+
+                    dEps_alpha=(1.0d0-alpha_epl)*dEps_alpha
+                    call plastic_corrector(dEps_alpha, trial, center, syld, &
+                            radius, biso, rinf, ckin, kkin, xmu, xla, dEpsP)
+                end if
+                sxx = trial(0)
+                syy = trial(1)
+                szz = trial(2)
+                sxy = trial(3)
+                sxz = trial(4)
+                syz = trial(5)
+
+                dom%stress_(0:5,i,j,k,bnum,ee)   = trial(0:5)
+                dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)
+                dom%plstrain_(0:5,i,j,k,bnum,ee) = dEpsP(0:5)
+                dom%radius_(i,j,k,bnum,ee)       = zero !radius
+
+#else
                 sxx = xla2mu * DXX + xla * ( DYY + DZZ )
                 sxy = xmu * ( DXY + DYX )
                 sxz = xmu * ( DXZ + DZX )
                 syy = xla2mu * DYY + xla * ( DXX + DZZ )
                 syz = xmu * ( DYZ + DZY )
                 szz = xla2mu * DZZ + xla * ( DXX + DYY )
+#endif
 #endif
                 !
                 !=====================

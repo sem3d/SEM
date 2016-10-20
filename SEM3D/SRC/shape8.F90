@@ -58,7 +58,6 @@ contains
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
 
                         call shape8_local2global(coord, xi, eta, zeta, xp, yp, zp)
-                        ! DEBUG CHECK
                         if (Tdomain%GlobCoord(0,ipoint)/=0d0 .or. &
                             Tdomain%GlobCoord(1,ipoint)/=0d0 .or. &
                             Tdomain%GlobCoord(2,ipoint)/=0d0) then

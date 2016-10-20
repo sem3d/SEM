@@ -36,7 +36,6 @@ contains
 
         do mat = 0, Tdomain%n_mat-1
             dom = Tdomain%sSubDomain(mat)%dom
-
             select case (dom)
                  case (DM_SOLID)
                      Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
@@ -107,6 +106,12 @@ contains
             Tdomain%sSubdomain(num)%DLambda  = matdesc%lambda
             Tdomain%sSubdomain(num)%DMu      = matdesc%mu
             Tdomain%sSubdomain(num)%DKappa   = matdesc%kappa
+            Tdomain%sSubdomain(num)%DSyld    = matdesc%syld
+            Tdomain%sSubdomain(num)%DCkin    = matdesc%ckin
+            Tdomain%sSubdomain(num)%DKkin    = matdesc%kkin
+            Tdomain%sSubdomain(num)%DRinf    = matdesc%rinf
+            Tdomain%sSubdomain(num)%DBiso    = matdesc%biso
+
             !!! TODO Add Qp/Qmu, PML
             call c_f_pointer(matdesc%next, matdesc)
         end do
@@ -149,17 +154,17 @@ contains
             stop
         endif
 
-
         do i = 0,Tdomain%n_mat-1
 
             buffer = getLine (fid, "#")
             read(buffer,*) material_type, &
-                Tdomain%sSubDomain(i)%Pspeed,        &
-                Tdomain%sSubDomain(i)%Sspeed,        &
-                Tdomain%sSubDomain(i)%dDensity,      &
-                NGLL,         &
-                Tdomain%sSubDomain(i)%Qpression,     &
+                Tdomain%sSubDomain(i)%Pspeed,               &
+                Tdomain%sSubDomain(i)%Sspeed,               &
+                Tdomain%sSubDomain(i)%dDensity,             &
+                NGLL,                                       &
+                Tdomain%sSubDomain(i)%Qpression,            &
                 Tdomain%sSubDomain(i)%Qmu
+            
             Tdomain%sSubDomain(i)%NGLL = NGLL
             Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)
             Tdomain%sSubdomain(i)%material_definition = MATERIAL_CONSTANT
@@ -354,6 +359,7 @@ contains
         logical                      :: logic_scheme
         integer                      :: imat
         integer                      :: rg
+        integer i
 
         rg = Tdomain%rank
 
@@ -365,7 +371,6 @@ contains
             stop 1
         endif
         if (rg==0) call dump_config(Tdomain%config) !Print of configuration on the screen
-
         ! On copie les parametres renvoyes dans la structure C
         Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
         Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
@@ -374,7 +379,9 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
-
+        Tdomain%TimeD%fmax                = Tdomain%config%fmax
+        Tdomain%nl_flag = .false.
+        if(Tdomain%config%nl_flag == 1) Tdomain%nl_flag = .true.
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
@@ -386,12 +393,12 @@ contains
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
-        Tdomain%out_variables(0:8)=Tdomain%config%out_variables
-        Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ &
-                             Tdomain%out_variables(OUT_EPS_VOL)+Tdomain%out_variables(OUT_PRESSION))+ &
-                          3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
-                             Tdomain%out_variables(OUT_ACCEL))+&
-                          6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))
+        Tdomain%out_variables(:)=Tdomain%config%out_variables
+
+        Tdomain%nReqOut = 0
+        do i = 0, size(Tdomain%out_variables)-1
+            Tdomain%nReqOut = Tdomain%nReqOut + Tdomain%out_variables(i)*OUT_VAR_DIMS_3D(i)
+        end do
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
@@ -413,8 +420,8 @@ contains
         Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
         Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde
 
-        Tdomain%TimeD%ntrace        = Tdomain%config%traces_interval ! XXX
-        Tdomain%traces_format       = Tdomain%config%traces_format
+        Tdomain%TimeD%ntrace         = Tdomain%config%traces_interval ! XXX
+        Tdomain%traces_format        = Tdomain%config%traces_format
         Tdomain%TimeD%time_snapshots = Tdomain%config%snap_interval
         logic_scheme                 = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
         if(.not. logic_scheme) then
@@ -455,7 +462,7 @@ contains
         call compute_material_boundaries(Tdomain)
 
         ! Material Earthchunk
-
+        
         Tdomain%earthchunk_isInit=0
         if( Tdomain%config%material_type == MATERIAL_EARTHCHUNK) then
             Tdomain%earthchunk_isInit=1

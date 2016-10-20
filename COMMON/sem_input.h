@@ -149,7 +149,8 @@ typedef struct {
     int comp_energ;
 
     // Output Variables
-    int out_variables[9];
+    int out_variables[11];
+    int nl_flag;
 
     // Protection reprise
     int prorep;
@@ -166,6 +167,10 @@ typedef struct {
 
     // PML informations
     int pml_type;
+    double cpml_kappa0;
+    double cpml_kappa1;
+    int cpml_n;
+    double cpml_rc;
 
     //Material
     int material_present;
