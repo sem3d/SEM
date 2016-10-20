@@ -35,7 +35,7 @@ contraintes :math:`\sigma` et les forces extérieures :math:`\mathbf{f}` :
 
    \rho \frac{\partial^2 \mathbf{u}}{\partial t^2} = div \left( \sigma \right) + \mathbf{f}
 
-Avec, en élasticité linéaire : :math:` \sigma = C : Du`, où :math:`C` est le
+Avec, en élasticité linéaire : :math:`\sigma = C : Du`, où :math:`C` est le
 tenseur élastique d'ordre 4 et :math:`Du` le gradient du champs de déplacement.
 
 Pour l'instant les milieux de propagations décrits dans SEM sont
@@ -67,7 +67,7 @@ Méthode spectrale
 
 Pour obtenir une convergence spectrale, ces polynômes de Lagrange sont
 définis sur les points de Gauss-Lobatto-Legendre (GLL) de chaque
-élément (voir :ref:`fig-gll`).
+élément (voir :numref:`fig-gll`).
 
 .. _fig-gll:
 
@@ -92,8 +92,8 @@ Ainsi, sur un élément d'ordre 5, la composante *x* du champ de
 déplacement, est décrite par un vecteur de 125 éléments
 :math:`\mathbf{U}_{i,j,k}` .
 
-La figure :ref:`pollag` montre la forme des polynômes de Lagrange d'ordre 9, la base tensorisée
-de dimension 2D est représentée :ref:`fig-ref-2d`
+La figure :numref:`pollag` montre la forme des polynômes de Lagrange d'ordre 9, la base tensorisée
+de dimension 2D est représentée :numref:`fig-ref-2d`
 
 .. _pollag:
 
@@ -264,7 +264,7 @@ La condition naturelle d'un bord en élément fini est d'être une
 surface libre, donc réfléchissante pour les ondes. Pour simuler des
 milieux ouverts, SEM utilise un type d'élément dit *Couche Parfaitement Absorbante* (en anglais: *Perfectly
 Matched Layer*, ou PML) pour simuler un milieu ouvert infini en bordure d'un
-domaine ([BER94]_, [FES05]_). :ref:`PML_schema` montre le mécanisme d'attenuation des ondes.
+domaine ([BER94]_, [FES05]_). La figure :numref:`PML_schema` montre le mécanisme d'atténuation des ondes.
 
 .. _PML_schema:
 
@@ -300,7 +300,7 @@ Maintenant, considérons la décomposition en ondes planes d'une onde de Rayleig
 La dépendance selon x de cette onde ayant les mêmes caractéristiques que celles des ondes de volume, elle obéit à la même loi de décroissance 
 de l'equation précédente lorsqu'elle entre dans une PML le long de la direction :math:`x`. De plus, elle préserve la signature d'une onde de surface, soit un mouvement caractérisé par une décroissance exponentielle avec la profondeur et une polarisation elliptique rétrograde dans le plan
 de propagation en surface et prograde en profondeur. L'onde évanescente peut également interagir avec la frontière inférieure du modèle, lorsque la dimension
-verticale est comparable avec la plus grande longueur d'onde propagée dans le milieu élastique (:ref:`PML_schema`). 
+verticale est comparable avec la plus grande longueur d'onde propagée dans le milieu élastique (:numref:`PML_schema`). 
 Pour des simulations très longues, comme peuvent le demander des études de réponse sismique dans
 des bassins sédimentaires où le signal reste piégé, l'instabilité générée dans les PML pollue le signal
 partout dans le volume. Une solution est d'allonger en profondeur le modèle. Si :math:`\lambda` est la plus grande longueur d'onde des ondes de Rayleigh propagée
@@ -324,7 +324,7 @@ En utilisant cette transformation l'onde de volume décroît dans les PML selon 
 
 La décroissance exponentielle devient maintenant dépendante de la fréquence par le facteur :math:`\frac{\omega^{2}-i \omega\omega_{c}}{\omega^{2}+\omega^{2}_{c}}`.
 Sa partie réelle contribue au changement d'amplitude de la décroissance, alors que sa partie imaginaire
-est responsable d'un décalage en temps qui dépend également de :math:`\Sigma` :ref:`PML_filt`
+est responsable d'un décalage en temps qui dépend également de :math:`\Sigma` :numref:`PML_filt`
 
 .. _PML_filt:
 
@@ -396,7 +396,7 @@ doublement les coûts de calcul :
 
 - le pas de temps est proportionnel à :math:`\frac{1}{\min \Delta x}`,
   le pas d'espace :math:`\min \Delta x` diminuant avec l'ordre des
-  éléments (On voit sur :ref:`fig-gll` comment les points de Gauss se
+  éléments (On voit sur :numref:`fig-gll` comment les points de Gauss se
   resserrent vers les bords avec l'augmentation de l'ordre).
 
 Atténuation
