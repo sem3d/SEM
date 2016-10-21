@@ -61,10 +61,14 @@ void RectMesh::read_params_old(FILE* fparam)
     //getline(&buffer, &n, fparam);
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &has_pml);
-    if (has_pml!=0 && has_pml!=1) {
+    if (has_pml<0) {
         printf("Check your parameter file : we read has_pml=%d instead of 0 or 1\n", has_pml);
         exit(1);
     }
+    if (has_pml>1) {
+        printf("Using %d layers of PML\n", has_pml);
+    }
+    npml = has_pml;
     if (has_pml) {
         pmls.N = true;
         pmls.S = true;
@@ -166,9 +170,8 @@ int RectMesh::get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, b
     return pml_mat;
 }
 
-void RectMesh::apply_pml_borders(int npml_)
+void RectMesh::apply_pml_borders()
 {
-    npml = npml_;
     xmax0 = xmax;
     xmin0 = xmin;
     ymax0 = ymax;
@@ -299,11 +302,10 @@ void RectMesh::create_quadratic_element(Elem& elem, int i, int j, int k)
 
 void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
 {
-    const int npml=1;
     assert(xmin<xmax);
     assert(ymin<ymax);
 
-    apply_pml_borders(npml);
+    apply_pml_borders();
 
     mesh.set_control_nodes(elem_shape);
 

@@ -39,7 +39,7 @@ struct RectMesh {
     void read_params(FILE* fparam);
     void read_params_old(FILE* fparam);
     void init_rectangular_mesh(Mesh3D& mesh);
-    void apply_pml_borders(int npml);
+    void apply_pml_borders();
 protected:
 
     int nelemx, nelemy, nelemz;
