@@ -411,7 +411,6 @@ contains
         xref(0) = xa
         xref(1) = ya
         xref(2) = za
-        call minimize_cg(3, 8, xin, coord, xref, shape8_min, shape8_mingrad, 0.001D0, xout, niter)
         call simple_newton_8(coord, xref, xin, xout, niter)
         if (niter==1000 .or. niter<0) ok=.false.
         xi = xout(0)
