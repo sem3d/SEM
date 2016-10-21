@@ -62,10 +62,10 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
     !
     integer :: i,j,k,l,e,ee
-    real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    real(fpp), dimension(0:8) :: DUDV ! derivatives dUx/dx, ... dUz/dz
+    real(fpp), dimension(0:20) :: LC
     real(fpp), dimension(0:2) :: Li, Lijk, B0ijk
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
-    real(fpp) :: EXY,EXZ,EYZ
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp) :: t4
 #ifdef USE_LOCAL_MEM
@@ -79,8 +79,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
-    real(fpp) :: lbd, mu
-    real(fpp) :: C1111,C1122,C1133,C2222,C2233,C3333,C2323,C2332,C1313,C1331,C1212,C1221,C3232,C3131,C2121
+    real(fpp) :: lbd, mu, l2mu
 
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -147,51 +146,33 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #define JZY dom%InvGrad_(2,1,i,j,k,bnum,ee)
 #define JZZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
 
-                dxx=dUx_dxi(ee,i,j,k)*JXX + dUx_deta(ee,i,j,k)*JXY + dUx_dzeta(ee,i,j,k)*JXZ
-                dxy=dUx_dxi(ee,i,j,k)*JYX + dUx_deta(ee,i,j,k)*JYY + dUx_dzeta(ee,i,j,k)*JYZ
-                dxz=dUx_dxi(ee,i,j,k)*JZX + dUx_deta(ee,i,j,k)*JZY + dUx_dzeta(ee,i,j,k)*JZZ
+                DUDV(dxx)=dUx_dxi(ee,i,j,k)*JXX + dUx_deta(ee,i,j,k)*JXY + dUx_dzeta(ee,i,j,k)*JXZ
+                DUDV(dxy)=dUx_dxi(ee,i,j,k)*JYX + dUx_deta(ee,i,j,k)*JYY + dUx_dzeta(ee,i,j,k)*JYZ
+                DUDV(dxz)=dUx_dxi(ee,i,j,k)*JZX + dUx_deta(ee,i,j,k)*JZY + dUx_dzeta(ee,i,j,k)*JZZ
 
-                dyx=dUy_dxi(ee,i,j,k)*JXX + dUy_deta(ee,i,j,k)*JXY + dUy_dzeta(ee,i,j,k)*JXZ
-                dyy=dUy_dxi(ee,i,j,k)*JYX + dUy_deta(ee,i,j,k)*JYY + dUy_dzeta(ee,i,j,k)*JYZ
-                dyz=dUy_dxi(ee,i,j,k)*JZX + dUy_deta(ee,i,j,k)*JZY + dUy_dzeta(ee,i,j,k)*JZZ
+                DUDV(dyx)=dUy_dxi(ee,i,j,k)*JXX + dUy_deta(ee,i,j,k)*JXY + dUy_dzeta(ee,i,j,k)*JXZ
+                DUDV(dyy)=dUy_dxi(ee,i,j,k)*JYX + dUy_deta(ee,i,j,k)*JYY + dUy_dzeta(ee,i,j,k)*JYZ
+                DUDV(dyz)=dUy_dxi(ee,i,j,k)*JZX + dUy_deta(ee,i,j,k)*JZY + dUy_dzeta(ee,i,j,k)*JZZ
 
-                dzx=dUz_dxi(ee,i,j,k)*JXX + dUz_deta(ee,i,j,k)*JXY + dUz_dzeta(ee,i,j,k)*JXZ
-                dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
-                dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
+                DUDV(dzx)=dUz_dxi(ee,i,j,k)*JXX + dUz_deta(ee,i,j,k)*JXY + dUz_dzeta(ee,i,j,k)*JXZ
+                DUDV(dzy)=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
+                DUDV(dzz)=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
 
-                call compute_convolution_terms(dom, i, j, k, bnum, ee, B0ijk, Li, Lijk)
+                call compute_convolution_terms(dom, i, j, k, bnum, ee, DUDV, LC)
 
                 lbd = dom%Lambda_(i,j,k,bnum,ee)
                 mu = dom%Mu_(i,j,k,bnum,ee)
-                C1111 = (lbd+2*mu)*Lijk(k120)
-                C1122 =  lbd      *Li(2)
-                C1133 =  lbd      *Li(1)
-                C2222 = (lbd+2*mu)*Lijk(k021)
-                C2233 =  lbd      *Li(0)
-                C3333 = (lbd+2*mu)*Lijk(k012)
-                C2323 =        mu *Lijk(k021)
-                C2332 =        mu *Li(0)
-                C3232 =        mu *Lijk(k012)
-                C1313 =        mu *Lijk(k120)
-                C1331 =        mu *Li(1)
-                C3131 =        mu *Lijk(k012)
-                C1212 =        mu *Lijk(k120)
-                C1221 =        mu *Li(2)
-                C2121 =        mu *Lijk(k021)
+                l2mu = lbd+2*mu
 
-                EXY=0.5*(DXY+DYX)
-                EXZ=0.5*(DXZ+DZX)
-                EYZ=0.5*(DYZ+DZY)
-
-                sxx = DXX*C1111 + DYY*C1122 + DZZ*C1133
-                syy = DXX*C1122 + DYY*C2222 + DZZ*C2233
-                szz = DXX*C1133 + DYY*C2233 + DZZ*C3333
-                sxy = EXY*C1212 + EXY*C1221
-                syx = EXY*C1221 + EXY*C2121
-                sxz = EXZ*C1313 + EXZ*C1331
-                szx = EXZ*C1331 + EXZ*C3131
-                syz = EYZ*C2323 + EYZ*C2332
-                szy = EYZ*C2332 + EYZ*C3232
+                sxx = l2mu*LC(L120_DXX)+lbd*LC(L2_DYY)+lbd*LC(L1_DZZ)
+                sxy = mu*(LC(L120_DXY)+LC(L2_DYX))
+                sxz = mu*(LC(L120_DXZ)+LC(L1_DZX))
+                syx = mu*(LC(L021_DYX)+LC(L2_DXY))
+                syy = lbd*LC(L2_DXX) + l2mu*LC(L021_DYY) + lbd*LC(L0_DZZ)
+                syz = mu*(LC(L021_DYZ)+LC(L0_DZY))
+                szx = mu*(LC(L012_DZX)+LC(L1_DXZ))
+                szy = mu*(LC(L012_DZY)+LC(L0_DYZ))
+                szz = lbd*LC(L1_DXX) + lbd*LC(L0_DYY) + l2mu*LC(L012_DZZ)
 
                 !
                 !=====================

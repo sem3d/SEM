@@ -8,6 +8,20 @@
 module m_calcul_forces_solidpml
     use constants
     implicit none
+
+    integer, parameter :: L120_DXX= 0, L2_DYY= 1, L1_DZZ= 2
+    integer, parameter :: L120_DXY= 3, L2_DYX= 4
+    integer, parameter :: L120_DXZ= 5, L1_DZX= 6
+    integer, parameter :: L021_DYX= 7, L2_DXY= 8
+    integer, parameter :: L2_DXX= 9, L021_DYY=10, L0_DZZ=11
+    integer, parameter :: L021_DYZ=12, L0_DZY=13
+    integer, parameter :: L012_DZX=14, L1_DXZ=15
+    integer, parameter :: L012_DZY=16, L0_DYZ=17
+    integer, parameter :: L1_DXX=18, L0_DYY=19, L012_DZZ=20
+    integer, parameter :: dXX=0, dXY=1, dXZ=2
+    integer, parameter :: dYX=3, dYY=4, dYZ=5
+    integer, parameter :: dZX=6, dZY=7, dZZ=8
+    integer, parameter :: kB012=0, kB021=1, kB120=2, kB0=3, kB1=4, kB2=5
 contains
 
     subroutine calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
@@ -35,88 +49,162 @@ contains
             call calcul_forces_solidpml_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         end select
     end subroutine calcul_forces_solidpml
-
-    subroutine compute_a3a4a5_bar(dom, i, j, k, bnum, ee, a3b, a4b, a5b)
-        use sdomain
-        type(domain_solidpml), intent(inout) :: dom
-        integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent (OUT) :: a3b, a4b, a5b
-!        !
-!        real(fpp) :: k012,a0,a1,a2,b0,b1,b2
-!        k012 = dom%Kappa(ee, 0, i, j, k, bnum)*dom%Kappa(ee, 1, i, j, k, bnum)*dom%Kappa(ee, 2, i, j, k, bnum)
-!        a0 = dom%Alpha(ee, 0, i, j, k, bnum)
-!        a1 = dom%Alpha(ee, 1, i, j, k, bnum)
-!        a2 = dom%Alpha(ee, 2, i, j, k, bnum)
-!        b0 = a0 + dom%dxi_k(ee, 0, i, j, k, bnum)
-!        b1 = a1 + dom%dxi_k(ee, 1, i, j, k, bnum)
-!        b2 = a2 + dom%dxi_k(ee, 2, i, j, k, bnum)
-!        a3b = k012*(b0-a0)*(b1-a0)*(b2-a0)/((a1-a0)*(a2-a0)) ! a_012
-!        a4b = k012 ! a_
-!        a5b = k012
-    end subroutine compute_a3a4a5_bar
     !
-    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, Rx, Ry, Rz)
+    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, U, Rx, Ry, Rz)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
+        real(fpp), intent(in), dimension(0:2) :: U
         integer, intent(in) :: i, j, k, bnum, ee
         real(fpp), intent(out) :: Rx, Ry, Rz
         !
         real(fpp) :: a3b, a4b, a5b
-        real(fpp) :: k0, d0, a0
+        real(fpp) :: k0, d0, a0, dt
+        integer :: n1, n2
+
+        n1 = dom%I1(ee,bnum)
+        n2 = dom%I2(ee,bnum)
+
         ! XXX valable pour ndir=1
+        dt = dom%dt
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
-        a3b = k0*a0*a0*d0
-        Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
-        Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
-        Rz = a3b*dom%R1_0(ee,2,i,j,k,bnum)
+        if (n1==-1 .and. n2==-1) then
+            ! Update convolution term
+            dom%R1_0(ee,0,i,j,k,bnum) = dom%R1_0(ee,0,i,j,k,bnum)*(1-dt*a0) + dt*U(0)
+            dom%R1_0(ee,1,i,j,k,bnum) = dom%R1_0(ee,0,i,j,k,bnum)*(1-dt*a0) + dt*U(1)
+            dom%R1_0(ee,2,i,j,k,bnum) = dom%R1_0(ee,0,i,j,k,bnum)*(1-dt*a0) + dt*U(2)
+            a3b = k0*a0*a0*d0
+            Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
+            Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
+            Rz = a3b*dom%R1_0(ee,2,i,j,k,bnum)
+        else
+            Rx = 0d0
+            Ry = 0d0
+            Rz = 0d0
+        end if
     end subroutine compute_L_convolution_terms
 
-    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, B0ijk, Li, Lijk)
+    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, DUDV, LC)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent(out), dimension(0:2) :: Li, Lijk, B0ijk
-        integer   :: id0, id1
-        real(fpp) :: k0, d0, a0
+        real(fpp), intent(in), dimension(0:8) :: DUDV
+        real(fpp), intent(out), dimension(0:20) :: LC
+        integer :: n1, n2
+        n1 = dom%I1(ee,bnum)
+        n2 = dom%I2(ee,bnum)
 
+        if (n1==-1 .and. n2==-1) then
+            call compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DUDV, LC)
+        end if
+    end subroutine compute_convolution_terms
+
+    subroutine compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DUDV, LC)
+        use champs_solidpml
+        implicit none
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: i, j, k, bnum, ee
+        real(fpp), intent(in), dimension(0:8) :: DUDV
+        real(fpp), intent(out), dimension(0:20) :: LC
+        !
+        integer   :: dim0, r
+        real(fpp) :: k0, d0, a0, dt
+        real(fpp), dimension(0:5) :: b0, b1
+        real(fpp), dimension(0:8) :: cf
+
+        dt = dom%dt
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+        if (k0<0) then
+            write(*,*) "Erruer:", bnum, ee, i,j,k, k0
+            stop 1
+        endif
+        b0(:) = 1d0
+        dim0 = dom%D0(ee,bnum)
+        cf(:) = a0
+        select case(dim0)
+        case(0)
+            b0(kB012) = k0
+            b0(kB021) = k0
+            b0(kB120) = 1./k0
+            b0(kB0) = k0
+            b0(kB1) = 1.
+            b0(kB2) = 1.
+            b1(kB012) = k0*d0
+            b1(kB021) = k0*d0
+            b1(kB120) = -d0/k0
+            b1(kB0) = d0
+            b1(kB1) = 0.
+            b1(kB2) = 0.
+            cf(DXX) = a0+d0
+            cf(DXY) = a0+d0
+            cf(DXZ) = a0+d0
+        case(1)
+            b0(kB012) = k0
+            b0(kB021) = 1./k0
+            b0(kB120) = k0
+            b0(kB0) = 1.
+            b0(kB1) = k0
+            b0(kB2) = 1.
+            b1(kB012) = k0*d0
+            b1(kB021) = -d0/k0
+            b1(kB120) = k0*d0
+            b1(kB0) = 0.
+            b1(kB1) = d0
+            b1(kB2) = 0.
+            cf(DYX) = a0+d0
+            cf(DYY) = a0+d0
+            cf(DYZ) = a0+d0
+        case(2)
+            b0(kB012) = 1./k0
+            b0(kB021) = k0
+            b0(kB120) = k0
+            b0(kB0) = 1.
+            b0(kB1) = 1.
+            b0(kB2) = k0
+            b1(kB012) = -d0/k0
+            b1(kB021) = k0*d0
+            b1(kB120) = k0*d0
+            b1(kB0) = 0.
+            b1(kB1) = 0.
+            b1(kB2) = d0
+            cf(DZX) = a0+d0
+            cf(DZY) = a0+d0
+            cf(DZZ) = a0+d0
+        end select
 
-        id0 = dom%D0(ee,bnum)
-        Li(0) = 1d0
-        Li(1) = 1d0
-        Li(2) = 1d0
-        Li(id0) = 2d0
-        Lijk(k012) = 1d0
-        Lijk(k021) = 1d0
-        Lijk(k120) = 1d0
+        ! update convolution terms
+        do r=0,8
+            dom%R2_0(ee,r,i,j,k,bnum) = dom%R2_0(ee,r,i,j,k,bnum)*(1-dt*cf(r))+dt*DUDV(r)
+        end do
+        ! First we add the terms in Dirac
+        LC(L120_DXX) = b0(kB120)*DUDV(DXX) + b1(kB120)*dom%R2_0(ee,DXX,i,j,k,bnum)
+        LC(L2_DYY  ) = b0(kB2  )*DUDV(DYY) + b1(kB2  )*dom%R2_0(ee,DYY,i,j,k,bnum)
+        LC(L1_DZZ  ) = b0(kB1  )*DUDV(DZZ) + b1(kB1  )*dom%R2_0(ee,DZZ,i,j,k,bnum)
+        LC(L120_DXY) = b0(kB120)*DUDV(DXY) + b1(kB120)*dom%R2_0(ee,DXY,i,j,k,bnum)
+        LC(L2_DYX  ) = b0(kB2  )*DUDV(DYX) + b1(kB2  )*dom%R2_0(ee,DYX,i,j,k,bnum)
+        LC(L120_DXZ) = b0(kB120)*DUDV(DXZ) + b1(kB120)*dom%R2_0(ee,DXZ,i,j,k,bnum)
+        LC(L1_DZX  ) = b0(kB1  )*DUDV(DZX) + b1(kB1  )*dom%R2_0(ee,DZX,i,j,k,bnum)
+        LC(L021_DYX) = b0(kB021)*DUDV(DYX) + b1(kB021)*dom%R2_0(ee,DYX,i,j,k,bnum)
+        LC(L2_DXY  ) = b0(kB2  )*DUDV(DXY) + b1(kB2  )*dom%R2_0(ee,DXY,i,j,k,bnum)
+        LC(L2_DXX  ) = b0(kB2  )*DUDV(DXX) + b1(kB2  )*dom%R2_0(ee,DXX,i,j,k,bnum)
+        LC(L021_DYY) = b0(kB021)*DUDV(DYY) + b1(kB021)*dom%R2_0(ee,DYY,i,j,k,bnum)
+        LC(L0_DZZ  ) = b0(kB0  )*DUDV(DZZ) + b1(kB0  )*dom%R2_0(ee,DZZ,i,j,k,bnum)
+        LC(L021_DYZ) = b0(kB021)*DUDV(DYZ) + b1(kB021)*dom%R2_0(ee,DYZ,i,j,k,bnum)
+        LC(L0_DZY  ) = b0(kB0  )*DUDV(DYZ) + b1(kB0  )*dom%R2_0(ee,DYZ,i,j,k,bnum)
+        LC(L012_DZX) = b0(kB012)*DUDV(DZX) + b1(kB012)*dom%R2_0(ee,DZX,i,j,k,bnum)
+        LC(L1_DXZ  ) = b0(kB1  )*DUDV(DXZ) + b1(kB1  )*dom%R2_0(ee,DXZ,i,j,k,bnum)
+        LC(L012_DZY) = b0(kB012)*DUDV(DZY) + b1(kB012)*dom%R2_0(ee,DZY,i,j,k,bnum)
+        LC(L0_DYZ  ) = b0(kB0  )*DUDV(DYZ) + b1(kB0  )*dom%R2_0(ee,DYZ,i,j,k,bnum)
+        LC(L1_DXX  ) = b0(kB1  )*DUDV(DXX) + b1(kB1  )*dom%R2_0(ee,DXX,i,j,k,bnum)
+        LC(L0_DYY  ) = b0(kB0  )*DUDV(DYY) + b1(kB0  )*dom%R2_0(ee,DYY,i,j,k,bnum)
+        LC(L012_DZZ) = b0(kB012)*DUDV(DZZ) + b1(kB012)*dom%R2_0(ee,DZZ,i,j,k,bnum)
 
-!        !
-!        integer :: ind
-!        real(fpp) :: b1b, b2b, b3b
-!
-!        ind = dom%Idom_(i,j,k,bnum,ee)
-!        L0 = dom%Kappa(ee,0,i,j,k,bnum) + dom%Kappa(ee,0,i,j,k,bnum)*dom%dxi_k(ee,0,i,j,k,bnum)*dom%R(0,ind,0) ! 1, x
-!        L1 = dom%Kappa(ee,1,i,j,k,bnum) + dom%Kappa(ee,1,i,j,k,bnum)*dom%dxi_k(ee,1,i,j,k,bnum)*dom%R(0,ind,1) ! 1, y
-!        L2 = dom%Kappa(ee,2,i,j,k,bnum) + dom%Kappa(ee,2,i,j,k,bnum)*dom%dxi_k(ee,2,i,j,k,bnum)*dom%R(0,ind,2) ! 1, z
-!        b1b = 0.
-!        b2b = 0.
-!        b3b = 0.
-!        L120 = L1*L2/L0 + b1b*1. + b2b*1. + b3b*1.
-!        b1b = 0.
-!        b2b = 0.
-!        b3b = 0.
-!        L021 = L0*L2/L1 + b1b*1. + b2b*1. + b3b*1.
-!        b1b = 0.
-!        b2b = 0.
-!        b3b = 0.
-!        L012 = L0*L1/L2 + b1b*1. + b2b*1. + b3b*1.
-    end subroutine compute_convolution_terms
+    end subroutine compute_convolution_terms_1d
 
 #define NGLLVAL 4
 #define PROCNAME calcul_forces_solidpml_4

@@ -51,6 +51,8 @@ contains
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
         end if
+!        write(*,*) "DEBUG:", dir1_count,"Elements 2 dir"
+!        write(*,*) "DEBUG:", dir2_count,"Elements 3 dir"
     end subroutine allocate_multi_dir_pml
 
     subroutine allocate_dom_solidpml (Tdomain, dom)
@@ -98,6 +100,8 @@ contains
             dom%R2_0 = 0d0
             dom%I1(:,:) = -1
             dom%I2(:,:) = -1
+            dom%D0(:,:) = 0
+            dom%Kappa_0 = 1.
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -175,7 +179,6 @@ contains
 
         if(allocated(dom%R1_0)) deallocate(dom%R1_0)
         if(allocated(dom%R2_0)) deallocate(dom%R2_0)
-        if(allocated(dom%R3_0)) deallocate(dom%R3_0)
 
         if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
     end subroutine deallocate_dom_solidpml
@@ -324,6 +327,7 @@ contains
             end do
         end do
 
+        dom%dt = Tdomain%TimeD%dtmin
         ! Handle on materials (to get/access pml_pos and pml_width)
         dom%sSubDomain => Tdomain%sSubDomain
 
@@ -381,6 +385,7 @@ contains
         d0 = d0/abs(2*dom%sSubDomain(mi)%pml_width(xyz))
 
         kappa = dom%cpml_kappa_0 + dom%cpml_kappa_1 * xoverl
+
         dxi   = dom%c(xyz)*d0*(xoverl)**dom%n(xyz) / kappa
         alpha = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
     end subroutine compute_dxi_alpha_kappa
@@ -437,6 +442,8 @@ contains
 
         nd = get_dir2_index(dom, ee, bnum)
         call compute_dxi_alpha_kappa(dom, xyz, i, j, k, bnum, ee, mi, alpha, kappa, dxi)
+
+        if (kappa==0d0) stop 1
 
         dom%Kappa_2(i,j,k,nd) = kappa
         dom%dxi_k_2(i,j,k,nd) = dxi
@@ -527,6 +534,7 @@ contains
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+        if (k0==0d0) stop 1
         select case(ndir)
         case (1)
             a0b = k0
@@ -556,6 +564,9 @@ contains
         end select
         mass_0 = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
         ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
+        if (a0b==0d0.or.mass_0==0d0) then
+            stop 1
+        endif
         dom%MassMat(ind) = dom%MassMat(ind) + a0b*mass_0
         dom%DumpMat(ind) = dom%DumpMat(ind) + a1b*mass_0
         dom%MasUMat(ind) = dom%MasUMat(ind) + a2b*mass_0
@@ -615,7 +626,8 @@ contains
                         e = bnum*VCHUNK+ee
                         if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        call compute_L_convolution_terms(dom, i, j, k, bnum, ee, Rx, Ry, Rz)
+                        call compute_L_convolution_terms(dom, i, j, k, bnum, ee, Depla(ee,i,j,k,0:2), &
+                            Rx, Ry, Rz)
                         champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)-wijk*Rx
                         champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)-wijk*Ry
                         champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)-wijk*Rz

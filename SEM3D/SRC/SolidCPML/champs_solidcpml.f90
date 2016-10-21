@@ -65,10 +65,10 @@ module champs_solidpml
         ! First dimension : 0, 1, 2 <=> u, t*u, t^2*u
         ! Last  dimension : 0, 1, 2 <=> x,   y,     z
         ! Convolutional terms R from Ref1 for L and Lijk with only one direction of attenuation
-        ! R1 = L*u,  R2=exp(-a0t)*du/dx,  R3=exp(-b0t)*du/dx
+        ! R1 = L*u,  R2=exp(-a0t)*du/dx
         ! Dimensions : R1(VS,3,N,N,N,NB) R2(VS,9,N,N,N,NB) R3(VS,9,N,N,N,NB)
         ! with N=ngll, VS:vector size, NB : Nelements/VS
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_0, R2_0, R3_0
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_0, R2_0
 
         ! CPML parameters
         real(fpp) :: c(0:2)
@@ -76,7 +76,8 @@ module champs_solidpml
         real(fpp) :: rc
         real(fpp) :: cpml_kappa_0, cpml_kappa_1
         real(fpp) :: alphamax
-
+        ! Integration Rxx
+        real(fpp) :: dt
     end type domain_solidpml
 
     contains
