@@ -66,9 +66,13 @@ module champs_solidpml
         ! Last  dimension : 0, 1, 2 <=> x,   y,     z
         ! Convolutional terms R from Ref1 for L and Lijk with only one direction of attenuation
         ! R1 = L*u,  R2=exp(-a0t)*du/dx
-        ! Dimensions : R1(VS,3,N,N,N,NB) R2(VS,9,N,N,N,NB) R3(VS,9,N,N,N,NB)
+        ! Dimensions : R1_0(VS,3,N,N,N,NB) R2_0(VS,9,N,N,N,NB)
+        ! Dimensions : R1_1(3,N,N,N,N1) R2_0(9,N,N,N,N1)
+        ! Dimensions : R1_2(3,N,N,N,N2) R2_0(9,N,N,N,N2)
         ! with N=ngll, VS:vector size, NB : Nelements/VS
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_0, R2_0
+        real(fpp), dimension(:,:,:,:,:)  , allocatable :: R1_1, R2_1
+        real(fpp), dimension(:,:,:,:,:)  , allocatable :: R1_2, R2_2
 
         ! CPML parameters
         real(fpp) :: c(0:2)
