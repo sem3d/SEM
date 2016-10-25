@@ -591,6 +591,61 @@ contains
     end subroutine modify_atmospheric_rho
 
 
+    ! ############################################################
+    !>
+    !! \brief This subroutine sets a gradient of pressure velocity
+    !! wave in the ocean part (SOFAR channel) and a gradient of
+    !! Vp and Vs in the crust. Subroutine used only for the Antille's test.
+    !<
+    subroutine modify_gradient_VpVs(Tdomain, nelem)
+
+        implicit none
+        type (domain), intent (INOUT) :: Tdomain
+        integer, intent(IN) :: nelem
+        type(element), pointer :: Elem
+        real    :: zp, zmin, zmax, Vp, Vs, Vpmin, Vpmax, rho, lambda, mu
+        integer :: i, j, ipoint, mat
+
+        Elem => Tdomain%specel(nelem)
+        mat = Elem%mat_index
+
+        if (mat==1 .or. mat==4) then ! ocean part
+           zmin = 0. ; zmax = -4000.
+           Vpmin = 1500. ; Vpmax = 1600.
+           do j = 0,Elem%ngllz-1
+              do i = 0,Elem%ngllx-1
+                 rho = Elem%Density(i,j)
+                 ipoint = Elem%Iglobnum(i,j)
+                 zp = Tdomain%GlobCoord(1,ipoint)
+                 ! Loi de celerite pour la profondeur zp
+                 Vp = Vpmin + (Vpmax - Vpmin)*(zp - zmin)/(zmax - zmin)
+                 ! Lambda correspondant
+                 lambda = rho * Vp * Vp
+                 Elem%Lambda(i,j) = lambda
+              enddo
+           enddo
+        else if (mat==0 .or. mat==3 .or. mat==5) then ! oceanic crust part
+           zmin = 0. ; zmax = -16000.
+           Vpmin = 4500. ; Vpmax = 7000.
+           do j = 0,Elem%ngllz-1
+                do i = 0,Elem%ngllx-1
+                   rho = Elem%Density(i,j)
+                   ipoint = Elem%Iglobnum(i,j)
+                   zp = Tdomain%GlobCoord(1,ipoint)
+                   ! Loi de celerite pour l'altitude zp
+                   Vp = Vpmin + (Vpmax - Vpmin)*(zp - zmin)/(zmax - zmin)
+                   Vs = Vp / sqrt(3.)
+                   ! Lambda et mu correspondants
+                   lambda = rho * (Vp*Vp - 2*Vs*Vs)
+                   mu = rho*Vs*Vs
+                   Elem%Lambda(i,j) = lambda
+                   Elem%Mu(i,j) = mu
+                enddo
+            enddo
+         endif
+
+      end subroutine modify_gradient_VpVs
+
 ! ############################################################
 
     subroutine prepare_mortars(Tdomain)

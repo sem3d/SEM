@@ -65,6 +65,7 @@ subroutine define_arrays(Tdomain)
 
         ! For Atmospheric Waveguide :
         !call modify_atmospheric_rho(Tdomain,n)
+        !call modify_gradient_VpVs(Tdomain,n)
 
         allocate (xix (0:ngllx-1,0:ngllz-1))
         allocate (xiz (0:ngllx-1,0:ngllz-1))
