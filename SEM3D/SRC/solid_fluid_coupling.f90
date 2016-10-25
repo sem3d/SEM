@@ -53,9 +53,16 @@ subroutine StoF_coupling(Tdomain)
             vn3 = vn3 + (BtN(j) * Tdomain%spmldom%champs0%VelocPML(idxS,j,2))
         enddo
 #endif
+#ifdef CPML
+        !TODO
+        !Tdomain%fpmldom%champs1%ForcesFl(idxF,0) = Tdomain%fpmldom%champs1%ForcesFl(idxF,0) + vn1
+        !Tdomain%fpmldom%champs1%ForcesFl(idxF,1) = Tdomain%fpmldom%champs1%ForcesFl(idxF,1) + vn2
+        !Tdomain%fpmldom%champs1%ForcesFl(idxF,2) = Tdomain%fpmldom%champs1%ForcesFl(idxF,2) + vn3
+#else
         Tdomain%fpmldom%champs1%fpml_Forces(idxF,0) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,0) + vn1
         Tdomain%fpmldom%champs1%fpml_Forces(idxF,1) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,1) + vn2
         Tdomain%fpmldom%champs1%fpml_Forces(idxF,2) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,2) + vn3
+#endif
     enddo
 end subroutine StoF_coupling
 !----------------------------------------------------------------

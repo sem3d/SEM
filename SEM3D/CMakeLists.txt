@@ -10,7 +10,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/dombase.F90
     ${PRJ}/SRC/Solid/champs_solid.f90
     ${PRJ}/SRC/Fluid/champs_fluid.f90
-    ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
     ${PRJ}/SRC/Modules/Element.f90
     ${PRJ}/SRC/Modules/Face.f90
     ${PRJ}/SRC/Modules/Vertex.f90
@@ -43,7 +42,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90
     ${PRJ}/SRC/pml.F90
-    ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/define_arrays.F90
@@ -94,11 +92,16 @@ set(SEM3D_SOURCES_F
 
 if (OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
+      ${PRJ}/SRC/FluidCPML/champs_fluidcpml.f90
+      ${PRJ}/SRC/FluidCPML/calcul_forces_fluidpml.F90
+      ${PRJ}/SRC/FluidCPML/dom_fluidcpml.F90
       ${PRJ}/SRC/SolidCPML/champs_solidcpml.f90
       ${PRJ}/SRC/SolidCPML/calcul_forces_solidpml.F90
       ${PRJ}/SRC/SolidCPML/dom_solidcpml.F90)
 else(OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
+      ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
+      ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
       ${PRJ}/SRC/SolidPML/champs_solidpml.f90
       ${PRJ}/SRC/SolidPML/dom_solidpml.F90)
 endif(OPT_CPML)

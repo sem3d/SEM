@@ -166,7 +166,11 @@ subroutine comm_forces(Tdomain)
             ! Domain FLUID PML
             if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+#ifdef CPML
+                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%champs1%ForcesFl, k)
+#else
                     Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%champs1%fpml_Forces, k)
+#endif
             end if
             Tdomain%Comm_data%Data(n)%nsend = k
         end do
@@ -200,7 +204,11 @@ subroutine comm_forces(Tdomain)
             ! Domain FLUID PML
             if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+#ifdef CPML
+                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%champs1%ForcesFl, k)
+#else
                     Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%champs1%fpml_Forces, k)
+#endif
             end if
         end do
         call stat_stoptick(STAT_TAKE)
@@ -378,9 +386,13 @@ subroutine internal_forces(Tdomain)
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)
             Tdomain%fdom%champs1%ForcesFl(indflu) = Tdomain%fdom%champs1%ForcesFl(indflu) + &
+#ifdef CPML
+                                                    Tdomain%fpmldom%champs1%ForcesFl(indpml)
+#else
                                                     Tdomain%fpmldom%champs1%fpml_Forces(indpml,0) + &
                                                     Tdomain%fpmldom%champs1%fpml_Forces(indpml,1) + &
                                                     Tdomain%fpmldom%champs1%fpml_Forces(indpml,2)
+#endif
         enddo
     endif
 

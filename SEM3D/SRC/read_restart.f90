@@ -394,10 +394,14 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
+#ifdef CPML
+                    ! TODO
+#else
                     Tdomain%fpmldom%PMLVeloc_(i,j,k,0,bnum,ee) = veloc(idx+0)
                     Tdomain%fpmldom%PMLVeloc_(i,j,k,1,bnum,ee) = veloc(idx+1)
                     Tdomain%fpmldom%PMLVeloc_(i,j,k,2,bnum,ee) = veloc(idx+2)
                     idx = idx + 3
+#endif
                 end do
             end do
         end do
@@ -473,7 +477,11 @@ subroutine read_restart (Tdomain,rg, isort)
 #endif
     end if
     if (Tdomain%fpmldom%nglltot.gt.0) then
+#ifdef CPML
+        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%VelPhi, ibase=0)
+#else
         call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi, ibase=0)
+#endif
         call read_Veloc_Fluid_PML(Tdomain, elem_id)
     end if
     call read_EpsilonVol(Tdomain, elem_id)

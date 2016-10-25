@@ -1729,7 +1729,11 @@ contains
                             case (DM_FLUID)
                                 dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)
+#ifdef CPML
+                                dens(idx) = 0. ! Tdomain%fpmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DDensity ! TODO
+#else
                                 dens(idx) = Tdomain%fpmldom%Density_     (i,j,k,bnum,ee)
+#endif
                             case default
                                 stop "unknown domain"
                         end select

@@ -23,7 +23,6 @@ module mdefinitions
 #include "index.h"
 
     public :: define_arrays
-    private :: define_PML_DumpEnd
 
 contains
 
@@ -316,8 +315,10 @@ contains
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
+#ifndef CPML
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMass, k)
+#endif
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MassMat, k)
                 end if
@@ -351,8 +352,10 @@ contains
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
+#ifndef CPML
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMass, k)
+#endif
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MassMat, k)
                 end if

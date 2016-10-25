@@ -848,10 +848,14 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
+#ifdef CPML
+                    ! TODO
+#else
                     data(idx+ 0) = Tdomain%fpmldom%PMLVeloc_(i,j,k,0,bnum,ee)
                     data(idx+ 1) = Tdomain%fpmldom%PMLVeloc_(i,j,k,1,bnum,ee)
                     data(idx+ 2) = Tdomain%fpmldom%PMLVeloc_(i,j,k,2,bnum,ee)
                     idx = idx + 3
+#endif
                 enddo
             enddo
         enddo
@@ -934,7 +938,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
 #endif
     end if
     if (Tdomain%fpmldom%nglltot.gt.0) then
+#ifdef CPML
+        call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%VelPhi)
+#else
         call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi)
+#endif
         call write_Veloc_Fluid_PML(Tdomain, offset(12), elem_id)
     end if
 
