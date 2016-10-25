@@ -17,6 +17,10 @@ module treceivers
     implicit none
 contains
 
+! ###########################################################
+!>
+!! \brief
+!<
 subroutine ReceiverPosition(Tdomain)
 
     use sdomain
@@ -87,12 +91,14 @@ subroutine ReceiverPosition(Tdomain)
                     Tdomain%sReceiver(nrec)%Interp_Coeff(i,j) = outx*outz
                 enddo
             enddo
-            call check_receiver_on_vertex(Tdomain,nrec)
         endif
     enddo
 
-    ! Prepare to store receiver trace
+    ! Prepare Post-Processing if HDG
+    !if(Tdomain%type_elem==GALERKIN_HDG_RP) &
+    !    call prepare_HDG_postprocess(Tdomain)
 
+    ! Prepare to store receiver trace
     i = 0
     do nrec = 0, Tdomain%n_receivers-1
         if (Tdomain%sReceiver(nrec)%located_here) i= i + 1
@@ -102,6 +108,13 @@ subroutine ReceiverPosition(Tdomain)
     endif
 end subroutine ReceiverPosition
 
+
+! ###########################################################
+!>
+!! \brief This subroutine saves the velocity trace corresponding to the receiver number "it".
+!! It computes an interpolation of the velocity at the receiver location from all the nodal
+!! velocity values of the receiver's element.
+!<
 subroutine save_trace (Tdomain, it)
     use sdomain
     use orientation
@@ -110,7 +123,7 @@ subroutine save_trace (Tdomain, it)
     type (domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: it
 
-    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache, ind
+    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache, ind, mat
     real :: dum0, dum1
     real, dimension (:,:,:), allocatable :: Field
 
@@ -130,15 +143,26 @@ subroutine save_trace (Tdomain, it)
             if (Tdomain%type_timeInteg == TIME_INTEG_RK4) &
                 Field = Tdomain%specel(nr)%Veloc
 
+            !if (Tdomain%specel(nr)%type_DG==GALERKIN_HDG_RP .and. ir .LE. 2) then
+            !    mat = Tdomain%specel(nr)%mat_index
+            !    ngllx = ngllx +1 ; ngllz = ngllz +1
+            !    call compute_InternalForces_HDG_Weak(Tdomain%specel(nr), &
+            !        Tdomain%sSubDomain(mat)%hprimex, Tdomain%sSubDomain(mat)%hTprimez)
+            !    call get_Vhat_f2el(Tdomain,nr)
+            !    call Compute_Traces (Tdomain%specel(nr))
+            !    call inversion_massmat(Tdomain%specel(nr))
+            !    call postprocess_HDG(Tdomain%specel(nr),Tdomain%sReceiver(ir),Field)
+            !    call compute_TracFace (Tdomain%specel(nr))
+            !    Tdomain%specel(nr)%TracFace(:,0) = Tdomain%specel(nr)%TracFace(:,0) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
+            !    Tdomain%specel(nr)%TracFace(:,1) = Tdomain%specel(nr)%TracFace(:,1) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
+            !endif
+
             do j = 0,ngllz-1
                 do i =0,ngllx -1
                     dum0 = dum0 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Field(i,j,0)
                     dum1 = dum1 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Field(i,j,1)
                 enddo
             enddo
-
-            if (Tdomain%sReceiver(ir)%on_vertex .AND. Tdomain%specel(nr)%type_dg == GALERKIN_HDG_RP) &
-                call build_vertex_vhat_for_receiver(Tdomain, ir, dum0, dum1)
 
             Tdomain%Store_Trace(0,ind,ncache) = dum0
             Tdomain%Store_Trace(1,ind,ncache) = dum1
@@ -155,6 +179,11 @@ subroutine save_trace (Tdomain, it)
 end subroutine save_trace
 
 
+
+! ###########################################################
+!>
+!! \brief
+!<
 subroutine dump_trace (Tdomain)
 
     use sdomain
@@ -196,6 +225,11 @@ subroutine dump_trace (Tdomain)
     return
 end subroutine dump_trace
 
+
+! ###########################################################
+!>
+!! \brief
+!<
 subroutine read_receiver_file(Tdomain)
     use sdomain
     use semdatafiles
@@ -226,89 +260,415 @@ subroutine read_receiver_file(Tdomain)
 end subroutine read_receiver_file
 
 
-subroutine check_receiver_on_vertex(Tdomain,nrec)
 
-    use sdomain
+! ###########################################################
+!>
+!! \brief This subroutine computes the postprocessed
+!<
+subroutine postprocess_HDG(Elem,rec,field)
+
+    use selement
     implicit none
 
-    type(domain), intent(inout) :: Tdomain
-    integer, intent(in)         :: nrec
-    type(element), pointer      :: Elem
-    integer, dimension(:), allocatable :: near_faces_tmp
-    integer :: nv, n, i
-    real    :: tol
-    tol = 1.E-10 ; nv = -1 ; i=0
-    Elem=> Tdomain%specel(Tdomain%sReceiver(nrec)%nr)
-    Tdomain%sReceiver(nrec)%on_vertex = .false.
+    type(Element), intent(in) :: Elem
+    type(Receiver),intent(in) :: rec
+    real, dimension (:,:,:), allocatable, intent(inout) :: field
+    real, dimension (:,:,:), allocatable :: p
+    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac, Amat, ATA
+    real,  dimension (:),     allocatable :: smbr, WORK
+    integer :: i, j, k, l, r, s
+    integer :: ngx, ngz, nlin, nddl, lwork, info
+    real    :: res
 
-    if (abs(Tdomain%sReceiver(nrec)%eta + 1.) .LE. tol) then
-        if (abs(Tdomain%sReceiver(nrec)%xi + 1.) .LE. tol) then
-            nv = Elem%Near_Vertex(0)
-            write (*,*) "Receiver relocated on Vertex : ", nv
-        else if (abs(Tdomain%sReceiver(nrec)%xi - 1.) .LE. tol) then
-            nv = Elem%Near_Vertex(1)
-            write (*,*) "Receiver relocated on Vertex : ", nv
-        endif
-    else if (abs(Tdomain%sReceiver(nrec)%eta - 1.) .LE. tol) then
-        if (abs(Tdomain%sReceiver(nrec)%xi + 1.) .LE. tol) then
-            nv = Elem%Near_Vertex(3)
-            write (*,*) "Receiver relocated on Vertex : ", nv
-        else if (abs(Tdomain%sReceiver(nrec)%xi - 1.) .LE. tol) then
-            nv = Elem%Near_Vertex(2)
-            write (*,*) "Receiver relocated on Vertex : ", nv
-        endif
-    endif
+    ngx = Elem%ngllx ; ngz = Elem%ngllz ; nddl = 2*(ngx+1)*(ngz+1)
 
-    if (nv .GE. 0) then
-        Tdomain%sReceiver(nrec)%on_vertex = .true.
-        write (*,*) "If HDG : Vertex-Projection mode activated for receiver : ", nrec
-        Tdomain%sReceiver(nrec)%Nv = nv
-        allocate (near_faces_tmp(0:20))
-        near_faces_tmp (:) = -1
-        do n = 0,Tdomain%n_face-1
-            if (nv == Tdomain%sFace(n)%Near_Vertex(0) .OR. nv == Tdomain%sFace(n)%Near_Vertex(1)) then
-                near_faces_tmp(i) = n
-                i = i+1
-            endif
+    ! Allocate fields for solving linear system
+    allocate(p(0:ngx-1,0:ngz-1,0:2))
+    allocate(smbr(1:nddl+2))
+    deallocate(field)
+    allocate(field(0:ngx,0:ngz,0:1))
+    p = Elem%Forces(:,:,0:2)
+
+    ! Allocate inverse Jacobian functions
+    allocate (xix (0:ngx,0:ngz)) ; allocate (xiz (0:ngx,0:ngz))
+    allocate (etax(0:ngx,0:ngz)) ; allocate (etaz(0:ngx,0:ngz))
+    allocate (Jac(0:ngx,0:ngz))
+    xix  = rec%InvGrad(:,:,0,0) ; xiz  = rec%InvGrad(:,:,1,0)
+    etax = rec%InvGrad(:,:,0,1) ; etaz = rec%InvGrad(:,:,1,1)
+    jac  = rec%JacobWhei(:,:)
+
+    ! Computation of the 2nd member of the linear system for post-processing
+    ! Here, (i,j) indexes corresponds to test function w_ij which gives line number of MatPostProc
+    ! indexes (k,l) correspond to the nodal value of the quantity p_11, p_22, p_12
+    ! Finally, indexes (r,s) correspond to the quadrature points.
+
+    ! Loop over test functions
+    do i = 0,ngx
+        do j = 0,ngz
+            nlin = Ind(i,j,0,ngx,ngz) ; res = 0.
+            do k = 0,ngx-1
+                do l = 0,ngz-1
+                    ! Loop over quadrature points
+                    do r = 0,ngx
+                        res = res + (p(k,l,0)*xix(r,j) + p(k,l,2)*xiz(r,j)) &
+                                    *rec%ReinterpX(k,r)*rec%ReinterpZ(l,j)*jac(r,j)*rec%hprimex(i,r)
+                    enddo
+                    do s = 0,ngz
+                        res = res + (p(k,l,0)*etax(i,s) + p(k,l,2)*etaz(i,s)) &
+                                    *rec%ReinterpX(k,i)*rec%ReinterpZ(l,s)*jac(i,s)*rec%hprimez(j,s)
+                    enddo
+                enddo
+            enddo
+            smbr(nlin) = res
+
+            nlin = Ind(i,j,1,ngx,ngz) ; res = 0.
+            do k = 0,ngx-1
+                do l = 0,ngz-1
+                    ! Loop over quadrature points
+                    do r = 0,ngx
+                        res = res + (p(k,l,1)*xiz(r,j) + p(k,l,2)*xix(r,j)) &
+                                    *rec%ReinterpX(k,r)*rec%ReinterpZ(l,j)*jac(r,j)*rec%hprimex(i,r)
+                    enddo
+                    do s = 0,ngz
+                        res = res + (p(k,l,1)*etaz(i,s) + p(k,l,2)*etax(i,s)) &
+                                    *rec%ReinterpX(k,i)*rec%ReinterpZ(l,s)*jac(i,s)*rec%hprimez(j,s)
+                    enddo
+                enddo
+            enddo
+            smbr(nlin) = res
         enddo
-        allocate (Tdomain%sReceiver(nrec)%near_faces(0:i-1))
-        Tdomain%sReceiver(nrec)%near_faces(0:i-1) = near_faces_tmp(0:i-1)
-        deallocate(near_faces_tmp)
-    endif
+    enddo
 
-end subroutine check_receiver_on_vertex
+    ! Deux dernieres lignes du systeme :
+    smbr(nddl+1) = sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,0))
+    smbr(nddl+2) = sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,1))
+
+    ! Solve rectangular System using least squares method
+    allocate (Amat(1:nddl+2,1:nddl))
+    Amat = rec%MatPostProc
+    allocate (WORK(1:1000))
+    do i=1,nddl+2
+        write(*,*) Amat(i,:)
+    enddo
+    write(*,*)'And Now... SMBR - SMBR - SMBR'
+    do i=1,nddl+2
+        write(*,*) smbr(i)
+    enddo
+    write(*,*)'And Now... p - v - p - v - p - v'
+    do i=0,ngz-1
+        write(*,*) p(i,:,0)
+        write(*,*) p(i,:,1)
+        write(*,*) p(i,:,2)
+        write(*,*)'And Now v'
+        write(*,*) Elem%Veloc(i,:,0)
+        write(*,*) Elem%Veloc(i,:,1)
+    enddo
+    write(*,*)'And Now... ATA - ATA - ATA - ATA - ATA - ATA - ATA'
+    allocate(ATA(1:nddl,1:nddl))
+    ATA = MATMUL(TRANSPOSE(Amat),Amat)
+    do i=1,nddl+2
+        write(*,*) ATA(i,:)
+    enddo
+    ! Query the optimal workspace
+    lwork = -1
+    CALL DGELS('N', nddl+2, nddl, 1, Amat, nddl+2, smbr, nddl+2, WORK, lwork, info)
+
+    lwork = INT(WORK(1))
+    write(*,*)'The LWORK  computed by the querry mode is ', LWORK
+    STOP
+    deallocate(WORK) ; allocate (WORK(lwork))
+    call dgels('N', nddl+2, nddl, 1, Amat, nddl+2, smbr, nddl+2, WORK, lwork, info) !!!! PB ICI !!!!
+    IF( INFO.GT.0 ) THEN
+        WRITE(*,*)'The diagonal element ',INFO,' of the triangular '
+        WRITE(*,*)'factor of A is zero, so that A does not have full '
+        WRITE(*,*)'rank; the least squares solution could not be computed.'
+        STOP
+    END IF
+
+    ! Reorganize result as a matrix
+    do i = 0,ngx
+        do j = 0,ngz
+            nlin = Ind(i,j,0,ngx,ngz)
+            field(i,j,0) = smbr(nlin)
+            nlin = Ind(i,j,1,ngx,ngz)
+            field(i,j,1) = smbr(nlin)
+        enddo
+    enddo
+    deallocate(p, smbr, xix, xiz, etax, etaz, jac, WORK, Amat, ATA)
+
+end subroutine postprocess_HDG
 
 
-subroutine build_vertex_vhat_for_receiver(Tdomain, nrec, dum0, dum1)
+! ###########################################################
+!>
+!! \brief This subroutine builds the matrix to be inverted for the HDG post-process.
+!! It also builds the reinterpolation matrices used for evaluation of N-order polynomials
+!! on a N+1 polynomial Lagrange interpolation.
+!<
+subroutine prepare_HDG_postprocess(Tdomain)
 
     use sdomain
+    use shape_lin
+    use shape_quad
+    use splib, only : zelegl, welegl, dmlegl
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in)         :: nrec
-    real, intent(inout)         :: dum0, dum1
-    integer :: n, nv, nface, ngll
+    real, dimension (:),   allocatable :: GLLcx, GLLwx, GLLpolx, GLLcz, GLLwz, GLLpolz
+    real, dimension (:,:), allocatable :: coord
+    real, dimension (0:1,0:1) :: LocInvGrad
+    real    :: xi, eta, Jac, res, outx, outz
+    integer :: nrec, ngx, ngz, nr, nddl, i_aus, mat, i, j
 
-    nv = Tdomain%sReceiver(nrec)%Nv
-    Tdomain%sVertex(Nv)%V0 = 0.
-    dum0 = 0 ; dum1 = 0.
+    do nrec = 0, 2!Tdomain%n_receivers-1
+        ! Matrices Allocation used for Post-Process
+        nr = Tdomain%sReceiver(nrec)%nr
+        if (Tdomain%specel(nr)%Acoustic) cycle
+        ngx = Tdomain%specel(nr)%ngllx
+        ngz = Tdomain%specel(nr)%ngllz
+        nddl= 2*(ngx+1)*(ngz+1)
+        mat = Tdomain%specel(nr)%mat_index
 
-    do n=0,size(Tdomain%sReceiver(nrec)%near_faces)-1
-        nface = Tdomain%sReceiver(nrec)%near_faces(n)
-        ngll  =  Tdomain%sFace(nface)%ngll
-        if (nv == Tdomain%sFace(nface)%Near_Vertex(0)) then
-            Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 &
-                + Tdomain%sFace(nface)%Veloc(0,:) * Tdomain%sFace(nface)%Coeff_Integr_ends(0)
-        else
-            Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 &
-                + Tdomain%sFace(nface)%Veloc(ngll-1,:) * Tdomain%sFace(nface)%Coeff_Integr_ends(1)
+        ! Remark : Element's interpolation order is (ngx-1,ngz-1)
+        ! when in post-traitment, it becomes (ngx,ngz).
+        allocate(Tdomain%sReceiver(nrec)%InvGrad(0:ngx,0:ngz,0:1,0:1))
+        allocate(Tdomain%sReceiver(nrec)%JacobWhei(0:ngx,0:ngz))
+        allocate(Tdomain%sReceiver(nrec)%ReinterpX(0:ngx-1,0:ngx))
+        allocate(Tdomain%sReceiver(nrec)%ReinterpZ(0:ngz-1,0:ngz))
+        allocate(Tdomain%sReceiver(nrec)%hprimex(0:ngx,0:ngx))
+        allocate(Tdomain%sReceiver(nrec)%hprimez(0:ngz,0:ngz))
+        allocate(Tdomain%sReceiver(nrec)%MatPostProc(1:nddl+2,1:nddl))
+        deallocate(Tdomain%sReceiver(nrec)%Interp_Coeff)
+        allocate(Tdomain%sReceiver(nrec)%Interp_Coeff(0:ngx,0:ngz))
+
+        ! Computation of GLL positions, local wheights, and Lagrange polynomial derivatives
+        allocate (GLLcx(0:ngx)); allocate(GLLwx(0:ngz)); allocate (GLLpolx(0:ngx))
+        allocate (GLLcz(0:ngx)); allocate(GLLwz(0:ngz)); allocate (GLLpolz(0:ngz))
+
+        call zelegl (ngx,GLLcx,GLLpolx)
+        call welegl (ngx,GLLcx,GLLpolx,GLLwx)
+        call dmlegl (ngx,ngx,GLLcx,GLLpolx,Tdomain%sReceiver(nrec)%hprimex)
+        Tdomain%sReceiver(nrec)%hprimex = TRANSPOSE(Tdomain%sReceiver(nrec)%hprimex)
+
+        call zelegl (ngz,GLLcz,GLLpolz)
+        call welegl (ngz,GLLcz,GLLpolz,GLLwz)
+        call dmlegl (ngz,ngz,GLLcz,GLLpolz,Tdomain%sReceiver(nrec)%hprimez)
+        Tdomain%sReceiver(nrec)%hprimez = TRANSPOSE(Tdomain%sReceiver(nrec)%hprimez)
+
+        ! Computation of Jacobian and InvGrad for the source element
+        if (Tdomain%n_nodes == 4) then
+            allocate (coord(0:1,0:3))
+            do i=0,3
+                i_aus = Tdomain%specel(nr)%Control_Nodes(i)
+                coord(0,i) = Tdomain%Coord_Nodes(0,i_aus)
+                coord(1,i) = Tdomain%Coord_Nodes(1,i_aus)
+            end do
+            do j = 0,ngz
+                eta = GLLcz(j)
+                do i = 0,ngx
+                    xi = GLLcx(i)
+                    ! Computation of the derivative matrix
+                    call shape4_local2jacob(coord, xi, eta, LocInvGrad)
+                    call invert2(LocInvGrad, Jac)
+                    Tdomain%sReceiver(nrec)%InvGrad(i,j,0:1,0:1) = LocInvGrad(0:1,0:1)
+                    Tdomain%sReceiver(nrec)%JacobWhei(i,j) = Jac*GLLwx(i)*GLLwz(j)
+                enddo
+            enddo
+
+        elseif (Tdomain%n_nodes == 8) then
+            allocate (coord(0:1,0:7))
+            do i=0,7
+                i_aus = Tdomain%specel(nr)%Control_Nodes(i)
+                coord(0,i) = Tdomain%Coord_Nodes(0,i_aus)
+                coord(1,i) = Tdomain%Coord_Nodes(1,i_aus)
+            end do
+            do j = 0,ngz
+                eta =  GLLcz(j)
+                do i = 0,ngx
+                    xi = GLLcx(i)
+                    ! Computation of the derivative matrix
+                    call shape8_local2jacob(coord, xi, eta, LocInvGrad)
+                    call invert2(LocInvGrad, Jac)
+                    Tdomain%sReceiver(nrec)%InvGrad (i,j,0:1,0:1) = LocInvGrad(0:1,0:1)
+                    Tdomain%sReceiver(nrec)%JacobWhei (i,j) = Jac*GLLwx(i)*GLLwz(j)
+                enddo
+            enddo
         endif
-    enddo
-    Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 * Tdomain%sVertex(Nv)%CoeffAssem
-    dum0 = Tdomain%sVertex(Nv)%V0(0)
-    dum1 = Tdomain%sVertex(Nv)%V0(1)
 
-end subroutine build_vertex_vhat_for_receiver
+        ! Computation of reinterpolation matrices in order to express N-th order polynomials
+        ! on N+1-th order basis polynomials. Computes the L_i(\xi_j)
+        do i=0,ngx-1
+            do j=0,ngx
+                xi = GLLcx(j)
+                call pol_lagrange(ngx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,res)
+                Tdomain%sReceiver(nrec)%ReinterpX(i,j) = res
+            enddo
+        enddo
+        do i=0,ngz-1
+            do j=0,ngz
+                eta = GLLcz(j)
+                call pol_lagrange(ngz,Tdomain%sSubdomain(mat)%GLLcz,i,eta,res)
+                Tdomain%sReceiver(nrec)%ReinterpZ(i,j) = res
+            enddo
+        enddo
+
+        ! Coefficients d'interpolation pour le placement du capteur dans l'element
+        ! As usual for any receiver...
+        do j = 0,ngz
+            call pol_lagrange(ngz+1,GLLcz,j,Tdomain%sReceiver(nrec)%eta,outz)
+            do i = 0,ngx
+                call pol_lagrange(ngx+1,GLLcx,i,Tdomain%sReceiver(nrec)%xi,outx)
+                Tdomain%sReceiver(nrec)%Interp_Coeff(i,j) = outx*outz
+            enddo
+        enddo
+
+        deallocate(GLLcx,GLLwx,GLLpolx,GLLcz,GLLwz,GLLpolz,coord)
+
+        ! Computation of the coefficients of matrix MatPostProc
+        call build_MatPostProc(tdomain,nrec,ngx,ngz)
+
+    enddo
+
+end subroutine prepare_HDG_postprocess
+
+
+! ###########################################################
+!>
+!! \brief This subroutine builds the matrix MatPostProc for the n-th receiver
+!! that will be inverted in order to compute the postprocessed velocities v^*
+!!
+!<
+subroutine build_MatPostProc(Tdomain,nrec,ngx,ngz)
+
+    implicit none
+    type(Domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: nrec, ngx, ngz
+    type(receiver), pointer     :: rec
+    real, dimension(:,:), allocatable :: xix, etax, xiz, etaz
+    real    :: vx, vz
+    integer :: i, j, k, l, r, s, nlin, ncol
+
+    rec => Tdomain%sReceiver(nrec)
+
+    ! Allocate inverse Jacobian functions
+    allocate (xix (0:ngx,0:ngz)) ; allocate (xiz (0:ngx,0:ngz))
+    allocate (etax(0:ngx,0:ngz)) ; allocate (etaz(0:ngx,0:ngz))
+    xix  = rec%InvGrad(:,:,0,0)
+    xiz  = rec%InvGrad(:,:,1,0)
+    etax = rec%InvGrad(:,:,0,1)
+    etaz = rec%InvGrad(:,:,1,1)
+    rec%MatPostProc = 0.
+
+    ! Compute entries of matrix MatPostProc
+    ! Here, (i,j) indexes corresponds to test function w_ij which gives line number of MatPostProc
+    ! indexes (k,l) corresponds to the nodal value of the postprocessed velocity v^* and gives
+    ! the column number of MatPostProc. Finally, indexes (r,s) correspond to the quadrature points.
+
+    ! Loop over test functions
+    do i = 0,ngx
+        do j = 0,ngz
+            nlin = Ind(i,j,0,ngx,ngz)
+            ! Loop over nodal values of v^*
+            do k = 0,ngx
+                do l = 0,ngz
+                    vx = 0. ; vz = 0.
+                    ! Loop over quadrature points
+                    do r = 0,ngx
+                        do s = 0,ngz
+                        vx = vx +((rec%hprimex(k,r)*Delta(l,s)*xix(r,s) + Delta(k,r)*rec%hprimez(l,s)*etax(r,s)) &
+                                 *(rec%hprimex(i,r)*Delta(j,s)*xix(r,s) + Delta(i,r)*rec%hprimez(j,s)*etax(r,s)) &
+                                 +(rec%hprimex(k,r)*Delta(l,s)*xiz(r,s) + Delta(k,r)*rec%hprimez(l,s)*etaz(r,s)) &
+                                 *(rec%hprimex(i,r)*Delta(j,s)*xiz(r,s) + Delta(i,r)*rec%hprimez(j,s)*etaz(r,s)) * 0.5) &
+                                 *rec%JacobWhei(r,s)
+                        vz = vz +((rec%hprimex(k,r)*Delta(l,s)*xix(r,s) + Delta(k,r)*rec%hprimez(l,s)*etax(r,s)) &
+                                 *(rec%hprimex(i,r)*Delta(j,s)*xiz(r,s) + Delta(i,r)*rec%hprimez(j,s)*etaz(r,s)) * 0.5) &
+                                 *rec%JacobWhei(r,s)
+                        enddo
+                    enddo
+                    ncol = Ind(k,l,0,ngx,ngz)
+                    rec%MatPostProc(nlin,ncol) = vx
+                    ncol = Ind(k,l,1,ngx,ngz)
+                    rec%MatPostProc(nlin,ncol) = vz
+                enddo
+            enddo
+            nlin = Ind(i,j,1,ngx,ngz)
+            ! Loop over nodal values of v^*
+            do k = 0,ngx
+                do l = 0,ngz
+                    vx = 0. ; vz = 0.
+                    ! Loop over quadrature points
+                    do r = 0,ngx
+                        do s = 0,ngz
+                        vx = vx +((rec%hprimex(k,r)*Delta(l,s)*xiz(r,s) + Delta(k,r)*rec%hprimez(l,s)*etaz(r,s)) &
+                                 *(rec%hprimex(i,r)*Delta(j,s)*xix(r,s) + Delta(i,r)*rec%hprimez(j,s)*etax(r,s)) * 0.5) &
+                                 *rec%JacobWhei(r,s)
+                        vz = vz +((rec%hprimex(k,r)*Delta(l,s)*xiz(r,s) + Delta(k,r)*rec%hprimez(l,s)*etaz(r,s)) &
+                                 *(rec%hprimex(i,r)*Delta(j,s)*xix(r,s) + Delta(i,r)*rec%hprimez(j,s)*etax(r,s)) &
+                                 +(rec%hprimex(k,r)*Delta(l,s)*xix(r,s) + Delta(k,r)*rec%hprimez(l,s)*etax(r,s)) &
+                                 *(rec%hprimex(i,r)*Delta(j,s)*xix(r,s) + Delta(i,r)*rec%hprimez(j,s)*etax(r,s)) * 0.5) &
+                                 *rec%JacobWhei(r,s)
+                        enddo
+                    enddo
+                    ncol = Ind(k,l,0,ngx,ngz)
+                    rec%MatPostProc(nlin,ncol) = vx
+                    ncol = Ind(k,l,1,ngx,ngz)
+                    rec%MatPostProc(nlin,ncol) = vz
+                enddo
+            enddo
+        enddo
+    enddo
+
+    ! Building the two last lines of the matrix system
+    nlin = 2*(ngx+1)*(ngz+1)+1
+    do k = 0,ngx
+        do l = 0,ngz
+            ncol = Ind(k,l,0,ngx,ngz)
+            rec%MatPostProc(nlin,ncol)  = rec%JacobWhei(k,l)
+            ncol = Ind(k,l,1,ngx,ngz)
+            rec%MatPostProc(nlin+1,ncol)= rec%JacobWhei(k,l)
+        enddo
+    enddo
+
+    deallocate(xix, xiz, etax, etaz)
+
+end subroutine build_MatPostProc
+
+
+! ###########################################################
+!>
+!! \brief This function gives the position (line or column) in the matrix MatPostProc
+!! corresponfing to a couple of indexes (i,j)
+!<
+function Ind(i,j,d,ngx,ngz) result(index)
+
+    implicit none
+    integer, intent(in) :: i,j,d,ngx,ngz
+    integer             :: index
+
+    index = d*(ngx+1)*(ngz+1) + i*(ngz+1) + j+1
+
+end function Ind
+
+
+! ###########################################################
+!>
+!! \brief This function computes a kronecker Delta for two integers
+!! corresponfing to a couple of indexes (i,j)
+!<
+function Delta(i,j) result(d)
+
+    implicit none
+    integer, intent(in) :: i,j
+    integer             :: d
+
+    if (i==j) then
+        d=1
+    else
+        d=0
+    endif
+
+end function Delta
+
 
 end module treceivers
 !! Local Variables:
