@@ -1,0 +1,1060 @@
+
+
+
+
+
+
+
+
+
+
+
+                                    DCDFLIB
+
+            Library of Fortran Routines for Cumulative Distribution
+                 Functions, Inverses, and Other Parameters
+
+                               (February, 1994)
+
+
+
+
+
+
+                       Full Documentation of Each Routine
+
+
+
+
+
+
+
+
+                            Compiled and Written by:
+
+                                 Barry W. Brown
+                                  James Lovato
+                                  Kathy Russell
+
+
+
+
+
+
+
+
+
+                     Department of Biomathematics, Box 237
+                     The University of Texas, M.D. Anderson Cancer Center
+                     1515 Holcombe Boulevard
+                     Houston, TX      77030
+
+
+ This work was supported by grant CA-16672 from the National Cancer Institute.
+
+C**********************************************************************
+C
+C      SUBROUTINE CDFBET( WHICH, P, Q, X, Y, A, B, STATUS, BOUND )
+C               Cumulative Distribution Function
+C                         BETa Distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the beta distribution given
+C     values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which of the next four argument
+C               values is to be calculated from the others.
+C               Legal range: 1..4
+C               iwhich = 1 : Calculate P and Q from X,Y,A and B
+C               iwhich = 2 : Calculate X and Y from P,Q,A and B
+C               iwhich = 3 : Calculate A from P,Q,X,Y and B
+C               iwhich = 4 : Calculate B from P,Q,X,Y and A
+C
+C                    INTEGER WHICH
+C
+C     P <--> The integral from 0 to X of the chi-square
+C            distribution.
+C            Input range: [0, 1].
+C                    DOUBLE PRECISION P
+C
+C     Q <--> 1-P.
+C            Input range: [0, 1].
+C            P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C     X <--> Upper limit of integration of beta density.
+C            Input range: [0,1].
+C            Search range: [0,1]
+C                    DOUBLE PRECISION X
+C
+C     Y <--> 1-X.
+C            Input range: [0,1].
+C            Search range: [0,1]
+C            X + Y = 1.0.
+C                    DOUBLE PRECISION Y
+C
+C     A <--> The first parameter of the beta density.
+C            Input range: (0, +infinity).
+C            Search range: [1D-300,1D300]
+C                    DOUBLE PRECISION A
+C
+C     B <--> The second parameter of the beta density.
+C            Input range: (0, +infinity).
+C            Search range: [1D-300,1D300]
+C                    DOUBLE PRECISION B
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                4 if X + Y .ne. 1
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Cumulative distribution function  (P)  is calculated directly by
+C     code associated with the following reference.
+C
+C     DiDinato, A. R. and Morris,  A.   H.  Algorithm 708: Significant
+C     Digit Computation of the Incomplete  Beta  Function Ratios.  ACM
+C     Trans. Math.  Softw. 18 (1993), 360-373.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C
+C                              Note
+C
+C
+C     The beta density is proportional to
+C               t^(A-1) * (1-t)^(B-1)
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFBIN ( WHICH, P, Q, S, XN, PR, OMPR, STATUS, BOUND )
+C               Cumulative Distribution Function
+C                         BINomial distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the binomial
+C     distribution given values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which of the next four argument
+C               values is to be calculated from the others.
+C               Legal range: 1..4
+C               iwhich = 1 : Calculate P and Q from S,XN,PR and OMPR
+C               iwhich = 2 : Calculate S from P,Q,XN,PR and OMPR
+C               iwhich = 3 : Calculate XN from P,Q,S,PR and OMPR
+C               iwhich = 4 : Calculate PR and OMPR from P,Q,S and XN
+C                    INTEGER WHICH
+C
+C     P <--> The cumulation from 0 to S of the binomial distribution.
+C            (Probablility of S or fewer successes in XN trials each
+C            with probability of success PR.)
+C            Input range: [0,1].
+C                    DOUBLE PRECISION P
+C
+C     Q <--> 1-P.
+C            Input range: [0, 1].
+C            P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C     S <--> The number of successes observed.
+C            Input range: [0, XN]
+C            Search range: [0, XN]
+C                    DOUBLE PRECISION S
+C
+C     XN  <--> The number of binomial trials.
+C              Input range: (0, +infinity).
+C              Search range: [1E-300, 1E300]
+C                    DOUBLE PRECISION XN
+C
+C     PR  <--> The probability of success in each binomial trial.
+C              Input range: [0,1].
+C              Search range: [0,1]
+C                    DOUBLE PRECISION PR
+C
+C     OMPR  <--> 1-PR
+C              Input range: [0,1].
+C              Search range: [0,1]
+C              PR + OMPR = 1.0
+C                    DOUBLE PRECISION OMPR
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                4 if PR + OMPR .ne. 1
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Formula  26.5.24    of   Abramowitz  and    Stegun,  Handbook   of
+C     Mathematical   Functions (1966) is   used  to reduce the  binomial
+C     distribution  to  the  cumulative incomplete    beta distribution.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFCHI( WHICH, P, Q, X, DF, STATUS, BOUND )
+C               Cumulative Distribution Function
+C               CHI-Square distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the chi-square
+C     distribution given values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which of the next three argument
+C               values is to be calculated from the others.
+C               Legal range: 1..3
+C               iwhich = 1 : Calculate P and Q from X and DF
+C               iwhich = 2 : Calculate X from P,Q and DF
+C               iwhich = 3 : Calculate DF from P,Q and X
+C                    INTEGER WHICH
+C
+C     P <--> The integral from 0 to X of the chi-square
+C            distribution.
+C            Input range: [0, 1].
+C                    DOUBLE PRECISION P
+C
+C     Q <--> 1-P.
+C            Input range: (0, 1].
+C            P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C     X <--> Upper limit of integration of the non-central
+C            chi-square distribution.
+C            Input range: [0, +infinity).
+C            Search range: [0,1E300]
+C                    DOUBLE PRECISION X
+C
+C     DF <--> Degrees of freedom of the
+C             chi-square distribution.
+C             Input range: (0, +infinity).
+C             Search range: [ 1E-300, 1E300]
+C                    DOUBLE PRECISION DF
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C               10 indicates error returned from cumgam.  See
+C                  references in cdfgam
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Formula    26.4.19   of Abramowitz  and     Stegun, Handbook  of
+C     Mathematical Functions   (1966) is used   to reduce the chisqure
+C     distribution to the incomplete distribution.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFCHN( WHICH, P, Q, X, DF, PNONC, STATUS, BOUND )
+C               Cumulative Distribution Function
+C               Non-central Chi-Square
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the non-central chi-square
+C     distribution given values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which of the next three argument
+C               values is to be calculated from the others.
+C               Input range: 1..4
+C               iwhich = 1 : Calculate P and Q from X and DF
+C               iwhich = 2 : Calculate X from P,DF and PNONC
+C               iwhich = 3 : Calculate DF from P,X and PNONC
+C               iwhich = 3 : Calculate PNONC from P,X and DF
+C                    INTEGER WHICH
+C
+C     P <--> The integral from 0 to X of the non-central chi-square
+C            distribution.
+C            Input range: [0, 1-1E-16).
+C                    DOUBLE PRECISION P
+C
+C     Q <--> 1-P.
+C            Q is not used by this subroutine and is only included
+C            for similarity with other cdf* routines.
+C                    DOUBLE PRECISION Q
+C
+C     X <--> Upper limit of integration of the non-central
+C            chi-square distribution.
+C            Input range: [0, +infinity).
+C            Search range: [0,1E300]
+C                    DOUBLE PRECISION X
+C
+C     DF <--> Degrees of freedom of the non-central
+C             chi-square distribution.
+C             Input range: (0, +infinity).
+C             Search range: [ 1E-300, 1E300]
+C                    DOUBLE PRECISION DF
+C
+C     PNONC <--> Non-centrality parameter of the non-central
+C                chi-square distribution.
+C                Input range: [0, +infinity).
+C                Search range: [0,1E4]
+C                    DOUBLE PRECISION PNONC
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Formula  26.4.25   of   Abramowitz   and   Stegun,  Handbook  of
+C     Mathematical  Functions (1966) is used to compute the cumulative
+C     distribution function.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C
+C                            WARNING
+C
+C     The computation time  required for this  routine is proportional
+C     to the noncentrality  parameter  (PNONC).  Very large  values of
+C     this parameter can consume immense  computer resources.  This is
+C     why the search range is bounded by 10,000.
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFF( WHICH, P, Q, F, DFN, DFD, STATUS, BOUND )
+C               Cumulative Distribution Function
+C               F distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the F distribution
+C     given values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which of the next four argument
+C               values is to be calculated from the others.
+C               Legal range: 1..4
+C               iwhich = 1 : Calculate P and Q from F,DFN and DFD
+C               iwhich = 2 : Calculate F from P,Q,DFN and DFD
+C               iwhich = 3 : Calculate DFN from P,Q,F and DFD
+C               iwhich = 4 : Calculate DFD from P,Q,F and DFN
+C                    INTEGER WHICH
+C
+C       P <--> The integral from 0 to F of the f-density.
+C              Input range: [0,1].
+C                    DOUBLE PRECISION P
+C
+C       Q <--> 1-P.
+C              Input range: (0, 1].
+C              P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C       F <--> Upper limit of integration of the f-density.
+C              Input range: [0, +infinity).
+C              Search range: [0,1E300]
+C                    DOUBLE PRECISION F
+C
+C     DFN < --> Degrees of freedom of the numerator sum of squares.
+C               Input range: (0, +infinity).
+C               Search range: [ 1E-300, 1E300]
+C                    DOUBLE PRECISION DFN
+C
+C     DFD < --> Degrees of freedom of the denominator sum of squares.
+C               Input range: (0, +infinity).
+C               Search range: [ 1E-300, 1E300]
+C                    DOUBLE PRECISION DFD
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Formula   26.6.2   of   Abramowitz   and   Stegun,  Handbook  of
+C     Mathematical  Functions (1966) is used to reduce the computation
+C     of the  cumulative  distribution function for the  F  variate to
+C     that of an incomplete beta.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C                              WARNING
+C
+C     The value of the  cumulative  F distribution is  not necessarily
+C     monotone in  either degrees of freedom.  There  thus may  be two
+C     values  that  provide a given CDF  value.   This routine assumes
+C     monotonicity and will find an arbitrary one of the two values.
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFFNC( WHICH, P, Q, F, DFN, DFD, PNONC, STATUS, BOUND )
+C               Cumulative Distribution Function
+C               Non-central F distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the Non-central F
+C     distribution given values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which of the next five argument
+C               values is to be calculated from the others.
+C               Legal range: 1..5
+C               iwhich = 1 : Calculate P and Q from F,DFN,DFD and PNONC
+C               iwhich = 2 : Calculate F from P,Q,DFN,DFD and PNONC
+C               iwhich = 3 : Calculate DFN from P,Q,F,DFD and PNONC
+C               iwhich = 4 : Calculate DFD from P,Q,F,DFN and PNONC
+C               iwhich = 5 : Calculate PNONC from P,Q,F,DFN and DFD
+C                    INTEGER WHICH
+C
+C       P <--> The integral from 0 to F of the non-central f-density.
+C              Input range: [0,1-1E-16).
+C                    DOUBLE PRECISION P
+C
+C       Q <--> 1-P.
+C            Q is not used by this subroutine and is only included
+C            for similarity with other cdf* routines.
+C                    DOUBLE PRECISION Q
+C
+C       F <--> Upper limit of integration of the non-central f-density.
+C              Input range: [0, +infinity).
+C              Search range: [0,1E300]
+C                    DOUBLE PRECISION F
+C
+C     DFN < --> Degrees of freedom of the numerator sum of squares.
+C               Input range: (0, +infinity).
+C               Search range: [ 1E-300, 1E300]
+C                    DOUBLE PRECISION DFN
+C
+C     DFD < --> Degrees of freedom of the denominator sum of squares.
+C               Must be in range: (0, +infinity).
+C               Input range: (0, +infinity).
+C               Search range: [ 1E-300, 1E300]
+C                    DOUBLE PRECISION DFD
+C
+C     PNONC <-> The non-centrality parameter
+C               Input range: [0,infinity)
+C               Search range: [0,1E4]
+C                    DOUBLE PRECISION PHONC
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Formula  26.6.20   of   Abramowitz   and   Stegun,  Handbook  of
+C     Mathematical  Functions (1966) is used to compute the cumulative
+C     distribution function.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C                            WARNING
+C
+C     The computation time  required for this  routine is proportional
+C     to the noncentrality  parameter  (PNONC).  Very large  values of
+C     this parameter can consume immense  computer resources.  This is
+C     why the search range is bounded by 10,000.
+C
+C                              WARNING
+C
+C     The  value  of the  cumulative  noncentral F distribution is not
+C     necessarily monotone in either degrees  of freedom.  There  thus
+C     may be two values that provide a given  CDF value.  This routine
+C     assumes monotonicity  and will find  an arbitrary one of the two
+C     values.
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFGAM( WHICH, P, Q, X, SHAPE, SCALE, STATUS, BOUND )
+C               Cumulative Distribution Function
+C                         GAMma Distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the gamma
+C     distribution given values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which of the next four argument
+C               values is to be calculated from the others.
+C               Legal range: 1..4
+C               iwhich = 1 : Calculate P and Q from X,SHAPE and SCALE
+C               iwhich = 2 : Calculate X from P,Q,SHAPE and SCALE
+C               iwhich = 3 : Calculate SHAPE from P,Q,X and SCALE
+C               iwhich = 4 : Calculate SCALE from P,Q,X and SHAPE
+C                    INTEGER WHICH
+C
+C     P <--> The integral from 0 to X of the gamma density.
+C            Input range: [0,1].
+C                    DOUBLE PRECISION P
+C
+C     Q <--> 1-P.
+C            Input range: (0, 1].
+C            P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C
+C     X <--> The upper limit of integration of the gamma density.
+C            Input range: [0, +infinity).
+C            Search range: [0,1E300]
+C                    DOUBLE PRECISION X
+C
+C     SHAPE <--> The shape parameter of the gamma density.
+C                Input range: (0, +infinity).
+C                Search range: [1E-300,1E300]
+C                  DOUBLE PRECISION SHAPE
+C
+C
+C     SCALE <--> The scale parameter of the gamma density.
+C                Input range: (0, +infinity).
+C                Search range: (1E-300,1E300]
+C                   DOUBLE PRECISION SCALE
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                10 if the gamma or inverse gamma routine cannot
+C                   compute the answer.  Usually happens only for
+C                   X and SHAPE very large (gt 1E10 or more)
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Cumulative distribution function (P) is calculated directly by
+C     the code associated with:
+C
+C     DiDinato, A. R. and Morris, A. H. Computation of the  incomplete
+C     gamma function  ratios  and their  inverse.   ACM  Trans.  Math.
+C     Softw. 12 (1986), 377-393.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C
+C                              Note
+C
+C
+C
+C     The gamma density is proportional to
+C       T**(SHAPE - 1) * EXP(- SCALE * T)
+C
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFNBN ( WHICH, P, S, XN, PR, STATUS, BOUND )
+C               Cumulative Distribution Function
+C               Negative BiNomial distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the negative binomial
+C     distribution given values for the others.
+C
+C     The  cumulative  negative   binomial  distribution  returns  the
+C     probability that there  will be  F or fewer failures before  the
+C     XNth success in binomial trials each of which has probability of
+C     success PR.
+C
+C     The individual term of the negative binomial is the probability of
+C     S failures before XN successes and is
+C          Choose( S, XN+S-1 ) * PR^(XN) * (1-PR)^S
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which of the next four argument
+C               values is to be calculated from the others.
+C               Legal range: 1..4
+C               iwhich = 1 : Calculate P and Q from S,XN,PR and OMPR
+C               iwhich = 2 : Calculate S from P,Q,XN,PR and OMPR
+C               iwhich = 3 : Calculate XN from P,Q,S,PR and OMPR
+C               iwhich = 4 : Calculate PR and OMPR from P,Q,S and XN
+C                    INTEGER WHICH
+C
+C     P <--> The cumulation from 0 to S of the  negative
+C            binomial distribution.
+C            Input range: [0,1].
+C                    DOUBLE PRECISION P
+C
+C     Q <--> 1-P.
+C            Input range: (0, 1].
+C            P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C     S <--> The upper limit of cumulation of the binomial distribution.
+C            There are F or fewer failures before the XNth success.
+C            Input range: [0, +infinity).
+C            Search range: [0, 1E300]
+C                    DOUBLE PRECISION S
+C
+C     XN  <--> The number of successes.
+C              Input range: [0, +infinity).
+C              Search range: [0, 1E300]
+C                    DOUBLE PRECISION XN
+C
+C     PR  <--> The probability of success in each binomial trial.
+C              Input range: [0,1].
+C              Search range: [0,1].
+C                    DOUBLE PRECISION PR
+C
+C     OMPR  <--> 1-PR
+C              Input range: [0,1].
+C              Search range: [0,1]
+C              PR + OMPR = 1.0
+C                    DOUBLE PRECISION OMPR
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                4 if PR + OMPR .ne. 1
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Formula   26.5.26   of   Abramowitz  and  Stegun,  Handbook   of
+C     Mathematical Functions (1966) is used  to  reduce calculation of
+C     the cumulative distribution  function to that of  an  incomplete
+C     beta.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFNOR( WHICH, P, Q, X, MEAN, SD, STATUS, BOUND )
+C               Cumulative Distribution Function
+C               NORmal distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the normal
+C     distribution given values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH  --> Integer indicating  which of the  next  parameter
+C     values is to be calculated using values  of the others.
+C     Legal range: 1..4
+C               iwhich = 1 : Calculate P and Q from X,MEAN and SD
+C               iwhich = 2 : Calculate X from P,Q,MEAN and SD
+C               iwhich = 3 : Calculate MEAN from P,Q,X and SD
+C               iwhich = 4 : Calculate SD from P,Q,X and MEAN
+C                    INTEGER WHICH
+C
+C     P <--> The integral from -infinity to X of the normal density.
+C            Input range: (0,1].
+C                    DOUBLE PRECISION P
+C
+C     Q <--> 1-P.
+C            Input range: (0, 1].
+C            P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C     X < --> Upper limit of integration of the normal-density.
+C             Input range: ( -infinity, +infinity)
+C                    DOUBLE PRECISION X
+C
+C     MEAN <--> The mean of the normal density.
+C               Input range: (-infinity, +infinity)
+C                    DOUBLE PRECISION MEAN
+C
+C     SD <--> Standard Deviation of the normal density.
+C             Input range: (0, +infinity).
+C                    DOUBLE PRECISION SD
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C
+C
+C     A slightly modified version of ANORM from
+C
+C     Cody, W.D. (1993). "ALGORITHM 715: SPECFUN - A Portabel FORTRAN
+C     Package of Special Function Routines and Test Drivers"
+C     acm Transactions on Mathematical Software. 19, 22-32.
+C
+C     is used to calulate the  cumulative standard normal distribution.
+C
+C     The rational functions from pages  90-95  of Kennedy and Gentle,
+C     Statistical  Computing,  Marcel  Dekker, NY,  1980 are  used  as
+C     starting values to Newton's Iterations which compute the inverse
+C     standard normal.  Therefore no  searches  are necessary for  any
+C     parameter.
+C
+C     For X < -15, the asymptotic expansion for the normal is used  as
+C     the starting value in finding the inverse standard normal.
+C     This is formula 26.2.12 of Abramowitz and Stegun.
+C
+C
+C                              Note
+C
+C
+C      The normal density is proportional to
+C      exp( - 0.5 * (( X - MEAN)/SD)**2)
+C
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFPOI( WHICH, P, Q, S, XLAM, STATUS, BOUND )
+C               Cumulative Distribution Function
+C               POIsson distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the Poisson
+C     distribution given values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which  argument
+C               value is to be calculated from the others.
+C               Legal range: 1..3
+C               iwhich = 1 : Calculate P and Q from S and XLAM
+C               iwhich = 2 : Calculate A from P,Q and XLAM
+C               iwhich = 3 : Calculate XLAM from P,Q and S
+C                    INTEGER WHICH
+C
+C        P <--> The cumulation from 0 to S of the poisson density.
+C               Input range: [0,1].
+C                    DOUBLE PRECISION P
+C
+C        Q <--> 1-P.
+C               Input range: (0, 1].
+C               P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C        S <--> Upper limit of cumulation of the Poisson.
+C               Input range: [0, +infinity).
+C               Search range: [0,1E300]
+C                    DOUBLE PRECISION S
+C
+C     XLAM <--> Mean of the Poisson distribution.
+C               Input range: [0, +infinity).
+C               Search range: [0,1E300]
+C                    DOUBLE PRECISION XLAM
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Formula   26.4.21  of   Abramowitz  and   Stegun,   Handbook  of
+C     Mathematical Functions (1966) is used  to reduce the computation
+C     of  the cumulative distribution function to that  of computing a
+C     chi-square, hence an incomplete gamma function.
+C
+C     Cumulative  distribution function  (P) is  calculated  directly.
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired value of  P.   The  search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C
+C**********************************************************************
+C**********************************************************************
+C
+C      SUBROUTINE CDFT( WHICH, P, Q, T, DF, STATUS, BOUND )
+C               Cumulative Distribution Function
+C                         T distribution
+C
+C
+C                              Function
+C
+C
+C     Calculates any one parameter of the t distribution given
+C     values for the others.
+C
+C
+C                              Arguments
+C
+C
+C     WHICH --> Integer indicating which  argument
+C               values is to be calculated from the others.
+C               Legal range: 1..3
+C               iwhich = 1 : Calculate P and Q from T and DF
+C               iwhich = 2 : Calculate T from P,Q and DF
+C               iwhich = 3 : Calculate DF from P,Q and T
+C                    INTEGER WHICH
+C
+C        P <--> The integral from -infinity to t of the t-density.
+C              Input range: (0,1].
+C                    DOUBLE PRECISION P
+C
+C     Q <--> 1-P.
+C            Input range: (0, 1].
+C            P + Q = 1.0.
+C                    DOUBLE PRECISION Q
+C
+C        T <--> Upper limit of integration of the t-density.
+C               Input range: ( -infinity, +infinity).
+C               Search range: [ -1E300, 1E300 ]
+C                    DOUBLE PRECISION T
+C
+C        DF <--> Degrees of freedom of the t-distribution.
+C                Input range: (0 , +infinity).
+C                Search range: [1e-300, 1E10]
+C                    DOUBLE PRECISION DF
+C
+C     STATUS <-- 0 if calculation completed correctly
+C               -I if input parameter number I is out of range
+C                1 if answer appears to be lower than lowest
+C                  search bound
+C                2 if answer appears to be higher than greatest
+C                  search bound
+C                3 if P + Q .ne. 1
+C                    INTEGER STATUS
+C
+C     BOUND <-- Undefined if STATUS is 0
+C
+C               Bound exceeded by parameter number I if STATUS
+C               is negative.
+C
+C               Lower search bound if STATUS is 1.
+C
+C               Upper search bound if STATUS is 2.
+C
+C
+C                              Method
+C
+C
+C     Formula  26.5.27  of   Abramowitz   and  Stegun,   Handbook   of
+C     Mathematical Functions  (1966) is used to reduce the computation
+C     of the cumulative distribution function to that of an incomplete
+C     beta.
+C
+C     Computation of other parameters involve a seach for a value that
+C     produces  the desired  value  of P.   The search relies  on  the
+C     monotinicity of P with the other parameter.
+C
+C**********************************************************************

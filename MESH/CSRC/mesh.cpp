@@ -2,11 +2,18 @@
 /*                                                                         */
 /* Copyright CEA, ECP, IPGP                                                */
 /*                                                                         */
-
+#include <sstream>
 #include <cstdio>
 #include "mesh.h"
 #include "metis.h"
 #include <map>
+#include <algorithm>
+#include <vector>
+#include <cstdlib>
+#include <cstring>
+#include "mesh_h5_output.h"
+#include "meshpart.h"
+#include "mesh_common.h"
 
 using std::map;
 using std::multimap;
@@ -16,151 +23,6 @@ using std::pair;
 // =====================================================
 
 
-/// Reference numbering for faces
-static FaceDesc RefFace[6] = {
-    { {0,1,2,3}, {0, 1, 2, 3} },
-    { {0,1,5,4}, {0, 4, 5, 6} },
-    { {1,2,6,5}, {1, 7, 8, 4} },
-    { {3,2,6,7}, {2, 7, 9,10} },
-    { {0,3,7,4}, {3,10,11, 6} },
-    { {4,5,6,7}, {5, 8, 9,11} },
-};
-
-/// Reference numbering of edges
-static int RefEdge[12][2] = {
-    { 0, 1},
-    { 1, 2},
-    { 3, 2},
-    { 0, 3},
-    { 1, 5},
-    { 4, 5},
-    { 0, 4},
-    { 2, 6},
-    { 5, 6},
-    { 7, 6},
-    { 3, 7},
-    { 4, 7}
-};
-
-/// List the faces each node belongs to
-static int NodeToFace[8][3] = {
-    {0,1,4}, // 0
-    {0,1,2}, // 1
-    {0,2,3}, // 2
-    {0,3,4}, // 3
-    {1,4,5}, // 4
-    {1,2,5}, // 5
-    {2,3,5}, // 6
-    {3,4,5}, // 7
-};
-
-
-// Given orientation provide the permutation that reorders the nodes of the permuted
-// face into face of orientation 0
-static int Face_Orient[8][4] = {
-    {0,1,2,3},
-    {1,0,3,2},
-    {3,2,1,0},
-    {2,3,0,1},
-    {0,3,2,1},
-    {3,0,1,2},
-    {1,2,3,0},
-    {2,1,0,3},
-};
-
-// Returns an int representing face orientation relative to reference face
-// 0: 0,1,2,3 : reference
-// 6: 1,2,3,0
-// 3: 2,3,0,1
-// 5: 3,0,1,2
-// 4: 0,3,2,1
-// 2: 3,2,1,0
-// 7: 2,1,0,3
-// 1: 1,0,3,2
-static int face_orientation( int nf, FaceDesc& f )
-{
-    FaceDesc& r = RefFace[nf];
-
-    if (f.v[0] == r.v[0] && f.v[1] == r.v[1] && f.v[2] == r.v[2] && f.v[3] == r.v[3]) return 0;
-    if (f.v[0] == r.v[1] && f.v[1] == r.v[2] && f.v[2] == r.v[3] && f.v[3] == r.v[0]) return 6;
-    if (f.v[0] == r.v[2] && f.v[1] == r.v[3] && f.v[2] == r.v[0] && f.v[3] == r.v[1]) return 3;
-    if (f.v[0] == r.v[3] && f.v[1] == r.v[0] && f.v[2] == r.v[1] && f.v[3] == r.v[2]) return 5;
-    if (f.v[0] == r.v[0] && f.v[1] == r.v[3] && f.v[2] == r.v[2] && f.v[3] == r.v[1]) return 4;
-    if (f.v[0] == r.v[3] && f.v[1] == r.v[2] && f.v[2] == r.v[1] && f.v[3] == r.v[0]) return 2;
-    if (f.v[0] == r.v[2] && f.v[1] == r.v[1] && f.v[2] == r.v[0] && f.v[3] == r.v[3]) return 7;
-    if (f.v[0] == r.v[1] && f.v[1] == r.v[0] && f.v[2] == r.v[3] && f.v[3] == r.v[2]) return 1;
-    // The face is probably twisted...
-    return -1;
-}
-
-static int find_face(FaceDesc& f)
-{
-    int fc[3];
-    int n,v,k,l,u;
-    int c=0;
-    n = f.v[0];
-    // We setup the list of the 3 possible face that vertex 0 belongs to
-    for(k=0;k<3;++k) fc[k] = NodeToFace[n][k];
-    // And we proceed to eliminate faces that mismatch (ie those from vertex 0
-    // that do not belong to the list of possible faces of other vertices)
-    for(int v=1;v<4;++v) {
-	//printf("a.%d.%d.%d\n",fc[0],fc[1],fc[2]);
-	n = f.v[v];
-	for(k=0;k<3;++k) {
-	    if (fc[k]==-1) continue;
-	    u = k;
-	    for(l=0;l<3;++l) {
-		if (fc[k]==NodeToFace[n][l]) break;
-	    }
-	    if (l==3) {
-		fc[k]=-1;
-		//printf("b.%d.%d.%d\n",fc[0],fc[1],fc[2]);
-		c++;
-		// Reaching here means we eliminated all faces. Bad.
-		if (c==3) return -1;
-	    }
-	}
-    }
-    // There should be only one face left
-    if (c!=2) return -1;
-    // And it should be fc[u], u being the last index visited in the above loop
-    return fc[u];
-}
-
-static int which_face(FaceDesc& fc, int orient)
-{
-    int nf,k;
-    int oriented_face[4];
-    for(k=0;k<4;++k)
-	oriented_face[k] = fc.v[Face_Orient[orient][k]];
-    for(nf=0;nf<6;++nf) {
-	for(k=0;k<4;++k) {
-	    if (oriented_face[k]!=RefFace[nf].v[k]) break;
-	}
-	if (k==4) break;
-    }
-    return nf;
-}
-
-bool Mesh3D::shared_face(int el0, int nf0, int el1, FaceDesc& other)
-{
-    const FaceDesc& fc = RefFace[nf0];
-    int otherface[4] = {-1,-1,-1,-1};
-    int k;
-    int i0 = m_elems_offs[el0];
-    int i1 = m_elems_offs[el1];
-    for(int n=0;n<4;++n) {
-	int nn = m_elems[i0+fc.v[n]];
-	for(k=0;k<8;++k) {
-	    if (nn == m_elems[i1+k]) {
-		other.v[n] = k;
-		break;
-	    }
-	}
-	if (k==8) return false;
-    }
-    return true;
-}
 
 
 
@@ -173,14 +35,15 @@ int Mesh3D::add_node(double x, double y, double z)
     return m_xco.size()-1;
 }
 
-int Mesh3D::add_elem(int mat_idx, const HexElem& el)
+int Mesh3D::add_elem(int mat_idx, const Elem& el)
 {
     // Builds elem<->vertex graph
-    for(int i=0;i<8;++i) {
+    for(int i=0;i<el.N;++i) {
 	m_elems.push_back(el.v[i]);
     }
     m_elems_offs.push_back(m_elems.size());
     m_mat.push_back( mat_idx );
+    return m_elems_offs.size()-1;
 }
 
 
@@ -191,7 +54,7 @@ void Mesh3D::partition_mesh(int n_parts)
     int ncommon = 1;
     int numflags = 0;
     int ncon=1;
-    int *vwgt=0L;
+    vector<int> vwgt;
     int *vsize=0L;
     int *adjwgt=0L;
     float *tpwgts=0L;
@@ -201,241 +64,479 @@ void Mesh3D::partition_mesh(int n_parts)
 
     n_procs = n_parts;
     m_procs.resize(ne);
-
+    m_xadj = 0L;
+    m_adjncy = 0L;
     METIS_MeshToDual(&ne, &nn, &m_elems_offs[0], &m_elems[0],
 		     &ncommon, &numflags, &m_xadj, &m_adjncy);
 
-    METIS_PartGraphKway(&ne, &ncon, m_xadj, m_adjncy,
-			vwgt, vsize, adjwgt, &n_procs, tpwgts, ubvec,
-			options, &edgecut, &m_procs[0]);
+    //dump_connectivity("conn1.dat");
+    // Tentative de reordonnancement des elements pour optimiser la reutilisation de cache
+    // lors de la boucle sur les elements
+//    vector<int> perm, iperm;
+//    perm.resize(ne);
+//    iperm.resize(ne);
+//    METIS_NodeND(&ne, m_xadj, m_adjncy, 0L, 0L, &perm[0], &iperm[0]);
+//    for(int k=0;k<m_xadj[ne];++k) {
+//        m_adjncy[k] = perm[m_adjncy[k]];
+//    }
+//    dump_connectivity("conn2.dat");
+    vwgt.resize(ne);
+    // Define weights
+    for(int k=0;k<ne;++k) {
+        const Material& mat = m_materials[m_mat[k]];
+        switch(mat.m_type) {
+        case DM_SOLID:
+            vwgt[k] = 3;
+            break;
+        case DM_FLUID:
+            vwgt[k] = 1;
+            break;
+        case DM_SOLID_PML:
+            vwgt[k] = 9;
+            break;
+        case DM_FLUID_PML:
+            vwgt[k] = 3;
+            break;
+        default:
+            vwgt[k] = 1;
 
-    compute_comm_elements();
-}
-
-void Mesh3D::compute_comm_elements()
-{
-    // Note for future parallelisation : in this routine, each part
-    // only needs to know about it's direct neighbours' elements
-    // So that a parallel algorithm could provide a subgraph to each
-    // processor containing elements of a part and the ghost elements.
-
-    // Find adjacent elements that resides on different processors
-    // Note: the graph will be symetric.
-    for(int gel=0;gel<n_elems();++gel) {
-	for(int i=m_xadj[gel];i<m_xadj[gel+1];++i) {
-	    int nel = m_adjncy[i];
-	    if (m_procs[gel]!=m_procs[nel]) {
-		pair<int,int> proc_pair(gel, nel);
-		m_elem_proc_map.insert( proc_pair );
-		// XXX: avoid copy if already exists
-		m_shared[proc_pair] = shared_part_t();
-	    }
-	}
+        }
     }
-    // The shared info has to be exchanged at some point so that
-    // its coherent . There should be a synchronisation point where
-    // proc p1>p0 waits for p0 to send it's shared_part_t_ data
-}
-
-void Mesh3D::compute_shared_objects_for_part(int part)
-{
-    multimap<int,int>::const_iterator it;
-    // Finds faces, edges, vertices shared, and their relative orientation
-    // the element on the lowest rank processor receives orientation 0
-    for(it=m_elem_proc_map.begin();it!=m_elem_proc_map.end();++it) {
-	int local_el, other_el;
-	local_el = it->first;
-	if (m_procs[local_el]!=part) continue;
-	other_el = it->second;
-	// Faces : we already have them from add_local_face
-    }
-}
-
-void Mesh3D::compute_local_part(int part, MeshPart& loc)
-{
-    loc.part = part;
-
-    loc.n_elems_per_proc = 0;
-    loc.m_n_faces = 0;
-    loc.m_n_edges = 0;
-    // Count number of elements on this proc
-    loc.e_g2l.resize(n_elems(),-1);
-    for(int i=0;i<n_elems();++i) {
-	if (elem_part(i) == loc.part) {
-	    loc.e_l2g.push_back(i);
-	    loc.e_g2l[i] = loc.n_elems_per_proc;
-	    loc.n_elems_per_proc++;
-	}
-    }
-    compute_nodes_indexes(loc);
-    compute_local_connectivity(loc);
-}
-
-void Mesh3D::compute_nodes_indexes(MeshPart& loc)
-{
-    loc.n_g2l.resize(n_nodes(), -1);
-
-    for(int i=0;i<n_elems();++i) {
-	if (elem_part(i)!=loc.part) continue;
-	for(int k=m_elems_offs[i];k<m_elems_offs[i+1];++k) {
-	    int node = m_elems[k];
-	    if (loc.n_g2l[node]==-1) {
-		// First visit, assign node local number
-		loc.n_g2l[node] = loc.n_l2g.size();
-		loc.n_l2g.push_back(node);
-	    }
-	}
-    }
-}
-
-void Mesh3D::add_local_face(MeshPart& loc, int iel, int gel, int nf)
-{
-    const FaceDesc& fc = RefFace[nf];
-    // For each neighbour :
-    int found=0;
-    FaceDesc other;
-    int neighbor;
-    for(int i=m_xadj[gel];i<m_xadj[gel+1];++i) {
-	neighbor = m_adjncy[i];
-	if (shared_face(gel, nf, neighbor, other)) {
-	    found = 1;
-	    break;
-	}
-    }
-    if (found==0) {
-	// The face is not shared
-	loc.faces[6*iel+nf] = loc.m_n_faces;
-	loc.faces_orient[6*iel+nf] = 0;
-	loc.m_n_faces++;
-	return;
-    }
-
-    // Found a neighbor sharing a face:
-    if (elem_part(neighbor) == loc.part) {
-	// Both elements are on the same processor
-	// Since local numbers are assigned following increasing
-	// global elements indexes :
-	if (neighbor>gel) {
-	    // Neighbor hasn't been visited yet
-	    loc.faces[6*iel+nf] = loc.m_n_faces;
-	    loc.faces_orient[6*iel+nf] = 0;
-	    //printf("New:%d o=0 n=%d\n", nf, loc.m_n_faces);
-	    loc.m_n_faces++;
-	} else {
-	    //
-	    int onf = find_face(other);
-	    int orientation = face_orientation(onf, other);
-	    int lk = loc.e_g2l[neighbor];
-	    loc.faces[6*iel+nf] = loc.faces[6*lk+onf];
-	    loc.faces_orient[6*iel+nf] = orientation;
-	    //other.show_face();
-	    //printf("Face:%d o=%d n=%d\n", onf, orientation, loc.faces[6*iel+nf]);
-	}
+    if (n_parts>1) {
+        METIS_PartGraphKway(&ne, &ncon, m_xadj, m_adjncy,
+                            &vwgt[0], vsize, adjwgt, &n_procs, tpwgts, ubvec,
+                            options, &edgecut, &m_procs[0]);
     } else {
-	// Not on the same processor
-	loc.faces[6*iel+nf] = loc.m_n_faces;
-	loc.faces_orient[6*iel+nf] = 0;
-	int num = elem_part(neighbor);
-	// TODO: register previous proc face number
-	if (num<loc.part) {
-	    int onf = find_face(other);
-	    int orientation = face_orientation(onf, other);
-	    //m_shared[num]
-	} else {
-	}
-	loc.m_n_faces++;
-    }
-}
-
-void Mesh3D::add_local_edge(MeshPart& loc, int iel, int gel, int ne)
-{
-    int ve0, ve1; // vertex nums of edge
-
-    ve0 = m_elems[8*gel+RefEdge[ne][0]];
-    ve1 = m_elems[8*gel+RefEdge[ne][1]];
-    ordered_edge_t edg(ve0,ve1);
-
-    map<ordered_edge_t,edge_t>::iterator it;
-
-    it = m_edge_map.find(edg);
-
-    if (it==m_edge_map.end()) {
-	// Edge never visited
-	// New number
-	m_edge_map[edg] = edge_t(ve0, ve1, loc.m_n_edges, gel);
-	loc.edges[12*iel+ne] = loc.m_n_edges;
-	loc.edges_orient[12*iel+ne] = 0;
-	loc.m_n_edges++;
-    } else {
-	edge_t& edg0 = it->second;
-	loc.edges[12*iel+ne] = edg0.n;
-	loc.edges_orient[12*iel+ne] = edg0.orient(ve0,ve1);
-	edg0.elems.push_back(gel);
-    }
-}
-
-void Mesh3D::compute_local_connectivity(MeshPart& loc)
-{
-    loc.m_n_faces = 0;
-
-    loc.faces.resize(6*loc.n_elems(),-1);
-    loc.faces_orient.resize(6*loc.n_elems_per_proc,-1);
-    loc.edges.resize(12*loc.n_elems(),-1);
-    loc.edges_orient.resize(12*loc.n_elems(),-1);
-    loc.vertices.resize(8*loc.n_elems(),-1);
-    for(int iel=0;iel<loc.n_elems_per_proc;++iel) {
-	int gel = loc.e_l2g[iel];
-	for(int nf=0;nf<6;++nf) {
-	    add_local_face(loc, iel, gel, nf);
-	}
-	for(int ne=0;ne<11;++ne) {
-	    add_local_edge(loc, iel, gel, ne);
-	}
+        for(int k=0;k<ne;++k) m_procs[k]=0;
     }
 }
 
 
-int Mesh3D::add_material()
+void Mesh3D::dump_connectivity(const char* fname)
 {
-    m_materials.push_back(Material());
+    FILE* fmat = fopen(fname, "wb");
+    int ne = n_elems();
+    unsigned char* mat = (unsigned char*)malloc(ne*ne*sizeof(unsigned char));
+    memset(mat, 0, ne*ne);
+    for(int i=0;i<n_elems();++i) {
+        for(int k=m_xadj[i];k<m_xadj[i+1];++k) {
+            int j = m_adjncy[k];
+            mat[i+ne*j] = 1;
+            mat[j+ne*i] = 1;
+        }
+    }
+    fwrite(mat, ne*ne, 1, fmat);
+    fclose(fmat);
 }
 
-void Mesh3D::get_local_material(MeshPart& loc, std::vector<int>& imat)
+
+void Mesh3D::write_materials(const std::string& str)
 {
-    imat.clear();
-    for(int k=0; k<loc.n_elems(); ++k) {
-	int g = loc.e_l2g[k];
-	imat.push_back(m_mat[g]);
-	imat.push_back( (m_materials[m_mat[g]].is_fluid() ? 0 : 1) );
+    printf("Writing Materials");
+    write_materials_v2(str);
+}
+
+int Mesh3D::read_materials(const std::string& str)
+{
+    printf("Reading Materials\n");
+    return read_materials_v2(str);
+}
+
+int Mesh3D::read_materials_v2(const std::string& str)
+{
+    int         nmats;
+    int           k=0;
+    char         type;
+    char *buffer=NULL;
+    size_t linesize=0;
+    double  vs,vp,rho;
+    int         ngllx;
+    double    Qp, Qmu;
+
+    int    lambdaSwitch;
+
+    int    corrMod_0;
+    double corrL_x_0;
+    double corrL_y_0;
+    double corrL_z_0;
+    int     margiF_0;
+    double      CV_0;
+    int  seedStart_0;
+
+    int    corrMod_1;
+    double corrL_x_1;
+    double corrL_y_1;
+    double corrL_z_1;
+    int     margiF_1;
+    double      CV_1;
+    int  seedStart_1;
+
+    int    corrMod_2;
+    double corrL_x_2;
+    double corrL_y_2;
+    double corrL_z_2;
+    int     margiF_2;
+    double      CV_2;
+    int  seedStart_2;
+
+    FILE* f = fopen(str.c_str(), "r");
+    getData_line(&buffer, &linesize, f);
+    sscanf(buffer, "%d", &nmats);
+    for(int k=0;k<nmats;++k)  {
+        getData_line(&buffer, &linesize, f);
+        sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
+               &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
+
+        printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
+        //printf("     strcmp(&type,R) = %d\n", strcmp(&type,"R"));
+        //printf("     type == 'R' %d\n", type == 'R');
+
+        if(type == 'R'){
+
+            getData_line(&buffer, &linesize, f);
+            sscanf(buffer,"%d", &lambdaSwitch);
+
+            getData_line(&buffer, &linesize, f);
+            sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+                   &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
+                   &margiF_0, &CV_0, &seedStart_0);
+
+            getData_line(&buffer, &linesize, f);
+            sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+                   &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
+                   &margiF_1, &CV_1, &seedStart_1);
+
+            getData_line(&buffer, &linesize, f);
+            sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+                   &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
+                   &margiF_2, &CV_2, &seedStart_2);
+
+            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx,
+                                           lambdaSwitch,
+                                           corrMod_0, corrL_x_0, corrL_y_0, corrL_z_0,
+                                           margiF_0, CV_0, seedStart_0,
+                                           corrMod_1, corrL_x_1, corrL_y_1, corrL_z_1,
+                                           margiF_1, CV_1, seedStart_1,
+                                           corrMod_2, corrL_x_2, corrL_y_2, corrL_z_2,
+                                           margiF_2, CV_2, seedStart_2));
+
+            //printf("     lambdaSwitch = %d\n", lambdaSwitch);
+            //cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
+            //		corrMod, corrL_x, corrL_y, corrL_z, seedStart);
+        }
+        else{
+            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+        }
+    }
+    free(buffer);
+    return nmats;
+}
+
+#define TF(e)  (e ? 'T' : 'F')
+
+
+void Mesh3D::write_materials_v2(const std::string& str)
+{
+    FILE* f = fopen(str.c_str(), "w");
+    int nmats = m_materials.size();
+
+    fprintf(f, "%d\n", nmats);
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+        fprintf(f, "%c %lf %lf %lf %d %lf %lf\n",
+                mat.cinitial_type,
+                mat.Pspeed, mat.Sspeed, mat.rho,
+                mat.m_ngll,
+                mat.Qpression, mat.Qmu);
+
+        if (mat.is_pml()) {
+        	m_bbox[k].set_assocMat(mat.associated_material);
+        }
+        else {
+        	m_bbox[k].set_assocMat(k);
+        }
+    }
+
+    fprintf(f, "# PML properties\n");
+    fprintf(f, "# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat\n");
+
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+
+        if (!mat.is_pml()) continue;
+        fprintf(f, "2 10. %lf %lf %lf %lf %lf %lf %d\n",
+                mat.xpos, mat.xwidth,
+                mat.ypos, mat.ywidth,
+                mat.zpos, mat.zwidth, mat.associated_material);
+
+    }
+
+}
+
+void Mesh3D::read_mesh_file(const std::string& fname)
+{
+    hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    h5h_read_dset_Nx3(file_id, "/Nodes", m_xco, m_yco, m_zco);
+    if (H5Lexists(file_id, "/Sem3D/Hexa8", H5P_DEFAULT)) {
+        read_mesh_hexa8(file_id);
+    }
+    else if (H5Lexists(file_id, "/Sem3D/Hexa27", H5P_DEFAULT)) {
+        read_mesh_hexa27(file_id);}
+    else{
+        printf("ERR: only Quad4 and Quad8 are supported \n");
+        exit(1);
+    }
+    h5h_read_dset(file_id, "/Sem3D/Mat", m_mat);
+
+    std::vector<int> domain=m_mat;
+    std::sort( domain.begin(), domain.end() );
+    domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
+
+    for (int i=0; i< m_mat.size(); i++){
+        m_mat[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_mat[i]));}
+
+    if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT)>0)) {
+        read_mesh_Quad8(file_id);}
+    else {
+        if (domain.size() > m_materials.size()){
+            printf("\n\n ERROR: Nb of physical volume in PythonHDF5.h5 is greater than that given in material.input \n");
+            exit(1);}
+        else if (domain.size() < m_materials.size()){ int mmm=m_materials.size();
+            for (int i= domain.size()-1; i < mmm; i++) m_materials.pop_back();}
     }
 }
 
-void Mesh3D::get_local_nodes(MeshPart& loc, std::vector<double>& tmp)
+void Mesh3D::read_mesh_hexa8(hid_t file_id)
 {
-    tmp.clear();
-    for(int k=0; k<loc.n_nodes();++k) {
-	int g = loc.n_l2g[k];
-	tmp.push_back(m_xco[g]);
-	tmp.push_back(m_yco[g]);
-	tmp.push_back(m_zco[g]);
+    int nel, nnodes;
+    h5h_read_dset_2d(file_id, "/Sem3D/Hexa8", nel, nnodes, m_elems);
+    set_control_nodes(8);
+    if (nnodes!=8) {
+        printf("Error: dataset /Sem/Hexa8 is not of size NEL*8\n");
+        exit(1);
+    }
+    for(int k=0;k<nel;++k) {
+        m_elems_offs.push_back(8*(k+1));
     }
 }
 
-void Mesh3D::get_local_faces(MeshPart& loc, std::vector<int>& tmp)
+void Mesh3D::read_mesh_Quad8(hid_t file_id)
 {
-    tmp.clear();
+    int nel, nnodes;
+    std::vector<int> m_Quad, elemtrace, m_matQuad;
+
+    set_control_nodes(8);
+    h5h_read_dset_2d(file_id, "/Mesh_quad4/Quad4", nel, nnodes,m_Quad);
+    if (nnodes!=4) {
+        printf("Error: dataset /Mesh_quad4/Quad4 is not of size NEL*4\n");
+        exit(1);
+    }
+
+  h5h_read_dset(file_id, "/Mesh_quad4/Mat", m_matQuad);
+  
+  std::vector<int> domain=m_matQuad;
+  std::sort( domain.begin(), domain.end() );
+  domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
+  
+  for (int i=0; i< m_matQuad.size(); i++){
+      m_matQuad[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_matQuad[i]));}
+
+  for (int i=0; i< domain.size(); i++){
+       std::ostringstream convert;
+       convert << domain[i];
+       m_surf_matname.push_back("surface"+convert.str());}
+   
+  printf("\n");
+  printf("Nb surfaces in PythonHDF5.h5 : %d \n\n", m_surf_matname.size());
+
+  elemtrace = m_elems;
+  int imat  = m_mat.size();
+  int mmm   = imat;
+   
+  for(int k=0; k< nel; ++k){
+     m_elems_offs.push_back(8*(k+1+mmm));     
+     std::vector<int> elemneed, elems;
+     for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
+     int elmat=imat+k;
+     int tg4nodes=m_matQuad[k]; 
+     int el8mat=-1;
+     findelem(elmat, elemtrace, elems, elemneed,el8mat);
+     m_mat.push_back(m_mat[el8mat]);
+      
+     for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
+     surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[el8mat]), tg4nodes);
+   }
 }
 
-void Mesh3D::get_local_elements(MeshPart& loc, std::vector<int>& tmp)
+void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int &elmat)
 {
-    tmp.clear();
-    for(int k=0;k<loc.n_elems();++k) {
-	int g = loc.e_l2g[k];
-	for(int i=m_elems_offs[g];i<m_elems_offs[g+1];++i) {
-	    int ln = loc.n_g2l[m_elems[i]];
-	    tmp.push_back(ln);
-	}
+    bool found=false;
+    //std::vector<double> seting_el=m_matseting.find(m_mat[imat])->second;
+
+    for(int i=0; i< eltr.size()/8; i++){
+        std::vector<int> elems_i;
+        elems_i.clear();
+        for(int j=0; j<8; j++) elems_i.push_back(eltr[i*8+j]);
+        if (elems_i.size()==8){
+            int p=0;
+            for (int k=0; k< elems.size(); k++){
+                if (std::find(elems_i.begin(),elems_i.end(),elems[k])!=elems_i.end()) {p++;}
+            }
+            //std::vector<double> seting_i = m_matseting.find(m_mat[i])->second;
+            //if ((p==4)&&(seting_i==seting_el)){elemneed = elems_i; found=true; elmat=i;}
+            if ((p==4)){elemneed = elems_i; found=true; elmat=i;}
+        }
+        if (found) break;
     }
+    if (!found){
+        printf(" Error: Unable to find Hexa8 elem corresponding to Quad4 \n\n");
+        elemneed = elems;exit(1);
+    }
+}
+
+void Mesh3D::read_mesh_hexa27(hid_t file_id)
+{
+    set_control_nodes(27);
+}
+
+void Mesh3D::build_vertex_to_elem_map()
+{
+    int nel = n_elems();
+    m_vertex_to_elem.init(nel);
+    m_vertex_domains.clear();
+    m_vertex_domains.resize(n_vertices(), 0);
+    for(int i=0;i<nel;++i) {
+        for(int k=m_elems_offs[i];k<m_elems_offs[i+1];++k) {
+            int vtx = m_elems[k];
+            int mat = m_mat[i];
+            int domain = m_materials[mat].domain();
+            m_vertex_to_elem.add_link(vtx, i);
+            m_vertex_domains[vtx] |= (1<<domain);
+
+            // Update bounding boxen
+            m_bbox[mat].update_bounds(Vec3(m_xco[vtx],m_yco[vtx],m_zco[vtx]));
+//            printf("VX[%d] dom=%d/%02x, %02x\n", vtx, domain, (int)(1<<domain), m_vertex_domains[vtx]);
+        }
+    }
+//    for(int k=0;k<n_vertices();++k) {
+//        printf("VX[%d] dom=%02x\n", k, m_vertex_domains[k]);
+//    }
+}
+
+void Mesh3D::build_sf_interface()
+{
+    PFace fc;
+    Surface* sf = get_surface("sf");
+    for(int el=0;el<n_elems();++el) {
+        int dom0 = get_elem_domain(el);
+        for(int k=m_xadj[el];k<m_xadj[el+1];++k) {
+            int neighbour = m_adjncy[k];
+            int dom1 = get_elem_domain(neighbour);
+            // Make sure the face normal points inside fluid or fluidpml domain
+            if ((dom0==DM_FLUID && dom1==DM_SOLID) ||
+                (dom0==DM_FLUID_PML && dom1==DM_SOLID_PML))
+            {
+                if (get_common_face(el, neighbour, fc)) {
+                    fc.set_domain(dom0);
+                    sf->add_face(fc,0);
+                    fc.set_domain(dom1);
+                    fc.orient = -fc.orient;
+                    sf->add_face(fc,0);
+                }
+            }
+            if ((dom1==DM_FLUID && dom0==DM_SOLID) ||
+                (dom1==DM_FLUID_PML && dom0==DM_SOLID_PML))
+            {
+                if (get_common_face(neighbour, el, fc)) {
+                    fc.set_domain(dom1);
+                    sf->add_face(fc,0);
+                    fc.set_domain(dom0);
+                    fc.orient = -fc.orient;
+                    sf->add_face(fc,0);
+                }
+            }
+        }
+    }
+}
+
+bool Mesh3D::get_common_face(int e0, int e1, PFace& fc)
+{
+    int nodes0[8];
+    int nodes1[8];
+    int face0[4];
+    std::set<int> inter;
+    get_elem_nodes(e0, nodes0);
+    get_elem_nodes(e1, nodes1);
+    std::set<int> snodes1(nodes1,nodes1+8);
+    // walks faces from e0 and return fc if found in e1 with orientation from e0
+    for(int nf=0;nf<6;++nf) {
+        for(int p=0;p<4;++p) {
+            face0[p] = nodes0[RefFace[nf].v[p]];
+        }
+        std::set<int> sface0(face0,face0+4);
+        inter.clear();
+        std::set_intersection(sface0.begin(),sface0.end(),snodes1.begin(),snodes1.end(),
+                              std::inserter(inter,inter.begin()));
+        if (inter.size()==4) {
+            fc.set_face(face0);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Mesh3D::get_neighbour_elements(int nn, const int* n, std::set<int>& elemset) const
+{
+    std::set<int> elems, temp;
+    m_vertex_to_elem.vertex_to_elements(n[0], elemset);
+    for(int k=1;k<nn;++k) {
+        int vertex_id = n[k];
+        elems.clear();
+        temp.clear();
+        m_vertex_to_elem.vertex_to_elements(n[k], elems);
+        std::set_intersection(elemset.begin(), elemset.end(),
+                              elems.begin(), elems.end(),
+                              std::inserter(temp, temp.begin()));
+        elemset.swap(temp);
+    }
+}
+
+void Mesh3D::save_bbox()
+{
+    FILE* fbbox;
+    fbbox = fopen("domains.txt", "w");
+    map<int,AABB>::const_iterator bbox;
+    for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
+        //fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        fprintf(fbbox, "%6d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f %6d\n", bbox->first,
+                bbox->second.min[0],
+                bbox->second.min[1],
+                bbox->second.min[2],
+                bbox->second.max[0],
+                bbox->second.max[1],
+                bbox->second.max[2],
+                bbox->second.assocMat);
+    }
+}
+
+void Mesh3D::generate_output(int nprocs)
+{
+    build_vertex_to_elem_map();
+    save_bbox();
+    partition_mesh(nprocs);
+    // partition_mesh builds adjacency map that is used by build_sf_interface
+    // Later on, we will want to treat SF interfaces like all others.
+    // That is when we will be able to generate normals for all surfaces
+    // build_sf_interface();
+
+    for(int part=0;part<nprocs;++part) {
+	Mesh3DPart loc(*this, part);
+
+	loc.compute_part();
+	loc.output_mesh_part();
+	loc.output_mesh_part_xmf();
+    }
+    output_all_meshes_xmf(nprocs);
 }
 
 

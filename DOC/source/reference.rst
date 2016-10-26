@@ -10,4 +10,5 @@ Guide de référence
    format_mesher.rst
    format_mesh_hdf5.rst
    format_unv.rst
+   format_msh.rst
    

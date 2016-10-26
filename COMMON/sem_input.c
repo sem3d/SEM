@@ -155,15 +155,12 @@ int expect_string(yyscan_t scanner, char** str, int nexpected)
 	str[k][len-2] = 0;
 	++k;
     }
+    //printf("Got: %s'\n", yyget_text(scanner));
     return k;
 }
 
 int expect_eq_string(yyscan_t scanner, char** str, int nexpected)
 {
-    int k = 0;
-    int tok;
-    int len;
-
     if (!expect_eq(scanner)) return 0;
     return expect_string(scanner, str, nexpected);
 }
@@ -173,6 +170,43 @@ int expect_eos(yyscan_t scanner)
     int tok = skip_blank(scanner);
     if (tok!=K_SEMI) { msg_err(scanner, "Expected ';'");return 0;}
     return 1;
+}
+
+int expect_eq_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval)
+{
+    if (!expect_eq(scanner)) return 0;
+    return expect_keyword(scanner, keywords, keyval);
+}
+
+int expect_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval)
+{
+    int tok;
+    int len;
+    int bufmax;
+    char* msg;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    int size = 0;
+    int k = 0;
+    while(keywords[k].keyword!=NULL) {
+        if (cmp(scanner, keywords[k].keyword)) { *keyval = keywords[k].index; return 1; }
+        size += strlen(keywords[k].keyword);
+        k++;
+    }
+error:
+    bufmax = 200+k+size;
+    msg = (char*)malloc(bufmax);
+    *msg = 0;
+    strcat(msg, "Expected keyword from:");
+    k = 0;
+    while(keywords[k].keyword!=NULL) {
+        strcat(msg, keywords[k].keyword);
+        strcat(msg, ", ");
+        k++;
+    }
+    msg_err(scanner, msg);
+    return 0;
 }
 
 

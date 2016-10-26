@@ -3,164 +3,139 @@
 !! Copyright CEA, ECP, IPGP
 !!
 !>
-!!\file courant.f90
-!!\brief Contient la subroutine Compute_Courant.
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
-!!
-!<
-
-!>
 !! \fn subroutine Compute_Courant (Tdomain)
-!! \brief V�rifie que le pas de temps est adapt� aux d�placements �valu�s
+!! \brief Calcul le pas de temps adapte au maillage et Vs/Vp
+!! \brief Vérifie que le pas de temps est adapté aux déplacements évalués
 !!
 !! \param type (Domain), intent (IN) Tdomain
 !<
-subroutine Compute_Courant (Tdomain,rg)
+module mCourant
 
-    use sdomain
-    use mpi
     implicit none
-    type (Domain), intent (INOUT) :: Tdomain
-    integer, intent(IN) :: rg
+    public :: Compute_Courant
+contains
+    subroutine update_minmax(Tdomain, idef0, idef1, dxmin, dxmax)
+        use sdomain
+        implicit none
+        type (Domain), intent (INOUT) :: Tdomain
+        integer, intent(in) :: idef0, idef1
+        real, intent(inout) :: dxmin, dxmax
+        !
+        real :: dx
 
-    integer :: i,j,k, n, ngllx,nglly,ngllz, idef0,idef1, mat, ierr
-    real :: dx,dxmin,courant,courant_max
-    real :: dt_min, dt, dt_loc
-    ! start modifs
-    real :: floc_max, dx_max, f_max
-    !end modifs
+        if (idef0==idef1) then
+            write(*,*) "Numbering problem"
+            stop 1
+        end if
+        dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
+            (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
+            (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
+        if(dx < dxmin) dxmin = dx
+        if(dx > dxmax) dxmax = dx
+    end subroutine update_minmax
 
-    courant = Tdomain%TimeD%courant
-    courant_max = 0
-    dt_loc = huge(1.)
-    floc_max  = huge(1.)
-    do n = 0, Tdomain%n_elem -1
-        dxmin = 1e10
-        ! start modifs
-        dx_max= 0
-        ! end modifs
+    subroutine Compute_Courant (Tdomain,rg)
 
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        use sdomain
+        use constants
+        use dom_solid
+        use dom_fluid
+        use dom_solidpml
+        use dom_fluidpml
+        use mpi
+        implicit none
+        type (Domain), intent (INOUT) :: Tdomain
+        integer, intent(IN) :: rg
 
-        do k = 0, ngllz-2
-            do j = 0, nglly - 2
-                do i = 0, ngllx -2
+        integer :: i,j,k,n,ngll,idef0,idef1, mat, ierr
+        integer :: lnum
+        real(fpp) :: dxmin,courant,courant_max
+        real(fpp) :: dt_min, dt, dt_loc
+        real(fpp) :: floc_max, dxmax, f_max
+        real(fpp) :: pspeed, maxPspeed
 
-                    idef0 = Tdomain%specel(n)%Iglobnum(i,j,k)
-                    idef1 = Tdomain%specel(n)%Iglobnum(i+1,j,k)
-                    dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
-                        (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
-                        (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if(dx < dxmin) dxmin = dx
-                    ! start modifs
-                    if(dx > dx_max) dx_max = dx
-                    ! end modifs
-                    idef1 = Tdomain%specel(n)%Iglobnum(i,j+1,k)
-                    dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
-                        (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
-                        (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if(dx < dxmin) dxmin = dx
-                    ! start modifs
-                    if(dx > dx_max) dx_max = dx
-                    ! end modifs
-                    idef1 = Tdomain%specel(n)%Iglobnum(i,j,k+1)
-                    dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
-                        (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
-                        (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if(dx < dxmin) dxmin = dx
-                    ! start modifs
-                    if(dx > dx_max) dx_max = dx
-                    ! end modifs
-                    idef1 = Tdomain%specel(n)%Iglobnum(i+1,j+1,k)
-                    dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
-                        (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
-                        (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if(dx < dxmin) dxmin = dx
-                    ! start modifs
-                    if(dx > dx_max) dx_max = dx
-                    ! end modifs
-                    idef1 = Tdomain%specel(n)%Iglobnum(i+1,j,k+1)
-                    dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
-                        (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
-                        (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if(dx < dxmin) dxmin = dx
-                    ! start modifs
-                    if(dx > dx_max) dx_max = dx
-                    ! end modifs
-                    idef1 = Tdomain%specel(n)%Iglobnum(i,j+1,k+1)
-                    dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
-                        (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
-                        (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if(dx < dxmin) dxmin = dx
-                    ! start modifs
-                    if(dx > dx_max) dx_max = dx
-                    ! end modifs
-                    idef1 = Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1)
-                    dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
-                        (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
-                        (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if(dx < dxmin) dxmin = dx
-                    ! start modifs
-                    if(dx > dx_max) dx_max = dx
-                    ! end modifs
+        courant = Tdomain%TimeD%courant
+        courant_max = 0
+        dt_loc = huge(1.)
+        floc_max  = huge(1.)
+        do n = 0, Tdomain%n_elem -1
+            dxmin = 1e10
+            dxmax = 0
+
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            do k = 0, ngll-2
+                do j = 0, ngll-2
+                    do i = 0, ngll-2
+
+                        idef0 = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        idef1 = Tdomain%specel(n)%Iglobnum(i+1,j,k)
+                        call update_minmax(Tdomain, idef0, idef1, dxmin, dxmax)
+                        idef1 = Tdomain%specel(n)%Iglobnum(i,j+1,k)
+                        call update_minmax(Tdomain, idef0, idef1, dxmin, dxmax)
+                        idef1 = Tdomain%specel(n)%Iglobnum(i,j,k+1)
+                        call update_minmax(Tdomain, idef0, idef1, dxmin, dxmax)
+                        idef1 = Tdomain%specel(n)%Iglobnum(i+1,j+1,k)
+                        call update_minmax(Tdomain, idef0, idef1, dxmin, dxmax)
+                        idef1 = Tdomain%specel(n)%Iglobnum(i+1,j,k+1)
+                        call update_minmax(Tdomain, idef0, idef1, dxmin, dxmax)
+                        idef1 = Tdomain%specel(n)%Iglobnum(i,j+1,k+1)
+                        call update_minmax(Tdomain, idef0, idef1, dxmin, dxmax)
+                        idef1 = Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1)
+                        call update_minmax(Tdomain, idef0, idef1, dxmin, dxmax)
+                    enddo
                 enddo
             enddo
+            ! Compute max Pspeed on the cell
+            maxPspeed = 0d0
+            lnum = Tdomain%specel(n)%lnum
+            do k = 0, ngll-1
+                do j = 0, ngll-1
+                    do i = 0, ngll-1
+                        select case(Tdomain%specel(n)%domain)
+                        case (DM_SOLID)
+                            Pspeed = solid_pspeed(Tdomain%sdom, lnum, i, j, k)
+                        case (DM_SOLID_PML)
+                            Pspeed = solidpml_pspeed(Tdomain%spmldom, lnum, i, j, k)
+                        case (DM_FLUID)
+                            Pspeed = fluid_pspeed(Tdomain%fdom, lnum, i, j, k)
+                        case (DM_FLUID_PML)
+                            Pspeed = fluidpml_pspeed(Tdomain%fpmldom, lnum, i, j, k)
+                        end select
+                        if (Pspeed>maxPspeed) maxPspeed = Pspeed
+                    end do
+                end do
+            end do
+
+            dxmin = sqrt(dxmin)
+            mat = Tdomain%specel(n)%mat_index
+            dt_loc = min(dt_loc, dxmin/maxPspeed)
+            dxmax = sqrt(dxmax)
+            floc_max  = min(floc_max,  Tdomain%sSubdomain(mat)%Sspeed/30/dxmax)
         enddo
 
-        dxmin = sqrt(dxmin)
-        mat = Tdomain%specel(n)%mat_index
-        dt_loc = min(dt_loc, dxmin/Tdomain%sSubdomain(mat)%Pspeed)
-        !!    courant = (Tdomain%sSubdomain(mat)%Pspeed * Tdomain%sSubdomain(mat)%Dt)/ dxmin
-        !!    if (courant > courant_max) courant_max = courant
+        if(rg==0) write(*,*) 'dt_loc',dt_loc
+        call MPI_AllReduce (dt_loc, dt_min, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
 
-        ! start modifs
-        dx_max = sqrt(dx_max)
-        floc_max  = min(floc_max,  Tdomain%sSubdomain(mat)%Sspeed/30/dx_max)
-        ! end modifs
+        call MPI_AllReduce (floc_max, f_max, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
+        if(rg==0) write(*,*) 'f_max',f_max
 
-    enddo
+        dt = courant * dt_min
 
-    if(rg==0) write(*,*) 'dt_loc',dt_loc
-    call MPI_AllReduce (dt_loc, dt_min, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
+        if (rg == 0 ) write (*,*) "For Courant =",courant," the time step is now ",dt_min,dt
 
-    ! start modifs
-    call MPI_AllReduce (floc_max, f_max, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
-    if(rg==0) write(*,*) 'f_max',f_max
-    ! end modifs
+        !! Affectation a tous les materiaux
+        !!
+        Tdomain%TimeD%dtmin = dt
+        if (Tdomain%TimeD%dtmin > 0) then
+            Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+        else
+            write (*,*) "Your dt min is zero : verify it"
+            stop
+        endif
 
-    dt = courant * dt_min
-
-    if (rg == 0 ) write (*,*) "For Courant =",courant," the time step is now ",dt_min,dt
-
-!!!!write (*,*) "The Courant number in your simulation is ", courant_max  , dxmin
-!!!!if (courant_max  > 0.5 .and. courant_max  < 1) then
-!!!!   write (*,*) " Warning: you have a Courant larger than 0.5 "
-!!!!else if (courant_max  > 1 ) then
-!!!!   write (*,*) " You have a Courant larger than 1, you are unstable "
-!!!!   stop
-!!!!endif
-
-    !! Affectation a tous les materiaux
-    !!
-    do n=0,Tdomain%n_elem - 1
-        mat = Tdomain%specel(n)%mat_index
-        Tdomain%sSubdomain(mat)%Dt = dt
-    enddo
-    Tdomain%TimeD%dtmin = dt
-    if (Tdomain%TimeD%dtmin > 0) then
-        Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin) !!oubli
-    else
-        write (*,*) "Your dt min is zero : verify it"
-        stop
-    endif
-
-    return
-end subroutine Compute_Courant
-
+        return
+    end subroutine Compute_Courant
+end module mCourant
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

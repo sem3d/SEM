@@ -14,15 +14,18 @@
 module drive_sem
 
 contains
+
 subroutine sem(master_superviseur, communicateur, communicateur_global)
     use sdomain
-    use mdefinitions
+    use mrenumber
     use mCapteur
     use semdatafiles
     use mpi
     use msnapshots
+    use mdefinitions, only : define_arrays
     use semconfig !< pour config C
     use sem_c_bindings
+    use stat, only : stat_starttick, stat_stoptick, STAT_START
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -46,6 +49,8 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer, dimension(3) :: tab
     integer :: min_rank_glob_sem
 #endif
+
+    call stat_starttick()
     call MPI_Init (ierr)
 
 !----------------------------------------------------------------------------------------------!
@@ -105,37 +110,33 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #endif
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
-
-!----------------------------------------------------------------------------------------------!
-!--------------------------------       SEM 3D - RUNNING     ----------------------------------!
-!----------------------------------------------------------------------------------------------!
-
+ !----------------------------------------------------------------------------------------------!
+ !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
+ !----------------------------------------------------------------------------------------------!
     call INIT_MESSAGE(rg)
     call START_SEM(rg)
 
-!---------------------------------------------------------------------------------------------!
-!------------------------------    RUN PREPARATION : INPUT DATA, -----------------------------!
-!----------------------------     ELEMENTAL AND GLOBAL MACHINERY  ----------------------------!
-!---------------------------------------------------------------------------------------------!
+ !---------------------------------------------------------------------------------------------!
+ !------------------------------    RUN PREPARATION : INPUT DATA, -----------------------------!
+ !----------------------------     ELEMENTAL AND GLOBAL MACHINERY  ----------------------------!
+ !---------------------------------------------------------------------------------------------!
 
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
-
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
-
     call TIME_STEPPING(Tdomain,isort,ntime)
 
-!---------------------------------------------------------------------------------------------!
-!-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
-!---------------------------------------------------------------------------------------------!
+ !---------------------------------------------------------------------------------------------!
+ !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
+ !---------------------------------------------------------------------------------------------!
 
     call END_SEM(Tdomain,ntime)
 
 end subroutine sem
-!-----------------------------------------------------------------------------------
-!-----------------------------------------------------------------------------------
+ !-----------------------------------------------------------------------------------
+ !-----------------------------------------------------------------------------------
 subroutine INIT_MESSAGE(rg)
     implicit none
     integer, intent(in)   :: rg
@@ -159,6 +160,8 @@ end subroutine INIT_MESSAGE
 !-----------------------------------------------------------------------------------
 subroutine RUN_PREPARED(Tdomain)
     use sdomain
+    use mrenumber
+    use mdefinitions
     use sdomain_alloc
     use attenuation
     use mCapteur
@@ -170,7 +173,7 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
-    use build_prop_files
+    use surface_input
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -179,7 +182,6 @@ subroutine RUN_PREPARED(Tdomain)
     type(domain), intent(inout) :: Tdomain
     integer :: rg
     integer :: code, i, ierr, group, subgroup
-    integer :: mat
 
     rg = Tdomain%rank
     if(rg == 0) print*
@@ -218,20 +220,25 @@ subroutine RUN_PREPARED(Tdomain)
     endif
 
  !- eventual Neumann boundary conditions
-    if (Tdomain%logicD%neumann_local_present) then
-        if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
-        call define_Neumann_properties(Tdomain)
+    !if (Tdomain%logicD%neumann_local_present) then
+    !    if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
+    !    call define_Neumann_properties(Tdomain)
+    !endif
+    if (Tdomain%logicD%surfBC) then
+       if (rg == 0) write(*,*) "--> DEFINING SURFACE PROPERTIES"
+       call define_surface_properties(Tdomain)
     endif
-    call MPI_Barrier(Tdomain%communicateur, code)
 
- !- discretization (collocation) points' properties
-    if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
-    call compute_GLL(Tdomain)
     call MPI_Barrier(Tdomain%communicateur, code)
 
  !- from elementary to global numbering
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)
+    call MPI_Barrier(Tdomain%communicateur,code)
+ 
+ !- allocation of different fields' sizes
+    if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
+    call allocate_domain(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
  !- geometrical properties for integrals' calculations
@@ -246,57 +253,16 @@ subroutine RUN_PREPARED(Tdomain)
         write (*,*) Tdomain%n_nodes, "control points not yet implemented in the code. Wait for an upgrade"
         stop
     endif
+    call check_interface_orient(Tdomain, Tdomain%intSolPml, 1e-10)
+    call check_interface_orient(Tdomain, Tdomain%intFluPml, 1e-10)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1e-10)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10)
     call MPI_Barrier(Tdomain%communicateur,code)
 
- ! - defining random subdomains
-    if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
-        if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
-        call define_random_subdomains(Tdomain, rg)
-    end if
-
- !- writing properties files
-    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
-    if(Tdomain%logicD%run_restart) then
-        if (rg == 0) write (*,*) " Warning!! This is a reprise, properties are expected to be on the 'prop' folder (it won't be rewriten)"
-    else
-        call create_prop_files (Tdomain, rg)
-    end if
-
- !- timestep value - > Courant, or Courant -> timestep
-    if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
-    call compute_Courant(Tdomain,rg)
-    call MPI_Barrier(Tdomain%communicateur,code)
-
- !- absorbing layers (PMLs)
-    if (Tdomain%any_PML)then
-        if (rg == 0) write (*,*) "--> ATTRIBUTING PMLs PROPERTIES"
-        call PML_definition(Tdomain)
-    endif
-    call MPI_Barrier(Tdomain%communicateur,code)
-
- !- allocation of different fields' sizes
-    if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
-    call allocate_domain(Tdomain)
-    call MPI_Barrier(Tdomain%communicateur,code)
-
- !- elementary properties (mass matrices, PML factors,..)
+    !- elementary properties (mass matrices, PML factors,..) geometry
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
-
- ! - changing "material_type" of random subdomains
-    do mat = 0, Tdomain%n_mat - 1
-        if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
-    end do
-    !OBS: in the future, after writing properties files for non-homogeneous media
-    !we could redefine the "material_type" according only to its behaviour for calculations
-    !it would ease syntax
-    !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
-
-! !- creating properties visualization files
-!    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
-!    call create_prop_visu_files (Tdomain, rg)
-
  !- anelastic properties
     if (Tdomain%n_sls>0) then
         if (Tdomain%aniso) then
@@ -307,7 +273,6 @@ subroutine RUN_PREPARED(Tdomain)
             call set_attenuation_param(Tdomain)
         endif
     endif
-
  !- eventual classical seismic point sources: their spatial and temporal properties
     if (Tdomain%logicD%any_source) then
         if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
@@ -323,7 +288,6 @@ subroutine RUN_PREPARED(Tdomain)
             endif
         end do
     endif
-
  !- time: initializations. Eventual changes if restarting from a checkpoint (see
  !         routine  RUN_INIT_INTERACT)
     Tdomain%TimeD%rtime = 0
@@ -447,6 +411,7 @@ subroutine INIT_COUPLING_MKA(Tdomain)
 
     !- new max. number of iterations
     Tdomain%TimeD%ntimeMax = int(Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+    if (Tdomain%TimeD%ntimeMax <= 0) stop "ERROR : nb of time step <= 0 as duration < dt"
     ! this block placed here - is it ok, or not?
     call reception_surface_part_mka(Tdomain)
     call reception_nouveau_pdt_sem(Tdomain)
@@ -464,6 +429,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use msnapshots
     use semconfig !< pour config C
     use sem_c_bindings
+    use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -505,7 +471,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         print*,"--> Number of time steps: ",Tdomain%TimeD%ntimeMax
         print*
     end if
-
+    Tdomain%sdom%dt = Tdomain%TimeD%dtmin
 !- snapshots counters
 !   (isort already defined for snapshots outputting index)
     i_snap = 1
@@ -530,7 +496,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
       !- Newmark reduced to leap-frog
         call NEWMARK(Tdomain, ntime)
 
-
 !---------------------------------------------------------!
     !- logical end of run
 !---------------------------------------------------------!
@@ -554,10 +519,14 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
                 if (ntime/=0) protection = 1
             end if
         endif
-    !- Time remaining
-        call TREMAIN(remaining_time)
-        if(remaining_time < max_time_left) interrupt = 1
-        call MPI_ALLREDUCE(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
+        !- Time remaining
+        if (mod(ntime,20)==0) then
+            call stat_starttick()
+            call TREMAIN(remaining_time)
+            if(remaining_time < max_time_left) interrupt = 1
+            call MPI_ALLREDUCE(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
+            call stat_stoptick(STAT_TSTEP)
+        end if
 
     !- snapshotting
         if(Tdomain%logicD%save_snapshots) i_snap = mod(ntime, Tdomain%TimeD%nsnap)
@@ -566,28 +535,30 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- Ici, on a une info globale pour interrupt, protection, i_snap
         if(interrupt > 0) protection = 1
 
+        call stat_starttick()
 
 !---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
-              
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
-        call evalueSortieCapteur(ntime, Tdomain%TimeD%rtime, sortie_capteur)
+        call evalueSortieCapteur(ntime, sortie_capteur)
+        
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
-
-
-!---------------------------------------------------------!
-    !- SAVE TO EVENTUAL RESTART
-!---------------------------------------------------------!
+        
+        !---------------------------------------------------------!
+        !- SAVE TO EVENTUAL RESTART
+        !---------------------------------------------------------!
         if(protection /= 0)then
+        
             call flushAllCapteurs(Tdomain)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)
         endif
+        call stat_stoptick(STAT_IO)
 
 !---------------------------------------------------------!
     !-  STOPPING RUN on all procs
@@ -683,7 +654,6 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
         write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
     endif
     call save_field_h5(Tdomain, isort)
-
     if(rg == 0)then
         write(78,*) isort, Tdomain%TimeD%rtime
         call semname_nb_proc(isort,fnamef)

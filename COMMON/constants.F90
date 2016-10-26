@@ -10,6 +10,8 @@
 
 MODULE constants
     IMPLICIT none
+    ! Precision
+    integer, parameter :: FPP=kind(0D0)
     ! Constantes mathematique
     ! Les valeurs suivantes et leurs noms sont tirees de math.h
     real(KIND=8), parameter :: M_E = 2.7182818284590452354D0         ! e
@@ -26,6 +28,10 @@ MODULE constants
     real(KIND=8), parameter :: M_SQRT2 = 1.41421356237309504880D0    ! sqrt(2)
     real(KIND=8), parameter :: M_SQRT1_2 = 0.70710678118654752440D0  ! 1/sqrt(2)
     real(KIND=8), parameter :: M_1_3 =     0.33333333333333333333D0 ! 1/3
+    real(KIND=8), parameter :: zero=0.d0,one=1.0d0
+    real(KIND=8), parameter :: half=0.5d0,two=2.0d0,three=3.0d0
+    real(KIND=8), parameter :: deps=1.d-12
+
     ! Constantes physiques
 
     ! Parametres systemes
@@ -64,12 +70,80 @@ MODULE constants
 
     ! Materials
     integer, parameter :: MATERIAL_CONSTANT   = 1
-    integer, parameter :: MATERIAL_GRADIENT   = 2
-    integer, parameter :: MATERIAL_EARTHCHUNK = 3
-    integer, parameter :: MATERIAL_PREM       = 4
-    integer, parameter :: MATERIAL_MULTIPLE     = 5
+    integer, parameter :: MATERIAL_GRADIENT   = 2 ! DONT USE
+    integer, parameter :: MATERIAL_EARTHCHUNK = 3 ! DONT USE
+    integer, parameter :: MATERIAL_PREM       = 4 ! DONT USE
+    integer, parameter :: MATERIAL_RANDOM     = 5 ! DONT USE
+    integer, parameter :: MATERIAL_FILE       = 6
 
+    ! Material definition
+    integer, parameter :: MATDEF_VP_VS_RHO     = 0
+    integer, parameter :: MATDEF_E_NU_RHO      = 1
+    integer, parameter :: MATDEF_LAMBDA_MU_RHO = 2
+    integer, parameter :: MATDEF_KAPPA_MU_RHO  = 3
+    integer, parameter :: MATDEF_HOOKE_RHO     = 4
+    integer, parameter :: MATDEF_MU_SYLD_RHO  = 5
 
+    ! DOMAINS (par ordre de priorite pour les sauvegardes)
+    integer, parameter :: DM_SOLID = 4
+    integer, parameter :: DM_SOLID_PML = 2
+    integer, parameter :: DM_FLUID = 3
+    integer, parameter :: DM_FLUID_PML = 1
+
+    ! VARIABLES DE SORTIES
+    integer, parameter :: OUT_ENERGYP    = 0
+    integer, parameter :: OUT_ENERGYS    = 1
+    integer, parameter :: OUT_EPS_VOL    = 2
+    integer, parameter :: OUT_DEPLA      = 3
+    integer, parameter :: OUT_VITESSE    = 4
+    integer, parameter :: OUT_ACCEL      = 5
+    integer, parameter :: OUT_PRESSION   = 6
+    integer, parameter :: OUT_EPS_DEV    = 7
+    integer, parameter :: OUT_STRESS_DEV = 8
+    integer, parameter :: OUT_TOTAL_ENERGY = 9
+    integer, parameter :: OUT_EPS_DEV_PL = 10
+
+    integer, parameter :: CPT_INTERP = 0
+    integer, parameter :: CPT_ENERGY = 1
+
+    character(len=10), dimension(0:10) :: OUT_VAR_NAMES = (/ &
+        "EnergyP   ", &
+        "EnergyS   ", &
+        "Eps Vol   ", &
+        "Displ     ", &
+        "Veloc     ", &
+        "Accel     ", &
+        "Pressure  ", &
+        "Eps Dev   ", &
+        "Stress Dev", &
+        "Tot_Energy", &
+        "Eps Dev Pl" /)
+    integer, parameter, dimension(0:10) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6/)
+    integer, parameter :: N_OUT_VARS=size(OUT_VAR_NAMES)
+    ! TYPE DE CONDITION pour les surfaces
+    integer, parameter :: COND_NONE     = 0  ! not assigned/uninitialized
+    integer, parameter :: COND_DIRICH   = 1
+    integer, parameter :: COND_NEUMANN  = 2
+
+    !METHOD
+    integer, parameter :: ISOTROPIC = 1, &
+                          SHINOZUKA = 2, &
+                          RANDOMIZATION = 3, &
+                          FFT = 4
+    !Correlation Model
+    integer, parameter :: cm_GAUSSIAN = 1, &
+                          cm_COS = 2
+    !First-order Marginal Density
+    integer, parameter :: fom_GAUSSIAN = 1, &
+                          fom_LOGNORMAL = 2
+    !Mesh Mode
+    integer, parameter :: msh_AUTO = 1, msh_UNV = 2
+
+    integer, parameter :: SCREEN=6
+    integer, parameter :: buf_RF=1024 !Buffer for text
+
+    integer, parameter :: k012 = 0, k021 = 1, k120 = 2
+    real(KIND=8), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
 CONTAINS
 
 

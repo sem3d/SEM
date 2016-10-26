@@ -9,7 +9,6 @@ module msnapshots
     use semdatafiles
     use mpi
     use constants
-    !use mfields
     use orientation
     use sem_c_bindings
     implicit none

@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
+
 
 int sem_mkdir_c(const char* path)
 {
@@ -23,7 +25,7 @@ int sem_mkdir_c(const char* path)
 	    fprintf(stderr, "        Warning: path '%s' already exists\n", path);
 	    return 0;
 	}
-	fprintf(stderr, "        Error %d: creating path '%s' % %s\n", errno, path, strerror(errno));
+	fprintf(stderr, "        Error %d: creating path '%s' : %s\n", errno, path, strerror(errno));
 	return errno;
     } else {
 	//fprintf(stderr, "        Creation of '%s' ok\n", path);

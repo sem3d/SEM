@@ -1,14 +1,27 @@
 # Ce CMakeLists.txt est le projet principal permettant de construire sem2d et sem3d
 # en standalone (hors mka3d)
 PROJECT(SEM)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-ENABLE_LANGUAGE(C Fortran)
+ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
+option(OPT_CPML "CPML" OFF)
+if (OPT_CPML)
+  add_definitions(-DCPML)
+endif(OPT_CPML)
+
+set(OPT_VEC "1" CACHE STRING "Vectorization chunks")
+
+add_definitions(-DVCHUNK=${OPT_VEC})
+if (${OPT_VEC}>1)
+  set(EXTRA_IFORT_FLAGS "-qopenmp-simd")
+  set(EXTRA_GFORT_FLAGS "-fopenmp")
+endif(${OPT_VEC}>1)
 
 if (NOT BUILD_WITH_MKA)
 # Hors mka il faut chercher MPI et HDF5 ici
-option(OPT_MPI "Compilation en mode MPI")
+option(OPT_MPI "Compilation en mode MPI" ON)
 
 # Obligatoire mais le flag n'est pas supprime partout
 if(HDF5_DIR)
@@ -17,10 +30,11 @@ endif(HDF5_DIR)
 
 set(SEMDIR ${PROJECT_SOURCE_DIR})
 
+set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
-include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
+include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 include_directories(${PROJECT_BINARY_DIR}/libs/common)
 
 if (OPT_MPI OR HDF5_IS_PARALLEL)
@@ -37,16 +51,22 @@ if (OPT_MPI)
 endif (OPT_MPI)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -r8 -fpp -mkl=sequential")
+  # FLAGS ifort :
+  # -fpp : preprocesseur
+  # -allow nofpp_comments : indique au preprocesseur de ne pas traiter specialement les commentaires fortran
+  #                         ceci permet de caser des directives openmp dans des macros
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -r8 -fpp -mkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
   set(USE_MKL TRUE)
 else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # Assume gfortran
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp -Wall -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
   set(USE_MKL FALSE)
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (NOT BUILD_WITH_MKA)
 
 add_definitions(-DMKA3D)
+
+message(STATUS "${CMAKE_CXX_FLAGS}")
 
 set(SEMCOMMON ${SEMDIR}/COMMON)
 
@@ -67,10 +87,12 @@ set(SEM_SRC
   ${SEMCOMMON}/sem_hdf5.f90
   ${SEMCOMMON}/blas.F90
   ${SEMCOMMON}/leastsq.f90
+  ${SEMCOMMON}/intset.F90
 )
 
 set(SEM_SRC_C
   ${SEMCOMMON}/read_input.c
+  ${SEMCOMMON}/read_material.c
   ${SEMCOMMON}/file_scan.c
   ${SEMCOMMON}/sem_input.c
   ${SEMCOMMON}/tremain_c.c
@@ -125,27 +147,25 @@ set(SEMLIBDIR ${PROJECT_BINARY_DIR}/libs)
 #SEM COMMON LIBRARY
 add_library(semcommon ${SEM_SRC} ${SEM_SRC_C})
 set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
+set(SEM_EXTRA_LIBS semcommon ${SEM_EXTRA_LIBS})
 
 #RANDOM FIELD LIBRARY
-add_library(randomfield
-  ${SEMDIR}/randomfield/displayCarvalhol.f90
-  ${SEMDIR}/randomfield/math_RF.f90
-  ${SEMDIR}/randomfield/obsolete_RF.f90
-  ${SEMDIR}/randomfield/spectra_RF.f90
-  ${SEMDIR}/randomfield/randomFieldND.f90
-  ${SEMDIR}/randomfield/readFile_RF.f90
-  ${SEMDIR}/randomfield/statistics_RF.f90
-  ${SEMDIR}/randomfield/writeResultFile_RF.f90
-)
-set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
-add_dependencies(randomfield semcommon)
-set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
+option(OPT_RF "RF" OFF)
+if (OPT_RF)
+  add_subdirectory(randomField)
+endif (OPT_RF)
 
 add_subdirectory(COMMON/netlib)
-add_subdirectory(SEM2D)
+option(OPT_SEM2D "Compile SEM2D" OFF) # Save compilation time (in particular with intel : save half an hour !...)
+if(OPT_SEM2D)
+  add_subdirectory(MESH2D)
+  add_subdirectory(SEM2D)
+  SET_TARGET_PROPERTIES(sem2d.exe PROPERTIES LINKER_LANGUAGE Fortran)
+endif(OPT_SEM2D)
 add_subdirectory(SEM3D)
 add_subdirectory(MESH)
-add_subdirectory(MESH2D)
-
 
 add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90   ${SEMCOMMON}/fileutils.c ${SEMCOMMON}/sem_c_bindings.F90 ${SEMCOMMON}/semdatafiles.F90)
+
+SET_TARGET_PROPERTIES(sem3d.exe PROPERTIES LINKER_LANGUAGE Fortran)
+

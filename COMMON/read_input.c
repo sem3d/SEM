@@ -25,75 +25,48 @@ int check_dimension(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
-int expect_eq_model(yyscan_t scanner, int* model)
-{
-    int tok;
-    int len;
+const keyword_t kw_models[] = {
+    { 0, "CUB" },
+    { 1, "homo" },
+    { 2, "prem" },
+    { 3, "3D_berkeley" },
+    { 4, NULL },
+};
 
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"CUB"))         { *model = 0; return 1; }
-    if (cmp(scanner,"homo"))        { *model = 1; return 1; }
-    if (cmp(scanner,"prem"))        { *model = 2; return 1; }
-    if (cmp(scanner,"3D_berkeley")) { *model = 3; return 1; }
-error:
-    msg_err(scanner, "Expected CUB|homo|prem|3D_berkeley");
-    return 0;
-}
+const keyword_t kw_source_type[] = {
+    { 1, "pulse" },
+    { 1, "impulse"},
+    { 2, "moment"},
+    { 3, "fluidpulse"},
+    { 4, "dirac_proj"},
+    { 5, "gaussian"},
+    { 6, "strain_source"},
+    { 7, NULL },
+};
 
+const keyword_t kw_pml_type[] = {
+    { 1, "PML"},
+    { 2, "FPML"},
+    { 3, "CPML"},
+    { 4, "ADEPML"},
+    { 5, NULL },
+};
 
-int expect_source_type(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
+const keyword_t kw_file_format[] = {
+    { 1, "text" },
+    { 2, "hdf5" },
+    { 3, NULL },
+};
 
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"pulse"))        { *type = 1; return 1; }
-    if (cmp(scanner,"impulse"))      { *type = 1; return 1; }
-    if (cmp(scanner,"moment"))       { *type = 2; return 1; }
-    if (cmp(scanner,"fluidpulse"))   { *type = 3; return 1; }
-    if (cmp(scanner,"dirac_proj"))   { *type = 4; return 1; }
-    if (cmp(scanner,"gaussian"))     { *type = 5; return 1; }
-    if (cmp(scanner,"strain_source")){ *type = 6; return 1; }
-error:
-    msg_err(scanner, "Expected pulse|impulse|moment|fluidpulse|dirac_proj");
-    return 0;
-}
-
-int expect_pml_type(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"PML"))    { *type = 1; return 1; }
-    if (cmp(scanner,"FPML"))   { *type = 2; return 1; }
-    if (cmp(scanner,"CPML"))   { *type = 3; return 1; }
-    if (cmp(scanner,"ADEPML")) { *type = 4; return 1; }
-error:
-    msg_err(scanner, "Expected PML|FPML|CPML|ADEPML");
-    return 0;
-}
-
-int expect_file_format(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"text"))       { *type = 1; return 1; }
-    if (cmp(scanner,"hdf5"))       { *type = 2; return 1; }
-error:
-    msg_err(scanner, "Expected text|hdf5");
-    return 0;
-}
-
+const keyword_t kw_source_dir[] = {
+    { 0, "x" },
+    { 0, "X" },
+    { 1, "y" },
+    { 1, "Y" },
+    { 2, "z" },
+    { 2, "Z" },
+    { 3, NULL },
+};
 
 int expect_type_integration(yyscan_t scanner, int* type)
 {
@@ -146,31 +119,23 @@ error:
     return 0;
 }
 
-int expect_source_func(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"gaussian"))     { *type = 1; return 1; }
-    if (cmp(scanner,"ricker"))       { *type = 2; return 1; }
-    if (cmp(scanner,"tf_heaviside")) { *type = 3; return 1; }
-    if (cmp(scanner,"gabor"))        { *type = 4; return 1; }
-    if (cmp(scanner,"file"))         { *type = 5; return 1; }
-    if (cmp(scanner,"spice_bench"))  { *type = 6; return 1; }
-    if (cmp(scanner,"sinus"))        { *type = 7; return 1; }
-    if (cmp(scanner,"square"))       { *type = 8; return 1; }
-    if (cmp(scanner,"tanh"))         { *type = 9; return 1; }
-    if (cmp(scanner,"ricker_fl"))    { *type =10; return 1; }
-    if (cmp(scanner,"triangle"))     { *type =11; return 1; }
-    if (cmp(scanner,"hsf"))          { *type =12; return 1; }
-    if (cmp(scanner,"dm"))           { *type =13; return 1; }
-error:
-    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh|ricker_fl|triangle|hsf");
-    return 0;
-}
+const keyword_t kw_source_func[] = {
+    {  1, "gaussian" },
+    {  2, "ricker" },
+    {  3, "tf_heaviside" },
+    {  4, "gabor" },
+    {  5, "file" },
+    {  6, "spice_bench" },
+    {  7, "sinus" },
+    {  8, "square" },
+    {  9, "tanh" },
+    { 10, "ricker_fl" },
+    { 11, "triangle" },
+    { 12, "hsf" },
+    { 13, "dm" },
+    { 14, "analytic", },
+    { 15, NULL },
+};
 
 void init_source(source_t* source)
 {
@@ -201,9 +166,9 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
 	if (cmp(scanner,"coords")) err=expect_eq_float(scanner, source->coords, dim);
-	else if (cmp(scanner,"type")) err=expect_source_type(scanner, &source->type);
+	else if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_source_type, &source->type);
 	else if (cmp(scanner,"dir")) err=expect_eq_float(scanner, source->dir, dim);
-	else if (cmp(scanner,"func")) err=expect_source_func(scanner, &source->func);
+	else if (cmp(scanner,"func")) err=expect_eq_keyword(scanner, kw_source_func, &source->func);
 	else if (cmp(scanner,"moment")) err=expect_eq_float(scanner, source->moments, mdim);
 	else if (cmp(scanner,"tau")) err=expect_eq_float(scanner, &source->tau, 1);
 	else if (cmp(scanner,"freq")) err=expect_eq_float(scanner, &source->freq, 1);
@@ -233,7 +198,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err, k;
 
-    for(k=0;k<9;++k) {
+    for(k=0;k<10;++k) {
         config->out_variables[k] = 0;
     }
     tok = skip_blank(scanner);
@@ -246,12 +211,14 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"enP")) err=expect_eq_int(scanner, &(config->out_variables[0]),1);
         else if (cmp(scanner,"enS")) err=expect_eq_int(scanner, &(config->out_variables[1]),1);
         else if (cmp(scanner,"evol")) err=expect_eq_int(scanner, &(config->out_variables[2]),1);
-        else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
-        else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);
-        else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
-        else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
+        else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
+        else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);
+        else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
+        else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
         else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &(config->out_variables[7]),1);
         else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
+        else if (cmp(scanner,"eTotal")) err=expect_eq_int(scanner, &(config->out_variables[9]),1);
+        else if (cmp(scanner,"edevpl")) err=expect_eq_int(scanner, &(config->out_variables[10]),1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -337,17 +304,34 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
     tok = skip_blank(scanner);
     if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
     do {
-	tok = skip_blank(scanner);
-	if (tok!=K_ID) break;
+        tok = skip_blank(scanner);
+        if (tok!=K_ID) break;
 
-	// TODO
-	if (cmp(scanner,"pml_type")) err=expect_pml_type(scanner, &config->pml_type);
+        // TODO
+        if (cmp(scanner,"pml_type")) err=expect_eq_keyword(scanner, kw_pml_type, &config->pml_type);
+        if (cmp(scanner,"cpml_n")) err=expect_eq_int(scanner, &config->cpml_n, 1);
+        if (cmp(scanner,"cpml_rc")) err=expect_eq_float(scanner, &config->cpml_rc, 1);
+        if (cmp(scanner,"cpml_kappa0")) err=expect_eq_float(scanner, &config->cpml_kappa0, 1);
+        if (cmp(scanner,"cpml_kappa1")) err=expect_eq_float(scanner, &config->cpml_kappa1, 1);
 
-	if (!expect_eos(scanner)) { return 0; }
+        if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+
+    // check
+    if (config->cpml_kappa0 <= 0.) { msg_err(scanner, "cpml_kappa0 <= 0."); return 0; }
+    if (config->cpml_kappa1 <  0.) { msg_err(scanner, "cpml_kappa1 <  0."); return 0; }
     return 1;
 }
+
+keyword_t kw_material_type[] = {
+    { 1, "constant" },
+    { 2, "gradient" },
+    { 3, "earthchunk" },
+    { 4, "prem" },
+    { 5, "random" },
+    { 6, NULL },
+};
 
 int expect_material_type(yyscan_t scanner, int* type) {
     int tok;
@@ -360,27 +344,19 @@ int expect_material_type(yyscan_t scanner, int* type) {
     if (cmp(scanner,"gradient"))  { *type = 2; return 1; }
     if (cmp(scanner,"earthchunk")){ *type = 3; return 1; }
     if (cmp(scanner,"prem"))      { *type = 4; return 1; }
-    if (cmp(scanner,"multiple"))    { *type = 5; return 1; }
+    if (cmp(scanner,"random"))    { *type = 5; return 1; }
 error:
-    msg_err(scanner, "Expected constant|gradient|earthchunk|prem|multiple");
+    msg_err(scanner, "Expected constant|gradient|earthchunk|prem|random");
     return 0;
 }
 
-int expect_station_type(yyscan_t scanner, int* type) {
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"points"))  { *type = 1; return 1; }
-    if (cmp(scanner,"line"))    { *type = 2; return 1; }
-    if (cmp(scanner,"plane"))   { *type = 3; return 1; }
-    if (cmp(scanner,"single"))  { *type = 4; return 1; }
-error:
-    msg_err(scanner, "Expected points|line|plane");
-    return 0;
-}
+const keyword_t kw_station_type[] = {
+    { 1, "points" },
+    { 2, "line" },
+    { 3, "plane" },
+    { 4, "single" },
+    { 5, NULL },
+};
 
 int expect_materials(yyscan_t scanner, sem_config_t* config)
 {
@@ -394,7 +370,7 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
 
-	if (cmp(scanner,"type")) err=expect_material_type(scanner, &config->material_type);
+	if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_material_type, &config->material_type);
 	if (cmp(scanner,"file")) err=expect_eq_string(scanner, &config->model_file,1);
 	if (cmp(scanner,"delta_lon")) err=expect_eq_float(scanner, &config->delta_lon, 1);
 	if (cmp(scanner,"delta_lat")) err=expect_eq_float(scanner, &config->delta_lat, 1);
@@ -407,39 +383,163 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
         msg_err(scanner, "In section material, you need to specify a model_file for type==earthchunk");
         return 0;
     }
+
     return 1;
 }
 
 
-
-
-int expect_neumann(yyscan_t scanner, sem_config_t* config)
+void init_surface(surface_t *surface)
 {
-    int tok, err;
+  memset(surface, 0, sizeof(surface_t));
+// Initialisation de tous les champs surfaciques
+  surface->surface_list[40] = -1;
+  surface->surface_present=0;
+  surface->surface_type=0;
+  surface->surface_mat=-1;
+  surface->surface_K[3]=0;
+  surface->surface_C[3]=0;
+  surface->surface_f0=0;
+  surface->surface_whatbc=0;
+  surface->surface_dim=0;
+  surface->surface_Paravalue[100]=0;
+  surface->surface_Paramname=NULL;
+  surface->surface_nparamvar=0;
+  surface->surface_paramvar=0;
+  surface->surface_source=NULL;
+  surface->surface_funcx=NULL;
+  surface->surface_funcy=NULL;
+  surface->surface_funcz=NULL;
+  surface->surface_funcxy=NULL;
+  surface->surface_funcxz=NULL;
+  surface->surface_funcyz=NULL;
+  surface->surface_varia=NULL;
+  surface->amplitude=1;
+  surface->Rtau = 0;
+  surface->surface_space=0;
+  surface->surface_size=0;
+  surface->surface_name=NULL;
+  surface->surface_wave = 0;
+  surface->surface_Speed =0;
+}
 
-    config->neu_present = 1;
+int expect_source_shape(yyscan_t* scanner, int* type, char** name)
+{
+     int tok;
+     int len;
+ 
+     if (!expect_eq(scanner)) return 0;
+     tok = skip_blank(scanner);
+     if (tok!=K_ID) goto error;
+     if (cmp(scanner,"gaussian"))         { *type = 1; *name = "gaussian"  ; return 1; }
+     if (cmp(scanner,"paraboloid"))       { *type = 2; *name = "paraboloid"; return 1; }
+     if (cmp(scanner,"square"))           { *type = 3; *name = "square"    ; return 1; }
+     if (cmp(scanner,"cylinder"))         { *type = 4; *name = "cylinder"  ; return 1; }
+     if (cmp(scanner,"uniform"))          { *type = 5; *name = "uniform"   ; return 1; }
+  error:
+     msg_err(scanner, "Expected gaussian|Paraboloid|square|cylinder|uniform");
+     return 0;
+}
+
+int expect_surf_type(yyscan_t scanner, int* type)
+{
+     int tok;
+     int len;
+
+     if (!expect_eq(scanner)) return 0;
+     tok = skip_blank(scanner);
+     if (tok!=K_ID) goto error;
+     if (cmp(scanner,"neumann"))          { *type = 1; return 1; }
+     if (cmp(scanner,"planewave"))        { *type = 2; return 1; }
+     if (cmp(scanner,"fault"))            { *type = 3; return 1; }
+     if (cmp(scanner,"dirichlet"))        { *type = 4; return 1; }
+   error:
+     msg_err(scanner, "Expected neumann|planewave|fault|dirichlet");
+     return 0;
+}
+
+int expect_wave_type(yyscan_t scanner, int* type)
+{
+   int tok;
+   if (!expect_eq(scanner)) return 0;
+   tok = skip_blank(scanner);
+   if (cmp(scanner,"P"))         { *type = 1; return 1; }
+   if (cmp(scanner,"S"))         { *type = 2; return 1; }
+   if (cmp(scanner,"SH"))        { *type = 3; return 1; }
+   if (cmp(scanner,"SV"))        { *type = 4; return 1; }
+   if (cmp(scanner,"NO"))        { *type = 5; return 1; }
+ error:
+   msg_err(scanner, "Expected wave P|S|SH|SV|NO");
+   return 0;   
+}
+
+int expect_surfaces(yyscan_t scanner, sem_config_t* config)
+{
+    surface_t *surface;
+    int tok, err; 
+    int use=-1;
+    config->surface_find = 1;
+    surface = (surface_t*)malloc(sizeof(surface_t));
+    init_surface(surface);
+    surface->next = config->surface;
+    
+    config->surface=surface;
+    config->nsurface++;
+    surface->surface_name = "Unknown";
+
     tok = skip_blank(scanner);
     if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
     do {
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
-
-	if (cmp(scanner,"type")) err=expect_eq_int(scanner, &config->neu_type, 1);
-	if (cmp(scanner,"L")) err=expect_eq_float(scanner, &config->neu_L[0], 3);
-	if (cmp(scanner,"C")) err=expect_eq_float(scanner, &config->neu_C[0], 3);
-	if (cmp(scanner,"f0")) err=expect_eq_float(scanner, &config->neu_f0, 1);
-	if (cmp(scanner,"mat")) err=expect_eq_int(scanner, &config->neu_mat, 1);
-
+         
+        if (cmp(scanner,"use")) err=expect_eq_int(scanner, &surface->surface_present,1);
+        if (cmp(scanner,"type")) err=expect_surf_type(scanner, &surface->surface_whatbc);
+	if (cmp(scanner,"dir")) err=expect_eq_float(scanner, surface->surface_K,3);
+        if (cmp(scanner,"time")) err=expect_eq_keyword(scanner, kw_source_func, &surface->surface_type);
+        if (cmp(scanner,"ampli")) err=expect_eq_float(scanner, &surface->amplitude,1);
+        if (cmp(scanner,"tau")) err=expect_eq_float(scanner, &surface->Rtau,1);
+	if (cmp(scanner,"C")) err=expect_eq_float(scanner, surface->surface_C,3);
+	if (cmp(scanner,"freq")) err=expect_eq_float(scanner, &surface->surface_f0,1);
+        if (cmp(scanner,"shape")) err=expect_source_shape(scanner, &surface->surface_space,&surface->surface_name);
+        if (cmp(scanner,"size")) err=expect_eq_float(scanner, &surface->surface_size,1);
+        if (cmp(scanner,"nsurf")) err=expect_eq_int(scanner, &use,1);
+        if (cmp(scanner,"mat_i")) err=expect_eq_int(scanner, &surface->surface_mat,1);
+        if (cmp(scanner,"wave")) err=expect_wave_type(scanner, &surface->surface_wave);
+        if (cmp(scanner,"speed")) err=expect_eq_float(scanner, &surface->surface_Speed,1);
+        if (cmp(scanner,"dirU")) err=expect_eq_float(scanner, surface->surface_dirU,3);
+        if (cmp(scanner,"index")) 
+           if (use!=-1)  err=expect_eq_int(scanner, surface->surface_list,use); 
+        if (cmp(scanner,"var")) err=expect_eq_string(scanner, &surface->surface_varia,1);
+        if (cmp(scanner,"fxx")) {err=expect_eq_string(scanner, &surface->surface_funcx,1);
+                                surface->surface_source= "F"; surface->surface_dim=1;}
+        if (cmp(scanner,"fyy")) {err=expect_eq_string(scanner, &surface->surface_funcy,1);
+                                 surface->surface_source="F"; surface->surface_dim=2;}
+        if (cmp(scanner,"fzz")) {err=expect_eq_string(scanner, &surface->surface_funcz,1);
+                                 surface->surface_source="F"; surface->surface_dim=3;}
+        if (cmp(scanner,"fxz")||cmp(scanner,"fzx")) {err=expect_eq_string(scanner, &surface->surface_funcxz,1);
+                                                     surface->surface_source="M";}
+        if (cmp(scanner,"fyz")||cmp(scanner,"fzy")) {err=expect_eq_string(scanner, &surface->surface_funcyz,1);
+                                                    surface->surface_source="M";}
+        if (cmp(scanner,"fxy")||cmp(scanner,"fyx")) {err=expect_eq_string(scanner, &surface->surface_funcxy,1);
+                                                     surface->surface_source="M";}
+        if (cmp(scanner,"paramvar")) err=expect_eq_int(scanner, &surface->surface_paramvar,1);
+        if (cmp(scanner,"npara")) err=expect_eq_int(scanner, &surface->surface_nparamvar,1);
+        if (cmp(scanner,"param")) err=expect_eq_string(scanner, &surface->surface_Paramname,1);
+        if (cmp(scanner,"value")) err=expect_eq_float(scanner,surface->surface_Paravalue, surface->surface_nparamvar);
+        
+        if (err==0) { printf("\n\n\n Error in expect_surfaces \n\n\n"); return 0;} 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    
     return 1;
 }
+
 
 int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
 {
     int tok, err=1;
-    double box[6];
+    double box[6], plane[4];
     int material, type, i;
     snapshot_cond_t* cond;
 
@@ -449,6 +549,7 @@ int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
     if (cmp(scanner,"all")) { type = 1; err=1; }
     if (cmp(scanner,"material")) { type = 2; err=expect_eq_int(scanner, &material, 1); }
     if (cmp(scanner,"box")) { type = 3; err=expect_eq_float(scanner, box, 6); }
+    if (cmp(scanner,"plane")) { type = 4; err=expect_eq_float(scanner, plane, 4); }
     //printf("Found type=%d\n", type);
     if (err<=0) return err;
 
@@ -458,6 +559,7 @@ int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
     cond->type = type;
     cond->include = include;
     config->snapshot_selection = cond;
+    if (type==4) for(i=0;i<4;++i) cond->plane[i] = plane[i];
     if (type==3) for(i=0;i<6;++i) cond->box[i] = box[i];
     if (type==2) cond->material = material;
     return 1;
@@ -617,7 +719,7 @@ int expect_capteurs(yyscan_t scanner, sem_config_t* config)
     do {
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
-	if (cmp(scanner,"type")) err=expect_station_type(scanner, &stations.type);
+	if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_station_type, &stations.type);
 	if (cmp(scanner,"counti")) err=expect_eq_int(scanner, &stations.count[0], 1);
 	if (cmp(scanner,"countj")) err=expect_eq_int(scanner, &stations.count[1], 1);
 	if (cmp(scanner,"period")) err=expect_eq_int(scanner, &stations.period, 1);
@@ -722,7 +824,7 @@ int expect_type_elements(yyscan_t scanner, sem_config_t* config)
 
 int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 {
-    int tok, err;
+    int tok, err=0;
     do {
 	tok = skip_blank(scanner);
 	if (!tok) break;
@@ -741,7 +843,8 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"mat_file")) err=expect_eq_string(scanner, &config->mat_file,1);
 	else if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
 	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
-	else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
+	else if (cmp(scanner,"nonlinear")) err=expect_eq_int(scanner, &config->nl_flag,1);
+    else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
 	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
 	else if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
@@ -752,8 +855,8 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
 	else if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
 	else if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
-	else if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
 	else if (cmp(scanner,"capt_loc_type")) err=expect_eq_int(scanner, &config->capt_loc_type,1);
+	else if (cmp(scanner,"traces_format")) err=expect_eq_keyword(scanner, kw_file_format, &config->traces_format);
 	else if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
 	else if (cmp(scanner,"type_elements")) err=expect_type_elements(scanner, config);
 	else if (cmp(scanner,"pml_infos")) err=expect_pml_infos(scanner, config);
@@ -761,14 +864,9 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	// useless (yet or ever)
 	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
-	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
-	else if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
-	// START MODIFS - FILIPPO 07/15
+	else if (cmp(scanner,"model")) err=expect_eq_keyword(scanner, kw_models, &config->model);
+	else if (cmp(scanner,"surface")) err=expect_surfaces(scanner, config);
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
-	// END MODIFS - FILIPPO 07/15
-
-
-
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
 
@@ -788,16 +886,25 @@ void init_sem_config(sem_config_t* cfg)
     cfg->fmax = 1.0;
     cfg->material_type = 1;
     cfg->stations = NULL;
-    cfg->out_variables[0] = 0; // Energy P
-    cfg->out_variables[1] = 0; // Energy S
-    cfg->out_variables[2] = 0; // Eps vol
-    cfg->out_variables[3] = 1; // Pression
-    cfg->out_variables[4] = 1; // Deplacement
-    cfg->out_variables[5] = 1; // Vitesse
-    cfg->out_variables[6] = 1; // Accel
-    cfg->out_variables[7] = 0; // Deformation Dev
-    cfg->out_variables[8] = 0; // Contrainte Dev
 
+    cfg->out_variables[0]  = 0; // Energy P
+    cfg->out_variables[1]  = 0; // Energy S
+    cfg->out_variables[2]  = 0; // Eps vol
+    cfg->out_variables[3]  = 1; // Deplacement
+    cfg->out_variables[4]  = 1; // Vitesse
+    cfg->out_variables[5]  = 1; // Accel
+    cfg->out_variables[6]  = 1; // Pression
+    cfg->out_variables[7]  = 0; // Deformation Dev
+    cfg->out_variables[8]  = 0; // Contrainte Dev
+    cfg->out_variables[9]  = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
+    cfg->out_variables[10] = 0; // Deformation Dev Pl
+    cfg->nl_flag = 0; // calcul nonlineaire
+
+    // CPML
+    cfg->cpml_kappa0 = 1.;
+    cfg->cpml_kappa1 = 0.;
+    cfg->cpml_n = 2;
+    cfg->cpml_rc = 0.001;
 }
 
 
@@ -826,25 +933,12 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-    // START MODIFS - FILIPPO 07/15
-    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
-    				cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
-    				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
-    				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8]);
-	// END MODIFS - FILIPPO 07/15
-    printf("Neu present : %d\n", cfg->neu_present);
-    printf("Neu type    : %d\n", cfg->neu_type);
-    printf("Neu mat     : %d\n", cfg->neu_mat);
-
-//    src = cfg->source;
-//    while(src) {
-//	printf("\nSource %d\n--------\n", ksrc);
-//	dump_source(src);
-//	src = src->next;
-//	++ksrc;
-//    }
-//    printf("\n------------\n\n");
-
+    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
+  	cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
+        cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
+    	cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
+        cfg->out_variables[9], cfg->out_variables[10]);
+    printf("Nonlinear analysis : %d\n",cfg->nl_flag);
 }
 
 

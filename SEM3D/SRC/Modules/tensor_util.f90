@@ -4,9 +4,9 @@
 !!
 module tensor_util
 
-real, parameter :: s2=1.4142135623730950488
-real, parameter :: os2=0.70710678118654
-
+    implicit none
+    real, parameter :: s2=1.4142135623730950488
+    real, parameter :: os2=0.70710678118654
 
 contains
     ! #########################################################

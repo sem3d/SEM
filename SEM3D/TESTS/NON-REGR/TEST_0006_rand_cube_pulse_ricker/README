@@ -1,6 +1,8 @@
 Description
 ===========
 
+Cas en utilisant des proprietes aleatoires
+
 Nprocs : 1
 
 Maillage
@@ -27,4 +29,4 @@ Deplacements : A(100,0), B(200,0), C(300,0) D(400,0) E(500,0)
 Validation
 ----------
 
-Comparaison avec signal de reference.
+No

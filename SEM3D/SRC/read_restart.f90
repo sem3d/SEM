@@ -6,135 +6,19 @@
 !!\file read_restart.f90
 !!\brief Contient la subroutine read_restart().
 !!
-!! Gère la reprise de Sem3d
-
-
-
-subroutine read_Veloc(Tdomain, elem_id)
-    use sdomain
-    use HDF5
-    use sem_hdf5, only : read_dset_1d_real
-    implicit none
-    type (domain), intent (INOUT):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ
-    integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
-    integer :: n, i, j, k
-
-
-    call read_dset_1d_real(elem_id, "Veloc", veloc)
-    call read_dset_1d_real(elem_id, "Veloc1", veloc1)
-    call read_dset_1d_real(elem_id, "Veloc2", veloc2)
-    call read_dset_1d_real(elem_id, "Veloc3", veloc3)
-    call read_dset_1d_real(elem_id, "Displ", displ)
-    idx1 = 1
-    idx2 = 1
-    idx3 = 1
-    do n = 0,Tdomain%n_elem-1
-        if(.not. Tdomain%specel(n)%solid) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 1,ngllz-2
-            do j = 1,nglly-2
-                do i = 1,ngllx-2
-                    Tdomain%specel(n)%sl%Veloc(i,j,k,0) = veloc(idx1+0)
-                    Tdomain%specel(n)%sl%Veloc(i,j,k,1) = veloc(idx1+1)
-                    Tdomain%specel(n)%sl%Veloc(i,j,k,2) = veloc(idx1+2)
-                    idx1 = idx1 + 3
-                    if ( .not. Tdomain%specel(n)%PML ) then
-                        Tdomain%specel(n)%sl%Displ(i,j,k,0) = displ(idx2+0)
-                        Tdomain%specel(n)%sl%Displ(i,j,k,1) = displ(idx2+1)
-                        Tdomain%specel(n)%sl%Displ(i,j,k,2) = displ(idx2+2)
-                        idx2 = idx2 + 3
-                    else
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,0) = veloc1(idx3+0)
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,1) = veloc1(idx3+1)
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,2) = veloc1(idx3+2)
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,0) = veloc2(idx3+0)
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,1) = veloc2(idx3+1)
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,2) = veloc2(idx3+2)
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,0) = veloc3(idx3+0)
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,1) = veloc3(idx3+1)
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,2) = veloc3(idx3+2)
-                        idx3 = idx3 + 3
-                    end if
-                end do
-            end do
-        end do
-    end do
-    deallocate(veloc)
-    deallocate(veloc1)
-    deallocate(veloc2)
-    deallocate(veloc3)
-    deallocate(displ)
-end subroutine read_Veloc
-
-subroutine read_VelPhi(Tdomain, elem_id)
-    use sdomain
-    use HDF5
-    use sem_hdf5, only : read_dset_1d_real
-    implicit none
-    type (domain), intent (INOUT):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    double precision, allocatable, dimension(:) :: velphi, velphi1, velphi2, velphi3, phi
-    integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
-    integer :: n, i, j, k
-
-
-    call read_dset_1d_real(elem_id, "VelPhi", velphi)
-    call read_dset_1d_real(elem_id, "VelPhi1", velphi1)
-    call read_dset_1d_real(elem_id, "VelPhi2", velphi2)
-    call read_dset_1d_real(elem_id, "VelPhi3", velphi3)
-    call read_dset_1d_real(elem_id, "Phi", phi)
-    idx1 = 1
-    idx2 = 1
-    idx3 = 1
-    do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%solid) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 1,ngllz-2
-            do j = 1,nglly-2
-                do i = 1,ngllx-2
-                    Tdomain%specel(n)%fl%VelPhi(i,j,k) = velphi(idx1)
-                    idx1 = idx1 + 1
-                    if ( .not. Tdomain%specel(n)%PML ) then
-                        Tdomain%specel(n)%fl%Phi(i,j,k) = phi(idx2)
-                        idx2 = idx2 + 1
-                    else
-                        Tdomain%specel(n)%flpml%VelPhi1(i,j,k) = velphi1(idx3)
-                        Tdomain%specel(n)%flpml%VelPhi2(i,j,k) = velphi2(idx3)
-                        Tdomain%specel(n)%flpml%VelPhi3(i,j,k) = velphi3(idx3)
-                        idx3 = idx3 + 1
-                    end if
-                end do
-            end do
-        end do
-    end do
-    deallocate(velphi)
-    deallocate(velphi1)
-    deallocate(velphi2)
-    deallocate(velphi3)
-    deallocate(phi)
-end subroutine read_VelPhi
-
-
-
+!! GÃ¨re la reprise de Sem3d
 subroutine read_EpsilonVol(Tdomain, elem_id)
     use sdomain
     use HDF5
     use sem_hdf5, only : read_dset_1d_real
     implicit none
+#include "index.h"
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: epsilonvol, rvol, rxx, ryy, rxy, rxz, ryz
-    integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
+    integer :: idx1, idx2, idx3, ngll
     integer :: n, i, j, k, i_sls
-    integer :: n_solid
+    integer :: n_solid, bnum, ee
 
     call read_dset_1d_real(elem_id, "EpsilonVol", epsilonVol)
     call read_dset_1d_real(elem_id, "Rvol", rvol)
@@ -148,30 +32,30 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     idx3 = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
-        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
+        if ( Tdomain%specel(n)%domain==DM_SOLID ) then
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
                         if (n_solid>0) then
                             if (Tdomain%aniso) then
                             else
-                                Tdomain%specel(n)%sl%epsilonvol_(i,j,k) = epsilonVol(idx1)
+                                Tdomain%sdom%epsilonvol_(i,j,k,bnum,ee) = epsilonVol(idx1)
                                 idx1 = idx1 + 1
                                 do i_sls = 0, n_solid-1
-                                    Tdomain%specel(n)%sl%R_vol_(i_sls,i,j,k) = rvol(idx2+i_sls)
+                                    Tdomain%sdom%R_vol_(i_sls,i,j,k,bnum,ee) = rvol(idx2+i_sls)
                                 end do
                                 idx2 = idx2 + n_solid
                             end if
                             do i_sls = 0, n_solid-1
-                                Tdomain%specel(n)%sl%R_xx_(i_sls,i,j,k) = rxx(idx3+i_sls)
-                                Tdomain%specel(n)%sl%R_yy_(i_sls,i,j,k) = ryy(idx3+i_sls)
-                                Tdomain%specel(n)%sl%R_xy_(i_sls,i,j,k) = rxy(idx3+i_sls)
-                                Tdomain%specel(n)%sl%R_xz_(i_sls,i,j,k) = rxz(idx3+i_sls)
-                                Tdomain%specel(n)%sl%R_yz_(i_sls,i,j,k) = ryz(idx3+i_sls)
+                                Tdomain%sdom%R_xx_(i_sls,i,j,k,bnum,ee) = rxx(idx3+i_sls)
+                                Tdomain%sdom%R_yy_(i_sls,i,j,k,bnum,ee) = ryy(idx3+i_sls)
+                                Tdomain%sdom%R_xy_(i_sls,i,j,k,bnum,ee) = rxy(idx3+i_sls)
+                                Tdomain%sdom%R_xz_(i_sls,i,j,k,bnum,ee) = rxz(idx3+i_sls)
+                                Tdomain%sdom%R_yz_(i_sls,i,j,k,bnum,ee) = ryz(idx3+i_sls)
                             end do
                             idx3 = idx3 + n_solid
                         end if
@@ -197,7 +81,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: eps_dev_xx, eps_dev_yy, eps_dev_xy, eps_dev_xz, eps_dev_yz
-    integer :: idx, ngllx, nglly, ngllz
+    integer :: idx, ngll, bnum, ee
     integer :: n, i, j, k
     integer :: n_solid
 
@@ -209,20 +93,20 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     idx = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
-        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
+        if ( Tdomain%specel(n)%domain == DM_SOLID ) then
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
                         if (n_solid>0) then
-                            Tdomain%specel(n)%sl%epsilondev_xx_(i,j,k) = eps_dev_xx(idx)
-                            Tdomain%specel(n)%sl%epsilondev_yy_(i,j,k) = eps_dev_yy(idx)
-                            Tdomain%specel(n)%sl%epsilondev_xy_(i,j,k) = eps_dev_xy(idx)
-                            Tdomain%specel(n)%sl%epsilondev_xz_(i,j,k) = eps_dev_xz(idx)
-                            Tdomain%specel(n)%sl%epsilondev_yz_(i,j,k) = eps_dev_yz(idx)
+                            Tdomain%sdom%epsilondev_xx_(i,j,k,bnum,ee) = eps_dev_xx(idx)
+                            Tdomain%sdom%epsilondev_yy_(i,j,k,bnum,ee) = eps_dev_yy(idx)
+                            Tdomain%sdom%epsilondev_xy_(i,j,k,bnum,ee) = eps_dev_xy(idx)
+                            Tdomain%sdom%epsilondev_xz_(i,j,k,bnum,ee) = eps_dev_xz(idx)
+                            Tdomain%sdom%epsilondev_yz_(i,j,k,bnum,ee) = eps_dev_yz(idx)
                             idx = idx + 1
                         end if
                     end do
@@ -244,8 +128,9 @@ subroutine read_Stress(Tdomain, elem_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
     double precision, allocatable, dimension(:) :: stress
-    integer :: idx, ngllx, nglly, ngllz
+    integer :: idx, ngll, bnum, ee
     integer :: n, i, j, k
     integer :: n_solid
 
@@ -253,46 +138,239 @@ subroutine read_Stress(Tdomain, elem_id)
     idx = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
-        if(.not. Tdomain%specel(n)%solid) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
-        if (Tdomain%specel(n)%PML ) then
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                    end do
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,bnum,ee) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,bnum,ee) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,bnum,ee) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,2,bnum,ee) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,2,bnum,ee) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,2,bnum,ee) = stress(idx+2)
+                    idx = idx + 3
                 end do
             end do
-        end if
+        end do
     end do
     deallocate(stress)
+#endif
 end subroutine read_Stress
+!
+subroutine read_Stress_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: stress_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+    
+    call read_dset_1d_real(elem_id, "Stress_nl", stress_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%stress_(0,i,j,k,bnum,ee) = stress_nl(idx+0)
+                    Tdomain%sdom%stress_(1,i,j,k,bnum,ee) = stress_nl(idx+1)
+                    Tdomain%sdom%stress_(2,i,j,k,bnum,ee) = stress_nl(idx+2)
+                    idx = idx + 3
+                    Tdomain%sdom%stress_(3,i,j,k,bnum,ee) = stress_nl(idx+0)
+                    Tdomain%sdom%stress_(4,i,j,k,bnum,ee) = stress_nl(idx+1)
+                    Tdomain%sdom%stress_(5,i,j,k,bnum,ee) = stress_nl(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(stress_nl)
+#endif
+end subroutine read_Stress_nl
+!
+subroutine read_Strain_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: strain_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Strain_nl", strain_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%strain_(0,i,j,k,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%strain_(1,i,j,k,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%strain_(2,i,j,k,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3         
+                    Tdomain%sdom%strain_(3,i,j,k,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%strain_(4,i,j,k,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%strain_(5,i,j,k,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(strain_nl)
+#endif
+end subroutine read_Strain_nl
+!
+subroutine read_Pstrain_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: strain_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Pstrain_nl", strain_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%plstrain_(0,i,j,k,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%plstrain_(1,i,j,k,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%plstrain_(2,i,j,k,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3            
+                    Tdomain%sdom%plstrain_(3,i,j,k,bnum,ee) = strain_nl(idx+0)
+                    Tdomain%sdom%plstrain_(4,i,j,k,bnum,ee) = strain_nl(idx+1)
+                    Tdomain%sdom%plstrain_(5,i,j,k,bnum,ee) = strain_nl(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(strain_nl)
+#endif
+end subroutine read_Pstrain_nl
+!
+subroutine read_Center_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: center_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Center_nl", center_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%center_(0,i,j,k,bnum,ee) = center_nl(idx+0)
+                    Tdomain%sdom%center_(1,i,j,k,bnum,ee) = center_nl(idx+1)
+                    Tdomain%sdom%center_(2,i,j,k,bnum,ee) = center_nl(idx+2)
+                    idx = idx + 3
+                    Tdomain%sdom%center_(3,i,j,k,bnum,ee) = center_nl(idx+0)
+                    Tdomain%sdom%center_(4,i,j,k,bnum,ee) = center_nl(idx+1)
+                    Tdomain%sdom%center_(5,i,j,k,bnum,ee) = center_nl(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(center_nl)
+#endif
+end subroutine read_Center_nl
+!
+subroutine read_Radius_nl(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
+    double precision, allocatable, dimension(:) :: radius_nl
+    integer :: idx, ngll, bnum, ee
+    integer :: n, i, j, k
+    integer :: n_solid
+
+    call read_dset_1d_real(elem_id, "Radius_nl", radius_nl)
+    idx = 1
+    n_solid = Tdomain%n_sls
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%sdom%radius_(i,j,k,bnum,ee) = radius_nl(idx+0)
+                    idx = idx + 1 
+                end do
+            end do
+        end do
+    end do
+    deallocate(radius_nl)
+#endif
+end subroutine read_Radius_nl
 
 subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     use sdomain
@@ -302,300 +380,30 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: Veloc
-    integer :: idx, ngllx, nglly, ngllz
+    integer :: idx, ngll, bnum, ee
     integer :: n, i, j, k
 
-    call read_dset_1d_real(elem_id, "Veloc_Fl", veloc)
+    call read_dset_1d_real(elem_id, "Veloc_Fl_PML", veloc)
     idx = 1
     do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%solid) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
-        if (Tdomain%specel(n)%PML ) then
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,2) = veloc(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,2) = veloc(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,2) = veloc(idx+2)
-                        idx = idx + 3
-                    end do
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,0,bnum,ee) = veloc(idx+0)
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,1,bnum,ee) = veloc(idx+1)
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,2,bnum,ee) = veloc(idx+2)
+                    idx = idx + 3
                 end do
             end do
-        end if
+        end do
     end do
     deallocate(veloc)
 end subroutine read_Veloc_Fluid_PML
-
-
-
-subroutine read_Faces(Tdomain, face_id)
-    use sdomain
-    use HDF5
-    use sem_hdf5, only : read_dset_1d_real
-    implicit none
-    type (domain), intent (INOUT):: Tdomain
-    integer(HID_T), intent(IN) :: face_id
-    double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
-                                         velphi, velphi1, velphi2, velphi3, phi
-    integer :: idx1, idx2, idx3,idx4,idx5,idx6, ngll1, ngll2
-    integer :: n, i, j
-
-
-    call read_dset_1d_real(face_id, "Veloc", veloc)
-    call read_dset_1d_real(face_id, "Veloc1", veloc1)
-    call read_dset_1d_real(face_id, "Veloc2", veloc2)
-    call read_dset_1d_real(face_id, "Veloc3", veloc3)
-    call read_dset_1d_real(face_id, "Displ", displ)
-    call read_dset_1d_real(face_id, "VelPhi", velphi)
-    call read_dset_1d_real(face_id, "VelPhi1", velphi1)
-    call read_dset_1d_real(face_id, "VelPhi2", velphi2)
-    call read_dset_1d_real(face_id, "VelPhi3", velphi3)
-    call read_dset_1d_real(face_id, "Phi", phi)
-    idx1 = 1
-    idx2 = 1
-    idx3 = 1
-    idx4 = 1
-    idx5 = 1
-    idx6 = 1
-    do n = 0,Tdomain%n_face-1
-        ngll1 = Tdomain%sFace(n)%ngll1
-        ngll2 = Tdomain%sFace(n)%ngll2
-        if(Tdomain%sFace(n)%solid)then
-        do j = 1,ngll2-2
-            do i = 1,ngll1-2
-                Tdomain%sFace(n)%Veloc(i,j,0) = veloc(idx1+0)
-                Tdomain%sFace(n)%Veloc(i,j,1) = veloc(idx1+1)
-                Tdomain%sFace(n)%Veloc(i,j,2) = veloc(idx1+2)
-                idx1 = idx1 + 3
-                if ( .not. Tdomain%sFace(n)%PML ) then
-                    Tdomain%sFace(n)%Displ(i,j,0) = displ(idx2+0)
-                    Tdomain%sFace(n)%Displ(i,j,1) = displ(idx2+1)
-                    Tdomain%sFace(n)%Displ(i,j,2) = displ(idx2+2)
-                    idx2 = idx2 + 3
-                else
-                    ! For solid fluid coupling, we need v0 = veloc at restart
-                    Tdomain%sFace(n)%V0 = Tdomain%sFace(n)%Veloc
-                    Tdomain%sFace(n)%spml%Veloc1(i,j,0) = veloc1(idx3+0)
-                    Tdomain%sFace(n)%spml%Veloc1(i,j,1) = veloc1(idx3+1)
-                    Tdomain%sFace(n)%spml%Veloc1(i,j,2) = veloc1(idx3+2)
-                    Tdomain%sFace(n)%spml%Veloc2(i,j,0) = veloc2(idx3+0)
-                    Tdomain%sFace(n)%spml%Veloc2(i,j,1) = veloc2(idx3+1)
-                    Tdomain%sFace(n)%spml%Veloc2(i,j,2) = veloc2(idx3+2)
-                    Tdomain%sFace(n)%spml%Veloc3(i,j,0) = veloc3(idx3+0)
-                    Tdomain%sFace(n)%spml%Veloc3(i,j,1) = veloc3(idx3+1)
-                    Tdomain%sFace(n)%spml%Veloc3(i,j,2) = veloc3(idx3+2)
-                    idx3 = idx3 + 3
-                end if
-            end do
-        end do
-        else    ! fluid part
-        do j = 1,ngll2-2
-            do i = 1,ngll1-2
-                Tdomain%sFace(n)%VelPhi(i,j) = velphi(idx4)
-                idx4 = idx4 + 1
-                if ( .not. Tdomain%sFace(n)%PML ) then
-                    Tdomain%sFace(n)%Phi(i,j) = phi(idx5)
-                    idx5 = idx5 + 1
-                else
-                    Tdomain%sFace(n)%spml%VelPhi1(i,j) = velphi1(idx6)
-                    Tdomain%sFace(n)%spml%VelPhi2(i,j) = velphi2(idx6)
-                    Tdomain%sFace(n)%spml%VelPhi3(i,j) = velphi3(idx6)
-                    idx6 = idx6 + 1
-                end if
-            end do
-        end do
-
-        end if
-    end do
-    deallocate(veloc)
-    deallocate(veloc1)
-    deallocate(veloc2)
-    deallocate(veloc3)
-    deallocate(displ)
-    deallocate(velphi)
-    deallocate(velphi1)
-    deallocate(velphi2)
-    deallocate(velphi3)
-    deallocate(phi)
-end subroutine read_Faces
-
-subroutine read_Edges(Tdomain, edge_id)
-    use sdomain
-    use HDF5
-    use sem_hdf5, only : read_dset_1d_real
-    implicit none
-    type (domain), intent (INOUT):: Tdomain
-    integer(HID_T), intent(IN) :: edge_id
-    double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
-                                         velphi, velphi1, velphi2, velphi3, phi
-    integer :: idx1, idx2, idx3, idx4,idx5,idx6,ngll
-    integer :: n, i
-
-
-    call read_dset_1d_real(edge_id, "Veloc", veloc)
-    call read_dset_1d_real(edge_id, "Veloc1", veloc1)
-    call read_dset_1d_real(edge_id, "Veloc2", veloc2)
-    call read_dset_1d_real(edge_id, "Veloc3", veloc3)
-    call read_dset_1d_real(edge_id, "Displ", displ)
-    call read_dset_1d_real(edge_id, "VelPhi", velphi)
-    call read_dset_1d_real(edge_id, "VelPhi1", velphi1)
-    call read_dset_1d_real(edge_id, "VelPhi2", velphi2)
-    call read_dset_1d_real(edge_id, "VelPhi3", velphi3)
-    call read_dset_1d_real(edge_id, "Phi", phi)
-    idx1 = 1
-    idx2 = 1
-    idx3 = 1
-    idx4 = 1
-    idx5 = 1
-    idx6 = 1
-    do n = 0,Tdomain%n_edge-1
-        ngll = Tdomain%sEdge(n)%ngll
-        if(Tdomain%sEdge(n)%solid)then
-        do i = 1,ngll-2
-            Tdomain%sEdge(n)%Veloc(i,0) = veloc(idx1+0)
-            Tdomain%sEdge(n)%Veloc(i,1) = veloc(idx1+1)
-            Tdomain%sEdge(n)%Veloc(i,2) = veloc(idx1+2)
-            idx1 = idx1 + 3
-            if ( .not. Tdomain%sEdge(n)%PML ) then
-                Tdomain%sEdge(n)%Displ(i,0) = displ(idx2+0)
-                Tdomain%sEdge(n)%Displ(i,1) = displ(idx2+1)
-                Tdomain%sEdge(n)%Displ(i,2) = displ(idx2+2)
-                idx2 = idx2 + 3
-            else
-                ! For solid fluid coupling, we need v0 = veloc at restart
-                Tdomain%sEdge(n)%V0 = Tdomain%sEdge(n)%Veloc
-                Tdomain%sEdge(n)%spml%Veloc1(i,0) = veloc1(idx3+0)
-                Tdomain%sEdge(n)%spml%Veloc1(i,1) = veloc1(idx3+1)
-                Tdomain%sEdge(n)%spml%Veloc1(i,2) = veloc1(idx3+2)
-                Tdomain%sEdge(n)%spml%Veloc2(i,0) = veloc2(idx3+0)
-                Tdomain%sEdge(n)%spml%Veloc2(i,1) = veloc2(idx3+1)
-                Tdomain%sEdge(n)%spml%Veloc2(i,2) = veloc2(idx3+2)
-                Tdomain%sEdge(n)%spml%Veloc3(i,0) = veloc3(idx3+0)
-                Tdomain%sEdge(n)%spml%Veloc3(i,1) = veloc3(idx3+1)
-                Tdomain%sEdge(n)%spml%Veloc3(i,2) = veloc3(idx3+2)
-                idx3 = idx3 + 3
-            end if
-        end do
-        else   ! fluid part
-        do i = 1,ngll-2
-            Tdomain%sEdge(n)%VelPhi(i) = velphi(idx4)
-            idx4 = idx4 + 1
-            if ( .not. Tdomain%sEdge(n)%PML ) then
-                Tdomain%sEdge(n)%Phi(i) = phi(idx5)
-                idx5 = idx5 + 1
-            else
-                Tdomain%sEdge(n)%spml%VelPhi1(i) = velphi1(idx6)
-                Tdomain%sEdge(n)%spml%VelPhi2(i) = velphi2(idx6)
-                Tdomain%sEdge(n)%spml%VelPhi3(i) = velphi3(idx6)
-                idx6 = idx6 + 1
-            end if
-        end do
-
-        end if
-    end do
-    deallocate(veloc)
-    deallocate(veloc1)
-    deallocate(veloc2)
-    deallocate(veloc3)
-    deallocate(displ)
-    deallocate(velphi)
-    deallocate(velphi1)
-    deallocate(velphi2)
-    deallocate(velphi3)
-    deallocate(phi)
-end subroutine read_Edges
-
-subroutine read_Vertices(Tdomain, vertex_id)
-    use sdomain
-    use HDF5
-    use sem_hdf5, only : read_dset_1d_real
-    implicit none
-    type (domain), intent (INOUT):: Tdomain
-    integer(HID_T), intent(IN) :: vertex_id
-    double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
-                                         velphi, velphi1, velphi2, velphi3, phi
-    integer :: idx1, idx2, idx3,idx4,idx5,idx6
-    integer :: n
-
-
-    call read_dset_1d_real(vertex_id, "Veloc", veloc)
-    call read_dset_1d_real(vertex_id, "Veloc1", veloc1)
-    call read_dset_1d_real(vertex_id, "Veloc2", veloc2)
-    call read_dset_1d_real(vertex_id, "Veloc3", veloc3)
-    call read_dset_1d_real(vertex_id, "Displ", displ)
-    call read_dset_1d_real(vertex_id, "VelPhi", velphi)
-    call read_dset_1d_real(vertex_id, "VelPhi1", velphi1)
-    call read_dset_1d_real(vertex_id, "VelPhi2", velphi2)
-    call read_dset_1d_real(vertex_id, "VelPhi3", velphi3)
-    call read_dset_1d_real(vertex_id, "Phi", phi)
-    idx1 = 1
-    idx2 = 1
-    idx3 = 1
-    idx4 = 1
-    idx5 = 1
-    idx6 = 1
-    do n = 0,Tdomain%n_vertex-1
-        if(Tdomain%sVertex(n)%solid)then
-        Tdomain%sVertex(n)%Veloc(0) = veloc(idx1+0)
-        Tdomain%sVertex(n)%Veloc(1) = veloc(idx1+1)
-        Tdomain%sVertex(n)%Veloc(2) = veloc(idx1+2)
-        idx1 = idx1 + 3
-        if ( .not. Tdomain%sVertex(n)%PML ) then
-            Tdomain%sVertex(n)%Displ(0) = displ(idx2+0)
-            Tdomain%sVertex(n)%Displ(1) = displ(idx2+1)
-            Tdomain%sVertex(n)%Displ(2) = displ(idx2+2)
-            idx2 = idx2 + 3
-        else
-            ! For solid fluid coupling, we need v0 = veloc at restart
-            Tdomain%sVertex(n)%V0 = Tdomain%sVertex(n)%Veloc
-            Tdomain%sVertex(n)%spml%Veloc1(0) = veloc1(idx3+0)
-            Tdomain%sVertex(n)%spml%Veloc1(1) = veloc1(idx3+1)
-            Tdomain%sVertex(n)%spml%Veloc1(2) = veloc1(idx3+2)
-            Tdomain%sVertex(n)%spml%Veloc2(0) = veloc2(idx3+0)
-            Tdomain%sVertex(n)%spml%Veloc2(1) = veloc2(idx3+1)
-            Tdomain%sVertex(n)%spml%Veloc2(2) = veloc2(idx3+2)
-            Tdomain%sVertex(n)%spml%Veloc3(0) = veloc3(idx3+0)
-            Tdomain%sVertex(n)%spml%Veloc3(1) = veloc3(idx3+1)
-            Tdomain%sVertex(n)%spml%Veloc3(2) = veloc3(idx3+2)
-            idx3 = idx3 + 3
-        end if
-        else   ! fluid part
-        Tdomain%sVertex(n)%VelPhi = velphi(idx4)
-        idx4 = idx4 + 1
-        if ( .not. Tdomain%sVertex(n)%PML ) then
-            Tdomain%sVertex(n)%Phi = phi(idx5)
-            idx5 = idx5 + 1
-        else
-            Tdomain%sVertex(n)%spml%VelPhi1 = velphi1(idx6)
-            Tdomain%sVertex(n)%spml%VelPhi2 = velphi2(idx6)
-            Tdomain%sVertex(n)%spml%VelPhi3 = velphi3(idx6)
-            idx6 = idx6 + 1
-        end if
-
-        end if
-    end do
-    deallocate(veloc)
-    deallocate(veloc1)
-    deallocate(veloc2)
-    deallocate(veloc3)
-    deallocate(displ)
-    deallocate(velphi)
-    deallocate(velphi1)
-    deallocate(velphi2)
-    deallocate(velphi3)
-    deallocate(phi)
-end subroutine read_Vertices
 
 subroutine read_restart (Tdomain,rg, isort)
     use HDF5
@@ -614,7 +422,7 @@ subroutine read_restart (Tdomain,rg, isort)
     integer :: it
 
     ! HDF5 Variables
-    integer(HID_T) :: fid, elem_id, face_id, edge_id, vertex_id
+    integer(HID_T) :: fid, elem_id
     integer :: hdferr
 
     call init_hdf5()
@@ -623,10 +431,6 @@ subroutine read_restart (Tdomain,rg, isort)
     call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)
 
     call h5gopen_f(fid, 'Elements', elem_id, hdferr)
-    call h5gopen_f(fid, 'Faces', face_id, hdferr)
-    call h5gopen_f(fid, 'Edges', edge_id, hdferr)
-    call h5gopen_f(fid, 'Vertices', vertex_id, hdferr)
-
     call read_attr_real(fid, "rtime", rtime)
     call read_attr_real(fid, "dtmin", dtmin)
     call read_attr_int(fid, "iteration", it)
@@ -646,20 +450,36 @@ subroutine read_restart (Tdomain,rg, isort)
         write (*,'(A40,I8,A1,f10.6)') "SEM : REPRISE a iteration et tps:", it," ",rtime
     endif
 
-    call read_Veloc(Tdomain, elem_id)
-    call read_VelPhi(Tdomain, elem_id)
+    if (Tdomain%sdom%nglltot.gt.0) then
+        call read_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs0%Veloc, ibase=0)
+        call read_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs0%Depla, ibase=0)
+        if (Tdomain%nl_flag) then
+            call read_Stress_nl(Tdomain, elem_id)
+            call read_Strain_nl(Tdomain, elem_id)
+            call read_Pstrain_nl(Tdomain, elem_id)
+            call read_Center_nl(Tdomain, elem_id)
+            call read_Radius_nl(Tdomain, elem_id)
+        endif
+    end if
+    if (Tdomain%fdom%nglltot.gt.0) then
+        call read_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs0%VelPhi, ibase=0)
+        call read_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs0%Phi, ibase=0)
+    end if
+    if (Tdomain%spmldom%nglltot.gt.0) then
+#ifdef CPML
+        call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%Veloc,    ibase=0)
+#else
+        call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%VelocPML, ibase=0)
+#endif
+    end if
+    if (Tdomain%fpmldom%nglltot.gt.0) then
+        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi, ibase=0)
+        call read_Veloc_Fluid_PML(Tdomain, elem_id)
+    end if
     call read_EpsilonVol(Tdomain, elem_id)
     call read_EpsilonDev(Tdomain, elem_id)
     call read_Stress(Tdomain, elem_id)
-    call read_Veloc_Fluid_PML(Tdomain, elem_id)
-    call read_Faces(Tdomain, face_id)
-    call read_Edges(Tdomain, edge_id)
-    call read_Vertices(Tdomain, vertex_id)
-
     call h5gclose_f(elem_id, hdferr)
-    call h5gclose_f(face_id, hdferr)
-    call h5gclose_f(edge_id, hdferr)
-    call h5gclose_f(vertex_id, hdferr)
     call h5fclose_f(fid, hdferr)
 
     call clean_prot(Tdomain%TimeD%prot_m0, rg)

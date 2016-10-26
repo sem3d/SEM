@@ -274,7 +274,7 @@ contains
         integer, intent(in), dimension(0:n_elem-1)  :: part
         type(near_elem), dimension(0:n_elem-1), intent(in) :: near_elem_set
         type(near_proc), dimension(0:n_elem-1), intent(out) :: elem_near_proc
-        integer   :: nel,n,proc,i,j,k,this_proc
+        integer   :: n,proc,i,j,k,this_proc
         integer, dimension(0:49)  :: tr_elem
         type(near_entity), pointer  :: near_neighb => NULL()
 

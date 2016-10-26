@@ -41,6 +41,8 @@ typedef struct snapshot_cond {
     int include;
     /// Dimension de la boite pour le type box
     double box[6];
+    /// Equation d'un plan pour selection
+    double plane[4];
     /// Type de materiau pour le type material
     int material;
 } snapshot_cond_t;
@@ -76,6 +78,40 @@ typedef struct station_def_t {
     /// Periode d'aquisition (en nombre de pas de temps)
     int period;
 } station_def_t;
+
+// structire définissant les surfaces 
+typedef struct surface{
+    struct surface* next;
+    int surface_list[40];
+    int surface_present;
+    int surface_type;
+    int surface_mat;
+    int surface_whatbc;
+    double surface_K[3];
+    double surface_C[3];
+    double surface_f0;
+    int surface_dim;
+    double surface_Paravalue[100];
+    char*  surface_Paramname;
+    int surface_nparamvar;
+    int surface_paramvar;
+    char* surface_source;
+    char* surface_funcx;
+    char* surface_funcy;
+    char* surface_funcz;
+    char* surface_funcxy;
+    char* surface_funcxz;
+    char* surface_funcyz;
+    char* surface_varia;
+    double amplitude;
+    double Rtau;
+    int surface_space;
+    double surface_size;
+    char * surface_name;
+    int surface_wave;
+    double surface_Speed;
+    double surface_dirU[3];
+}surface_t;
 
 typedef struct {
     char* run_name;
@@ -116,9 +152,10 @@ typedef struct {
     int n_snap_cond;
     snapshot_cond_t* snapshot_selection;
     int comp_energ;
-    // START MODIFS - FILIPPO 07/15
-    int out_variables[9];
-    // END MODIFS - FILIPPO 07/15
+
+    // Output Variables
+    int out_variables[11];
+    int nl_flag;
 
     // Protection reprise
     int prorep;
@@ -135,14 +172,10 @@ typedef struct {
 
     // PML informations
     int pml_type;
-
-    // Neumann
-    int neu_present;
-    int neu_type;
-    int neu_mat;
-    double neu_L[3];
-    double neu_C[3];
-    double neu_f0;
+    double cpml_kappa0;
+    double cpml_kappa1;
+    int cpml_n;
+    double cpml_rc;
 
     // Type Elements (DG)
     int type_elem;
@@ -159,7 +192,10 @@ typedef struct {
     // Station definition
     station_def_t* stations;
 
-
+    // surface BC definition
+    int nsurface;
+    int surface_find;
+    surface_t *surface;
 
 } sem_config_t;
 
@@ -171,17 +207,27 @@ static inline int cmp(yyscan_t scanner, const char* str)
 	return strcmp(yyget_text(scanner), str)==0;
 }
 
+typedef struct {
+    int index;
+    const char* keyword;
+} keyword_t;
+
 int eval_bool(yyscan_t scanner, int* val);
 void msg_err(yyscan_t scanner, const char* msgerr, ...);
 int skip_blank(yyscan_t scanner);
 int expect_eq(yyscan_t scanner);
 int expect_eq_bool(yyscan_t scanner, int* bools, int nexpected);
 int expect_eq_float(yyscan_t scanner, double* vals, int nexpected);
+int expect_int_list(yyscan_t scanner, int* vals);
+int expect_eq_int_list(yyscan_t scanner, int* vals);
 int expect_int(yyscan_t scanner, int* vals, int nexpected);
 int expect_eq_int(yyscan_t scanner, int* vals, int nexpected);
 int expect_string(yyscan_t scanner, char** str, int nexpected);
 int expect_eq_string(yyscan_t scanner, char** str, int nexpected);
 int expect_eos(yyscan_t scanner);
+// Expect a keyword from a list. The list *MUST* be terminated by an item with a null pointer
+int expect_eq_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval);
+int expect_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval);
 
 int sem_check_file_c(const char* path);
 

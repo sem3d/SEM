@@ -23,70 +23,70 @@ subroutine double_couple(Tdomain,rg)
     type (domain), intent(inout) :: Tdomain
     integer, intent(in) :: rg
 
-    integer :: n, elem, x,y,z, ngllx,nglly,ngllz, mat, a,b, k
+    integer :: n, elem, x,y,z, ngll, a, b, k
     real :: ct,st,cp,sp, xi,eta,zeta, coord, xa,ya,za, xb,yb,zb, num,denom,prod
     real, dimension(:), allocatable :: xpol,ypol,zpol, xdh,ydh,zdh
     real, dimension(0:2,0:2) :: Pcs, Psc, TMP, M, Rot, tRot
-
+    real, dimension(:), allocatable :: GLLc
 
     do n = 0,Tdomain%n_source-1
         if (Tdomain%sSource(n)%i_type_source == 2 .and. rg == Tdomain%sSource(n)%proc) then
 
             M = Tdomain%sSource(n)%Moment
 
-            if (Tdomain%curve) then
-                Tdomain%sSource(n)%realcolat = M_PI*Tdomain%sSource(n)%realcolat/180
-                Tdomain%sSource(n)%reallong = M_PI*Tdomain%sSource(n)%reallong/180
-                ct=cos(Tdomain%sSource(n)%realcolat)  !!dcos(Tdomain%sSource(n)%realcolat)  !!Avt Gsa Ipsis
-                st=sin(Tdomain%sSource(n)%realcolat) !!dsin(Tdomain%sSource(n)%realcolat)
-                cp=cos(Tdomain%sSource(n)%reallong) !!dcos(Tdomain%sSource(n)%reallong)
-                sp=sin(Tdomain%sSource(n)%reallong) !!dsin(Tdomain%sSource(n)%reallong)
-                ! matrice de passage du systeme cartesien au systeme spherique
-                Pcs(0,0) = st*cp; Pcs(0,1) = ct*cp; Pcs(0,2) = -sp
-                Pcs(1,0) = st*sp; Pcs(1,1) = ct*sp; Pcs(1,2) = cp
-                Pcs(2,0) = ct   ; Pcs(2,1) = -st  ; Pcs(2,2) = 0.0d0
-                ! matrice de passage du systeme spherique au systeme cartesien (inverse de Pcs)
-                Psc(0,0) = st*cp; Psc(0,1) = st*sp; Psc(0,2) = ct
-                Psc(1,0) = ct*cp; Psc(1,1) = ct*sp; Psc(1,2) = -st
-                Psc(2,0) = -sp  ; Psc(2,1) = cp   ; Psc(2,2) = 0.0d0
-                ! Calcul du tenseur moment sismique dans le systeme cartesien
-                M = Tdomain%sSource(n)%Moment
-                do a = 0,2
-                    do b = 0,2
-                        TMP(a,b) = 0.0d0
-                        do k = 0,2
-                            TMP(a,b) = TMP(a,b) + M(a,k)*Psc(k,b)
-                        enddo
-                    enddo
-                enddo
-                do a = 0,2
-                    do b = 0,2
-                        M(a,b) = 0.0d0
-                        do k = 0,2
-                            M(a,b) = M(a,b) + Pcs(a,k)*TMP(k,b)
-                        enddo
-                    enddo
-                enddo
-                ! Rotation (du chunk reel au chunk de reference) du tenseur moment sismique
-                Rot = Tdomain%rot
-                tRot = transpose(Rot)
-                do a = 0,2
-                    do b = 0,2
-                        TMP(a,b) = 0.0d0
-                        do k = 0,2
-                            TMP(a,b) = TMP(a,b) + M(a,k)*Rot(k,b)
-                        enddo
-                    enddo
-                enddo
-                do a = 0,2
-                    do b = 0,2
-                        M(a,b) = 0.0d0
-                        do k = 0,2
-                            M(a,b) = M(a,b) + tRot(a,k)*TMP(k,b)
-                        enddo
-                    enddo
-                enddo
-            endif
+!!            if (Tdomain%curve) then
+!!                Tdomain%sSource(n)%realcolat = M_PI*Tdomain%sSource(n)%realcolat/180
+!!                Tdomain%sSource(n)%reallong = M_PI*Tdomain%sSource(n)%reallong/180
+!!                ct=cos(Tdomain%sSource(n)%realcolat)  !!dcos(Tdomain%sSource(n)%realcolat)  !!Avt Gsa Ipsis
+!!                st=sin(Tdomain%sSource(n)%realcolat) !!dsin(Tdomain%sSource(n)%realcolat)
+!!                cp=cos(Tdomain%sSource(n)%reallong) !!dcos(Tdomain%sSource(n)%reallong)
+!!                sp=sin(Tdomain%sSource(n)%reallong) !!dsin(Tdomain%sSource(n)%reallong)
+!!                ! matrice de passage du systeme cartesien au systeme spherique
+!!                Pcs(0,0) = st*cp; Pcs(0,1) = ct*cp; Pcs(0,2) = -sp
+!!                Pcs(1,0) = st*sp; Pcs(1,1) = ct*sp; Pcs(1,2) = cp
+!!                Pcs(2,0) = ct   ; Pcs(2,1) = -st  ; Pcs(2,2) = 0.0d0
+!!                ! matrice de passage du systeme spherique au systeme cartesien (inverse de Pcs)
+!!                Psc(0,0) = st*cp; Psc(0,1) = st*sp; Psc(0,2) = ct
+!!                Psc(1,0) = ct*cp; Psc(1,1) = ct*sp; Psc(1,2) = -st
+!!                Psc(2,0) = -sp  ; Psc(2,1) = cp   ; Psc(2,2) = 0.0d0
+!!                ! Calcul du tenseur moment sismique dans le systeme cartesien
+!!                M = Tdomain%sSource(n)%Moment
+!!                do a = 0,2
+!!                    do b = 0,2
+!!                        TMP(a,b) = 0.0d0
+!!                        do k = 0,2
+!!                            TMP(a,b) = TMP(a,b) + M(a,k)*Psc(k,b)
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!                do a = 0,2
+!!                    do b = 0,2
+!!                        M(a,b) = 0.0d0
+!!                        do k = 0,2
+!!                            M(a,b) = M(a,b) + Pcs(a,k)*TMP(k,b)
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!                ! Rotation (du chunk reel au chunk de reference) du tenseur moment sismique
+!!                Rot = Tdomain%rot
+!!                tRot = transpose(Rot)
+!!                do a = 0,2
+!!                    do b = 0,2
+!!                        TMP(a,b) = 0.0d0
+!!                        do k = 0,2
+!!                            TMP(a,b) = TMP(a,b) + M(a,k)*Rot(k,b)
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!                do a = 0,2
+!!                    do b = 0,2
+!!                        M(a,b) = 0.0d0
+!!                        do k = 0,2
+!!                            M(a,b) = M(a,b) + tRot(a,k)*TMP(k,b)
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!            endif
 
             do a = 0,2
                 do b = 0,2
@@ -98,31 +98,30 @@ subroutine double_couple(Tdomain,rg)
             enddo
 
             elem = Tdomain%Ssource(n)%elem
-            ngllx = Tdomain%specel(elem)%ngllx
-            nglly = Tdomain%specel(elem)%nglly
-            ngllz = Tdomain%specel(elem)%ngllz
-            allocate (xpol(0:ngllx-1));   xpol = 1
-            allocate (ypol(0:nglly-1));   ypol = 1
-            allocate (zpol(0:ngllz-1));   zpol = 1
-            allocate (xdh(0:ngllx-1))
-            allocate (ydh(0:nglly-1))
-            allocate (zdh(0:ngllz-1))
+            ngll = domain_ngll(Tdomain, Tdomain%specel(elem)%domain)
+            call domain_gllc(Tdomain, Tdomain%specel(elem)%domain, GLLc)
+
+            allocate (xpol(0:ngll-1));   xpol = 1
+            allocate (ypol(0:ngll-1));   ypol = 1
+            allocate (zpol(0:ngll-1));   zpol = 1
+            allocate (xdh(0:ngll-1))
+            allocate (ydh(0:ngll-1))
+            allocate (zdh(0:ngll-1))
             xi = Tdomain%sSource(n)%refcoord(0)
             eta = Tdomain%sSource(n)%refcoord(1)
             zeta = Tdomain%sSource(n)%refcoord(2)
-            mat = Tdomain%specel(elem)%mat_index
-            do x = 0,ngllx-1
-                coord = Tdomain%sSubdomain(mat)%GLLcx(x)
+            do x = 0,ngll-1
+                coord = GLLc(x)
                 num = 0;   denom = 1
-                do a = 0,ngllx-1
+                do a = 0,ngll-1
                     if (a/=x) then
-                        xa = Tdomain%sSubdomain(mat)%GLLcx(a)
+                        xa = GLLc(a)
                         xpol(x) = xpol(x) * (xi-xa)/(coord-xa)
                         denom = denom * (coord-xa)
                         prod = 1
-                        do b = 0,ngllx-1
+                        do b = 0,ngll-1
                             if ((b/=x) .and. (b/=a)) then
-                                xb = Tdomain%sSubdomain(mat)%GLLcx(b)
+                                xb = GLLc(b)
                                 prod = prod * (xi-xb)
                             endif
                         enddo
@@ -131,18 +130,18 @@ subroutine double_couple(Tdomain,rg)
                 enddo
                 xdh(x) = num/denom
             enddo
-            do y = 0,nglly-1
-                coord = Tdomain%sSubdomain(mat)%GLLcy(y)
+            do y = 0,ngll-1
+                coord = GLLc(y)
                 num = 0;   denom = 1
-                do a = 0,nglly-1
+                do a = 0,ngll-1
                     if (a/=y) then
-                        ya = Tdomain%sSubdomain(mat)%GLLcy(a)
+                        ya = GLLc(a)
                         ypol(y) = ypol(y) * (eta-ya)/(coord-ya)
                         denom = denom * (coord-ya)
                         prod = 1
-                        do b = 0,nglly-1
+                        do b = 0,ngll-1
                             if ((b/=y) .and. (b/=a)) then
-                                yb = Tdomain%sSubdomain(mat)%GLLcy(b)
+                                yb = GLLc(b)
                                 prod = prod * (eta-yb)
                             endif
                         enddo
@@ -151,18 +150,18 @@ subroutine double_couple(Tdomain,rg)
                 enddo
                 ydh(y) = num/denom
             enddo
-            do z = 0,ngllz-1
-                coord = Tdomain%sSubdomain(mat)%GLLcz(z)
+            do z = 0,ngll-1
+                coord = GLLc(z)
                 num = 0;   denom = 1
-                do a = 0,ngllz-1
+                do a = 0,ngll-1
                     if (a/=z) then
-                        za = Tdomain%sSubdomain(mat)%GLLcz(a)
+                        za = GLLc(a)
                         zpol(z) = zpol(z) * (zeta-za)/(coord-za)
                         denom = denom * (coord-za)
                         prod = 1
-                        do b = 0,ngllz-1
+                        do b = 0,ngll-1
                             if ((b/=z) .and. (b/=a)) then
-                                zb = Tdomain%sSubdomain(mat)%GLLcz(b)
+                                zb = GLLc(b)
                                 prod = prod * (zeta-zb)
                             endif
                         enddo
@@ -172,23 +171,20 @@ subroutine double_couple(Tdomain,rg)
                 zdh(z) = num/denom
             enddo
 
-            allocate (Tdomain%sSource(n)%coeff(0:ngllx-1, 0:nglly-1, 0:ngllz-1, 0:2))
-            do x = 0,ngllx-1
-                do y = 0,nglly-1
-                    do z = 0,ngllz-1
+            allocate (Tdomain%sSource(n)%coeff(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:2))
+            do x = 0,ngll-1
+                do y = 0,ngll-1
+                    do z = 0,ngll-1
                         Tdomain%sSource(n)%coeff(x,y,z,:) = xdh(x)*ypol(y)*zpol(z)*TMP(0,:) + &
                             xpol(x)*ydh(y)*zpol(z)*TMP(1,:) + &
                             xpol(x)*ypol(y)*zdh(z)*TMP(2,:)
                     enddo
                 enddo
             enddo
-
+            deallocate(GLLc)
             deallocate (xpol,ypol,zpol, xdh,ydh,zdh)
-
         endif
     enddo
-
-    return
 end subroutine double_couple
 
 !! Local Variables:

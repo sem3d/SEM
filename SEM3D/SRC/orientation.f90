@@ -2,248 +2,192 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
+!
+!  This module handles orientation of elements
+!
+!    Z
+!    ^
+!    |
+!       7------6
+!      /|     /|   Y
+!     / |    / |  /
+!    4------5  | /
+!    |  3---|--2
+!    | /    | /
+!    |/     |/
+!    0------1   --> X(xi)
+!
+!
 module orientation
+    use selement
+    use sfaces
+    use sedges
+    use svertices
+    use sdomain
+    use mindex
+    implicit none
+
 
 contains
-    
-    subroutine get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,   &
-        prop_vertex,prop_elem)
-        ! general routine for the assemblage procedure: Element -> vertex
-        use mindex, only : ind_elem_vertex
-        implicit none
 
-        integer, intent(in) :: nv,ngllx,nglly,ngllz
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(inout) :: prop_elem
-        real, dimension(0:2), intent(in)  :: prop_vertex
-        integer, dimension(0:2)  :: index_elem_v
+    !! Apply material properties set on elements to its adjacent faces, edges, vertices
+    subroutine apply_mat_to_faces(Tdomain)
+        type(domain), intent(inout) :: Tdomain
+        !
+        integer :: i, j
+        integer :: ngll
+        integer :: nf, mat, dom
 
-        ! search for the relevant indices
-        call ind_elem_vertex(nv,ngllx,nglly,ngllz,index_elem_v)
-        ! assemblage
-        prop_elem(index_elem_v(0),index_elem_v(1),index_elem_v(2),0:2) = prop_vertex(0:2)
+        do i = 0,Tdomain%n_face-1
+            Tdomain%sFace(i)%orphan = .true.
+        end do
+        do i = 0,Tdomain%n_elem-1
+            mat = Tdomain%specel(i)%mat_index
+            dom = Tdomain%sSubDomain(mat)%dom
+            ngll = domain_ngll(Tdomain, Tdomain%specel(i)%domain)
 
-        return
+            do j = 0,5
+                nf = Tdomain%specel(i)%Near_Faces(j)
+                Tdomain%sFace(nf)%orphan = .false.
+                Tdomain%sFace(nf)%ngll = ngll
+                if (Tdomain%sFace(nf)%domain /= dom) then
+                    write(*,*) "Error: inconsistency detected in apply_mat_to_faces"
+                    stop 1
+                end if
+                Tdomain%sFace(nf)%elem = i
+            end do
+        end do
+    end subroutine apply_mat_to_faces
 
-    end subroutine get_VectProperty_Vertex2Elem
+    subroutine apply_mat_to_edges(Tdomain)
+        type(domain), intent(inout) :: Tdomain
+        !
+        integer :: i, j, k
+        integer :: ngll
+        integer :: ne, mat, dom
+        integer, dimension(0:1) :: eledge
 
+        do i = 0,Tdomain%n_elem-1
+            mat = Tdomain%specel(i)%mat_index
+            dom = Tdomain%sSubDomain(mat)%dom
+            ngll = domain_ngll(Tdomain, Tdomain%specel(i)%domain)
 
-    subroutine get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,   &
-        prop_edge,prop_elem)
-        ! general routine for the deassemblage procedure: Edge -> element
-        use mindex, only : ind_elem_edge
-        implicit none
+            do j = 0,11
+                ne = Tdomain%specel(i)%Near_Edges(j)
+                do k=0,1
+                    eledge(k) = Tdomain%specel(i)%Control_nodes(edge_def(k,j))
+                end do
+                Tdomain%sEdge(ne)%ngll = ngll
+                if (Tdomain%sEdge(ne)%domain /= dom) then
+                    write(*,*) "Error: inconsistency detected in apply_mat_to_edges"
+                    stop 1
+                end if
+            end do
+        end do
 
-        integer, intent(in) :: ne,orient_e,ngllx,nglly,ngllz,ngll
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(inout) :: prop_elem
-        real, dimension(1:ngll-2,0:2), intent(in)  :: prop_edge
-        integer, dimension(0:4)  :: index_elem_e
+       ! if (Tdomain%logicD%neumann_local_present) then
+       !      do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+       !          do ed = 0,Tdomain%Neumann%NeuSurface(k)%Neu_n_edges-1
+       !             ne = Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%Edge
+       !             Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%ngll=Tdomain%sEdge(ne)%ngll
+       !          enddo
+       !      enddo
+       !  endif
+    end subroutine apply_mat_to_edges
 
-        ! search for the relevant indices
-        call ind_elem_edge(ne,orient_e,ngllx,nglly,ngllz,index_elem_e)
-        ! deassemblage
-        select case(ne)
-        case(1,3,8,11)  ! only y-coordinate does vary
-            prop_elem(index_elem_e(0),index_elem_e(2):index_elem_e(3):index_elem_e(4),  &
-                index_elem_e(1),0:2) = prop_edge(1:ngll-2,0:2)
-        case(0,2,5,9)   ! only x-coordinate does vary
-            prop_elem(index_elem_e(2):index_elem_e(3):index_elem_e(4),index_elem_e(0),  &
-                index_elem_e(1),0:2) = prop_edge(1:ngll-2,0:2)
-        case(4,6,7,10)   ! only z-coordinate does vary
-            prop_elem(index_elem_e(0),index_elem_e(1),                 &
-                index_elem_e(2):index_elem_e(3):index_elem_e(4),0:2) = prop_edge(1:ngll-2,0:2)
-        end select
+    subroutine apply_mat_to_vertices(Tdomain)
+        type(domain), intent(inout) :: Tdomain
+        !
+        integer :: i, j
+        integer :: nv, mat, dom
 
-        return
+        do i = 0,Tdomain%n_elem-1
+            mat = Tdomain%specel(i)%mat_index
+            dom = Tdomain%sSubDomain(mat)%dom
+            do j = 0,7
+                nv = Tdomain%specel(i)%Near_Vertices(j)
+                if (Tdomain%sVertex(nv)%domain /= dom) then
+                    write(*,*) "Error: inconsistency detected in apply_mat_to_vertices"
+                    stop 1
+                end if
+            end do
+        end do
+    end subroutine apply_mat_to_vertices
 
-    end subroutine get_VectProperty_Edge2Elem
+    ! make sure face,edge,vertices domains are set
+    ! and that ngll on both sides match
+    !
+    ! single surface element without a 3d hex associated can happen
+    ! at processor boundary. It's the role of this function to make
+    ! sure those are correctly initialised
+    subroutine apply_interface(Tdomain, inter, d0, d1, check)
+        type(domain), intent(inout) :: Tdomain
+        type(inter_num), intent(in) :: inter
+        integer, intent(in) :: d0, d1
+        logical, intent(in) :: check
+        !
+        integer :: k
+        integer :: i0, i1
+        integer :: interface_ok
 
-
-    subroutine get_VectProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,   &
-        prop_face,prop_elem)
-        ! general routine for the deassemblage procedure: Face -> element
-        use mindex, only : ind_elem_face
-        implicit none
-
-        integer, intent(in)  :: nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(inout) :: prop_elem
-        real, dimension(1:ngll1-2,1:ngll2-2,0:2), intent(in) :: prop_face
-        integer, dimension(0:6)  :: index_elem_f
-        integer  :: i
-
-        ! search for the relevant indices
-        call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f)
-        ! deassemblage
-        select case(orient_f)
-        case(0,1,2,3)
-            if(nf == 2 .or. nf == 4)then
-                prop_elem(index_elem_f(0),                                 &
-                    index_elem_f(1):index_elem_f(2):index_elem_f(3),       &
-                    index_elem_f(4):index_elem_f(5):index_elem_f(6),0:2) = &
-                    prop_face(1:ngll1-2,1:ngll2-2,0:2)
-            else if(nf == 1 .or. nf == 3)then
-                prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3), &
-                    index_elem_f(0),                                       &
-                    index_elem_f(4):index_elem_f(5):index_elem_f(6),0:2) = &
-                    prop_face(1:ngll1-2,1:ngll2-2,0:2)
-            else if(nf == 0 .or. nf == 5)then
-                prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3), &
-                    index_elem_f(4):index_elem_f(5):index_elem_f(6),       &
-                    index_elem_f(0),0:2) =                                 &
-                    prop_face(1:ngll1-2,1:ngll2-2,0:2)
+        interface_ok = 0
+        do k=0,inter%surf0%n_faces-1
+            i0 = inter%surf0%if_faces(k)
+            i1 = inter%surf1%if_faces(k)
+            interface_ok = 0
+            if (Tdomain%sFace(i0)%ngll == 0) then
+                Tdomain%sFace(i0)%ngll = Tdomain%sFace(i1)%ngll
+                interface_ok = interface_ok + 1
             end if
-        case(4,5,6,7)
-            if(nf == 2 .or. nf == 4)then
-                do i = 0,2
-                    prop_elem(index_elem_f(0),                                &
-                        index_elem_f(1):index_elem_f(2):index_elem_f(3),      &
-                        index_elem_f(4):index_elem_f(5):index_elem_f(6),i) =  &
-                        TRANSPOSE(prop_face(1:ngll1-2,1:ngll2-2,i))
-                end do
-            else if(nf == 1 .or. nf == 3)then
-                do i = 0,2
-                    prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3),&
-                        index_elem_f(0),                                      &
-                        index_elem_f(4):index_elem_f(5):index_elem_f(6),i) =  &
-                        TRANSPOSE(prop_face(1:ngll1-2,1:ngll2-2,i))
-                end do
-            else if(nf == 0 .or. nf == 5)then
-                do i = 0,2
-                    prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3),&
-                        index_elem_f(4):index_elem_f(5):index_elem_f(6),      &
-                        index_elem_f(0),i) =                                  &
-                        TRANSPOSE(prop_face(1:ngll1-2,1:ngll2-2,i))
-                end do
+            if (Tdomain%sFace(i1)%ngll == 0) then
+                Tdomain%sFace(i1)%ngll = Tdomain%sFace(i0)%ngll
+                interface_ok = interface_ok + 1
+            endif
+            if (.not.check) cycle
+            if ((Tdomain%sFace(i0)%domain /= d0).or.(Tdomain%sFace(i1)%domain /= d1).or.&
+                (interface_ok==2)) then
+                write(*,*) "Inconsistency detected, unhandled interface (face)"
+                write(*,*) "Face0:", i0, "domain=", Tdomain%sFace(i0)%domain, &
+                    "expected:", d0, "ngll:", Tdomain%sFace(i0)%ngll
+                write(*,*) "Face1:", i1, "domain=", Tdomain%sFace(i1)%domain, &
+                    "expected:", d1, "ngll:", Tdomain%sFace(i1)%ngll
+                stop 1
             end if
-        end select
-
-        return
-
-    end subroutine get_VectProperty_Face2Elem
-
-
-    subroutine get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,   &
-        prop_edge,prop_elem)
-        ! general routine for the assemblage procedure: Element -> edge
-        use mindex, only : ind_elem_edge
-        implicit none
-
-        integer, intent(in) :: ne,orient_e,ngllx,nglly,ngllz,ngll
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: prop_elem
-        real, dimension(1:ngll-2,0:2), intent(out)  :: prop_edge
-        integer, dimension(0:4)  :: index_elem_e
-
-        ! search for the relevant indices
-        call ind_elem_edge(ne,orient_e,ngllx,nglly,ngllz,index_elem_e)
-        ! assemblage
-        select case(ne)
-        case(1,3,8,11)  ! only y-coordinate does vary
-            prop_edge(1:ngll-2,0:2) = prop_edge(1:ngll-2,0:2) +   &
-                prop_elem(index_elem_e(0),index_elem_e(2):index_elem_e(3):index_elem_e(4),  &
-                index_elem_e(1),0:2)
-        case(0,2,5,9)   ! only x-coordinate does vary
-            prop_edge(1:ngll-2,0:2) = prop_edge(1:ngll-2,0:2) +   &
-                prop_elem(index_elem_e(2):index_elem_e(3):index_elem_e(4),index_elem_e(0),  &
-                index_elem_e(1),0:2)
-        case(4,6,7,10)   ! only z-coordinate does vary
-            prop_edge(1:ngll-2,0:2) = prop_edge(1:ngll-2,0:2) +   &
-                prop_elem(index_elem_e(0),index_elem_e(1),                 &
-                index_elem_e(2):index_elem_e(3):index_elem_e(4),0:2)
-        end select
-
-        return
-
-    end subroutine get_VectProperty_Elem2Edge
-
-    subroutine get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,   &
-        prop_face,prop_elem)
-        ! general routine for the assemblage procedure: Element -> face
-        use mindex, only : ind_elem_face
-        implicit none
-
-        integer, intent(in)  :: nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: prop_elem
-        real, dimension(1:ngll1-2,1:ngll2-2,0:2), intent(out) :: prop_face
-        integer, dimension(0:6)  :: index_elem_f
-        integer  :: i
-
-
-        ! search for the relevant indices
-        call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f)
-        ! assemblage
-        select case(orient_f)
-        case(0,1,2,3)
-            if(nf == 2 .or. nf == 4)then
-                prop_face(1:ngll1-2,1:ngll2-2,0:2) =                                       &
-                    prop_face(1:ngll1-2,1:ngll2-2,0:2) +                             &
-                    prop_elem(index_elem_f(0),                                   &
-                    index_elem_f(1):index_elem_f(2):index_elem_f(3),   &
-                    index_elem_f(4):index_elem_f(5):index_elem_f(6),0:2)
-            else if(nf == 1 .or. nf == 3)then
-                prop_face(1:ngll1-2,1:ngll2-2,0:2) =                                       &
-                    prop_face(1:ngll1-2,1:ngll2-2,0:2) +                             &
-                    prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3),   &
-                    index_elem_f(0),                                   &
-                    index_elem_f(4):index_elem_f(5):index_elem_f(6),0:2)
-            else if(nf == 0 .or. nf == 5)then
-                prop_face(1:ngll1-2,1:ngll2-2,0:2) =                                       &
-                    prop_face(1:ngll1-2,1:ngll2-2,0:2) +                             &
-                    prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3),   &
-                    index_elem_f(4):index_elem_f(5):index_elem_f(6),   &
-                    index_elem_f(0),0:2)
+        end do
+        do k=0,inter%surf0%n_edges-1
+            i0 = inter%surf0%if_edges(k)
+            i1 = inter%surf1%if_edges(k)
+            if (Tdomain%sEdge(i0)%ngll == 0) then
+                Tdomain%sEdge(i0)%ngll = Tdomain%sEdge(i1)%ngll
             end if
-        case(4,5,6,7)
-            if(nf == 2 .or. nf == 4)then
-                do i = 0,2
-                    prop_face(1:ngll1-2,1:ngll2-2,i) =                                       &
-                        prop_face(1:ngll1-2,1:ngll2-2,i) +                             &
-                        TRANSPOSE(prop_elem(index_elem_f(0),                                   &
-                        index_elem_f(1):index_elem_f(2):index_elem_f(3),   &
-                        index_elem_f(4):index_elem_f(5):index_elem_f(6),i))
-                end do
-            else if(nf == 1 .or. nf == 3)then
-                do i = 0,2
-                    prop_face(1:ngll1-2,1:ngll2-2,i) =                                       &
-                        prop_face(1:ngll1-2,1:ngll2-2,i) +                             &
-                        TRANSPOSE(prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3),   &
-                        index_elem_f(0),                                   &
-                        index_elem_f(4):index_elem_f(5):index_elem_f(6),i))
-                end do
-            else if(nf == 0 .or. nf == 5)then
-                do i = 0,2
-                    prop_face(1:ngll1-2,1:ngll2-2,i) =                                       &
-                        prop_face(1:ngll1-2,1:ngll2-2,i) +                             &
-                        TRANSPOSE(prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3),   &
-                        index_elem_f(4):index_elem_f(5):index_elem_f(6),   &
-                        index_elem_f(0),i))
-                end do
+            if (Tdomain%sEdge(i1)%ngll == 0) then
+                Tdomain%sEdge(i1)%ngll = Tdomain%sEdge(i0)%ngll
+            endif
+            if (.not.check) cycle
+            if ((Tdomain%sEdge(i0)%domain /= d0).or.(Tdomain%sEdge(i1)%domain /= d1).or.&
+                (interface_ok==2).or.((Tdomain%sEdge(i0)%ngll==0).and.(Tdomain%sEdge(i1)%ngll==0))) then
+                write(*,*) "Inconsistency detected, unhandled interface (edge)"
+                write(*,*) "Edge0:", i0, "domain=", Tdomain%sEdge(i0)%domain, &
+                    "expected:", d0, "ngll:", Tdomain%sEdge(i0)%ngll
+                write(*,*) "Edge1:", i1, "domain=", Tdomain%sEdge(i1)%domain, &
+                    "expected:", d1, "ngll:", Tdomain%sEdge(i1)%ngll
+                stop 1
             end if
-        end select
-
-        return
-
-    end subroutine get_VectProperty_Elem2face
-
-    subroutine get_VectProperty_Elem2Vertex(nv,ngllx,nglly,ngllz,   &
-        prop_vertex,prop_elem)
-        ! general routine for the assemblage procedure: Element -> vertex
-        use mindex, only : ind_elem_vertex
-        implicit none
-
-        integer, intent(in) :: nv,ngllx,nglly,ngllz
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: prop_elem
-        real, dimension(0:2), intent(out)  :: prop_vertex
-        integer, dimension(0:2)  :: index_elem_v
-
-        ! search for the relevant indices
-        call ind_elem_vertex(nv,ngllx,nglly,ngllz,index_elem_v)
-        ! assemblage
-        prop_vertex(0:2) = prop_vertex(0:2)+   &
-            prop_elem(index_elem_v(0),index_elem_v(1),index_elem_v(2),0:2)
-
-        return
-
-    end subroutine get_VectProperty_Elem2Vertex
-
+        end do
+        do k=0,inter%surf0%n_vertices-1
+            i0 = inter%surf0%if_vertices(k)
+            i1 = inter%surf1%if_vertices(k)
+            if (.not.check) cycle
+            if ((Tdomain%sVertex(i0)%domain /= d0).or.(Tdomain%sVertex(i1)%domain /= d1)) then
+                write(*,*) "Inconsistency detected, unhandled interface (vertex)"
+                write(*,*) "Vertex0:", i0, "domain=", Tdomain%sVertex(i0)%domain, &
+                    "expected:", d0
+                write(*,*) "Vertex1:", i1, "domain=", Tdomain%sVertex(i1)%domain, &
+                    "expected:", d1
+                stop 1
+            end if
+        end do
+    end subroutine apply_interface
 end module orientation
 
 !! Local Variables:

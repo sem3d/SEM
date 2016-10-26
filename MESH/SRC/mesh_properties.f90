@@ -1382,8 +1382,8 @@ contains
         !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
         !     (case where mesh built on the fly)
         !- construction of the "material.input" file directly used in SEM3D
-        character, dimension(0:), intent(in)   :: matarray
-        character, dimension(0:), intent(out)  :: mattab
+        character, dimension(0:nmat-1), intent(in)   :: matarray
+        character, dimension(0:nmat_tot-1), intent(out)  :: mattab
         integer, intent(in)     :: nmat,nmat_tot,pml_bool,pml_t,pml_b
         integer                 :: i,icount
 
@@ -1733,7 +1733,6 @@ contains
                     end if
                 end if
             end if
-
         end do
 
     end subroutine nature_elem
@@ -1787,7 +1786,8 @@ contains
         end do
 
         ! lateral PMLs
-        if(present(pml_bool) .and. pml_bool == 1)then
+        if(present(pml_bool)) then
+        if (pml_bool == 1) then
             do i = 0,nmat-1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
                     ngll(i),tr,qp(i),qs(i)
@@ -1813,8 +1813,8 @@ contains
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
                     ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
-
             end do
+        end if
         end if
         ! bottom PMLs
         if(present(pml_b) .and. pml_b == 1)then
@@ -1918,23 +1918,6 @@ contains
             write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
             write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
         end if
-
-        !! Lines dedicated to Random Field
-        write(10,*) ; write(10,*)
-        count_matR = 0
-        do j = 0,nmat-1
-            if(mattab(j)=='R') then
-                open(20,file="mater.in",action="read",status="old")
-                read(20,*) nblock
-                do jj = 0,(nblock+1+count_matR)
-                    read(20,*)
-                end do
-                read(20,*)  corr, lx, ly, lz, marga ,sigma2a, margb ,sigma2b, margc ,sigma2c,seed
-                write(10,*) corr, lx, ly, lz, marga ,sigma2a, margb ,sigma2b, margc ,sigma2c,seed
-                count_matR = count_matR + 1
-                close(20)
-            end if
-        end do
 
         close(10)
 

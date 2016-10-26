@@ -35,7 +35,7 @@ contraintes :math:`\sigma` et les forces extérieures :math:`\mathbf{f}` :
 
    \rho \frac{\partial^2 \mathbf{u}}{\partial t^2} = div \left( \sigma \right) + \mathbf{f}
 
-Avec, en élasticité linéaire : :math:` \sigma = C : Du`, où :math:`C` est le
+Avec, en élasticité linéaire : :math:`\sigma = C : Du`, où :math:`C` est le
 tenseur élastique d'ordre 4 et :math:`Du` le gradient du champs de déplacement.
 
 Pour l'instant les milieux de propagations décrits dans SEM sont
@@ -67,7 +67,7 @@ Méthode spectrale
 
 Pour obtenir une convergence spectrale, ces polynômes de Lagrange sont
 définis sur les points de Gauss-Lobatto-Legendre (GLL) de chaque
-élément (voir :ref:`fig-gll`).
+élément (voir :numref:`fig-gll`).
 
 .. _fig-gll:
 
@@ -92,8 +92,8 @@ Ainsi, sur un élément d'ordre 5, la composante *x* du champ de
 déplacement, est décrite par un vecteur de 125 éléments
 :math:`\mathbf{U}_{i,j,k}` .
 
-La figure :ref:`pollag` montre la forme des polynômes de Lagrange d'ordre 9, la base tensorisée
-de dimension 2D est représentée :ref:`fig-ref-2d`
+La figure :numref:`pollag` montre la forme des polynômes de Lagrange d'ordre 9, la base tensorisée
+de dimension 2D est représentée :numref:`fig-ref-2d`
 
 .. _pollag:
 
@@ -258,13 +258,13 @@ Conditions de bord
 ------------------
 
 PML classique
-..................
+~~~~~~~~~~~~~
 
 La condition naturelle d'un bord en élément fini est d'être une
 surface libre, donc réfléchissante pour les ondes. Pour simuler des
 milieux ouverts, SEM utilise un type d'élément dit *Couche Parfaitement Absorbante* (en anglais: *Perfectly
 Matched Layer*, ou PML) pour simuler un milieu ouvert infini en bordure d'un
-domaine ([BER94]_, [FES05]_). :ref:`PML_schema` montre le mécanisme d'attenuation des ondes.
+domaine ([BER94]_, [FES05]_). La figure :numref:`PML_schema` montre le mécanisme d'atténuation des ondes.
 
 .. _PML_schema:
 
@@ -300,14 +300,15 @@ Maintenant, considérons la décomposition en ondes planes d'une onde de Rayleig
 La dépendance selon x de cette onde ayant les mêmes caractéristiques que celles des ondes de volume, elle obéit à la même loi de décroissance 
 de l'equation précédente lorsqu'elle entre dans une PML le long de la direction :math:`x`. De plus, elle préserve la signature d'une onde de surface, soit un mouvement caractérisé par une décroissance exponentielle avec la profondeur et une polarisation elliptique rétrograde dans le plan
 de propagation en surface et prograde en profondeur. L'onde évanescente peut également interagir avec la frontière inférieure du modèle, lorsque la dimension
-verticale est comparable avec la plus grande longueur d'onde propagée dans le milieu élastique (:ref:`PML_schema`). 
+verticale est comparable avec la plus grande longueur d'onde propagée dans le milieu élastique (:numref:`PML_schema`). 
 Pour des simulations très longues, comme peuvent le demander des études de réponse sismique dans
 des bassins sédimentaires où le signal reste piégé, l'instabilité générée dans les PML pollue le signal
 partout dans le volume. Une solution est d'allonger en profondeur le modèle. Si :math:`\lambda` est la plus grande longueur d'onde des ondes de Rayleigh propagée
 par la grille numérique, la frontière inférieure du modèle devrait être située à environ 2-3 `\lambda` pour éviter toute interférence avec l'onde de surface qui se propage.
 
 PML filtrante (FPML)
-......................
+~~~~~~~~~~~~~~~~~~~~
+
 Dans le domaine fréquentiel, on peut déplacer le pôle de la transformation :math:`\tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega}` le long
 de l'axe imaginaire, en remplaçant la transformation par:
 
@@ -323,7 +324,7 @@ En utilisant cette transformation l'onde de volume décroît dans les PML selon 
 
 La décroissance exponentielle devient maintenant dépendante de la fréquence par le facteur :math:`\frac{\omega^{2}-i \omega\omega_{c}}{\omega^{2}+\omega^{2}_{c}}`.
 Sa partie réelle contribue au changement d'amplitude de la décroissance, alors que sa partie imaginaire
-est responsable d'un décalage en temps qui dépend également de :math:`\Sigma` :ref:`PML_filt`
+est responsable d'un décalage en temps qui dépend également de :math:`\Sigma` :numref:`PML_filt`
 
 .. _PML_filt:
 
@@ -395,7 +396,7 @@ doublement les coûts de calcul :
 
 - le pas de temps est proportionnel à :math:`\frac{1}{\min \Delta x}`,
   le pas d'espace :math:`\min \Delta x` diminuant avec l'ordre des
-  éléments (On voit sur :ref:`fig-gll` comment les points de Gauss se
+  éléments (On voit sur :numref:`fig-gll` comment les points de Gauss se
   resserrent vers les bords avec l'augmentation de l'ordre).
 
 Atténuation
@@ -518,15 +519,13 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
   - Une ligne par milieu, contenant :
 
-    - le type de milieu (Solide, Fluide, PML solide (P)m PML fluide (L) )
+    - le type de milieu (Solide, Fluide, Random, PML solide (P)m PML fluide (L) )
 
     - Les vitesses d'ondes P, et S
 
     - La densité
 
-    - L'ordre des éléments en X, Y, Z (Y est ignoré en 2D)
-
-    - Un pas de temps (ignoré dans la version actuelle)
+    - L'ordre des élément (Le même ordre est imposée pour X, Y et Z)
 
     - Les atténuations d'ondes P et S par les paramètres :math:`Q_\kappa` et :math:`Q_\mu`.
 
@@ -539,11 +538,27 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
     - paramètres n et A pour les PML filtrantes
 
-    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML atténue dans
-      les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
-      ou négatif de l'axe.
+    - 3 couples de deux paramètres indicant le point de début de la PML et la taille de l'extrusion de la PML
+      Respectivement X, Y et Z  
+      Tailles négatives doivent être utiées si l'extrusion est dans le sense négatif de axe. 
 
-    - La fréquence de coupure en cas de PML filtrante
+    - La fréquence de coupure en cas de PML filtrant
+
+    - Le nombre du matériel avec lequel la PML fait interface
+
+  - 5 lignes de commentaires
+
+  - Pour chaque millieu de type Random (R), 
+
+    - Choix de paramétrisation (0 for mu, kappa, rho and 1 for mu, lambda, rho)
+
+    - 3 lignes avec les paramètres statistiques de chaque millieu Random
+      
+      Modèle de Correlation (1 pour Gaussian)
+      3 Tailles de correlation, repectivement X, Y et Z
+      Marginal d'ordre 1 (1 pour Gaussianne, 2 pour lognormal)
+      Coeficient de variation
+      Choix du germe aléatoire (si ce chiffre est plus petit que 0 le germe sera choisi selon le clock du processeur) 
 
   Exemple ::
 
@@ -551,11 +566,21 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
     S  6300.00  2500.00   2800. 5   5    5  0.000005 600. 300.
     P  6300.00  2500.00   2800. 7   7    5  0.000005   0.   0.
     P  6300.00  2500.00   2800. 7   7    5  0.000005   0.   0.
+    R  6300.00  2500.00   2800. 5   5    5  0.000005 600. 300.
     # PML properties
-    # Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
-    F 2 10. T T T T F F 0.
-    F 2 10. T F T T F F 0.
-
+    # npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
+    2 10. 0.000000 -1.000000 0.000000 -1.000000 50.000000 1.000000 0
+    2 10. 0.000000 0.000000 0.000000 -1.000000 50.000000 1.000000 0
+    # Random properties
+    # Parametrization Choice (0 for Kappa, 1 for Lambda)
+    # Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+    # Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+    # Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+    0
+    2 30.0 30.0 30.0 2 0.3 0
+    2 30.0 30.0 30.0 2 0.3 1
+    2 30.0 30.0 30.0 2 0.3 -1
+     
 :file:`capteurs.dat` :
 
   Contient les coordonnées X Y Z des capteurs, un capteur sur chaque ligne,
@@ -913,17 +938,19 @@ On peut cependant aller plus loin et modifier le maillage généré avec quelque
   # Fin
   >>> fmesh.close()
 
-==================
+=================
 Gestion des tests
-==================
+=================
 
 Il y a un outil qui gère le lancement des tests et la génération d'un
-rapport de test. \\
+rapport de test.
+
 Il n’est pas spécifique à SEM. Par contre, des développements
 spécifiques ont été fait pour traiter plus particulièrement
-les sorties de les codes SEM2D et SEM3D.\\
+les sorties de les codes SEM2D et SEM3D.
+
 La documentation Validationtools.pdf [disponible dans le répertoire
-$Valid-tools/doc/source$]décrit en détails l'organisation et la
+``Valid-tools/doc/source``] décrit en détails l'organisation et la
 construction des tests, la structure du rapport de test,la création
 d'un jeu de tests, les données d'entrée que l'auteur d'un cas test
 devra fournir pour s'intégrer correctement dans cette infrastructure

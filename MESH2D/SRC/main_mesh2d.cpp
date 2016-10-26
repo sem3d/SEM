@@ -8,16 +8,19 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <utility> // pair
+#include <algorithm> // find
+#include <tuple>
 #define OMPI_SKIP_MPICXX
 #include <hdf5.h>
 #include <cassert>
 #include <unistd.h>
+#include <cstdint>
 #include "metis.h"
+#include "h5helper.h"
+#include "read_unv.hpp"
 
-using std::string;
-using std::vector;
-using std::pair;
-using std::map;
+using namespace std;
 
 class Point {
     public:
@@ -27,12 +30,13 @@ class Point {
         double x,y;
 };
 
-// Edge index : <node1,node2> with node1<node2
-typedef pair<int,int> edge_idx_t;
+typedef pair<int,int> edge_idx_t;               // Edge index : <node0,node1>                 with node0<node1
+typedef tuple<int,int,int,int,int> edge_info_t; // Edge info  : <edgenum,elem0,elem1,wf0,wf1> with elemX = element X, wfX = which_face of elemX
 
 class Quad {
     public:
         Quad() {nn = 0; n = NULL;}
+        Quad(vector<uint64_t> & nodeID) {nn = nodeID.size(); n = new int[nn]; for(int i=0; i<nn; i++) n[i]=nodeID[i];}
         virtual ~Quad() {if(n){delete [] n; n = NULL; nn = 0;};}
         Quad(const Quad& Q) {nn = 0; n = NULL; *this = Q;}
         Quad& operator=(const Quad & Q) {
@@ -51,7 +55,7 @@ class Quad {
             int n3=n[3]; assert(n3>=0 && n3<x.size());
             double v01[2] = {x[n1]-x[n0], y[n1]-y[n0]};
             double v03[2] = {x[n3]-x[n0], y[n3]-y[n0]};
-            if ((v01[0]*v03[1]-v01[1]*v03[0])<0.){swap_orient(); printf("one quad (%f %f) has been swaped\n", x[n0]+v01[0]/2., y[n0]+v03[1]/2.);}
+            if ((v01[0]*v03[1]-v01[1]*v03[0])<0.) swap_orient();
         };
         virtual void swap_orient() = 0;
         virtual edge_idx_t get_edge_from_node(int i) = 0; // Assume a node belongs to the upcoming edge (or current edge for intermediate node)
@@ -65,6 +69,7 @@ class Quad4 : public Quad {
     public:
         Quad4() {nn = 0; n = NULL;}
         Quad4(const int* q):Quad() {nn = 4; n = new int[nn]; for(int i=0; q && i<nn; i++) n[i]=q[i];}
+        Quad4(vector<uint64_t> & nodeID):Quad(nodeID) {}
         virtual edge_idx_t get_edge_from_node(int i) // Return edge oriented the same way (low -> high) whatever element edge orientation may be
         {
             assert (i>=0 && i<=3);
@@ -79,17 +84,18 @@ class Quad8 : public Quad4 { // Assume intermediate nodes are stored after princ
     public:
         Quad8() {nn = 0; n = NULL;}
         Quad8(const int* q):Quad4() {nn = 8; n = new int[nn]; for(int i=0; q && i<nn; i++) n[i]=q[i];}
+        Quad8(vector<uint64_t> & nodeID):Quad4(nodeID) {}
         virtual void swap_orient() {int tmp=n[4]; n[4]=n[7]; n[7]=tmp; tmp=n[5]; n[5]=n[6]; n[6]=tmp; Quad4::swap_orient();};
         virtual edge_idx_t get_edge_from_node(int i) {assert (i>=0 && i<=7); int ii = (i >= 4) ? i - 4 : i; return Quad4::get_edge_from_node(ii);};
         virtual int get_face_from_node(int i) {assert (i>=0 && i<=7); int ii = (i >= 4) ? i - 4 : i; return ii;};
         virtual bool is_intermediate_node(int i) {assert (i>=0 && i<=7); return (i >= 4) ? true : false;};
 };
 
-struct edge_info_t
+struct edge_comm_info_t
 {
-    edge_info_t():edge(-1),coherency(-1) {}
-    edge_info_t(int e, int c):edge(e),coherency(c) {}
-    edge_info_t(const edge_info_t& ei):edge(ei.edge),coherency(ei.coherency) {}
+    edge_comm_info_t():edge(-1),coherency(-1) {}
+    edge_comm_info_t(int e, int c):edge(e),coherency(c) {}
+    edge_comm_info_t(const edge_comm_info_t& ei):edge(ei.edge),coherency(ei.coherency) {}
     int edge;
     int coherency;
 };
@@ -98,37 +104,34 @@ struct Comm_proc {
     vector<int> m_vertices;
     map<int,int> m_vertices_map;
     vector<int> m_edges;
-    map<edge_idx_t,edge_info_t> m_edges_map;
+    map<edge_idx_t,edge_comm_info_t> m_edges_map;
     vector<int> m_coherency;
 };
 
 class MeshProcInfo {
     public:
-        MeshProcInfo(const int npq) {m_npq = npq;}
+        MeshProcInfo(const int npq) { m_npq = npq; }
         // Computed for storage
         vector<double> m_nodes;
         vector<int> m_quadnodes; // 4 or 8 node number for each quad
         vector<int> m_quadvertices; // always 4 vertice number for each quad
         vector<int> m_material;
-        vector<int> m_edges; // 4 edge number for each quad
-        vector<int> m_edges_elems; // Elem0,Elem1 for each edge
-        vector<int> m_edges_local; // local face number of the corresponding element (Which_face)
-        vector<int> m_edges_vertices; // vert0,vert1 for each edge
+        vector<int> m_quadedges; // 4 edge number for each quad
 
         int n_elements() const { return m_quadnodes.size()/m_npq; }
-        int n_edges() const { return m_edges_vertices.size()/2; } // Divide by 2 as v0 and v1 are stored for each edge
+        int n_edges() const { return m_edge_map.size(); }
         int n_vertices() const { return m_vert_map.size(); }
 
         // Bookkeeping info
-        vector<int> m_node_map;
-        map<int, int> m_vert_map; // for quad8, vertex global numbering != node numbering (intermediate nodes not considered)
+        vector<int> m_node_map; // map global node with local node (processor submesh)
+        map<int, int> m_vert_map; // map node with vertex (for quad8, vertex numbering != node numbering as intermediate nodes are not considered)
         vector<int> m_quad_map;
-        map<edge_idx_t,int> m_edge_map; // maps edge_idx to edge num+1 (so that 0 is used as not assigned)
+        map<edge_idx_t, edge_info_t> m_edge_map; // maps each edge with informations associated to this edge
+        vector<edge_idx_t> m_edges; // Keep track of face creation order (lost when using only map)
 
         // Methods
-        void add_edge_element(Quad& q, int fn, int en, int qn);
+        int add_edge_element(edge_idx_t e, int fn, int qn);
         void add_vertex(const int nid) {if(m_vert_map.find(nid)==m_vert_map.end()) {int vid=n_vertices(); m_vert_map[nid]=vid;}}
-        void create_new_edge();
         void get_quad_edge(Quad& q, int fn, int& v0, int& v1);
 
         map<int,Comm_proc> m_comm;
@@ -139,12 +142,12 @@ class Mesh2D {
 public:
     Mesh2D() {};
     virtual ~Mesh2D() {for(vector<Quad*>::iterator it = m_quads.begin(); it != m_quads.end(); ++it) {Quad* q=*it; if(q){delete q; q=NULL;}}};
-    void read_mesh(const string& fname, int& t);
+    void read_mesh(const string& fname);
     void partition_metis(int nproc);
     void partition_scotch(int nproc);
     void check_cell_orient();
     void write_proc_field(const string& fname);
-    void write_proc_file(const string& fname, const int t, int rk);
+    void write_proc_file(const string& fname, int rk);
     void gather_proc_info(MeshProcInfo& info, int rk);
     void store_local_quad_points(MeshProcInfo& info, int qn, Quad& quad);
     void prepare_new_proc_info(MeshProcInfo& info);
@@ -156,6 +159,8 @@ public:
     vector<int>  m_procs;
     vector<int>  m_mat1;
     vector<int>  m_mat2;
+private:
+    void read_sem_mesh(const string& fname);
 };
 
 
@@ -219,50 +224,19 @@ void MeshProcInfo::get_quad_edge(Quad& q, int fn, int& v0, int& v1)
     v1=m_vert_map[n1];
 }
 
-void MeshProcInfo::create_new_edge()
+int MeshProcInfo::add_edge_element(edge_idx_t e, int fn, int qn)
 {
-    m_edges_elems.push_back(-1);
-    m_edges_elems.push_back(-1);
-    m_edges_local.push_back(-1);
-    m_edges_local.push_back(-1);
-    m_edges_vertices.push_back(-1);
-    m_edges_vertices.push_back(-1);
-}
+    edge_info_t ei;
+    if (m_edge_map.find(e) != m_edge_map.end()) ei = m_edge_map[e];
+    else {ei = edge_info_t (m_edge_map.size (), -1, -1, -1, -1); m_edges.push_back(e);}
 
-void MeshProcInfo::add_edge_element(Quad& q, int fn, int en, int qn)
-{
-    // fn : local face number of current quad
-    // qn : quad number
-    // en : edge number
-    int j=0;
-    int v0=-1, v1=-1;
-    int lqn = m_quad_map[qn];
-    // Asserts we don't come here more than twice
-    assert(m_edges_elems[2*en+1]==-1);
-    if (m_edges_elems[2*en+0]==-1) {
-        j=0;
-        get_quad_edge(q, fn, v0, v1);
-    } else if (m_edges_elems[2*en+0]>lqn) {
-        j=0;
-        // Move elem0 to index 1
-        m_edges_elems[2*en+1] = m_edges_elems[2*en+0];
-        m_edges_local[2*en+1] = m_edges_local[2*en+0];
-        // Reset vertices for elem0
-        get_quad_edge(q, fn, v0, v1);
-    } else {
-        j=1;
-    }
-    m_edges_elems[2*en+j] = lqn;
-    m_edges_local[2*en+j] = fn;
-    if (j==0) {
-        m_edges_vertices[2*en+0] = v0;
-        m_edges_vertices[2*en+1] = v1;
-    } else {
-        // Do nothing the vertices stored are already those of m_edges_elems[2*en+0]
-        v0 = m_edges_vertices[2*en+0];
-        v1 = m_edges_vertices[2*en+1];
-    }
-    //printf("qn=%d fn=%d en=%d : j=%d v0=%d v1=%d\n", qn, fn, en, j, v0, v1);
+    int elem0 = get<1>(ei); int elem1 = get<2>(ei);
+    if      (elem0 == -1) {get<1>(ei) = qn; get<3>(ei) = fn;} // Modify info
+    else if (elem1 == -1) {get<2>(ei) = qn; get<4>(ei) = fn;} // Modify info
+    else                  {assert(0); /*should never happen - assert to make sure*/ }
+
+    m_edge_map[e] = ei; // Store (created or modified) info in map
+    return get<0>(ei);
 }
 
 void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
@@ -283,18 +257,10 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
             info.m_quadnodes.push_back(locnode);
             if (quad->is_intermediate_node(k)) continue; // For topology construction, rely on principal nodes only
             info.m_quadvertices.push_back(info.m_vert_map[locnode]); // Log node as a vertex
-            edge_idx_t e = quad->get_edge_from_node(k);
-            int& edge_num = info.m_edge_map[e]; // edge_num is offset by one so that zero means unassigned
-            if (edge_num==0) {
-                edge_num = info.m_edge_map.size();
-                info.create_new_edge();
-                assert(edge_num==info.m_edges_local.size()/2);
-            }
-            info.add_edge_element(*quad, quad->get_face_from_node(k), edge_num-1, qn);
-            info.m_edges.push_back(edge_num-1);
+            int edge_num = info.add_edge_element(quad->get_edge_from_node(k), quad->get_face_from_node(k), qn);
+            info.m_quadedges.push_back(edge_num);
         }
     }
-    for(int k=0;k<info.m_edges_local.size();k+=2) assert(info.m_edges_local[k]!=-1);
     for(int qn=0;qn<m_quads.size();++qn) {
         Quad* quad = m_quads[qn];
         assert(quad);
@@ -310,10 +276,10 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
                 }
                 // Check edges
                 edge_idx_t e = quad->get_edge_from_node(k);
-                int edge_num = info.m_edge_map[e]-1; //edge_num is offset by one so that zero means unassigned
-                if (edge_num>=0) {
+                int edge_num = get<0>(info.m_edge_map[e]);
+                if (edge_num>0) {
                     Comm_proc& comm = info.m_comm[m_procs[qn]];
-                    comm.m_edges_map[e]=edge_info_t(edge_num,1);
+                    comm.m_edges_map[e]=edge_comm_info_t(edge_num,1);
                 }
             }
         }
@@ -321,8 +287,7 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
     map<int,Comm_proc>::iterator cit;
     for(cit=info.m_comm.begin();cit!=info.m_comm.end();++cit) {
         Comm_proc& comm=cit->second;
-        map<edge_idx_t,edge_info_t>::const_iterator eit;
-        for(eit=comm.m_edges_map.begin();eit!=comm.m_edges_map.end();++eit) {
+        for(auto eit=comm.m_edges_map.begin();eit!=comm.m_edges_map.end();++eit) {
             comm.m_edges.push_back(eit->second.edge);
             comm.m_coherency.push_back(eit->second.coherency);
         }
@@ -333,152 +298,21 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
     }
 }
 
-int read_attr_int(hid_t dset_id, const char* attrname)
-{
-    hsize_t dims[1] = {1,};
-    int res;
-    hid_t attid = H5Aopen(dset_id, attrname, H5P_DEFAULT);
-    //hid_t spcid = H5Aget_space(attid);
-    //TODO check dims of attr
-    H5Aread(attid, H5T_NATIVE_INT, &res);
-    H5Aclose(attid);
-    return res;
-}
-
-void write_attr_int(hid_t dset_id, const char* attrname, int val)
-{
-    hsize_t dims[1] = {1,};
-    hid_t spcid = H5Screate(H5S_SCALAR);
-    hid_t attid = H5Acreate2(dset_id, attrname, H5T_STD_I64LE, spcid, H5P_DEFAULT, H5P_DEFAULT);
-
-    //TODO check dims of attr
-    H5Awrite(attid, H5T_NATIVE_INT, &val);
-    H5Aclose(attid);
-    H5Sclose(spcid);
-}
-
-int get_dset1d_size(hid_t dset_id)
-{
-    hsize_t dims[1], maxdims[1];
-    hid_t space_id = H5Dget_space(dset_id);
-    int ndims = H5Sget_simple_extent_ndims(space_id);
-    assert(ndims==1);
-    H5Sget_simple_extent_dims(space_id, dims, maxdims);
-    H5Sclose(space_id);
-    return dims[0];
-}
-
-void get_dset2d_size(hid_t dset_id, hsize_t& d1, hsize_t& d2)
-{
-    hsize_t dims[2], maxdims[2];
-    hid_t space_id = H5Dget_space(dset_id);
-    int ndims = H5Sget_simple_extent_ndims(space_id);
-    assert(ndims==1 || ndims==2);
-    H5Sget_simple_extent_dims(space_id, dims, maxdims);
-    H5Sclose(space_id);
-    d1 = (ndims == 1) ?       1 : dims[0];
-    d2 = (ndims == 1) ? dims[0] : dims[1];
-}
-
-void read_dset_2d_d(hid_t g, const char* dname, vector<double>& v, vector<double>& w)
-{
-    hid_t dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
-    hsize_t dim1 = -1, dim2 = -1;
-    get_dset2d_size(dset_id, dim1, dim2);
-
-    v.resize(dim1); w.resize(dim1);
-    hid_t memspace_id = H5Screate_simple(1, &dim1, NULL);
-    hsize_t startmem[1] = {0}; hsize_t countmem[1] = {dim1};
-    H5Sselect_hyperslab(memspace_id, H5S_SELECT_SET, startmem, NULL, countmem, NULL);
-
-    hid_t filespace_id = H5Dget_space(dset_id);
-    hsize_t countfile[2] = {dim1, 1}; hsize_t startfile[2] = {0, 0};
-    H5Sselect_hyperslab(filespace_id, H5S_SELECT_SET, startfile, NULL, countfile, NULL); // Get X, mask Y
-    H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id, H5P_DEFAULT, &v[0]);
-    startfile[1] = 1;
-    H5Sselect_hyperslab(filespace_id, H5S_SELECT_SET, startfile, NULL, countfile, NULL); // Get Y, mask X
-    H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id, H5P_DEFAULT, &w[0]);
-
-    H5Sclose(memspace_id);
-    H5Sclose(filespace_id);
-    H5Dclose(dset_id);
-}
-
-void read_dset_1d_i(hid_t g, const char* dname, vector<int>& v)
-{
-    hid_t dset_id;
-    int dim;
-    dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
-    dim = get_dset1d_size(dset_id);
-    v.resize(dim);
-    H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    H5Dclose(dset_id);
-}
-
-void write_dset_1d_i(hid_t file_id, const char* dname, const vector<int>& v)
-{
-    hsize_t dims[1];
-    herr_t  status;
-    hid_t   dset_id;
-    hid_t   dspc_id;
-
-    if (H5Lexists(file_id, dname, H5P_DEFAULT)) {
-        dset_id = H5Dopen(file_id, dname, H5P_DEFAULT);
-        // TODO Check size coherency
-    } else {
-        /* Create the data space for the dataset. */
-        dims[0] = v.size();
-        dspc_id = H5Screate_simple(1, dims, NULL);
-        dset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, dspc_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        status = H5Sclose(dspc_id);
-    }
-    H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    status = H5Dclose(dset_id);
-}
-
-void write_dset_2d_i(hid_t file_id, const char* dname, int d2, const vector<int>& v)
-{
-    hsize_t     dims[2];
-    herr_t      status;
-
-    /* Create the data space for the dataset. */
-    dims[0] = v.size()/d2;
-    dims[1] = d2;
-    hid_t dataspace_id = H5Screate_simple(2, dims, NULL);
-    hid_t dataset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    status = H5Dclose(dataset_id);
-    status = H5Sclose(dataspace_id);
-}
-
-void write_dset_2d_r(hid_t file_id, const char* dname, int d2, const vector<double>& v)
-{
-    hsize_t     dims[2];
-    herr_t      status;
-
-    /* Create the data space for the dataset. */
-    dims[0] = v.size()/d2;
-    dims[1] = d2;
-    hid_t dataspace_id = H5Screate_simple(2, dims, NULL);
-    hid_t dataset_id = H5Dcreate2(file_id, dname, H5T_IEEE_F64LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    status = H5Dclose(dataset_id);
-    status = H5Sclose(dataspace_id);
-}
 
 void read_nodes(hid_t g, vector<double>& x, vector<double>& y)
 {
-    read_dset_2d_d(g, "/Nodes", x, y);
+    h5h_read_dset_Nx2(g, "/Nodes", x, y);
 }
 
-void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y, int& t)
+void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y)
 {
     hid_t dset_id;
     hsize_t n0, n1;
+    int t = 0;
     if     (H5Lexists(g, "/Sem2D/Quad4", H5P_DEFAULT)) {dset_id=H5Dopen2(g, "/Sem2D/Quad4", H5P_DEFAULT); t=4;}
     else if(H5Lexists(g, "/Sem2D/Quad8", H5P_DEFAULT)) {dset_id=H5Dopen2(g, "/Sem2D/Quad8", H5P_DEFAULT); t=8;}
     else   {printf("ERR: only Quad4 and Quad8 are supported\n"); exit(1);}
-    get_dset2d_size(dset_id, n0, n1);
+    h5h_get_dset2d_size(dset_id, n0, n1);
     assert(t == n1);
     int* quads = new int[n0*n1];
     H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, quads);
@@ -493,24 +327,59 @@ void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y,
 
 void read_mat(hid_t g, vector<int>& m)
 {
-    read_dset_1d_i(g, "/Sem2D/Mat", m);
+    h5h_read_dset(g, "/Sem2D/Mat", m);
 }
 
-void Mesh2D::read_mesh(const string& fname, int& t)
+void Mesh2D::read_mesh(const string& fname)
+{
+  if (fname.find(".unv") != string::npos)
+  {
+    vector<int> filterelems; filterelems.push_back(44); filterelems.push_back(45);
+    lsnodes nodes; lselems elems;
+    int rc = read_unv_mesh(fname, nodes, elems, &filterelems);
+    assert(rc == 0);
+
+    // Look for nodes in the XY plan (UNV, which is a 3D generic format, do not provide any hint to "choose" between XY or XZ or YZ)
+
+    for (unsigned int i = 0; i < nodes.size(); i++) {m_px.push_back(get<0>(nodes[i])); m_py.push_back(get<1>(nodes[i]));}
+
+    // Look for quad4 / quad8
+
+    for (unsigned int i = 0; i < elems.size(); i++)
+    {
+      int type = get<0>(elems[i]);
+      vector<uint64_t> nodeID = get<2>(elems[i]);
+      group gp = get<3>(elems[i]);
+      if(type == 44) {Quad4* q = new Quad4(nodeID); q->check_orient(m_px, m_py); m_quads.push_back(q); m_mat1.push_back(get<1>(gp));}; // Quad4
+      if(type == 45) {Quad8* q = new Quad8(nodeID); q->check_orient(m_px, m_py); m_quads.push_back(q); m_mat1.push_back(get<1>(gp));}; // Quad8
+    }
+    m_mat2 = m_mat1;
+  }
+  else read_sem_mesh(fname);
+
+  m_nprocs = 1;
+  m_procs.resize(m_quads.size(), 0);
+  m_mat_max = 0;
+  for(int k=0;k<m_mat1.size();++k) if (m_mat1[k]>m_mat_max) m_mat_max = m_mat1[k];
+
+  assert(m_px.size() > 0 && m_px.size() == m_py.size());               // Check nodes    consistency
+  assert(m_quads.size() > 0);                                          // Check element  consistency
+  assert(m_mat1.size() > 0 && m_mat1.size() == m_mat2.size());         // Check material consistency
+  assert(std::find(m_mat1.begin(), m_mat1.end(), -1) == m_mat1.end()); // Check all elements have a material
+}
+
+void Mesh2D::read_sem_mesh(const string& fname)
 {
     hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     read_nodes(file_id, m_px, m_py);
-    read_quads(file_id, m_quads, m_px, m_py, t);
+    read_quads(file_id, m_quads, m_px, m_py);
     read_mat(file_id, m_mat1);
     read_mat(file_id, m_mat2);
     assert(m_mat1.size()==m_mat2.size());
     assert(m_quads.size()==m_mat1.size());
-    printf("%ld Nodes, %ld Quads%i\n", m_px.size(), m_quads.size(), t);
+    assert(m_quads.size()>0);
+    printf("%ld Nodes, %ld Quads%i\n", m_px.size(), m_quads.size(), m_quads[0]->get_nb_nodes());
     H5Fclose(file_id);
-    m_nprocs = 1;
-    m_procs.resize(m_quads.size(), 0);
-    m_mat_max = 0;
-    for(int k=0;k<m_mat1.size();++k) if (m_mat1[k]>m_mat_max) m_mat_max = m_mat1[k];
 }
 
 void Mesh2D::check_cell_orient()
@@ -519,6 +388,11 @@ void Mesh2D::check_cell_orient()
 
 void Mesh2D::partition_metis(int nproc)
 {
+    if (m_quads.size() > 0 && m_quads[0]->get_nb_nodes() == 8) {
+        printf("Error : not yet implemented\n");
+        exit(1);
+    }
+
     idx_t options[METIS_NOPTIONS];
     idx_t ne = m_quads.size();
     idx_t nn = m_px.size();
@@ -563,13 +437,13 @@ void Mesh2D::partition_metis(int nproc)
 
 void Mesh2D::write_proc_field(const string& fname)
 {
-    hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    write_dset_1d_i(file_id, "Proc", m_procs);
+    hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDWR|H5F_ACC_CREAT, H5P_DEFAULT);
+    h5h_write_dset(file_id, "Proc", m_procs);
     H5Fclose(file_id);
 }
 
 
-void Mesh2D::write_proc_file(const string& fname, const int t, int rk)
+void Mesh2D::write_proc_file(const string& fname, int rk)
 {
     hid_t fid;
     if (access(fname.c_str(), F_OK)==0) {
@@ -578,33 +452,45 @@ void Mesh2D::write_proc_file(const string& fname, const int t, int rk)
     }
     fid = H5Fopen(fname.c_str(), H5F_ACC_RDWR|H5F_ACC_CREAT, H5P_DEFAULT);
 
-    MeshProcInfo info(t);
+    assert(m_quads.size() > 0);
+    MeshProcInfo info(m_quads[0]->get_nb_nodes());
     gather_proc_info(info, rk);
-    write_attr_int(fid, "ndim", 2);
+    h5h_write_attr_int(fid, "ndim", 2);
     //m_nprocs=1;
-    write_attr_int(fid, "n_processors", m_nprocs);
-    write_attr_int(fid, "n_materials", m_mat_max+1);
-    write_attr_int(fid, "n_elements", info.n_elements());
-    write_attr_int(fid, "n_edges", info.n_edges());
-    write_attr_int(fid, "n_vertices", info.n_vertices());
-    write_dset_2d_r(fid, "nodes", 2, info.m_nodes);
-    write_dset_2d_i(fid, "material", 3, info.m_material);
-    write_dset_2d_i(fid, "elements", info.m_npq, info.m_quadnodes);
-    write_dset_2d_i(fid, "edges", 4, info.m_edges);
+    h5h_write_attr_int(fid, "n_processors", m_nprocs);
+    h5h_write_attr_int(fid, "n_materials", m_mat_max+1);
+    h5h_write_attr_int(fid, "n_elements", info.n_elements());
+    h5h_write_attr_int(fid, "n_edges", info.n_edges());
+    h5h_write_attr_int(fid, "n_vertices", info.n_vertices());
+    h5h_write_dset_2d(fid, "nodes", 2, info.m_nodes);
+    h5h_write_dset_2d(fid, "material", 3, info.m_material);
+    h5h_write_dset_2d(fid, "elements", info.m_npq, info.m_quadnodes);
+    h5h_write_dset_2d(fid, "edges", 4, info.m_quadedges);
     // With linear Quad, vertices==elements
-    write_dset_2d_i(fid, "vertices", 4, info.m_quadvertices);
-    write_dset_2d_i(fid, "faces_elem", 2, info.m_edges_elems);
-    write_dset_2d_i(fid, "faces_which", 2, info.m_edges_local);
-    write_dset_2d_i(fid, "faces_vertex", 2, info.m_edges_vertices);
+    h5h_write_dset_2d(fid, "vertices", 4, info.m_quadvertices);
+    vector<int> edges_elems, edges_wf, edges_vertices;
+    for(auto it = info.m_edges.begin(); it != info.m_edges.end(); it++) {
+        edge_idx_t e = *it;
+        edges_vertices.push_back(info.m_vert_map[info.m_node_map[get<0>(e)]]);
+        edges_vertices.push_back(info.m_vert_map[info.m_node_map[get<1>(e)]]);
+        edge_info_t ei = info.m_edge_map[e];
+        edges_elems.push_back(get<1>(ei));
+        edges_elems.push_back(get<2>(ei));
+        edges_wf.push_back(get<3>(ei));
+        edges_wf.push_back(get<4>(ei));
+    }
+    h5h_write_dset_2d(fid, "faces_elem", 2, edges_elems);
+    h5h_write_dset_2d(fid, "faces_which", 2, edges_wf);
+    h5h_write_dset_2d(fid, "faces_vertex", 2, edges_vertices);
     vector<int> vgn;
     for(map<int,int>::const_iterator it = info.m_vert_map.begin(); it != info.m_vert_map.end(); it++) {
         vgn.push_back(it->first);
     }
-    write_dset_1d_i(fid, "vertices_globnum", vgn);
+    h5h_write_dset(fid, "vertices_globnum", vgn);
 
     int n_comm = info.m_comm.size();
     //n_comm = 0;
-    write_attr_int(fid, "n_communications", n_comm);
+    h5h_write_attr_int(fid, "n_communications", n_comm);
     map<int,Comm_proc>::const_iterator it;
     int comm_count=0;
     for(it=info.m_comm.begin();it!=info.m_comm.end();++it) {
@@ -613,10 +499,10 @@ void Mesh2D::write_proc_file(const string& fname, const int t, int rk)
         const Comm_proc& comm = it->second;
         hid_t grp = H5Gcreate(fid, grp_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-        write_attr_int(grp, "processor", it->first);
-        write_dset_1d_i(grp, "vertices", comm.m_vertices);
-        write_dset_1d_i(grp, "edges", comm.m_edges);
-        write_dset_1d_i(grp, "coherency", comm.m_coherency);
+        h5h_write_attr_int(grp, "processor", it->first);
+        h5h_write_dset(grp, "vertices", comm.m_vertices);
+        h5h_write_dset(grp, "edges", comm.m_edges);
+        h5h_write_dset(grp, "coherency", comm.m_coherency);
         H5Gclose(grp);
         comm_count++;
     }
@@ -635,21 +521,18 @@ int main(int argc, char** argv)
     int nproc = atoi(argv[1]);
     string fmesh = argv[2];
 
-    int t = -1; // Element type : 4 or 8
     Mesh2D mesh;
-    mesh.read_mesh(fmesh, t);
-    if (nproc>1) {
-        if (t == 8) {
-            printf("Error : not yet implemented\n");
-            exit(1);
-        }
-        mesh.partition_metis(nproc);
-    }
-    mesh.write_proc_field(fmesh);
+    mesh.read_mesh(fmesh);
+    if (nproc>1) mesh.partition_metis(nproc);
+
+    string basename = fmesh;
+    if (basename.find(".h5")  != string::npos) basename = basename.erase(basename.find(".h5"),  3);
+    if (basename.find(".unv") != string::npos) basename = basename.erase(basename.find(".unv"), 4);
+    mesh.write_proc_field(basename+".h5");
 
     for(int k=0;k<nproc;++k) {
         snprintf(fname, 1024,"%s.%04d.h5", argv[3], k);
-        mesh.write_proc_file(fname, t, k);
+        mesh.write_proc_file(fname, k);
     }
 }
 

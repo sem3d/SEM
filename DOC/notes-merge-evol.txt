@@ -1,0 +1,63 @@
+
+
+Bug probable communication des matrices de masse dans
+le cas ou un element solide proc 0 en contact avec un element solide PML proc1
+voir si on peut faire les communications avec la numerotation globale
+
+
+Bug probable reintroduit avec le %V0 qui est non initialise dans le cas des PMLs
+voir read_restart, save_checkpoint qui sauvegardait V0 pour Face/Edge/Vertex
+
+
+optim:
+
+- newmark, voir si on peut vectoriser correction/prediction
+
+- Champs: inverser coords pour avoir x,y,z en premier ? A tester
+
+Reorg:
+
+- Faire 4 structures S,F,SPML,FPML pour chacun des groupes de donnees :
+  Data : param fixe par element
+  Field : Param variables
+
+  Au lieu d'avoir champ->s_forces champs->f_velphi on a champs->sol->forces ...
+  Idem pour les donnees de Tdomain :
+
+  Tdomain->s_data->MassMat
+  Tdomain->f_data->MassMat ...
+
+  On renomme les ISol,IFlu,... de element pour en avoir qu'un seul
+
+  les data peuvent contenir les données stockee dans les elements actuellement
+  avec un index calculé : specel(n)%Lambda(i,j,k) ---> data_s->lambda(i,j,k,n)
+
+Ensuite on peut separer les calculs par domaines également pour ameliorer la localite memoire.
+pour les cas couples.
+
+Voir si on peut ameliorer globalnumbering pour que les num gll des faces/edges/vertex soient
+plus localises sur les elements.
+
+
+kill Tdomain%curve
+
+
+
+modules/warning
+
+compilation -Wall,
+
+suppression des warnings :
+ - unused variables
+ - initialized/unused
+
+modules :
+
+  nommage : nom module == nom fichier
+  split     modname_def  modname_alg lorsque besoin de separer structure et fct cause dep croisee
+  comm : simplifier exchange_vector (ou pas) :
+     type(exchange_vector):: Give, Take, IGive, ITake, src, dest, dim
+
+   comm_vector:
+      dimension(:) :: Data
+      dimension(:), exchange_vector :: comms

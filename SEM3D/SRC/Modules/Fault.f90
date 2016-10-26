@@ -12,7 +12,7 @@
 !<
 
 module sfault
-
+    implicit none
     type Elem_fault
 
        integer :: nUp,nDown,nFleft

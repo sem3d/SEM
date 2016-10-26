@@ -12,8 +12,6 @@
 !<
 
 module ssubdomains
-    ! Gaetano Festa 18/10/2004
-
     type Subdomain
 
        integer :: NGLLx, NGLLz,  n_loc_dim, wpml, npow, pml_type

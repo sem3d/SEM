@@ -25,6 +25,7 @@ typedef struct Material {
     int ngll;
     double Vp, Vs, Rho;
     double Qp, Qmu;
+    double syld, ckin, kkin, biso, rinf;
     struct Material* next;
 } material_t;
 

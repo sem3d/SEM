@@ -1,0 +1,34 @@
+Description
+===========
+
+Nprocs : 12
+
+Maillage
+--------
+
+Commande ::
+[python] mt_import_gmsh Cubo_surface_fMesh.msh PythonHDF5.h5 
+mesher < mesh.input
+
+Un cube de 14x14x14, 5 pt de gauss par maille
+Il faut un maillage fin pour approcher de la solution exacte
+
+surface
+------
+type neumann
+pression soudainement appliée sur la surface désignée
+
+Duree simu : 0.008
+
+Capteurs
+--------
+
+Deplacements : A(-5,-5), B(-5,5), C(5,5) D(5,-5) E(12,0)
+
+Validation
+----------
+
+Valider avec la solution analytique en considérant une pression appliquée sur la 
+surface choisie. Deux formes de pression ont été testées et validée :
+1-source uniforme     : uniforme sur un disc de rayon R=0.5
+2-source non uniforme : une paraboloide de rayon de base R=0.5

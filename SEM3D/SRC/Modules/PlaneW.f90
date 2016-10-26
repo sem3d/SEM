@@ -9,13 +9,13 @@
 !<
 
 module splanew
-
+    implicit none
     ! #####################################################################################
     ! #####################################################################################
 
     type Face_PlaneW
 
-       integer :: ngll1, ngll2, mat_index, dir, Face_UP, Face_DOWN, Orient
+       integer :: ngll1, ngll2, mat_index, dir, Face_UP, Face_DOWN, Orient, Face
        integer, dimension (0:3) :: Near_Edges, Near_Vertices, Orient_Edges
        real, dimension (:,:), pointer :: ds, MassMat_Up, MassMat_Down
        real, dimension (:,:,:), pointer :: normal, Btn, Coord_nodes, Forces_Up, Forces_Down
@@ -25,7 +25,7 @@ module splanew
 
     type Edge_PlaneW
 
-       integer :: ngll, mat_index, dir, Edge_UP, Edge_DOWN, Orient
+       integer :: ngll, mat_index, dir, Edge_UP, Edge_DOWN, Orient, Edge
        real, dimension (:), pointer :: MassMat_Up, MassMat_Down
        real, dimension (:,:), pointer :: Btn, Coord_nodes, Forces_Up, Forces_Down
 
@@ -36,6 +36,7 @@ module splanew
 
        integer :: Vertex_UP, Vertex_DOWN, mat_index
        real :: MassMat_Up, MassMat_Down
+       integer :: vertex
        real, dimension (0:2) :: Btn, Coord_nodes, Forces_Up, Forces_Down
 
     end type Vertex_PlaneW
@@ -43,11 +44,21 @@ module splanew
 
     type Param_PlaneW
 
-       real :: Mu, Lambda, Kappa, speed, lx, ly, lz, xs, ys, zs, f0
+       real              :: Mu, Lambda, Kappa, speed, lx, ly, lz, xs, ys, zs, f0
        character (len=1) :: wtype
-
+       integer           :: mat_index
     end type Param_PlaneW
 
+    type sourceW
+         character(len=1000) :: PlaneW_funcx, PlaneW_funcy, PlaneW_funcz
+         character(len=1000) :: PlaneW_funcxy, PlaneW_funcxz, PlaneW_funcyz
+         character(len=12)   :: PlaneW_varia
+         character           :: PlaneW_source
+         integer             :: PlaneW_dim
+         real(kind=8),dimension(1:100) :: PlaneW_paravalue
+         character(len=3), dimension(1:100) :: PlaneW_paramname
+         integer     :: PlaneW_nparamvar, PlaneW_paramvar
+    end type
 
     type PlaneW
 
@@ -56,7 +67,7 @@ module splanew
        type(Edge_PlaneW), dimension (:), pointer :: pEdge
        type(Vertex_PlaneW), dimension (:), pointer :: pVertex
        type(Param_PlaneW) :: pParam
-
+       type(sourceW)      :: pSource
     end type PlaneW
 
 contains
@@ -112,34 +123,42 @@ contains
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(i,j)*Traction_i(i,j,0:2) ) / &
                         ( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(i,j)) )
                     Face%Forces_Down(i,j,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
+
                 else if ( Face%Orient == 1 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(ngll1-1-i,j)*Traction_i(i,j,0:2) ) / &
                         ( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(ngll1-1-i,j)) )
                     Face%Forces_Down(ngll1-1-i,j,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
+
                 else if ( Face%Orient == 2 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(i,ngll2-1-j)*Traction_i(i,j,0:2) ) / &
                         ( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(i,ngll2-1-j)) )
                     Face%Forces_Down(i,ngll2-1-j,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
+
                 else if ( Face%Orient == 3 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(ngll1-1-i,ngll2-1-j)&
                         *Traction_i(i,j,0:2) ) /( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(ngll1-1-i,ngll2-1-j)) )
                     Face%Forces_Down(ngll1-1-i,ngll2-1-j,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
+
                 else if ( Face%Orient == 4 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(j,i)*Traction_i(i,j,0:2) ) / &
                         ( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(j,i)) )
                     Face%Forces_Down(j,i,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
+
                 else if ( Face%Orient == 5 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(ngll1-1-j,i)*Traction_i(i,j,0:2) ) / &
                         ( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(ngll1-1-j,i)) )
                     Face%Forces_Down(ngll1-1-j,i,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
+
                 else if ( Face%Orient == 6 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(j,ngll2-1-i)*Traction_i(i,j,0:2) ) / &
                         ( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(j,ngll2-1-i)) )
                     Face%Forces_Down(j,ngll2-1-i,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
+
                 else if ( Face%Orient == 7 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(ngll1-1-j,ngll2-1-i) &
                         *Traction_i(i,j,0:2) ) /( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(ngll1-1-j,ngll2-1-i)) )
                     Face%Forces_Down(ngll1-1-j,ngll2-1-i,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
+
                 endif
             enddo
         enddo

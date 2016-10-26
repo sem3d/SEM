@@ -2,7 +2,7 @@ PROJECT(mesher)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
-
+set(BASE ${CMAKE_SOURCE_DIR})
 add_subdirectory(metis)
 
 set(MESH_SRC
@@ -26,16 +26,42 @@ set(MESH_SRC
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
 
-add_executable(mesher ${MESH_SRC})
-target_link_libraries(mesher metis ${SEM_EXTRA_LIBS} )
+#add_executable(oldmesher ${MESH_SRC})
+#target_link_libraries(oldmesher metis ${SEM_EXTRA_LIBS} )
+#install(TARGETS oldmesher DESTINATION bin)
 
-
-install(TARGETS mesher DESTINATION bin)
-
-add_executable(cmesh
-  ${PRJ}/CSRC/main.cpp
+add_library(mesh3d
+  ${SEMCOMMON}/h5helper.cpp
+  ${SEMCOMMON}/read_unv.cpp
+  ${PRJ}/CSRC/mesh_h5_output.cpp
+  ${PRJ}/CSRC/meshpart.cpp
   ${PRJ}/CSRC/mesh.cpp
-)
-include_directories(BEFORE ${PRJ}/CSRC ${PRJ}/metis/include)
-target_link_libraries(cmesh metis ${SEM_EXTRA_LIBS})
+  ${PRJ}/CSRC/mesh_grid.cpp
+  ${PRJ}/CSRC/mesh_common.cpp
+  ${PRJ}/CSRC/reader_abaqus.cpp
+  ${PRJ}/CSRC/reader_ideas.cpp
+  )
+#set_property(SOURCE ${SEMCOMMON}/read_unv.cpp ${PRJ}/CSRC/reader_ideas.cpp PROPERTY CXX_STANDARD 11) # set_property C++11 KO...
+set_source_files_properties(${SEMCOMMON}/read_unv.cpp ${PRJ}/CSRC/reader_ideas.cpp PROPERTIES COMPILE_FLAGS "-std=c++11") # Bypass qui devrait marcher dans 99% des cas (gnu, intel)...
 
+add_executable(sem_part_grid
+  ${PRJ}/CSRC/main_grid.cpp
+  )
+
+add_executable(sem_part_h5
+  ${PRJ}/CSRC/main_h5.cpp
+  )
+
+add_executable(mesher
+  ${PRJ}/CSRC/main_mesher.cpp
+  )
+#set_property(SOURCE ${PRJ}/CSRC/main_mesher.cpp PROPERTY CXX_STANDARD 11) # set_property C++11 KO...
+set_source_files_properties(${PRJ}/CSRC/main_mesher.cpp PROPERTIES COMPILE_FLAGS "-std=c++11") # Bypass qui devrait marcher dans 99% des cas (gnu, intel)...
+
+include_directories(BEFORE ${PRJ}/CSRC ${PRJ}/metis/include)
+include_directories(${BASE}/COMMON)
+target_link_libraries(sem_part_grid mesh3d metis ${SEM_EXTRA_LIBS})
+target_link_libraries(sem_part_h5 mesh3d metis ${SEM_EXTRA_LIBS})
+target_link_libraries(mesher mesh3d metis ${SEM_EXTRA_LIBS})
+
+install(TARGETS sem_part_grid sem_part_h5 mesher DESTINATION bin)

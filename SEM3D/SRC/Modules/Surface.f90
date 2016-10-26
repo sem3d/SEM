@@ -13,39 +13,46 @@
 
 module ssurf
 
-    ! #####################################################################################
-    ! #####################################################################################
+    use sinterface
+    
+    type elastic_
+       real(kind=8)                       :: Mu, Lambda
+       real(kind=8)                       :: Sspeed, Pspeed
+       real(kind=8)                       :: PWspeed, density
+       integer                            :: mat_index
+    end type elastic_
 
-    type Face_Surf
+    type SurfaceParam
+        real(kind=8)                       :: f0, amplitude, Rickertau, size, Speed
+        real(kind=8)                       :: dir(0:2)
+        real(kind=8)                       :: Kdir(0:2)
+        real(kind=8)                       :: scoord(0:2)
+        character                          :: wtype
+        character(len=2)                   :: what_bc
+        character(len=1500)                :: funcx, funcy, funcz
+        character(len=1500)                :: funcxy, funcxz, funcyz
+        character(len=12)                  :: varia
+        character                          :: source
+        integer                            :: dim, mat_index, shape, wave_type
+        integer, allocatable               :: index(:), indexes(:)
+        real(kind=8), allocatable          :: paravalue(:)
+        character(len=2), dimension(1:100) :: paramname
+        integer                            :: nparamvar, paramvar
+    end type SurfaceParam
 
-       integer :: ngll1, ngll2, mat_index, Face
-       integer, dimension (0:3) :: Near_Edges, Near_Vertices
-
-    end type Face_Surf
-
-
-    type Edge_Surf
-
-       integer :: ngll, mat_index, Edge
-
-    end type Edge_Surf
-
-
-    type Vertex_Surf
-
-       integer :: Vertex , mat_index
-
-    end type Vertex_Surf
-
-    type Surf
-
-       integer :: n_faces, n_edges, n_vertices
-       type(Face_Surf), dimension (:), pointer :: nFace
-       type(Edge_Surf), dimension (:), pointer :: nEdge
-       type(Vertex_Surf), dimension (:), pointer :: nVertex
-
-    end type Surf
-
+    type SurfaceT
+        type(surf_num) :: surf_sl
+        type(surf_num) :: surf_fl
+        type(surf_num) :: surf_spml
+        type(surf_num) :: surf_fpml
+        type(elastic_) :: Elastic
+        character(len=100) :: name
+        integer            :: domain
+        integer :: cond_type ! from constants.F90 COND_*
+        real(kind=8), dimension(:,:), allocatable :: Surf_BtN
+        real(kind=8), dimension(:,:), allocatable :: coord
+        real(kind=8), dimension(:)  , allocatable :: source
+    end type SurfaceT
 
 end module ssurf
 

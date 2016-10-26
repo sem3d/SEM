@@ -1129,6 +1129,8 @@ contains
         real tsurf
 
         real,dimension(:,:),pointer :: vecu, vecu_tmp
+#if 0
+
         allocate(vecu(comm_couplage%m_MaxNgParFace,comm_couplage%m_dim))
         allocate(vecu_tmp(comm_couplage%m_MaxNgParFace,comm_couplage%m_dim))
 
@@ -1227,7 +1229,7 @@ contains
 
         deallocate(vecu)
         deallocate(vecu_tmp)
-
+#endif
     end subroutine envoi_vitesse_mka
 
 

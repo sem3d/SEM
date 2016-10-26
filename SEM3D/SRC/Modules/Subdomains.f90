@@ -12,38 +12,70 @@
 !<
 
 module ssubdomains
+    use constants
+    implicit none
+    type LMC_properties
+
+        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
+        real :: sigma_yld   ! first yielding limit
+        real :: C_kin       ! variable for kinematic hardening
+        real :: kapa_kin    ! variable for kinematic hardening
+        real :: b_iso       ! variable for isotropic hardening
+        real :: Rinf_iso    ! variable for isotropic hardening
+
+    end type LMC_properties
+    !
+    type nl_properties
+        type(LMC_properties) :: LMC_prop
+    end type nl_properties
+    !
+
+    type PropertyField
+        character(len=1024) :: propFilePath
+        character(len=100) :: propName ! name of property and HDF5 group
+        real(fpp), dimension(0:2) :: MinBound, MaxBound, step
+        ! XXX: need to handle fields of different sizes...
+        integer, dimension(0:2) :: NN ! dimension of the grid for this property
+        integer, dimension(0:2) :: imin, imax
+        real(fpp), dimension(:,:,:), allocatable :: var
+        type(nl_properties) :: nl_prop
+    end type PropertyField
 
     type Subdomain
-
-        logical :: Filtering, Px, Py, Pz, Left, Forward, Down
-
-        integer :: NGLLx, NGLLy, NGLLz, npow
-
-        !  modif mariotti fevrier 2007 cea
-        ! Qmu en plus
-        real :: Pspeed, Sspeed, Ddensity, Dt, Apow, freq, DLambda, DMu, Qmu, Q
-        real :: DKappa, Qpression
-        real, dimension (:), pointer :: GLLcx, GLLpolx, GLLwx
-        real, dimension (:,:), pointer :: hprimex, hTprimex
-        real, dimension (:), pointer :: GLLcy, GLLpoly, GLLwy
-        real, dimension (:,:), pointer :: hprimey, hTprimey
-        real, dimension (:), pointer :: GLLcz, GLLpolz, GLLwz
-        real, dimension (:,:), pointer :: hprimez, hTprimez
-
-        character(len=1) :: material_type
+        integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML
         integer          :: material_definition
-        !Modification to accept random media
-        character(len = 15) :: corrMod
-        integer             :: assocMat = -1
-        integer             :: seedStart
-        !integer             :: nElem = 0 !number of elements in each subdomain (by proc) - mesh3d.f90(362)
-        !integer            , dimension(:)   , allocatable :: elemList !List of elements in "Tdomain%specel(:)" that belong to this subdomain (by proc)
-        !logical            , dimension(:,:) , allocatable :: globCoordMask
-        character(len = 30), dimension(:)   , allocatable :: margiFirst
-        real               , dimension(:)   , allocatable :: varProp
-        integer            , dimension(:)   , allocatable :: chosenSeed
-        real               , dimension(:)   , allocatable :: corrL
-        real               , dimension(:)   , allocatable :: MinBound, MaxBound
+        integer          :: deftype
+        logical          :: present ! true if an element with this mat exists on this cpu
+        !! Numerotation gll
+        integer :: NGLL
+
+        !! Definition materiau solide, isotrope
+        real(fpp) :: Pspeed, Sspeed, Ddensity
+        real(fpp) :: DLambda, DMu
+        real(fpp) :: DE, DNu
+        real(fpp) :: DKappa
+        real(kind=8) :: dt
+        !! Definition materiau solide anisotrope
+        ! TODO
+        
+        !! NONLINEAR LEMAITRE-CHABOCHE
+        real(fpp) :: DSyld,DCkin,DKkin,DRinf,DBiso
+        
+        !! ATTENUATION
+        real(fpp) :: Qmu, Qpression
+        !! PML
+        real(fpp), dimension(0:2) :: pml_pos, pml_width
+        integer :: npow
+        real(fpp) :: Apow
+
+        !! Boundaries for material initialisation from file
+        real(fpp), dimension(0:2) :: MinBound_Loc, MaxBound_Loc
+
+        ! three variables on a 3D grid used for intializing from fields in files
+        ! depending on material_definition we can have
+        ! Vp(v1) Vs(v2) Rho(v3)
+        ! Lambda(v1) Mu(v2) Rho(v3) ...
+        type(PropertyField), dimension(3) :: pf
 
     end type Subdomain
 
@@ -64,6 +96,22 @@ contains
         S%DKappa = S%DLambda + 2.*S%DMu /3.
 
     end subroutine Lame_coefficients
+
+    logical function is_pml(mat)
+        type(Subdomain), intent(in) :: mat
+
+        is_pml = .false.
+        select case (mat%dom)
+        case(DM_SOLID)
+            is_pml = .false.
+        case(DM_SOLID_PML)
+            is_pml = .true.
+        case(DM_FLUID)
+            is_pml = .false.
+        case(DM_FLUID_PML)
+            is_pml = .true.
+        end select
+    end function is_pml
 
 end module ssubdomains
 

@@ -52,10 +52,9 @@ module sem_c_config
        type(C_PTR)    :: snapshot_selection
        integer(C_INT) :: comp_energ
 
-       ! START MODIFS - FILIPPO 07/15
        !! Output Variables
-       integer(C_INT), dimension(9) :: out_variables
-       ! END MODIFS - FILIPPO 07/15
+       integer(C_INT), dimension(11) :: out_variables
+       integer(C_INT) :: nl_flag
 
        !! Protection reprise
        integer(C_INT) :: prorep
@@ -72,14 +71,10 @@ module sem_c_config
 
        !! PML informations
        integer(C_INT) :: pml_type
-
-       !! Neumann
-       integer(C_INT) :: neu_present
-       integer(C_INT) :: neu_type
-       integer(C_INT) :: neu_mat
-       real(C_DOUBLE), dimension(3) :: neu_L
-       real(C_DOUBLE), dimension(3) :: neu_C
-       real(C_DOUBLE) :: neu_f0
+       real(C_DOUBLE) :: cpml_kappa0
+       real(C_DOUBLE) :: cpml_kappa1
+       integer(C_INT) :: cpml_n
+       real(C_DOUBLE) :: cpml_rc
 
        !! Type Elements (DG)
        integer(C_INT) :: type_elem
@@ -94,6 +89,10 @@ module sem_c_config
        real(C_DOUBLE) :: delta_lat
 
        type(C_PTR)    :: stations
+
+       integer(C_INT) :: nsurface
+       integer(C_INT) :: surface_find
+       type(C_PTR)    :: surface
     end type sem_config
 
 
@@ -135,8 +134,76 @@ module sem_c_config
        integer(C_INT) :: type
        integer(C_INT) :: include
        real(C_DOUBLE), dimension(6) :: box
+       real(C_DOUBLE), dimension(4) :: plane
        integer(C_INT) :: material
     end type sem_snapshot_cond
+
+    ! ce type doit correspondre au type surface_t de sem_input.h **a l'ordre pres**
+    type, bind(c) :: sem_surfaces
+       type(C_PTR) :: next
+       integer(C_INT):: surface_list(1:40)
+       integer(C_INT) :: surface_present
+       integer(C_INT) :: surface_type
+       integer(C_INT) :: surface_mat
+       integer(C_INT) :: surface_whatbc
+       real(C_DOUBLE), dimension(3) :: surface_L
+       real(C_DOUBLE), dimension(3) :: surface_C
+       real(C_DOUBLE) :: surface_f0
+       integer(C_INT) :: surface_dim
+       real(C_DOUBLE) :: surface_paravalue(1:100)
+       type(C_PTR) :: surface_paramname
+       integer(C_INT) :: surface_nparamvar
+       integer(C_INT) :: surface_paramvar
+       type(C_PTR) :: surface_source
+       type(C_PTR) :: surface_funcx
+       type(C_PTR) :: surface_funcy
+       type(C_PTR) :: surface_funcz
+       type(C_PTR) :: surface_funcxy
+       type(C_PTR) :: surface_funcxz
+       type(C_PTR) :: surface_funcyz
+       type(C_PTR) :: surface_varia
+       real(C_DOUBLE) :: amplitude
+       real(C_DOUBLE) :: Rtau
+       integer(C_INT) :: surface_space
+       real(C_DOUBLE) :: surface_size
+       type(C_PTR)    :: surface_name
+       integer(C_INT) :: surface_wave
+       real(C_DOUBLE) :: surface_Speed;
+       real(C_DOUBLE), dimension(3) :: surface_dirU;
+    end type sem_surfaces
+
+    type, bind(c) :: sem_material
+       integer(C_INT):: num
+       integer(C_INT):: domain
+       integer(C_INT):: deftype
+       integer(C_INT):: defspatial
+       !
+       real(C_DOUBLE) :: rho
+       real(C_DOUBLE) :: Vp
+       real(C_DOUBLE) :: Vs
+       real(C_DOUBLE) :: E
+       real(C_DOUBLE) :: nu
+       real(C_DOUBLE) :: lambda
+       real(C_DOUBLE) :: kappa
+       real(C_DOUBLE) :: mu
+       !
+       type(C_PTR)    :: filename0
+       type(C_PTR)    :: filename1
+       type(C_PTR)    :: filename2
+       !
+       real(C_DOUBLE) :: syld
+       real(C_DOUBLE) :: ckin
+       real(C_DOUBLE) :: kkin
+       real(C_DOUBLE) :: rinf
+       real(C_DOUBLE) :: biso
+       !
+       type(C_PTR)    :: next
+    end type sem_material
+
+    type, bind(c) :: sem_material_list
+        integer(C_INT):: count
+        type(C_PTR):: head
+    end type sem_material_list
 
     interface
        subroutine read_sem_config(config, spec, err) bind(c)
@@ -146,6 +213,14 @@ module sem_c_config
            character(C_CHAR), dimension(*) :: spec
            integer(C_INT), intent(out) :: err
        end subroutine read_sem_config
+
+       subroutine read_sem_materials(materials, spec, err) bind(c)
+           use iso_c_binding
+           import :: sem_material_list
+           type(sem_material_list), intent(in) :: materials
+           character(C_CHAR), dimension(*) :: spec
+           integer(C_INT), intent(out) :: err
+       end subroutine read_sem_materials
 
        subroutine dump_config(config) bind(c)
            use iso_c_binding
