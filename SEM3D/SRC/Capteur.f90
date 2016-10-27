@@ -637,18 +637,12 @@ contains
         type(tCapteur) :: capteur
         !
         integer :: domain_type
-        integer                                    :: i, j, k, n, ioff
-        integer                                    :: n_el, ngll
-        real(fpp)                                  :: weight
-        real(fpp), dimension(:), allocatable       :: grandeur
+        integer                                    :: i, j, k, n
+        integer                                    :: ngll
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, R_energy, C_energy
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
-        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real, dimension(:), allocatable :: GLLc
         real(fpp) :: local_sum_P_energy, local_sum_S_energy, local_sum_R_energy, local_sum_C_energy
         real(fpp) :: global_sum_P_energy, global_sum_S_energy, global_sum_R_energy, global_sum_C_energy
-        real(fpp) :: Whei, mult
         real, dimension(:), allocatable :: GLLw
         integer :: bnum, ee
         real(fpp), dimension(:,:,:), allocatable :: jac
