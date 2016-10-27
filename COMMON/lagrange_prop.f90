@@ -32,7 +32,7 @@ subroutine pol_lagrange(n,GLLc,k,x,y)
     return
 end subroutine pol_lagrange
 !------------------------------------------------------------------------------
-subroutine derivlag(GLLc,n,ip,x0,dy0)
+subroutine der_lagrange(n,GLLc,ip,x0,dy0)
 
     ! computes derivatives of Lagrange polynomials given by GLLc, at x0
     implicit none
@@ -60,7 +60,7 @@ subroutine derivlag(GLLc,n,ip,x0,dy0)
 
     return
 
-end subroutine derivlag
+end subroutine der_lagrange
 
 !! Local Variables:
 !! mode: f90

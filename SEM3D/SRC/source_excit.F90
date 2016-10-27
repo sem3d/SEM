@@ -139,13 +139,13 @@ subroutine source_excit_moment(src, ngll, GLLc)
     InvGrad(:,:) = src%InvGrad(:,:)
     do k = 0,ngll-1
         call pol_lagrange(ngll,GLLc,k,zeta,wzeta)
-        call derivlag(GLLc,ngll,k,zeta,dwdzeta)
+        call der_lagrange(ngll,GLLc,k,zeta,dwdzeta)
         do j = 0,ngll-1
             call pol_lagrange(ngll,GLLc,j,eta,weta)
-            call derivlag(GLLc,ngll,j,eta,dwdeta)
+            call der_lagrange(ngll,GLLc,j,eta,dwdeta)
             do i = 0,ngll-1
                 call pol_lagrange(ngll,GLLc,i,xi,wxi)
-                call derivlag(GLLc,ngll,i,xi,dwdxi)
+                call der_lagrange(ngll,GLLc,i,xi,dwdxi)
                 ! final step: values at the GLL points
                 src%ExtForce(i,j,k,0) =     &
                     (InvGrad(0,0)*dwdxi*weta*wzeta+InvGrad(0,1)*wxi*dwdeta*wzeta+InvGrad(0,2)*wxi*weta*dwdzeta)*M(0,0) + &
