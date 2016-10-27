@@ -133,9 +133,9 @@ contains
         ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
         ! TODO : read parameters (kappa_* ?) from input.spec ?
 
-        dom%c(:) = 1.
-        dom%n(:) = Tdomain%config%cpml_n
-        dom%rc = Tdomain%config%cpml_rc
+        dom%cpml_c = 1.0
+        dom%cpml_n = Tdomain%config%cpml_n
+        dom%cpml_rc = Tdomain%config%cpml_rc
         dom%cpml_kappa_0 = Tdomain%config%cpml_kappa0
         dom%cpml_kappa_1 = Tdomain%config%cpml_kappa1
         dom%alphamax = 0.
@@ -370,23 +370,25 @@ contains
         integer, intent(in) :: mi
         real(fpp), intent(out) :: alpha, kappa, dxi
         !
-        real(fpp) :: xi, xoverl, d0, pspeed
+        real(fpp) :: xi, xoverl, d0, pspeed, pml_width
         integer :: lnum
 
         ! d0: (75) from Ref1
         ! dxi: (74) from Ref1
+        pml_width = abs(dom%sSubDomain(mi)%pml_width(xyz))
         xi = abs(dom%GlobCoord(xyz,dom%Idom_(i,j,k,bnum,ee)) - dom%sSubDomain(mi)%pml_pos(xyz))
-        xoverl = xi/abs(dom%sSubDomain(mi)%pml_width(xyz))
-        if (xoverl > 1) xoverl = 1d0
+        xoverl = xi/pml_width
+        if (xoverl > 1d0) xoverl = 1d0
+        if (xoverl < 0d0) xoverl = 0d0
 
         lnum = bnum*VCHUNK+ee
         pspeed = solidpml_pspeed(dom,lnum,i,j,k)
-        d0 = -1.*(dom%n(xyz)+1)*Pspeed*log(dom%rc)/log(10d0)
-        d0 = d0/abs(2*dom%sSubDomain(mi)%pml_width(xyz))
+        d0 = -1.*(dom%cpml_n+1)*Pspeed*log(dom%cpml_rc)
+        d0 = d0/(2*pml_width)
 
         kappa = dom%cpml_kappa_0 + dom%cpml_kappa_1 * xoverl
 
-        dxi   = dom%c(xyz)*d0*(xoverl)**dom%n(xyz) / kappa
+        dxi   = dom%cpml_c*d0*(xoverl)**dom%cpml_n / kappa
         alpha = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
     end subroutine compute_dxi_alpha_kappa
 

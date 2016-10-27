@@ -75,9 +75,9 @@ module champs_solidpml
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: R1_2, R2_2
 
         ! CPML parameters
-        real(fpp) :: c(0:2)
-        integer   :: n(0:2)
-        real(fpp) :: rc
+        real(fpp) :: cpml_c
+        real(fpp) :: cpml_n
+        real(fpp) :: cpml_rc
         real(fpp) :: cpml_kappa_0, cpml_kappa_1
         real(fpp) :: alphamax
         ! Integration Rxx
