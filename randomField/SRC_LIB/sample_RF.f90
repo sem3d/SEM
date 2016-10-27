@@ -904,7 +904,7 @@ contains
 
             call h5open_f(hdferr) ! Initialize FORTRAN interface.
             call h5fopen_f(trim(BBoxFileName), H5F_ACC_RDONLY_F, file_id, hdferr) !Open File
-            if(hdferr /= 0) stop("ERROR OPENING FILE")
+            if(hdferr /= 0) stop ("ERROR OPENING FILE")
             !write(*,*) "hdferr = ", hdferr
 
             !READING SCALARS----------------------------
@@ -1022,7 +1022,7 @@ contains
                 coordPos = ((coordList(:,i)-xMinGlob)/xStep) + 1.0D0
                 coordPosInt = floor(coordPos)
                 where(coordPosInt == maxPos) coordPosInt = coordPosInt - 1 !Dealing with points on the positive border
-                if(any(coordPosInt<0)) stop("coordPosInt smaller than 1")
+                if(any(coordPosInt<0)) stop ("coordPosInt smaller than 1")
 
                 !Applying Values
                 do j = 1, size(neighCoord, 2)

@@ -177,7 +177,7 @@ module type_MESH
 
                 if(unit <= 0) then
                     write(*,*) "ERROR!!! Inside show_MESH unit = ", unit
-                    stop("")
+                    stop ("")
                 end if
 
                 dblFmt = "T20,F15.5"
@@ -269,7 +269,7 @@ module type_MESH
 
                 if(unit <= 0) then
                     write(*,*) "ERROR!!! Inside show_MESHneigh unit = ", unit
-                    stop("")
+                    stop ("")
                 end if
 
                 nDim   = trim(numb2String(MESH_a%nDim))

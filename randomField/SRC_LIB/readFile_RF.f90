@@ -131,7 +131,7 @@ contains
                 enddo
                 if(posTaken .eqv. .FALSE.) then
                     tagTotal = tagTotal +1
-                    if(tagTotal > size(foundedTags)) stop("Too many tags, max is 500")
+                    if(tagTotal > size(foundedTags)) stop ("Too many tags, max is 500")
                     foundedTags(tagTotal) = contentVector(i)
                     posTaken = .TRUE.
                 endif

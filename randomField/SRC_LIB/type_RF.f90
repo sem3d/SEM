@@ -158,7 +158,7 @@ module type_RF
 
                 if(unit <= 0) then
                     write(*,*) "ERROR!!! Inside show_RF unit = ", unit
-                    stop("")
+                    stop ("")
                 end if
 
 

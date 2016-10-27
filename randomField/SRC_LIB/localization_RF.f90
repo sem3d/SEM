@@ -232,23 +232,23 @@ contains
                 maxP = minP + xNStep_Proc - 1
 
                 if(IPT%nDim_gen == 2) then
-                    if(.not. present(RF_2D_Group)) stop("RF_2D_Group not present inside add_RF_to_Group")
+                    if(.not. present(RF_2D_Group)) stop ("RF_2D_Group not present inside add_RF_to_Group")
                     RF_2D_Gen(1:xNStep_Proc(1),1:xNStep_Proc(2)) => randField_Gen(:,j)
 
                     if(size(randField_Gen(:,j)) /= product(shape(RF_2D_Group(minP(1):maxP(1),&
                                                                    minP(2):maxP(2)))))&
-                 stop("RF_2D_Gen and randField_Gen don't have consistent sizes inside add_RF_to_Group")
+                 stop ("RF_2D_Gen and randField_Gen don't have consistent sizes inside add_RF_to_Group")
 
                     RF_2D_Group(minP(1):maxP(1),minP(2):maxP(2)) = RF_2D_Gen &
                         + RF_2D_Group(minP(1):maxP(1),minP(2):maxP(2))
                 else if(IPT%nDim_gen == 3) then
-                    if(.not. present(RF_3D_Group)) stop("RF_3D_Group not present inside add_RF_to_Group")
+                    if(.not. present(RF_3D_Group)) stop ("RF_3D_Group not present inside add_RF_to_Group")
                     RF_3D_Gen(1:xNStep_Proc(1),1:xNStep_Proc(2),1:xNStep_Proc(3)) => randField_Gen(:,j)
 
                     if(size(randField_Gen(:,j)) /= product(shape(RF_3D_Group(minP(1):maxP(1),&
                                                                    minP(2):maxP(2),&
                                                                    minP(3):maxP(3)))))&
-                 stop("RF_3D_Gen and randField_Gen don't have consistent sizes inside add_RF_to_Group")
+                 stop ("RF_3D_Gen and randField_Gen don't have consistent sizes inside add_RF_to_Group")
 
                     RF_3D_Group(minP(1):maxP(1),minP(2):maxP(2),minP(3):maxP(3)) = RF_3D_Gen &
                         + RF_3D_Group(minP(1):maxP(1),minP(2):maxP(2),minP(3):maxP(3))
@@ -686,10 +686,10 @@ subroutine generateUnityPartition_OnMatrix(RDF, xNStep, originCorner, overlap, c
                     / 2.0D0) &
                     * UP_3D(minPos(1):maxPos(1),minPos(2):maxPos(2), minPos(3):maxPos(3))
             else
-                stop("Unity Partition not implemented in this Dimension (generateUnityPartition_OnMatrix)")
+                stop ("Unity Partition not implemented in this Dimension (generateUnityPartition_OnMatrix)")
             end if
         else
-        stop('ERROR!! Inside "generateUnityPartition_OnMatrix" - partition Type not defined')
+        stop ('ERROR!! Inside "generateUnityPartition_OnMatrix" - partition Type not defined')
     end if
 end do
 
@@ -888,7 +888,7 @@ subroutine generateUnityPartition(xPoints, originCorner, overlap, neighShift, pa
                 / 2.0D0) &
                 * unityPartition
         else
-            stop('ERROR!! Inside "generateUnityPartition" - partition Type not defined')
+            stop ('ERROR!! Inside "generateUnityPartition" - partition Type not defined')
         end if
     end do
 

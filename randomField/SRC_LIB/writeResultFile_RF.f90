@@ -61,7 +61,7 @@ contains
                 call write_HDF5_Unstr_per_proc(RDF%xPoints, RDF%randField, fileName, rang, trim(adjustL(folderPath))//"/h5", &
                                    communicator, labelsH5, indexesH5, HDF5Name=HDF5Name, HDF5FullPath=HDF5FullPath)
             case default
-                stop("hdf5 writing style not implemented")
+                stop ("hdf5 writing style not implemented")
         end select
 
         if(RDF%rang == 0) then
@@ -88,7 +88,7 @@ contains
                                         rang, trim(adjustL(folderPath))//"/xmf", &
                                         communicator, "../h5")
                 case default
-                    stop("hdf5/XMF writing style not implemented")
+                    stop ("hdf5/XMF writing style not implemented")
             end select
         end if
 

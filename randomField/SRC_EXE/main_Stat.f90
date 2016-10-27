@@ -142,7 +142,7 @@ program main_Stat
 
             call h5open_f(hdferr) ! Initialize FORTRAN interface.
             call h5fopen_f(trim(resPath), H5F_ACC_RDONLY_F, file_id, hdferr) !Open File
-            if(hdferr /= 0) stop("ERROR OPENING FILE")
+            if(hdferr /= 0) stop ("ERROR OPENING FILE")
             !write(*,*) "hdferr = ", hdferr
 
             !READING SCALARS----------------------------
@@ -475,7 +475,7 @@ program main_Stat
             write(*,*) "Error inside 'set_procPerDim_2', dimensions are not compatible"
             write(*,*) "size(procPerDim) = ", size(procPerDim)
             write(*,*) "MSH%nDim         = ", STA%nDim
-            stop(" ")
+            stop (" ")
         end if
 
 
@@ -553,7 +553,7 @@ program main_Stat
             if(STA%rang == 0) write(*,*) " Searching for file: ",resPath
             call h5open_f(hdferr) ! Initialize FORTRAN interface.
             call h5fopen_f(trim(resPath), H5F_ACC_RDONLY_F, file_id, hdferr) !Open File
-            if(hdferr /= 0) stop("ERROR OPENING FILE inside read_RF_h5_File_Table")
+            if(hdferr /= 0) stop ("ERROR OPENING FILE inside read_RF_h5_File_Table")
             !write(*,*) "hdferr = ", hdferr
 
             !Allocating Vectors

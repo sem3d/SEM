@@ -216,7 +216,7 @@ contains
                     call wLog(RDF%kPoints(:,freqK))
                     if(RDF%rang == 0) write(*,*) "kPoint used in cosinus CM: ", RDF%kPoints(:,freqK)
                 else
-                    stop("When using the cosinus correlation Model you should have more than 'freqK' kPoints")
+                    stop ("When using the cosinus correlation Model you should have more than 'freqK' kPoints")
                 end if
         end select
 
