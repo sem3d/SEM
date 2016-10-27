@@ -46,10 +46,8 @@ contains
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             
             if (nl_flag) then
-                write(*,*) "nonlinear activated!",allocated(dom%nl_param) 
                 ! nonlinear parameters
                 allocate(dom%nl_param)
-                write(*,*) allocated(dom%nl_param)  
                 allocate(dom%nl_param%LMC)
                 allocate(dom%nl_param%LMC%syld_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
                 allocate(dom%nl_param%LMC%ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
@@ -209,7 +207,7 @@ contains
         real(fpp)                :: DYX, DYY, DYZ
         real(fpp)                :: DZX, DZY, DZZ
         real(fpp)                :: divU
-        real(fpp)                :: xmu, xlambda, xkappa
+        real(fpp)                :: xmu, xlambda, xkappa, xeps_vol
         real(fpp)                :: x2mu, xlambda2mu
         real(fpp)                :: onemSbeta, onemPbeta
         real(fpp), dimension(0:20) :: CC
@@ -324,7 +322,6 @@ contains
             if(.not. allocated(sig_dev)) allocate(sig_dev(0:0,0:0,0:0,0:0))
         end if
 
-        !print*, "BEFORE GET VELOCITY"
         ! GET VELOCITY (no gradient required)
         if (out_variables(OUT_VITESSE) == 1) then
             do k=0,ngll-1
@@ -337,7 +334,6 @@ contains
             enddo
         endif
 
-        !print*, "BEFORE GET ACC"
         ! GET ACCLELERATION (no gradient required)
         if (out_variables(OUT_ACCEL) == 1) then
             do k=0,ngll-1
@@ -350,7 +346,6 @@ contains
             enddo
         endif
 
-        !print*, "BEFORE GET DISP"
         ! GET DISPLACEMENT (direct output or for gradient calculation)
         if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
             do k=0,ngll-1
@@ -364,18 +359,14 @@ contains
         end if
 
 
-        !print*, "BEFORE GET OTHER"
         ! GET OTHER VARIABLES (gradient required)
         if (flag_gradU) then  
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
 
-                        !print*, "IND "
                         ind = dom%Idom_(i,j,k,bnum,ee)
                         ! GRADIENT
-
-                        !print*, "BEFORE GRADIENT"
                         invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
                         call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
                              invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
@@ -385,17 +376,14 @@ contains
                              invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                         divU = DXX+DYY+DZZ
                         ! PRESSION
-                        !print*, "BEFORE PRESSION"
                         if (out_variables(OUT_PRESSION) == 1) then
                             fieldP(i,j,k) = -(dom%Lambda_(i,j,k,bnum,ee)+two*M_1_3*dom%Mu_(i,j,k,bnum,ee))*divU
                         endif
                         ! EPSVOL
-                        !print*, "BEFORE EPSVOL"
                         if (out_variables(OUT_EPS_VOL) == 1) then
                             eps_vol(i,j,k) = divU
                         end if
                         ! ELASTIC-VISCOELASTIC MODULA
-                        !print*, "BEFORE ELASTIC-VISCO MODULA"
                         if (out_variables(OUT_ENERGYP) == 1 .or. &
                             out_variables(OUT_ENERGYS) == 1 .or. &
                             out_variables(OUT_STRESS_DEV) == 1) then
@@ -405,6 +393,7 @@ contains
                                 xmu     = dom%Mu_    (i,j,k,bnum,ee)
                                 xlambda = dom%Lambda_(i,j,k,bnum,ee)
                                 xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
+                                xeps_vol = DXX + DYY + DZZ
                                 if (dom%n_sls>0) then
                                     onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
                                     onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
@@ -417,27 +406,18 @@ contains
                         endif
                         ![TODOLUCIANO]
                         ! P-ENERGY
-                        !print*, "BEFORE P_EN"
                         if (out_variables(OUT_ENERGYP) == 1) then
-                            P_energy(i,j,k) = zero
-                            !half * xlambda2mu * eps_vol(i,j,k)**2
+                            P_energy(i,j,k) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
                         end if
                         ! S-ENERGY
-                        !print*, "BEFORE S_EN"
                         if (out_variables(OUT_ENERGYS) == 1) then
-                            S_energy(i,j,k) = zero
-!                            if (.not. dom%aniso) then
-!                                S_energy(i,j,k) =  zero 
-!                                ! half*xmu * (       DXY**2 + DYX**2 &
-!                                                              +     DXZ**2 + DZX**2 &
-!                                                              +     DYZ**2 + DZY**2 &
-!                                                              - 2 * DXY * DYX     &
-!                                                              - 2 * DXZ * DZX     &
-!                                                              - 2 * DYZ * DZY )
+                            S_energy(i,j,k) = xmu/2.0d0 * (                       &
+                                                    (DZY - DYZ)**2d0  &
+                                                  + (DXZ - DZX)**2d0  &
+                                                  + (DYX - DXY)**2d0  &
+                                                  )
                         end if
                         ! DEVIATORIC STRAIN
-
-                        !print*, "BEFORE DEV STRAIN"
                         if (out_variables(OUT_EPS_DEV) == 1) then
                             eps_dev(i,j,k,0:5) = zero
                             eps_dev(i,j,k,0) = DXX - M_1_3 * divU 
@@ -448,7 +428,6 @@ contains
                             eps_dev(i,j,k,5) = (DZY + DYZ)
                         endif
                         ! DEVIATORIC STRESS
-                        !print*, "BEFORE DEV STRESS"
                         if (out_variables(OUT_STRESS_DEV) == 1) then
                             sig_dev(i,j,k,0:5) = zero
                             if (dom%aniso) then
@@ -474,10 +453,8 @@ contains
                 enddo
             enddo
 
-            !print*, "AFTER BOUCLE LINEAR "
         else
-
-            !print*, "NON LINEAR -----------------------------------"
+            !NON-LINEAR Case
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
@@ -665,7 +642,7 @@ contains
     end subroutine get_solid_dom_elem_energy
 
 
-    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu)
+    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, nlparam)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -673,6 +650,7 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: nlparam
         
         !
         integer :: bnum, ee
@@ -683,7 +661,7 @@ contains
         dom%Lambda_ (:,:,:,bnum,ee) = lambda
         dom%Mu_     (:,:,:,bnum,ee) = mu
         if (mat%deftype==MATDEF_MU_SYLD_RHO) then
-            dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = mat%DSyld
+            dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = nlparam
             dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mat%DCkin
             dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = mat%DKkin
             dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%DRinf 
