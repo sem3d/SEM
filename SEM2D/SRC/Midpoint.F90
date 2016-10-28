@@ -398,11 +398,9 @@ end subroutine Semi_Implicit_Resolution_tnplus1
 
 
 !>
-!!\brief This Subroutine performs Predictor-Multicorrector (PMC) algorithm for
-!! time integration using an SPLITTED semi-implicit approach.
-!! Ideed, in this case, the traces terms are choosen at tn+1 while volumic fields
-!! in RHS are choosen at tn+1/2. This method has been prooved to be not
-!! so good (february 2015) precisely due to that splitting.
+!!\brief This Subroutine performs an iterative Midpoint method for
+!! a continuous SEM domain. For n_it_max=1, usual midpoints results are recovered,
+!! and results are very close to the Midpoint-HDG method.
 !!\version 1.0
 !!\date 20/11/2014
 !! This subroutine is used only HDG elements
@@ -410,17 +408,18 @@ end subroutine Semi_Implicit_Resolution_tnplus1
 !! \param real         , intent (IN)    Dt
 !! \param integer      , intent (IN)    n_it_max
 !<
-subroutine Midpoint_SEM(Tdomain,Dt,n_it_max)
+subroutine Midpoint_SEM(Tdomain,Dt)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
     real,    intent(in)   :: dt
-    integer, intent(in)   :: n_it_max
+    !integer, intent(in)   :: n_it_max
 
     ! local variables
-    integer :: n, iter, mat, ngx, ngz
+    integer :: n, iter, mat, ngx, ngz, n_it_max
     real :: timelocal, demi
 
+    n_it_max = 1
 
     ! Initialization Phase
     ! ##### IMPORTANT : Les deplacements a tn sont ranges dans Accel
@@ -444,9 +443,9 @@ subroutine Midpoint_SEM(Tdomain,Dt,n_it_max)
     iter= 0
     timelocal = Tdomain%TimeD%rtime + 0.5*Dt
 
-    do while(iter<=1)
+    do while(iter<=n_it_max)
 
-        if (iter==1) then
+        if (iter==n_it_max) then
             demi = 1.
         else
             demi = 0.5
