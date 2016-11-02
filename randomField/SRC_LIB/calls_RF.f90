@@ -446,24 +446,12 @@ contains
                                                           IPT%outputFolder)
 
 
-!         HDF5_FileName  = trim(MONO_FileName)//".h5"
-!        HDF5_Folder    = string_join(IPT%outputFolder,"/h5")
-!        HDF5_RePath    = string_join(IPT%outputFolder,"/h5","/"//trim(MONO_FileName)//".h5")
-!        XMF_Folder     = string_join(IPT%outputFolder,"/h5","/xmf")
-!        H5_TO_XMF_Path = "../h5"
-
         write(*,*) "IPT%gen_groupMax = ", IPT%gen_groupMax
 
         if(IPT%rang == 0) call write_XMF_Elements_per_proc(trim(string_join(MONO_FileName,".h5")), xMin_Group, xMax_Group, IPT%xStep, &
                                      IPT%nDim, trim(MONO_FileName), trim(string_join(IPT%outputFolder,"/xmf")), &
                                      "../h5", "RF",IPT%gen_groupMax)
         end if
-
-
-!        call write_XMF_Elements_per_proc(HDF5_FileName, xMin, xMax, xStep, &
-!                                          nDim, fileName, XMF_Folder, &
-!                                          H5_TO_XMF_PATH, dsetname, nGroups)
-
 
         if(IPT%rang == 0) call write_stat_input("./stat_input", BBoxPath)
 

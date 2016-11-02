@@ -848,6 +848,9 @@ contains
 
             build_times(6) = MPI_Wtime() !Transformation Time
 
+            if(IPT%rang == 0) write(*,*) "    IPT%outputFolder = ", trim(adjustL(IPT%outputFolder))
+            if(IPT%rang == 0) write(*,*) "    IPT%outputName   = ", trim(adjustL(IPT%outputName))
+
             call write_Simple_pHDF5_Str(minP, maxP, &
                                         IPT%nDim, IPT%Nmc, IPT%loc_Comm, RF_2D, RF_3D, &
                                         origin, xNStep, IPT%xStep, &

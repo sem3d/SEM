@@ -24,7 +24,6 @@ program main_RandomField
     character(len=buf_RF) :: path
     double precision, dimension(9) :: times, all_times
     integer :: code, i
-    character(len=buf_RF) :: results_folder_name
 
     !INPUT VARIABLES
     type(IPT_RF)  :: IPT_Temp !Only for sake of practicity
@@ -36,6 +35,7 @@ program main_RandomField
 
     !Initializing MPI
     call init_communication(MPI_COMM_WORLD, IPT_Temp%comm, IPT_Temp%rang, IPT_Temp%nb_procs)
+    write(*,*) "IPT_Temp%rang = ", IPT_Temp%rang
 
     !Options
     IPT_Temp%writeDataSet = .true.
@@ -67,9 +67,6 @@ program main_RandomField
     if(IPT_Temp%rang == 0) write(*,*) "         nb_procs    = ", IPT_Temp%nb_procs
     if(IPT_Temp%rang == 0) write(*,*) "         outputStyle = ", IPT_Temp%outputStyle
 
-    !Initializing folders
-    if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize Folders"
-    call init_basic_folders(IPT_Temp%comm, IPT_Temp, results_folder_name)
 
     !READING INPUTS--------------------------------------------------
     !----------------------------------------------------------------
@@ -80,12 +77,10 @@ program main_RandomField
     call wLog("     -> Reading Main Input")
     call read_main_input(IPT_Temp)
 
-    if(IPT_Temp%sameFolder) then
-        do i =1, IPT_Temp%nSamples
-            IPT_Temp%out_folders(i) = string_join_many("./res/",results_folder_name)
-            IPT_Temp%out_names(i)   = "RF_"//numb2String(i, nCharacters=2)
-        end do
-    end if
+    !Initializing folders
+    if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize Folders"
+    call init_basic_folders(IPT_Temp%comm, IPT_Temp)
+    
 
     call MPI_BARRIER(IPT_Temp%comm, code)
 
@@ -137,6 +132,8 @@ program main_RandomField
         if(IPT_Temp%rang == 0) write(*,*)  " "
         if(IPT_Temp%rang == 0) write(*,*)  " "
         if(IPT_Temp%rang == 0) write(*,*)  "-> Initializing Input (IPT)"
+
+
 
         if(.true.)then
             call init_IPT_RF(&
@@ -272,58 +269,67 @@ program main_RandomField
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
-        subroutine init_basic_folders(comm, IPT_Temp, results_folder_name)
+        subroutine init_basic_folders(comm, IPT_Temp)
             implicit none
             !INPUT
             integer, intent(in) :: comm
             type(IPT_RF), intent(inout)  :: IPT_Temp !Only for sake ok practicity
-            !OUTPUT
-            character(len=*), intent(out) :: results_folder_name
             !LOCAL
+            character(len=buf_RF) :: timeStr, tempFolderName
             integer, dimension(8) :: date_time
             integer :: code
             character(len=10), dimension(3) :: strings
             !    !LOCAL VARIABLES
             character(len=buf_RF) :: logFilePath, log_folder_name
             logical :: folderExist1
+            integer :: i
 
-            results_folder_name = " "
 
-            if(IPT_Temp%sameFolder) then
+            if(IPT_Temp%rang == 0) write(*,*) "-> Setting folder path"
+            if(IPT_Temp%rang == 0) write(*,*) "      IPT_Temp%timeFolder = ", IPT_Temp%timeFolder
+
+            if(IPT_Temp%timeFolder == 1) then
                 !date_time_label
                 if(IPT_Temp%rang == 0) then
                     folderExist1 = .true.
                     do while(folderExist1)
                         call date_and_time(strings(1), strings(2), strings(3), date_time)
-                        results_folder_name = strings(1)(3:8)//"_"//strings(2)(1:6)//"_res"
-                        folderExist1 = folderExist(results_folder_name, results_path)
+                        timeStr = strings(1)(3:8)//"_"//strings(2)(1:6)
+                        tempFolderName = string_join_many(IPT_Temp%out_folders(1),"-",timeStr)
+                        folderExist1 = folderExist(tempFolderName, ".")
                         if(folderExist1) write(*,*) "Repeated result folder, changing name"
                     end do
                 end if
-                call MPI_BCAST (results_folder_name, len(results_folder_name), &
+            
+                if(IPT_Temp%rang == 0) write(*,*) "      timeStr = ", &
+                                                  trim(adjustL(timeStr))
+                
+                call MPI_BCAST (timeStr, len(timeStr), &
                                 MPI_CHARACTER, 0, comm, code)
+                do i =1, IPT_Temp%nSamples
+                    IPT_Temp%out_folders(i) = string_join_many(IPT_Temp%out_folders(i),"-",timeStr)
+                end do
             end if
-
-            if(IPT_Temp%rang == 0) write(*,*) "-> Setting folder path"
-            IPT_Temp%outputFolder = string_join_many(results_path,"/",results_folder_name)
-            if(IPT_Temp%rang == 0) write(*,*) "     single_path = "//trim(IPT_Temp%outputFolder)
 
 #ifdef MAKELOG
+            !Initializing logFiles
             if(IPT_Temp%rang == 0) write(*,*) "IFDEF MAKELOG DEFINED"
+            if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize logFiles"
 
-            log_folder_name     = trim(adjustL(results_folder_name))//"/log"
-            if(IPT_Temp%sameFolder) then
-                log_folder_name     = "."
-                logFilePath = trim(string_join_many("./",log_filename))
-            else
-                call create_folder(log_folder_name, results_path, IPT_Temp%rang, comm)
+            log_folder_name     = "logs"
+            call create_folder(log_folder_name, ".", IPT_Temp%rang, comm)
+            
+            if(IPT_Temp%timeFolder == 0) then
                 logFilePath = trim(adjustL(&
-                                  string_join_many(results_path,"/",log_folder_name,"/",log_filename)))
+                                  string_join_many("./",log_folder_name,"/", &
+                                  log_filename)))
+            else
+                logFilePath = trim(adjustL(&
+                                  string_join_many("./",log_folder_name,"/", &
+                                  timeStr,"-",log_filename)))
             end if
 
-            !Initializing logFiles
-            if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize logFiles"
-            if(IPT_Temp%rang == 0) write(*,*)  " logFilePath = ", trim(adjustL(logFilePath)), "<RANK>"
+            if(IPT_Temp%rang == 0) write(*,*)  "      logFilePath = ", trim(adjustL(logFilePath)), "<RANK>"
             call init_log_file(trim(adjustL(logFilePath)), IPT_Temp%rang, IPT_Temp%log_ID, IPT_Temp%nb_procs)
 #else
             if(IPT_Temp%rang == 0) write(*,*) "IFDEF MAKELOG NOT DEFINED"

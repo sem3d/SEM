@@ -15,6 +15,7 @@ module type_inputRF
         integer :: nb_procs = -1
         logical :: init=.false.
         logical :: alloc=.false.
+        integer :: timeFolder
         integer :: nSamples
         integer :: application !1 for library, 2 for SEM
         character(len=buf_RF), dimension(:), allocatable :: out_folders, out_names
@@ -489,7 +490,7 @@ contains
 
             path = "./random.spec"
             fExist = fileExist(path)
-            print*, "fExist = ", fExist
+            if(IPT%rang == 0) write(*,*) "      ", trim(adjustL(path)), " exist? ", fExist
 
             secondStep = .false.
             if(present(auto)) then
@@ -512,7 +513,7 @@ contains
                 end if
                 if(fileExist("./domains.txt") .and. (.not. secondStep)) stop "To use the randomfield library with SEM the inputs should be given by random.spec (there's no more RF_main_input file)" 
                 !write(*,*) "Before Datatable"
-                if(IPT%rang == 0) write(*,*) "      path = ", path
+                if(IPT%rang == 0) write(*,*) "      path = ", trim(adjustL(path))
                 call set_DataTable(path, dataTable)
 
            end if
@@ -520,6 +521,7 @@ contains
             if(IPT%application == NATIVE) then
                 if(IPT%rang == 0) write(*,*) "      Native lecture"
                 call read_DataTable(dataTable, "nSamples", IPT%nSamples)
+                call read_DataTable(dataTable, "timeFolder", IPT%timeFolder)
                 allocate(IPT%out_folders(IPT%nSamples))
                 allocate(IPT%out_names(IPT%nSamples))
                 allocate(IPT%mesh_inputs(IPT%nSamples))
@@ -537,6 +539,7 @@ contains
                 if(IPT%rang == 0) write(*,*) "     SEM files lecture"
                 IPT%appFolder = SEM_gen_path
                 if(IPT%rang == 0) call generateMain_inputSEM(SEM_gen_path)
+                if(IPT%rang == 0) write(*,*) "     END of SEM main_input generation"
                 call MPI_BARRIER(IPT%comm, code)
             end if
 
@@ -582,68 +585,46 @@ contains
             !LOCAL
             integer :: i, j
             integer :: fid, fid_2
-            integer :: nMat, npml, nRand
-            character(len=1), dimension(:), allocatable :: materialType
-            integer,          dimension(:), allocatable :: assocMat
-            integer :: npow
-            double precision :: Apow, posX, widthX, posY, widthY, posZ, widthZ
-            integer, dimension(:,:), allocatable :: corrMod
-            double precision, dimension(:,:,:), allocatable :: corrL
-            integer, dimension(:,:), allocatable :: seedStart
-            integer, dimension(:,:), allocatable :: margiF
-            double precision, dimension(:,:), allocatable :: CV
-            integer :: matNb
+            integer :: nMat
             double precision, dimension(:,:), allocatable :: bbox_min, bbox_max
-            character(len=7), dimension(3) :: propNames
             character(len=buf_RF) :: mesh_path, gen_path, absPath
             character(len=buf_RF) :: out_folder
             character(len=buf_RF) :: buffer
-            double precision, dimension(:), allocatable :: fieldAvg, fieldVar
-            double precision, dimension(:), allocatable :: Pspeed, Sspeed, Dens
-            integer, dimension(:), allocatable :: lambdaSwitch
-            integer, dimension(:), allocatable :: nProp_Mat
-            integer :: mat, nSamples, mat_Nb, prop_count
+            integer, dimension(:), allocatable :: nb_Mat
+            integer, dimension(:), allocatable :: nProp_Mat, label_Mat
+            integer :: mat, nSamples, prop_count, mat_Nb, assocMat
             type(property_RF), dimension(:), allocatable :: prop
             integer :: VP_VS_RHO_flag
             double precision :: VP, VS, RHO, VAR
+            double precision, dimension(0:2) :: bb_min, bb_max
+            logical :: found
 
             fid_2 = 19
-            npml  = 0
-            nRand = 0
 
             !READING random.spec
             open (unit = fid_2 , file = "./random.spec", action = 'read', status="old", form="formatted")
 
                 !!1)  Counting number of samples to be generated
                 mat = -1
-                buffer = getLine(fid_2, '#')
+                buffer = getLine(fid_2, '#') !number of materials
                 read(buffer,*) nMat
                 allocate(nProp_Mat(0:nMat-1))
+                allocate(nb_Mat(0:nMat-1))
                 print*, "nMat = ", nMat
                 do mat = 0, nMat - 1
                     buffer = getLine(fid_2, '#') !Material Number
-                    !print*, "COISA"
-                    buffer = getLine(fid_2, '#') !VP_VS_RHO flag
-                    read(buffer,*) VP_VS_RHO_flag
-                    !print*, "VP_VS_RHO_flag = ", VP_VS_RHO_flag
-                    !if(VP_VS_RHO_flag == 1) then
-                    !    buffer = getLine(fid_2, '#') !VP VS RHO Value
-                    !end if
- 
-                    buffer = getLine(fid_2, '#')
+                    read(buffer,*) nb_Mat(mat)
+                    buffer = getLine(fid_2, '#') !VP_VS_RHO and value
+                    buffer = getLine(fid_2, '#') !number of properties
                     read(buffer,*) nProp_Mat(mat)
-                    
-                    !print*, "nProp_Mat(mat) = ", NProp_Mat(mat)
-                    
                     do j = 1, nProp_Mat(mat)
                         buffer = getLine(fid_2, '#')
                     end do
                 end do
 
-                nSamples = sum(nProp_Mat)
+                nSamples = sum(nProp_Mat(:))
 
                 allocate(prop(0:nSamples-1))
-
                 
                 print*, "size(prop) = ", size(prop)
 
@@ -651,16 +632,11 @@ contains
                 rewind(fid_2)
                 prop_count = 0
 
-                buffer = getLine(fid_2, '#') !nMat
-                read(buffer,*) nMat
-                
+                buffer = getLine(fid_2, '#') !number of materials
                 do mat = 0, nMat - 1
                     buffer = getLine(fid_2, '#') !Material Number
-                    read(buffer,*) mat_Nb
                     buffer = getLine(fid_2, '#') !VP_VS_RHO flag
-                    print*, "buffer = ", buffer
                     read(buffer,*) VP_VS_RHO_flag
-                    print*, "VP_VS_RHO_flag = ", VP_VS_RHO_flag
                     if(VP_VS_RHO_flag == 1) then
                         read(buffer,*) VP_VS_RHO_flag, VP, VS, RHO
                         print*, "VP = ", VP, "VS = ", VS, "RHO = ", RHO
@@ -668,7 +644,7 @@ contains
                     buffer = getLine(fid_2, '#') !Number of Properties
                     do j = 1, nProp_Mat(mat)
                         buffer = getLine(fid_2, '#')
-                        prop(prop_count)%mat = mat_Nb
+                        prop(prop_count)%mat = nb_Mat(mat)
 
                         read(buffer,*) prop(prop_count)%name, &
                                        prop(prop_count)%avg, &
@@ -698,77 +674,62 @@ contains
 
             close(fid_2)
 
-!            !READING material.input
-!            open (unit = fid_2 , file = "./material.input", action = 'read', status="old", form="formatted")
-!                buffer = getLine(fid_2, '#')
-!                read(buffer,*) nMat
-!                write(*,*) "nMat = ", nMat
-!
-!                allocate(materialType(nMat))
-!                allocate(Pspeed(nMat))
-!                allocate(Sspeed(nMat))
-!                allocate(Dens(nMat))
-!                allocate(assocMat(nMat))
-!
-!                assocMat = -1
-!
-!                do i = 1, nMat
-!                    buffer = getLine(fid_2, '#')
-!                    read(buffer,*) materialType(i), Pspeed(i), Sspeed(i), Dens(i)
-!
-!                    if (materialType(i) == "P" .or. materialType(i) == "L") then
-!                        npml = npml + 1
-!                    else
-!                        if (materialType(i) == "R") nRand = nRand + 1
-!                        assocMat(i) = i-1
-!                    end if
-!
-!                end do
-!
-!                do i = 1, nMat
-!                    if (materialType(i) == "P" .or. materialType(i) == "L") then
-!                        buffer = getLine(fid_2, '#')
-!                        read(buffer,*) npow, Apow, posX, widthX, posY, widthY, posZ, widthZ, assocMat(i)
-!                    end if
-!                end do
-!
-!
-!            close(fid_2)
+            !READING domains.txti
+            allocate(bbox_min(0:2,0:nMat-1))
+            allocate(bbox_max(0:2,0:nMat-1))
 
-            !READING domains.txt
-
-                allocate(assocMat(nMat))
-                allocate(bbox_min(3,nMat))
-                allocate(bbox_max(3,nMat))
-
-                assocMat(:) = -1
-                bbox_min(:,:) = MAX_DOUBLE
-                bbox_max(:,:) = MIN_DOUBLE
+            bbox_min(:,:) = MAX_DOUBLE
+            bbox_max(:,:) = MIN_DOUBLE
 
             open (unit = fid_2 , file = "./domains.txt", action = 'read', status="old", form="formatted")
-                do i = 1, nMat
+                
+                buffer = getLine(fid_2, '#')
+                write(*,*) "buffer = ", trim(adjustL(buffer))
+                
+                do while (trim(adjustL(buffer)) /= "eof_gl")
+                   
+                    
+                    read(buffer,*) mat_Nb, bb_min(0), bb_min(1), bb_min(2), &
+                                          bb_max(0), bb_max(1), bb_max(2), assocMat
                     buffer = getLine(fid_2, '#')
-                    read(buffer,*) matNb, bbox_min(1,i), bbox_min(2,i), bbox_min(3,i), &
-                                         bbox_max(1,i), bbox_max(2,i), bbox_max(3,i), assocMat(i)
-                    where(bbox_min(:,assocMat(i)+1) > bbox_min(:,i)) bbox_min(:,assocMat(i)+1) = bbox_min(:,i)
-                    where(bbox_max(:,assocMat(i)+1) < bbox_max(:,i)) bbox_max(:,assocMat(i)+1) = bbox_max(:,i)
+                    !write(*,*) "buffer = ", trim(adjustL(buffer))
+                    
+                    found = .false.
+                    do i = 0, size(nb_Mat)-1
+                        if (nb_Mat(i) .eq. assocMat) then
+                            found = .true.
+                            exit
+                        end if
+                    end do
+
+                    if(.not. found) cycle
+                    
+                    where(bbox_min(:,i) > bb_min(:)) bbox_min(:,i) = bb_min
+                    where(bbox_max(:,i) < bb_max(:)) bbox_max(:,i) = bb_max
+                    !buffer = "eof_gl" !TEST 
                 end do
 
-                !call DispCarvalhol(bbox_min, "bbox_min")
-                !call DispCarvalhol(bbox_max, "bbox_max")
+                write(*,*) "AFTER"
+                write(*,*) "AFTER"
 
             close(fid_2)
 
-            do prop_Count = 0, size(prop) - 1
-                mat_Nb = prop(prop_count)%mat
-                prop(prop_Count)%bbox_min = bbox_min(:, mat_Nb+1)
-                prop(prop_Count)%bbox_max = bbox_max(:, mat_Nb+1)
+                write(*,*) "AFTER 1"
+            prop_Count = 0
+            do mat = 0, nMat-1
+                do j = 0, nProp_Mat(mat)-1
+                    mat_Nb = prop(prop_count)%mat
+                    prop(prop_Count)%bbox_min = bbox_min(:, mat)
+                    prop(prop_Count)%bbox_max = bbox_max(:, mat)
+                    prop_Count = prop_count + 1
+                end do
             end do
 
 
             !CREATING FOLDER
             call create_folder(".", SEM_gen_path, 0, 0, singleProc = .true.)
             call create_folder(".", string_join_many(SEM_gen_path,"/input"), 0, 0, singleProc = .true.)
+                write(*,*) "AFTER 2"
 
             !WRITING new RF_main_input
 
@@ -777,7 +738,9 @@ contains
             open (unit = fid , file = string_join_many("RF_main_input"), action = 'write')
 
             write(fid,"(A)")  "$application 1"
+            write(fid,"(A)")  "$timeFolder 0"
             write(fid,*) " "
+                write(*,*) "AFTER 3"
 
             call getcwd(absPath)
 
@@ -798,6 +761,8 @@ contains
                              stringNumb_join("Mat_", mat_Nb),"_",prop(prop_Count)%name,"_mesh"))
                 gen_path  = trim(string_join_many(SEM_gen_path,"/input/", &
                              stringNumb_join("Mat_", mat_Nb),"_",prop(prop_Count)%name,"_gen"))
+                write(*,*) "mesh_path = ", mesh_path
+                write(*,*) "gen_path = ", gen_path
   
                 write(fid,"(A)") trim(string_join_many(stringNumb_join("$mesh_input_", prop_Count+1)))//' "'//&
                                  trim(string_join_many(absPath,"/",mesh_path,'"'))
@@ -824,26 +789,134 @@ contains
                 write(fid,"(A)") " "
   
             end do
+                write(*,*) "AFTER 5"
 
             close(fid)
+!            !READING material.input
+!            open (unit = fid_2 , file = "./material.input", action = 'read', status="old", form="formatted")
+!                buffer = getLine(fid_2, '#')
+!                read(buffer,*) nMat
+!                write(*,*) "nMat = ", nMat
+!
+!                allocate(materialType(nMat))
+!                allocate(Pspeed(nMat))
+!                allocate(Sspeed(nMat))
+!                allocate(Dens(nMat))
+!                allocate(assocMat(nMat))
+!
+!                assocMat = -1
+!
+!                !READ material.input
+!                do i = 1, nMat
+!                    buffer = getLine(fid_2, '#')
+!                    read(buffer,*) materialType(i), Pspeed(i), Sspeed(i), Dens(i)
+!
+!                    if (materialType(i) == "P" .or. materialType(i) == "L") then
+!                        npml = npml + 1
+!                    else
+!                        if (materialType(i) == "R") nRand = nRand + 1
+!                        assocMat(i) = i-1
+!                    end if
+!
+!                end do
+!
+!                do i = 1, nMat
+!                    if (materialType(i) == "P" .or. materialType(i) == "L") then
+!                        buffer = getLine(fid_2, '#')
+!                        read(buffer,*) npow, Apow, posX, widthX, posY, widthY, posZ, widthZ, assocMat(i)
+!                    end if
+!                end do
+
+!                if(nRand > 0) then
+!
+!                    do i = 1, nMat
+!                        if (materialType(i) == "R") then
+!                            buffer = getLine(fid_2, '#')
+!                            read(buffer,*) lambdaSwitch(i)
+!                            do j = 1, nprop
+!                                buffer = getLine(fid_2, '#')
+!                                read(buffer,*) corrMod(j, i), corrL(1,j,i), corrL(2,j,i), corrL(3,j,i), margiF(j,i), CV(j,i), seedStart(j, i)
+!                            end do
+!                        end if
+!                    end do
+!
+!                end if
+!
+!                !call DispCarvalhol(materialType, "materialType")
+!                !call DispCarvalhol(assocMat, "assocMat")
+!
+!            close(fid_2)
+
+
+!
+!            do i = 1, nMat
+!                if (materialType(i) == "R") then
+!
+!                    propNames=["Density", "Kappa  ", "Mu     "]
+!
+!                    fieldAvg(1) = Dens(i) !Density
+!                    fieldAvg(2) = Dens(i)*(Pspeed(i)**2d0 - 4d0*(Sspeed(i)**2d0)/3d0) !Kappa
+!                    fieldAvg(3) = Dens(i)*Sspeed(i)**2d0 !Mu
+!
+!                    if(lambdaSwitch(i) == 1) then
+!                        propNames=["Density", "Lambda ", "Mu     "]
+!                        !fieldAvg(2) = (Pspeed(i)**2d0 - 2d0*Sspeed(i)**2d0)*Dens(i) !Lambda
+!                        fieldAvg(2) = 2d0*Dens(i)*Sspeed(i)**2d0 !Lambda = 2*Mu
+!                    end if
+!
+!                    fieldVar(:) = (CV(:,i)*fieldAvg)**2d0
+!
+!                    do j = 1, nProp
+!
+!                        randCount = randCount + 1
+!
+!                        mesh_path = trim(string_join_many(SEM_gen_path,"/input/", &
+!                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_mesh"))
+!                        gen_path  = trim(string_join_many(SEM_gen_path,"/input/", &
+!                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_gen"))
+!
+!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
+!                                         trim(string_join_many(absPath,"/",mesh_path,'"'))
+!                        call write_mesh_file(3, bbox_min(:,i), bbox_max(:,i), [5, 5, 5], &
+!                                             mesh_path)
+!
+!
+!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
+!                                     trim(string_join_many(absPath,'/',gen_path,'"'))
+!                        call write_gen_file(3, 1, corrMod(j, i), margiF(j, i), corrL(:,j,i), &
+!                                            fieldAvg(j), fieldVar(j), 4, &
+!                                            seedStart(j,i), [5d0, 5d0, 5d0], &
+!                                            gen_path,  &
+!                                            1, [0, 0, 0])
+!
+!                        out_folder = trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
+!                                          ' "'//trim(adjustL(absPath))//"/"//trim(adjustL(SEM_gen_path))//'"'
+!                        !out_folder = trim(string_join_many(stringNumb_join("A", randCount)))//&
+!                        !             ' "', '"'
+!                        !write(*,*) "out_folder = ", out_folder
+!                        write(fid,"(A)") trim(adjustL(out_folder))
+!                        !write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
+!                        !                  ' "',trim(adjustL(absPath)),"/",trim(adjustL(SEM_gen_path)),'"'
+!
+!
+!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
+!                                     trim(stringNumb_join("Mat_", i-1))//"_"//&
+!                                     trim(propNames(j))//'"'
+!                        write(fid,"(A)") " "
+!                    end do
+!                end if
+!            end do
+!
+!            write(fid,"(A)") "$nSamples "//numb2String(randCount)
+!
+!            !write(fid,*) "$$nDim "
+!
+!            close(fid)
 
             if(allocated(prop)) deallocate(prop)
             if(allocated(nProp_Mat)) deallocate(nProp_Mat)
-            if(allocated(materialType)) deallocate(materialType)
-            if(allocated(assocMat)) deallocate(assocMat)
-            if(allocated(Pspeed)) deallocate(Pspeed)
-            if(allocated(Sspeed)) deallocate(Sspeed)
-            if(allocated(Dens)) deallocate(Dens)
-            if(allocated(corrMod)) deallocate(corrMod)
-            if(allocated(corrL)) deallocate(corrL)
-            if(allocated(margiF)) deallocate(margiF)
-            if(allocated(CV)) deallocate(CV)
-            if(allocated(seedStart)) deallocate(seedStart)
-            if(allocated(lambdaSwitch)) deallocate(lambdaSwitch)
             if(allocated(bbox_max)) deallocate(bbox_max)
             if(allocated(bbox_min)) deallocate(bbox_min)
-            if(allocated(fieldVar)) deallocate(fieldVar)
-            if(allocated(fieldAvg)) deallocate(fieldAvg)
 
 
         end subroutine generateMain_inputSEM
@@ -1193,8 +1266,8 @@ contains
                 write(unit,*) " stepProc   = ", IPT%stepProc
                 write(unit,*) " procExtent = ", IPT%procExtent
                 write(unit,*) " procExtent = ", IPT%procExtent
-                write(unit,*) " outputFolder = ", trim(adjustL(IPT%outputFolder))
-                write(unit,*) " outputName   = ", trim(adjustL(IPT%outputName))
+                !write(unit,*) " outputFolder = ", trim(adjustL(IPT%outputFolder))
+                !write(unit,*) " outputName   = ", trim(adjustL(IPT%outputName))
 
             end if
 
