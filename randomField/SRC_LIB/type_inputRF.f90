@@ -746,12 +746,6 @@ contains
 
             write(*,*) "absPath = ", trim(adjustL(absPath))
 
-            do prop_Count = 0, size(prop) - 1
-                mat_Nb = prop(prop_count)%mat
-                prop(prop_Count)%bbox_min = bbox_min(:, mat_Nb+1)
-                prop(prop_Count)%bbox_max = bbox_max(:, mat_Nb+1)
-            end do
-
             write(fid,"(A)") "$nSamples "//numb2String(size(prop))
 
             do prop_Count = 0, size(prop) - 1
