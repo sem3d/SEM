@@ -7,6 +7,7 @@
 module sem_c_config
     use iso_c_binding
     use sem_c_bindings
+    use constants, only : OUT_LAST
 
     integer, parameter :: NAME_MAX=200
     ! Ce type doit correspondre au type sem_config_t du module read_input.c **a l'ordre pres**
@@ -48,7 +49,7 @@ module sem_c_config
        integer(C_INT) :: comp_energ
 
        !! Output Variables
-       integer(C_INT), dimension(11) :: out_variables
+       integer(C_INT), dimension(OUT_LAST+1) :: out_variables
        integer(C_INT) :: nl_flag
 
        !! Protection reprise

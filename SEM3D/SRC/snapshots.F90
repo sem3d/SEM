@@ -918,7 +918,7 @@ contains
 
     subroutine allocate_fields(nnodes, nsubelements, out_flags, fields, nl_flag)
         type (output_var_t), intent(inout) :: fields
-        integer, dimension(0:N_OUT_VARS-1), intent(in) :: out_flags
+        integer, dimension(0:OUT_LAST), intent(in) :: out_flags
         integer, intent(in) :: nnodes,nsubelements
         logical, intent(in) :: nl_flag
         logical :: flag_gradU

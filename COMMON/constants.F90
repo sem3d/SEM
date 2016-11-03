@@ -67,22 +67,20 @@ MODULE constants
     integer, parameter :: DM_FLUID_PML = 1
 
     ! VARIABLES DE SORTIES
-    integer, parameter :: OUT_ENERGYP    = 0
-    integer, parameter :: OUT_ENERGYS    = 1
-    integer, parameter :: OUT_EPS_VOL    = 2
-    integer, parameter :: OUT_DEPLA      = 3
-    integer, parameter :: OUT_VITESSE    = 4
-    integer, parameter :: OUT_ACCEL      = 5
-    integer, parameter :: OUT_PRESSION   = 6
-    integer, parameter :: OUT_EPS_DEV    = 7
-    integer, parameter :: OUT_STRESS_DEV = 8
+    integer, parameter :: OUT_ENERGYP      = 0
+    integer, parameter :: OUT_ENERGYS      = 1
+    integer, parameter :: OUT_EPS_VOL      = 2
+    integer, parameter :: OUT_DEPLA        = 3
+    integer, parameter :: OUT_VITESSE      = 4
+    integer, parameter :: OUT_ACCEL        = 5
+    integer, parameter :: OUT_PRESSION     = 6
+    integer, parameter :: OUT_EPS_DEV      = 7
+    integer, parameter :: OUT_STRESS_DEV   = 8
     integer, parameter :: OUT_TOTAL_ENERGY = 9
-    integer, parameter :: OUT_EPS_DEV_PL = 10
-
-    integer, parameter :: CPT_INTERP = 0
-    integer, parameter :: CPT_ENERGY = 1
-
-    character(len=10), dimension(0:10) :: OUT_VAR_NAMES = (/ &
+    integer, parameter :: OUT_EPS_DEV_PL   = 10
+    integer, parameter :: OUT_DUDX         = 11
+    integer, parameter :: OUT_LAST=11  ! Numero de la derniere variable
+    character(len=10), dimension(0:OUT_LAST) :: OUT_VAR_NAMES = (/ &
         "EnergyP   ", &
         "EnergyS   ", &
         "Eps Vol   ", &
@@ -93,9 +91,13 @@ MODULE constants
         "Eps Dev   ", &
         "Stress Dev", &
         "Tot_Energy", &
-        "Eps Dev Pl" /)
-    integer, parameter, dimension(0:10) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6/)
-    integer, parameter :: N_OUT_VARS=size(OUT_VAR_NAMES)
+        "Eps Dev Pl", &
+        "DUDX      " /)
+    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9/)
+
+    integer, parameter :: CPT_INTERP = 0
+    integer, parameter :: CPT_ENERGY = 1
+
     ! TYPE DE CONDITION pour les surfaces
     integer, parameter :: COND_NONE     = 0  ! not assigned/uninitialized
     integer, parameter :: COND_DIRICH   = 1
@@ -117,7 +119,7 @@ MODULE constants
 
     integer, parameter :: SCREEN=6
     integer, parameter :: buf_RF=1024 !Buffer for text
-
+    ! Constants for referencing arrays in CPML code
     integer, parameter :: k012 = 0, k021 = 1, k120 = 2
     real(KIND=8), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
 CONTAINS

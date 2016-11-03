@@ -158,7 +158,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err, k;
 
-    for(k=0;k<10;++k) {
+    for(k=0;k<12;++k) {
         config->out_variables[k] = 0;
     }
     tok = skip_blank(scanner);
@@ -179,6 +179,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
         else if (cmp(scanner,"eTotal")) err=expect_eq_int(scanner, &(config->out_variables[9]),1);
         else if (cmp(scanner,"edevpl")) err=expect_eq_int(scanner, &(config->out_variables[10]),1);
+        else if (cmp(scanner,"dudx")) err=expect_eq_int(scanner, &(config->out_variables[11]),1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
