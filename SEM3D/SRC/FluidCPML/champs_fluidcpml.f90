@@ -34,6 +34,8 @@ module champs_fluidpml
 
         ! Masse pour elements solide cpml
         real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
+        real(fpp), dimension(:), allocatable :: MasUMat ! M^U <=> Delta term in (12a) from Ref1
+
         ! Element materials
         type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
