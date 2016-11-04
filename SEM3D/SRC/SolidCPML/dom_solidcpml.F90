@@ -394,6 +394,7 @@ contains
 
         dxi   = dom%cpml_c*d0*(xoverl)**dom%cpml_n / kappa
         alpha = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
+        write(*,*) "DXI", i,j,k, dxi, alpha
     end subroutine compute_dxi_alpha_kappa
 
     ! Compute parameters for the first direction of attenuation (maybe the only one)
@@ -639,6 +640,9 @@ contains
                         champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)-kijk*Ry
                         champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)-kijk*Rz
                         !R(idx,0) += wijk*(R1+R2+R3)
+!                        if (i==1.and.j==0.and.k==0.and.bnum==1.and.ee==0) then
+!                            write(*,*) kijk, Rx, Ry, Rz, Fox(ee,i,j,k), Foy(ee,i,j,k), Foz(ee,i,j,k)
+!                        end if
                     enddo
                 enddo
             enddo
@@ -745,7 +749,7 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         double precision :: dt, t
         !
-        integer :: i_dir, n
+        integer :: i_dir, n, indpml
         !
         real(fpp) :: V, F ! Displacement, Velocity, Force
 
@@ -779,6 +783,13 @@ contains
 
         ! Note: do NOT apply (dirichlet) BC for PML
         !       if PML absorption would be turned off <=> solid domain without dirichlet BC (neumann only)
+        ! yes we can
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%Veloc(indpml,:) = 0.
+            dom%champs0%Depla(indpml,:) = 0.
+        enddo
+
     end subroutine newmark_corrector_solidpml
 
     function solidpml_Pspeed(dom, lnum, i, j, k) result(Pspeed)
