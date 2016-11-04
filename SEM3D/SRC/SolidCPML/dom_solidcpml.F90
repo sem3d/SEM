@@ -135,7 +135,6 @@ contains
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
         ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
-        ! TODO : read parameters (kappa_* ?) from input.spec ?
 
         dom%cpml_c = 1.0
         dom%cpml_n = Tdomain%config%cpml_n
