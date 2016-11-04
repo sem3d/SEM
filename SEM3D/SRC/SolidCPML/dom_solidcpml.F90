@@ -95,7 +95,7 @@ contains
             allocate(dom%Kappa_0 (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
             ! Allocation des Ri pour les PML solides (i = 0...5)
             allocate(dom%R1_0(0:VCHUNK-1,0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            allocate(dom%R2_0(0:VCHUNK-1,0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            allocate(dom%R2_0(0:VCHUNK-1,0:8, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
             allocate(dom%DUDVold(0:VCHUNK-1, 0:8, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
             allocate(dom%Uold(0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
             dom%R1_0 = 0d0
