@@ -330,19 +330,13 @@ contains
             end do
         end do
 
+        ! Store dt for ADE equations
         dom%dt = Tdomain%TimeD%dtmin
+
         ! Handle on materials (to get/access pml_pos and pml_width)
         dom%sSubDomain => Tdomain%sSubDomain
 
         ! Compute alphamax (from fmax)
-
-        ! TODO : compute max of all fmax of all procs: need to speak about that with Ludovic: where ? how ?
-        ! My understanding is that all procs process different elements (PML or not), so all procs are NOT
-        ! here (in init_solidpml_properties) at the same time : broadcast fmax of each proc to all procs and get
-        ! the max could NOT work ?!... Right ? Wrong ? Don't know !...
-        ! TODO : replace all this by fmax from read_input.c
-!        if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
-
         fmax = Tdomain%TimeD%fmax
         if (fmax < 0.) stop "SolidCPML : fmax < 0."
         dom%alphamax = M_PI * fmax
