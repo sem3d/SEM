@@ -14,7 +14,8 @@
 module ssubdomains
     type Subdomain
 
-       integer :: NGLLx, NGLLz, n_loc_dim, npow, pml_type
+       integer :: NGLLx, NGLLz,  n_loc_dim, wpml, npow, pml_type
+       integer :: type_DG,type_Flux
 
        real :: Pspeed, Sspeed, Ddensity, DT, DLambda, DMu, Apow, freq, k
        real, dimension (:), pointer :: GLLcx, GLLpolx, GLLwx
@@ -43,6 +44,11 @@ contains
 
         S%DMu = S%Sspeed**2 * S%Ddensity
         S%DLambda = (S%Pspeed**2 - 2 * S%Sspeed **2 ) * S%Ddensity
+
+        ! Check Case Fluid (Acoustic)
+        if ((S%material_type == "F") .AND. (S%Sspeed .NE. 0.)) then
+           STOP "Error in material input file : Fluids must have S-speed equal to 0. "
+        endif
 
     end subroutine Lame_coefficients
 

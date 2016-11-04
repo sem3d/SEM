@@ -4,6 +4,7 @@
 !!
 
 
+
 module sem_c_config
     use iso_c_binding
     use sem_c_bindings
@@ -15,6 +16,8 @@ module sem_c_config
        type(C_PTR)    :: run_name
 
        !! Integration
+       integer(C_INT) :: type_timeinteg
+       integer(C_INT) :: implicitness
        integer(C_INT) :: accel_scheme
        integer(C_INT) :: veloc_scheme
        real(C_DOUBLE) :: sim_time
@@ -33,12 +36,14 @@ module sem_c_config
        type(C_PTR)    :: mat_file
        integer(C_INT) :: nsources
        type(C_PTR)    :: source
+       integer(C_INT) :: is_lamb_test
 
        !! Capteurs
        integer(C_INT) :: save_traces
        integer(C_INT) :: traces_interval
        integer(C_INT) :: traces_format
        type(C_PTR)    :: station_file
+       integer(C_INT) :: capt_loc_type
 
        !! Snapshots
        integer(C_INT) :: save_snap
@@ -72,6 +77,11 @@ module sem_c_config
        integer(C_INT) :: cpml_n
        real(C_DOUBLE) :: cpml_rc
 
+       !! Type Elements (DG)
+       integer(C_INT) :: type_elem
+       integer(C_INT) :: type_flux
+       integer(C_INT) :: type_bc
+
        !!Material
        integer(C_INT) :: material_present
        integer(C_INT) :: material_type
@@ -101,6 +111,7 @@ module sem_c_config
        real(C_DOUBLE) :: ts
        real(C_DOUBLE) :: gamma
        real(C_DOUBLE) :: amplitude
+       real(C_DOUBLE) :: sigma
        type(C_PTR) :: time_file
        real(C_DOUBLE) :: Q
        real(C_DOUBLE) :: X

@@ -49,6 +49,7 @@ contains
                 mindist = dist
             end if
         end do
+
         !! Now find all the elements in contact with the best_node
         k = 0
         do n = 0, Tdomain%n_elem-1
@@ -82,6 +83,41 @@ contains
         if (k<=nmax) nmax = k
         deallocate(coord)
     end subroutine find_location
+
+!############################################################
+
+    subroutine relocalize_on_nearest_gauss_pt(Tdomain, nrec)
+
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: nrec
+
+        integer :: n
+        double precision :: mindist, dist, x0, z0
+        integer :: best_node
+        double precision, dimension(0:1) :: p
+
+        !! Find the closest node
+        best_node = 0
+        mindist = 1d100
+        x0 = Tdomain%sReceiver(nrec)%xrec
+        z0 = Tdomain%sReceiver(nrec)%zrec
+        do n = 0, Tdomain%n_glob_points-1
+            p = Tdomain%GlobCoord(0:1, n) ! Look over gauss points to reduce the number of candidates
+            dist = (p(0)-x0)**2 + (p(1)-z0)**2
+            if (dist<mindist) then
+                best_node = n
+                mindist = dist
+            end if
+        end do
+
+        ! If "collapse mode" is choosen for captors, the captors are relocated on the nearest gll node
+        Tdomain%sReceiver(nrec)%xrec = Tdomain%GlobCoord(0,best_node)
+        Tdomain%sReceiver(nrec)%zrec = Tdomain%GlobCoord(1,best_node)
+        write (*,*) "Receiver",nrec, " has been relocated on nearest Gauss node ", n
+        write (*,*) " on the new position : ", Tdomain%GlobCoord(0,best_node), Tdomain%GlobCoord(1,best_node)
+
+    end subroutine relocalize_on_nearest_gauss_pt
+
 
 end module mlocations2d
 

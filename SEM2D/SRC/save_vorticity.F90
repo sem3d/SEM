@@ -12,8 +12,8 @@
 !<
 
 !>
-!! \brief Assure la sauvergarde de la vorticité.
-!! Cette quantité est sotckée dans les fichiers epsi_point et curl_v.
+!! \brief Assure la sauvergarde de la vorticite.
+!! Cette quantite est sotckee dans les fichiers epsi_point et curl_v.
 !!
 !! \param type (domain), intent (IN) TDomain
 !! \param integer, intent (IN) it
@@ -34,7 +34,7 @@ subroutine save_vorticity (Tdomain,it)
 
     ! local variables
     integer :: ngllx,ngllz,ipoint, i,j,n, mat,nf
-    real :: zero
+    real :: zzero
     real, dimension(:,:) ,allocatable  :: Grad_u
     real, dimension (:), allocatable  :: Wheight
     real, dimension (:,:), allocatable :: Disp
@@ -59,7 +59,7 @@ subroutine save_vorticity (Tdomain,it)
     allocate (Wheight(0:Tdomain%n_glob_points-1))
     Grad_u = 0
     Wheight = 0
-    zero = 0. !!Ajout Gsa sinon erreur a l'execution parfois
+    zzero = 0. !!Ajout Gsa sinon erreur a l'execution parfois
     do n = 0,Tdomain%n_elem-1
         if (.not. Tdomain%specel(n)%PML) then
             ngllx = Tdomain%specel(n)%ngllx;  ngllz = Tdomain%specel(n)%ngllz
@@ -400,8 +400,8 @@ subroutine save_vorticity (Tdomain,it)
 
 #ifdef MKA3D
         if (Wheight (ipoint) == 0  ) then
-            write (73,"(I8,G17.8)") ipoint,  zero
-            write (74,"(I8,G17.8)") ipoint,  zero
+            write (73,"(I8,G17.8)") ipoint,  zzero
+            write (74,"(I8,G17.8)") ipoint,  zzero
         endif
 #endif
     enddo

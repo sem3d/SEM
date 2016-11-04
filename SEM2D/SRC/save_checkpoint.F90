@@ -115,7 +115,7 @@ subroutine read_write_prot(Tdomain,readprot,rtime,dtmin,it,isort)
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
-        if ( (.not.Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%CPML) then
+        if ( (.not.Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%CPML .or. Tdomain%specel(n)%ADEPML) then
             if (readprot .eqv. .true.) then
                 read (61,*) Tdomain%specel(n)%Veloc(1:ngllx-2,1:ngllz-2,0:1)
                 read (61,*) Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1)
@@ -143,7 +143,7 @@ subroutine read_write_prot(Tdomain,readprot,rtime,dtmin,it,isort)
     ! Save Fields for Faces
     do n = 0,Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
-        if ((.not.Tdomain%sFace(n)%PML) .or. Tdomain%sFace(n)%CPML) then
+        if ((.not.Tdomain%sFace(n)%PML) .or. Tdomain%sFace(n)%CPML .or. Tdomain%sFace(n)%ADEPML) then
             if (readprot .eqv. .true.) then
                 read (61,*) Tdomain%sFace(n)%Veloc (1:ngll-2,0:1)
                 read (61,*) Tdomain%sFace(n)%Displ (1:ngll-2,0:1)
@@ -168,7 +168,7 @@ subroutine read_write_prot(Tdomain,readprot,rtime,dtmin,it,isort)
 
     ! Save Fields for Vertices
     do n = 0,Tdomain%n_vertex-1
-        if ((.not.Tdomain%sVertex(n)%PML) .or. Tdomain%sVertex(n)%CPML) then
+        if ((.not.Tdomain%sVertex(n)%PML) .or. Tdomain%sVertex(n)%CPML .or. Tdomain%sVertex(n)%ADEPML) then
             if (readprot .eqv. .true.) then
                 read (61,*) Tdomain%sVertex(n)%Veloc(0:1)
                 read (61,*) Tdomain%sVertex(n)%Displ(0:1)

@@ -12,10 +12,14 @@ module sreceivers
     type :: receiver
 
        logical :: located_here
-       integer :: Nr
+       integer :: Nr, Nv
        real :: xRec, zRec,xi,eta
        real, dimension(:,:), pointer :: Interp_coeff
        character(Len=100) :: name
+       ! FOR HDG POST-PROCESSING
+       real, dimension(:,:,:,:), pointer :: InvGrad
+       real, dimension(:,:), pointer :: JacobWhei, ReinterpX, ReinterpZ, hprimex, hprimez
+       real, dimension(:,:), pointer :: MatPostProc
     end type receiver
 
 end module sreceivers
