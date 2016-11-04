@@ -7,6 +7,7 @@
 module champs_fluidpml
 
     use constants
+    use ssubdomains
     use mdombase
     implicit none
 
@@ -30,6 +31,9 @@ module champs_fluidpml
         ! Champs
         type(champsfluidpml) :: champs0
         type(champsfluidpml) :: champs1
+
+        ! Element materials
+        type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
         ! CPML parameters
         real(fpp) :: cpml_c

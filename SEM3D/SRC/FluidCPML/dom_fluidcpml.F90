@@ -89,6 +89,9 @@ contains
         ! Store dt for ADE equations
         dom%dt = Tdomain%TimeD%dtmin
 
+        ! Handle on materials (to get/access pml_pos and pml_width)
+        dom%sSubDomain => Tdomain%sSubDomain
+
         ! Compute alphamax (from fmax)
         fmax = Tdomain%TimeD%fmax
         if (fmax < 0.) stop "SolidCPML : fmax < 0."
