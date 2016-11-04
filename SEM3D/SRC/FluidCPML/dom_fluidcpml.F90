@@ -50,6 +50,10 @@ contains
             dom%champs0%ForcesFl = 0d0
             dom%champs0%Phi = 0d0
             dom%champs0%VelPhi = 0d0
+            ! Allocation de DumpMat pour les PML solides
+            allocate(dom%DumpMat(0:dom%nglltot-1))
+            dom%DumpMat = 0d0
+
         endif
 
         ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
@@ -77,6 +81,7 @@ contains
         if(allocated(dom%champs1%Phi     )) deallocate(dom%champs1%Phi     )
         if(allocated(dom%champs1%VelPhi  )) deallocate(dom%champs1%VelPhi  )
 
+        if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
         call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluidpml
 

@@ -32,6 +32,8 @@ module champs_fluidpml
         type(champsfluidpml) :: champs0
         type(champsfluidpml) :: champs1
 
+        ! Masse pour elements solide cpml
+        real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
         ! Element materials
         type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
