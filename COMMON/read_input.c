@@ -38,14 +38,18 @@ const keyword_t kw_source_type[] = {
     { 1, "impulse"},
     { 2, "moment"},
     { 3, "fluidpulse"},
-    { 4, NULL },
+    { 4, "dirac_proj"},
+    { 5, "gaussian"},
+    { 6, "strain_source"},
+    { 7, NULL },
 };
 
 const keyword_t kw_pml_type[] = {
     { 1, "PML"},
     { 2, "FPML"},
     { 3, "CPML"},
-    { 4, NULL },
+    { 4, "ADEPML"},
+    { 5, NULL },
 };
 
 const keyword_t kw_file_format[] = {
@@ -63,6 +67,41 @@ const keyword_t kw_source_dir[] = {
     { 2, "Z" },
     { 3, NULL },
 };
+
+int expect_type_integration(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"Newmark"))         { *type = 0; return 1; }
+    if (cmp(scanner,"RK4"))             { *type = 1; return 1; }
+    if (cmp(scanner,"Midpoint"))        { *type = 2; return 1; }
+    if (cmp(scanner,"Midpoint_iter"))   { *type = 3; return 1; }
+error:
+    msg_err(scanner, "Expected Newmark|RK4|Midpoint|Midpoint_iter");
+    return 0;
+}
+
+
+int expect_type_implicitness(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"explicit"))         { *type = 0; return 1; }
+    if (cmp(scanner,"semi_implicit"))    { *type = 1; return 1; }
+    if (cmp(scanner,"implicit"))         { *type = 2; return 1; }
+error:
+    msg_err(scanner, "Expected explicit|semi_implicit|implicit");
+    return 0;
+}
+
 
 int expect_source_dir(yyscan_t scanner, int* dir)
 {
@@ -138,13 +177,14 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &source->gamma, 1);
 	else if (cmp(scanner,"time_file")) err=expect_eq_string(scanner, &source->time_file,1);
 	else if (cmp(scanner,"amplitude")) err=expect_eq_float(scanner, &source->amplitude, 1);
-    else if (cmp(scanner,"Q")) err=expect_eq_float(scanner, &source->Q, 1);
-    else if (cmp(scanner,"Y")) err=expect_eq_float(scanner, &source->Y, 1);
-    else if (cmp(scanner,"X")) err=expect_eq_float(scanner, &source->X, 1);
-    else if (cmp(scanner,"L")) err=expect_eq_float(scanner, &source->L, 1);
-    else if (cmp(scanner,"v")) err=expect_eq_float(scanner, &source->v, 1);
-    else if (cmp(scanner,"d")) err=expect_eq_float(scanner, &source->d, 1);
-    else if (cmp(scanner,"a")) err=expect_eq_float(scanner, &source->a, 1);
+	else if (cmp(scanner,"sigma")) err=expect_eq_float(scanner, &source->sigma, 1);
+	else if (cmp(scanner,"Q")) err=expect_eq_float(scanner, &source->Q, 1);
+	else if (cmp(scanner,"Y")) err=expect_eq_float(scanner, &source->Y, 1);
+	else if (cmp(scanner,"X")) err=expect_eq_float(scanner, &source->X, 1);
+	else if (cmp(scanner,"L")) err=expect_eq_float(scanner, &source->L, 1);
+	else if (cmp(scanner,"v")) err=expect_eq_float(scanner, &source->v, 1);
+	else if (cmp(scanner,"d")) err=expect_eq_float(scanner, &source->d, 1);
+	else if (cmp(scanner,"a")) err=expect_eq_float(scanner, &source->a, 1);
 
 
 	if (err<=0) return 0;
@@ -205,6 +245,8 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"beta")) err=expect_eq_float(scanner, &config->beta,1);
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
 	else if (cmp(scanner,"courant")) err=expect_eq_float(scanner, &config->courant,1);
+	else if (cmp(scanner,"implicitness")) err=expect_type_implicitness(scanner, &config->implicitness);
+	else if (cmp(scanner,"type_time_integration")) err=expect_type_integration(scanner, &config->type_timeinteg);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -706,6 +748,80 @@ int expect_capteurs(yyscan_t scanner, sem_config_t* config)
     }
 }
 
+/// type_elements SECTION -----------------------------------------------------
+
+int expect_type_galerkin(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"continuous"))   { *type = 0; return 1; }
+    if (cmp(scanner,"dg_strong"))       { *type = 1; return 1; }
+    if (cmp(scanner,"dg_weak"))       { *type = 2; return 1; }
+    if (cmp(scanner,"hdg_rp"))       { *type = 3; return 1; }
+error:
+    msg_err(scanner, "Expected continuous|dg_strong|dg_weak|hdg");
+    return 0;
+}
+
+int expect_type_dg_flux(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"none"))   { *type = 0; return 1; }
+    if (cmp(scanner,"centered"))   { *type = 1; return 1; }
+    if (cmp(scanner,"godunov"))       { *type = 2; return 1; }
+    if (cmp(scanner,"laurent"))       { *type = 3; return 1; }
+    if (cmp(scanner,"hdg_rp"))       { *type = 4; return 1; }
+error:
+    msg_err(scanner, "Expected none|centered|godunov|hdg_rp");
+    return 0;
+}
+
+int expect_type_dg_boundary_condition(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"free"))   { *type = 0; return 1; }
+    if (cmp(scanner,"absorbing"))       { *type = 1; return 1; }
+    if (cmp(scanner,"reflecting"))       { *type = 2; return 1; }
+error:
+    msg_err(scanner, "Expected free|absorbing|reflecting");
+    return 0;
+}
+
+int expect_type_elements(yyscan_t scanner, sem_config_t* config)
+{
+    int tok, err;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+	tok = skip_blank(scanner);
+	if (tok!=K_ID) break;
+
+	if (cmp(scanner,"dg_type")) err=expect_type_galerkin(scanner, &config->type_elem);
+	if (cmp(scanner,"flux_type")) err=expect_type_dg_flux(scanner, &config->type_flux);
+	if (cmp(scanner,"bc_type")) err=expect_type_dg_boundary_condition(scanner, &config->type_bc);
+
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    return 1;
+}
+
+
 
 int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 {
@@ -720,6 +836,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"amortissement")) err=expect_amortissement(scanner, config);
 	else if (cmp(scanner,"fmax")) err=expect_eq_float(scanner, &config->fmax,1);
 	else if (cmp(scanner,"ngll")) err=expect_eq_int(scanner, &config->ngll,1);
+	else if (cmp(scanner,"lamb_test")) err=expect_eq_bool(scanner, &config->is_lamb_test,1);
 	else if (cmp(scanner,"dim")) {
 	    err=expect_eq_int(scanner, &config->dim,1);
 	    if (err!=0) { err = check_dimension(scanner, config); }
@@ -739,8 +856,10 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
 	else if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
 	else if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
+	else if (cmp(scanner,"capt_loc_type")) err=expect_eq_int(scanner, &config->capt_loc_type,1);
 	else if (cmp(scanner,"traces_format")) err=expect_eq_keyword(scanner, kw_file_format, &config->traces_format);
 	else if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
+	else if (cmp(scanner,"type_elements")) err=expect_type_elements(scanner, config);
 	else if (cmp(scanner,"pml_infos")) err=expect_pml_infos(scanner, config);
 	else if (cmp(scanner,"capteurs")) err=expect_capteurs(scanner, config);
 	// useless (yet or ever)

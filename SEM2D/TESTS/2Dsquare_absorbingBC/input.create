@@ -1,0 +1,13 @@
+.false.		     # if .true. : geometrical file already exists, not to be created
+mesh4spec.input      # mesh fileout
+500.  500.           # x_size,z_size
+10   10              # nb elements: x,z
+5 5                  # nb of GLL pts (x,z)
+3200. 1700.  1700.     # Vp, Vs, density
+0.0005                 # dt = time step in spectral element code
+0                       # PML (==1) or not (==0)
+1		        # Data for PML : p_up
+1.			# Data for PML : fact_deep
+9  9			# Data for PML : p_ngllx,p_ngllz
+F  2  10  2.5  0	# Data for PML : p_filter,npow,apow,omegac,kc
+material.input        # material fileout

@@ -13,23 +13,30 @@
 
 module svertices
 
+    use smat_solver
+    use constants
     ! Modified by Gaetano 01/06/05
 
     type :: vertex
 
-       logical :: PML, Abs, FPML, CPML
-       integer :: Glob_Numbering, mat_index
-
-       real :: MassMat
+       logical :: PML, Abs, reflex, CPML, ADEPML, is_computed
+       integer :: Glob_Numbering, mat_index, Type_DG
+       real :: MassMat, CoeffAssem
        real, dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
        real, dimension (:), allocatable :: Displ, Veloc, Forces, Accel, V0
-       real, dimension (:), allocatable :: Ivx, Ivz,Iveloc1, Iveloc2
-       real, dimension  (:), allocatable :: Double_Value
+       real, dimension (:), allocatable :: Double_Value
        integer :: Iglobnum_Vertex
 
 #ifdef MKA3D
        real, dimension (:), allocatable :: ForcesMka
 #endif
+       ! DG
+       integer :: valence
+       real,   dimension (:), allocatable :: Vect_RK
+       integer,dimension (:), allocatable :: Near_Face
+       real, dimension (:,:), allocatable :: Kmat
+       real,   dimension (:), allocatable :: SmbrLambda
+       real,   dimension (:), allocatable :: Lambda, K_up
 
     end type vertex
 
@@ -44,19 +51,12 @@ contains
     !! \param real, intent (IN) dt
     !! \param real, intent (IN) alpha
     !<
-
-
     !  subroutine Prediction_Vertex_Veloc (V,alpha,bega, dt)
     subroutine Prediction_Vertex_Veloc (V)
         implicit none
 
         type (Vertex), intent (INOUT) :: V
-        !real, intent (IN) :: bega, dt, alpha
 
-        !  test mariotti
-        !     V%Forces = V%Displ + dt * V%Veloc + dt**2 * (0.5 - bega) * V%Accel
-        !     V%V0 = V%Veloc
-        !     V%Forces = alpha * V%Forces + (1-alpha) * V%Displ
         V%Forces = V%Displ
         V%V0 = V%Veloc
 
@@ -72,7 +72,6 @@ contains
     !! \param real, intent (IN) gam1
     !! \param real, intent (IN) dt
     !<
-
     subroutine Correction_Vertex_Veloc (V, dt)
         implicit none
 
@@ -86,11 +85,7 @@ contains
             V%Forces(i) = V%MassMat * V%Forces(i)
         enddo
 
-        if (V%Abs) V%Forces = 0
-        !  test mariotti
-        !      V%Veloc  = V%v0+ dt * V%Forces
-        !      V%Accel  = V%Accel + gam1 /dt * (V%Veloc-V%V0)
-        !      V%Displ  =  V%Displ + bega * dt * (V%Veloc+V%V0)
+        if (V%Abs .or. V%reflex) V%Forces = 0
         V%Veloc  = V%v0+ dt * V%Forces
         V%Accel  =  (V%Veloc-V%V0)/dt
         V%Displ  =  V%Displ + dt * V%Veloc
@@ -114,7 +109,7 @@ contains
 
         integer :: i
 
-        if  (V%Abs) then
+        if  (V%Abs .or. V%reflex) then
             V%Veloc1 = 0; V%Veloc2 = 0; V%Veloc = 0
         else
             V%V0 = V%Veloc
@@ -147,7 +142,7 @@ contains
         integer :: i
 
         V%V0 = V%Veloc
-        if (V%Abs) then
+        if (V%Abs .or. V%reflex) then
             V%Veloc = 0
         else
             do i = 0,1
@@ -161,51 +156,7 @@ contains
     end subroutine Correction_Vertex_CPML_Veloc
 
 
-    ! ###########################################################
-    !>
-    !! \brief
-    !!
-    !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) fil
-    !<
-    subroutine Correction_Vertex_FPML_Veloc (V, dt, fil)
-        implicit none
-
-        type (Vertex), intent (INOUT) :: V
-        real, intent (IN) ::  dt, fil
-
-        integer :: i
-        real :: fil2
-        real :: Ausiliar_Velocity
-
-        fil2 = fil**2
-        V%V0 = V%Veloc
-
-        if  (V%Abs) then
-            V%Veloc1 = 0; V%Veloc2 = 0; V%Veloc = 0
-        else
-
-            do i = 0,1
-                Ausiliar_Velocity = V%Veloc1(i)
-                V%Veloc1(i) = V%DumpVx(0) * V%Veloc1(i) + dt * &
-                    V%DumpVx(1)*V%Forces1(i) + V%Ivx(0) * V%Iveloc1(i)
-                V%Iveloc1(i) = Fil2 * V%Iveloc1(i) + 0.5 * (1.-Fil2) *  &
-                    (Ausiliar_Velocity + V%Veloc1(i) )
-
-                Ausiliar_Velocity = V%Veloc2(i)
-                V%Veloc2(i) =V%DumpVz(0) * V%Veloc2(i) + Dt * &
-                    V%DumpVz(1)*V%Forces2(i) + V%Ivz(0) * V%IVeloc2(i)
-                V%Iveloc2(i) = Fil2 * V%Iveloc2(i) + 0.5 * (1.-Fil2) * &
-                    (Ausiliar_Velocity + V%Veloc2(i) )
-            enddo
-            V%Veloc = V%Veloc1 + V%Veloc2
-        endif
-
-        return
-    end subroutine Correction_Vertex_FPML_Veloc
-    ! ###########################################################
-
+    ! ############################################################
     !>
     !! \brief
     !!
@@ -213,7 +164,6 @@ contains
     !! \param real, dimension (0:1), intent (INOUT) Vfree
     !! \param logical, intent (IN) logic
     !<
-
 
     subroutine get_vfree_vertex(V,Vfree,logic)
         implicit none
@@ -253,7 +203,119 @@ contains
 
     end subroutine compute_Kinetic_Energy_V
 
+
     ! ############################################################
+    !>
+    !! \brief This subroutine performs the cholesky factorisation of the
+    !! matrix K defined at the vertex. So it is not really an inversion!
+    !! \param type (Vertex), intent (INOUT) V
+    !! \param real, intent (INOUT) E_kin
+    !<
+    subroutine  invert_K_vertex(V,nv)
+        implicit none
+
+        type (Vertex), intent (INOUT) :: V
+        integer,       intent (IN)    :: nv
+        integer                       :: n, INFO, i, imin, imax
+        n = 2 * V%Valence
+
+        ! On range dans K_up les colonnes successives de V%Kmat
+        imin = 1
+        do i=0,n-1
+            imax = imin + i
+            V%K_up(imin:imax) = V%Kmat(0:i,i)
+            imin = imax +1
+        enddo
+
+        ! Appel de la routine Lapack pour factorisation Cholesky
+        call SPPTRF( 'U', n, V%K_up, INFO)
+        if (INFO .NE. 0) then
+            WRITE(*,*) "Factorisation vertex matrix not successfull for vertex  ",nv," rank mat ",n
+            STOP "Factorisation of vertex matrix not successfull. End of Program"
+        endif
+
+    end subroutine invert_K_vertex
+
+
+    ! ############################################################
+    !>
+    !! \brief This subroutine solves a linear system K * Lambda = smbrLambda
+    !! using a previously done cholesky factorisation K into U**T*U.
+    !! The upper triangular matrix U is stored colomnwise into the vector K_up.
+    !! \param type (Vertex), intent (INOUT) V
+    !! \param real, intent (INOUT) E_kin
+    !<
+    subroutine  solve_lambda_vertex(V, nv)
+        implicit none
+
+        type (Vertex), intent (INOUT)  :: V
+        integer,       intent (IN)     :: nv
+        real, dimension(1:2*V%Valence) :: rhs
+        integer                        :: n, INFO
+        n = 2 * V%Valence
+
+        ! Changing Right Hand Side numbering to use Lapack routine
+        V%Lambda = 0.
+        rhs(1:n) = V%smbrLambda(0:n-1)
+
+        call SPPTRS( 'U', n, 1, V%K_up, rhs, n, INFO )
+        V%Lambda(0:n-1) = rhs(1:n)
+        !call check_system_inversion(V, V%Kmat, nv)
+
+        ! If any error :
+        if (INFO .NE. 0) STOP "Inversion of vertex matrix not successfull"
+
+        V%SmbrLambda(:) = 0.
+
+        ! Setting velocities to zero in case of reflective BC :
+        if (V%reflex) V%Lambda(:) = 0.
+
+    end subroutine solve_lambda_vertex
+
+
+    ! ############################################################
+    !>
+    !! \brief This subroutine checks the inversion of linear system :
+    !! K * Lambda = smbrLambda
+    !! \param type (Vertex), intent (INOUT) V
+    !! \param real, intent (INOUT) E_kin
+    !<
+    subroutine  check_system_inversion (V, Mat, nv)
+        implicit none
+
+        type (Vertex), intent (INOUT)  :: V
+        integer,       intent (IN)     :: nv
+        real, dimension(0:2*V%Valence-1,0:2*V%Valence-1), intent (IN) :: Mat
+        integer                        :: n, i, j
+        real                           :: tol, res, ratio
+
+        n = 2 * V%Valence
+        tol = 1.E-10
+
+        do i=0,n-1
+            res = 0.
+            do j=0,n-1
+                res = res + Mat(i,j)*V%Lambda(j)
+            enddo
+            if (abs(V%SmbrLambda(i)) .LT. 1.E-24) then
+                if (abs(res) .GT. 1.E-24) &
+                    write(*,*) "Problem-type 0 in solving system on vertex ",nv," on line :", i
+            elseif (abs(res) .LT. 1.E-24) then
+                if (abs(V%SmbrLambda(i)) .GT. 1.E-24) &
+                    write(*,*) "Problem-type 1 in solving system on vertex ",nv," on line :", i
+            else
+                ratio = abs((res - V%SmbrLambda(i)) / V%SmbrLambda(i))
+                if (ratio .GT. tol) then
+                    write(*,*) "Problem in solving system on vertex ",nv," on line :", i," error :",ratio
+                    !STOP "End of computation"
+                endif
+            endif
+        enddo
+
+    end subroutine check_system_inversion
+
+    ! ############################################################
+
 
 end module svertices
 

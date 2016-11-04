@@ -4,7 +4,7 @@
 !!
 !>
 !!\file Domain.F90
-!!\brief Contient le définition du type domain
+!!\brief Contient le definition du type domain
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -18,6 +18,7 @@ module sdomain
     use selement
     use sfaces
     use svertices
+    use smortars
     use ssources
     use stimeparam
     use logical_input
@@ -27,7 +28,7 @@ module sdomain
     use mpi_list
     use communication_object
     use semdatafiles
-
+    use constants
 
     type :: domain
        ! Communicateur pour tous les processus SEM
@@ -37,9 +38,10 @@ module sdomain
        integer :: master_superviseur
        logical :: couplage
        !
-       integer :: n_elem, n_face, n_vertex, n_source,n_glob_nodes, n_line ,n_receivers
+       integer :: n_elem, n_face, n_vertex, n_source, n_glob_nodes, n_line ,n_receivers, n_mortar
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
-       integer :: pml_type   ! Type of PML used (if any)
+       integer :: type_timeInteg, type_elem, type_flux, type_bc, pml_type, capt_loc_type, Implicitness
+
        integer, dimension (:), pointer :: Line_index, Communication_list
        integer :: n_quad ! Total number of quad elements to output (including subelements)
        real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
@@ -49,13 +51,17 @@ module sdomain
        real, dimension(:,:), pointer :: GrandeurVitesse     ! tableau conservatoire des grandeurs
        real, dimension(:,:), pointer :: GrandeurDepla     ! tableau conservatoire des grandeurs
        real, dimension(:), pointer :: GrandeurDeformation ! pour tous les points de gauss a une iteration donnee (utilise pour les sorties capteurs)
+       ! Additions S. Terrana Janv 2014
+       integer :: nCapt
+       integer, dimension (:,:), pointer :: elems_capteurs, faces_capteurs
+       integer, dimension (:),   pointer :: type_capteurs
 
 
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file, station_file, material_file
        character (len=1), dimension (:), pointer ::  Name_Line, Super_object_type
        character (len=MAX_FILE_SIZE), dimension (:), pointer :: Super_object_file
 
-       logical :: any_PML,bMailUnv,bCapteur
+       logical :: any_PML,bMailUnv,bCapteur,openfilescapt
 
        type (time) :: TimeD
        type (logical_array) :: logicD
@@ -63,6 +69,7 @@ module sdomain
        type(element), dimension(:), pointer :: specel
        type(face), dimension (:), pointer :: sface
        type (vertex), dimension (:), pointer :: svertex
+       type (mortar), dimension (:), pointer :: smortar
        type (source), dimension (:), pointer :: sSource
        type (subdomain), dimension (:), pointer :: sSubDomain
        type (receiver), dimension (:), pointer :: sReceiver
@@ -111,8 +118,8 @@ subroutine read_material_file(Tdomain)
     character(Len=MAX_FILE_SIZE) :: fnamef
     !
     real :: dtmin
-    integer :: i, j, mat, npml
-    integer :: w_face, n_aus
+    integer :: i, j, mat, mat2, npml, nmortar, ngll1, ngll2
+    integer :: w_face, w_face2, n_aus, k_aus
     real :: Qp, Qs
 
     ! Read material properties
@@ -137,6 +144,14 @@ subroutine read_material_file(Tdomain)
         if (Tdomain%sSubDomain(i)%material_type == "P" )  then
             npml = npml + 1
         endif
+        ! Pour l'instant, on a un seul type de Flux et d'Elements pour TOUT le domaine
+        Tdomain%sSubDomain(i)%type_DG   = Tdomain%type_Elem
+        Tdomain%sSubDomain(i)%type_Flux = Tdomain%type_Flux
+        ! POUR COUPLAGE CG-DG
+        !Tdomain%sSubDomain(1)%type_DG   = 0 ! <---- A SUPPRIMER !!!!!!
+        !Tdomain%sSubDomain(1)%type_Flux = 0 ! <---- A SUPPRIMER !!!!!!
+        !Tdomain%sSubDomain(0)%type_DG   = 3 ! <---- A SUPPRIMER !!!!!!
+        !Tdomain%sSubDomain(0)%type_Flux = 4 ! <---- A SUPPRIMER !!!!!!
     enddo
     Tdomain%any_PML  = .false.
     if (npml > 0 ) then
@@ -147,7 +162,7 @@ subroutine read_material_file(Tdomain)
                 read (13,*) Tdomain%sSubdomain(i)%Filtering,  Tdomain%sSubdomain(i)%npow, Tdomain%sSubdomain(i)%Apow, &
                     Tdomain%sSubdomain(i)%Px, Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Pz,  &
                     Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq, Tdomain%sSubdomain(i)%k
-                ! Warning : The variable "Filtering" is no longer used : the kind of PML|FPML|CPML is
+                ! Warning : The variable "Filtering" is no longer used : the kind of PML|FPML|CPML|ADEPML is
                 ! assigned directly in the file : input.spec :
                 Tdomain%sSubdomain(i)%pml_type = Tdomain%pml_type
             endif
@@ -160,6 +175,16 @@ subroutine read_material_file(Tdomain)
         mat = Tdomain%specel(i)%mat_index
         Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
         Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
+        Tdomain%specel(i)%type_DG = Tdomain%sSubDomain(mat)%type_DG
+        ! Checks if the current element is on acoustic part of the domain
+        if (Tdomain%sSubdomain(mat)%material_type .EQ. "F") then
+           Tdomain%specel(i)%acoustic = .true.
+        elseif ((Tdomain%sSubdomain(mat)%material_type .EQ. "P") .AND. &
+                (Tdomain%sSubdomain(mat)%Sspeed .EQ. 0.)) then
+            Tdomain%specel(i)%acoustic = .true.
+        else
+           Tdomain%specel(i)%acoustic = .false.
+        endif
     enddo
 
     do i = 0, Tdomain%n_face-1
@@ -176,10 +201,115 @@ subroutine read_material_file(Tdomain)
         Tdomain%sVertex(n_aus)%mat_index = mat
         n_aus = Tdomain%sFace(i)%Near_Vertex(1)
         Tdomain%sVertex(n_aus)%mat_index = mat
+        ! Sebadditions for DG - Sept 2013
+        Tdomain%sFace(i)%type_Flux = Tdomain%sSubDomain(mat)%type_Flux
+        Tdomain%sFace(i)%type_DG   = Tdomain%sSubDomain(mat)%type_DG
+        ! Check if the Face is an elastic-acoustic interface :
+        n_aus = Tdomain%sFace(i)%Near_Element(0)
+        k_aus = Tdomain%sFace(i)%Near_Element(1)
+        ! Set the Acoustic Face's Flag to be the same as Near_Element(0) :
+        Tdomain%sFace(i)%acoustic = Tdomain%specel(n_aus)%acoustic
+        if (k_aus .NE.-1) then
+           if (Tdomain%specel(n_aus)%acoustic .EQV. Tdomain%specel(k_aus)%acoustic) then
+              Tdomain%sFace(i)%changing_media = .false.
+           else
+              Tdomain%sFace(i)%changing_media = .true.
+              Tdomain%sFace(i)%acoustic = .false.
+           endif
+        else
+           Tdomain%sFace(i)%changing_media = .false.
+        endif
     enddo
+
+    ! CREATION DES MORTARS
+    nmortar = 0
+    do i = 0, Tdomain%n_face-1
+        Tdomain%sFace(i)%mortar = .false.
+        n_aus = Tdomain%sFace(i)%Near_Element(0)
+        k_aus = Tdomain%sFace(i)%Near_Element(1)
+        mat = Tdomain%specel(n_aus)%mat_index
+        if (k_aus .NE.-1) then
+            mat2 = Tdomain%specel(k_aus)%mat_index
+            if (mat .NE. mat2) then
+                w_face = Tdomain%sFace(i)%Which_face(0)
+                w_face2= Tdomain%sFace(i)%Which_face(1)
+                if (w_face == 0 .or. w_face==2) then
+                    ngll1 = Tdomain%sSubDomain(mat)%ngllx
+                else
+                    ngll1 = Tdomain%sSubDomain(mat)%ngllz
+                endif
+                if (w_face2 == 0 .or. w_face2==2) then
+                    ngll2 = Tdomain%sSubDomain(mat2)%ngllx
+                else
+                    ngll2 = Tdomain%sSubDomain(mat2)%ngllz
+                endif
+                if (ngll1.NE.ngll2) then
+                    Tdomain%sFace(i)%ngll = max(ngll1,ngll2)
+                    nmortar = nmortar + 1
+                    Tdomain%sFace(i)%mortar = .true.
+                endif
+            endif
+        endif
+    enddo
+
+    ! Traitement des mortars :
+    Tdomain%n_mortar = nmortar
+    write(*,*) "Nombre de faces mortars : ", nmortar
+    allocate(Tdomain%sMortar(0:nmortar-1))
+    nmortar = 0
+    do i = 0, Tdomain%n_face-1
+        if (Tdomain%sFace(i)%mortar) then
+            Tdomain%sMortar(nmortar)%Near_Face(0) = i
+            Tdomain%sFace(i)%mortarId = nmortar
+            n_aus = Tdomain%sFace(i)%Near_Element(0)
+            k_aus = Tdomain%sFace(i)%Near_Element(1)
+            w_face = Tdomain%sFace(i)%Which_face(0)
+            w_face2= Tdomain%sFace(i)%Which_face(1)
+            mat = Tdomain%specel(n_aus)%mat_index
+            mat2 = Tdomain%specel(k_aus)%mat_index
+            if (w_face == 0 .or. w_face==2) then
+                ngll1 = Tdomain%sSubDomain(mat)%ngllx
+            else
+                ngll1 = Tdomain%sSubDomain(mat)%ngllz
+            endif
+            if (w_face2 == 0 .or. w_face2==2) then
+                ngll2 = Tdomain%sSubDomain(mat2)%ngllx
+            else
+                ngll2 = Tdomain%sSubDomain(mat2)%ngllz
+            endif
+            Tdomain%sMortar(nmortar)%ngllmin = min(ngll1,ngll2)
+            Tdomain%sMortar(nmortar)%ngllmax = max(ngll1,ngll2)
+            if (ngll1>ngll2) then ! Near_Element(0) doit etre le "slave"
+                Tdomain%sMortar(nmortar)%Near_Element(0) = k_aus
+                Tdomain%sMortar(nmortar)%Near_Element(1) = n_aus
+            else
+                Tdomain%sMortar(nmortar)%Near_Element(0) = n_aus
+                Tdomain%sMortar(nmortar)%Near_Element(1) = k_aus
+            endif
+            nmortar = nmortar + 1
+        endif
+    enddo
+
+    ! Modifs pour prÃ©server DG_STRONG et DG_WEAK avec la nouvelle formulation HDG-acoustique
+    if (Tdomain%type_elem==GALERKIN_DG_STRONG .OR. Tdomain%type_elem==GALERKIN_DG_WEAK) then
+        do i = 0, Tdomain%n_face-1
+            if (Tdomain%sFace(i)%changing_media) then
+                n_aus = Tdomain%sFace(i)%Near_Element(0)
+                if (Tdomain%specel(n_aus)%acoustic) then
+                    Tdomain%sFace(i)%acoustic = .true.
+                else
+                    Tdomain%sFace(i)%acoustic = .false.
+                endif
+            endif
+        enddo
+        do i = 0,Tdomain%n_elem-1
+            Tdomain%specel(i)%acoustic = .false.
+        enddo
+    endif
 
     do i = 0, Tdomain%n_vertex-1
         mat = Tdomain%sVertex(i)%mat_index
+        Tdomain%sVertex(i)%Type_DG = Tdomain%sSubDomain(mat)%Type_DG
     enddo
 
     if (Tdomain%logicD%super_object_local_present) then

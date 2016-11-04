@@ -13,8 +13,154 @@
 
 module shape_lin
 
-
 contains
+
+    ! #########################################
+    subroutine compute_normals(Tdomain,nf)
+
+        use sdomain
+
+        implicit none
+
+        type(domain),target, intent (INOUT) :: Tdomain
+        integer, intent (IN) :: nf
+
+        ! local variables
+        real, dimension(0:1) :: normal_aux
+        integer :: i, n_elem, ngll, nv0, nv1
+
+        n_elem = Tdomain%sFace(nf)%Near_Element(0)
+        ngll   = Tdomain%sFace(nf)%ngll
+        nv0    = Tdomain%sFace(nf)%Near_Vertex(0)
+        nv1    = Tdomain%sFace(nf)%Near_Vertex(1)
+        allocate(Tdomain%sFace(nf)%Normal(0:1))
+        allocate(Tdomain%sFace(nf)%Normal_Nodes(0:ngll-1,0:1))
+
+        ! Computation of an unique Face normal
+        call n_from_vertices(Tdomain, normal_aux, nv0, nv1)
+        Tdomain%sFace(nf)%Normal = normal_aux
+        ! Check if normal is outward...
+        if (Tdomain%sFace(nf)%Which_Face(0) .GE. 2) then
+            Tdomain%sFace(nf)%Normal(:) = - Tdomain%sFace(nf)%Normal(:)
+        endif
+
+        ! Computation of a field of normals for each Gauss points
+        ! For shape4, elements are linears, and the normal for the
+        ! Gauss points are the same than the Face Normal
+        do i = 0,ngll-1
+            Tdomain%sFace(nf)%Normal_Nodes(i,0) = Tdomain%sFace(nf)%Normal(0)
+            Tdomain%sFace(nf)%Normal_Nodes(i,1) = Tdomain%sFace(nf)%Normal(1)
+        end do
+
+    end subroutine compute_normals
+
+
+! #########################################
+    subroutine compute_normals_elem(Tdomain, nelem)
+
+        use sdomain
+
+        implicit none
+
+        type(domain),target, intent (INOUT) :: Tdomain
+        integer, intent (IN) :: nelem
+
+        ! local variables
+        integer              :: i, j, k, ngllx, ngllz, ngll, nglltot, nv0, nv1
+        real, dimension(0:1) :: normal_aux
+
+        ngllx  = Tdomain%specel(nelem)%ngllx
+        ngllz  = Tdomain%specel(nelem)%ngllz
+        nglltot= 2*(ngllx+ngllz)
+        k = 0
+
+        allocate(Tdomain%specel(nelem)%Normal_nodes(0:nglltot-1,0:1))
+
+        do i=0,3
+            nv0  = Tdomain%specel(nelem)%Near_Vertex(i)
+            nv1  = Tdomain%specel(nelem)%Near_Vertex(mod(i+1,4))
+            call n_from_vertices(Tdomain,normal_aux,nv0,nv1)
+            if (i==0 .OR. i==2) then
+                ngll = ngllx
+            else
+                ngll = ngllz
+            endif
+            do j=0,ngll-1
+                Tdomain%specel(nelem)%Normal_Nodes(k,0) = normal_aux(0)
+                Tdomain%specel(nelem)%Normal_Nodes(k,1) = normal_aux(1)
+                k = k+1
+            enddo
+        enddo
+
+    end subroutine compute_normals_elem
+
+
+    ! #########################################
+    !>
+    !!\file shape4.F90
+    !!\brief
+    !!\version 1.0
+    !!\date 01/04/2014
+    !! This function computes a normal from 2 vertices
+    !! Be carefull : this normal may not be outward !
+    !<
+    subroutine n_from_vertices(Tdomain,n_vec,nv0,nv1)
+
+        use sDomain
+        implicit none
+
+        type (domain),target, intent (IN)    :: Tdomain
+        real, dimension(0:1), intent (INOUT) :: n_vec
+        integer, intent(IN)        :: nv0, nv1
+        integer                    :: n0, n1
+        real                       :: dx, dy, nx, ny, norm
+
+        n0 = Tdomain%sVertex(nv0)%Glob_numbering
+        n1 = Tdomain%sVertex(nv1)%Glob_numbering
+        dx = Tdomain%coord_nodes(0,n1) - Tdomain%coord_nodes(0,n0)
+        dy = Tdomain%coord_nodes(1,n1) - Tdomain%coord_nodes(1,n0)
+        nx  = dy ; ny = -dx
+        norm = sqrt(nx*nx + ny*ny)
+        n_vec(0) = nx / norm
+        n_vec(1) = ny / norm
+
+    end subroutine n_from_vertices
+
+
+    ! #########################################
+    !>
+    !!\file shape4.F90
+    !!\brief
+    !!\version 1.0
+    !!\date 17/01/2014
+    !! This subroutine computes the Jacobian of the transformation
+    !! from a reference segment [-1,1] to the actual face nf. This
+    !! tranformation is, in the linear case, just homothetic, therefore
+    !! the Jacobian is the same for all the nodes of the face, and its
+    !! value is equal to elongation coefficient.
+    !<
+    subroutine compute_Jacobian_1D(Tdomain,nf,Jac1D)
+
+        use sdomain
+
+        implicit none
+
+        type(domain), intent (IN) :: Tdomain
+        integer, intent (IN) :: nf
+        real, intent (INOUT) :: Jac1D
+
+        ! local variables
+        integer :: nv0, nv1, n0, n1
+
+        nv0= Tdomain%sFace(nf)%Near_Vertex(0)
+        nv1= Tdomain%sFace(nf)%Near_Vertex(1)
+        n0 = Tdomain%sVertex(nv0)%Glob_numbering
+        n1 = Tdomain%sVertex(nv1)%Glob_numbering
+
+        Jac1D = 0.5 * sqrt((Tdomain%Coord_Nodes(0,n0)-Tdomain%Coord_Nodes(0,n1))**2 &
+            +(Tdomain%Coord_Nodes(1,n0)-Tdomain%Coord_Nodes(1,n1))**2 )
+
+    end subroutine compute_Jacobian_1D
 
     ! #########################################
 
@@ -29,10 +175,12 @@ contains
 
         ! local variables
 
-        integer :: i_aus, n, mat, ngllx, ngllz, i, j, ipoint
+        integer :: i_aus, n, mat, ngllx, ngllz, i, j, ipoint, imin, imax
         real, dimension(0:1,0:3) :: coord
         real :: xi, eta, xp, zp, Jac
         real, dimension (0:1,0:1) :: LocInvGrad
+        integer :: nf
+        real :: Jac1D
 
         ! Modified by Gaetano Festa, 26/05/05
         !---------------------------------------------------------------------------------------------------------------
@@ -75,7 +223,65 @@ contains
                     Tdomain%specel(n)%Jacob(i,j) = Jac
                 enddo
             enddo
+
+            ! Computation of coefficients of integration for element boundaries
+            allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:2*(ngllx+ngllz)-1))
+
+            ! Bottom boundary :
+            imin = 0 ; imax = ngllx-1
+            nf = Tdomain%specel(n)%Near_Face(0)
+            call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+            Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
+            if (Tdomain%sFace(nf)%Near_Element(0) == n) then
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n)%Coeff_Integr_Faces(imin)
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n)%Coeff_Integr_Faces(imax)
+            endif
+
+            ! Right boundary :
+            imin = imax+1 ; imax = imax + ngllz
+            nf = Tdomain%specel(n)%Near_Face(1)
+            call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+            Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
+            if (Tdomain%sFace(nf)%Near_Element(0) == n) then
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n)%Coeff_Integr_Faces(imin)
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n)%Coeff_Integr_Faces(imax)
+            endif
+
+            ! Top boundary :
+            imin = imax+1 ; imax = imax + ngllx
+            nf = Tdomain%specel(n)%Near_Face(2)
+            call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+            Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
+            if (Tdomain%sFace(nf)%Near_Element(0) == n) then
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n)%Coeff_Integr_Faces(imin)
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n)%Coeff_Integr_Faces(imax)
+            endif
+
+            ! Left boundary :
+            imin = imax+1 ; imax = imax + ngllz
+            nf = Tdomain%specel(n)%Near_Face(3)
+            call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+            Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
+            if (Tdomain%sFace(nf)%Near_Element(0) == n) then
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n)%Coeff_Integr_Faces(imin)
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n)%Coeff_Integr_Faces(imax)
+            endif
         enddo
+
+        ! Compute Normals for Faces with DG :
+        do nf=0,Tdomain%n_face-1
+            if (Tdomain%sFace(nf)%Type_flux .NE. FLUX_NONE) then
+                call compute_normals(Tdomain,nf)
+            end if
+        end do
+
+
+        ! Compute Normals for Elements HDG :
+        do n=0,Tdomain%n_elem-1
+            !if (Tdomain%specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) then
+                call compute_normals_elem(Tdomain,n)
+            !end if
+        end do
 
         if (Tdomain%logicD%super_object_local_present) then
             do n = 0, Tdomain%n_fault-1

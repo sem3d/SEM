@@ -82,6 +82,7 @@ contains
                     Tdomain%specel(n)%Jacob (i,j) = Jac
                 enddo
             enddo
+            call buildNormal(Tdomain,n)
         enddo
 
         if (Tdomain%logicD%super_object_local_present) then
@@ -228,6 +229,145 @@ contains
         enddo
 
     end subroutine shape8_manage_super_object
+
+    subroutine buildNormal(Tdomain,n_elem)
+
+        use sdomain
+
+        implicit none
+
+        ! subroutine arguments
+        type(domain),target, intent (INOUT) :: Tdomain
+        integer, intent (IN) :: n_elem
+
+        ! local variables
+        real, dimension (0:1,0:1) :: LocInvGrad
+        real, dimension(0:1,0:7) :: coord
+        integer :: i, j, i_aus, ngllx, ngllz, npg, k, mat, nf
+        real    :: eta, xi, tx, tz, nx, nz, n_norm, w
+
+        ! allocate space to store normals of each gauss point of each face of the element
+        if (n_elem .lt. 0 .or. n_elem .ge. Tdomain%n_elem) stop "shape8 - buildNormal : invalid element"
+        ngllx = Tdomain%specel(n_elem)%ngllx
+        ngllz = Tdomain%specel(n_elem)%ngllz
+        npg = 2*(ngllx+ngllz) ! number of gauss points over all element faces
+        if (.not. allocated(Tdomain%specel(n_elem)%Normal_Nodes))       allocate(Tdomain%specel(n_elem)%Normal_Nodes(0:npg-1,0:1))
+        if (.not. allocated(Tdomain%specel(n_elem)%Coeff_Integr_Faces)) allocate(Tdomain%specel(n_elem)%Coeff_Integr_Faces(0:npg-1))
+
+        ! initialization
+        mat = Tdomain%specel(n_elem)%mat_index
+        k = 0 ! k scans gauss points face by face (with respect to each face order)
+        do i=0,7
+            i_aus = Tdomain%specel(n_elem)%Control_Nodes(i)
+            coord(0,i) = Tdomain%Coord_Nodes(0,i_aus)
+            coord(1,i) = Tdomain%Coord_Nodes(1,i_aus)
+        end do
+
+        ! face 0
+        j = 0
+        do i = 0, ngllx - 1
+            ! Tangent from derivatives along xi
+            xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
+            eta = Tdomain%sSubdomain(mat)%GLLcz(j)
+            call shape8_local2jacob(coord, xi, eta, LocInvGrad)
+            tx = LocInvGrad(0, 0) ! dx/dxi
+            tz = LocInvGrad(0, 1) ! dz/dxi
+            ! Normal build from tangent
+            nx = tz ; nz = -tx
+            n_norm = sqrt(nx**2 + nz**2)
+            if (abs(n_norm) .le. 1.e-12) stop "buildNormal KO Face 0"
+            ! Store normal at gauss point
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 0) = nx / n_norm
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 1) = nz / n_norm
+            ! Impact surfacic integral (normal estimation)
+            w = Tdomain%sSubdomain(mat)%GLLwx(i)
+            Tdomain%specel(n_elem)%Coeff_Integr_Faces(k) = w * n_norm
+            nf = Tdomain%specel(n_elem)%Near_Face(0)
+            if (i ==       0) Tdomain%sface(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            if (i == ngllx-1) Tdomain%sface(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            ! Go to next gauss point
+            k = k+1
+        end do
+
+        ! face 1
+        i = ngllx - 1
+        do j = 0, ngllz - 1
+            ! Tangent from derivatives along eta
+            xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
+            eta = Tdomain%sSubdomain(mat)%GLLcz(j)
+            call shape8_local2jacob(coord, xi, eta, LocInvGrad)
+            tx = LocInvGrad(1, 0) ! dx/deta
+            tz = LocInvGrad(1, 1) ! dz/deta
+            ! Normal build from tangent
+            nx = tz ; nz = -tx
+            n_norm = sqrt(nx**2 + nz**2)
+            if (abs(n_norm) .le. 1.e-12) stop "buildNormal KO Face 1"
+            ! Store normal at gauss point
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 0) = nx / n_norm
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 1) = nz / n_norm
+            ! Impact surfacic integral (normal estimation)
+            w = Tdomain%sSubdomain(mat)%GLLwz(j)
+            Tdomain%specel(n_elem)%Coeff_Integr_Faces(k) = w * n_norm
+            nf = Tdomain%specel(n_elem)%Near_Face(1)
+            if (j ==       0) Tdomain%sface(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            if (j == ngllz-1) Tdomain%sface(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            ! Go to next gauss point
+            k = k+1
+        end do
+
+        ! face 2
+        j = ngllz - 1
+        do i = 0, ngllx - 1
+            ! Tangent from derivatives along eta
+            xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
+            eta = Tdomain%sSubdomain(mat)%GLLcz(j)
+            call shape8_local2jacob(coord, xi, eta, LocInvGrad)
+            tx = LocInvGrad(0, 0) ! dx/dxi
+            tz = LocInvGrad(0, 1) ! dz/dxi
+            ! Normal build from tangent
+            nx = -tz ; nz = tx
+            n_norm = sqrt(nx**2 + nz**2)
+            if (abs(n_norm) .le. 1.e-12) stop "buildNormal KO Face 2"
+            ! Store normal at gauss point
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 0) = nx / n_norm
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 1) = nz / n_norm
+            ! Impact surfacic integral (normal estimation)
+            w = Tdomain%sSubdomain(mat)%GLLwx(i)
+            Tdomain%specel(n_elem)%Coeff_Integr_Faces(k) = w * n_norm
+            nf = Tdomain%specel(n_elem)%Near_Face(2)
+            if (i ==       0) Tdomain%sface(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            if (i == ngllx-1) Tdomain%sface(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            ! Go to next gauss point
+            k = k+1
+        end do
+
+        ! face 3
+        i = 0
+        do j = 0, ngllz - 1
+            ! Tangent from derivatives along eta
+            xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
+            eta = Tdomain%sSubdomain(mat)%GLLcz(j)
+            call shape8_local2jacob(coord, xi, eta, LocInvGrad)
+            tx = LocInvGrad(1, 0) ! dx/deta
+            tz = LocInvGrad(1, 1) ! dz/deta
+            ! Normal build from tangent
+            nx = -tz ; nz = tx
+            n_norm = sqrt(nx**2 + nz**2)
+            if (abs(n_norm) .le. 1.e-12) stop "buildNormal KO Face 3"
+            ! Store normal at gauss point
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 0) = nx / n_norm
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 1) = nz / n_norm
+            ! Impact surfacic integral (normal estimation)
+            w = Tdomain%sSubdomain(mat)%GLLwz(j)
+            Tdomain%specel(n_elem)%Coeff_Integr_Faces(k) = w * n_norm
+            nf = Tdomain%specel(n_elem)%Near_Face(3)
+            if (j ==       0) Tdomain%sface(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            if (j == ngllz-1) Tdomain%sface(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            ! Go to next gauss point
+            k = k+1
+        end do
+    end subroutine buildNormal
+
 
     subroutine shape8_global2local(coord, xa, za, xi, eta, ok)
         double precision, dimension(0:1,0:7), intent(in)  :: coord
