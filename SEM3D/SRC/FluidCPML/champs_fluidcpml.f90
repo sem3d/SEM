@@ -35,6 +35,9 @@ module champs_fluidpml
         ! Element materials
         type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
+        ! Copy of node global coords : mandatory to compute distances in the PML
+        real(fpp), allocatable, dimension(:,:) :: GlobCoord
+
         ! CPML parameters
         real(fpp) :: cpml_c
         real(fpp) :: cpml_n
