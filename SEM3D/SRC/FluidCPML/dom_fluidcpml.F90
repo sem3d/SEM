@@ -94,7 +94,7 @@ contains
 
         ! Compute alphamax (from fmax)
         fmax = Tdomain%TimeD%fmax
-        if (fmax < 0.) stop "SolidCPML : fmax < 0."
+        if (fmax < 0.) stop "FluidCPML : fmax < 0."
         dom%alphamax = M_PI * fmax
     end subroutine init_domain_fluidpml
 
