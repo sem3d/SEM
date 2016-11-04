@@ -1,7 +1,3 @@
-!! This file is part of SEM
-!!
-!! Copyright CEA, ECP, IPGP
-!!
 !>
 !!\file main.F90
 !!\brief Assure l'appel au code de calcul SEM2D.
@@ -31,7 +27,7 @@ program main
 #endif
 
     if (.not. couplage) then
-        call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop, p_prop_h5)
+        call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop)
     else
         call init_mka3d_path()
     endif
@@ -42,7 +38,7 @@ end program main
 
 subroutine  sem(couplage)
     use sdomain
-    use mCapteur
+    !use mCapteur
     use semdatafiles
     use mpi
     use msnapshots
@@ -53,6 +49,9 @@ subroutine  sem(couplage)
     use sglobal_energy
     use snewmark
     use scouplage
+    use smidpoint
+    use srungekutta
+
     implicit none
 
     logical, intent(in) :: couplage
@@ -60,7 +59,6 @@ subroutine  sem(couplage)
     integer :: ntime,i_snap, ierr
     integer :: isort
     character(len=MAX_FILE_SIZE) :: fnamef
-    integer :: info_capteur
     integer :: getpid, pid
 
 #ifdef COUPLAGE
@@ -72,8 +70,8 @@ subroutine  sem(couplage)
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
     real(kind=4), dimension(2) :: tarray
-    real(kind=4) :: tref
-    integer :: interrupt, rg, code, protection
+    real(kind=4) :: tref, t_fin, t_ini
+    integer :: interrupt, rg, code, protection, n_it_max
 
     pid = getpid()
     !write(*,*) "SEM2D[", pid, "] : Demarrage."
@@ -97,6 +95,10 @@ subroutine  sem(couplage)
 
     ! mesh deformation (for testing purposes)
     !call rotate_mesh(Tdomain)
+    !call random_mesh_deformation(Tdomain)
+
+    if (rg == 0) write (*,*) "Checks the inputs and the mesh"
+    call check_inputs_and_mesh (Tdomain)
 
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
     call compute_GLL (Tdomain)
@@ -117,7 +119,7 @@ subroutine  sem(couplage)
     if (rg == 0) write (*,*) " Compute Courant parameter"
     call compute_Courant (Tdomain)
 
-    if (rg == 0) write (*,*) "Attribute PML properties"
+    if (rg == 0) write (*,*) "Attribute Boundary Conditions and PML properties"
     call PML_definition (Tdomain)
 
     if (Tdomain%logicD%any_source) then
@@ -147,6 +149,12 @@ subroutine  sem(couplage)
     ! initialisation des temps
     Tdomain%TimeD%rtime = 0
     Tdomain%TimeD%NtimeMin = 0
+    ! Nombre d'iterations pour schemas en temps iteratifs
+    if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT) then
+        n_it_max = 0
+    elseif (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT_ITER) then
+        n_it_max = 1
+    endif
 
     isort = 1
 
@@ -178,19 +186,9 @@ subroutine  sem(couplage)
         call write_snapshot_geom(Tdomain, rg)
     endif
 
-    ! preparation des eventuelles sorties capteur
-    info_capteur = 0
-    if (Tdomain%bCapteur) call read_capteur(Tdomain,info_capteur)
-    if(info_capteur /= 0) then
-        Tdomain%bCapteur = .FALSE.
-        sortie_capteur = .FALSE.
-        sortie_capteur_deformation = .FALSE.
-    endif
-
-
 
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
-        Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
+        Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
         if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
         if (rg==0) write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
@@ -212,6 +210,7 @@ subroutine  sem(couplage)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! BOUCLE DE CALCUL EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    call CPU_TIME( t_ini )
     call dtime(tarray, tref)
     protection = 0
     interrupt = 0
@@ -224,7 +223,20 @@ subroutine  sem(couplage)
             exit
         end if
 
-        call Newmark (Tdomain)
+        if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK) then
+            call Newmark (Tdomain)
+        else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
+            call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
+        else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
+                 Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT_ITER) then
+            if (Tdomain%Implicitness==TIME_INTEG_EXPLICIT) then
+                call Midpoint_impl_expl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                !call Midpoint_SEM (Tdomain)
+            elseif (Tdomain%Implicitness==TIME_INTEG_SEMI_IMPLICIT) then
+                !call Midpoint_test(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                call Midpoint_impl_semi_impl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+            endif
+        endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then
             interrupt=1
@@ -240,7 +252,7 @@ subroutine  sem(couplage)
         flags_synchro(2) = 0      ! SEM ne declenche pas les protections
         flags_synchro(3) = 0
 
-        call MPI_Allreduce(MPI_IN_PLACE, flags_synchro, 3, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, code)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, flags_synchro, 3, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, code)
 
         interrupt = flags_synchro(1)
         protection = flags_synchro(2)
@@ -263,7 +275,7 @@ subroutine  sem(couplage)
         if (remaining_time<max_time_left) then
             interrupt = 1
         end if
-        call MPI_Allreduce(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, &
+        call mpi_allreduce(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, &
             Tdomain%communicateur_global, code)
 
         if (Tdomain%logicD%save_snapshots)  then
@@ -276,16 +288,17 @@ subroutine  sem(couplage)
             protection = 1
         end if
 
-        if (Tdomain%bCapteur) call evalueSortieCapteur(ntime)
+        if (mod(ntime,100)==0) then
+            if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
+        endif
 
-        if (i_snap == 0 .or. sortie_capteur) then
+        if (i_snap == 0) then
 
             if (rg==0 .and. display_iter==1) write(*,*) "Snapshot:",isort," iteration=", ntime, " tps=", Tdomain%TimeD%rtime
-
             call save_field_h5(Tdomain, rg, isort)
 
             ! Sortie Energie totale du systeme
-            if(Tdomain%LogicD%CompEnerg) call global_energy(Tdomain)
+            !if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
 
         endif
 
@@ -304,7 +317,7 @@ subroutine  sem(couplage)
         if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime)
 
 
-        ! sauvegarde des vitesses ?
+        ! sauvegarde des vitesses
         if (Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime)
 
 
@@ -312,6 +325,7 @@ subroutine  sem(couplage)
             isort=isort+1  ! a faire avant le save_checkpoint
         endif
 #ifdef COUPLAGE
+
         ! remise a zero dans tous les cas des forces Mka sur les faces
         do n = 0, Tdomain%n_face-1
             Tdomain%sFace(n)%ForcesMka = 0
@@ -320,10 +334,8 @@ subroutine  sem(couplage)
         do n = 0, Tdomain%n_vertex-1
             Tdomain%sVertex(n)%ForcesMka = 0
         enddo
-#endif
 
-        ! sortie des quantites demandees par les capteur
-        if (sortie_capteur) call save_capteur(Tdomain, ntime)
+#endif
 
         if (protection/=0) then
             call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin,ntime,isort)
@@ -337,6 +349,7 @@ subroutine  sem(couplage)
 
         ! incrementation du pas de temps
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
+
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! FIN BOUCLE DE CALCUL EN TEMPS
@@ -344,16 +357,15 @@ subroutine  sem(couplage)
 
     call END_SEM(Tdomain, ntime)
 
-    if (Tdomain%bCapteur) then
-        deallocate(Tdomain%GrandeurDeformation)
-        deallocate(Tdomain%GrandeurVitesse)
-    endif
 
     if (.not. couplage) then
         call MPI_Finalize  (ierr)
         if (rg == 0) write (*,*) "Execution completed"
     endif
     if (rg == 0) close(78)
+
+    if (rg == 0) call CPU_TIME( t_fin )
+    if (rg == 0) write (*,*) "CPU Time for computation : ", t_fin - t_ini
 
 end subroutine sem
 
@@ -461,11 +473,9 @@ end subroutine END_SEM
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
-!! coding: utf-8
 !! f90-do-indent: 4
 !! f90-if-indent: 4
-!! f90-type-indent: 4
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

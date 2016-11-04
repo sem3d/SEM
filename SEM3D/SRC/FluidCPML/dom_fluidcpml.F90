@@ -50,8 +50,25 @@ contains
             dom%champs0%ForcesFl = 0d0
             dom%champs0%Phi = 0d0
             dom%champs0%VelPhi = 0d0
+
+            ! Allocation de DumpMat pour les PML solides
+            allocate(dom%DumpMat(0:dom%nglltot-1))
+            dom%DumpMat = 0d0
+
+            ! Allocation de MasUMat pour les PML solides
+            allocate(dom%MasUMat(0:dom%nglltot-1))
+            dom%MasUMat = 0d0
         endif
-        if(Tdomain%rank==0) write(*,*) "INFO - fluid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+
+        ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
+
+        dom%cpml_c = 1.0
+        dom%cpml_n = Tdomain%config%cpml_n
+        dom%cpml_rc = Tdomain%config%cpml_rc
+        dom%cpml_kappa_0 = Tdomain%config%cpml_kappa0
+        dom%cpml_kappa_1 = Tdomain%config%cpml_kappa1
+        dom%alphamax = 0.
+        if(Tdomain%rank==0) write(*,*) "INFO - fluidpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluidpml
 
     subroutine deallocate_dom_fluidpml (dom)
@@ -68,8 +85,46 @@ contains
         if(allocated(dom%champs1%Phi     )) deallocate(dom%champs1%Phi     )
         if(allocated(dom%champs1%VelPhi  )) deallocate(dom%champs1%VelPhi  )
 
+        if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
+        if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
+
         call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluidpml
+
+    subroutine init_domain_fluidpml(Tdomain, dom)
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_fluidpml), intent(inout) :: dom
+        !
+        real(fpp) :: fmax
+        integer :: i, j, k, n, indL, indG
+
+        ! Handle on node global coords : mandatory to compute distances in the PML (compute_dxi_alpha_kappa)
+        ! TODO precompute usefull coeffs instead of copying coords...
+        allocate(dom%GlobCoord(0:2,0:dom%nglltot-1))
+        do n=0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
+            do k = 0,dom%ngll-1
+                do j = 0,dom%ngll-1
+                    do i = 0,dom%ngll-1
+                        indG = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        indL = Tdomain%specel(n)%Idom(i,j,k)
+                        dom%GlobCoord(:,indL) = Tdomain%GlobCoord(:,indG)
+                    end do
+                end do
+            end do
+        end do
+
+        ! Store dt for ADE equations
+        dom%dt = Tdomain%TimeD%dtmin
+
+        ! Handle on materials (to get/access pml_pos and pml_width)
+        dom%sSubDomain => Tdomain%sSubDomain
+
+        ! Compute alphamax (from fmax)
+        fmax = Tdomain%TimeD%fmax
+        if (fmax < 0.) stop "FluidCPML : fmax < 0."
+        dom%alphamax = M_PI * fmax
+    end subroutine init_domain_fluidpml
 
     subroutine fluid_velocity(ngll,hprime,InvGrad,idensity,phi,veloc)
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)

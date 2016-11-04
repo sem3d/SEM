@@ -12,7 +12,7 @@
 !<
 
 !>
-!! \brief Assure la lecture du maillage (mesh_file) et lecture des caractéristiques des matériaux.
+!! \brief Assure la lecture du maillage (mesh_file) et lecture des caracteristiques des materiaux.
 !!
 !! Ecriture de data/sem/mesh_echo
 !! La racine du nom du maillage doit etre saisie dans Parametrage/sem/input.spec
@@ -145,6 +145,7 @@ subroutine read_mesh_h5(tDomain)
     deallocate(itemp1)
 
     !! TODO COMMUNICATIONS
+    Tdomain%n_communications = 0
     call read_attr_int(fid, "n_communications", Tdomain%n_communications)
     allocate (Tdomain%Communication_List(0:Tdomain%n_communications-1))
     allocate (Tdomain%sWall(0:Tdomain%n_communications-1))
@@ -186,6 +187,9 @@ subroutine read_mesh_h5(tDomain)
     end do
 
     call coherency_mesh_h5(Tdomain)
+
+    if (Tdomain%Implicitness == TIME_INTEG_SEMI_IMPLICIT) &
+        call set_Vertex_Valence (Tdomain)
 
     call read_material_file(Tdomain)
 
@@ -266,6 +270,93 @@ subroutine coherency_mesh_h5(Tdomain)
     enddo
 end subroutine coherency_mesh_h5
 
+
+!!\brief Computes the valence of each vertex, and gets its neighbouring faces
+!!\author Sebastien Terrana
+!!\version 1.0
+!!\date 30/09/2014
+!! \param type (domain), intent (INOUT) Tdomain
+!<
+subroutine set_vertex_valence(Tdomain)
+    use sdomain
+    implicit none
+    type (domain), intent (INOUT) :: Tdomain
+
+    integer :: nv, nf, nf1, nf2, val, i, nel, pos
+
+    do nv=0,Tdomain%n_vertex-1
+        Tdomain%sVertex(nv)%Valence = 0
+    enddo
+
+    do nf=0,Tdomain%n_face-1
+        nv = Tdomain%sFace(nf)%Near_Vertex(0)
+        Tdomain%sVertex(nv)%Valence = Tdomain%sVertex(nv)%Valence + 1
+        nv = Tdomain%sFace(nf)%Near_Vertex(1)
+        Tdomain%sVertex(nv)%Valence = Tdomain%sVertex(nv)%Valence + 1
+    enddo
+
+    do nv=0,Tdomain%n_vertex-1
+        val = Tdomain%sVertex(nv)%Valence
+        allocate(Tdomain%sVertex(nv)%Near_Face(0:val-1))
+        Tdomain%sVertex(nv)%Near_Face(:) = -1
+    enddo
+
+    ! Creation, pour chaque face, du vecteur pos_in_VertMat qui stocke,
+    ! en 1ere coordonnee, la position dans le systeme matriciel du vertex Near_Vertex(0)
+    ! du glln situe sur Near_Vertex(0), mais appartenant a la face courante. De meme, la
+    ! deuxieme coordonnee de pos_in_VertMat correspond a la position du glln sur Near_Vertex(1)
+    ! dans le systeme matriciel du vertex Near_Vertex(1)...
+    do nf=0,Tdomain%n_face-1
+        nv = Tdomain%sFace(nf)%Near_Vertex(0)
+        i = 0
+        do while (Tdomain%sVertex(nv)%Near_Face(i) .GE. 0)
+            i = i+1
+        enddo
+        Tdomain%sVertex(nv)%Near_Face(i) = nf
+        Tdomain%sFace(nf)%pos_in_VertMat(0) = 2*i
+
+        nv = Tdomain%sFace(nf)%Near_Vertex(1)
+        i = 0
+        do while (Tdomain%sVertex(nv)%Near_Face(i) .GE. 0)
+            i = i+1
+        enddo
+        Tdomain%sVertex(nv)%Near_Face(i) = nf
+        Tdomain%sFace(nf)%pos_in_VertMat(1) = 2*i
+    enddo
+
+    ! Creation du vecteur Element%pos_corner_in_VertMat qui associe au i-eme coin
+    ! (correspondant au i_eme vertex de Element%Near_Vertex(:)) de l'element courant
+    ! les position des deux glln des bouts des deux faces adjacentes a ce coin.
+    do nel=0,Tdomain%n_elem-1
+        do i=0,3  ! i-eme coin de l'element
+            nv  = Tdomain%specel(nel)%Near_Vertex(i)
+            nf1 = Tdomain%specel(nel)%Near_Face(mod(i+3,4))
+            nf2 = Tdomain%specel(nel)%Near_Face(i)
+            ! Pour le bout de la premiere face adjacente au coin
+            if(Tdomain%sface(nf1)%Near_Vertex(0) == nv) then
+                pos = Tdomain%sface(nf1)%pos_in_VertMat(0)
+                Tdomain%specel(nel)%pos_corner_in_VertMat(i,0) = pos
+            else
+                pos = Tdomain%sface(nf1)%pos_in_VertMat(1)
+                Tdomain%specel(nel)%pos_corner_in_VertMat(i,0) = pos
+            endif
+            ! Pour le bout de la deuxieme face adjacente au coin
+            if(Tdomain%sface(nf2)%Near_Vertex(0) == nv) then
+                pos = Tdomain%sface(nf2)%pos_in_VertMat(0)
+                Tdomain%specel(nel)%pos_corner_in_VertMat(i,1) = pos
+            else
+                pos = Tdomain%sface(nf2)%pos_in_VertMat(1)
+                Tdomain%specel(nel)%pos_corner_in_VertMat(i,1) = pos
+            endif
+        enddo
+    enddo
+
+    ! Deallocate the unused Face%Near_Face
+    do nv=0,Tdomain%n_vertex-1
+        deallocate(Tdomain%sVertex(nv)%Near_Face)
+    enddo
+
+end subroutine set_vertex_valence
 
 !! Local Variables:
 !! mode: f90

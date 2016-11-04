@@ -20,6 +20,7 @@ typedef struct source {
     double ts;
     double gamma;
     double amplitude;
+    double sigma;
     char* time_file;
     double Q;
     double X;
@@ -115,6 +116,8 @@ typedef struct surface{
 typedef struct {
     char* run_name;
     // Integration
+    int type_timeinteg;
+    int implicitness;
     int accel_scheme;
     int veloc_scheme;
     double sim_time;
@@ -133,12 +136,14 @@ typedef struct {
     char* mat_file;
     int nsources;
     source_t *source;
+    int is_lamb_test;
 
     // Capteurs
     int save_traces;
     int traces_interval;
     int traces_format;
     char* station_file;
+    int capt_loc_type;
 
     // Snapshots
     int save_snap;
@@ -171,6 +176,11 @@ typedef struct {
     double cpml_kappa1;
     int cpml_n;
     double cpml_rc;
+
+    // Type Elements (DG)
+    int type_elem;
+    int type_flux;
+    int type_bc;
 
     //Material
     int material_present;

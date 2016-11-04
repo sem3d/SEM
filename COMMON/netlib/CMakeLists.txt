@@ -15,6 +15,7 @@ ${PRJ}/blas/dscal.f
 ${PRJ}/blas/dswap.f
 ${PRJ}/blas/dtrmm.f
 ${PRJ}/blas/dtrmv.f
+${PRJ}/blas/dtrsm.f
 ${PRJ}/blas/lsame.f
 ${PRJ}/blas/xerbla.f
 )
@@ -24,10 +25,12 @@ ${PRJ}/lapack/dgebd2.f
 ${PRJ}/lapack/dgebrd.f
 ${PRJ}/lapack/dgelq2.f
 ${PRJ}/lapack/dgelqf.f
+${PRJ}/lapack/dgels.f
 ${PRJ}/lapack/dgeqr2.f
 ${PRJ}/lapack/dgeqrf.f
 ${PRJ}/lapack/dgesvd.f
 ${PRJ}/lapack/disnan.f
+${PRJ}/lapack/dlabad.f
 ${PRJ}/lapack/dlabrd.f
 ${PRJ}/lapack/dlacpy.f
 ${PRJ}/lapack/dlaisnan.f
@@ -62,11 +65,14 @@ ${PRJ}/lapack/dormbr.f
 ${PRJ}/lapack/dorml2.f
 ${PRJ}/lapack/dormlq.f
 ${PRJ}/lapack/dormqr.f
+${PRJ}/lapack/dtrtrs.f
 ${PRJ}/lapack/ieeeck.f
 ${PRJ}/lapack/iladlc.f
 ${PRJ}/lapack/iladlr.f
 ${PRJ}/lapack/ilaenv.f
 ${PRJ}/lapack/iparmq.f
+${PRJ}/lapack/lsame.f
+${PRJ}/lapack/xerbla.f
 )
 
 

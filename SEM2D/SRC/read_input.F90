@@ -39,11 +39,11 @@ subroutine create_sem2d_sources(Tdomain, config)
         !Tdomain%Ssource(nsrc)%gamma = src%gamma ! func=4
         !Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
         Tdomain%Ssource(nsrc)%amplitude = src%amplitude
+        Tdomain%Ssource(nsrc)%sigma     = src%sigma
         ! Comportement Spacial
         ! i_type_source==1
         ! DIR = Z OR y -> y
         ndir = sqrt(src%dir(1)**2 + src%dir(2)**2)
-        if (ndir<=0) ndir = 1
         if (abs(ndir) .gt. 1.e-12) then ! dir not used if moment
             Tdomain%Ssource(nsrc)%dir = src%dir(1:2)/ndir ! avoid FPE, NaNs...
         else
@@ -57,13 +57,14 @@ subroutine create_sem2d_sources(Tdomain, config)
 
         nsrc = nsrc + 1
         Tdomain%logicD%any_source = .true.
+        Tdomain%openfilescapt = .false.
         call c_f_pointer(src%next, src)
     end do
 
 end subroutine create_sem2d_sources
 
 !>
-!! \brief Assure la lecture des fichiers de données en entrée à partir du fichier Parametrage/sem/input.spec
+!! \brief Assure la lecture des fichiers de donnees en entree a partir du fichier Parametrage/sem/input.spec
 !!
 !! \param type (domain), intent (INOUT) Tdomain
 !<
@@ -94,6 +95,8 @@ subroutine read_input (Tdomain)
     call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
 
     Tdomain%Title_simulation = fromcstr(config%run_name)
+    Tdomain%Type_TimeInteg = config%type_timeinteg
+    Tdomain%Implicitness   = config%implicitness
     Tdomain%TimeD%acceleration_scheme = config%accel_scheme .ne. 0
     Tdomain%TimeD%velocity_scheme = config%veloc_scheme .ne. 0
     Tdomain%TimeD%duration = config%sim_time
@@ -101,11 +104,16 @@ subroutine read_input (Tdomain)
     Tdomain%TimeD%beta = config%beta
     Tdomain%TimeD%gamma = config%gamma
     Tdomain%TimeD%courant = config%courant
+    Tdomain%type_elem = config%type_elem
+    Tdomain%type_flux = config%type_flux
+    Tdomain%type_bc   = config%type_bc
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%pml_type = config%pml_type
+    !if(Tdomain%pml_type .ne. 0) Tdomain%type_bc = DG_BC_REFL ! Use same default behavior than CG
     Tdomain%logicD%save_trace = config%save_traces .ne. 0
     Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
+    Tdomain%logicD%Lamb_test = config%is_lamb_test .ne. 0
     Tdomain%logicD%run_restart = config%prorep .ne. 0
     Tdomain%logicD%compEnerg = config%comp_energ .ne. 0
     Tdomain%TimeD%iter_reprise = config%prorep_restart_iter
@@ -113,6 +121,7 @@ subroutine read_input (Tdomain)
     Tdomain%station_file = fromcstr(config%station_file)
     !Tdomain%TimeD%ntrace = config%traces_interval ! XXX
     Tdomain%TimeD%time_snapshots = config%snap_interval
+    Tdomain%capt_loc_type = config%capt_loc_type
     logic_scheme = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
     if(.not. logic_scheme) then
         stop "Both acceleration and velocity schemes: no compatibility, chose only one."
@@ -124,6 +133,7 @@ subroutine read_input (Tdomain)
     Tdomain%logicD%run_echo = .false.
     Tdomain%logicD%super_object = .false.
     Tdomain%logicD%super_object_local_present = .false.
+    Tdomain%logicD%save_deformation = .false.
     !read (11,*) Tdomain%logicD%save_deformation
     !read (11,*) Tdomain%logicD%save_energy
 
@@ -163,7 +173,7 @@ subroutine read_input (Tdomain)
     !endif
 
     Tdomain%bMailUnv = .false.
-    Tdomain%bCapteur = .false.
+    Tdomain%logicD%save_restart = .false.
     ! conversion dun maillage unv en maillage sem
     !read (11,*) Tdomain%bMailUnv
 

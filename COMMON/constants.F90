@@ -39,10 +39,34 @@ MODULE constants
     real(KIND=8), parameter :: MAX_DOUBLE = 1.79769313486231570e+307
 
     ! Parametres algorithmes & code
+    integer, parameter :: TIME_INTEG_NEWMARK=0
+    integer, parameter :: TIME_INTEG_RK4=1
+    integer, parameter :: TIME_INTEG_MIDPOINT=2
+    integer, parameter :: TIME_INTEG_MIDPOINT_ITER=3
+    integer, parameter :: TIME_INTEG_EXPLICIT=0
+    integer, parameter :: TIME_INTEG_SEMI_IMPLICIT=1
+    integer, parameter :: TIME_INTEG_IMPLICIT=2
+    integer, parameter :: GALERKIN_CONT=0
+    integer, parameter :: GALERKIN_DG_STRONG=1
+    integer, parameter :: GALERKIN_DG_WEAK=2
+    integer, parameter :: GALERKIN_HDG_RP=3
+    integer, parameter :: COUPLE_CG_HDG=4
+    integer, parameter :: FLUX_NONE=0
+    integer, parameter :: FLUX_CENTERED=1
+    integer, parameter :: FLUX_GODUNOV=2
+    integer, parameter :: FLUX_CUSTOM_LG=3
+    integer, parameter :: FLUX_HDG=4
+    integer, parameter :: DG_BC_FREE=0
+    integer, parameter :: DG_BC_ABS=1
+    integer, parameter :: DG_BC_REFL=2
+    logical, parameter :: COMPUTE_VHAT=.true.
+    logical, parameter :: NOT_COMPUTE_VHAT=.false.
     integer, parameter :: nProp = 3
 
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100
+    integer, parameter :: CAPT_INTERPOLATED=0
+    integer, parameter :: CAPT_NEAREST_NODE=1
 
     ! Materials
     integer, parameter :: MATERIAL_CONSTANT   = 1

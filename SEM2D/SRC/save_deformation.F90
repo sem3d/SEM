@@ -6,7 +6,7 @@
 !!\file save_deformation.F90
 !!\brief Contient la subroutine save_deformation.
 !!
-!! Calcul de la déformation
+!! Calcul de la deformation
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -28,7 +28,7 @@ subroutine save_deformation (Tdomain,it,i_snap,sortie_capteur_deformation)
 
     ! local variables
     integer :: ngllx,ngllz,ipoint, i,j,n, mat,nf
-    real :: epsilon_plus,epsilon_minus,zero
+    real :: epsilon_plus,epsilon_minus,zzero
     real, dimension(:,:) ,allocatable  :: Grad_u
     real, dimension (:), allocatable  :: Wheight
     real, dimension (:,:), allocatable :: Disp
@@ -55,7 +55,7 @@ subroutine save_deformation (Tdomain,it,i_snap,sortie_capteur_deformation)
 
     allocate (Grad_u(0:3,0:Tdomain%n_glob_points-1))
     allocate (Wheight(0:Tdomain%n_glob_points-1))
-    zero = 0. !!Ajout Gsa sinon erreur a l'execution parfois
+    zzero = 0. !!Ajout Gsa sinon erreur a l'execution parfois
     Grad_u = 0
     Wheight = 0
     do n = 0,Tdomain%n_elem-1
@@ -483,7 +483,7 @@ subroutine save_deformation (Tdomain,it,i_snap,sortie_capteur_deformation)
 
 #ifdef MKA3D
             if (Wheight (ipoint) == 0  ) then
-                write (71,"(I8,G17.8)") ipoint, zero
+                write (71,"(I8,G17.8)") ipoint, zzero
             endif
 #endif
 

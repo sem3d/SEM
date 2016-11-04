@@ -7,8 +7,8 @@
 !!\brief Algorithme de Newmark
 !!\version 1.0
 !!\date 10/03/2009
-!! La routine Newmark assure la résolution des équations via un algorithme de predicteur-multi-correcteur
-!! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
+!! La routine Newmark assure la resolution des equations via un algorithme de predicteur-multi-correcteur
+!! des vitesses avec une formulation contrainte-vitesse decale en temps dans les PML.
 !<
 
 module snewmark
@@ -24,10 +24,11 @@ subroutine Newmark (Tdomain)
     type (domain), intent (INOUT) :: Tdomain
 
     ! local variables
-    integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv
+    integer :: ns, ncc, i, j, n, ngllx, ngllz, mat, nelem, nf, w_face, nv_aus, nf_aus, nv
     integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
-    real :: bega, gam1,alpha,dt,localtime
+    real :: bega, gam1, alpha, dt, timelocal
+
 
     real, dimension (0:1) :: V_free_vertex
     real, dimension (:,:), allocatable :: Vxloc, Vzloc, V_free
@@ -56,11 +57,7 @@ subroutine Newmark (Tdomain)
                 allocate (Vxloc(0:ngllx-1, 0:ngllz-1))
                 allocate (Vzloc(0:ngllx-1, 0:ngllz-1))
                 call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngllx,ngllz,alpha, bega,dt)
-                if (Tdomain%specel(n)%FPML) then
-                    call Prediction_Elem_FPML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
-                        Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex, &
-                        Tdomain%sSubDomain(mat)%freq)
-                elseif (Tdomain%specel(n)%CPML) then
+                if (Tdomain%specel(n)%CPML) then
                     call Prediction_Elem_CPML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
                         Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
                 else
@@ -108,25 +105,9 @@ subroutine Newmark (Tdomain)
         enddo
 
 
-
         ! External Forces
-        localtime = Tdomain%TimeD%rtime + 0.5 * Tdomain%TimeD%dtmin
-        do n = 0, Tdomain%n_source-1
-            if (Tdomain%sSource(n)%located_here) then
-                do ns =0, Tdomain%sSource(n)%ine-1
-                    ncc = Tdomain%sSource(n)%Elem(ns)%nr
-                    ngllx = Tdomain%specel(ncc)%ngllx; ngllz = Tdomain%specel(ncc)%ngllz
-                    do j = 0,ngllz-1
-                        do i = 0,ngllx-1
-                            do np = 0,1
-                                Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) +   &
-                                    CompSource(Tdomain%sSource(n),localtime)*Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
-                            enddo
-                        enddo
-                    enddo
-                enddo
-            endif
-        enddo
+        timelocal =Tdomain%TimeD%rtime + 0.5*Tdomain%TimeD%dtmin
+        call Compute_external_forces (Tdomain,timelocal)
 
         ! Communication of Forces
 
@@ -498,9 +479,7 @@ endif
             if (.not. Tdomain%specel(n)%PML) then
                 call Correction_Elem_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
             else
-                if (Tdomain%specel(n)%FPML) then
-                    call Correction_Elem_FPML_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubdomain(mat)%freq)
-                elseif (Tdomain%specel(n)%CPML) then
+                if (Tdomain%specel(n)%CPML) then
                     Tdomain%specel(n)%V0 = Tdomain%specel(n)%Veloc
                     call Correction_Elem_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
                 else
@@ -514,9 +493,7 @@ endif
             if (.not. Tdomain%sFace(nf)%PML) then
                 call Correction_Face_Veloc (Tdomain%sFace(nf),Tdomain%sFace(nf)%ngll, Tdomain%sSubDomain(mat)%Dt)
             else
-                if (Tdomain%sFace(nf)%FPML) then
-                    call Correction_Face_FPML_Veloc (Tdomain%sFace(nf),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubDomain(mat)%freq)
-                elseif (Tdomain%sFace(nf)%CPML) then
+                if (Tdomain%sFace(nf)%CPML) then
                     call Correction_Face_CPML_Veloc (Tdomain%sFace(nf), Tdomain%sSubDomain(mat)%Dt)
                 else
                     call Correction_Face_PML_Veloc (Tdomain%sFace(nf),Tdomain%sSubDomain(mat)%Dt)
@@ -529,9 +506,7 @@ endif
             if (.not. Tdomain%sVertex(nv)%PML) then
                 call Correction_Vertex_Veloc (Tdomain%sVertex(nv), Tdomain%sSubDomain(mat)%Dt)
             else
-                if (Tdomain%sVertex(nv)%FPML) then
-                    call Correction_Vertex_FPML_Veloc (Tdomain%sVertex(nv),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubdomain(mat)%freq)
-                elseif (Tdomain%sVertex(nv)%CPML) then
+                if (Tdomain%sVertex(nv)%CPML) then
                     call Correction_Vertex_CPML_Veloc (Tdomain%sVertex(nv), Tdomain%sSubDomain(mat)%Dt)
                 else
                     call Correction_Vertex_PML_Veloc (Tdomain%sVertex(nv),Tdomain%sSubDomain(mat)%Dt)

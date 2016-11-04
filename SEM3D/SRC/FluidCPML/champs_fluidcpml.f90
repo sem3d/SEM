@@ -7,6 +7,7 @@
 module champs_fluidpml
 
     use constants
+    use ssubdomains
     use mdombase
     implicit none
 
@@ -30,6 +31,27 @@ module champs_fluidpml
         ! Champs
         type(champsfluidpml) :: champs0
         type(champsfluidpml) :: champs1
+
+        ! Masse pour elements solide cpml
+        real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
+        real(fpp), dimension(:), allocatable :: MasUMat ! M^U <=> Delta term in (12a) from Ref1
+
+        ! Element materials
+        type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
+
+        ! Copy of node global coords : mandatory to compute distances in the PML
+        real(fpp), allocatable, dimension(:,:) :: GlobCoord
+
+        ! CPML parameters
+        real(fpp) :: cpml_c
+        real(fpp) :: cpml_n
+        real(fpp) :: cpml_rc
+        real(fpp) :: cpml_kappa_0, cpml_kappa_1
+        real(fpp) :: alphamax
+
+        ! Integration Rxx
+        real(fpp) :: dt
+
     end type domain_fluidpml
 
     contains

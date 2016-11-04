@@ -72,8 +72,57 @@ subroutine compute_GLL(Tdomain)
             Tdomain%sSubdomain(i)%hTprimez => Tdomain%sSubdomain(i)%hTprimex
         endif
     enddo
+
+    ! Addition S. Terrana May 2016 for mortars :
+    do i=0,Tdomain%n_mortar-1
+        call build_mortar_interpol_matrices(Tdomain%sMortar(i))
+    enddo
     return
 end subroutine compute_GLL
+
+
+
+subroutine build_mortar_interpol_matrices(Mor)
+
+    use smortars
+    use splib, only : zelegl
+
+    implicit none
+    type (Mortar), intent (INOUT) :: Mor
+
+    ! Local declarations
+    integer :: i, j, ngmin, ngmax
+    real    :: xpos, res
+    real, dimension (0:Mor%ngllmin-1) :: Xi_ngmin, PolMin
+    real, dimension (0:Mor%ngllmax-1) :: Xi_ngmax, PolMax
+
+    ngmin = Mor%ngllmin
+    ngmax = Mor%ngllmax
+    allocate(Mor%MatReinterp(0:ngmax-1,0:ngmin-1))
+    allocate(Mor%MatProj(0:ngmin-1,0:ngmax-1))
+
+    call zelegl(ngmin-1,Xi_ngmin,PolMin)
+    call zelegl(ngmax-1,Xi_ngmax,PolMax)
+
+    do i=0,ngmax-1
+        xpos = Xi_ngmax(i)
+        do j=0,ngmin-1
+            call pol_lagrange(ngmin,Xi_ngmin,j,xpos,res)
+            Mor%MatReinterp(i,j) = res
+        enddo
+    enddo
+
+    do i=0,ngmin-1
+        xpos = Xi_ngmin(i)
+        do j=0,ngmax-1
+            call pol_lagrange(ngmax,Xi_ngmax,j,xpos,res)
+            Mor%MatProj(i,j) = res
+        enddo
+    enddo
+    return
+
+end subroutine build_mortar_interpol_matrices
+
 
 !! Local Variables:
 !! mode: f90

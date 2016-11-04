@@ -13,9 +13,12 @@
 
 module ssources
 
+    ! Modified by Gaetano 13/9/04
+
     type :: elem_source
        integer :: nr
        real :: eta,xi
+       real :: invE,nu
        real, dimension (0:1,0:1) :: Scoeff
        real, dimension (:,:,:), pointer :: ExtForce
     end type elem_source
@@ -24,9 +27,9 @@ module ssources
        integer :: i_type_source, i_time_function,ine
        real, dimension(2) :: dir
        real, dimension (0:1,0:1) :: moment
-       real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude
+       real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude,sigma
+       type(elem_source), dimension(:), pointer :: Elem
        logical :: located_here
-       type(elem_source), dimension(:), allocatable :: Elem
     end type Source
 
 contains
@@ -47,7 +50,7 @@ contains
         CompSource = 0.
         select case (Sour%i_time_function)
         case (1)
-            CompSource = Gaussian (time,Sour%tau_b)
+            CompSource = Gaussian (time,Sour%tau_b,Sour%cutoff_freq)
         case (2)
             CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
         case (3)
@@ -59,17 +62,23 @@ contains
     end function CompSource
 
     !>
-    !! \fn function Gaussian (time, tau)
+    !! \fn function Gaussian (time, tau, f0)
     !! \brief
     !!
     !! \param real time
     !! \param real tau
+    !! \param real f0
     !<
-    real function Gaussian (time, tau)
+    real function Gaussian (time, tau, f0)
 
-        real :: tau,time
+        real :: tau,time,f0
+        real :: sigma,pi
 
-        Gaussian = -(time-tau) * exp (-(time-tau)**2/tau**2)
+        pi = Acos(-1.)
+        sigma = pi * f0 * (time - tau )
+        sigma = sigma **2
+
+        Gaussian = (time-tau) * exp (-sigma)
 
         return
     end function Gaussian

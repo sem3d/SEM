@@ -84,7 +84,7 @@ contains
         call compute_saved_elements(Tdomain, irenum, nnodes)
 
         call write_global_nodes(Tdomain, fid, irenum, nnodes)
-        
+
         call write_elem_connectivity(Tdomain, fid, irenum)
 
         call write_constant_fields(Tdomain, fid, irenum, nnodes)
@@ -107,7 +107,7 @@ contains
         integer :: n
         integer(HID_T) :: nodes_id
         integer :: hdferr
-        
+
         allocate(nodes(0:2,0:nnodes-1))
         do n = 0, Tdomain%n_glob_points-1
             if (irenum(n)>=0) then
@@ -225,10 +225,11 @@ contains
         integer, intent(in) :: rg, isort
         !
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer(HID_T) :: fid, displ_id, veloc_id, press_id, accel_id
+        integer(HID_T) :: fid, displ_id, veloc_id, press_id, accel_id, rotat_id
         integer(HSIZE_T), dimension(2) :: dims
-        real, dimension(:,:),allocatable :: displ, veloc, accel
-        real, dimension(:), allocatable :: press
+        integer(HSIZE_T), dimension(1) :: dimr
+        real, dimension(:,:),allocatable :: displ, veloc, accel, field_rotat
+        real, dimension(:), allocatable :: press, rotat
         real, dimension(:,:,:),allocatable :: field_displ, field_veloc, field_accel
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
@@ -236,7 +237,6 @@ contains
         integer :: i, k, n
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes
-        
 
         call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
@@ -246,26 +246,36 @@ contains
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
+        ! Dimensions pour champs vectoriels et scalaires
         dims(1) = 3
         dims(2) = nnodes
+        dimr(1) = nnodes
+
         call create_dset_2d(fid, "displ", H5T_IEEE_F64LE, 3, nnodes, displ_id)
         call create_dset_2d(fid, "veloc", H5T_IEEE_F64LE, 3, nnodes, veloc_id)
         call create_dset_2d(fid, "accel", H5T_IEEE_F64LE, 3, nnodes, accel_id)
         call create_dset(fid, "pressure", H5T_IEEE_F64LE, nnodes, press_id)
+        call create_dset(fid, "rotat", H5T_IEEE_F64LE, nnodes, rotat_id)
+
+        ! Constroction des Vhat continus au niveau des Vertexs (stockes dans Vertex%V0)
+!        if (Tdomain%type_elem==GALERKIN_HDG_RP .OR. Tdomain%type_elem==COUPLE_CG_HDG) &
+!            call project_Vhat_Vertex(Tdomain)
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
         allocate(accel(0:2,0:nnodes-1))
         allocate(press(0:nnodes-1))
+        allocate(rotat(0:nnodes-1))
         allocate(valence(0:nnodes-1))
+        allocate(field_rotat(0:0,0:0)) ! Pour eviter warning faux positif du compilo.
 
-        displ(2,:) = 0
-        veloc(2,:) = 0
         ngllx = 0
         ngllz = 0
         valence(:) = 0
+        displ(:,:) = 0
         veloc(:,:) = 0
         accel(:,:) = 0
+        rotat(:) = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             if (ngllx /= Tdomain%specel(n)%ngllx .or. &
@@ -275,21 +285,26 @@ contains
                 if (allocated(field_displ)) deallocate(field_displ)
                 if (allocated(field_veloc)) deallocate(field_veloc)
                 if (allocated(field_accel)) deallocate(field_accel)
+                if (allocated(field_rotat)) deallocate(field_rotat)
                 allocate(field_displ(0:ngllx-1,0:ngllz-1,2))
                 allocate(field_veloc(0:ngllx-1,0:ngllz-1,2))
                 allocate(field_accel(0:ngllx-1,0:ngllz-1,2))
+                allocate(field_rotat(0:ngllx-1,0:ngllz-1))
             endif
+
             call gather_elem_displ(Tdomain, n, field_displ)
-            call gather_elem_veloc(Tdomain, n, field_veloc)
+            call gather_elem_veloc(Tdomain, n, field_veloc, .true.)
             call gather_elem_accel(Tdomain, n, field_accel)
+            call compute_rotational(Tdomain,n,ngllx,ngllz,field_veloc,field_rotat)
 
             do k = 0,ngllz-1
                 do i = 0,ngllx-1
                     idx = irenum(Tdomain%specel(n)%Iglobnum(i,k))
                     valence(idx) = valence(idx)+1
                     displ(0:1,idx) = field_displ(i,k,:)
-                    veloc(0:1,idx) = veloc(0:1,idx)+field_veloc(i,k,:)
-                    accel(0:1,idx) = accel(0:1,idx)+field_accel(i,k,:)
+                    veloc(0:1,idx) = veloc(:,idx)+field_veloc(i,k,:)
+                    accel(0:1,idx) = accel(:,idx)+field_accel(i,k,:)
+                    rotat(idx) = rotat(idx)+field_rotat(i,k)
                 end do
             end do
         end do
@@ -298,21 +313,23 @@ contains
             if (valence(i)/=0) then
                 veloc(:,i) = veloc(:,i)/valence(i)
                 accel(:,i) = accel(:,i)/valence(i)
+                rotat(i) = rotat(i)/valence(i)
             else
                 write(*,*) "Elem",i," non traite"
             end if
         end do
-
         call h5dwrite_f(displ_id, H5T_NATIVE_DOUBLE, displ, dims, hdferr)
         call h5dwrite_f(veloc_id, H5T_NATIVE_DOUBLE, veloc, dims, hdferr)
         call h5dwrite_f(accel_id, H5T_NATIVE_DOUBLE, accel, dims, hdferr)
+        call h5dwrite_f(rotat_id, H5T_NATIVE_DOUBLE, rotat, dimr, hdferr)
 
         call h5dclose_f(displ_id, hdferr)
         call h5dclose_f(veloc_id, hdferr)
         call h5dclose_f(accel_id, hdferr)
         call h5dclose_f(press_id, hdferr)
+        call h5dclose_f(rotat_id, hdferr)
         call h5fclose_f(fid, hdferr)
-        deallocate(displ,veloc,valence)
+        deallocate(displ,veloc,valence,rotat)
 
         call write_xdmf(Tdomain, rg, isort, nnodes)
     end subroutine save_field_h5
@@ -398,6 +415,12 @@ contains
             write(61,"(a,I8,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/accel'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+
+            write(61,"(a,I4.4,a)") '<Attribute Name="Rotat" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/rotat'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
 
@@ -500,6 +523,37 @@ contains
         deallocate(mass,jac,locmass)
 
     end subroutine write_constant_fields
+
+
+    !! \brief subroutine calculant le rotationel d'un champ de vitesse
+    !! pour un element.
+    !!
+    !! \author Sebastien Terrana
+    !! \date 09/03/2015
+    !! \param type (Domain), intent (IN) Tdomain
+    !! \param integer, intent (IN) nelem
+    !<
+    subroutine compute_rotational(Tdomain,nel,ngllx,ngllz,field_veloc,field_rotat)
+        implicit none
+        type (domain), intent (IN) :: Tdomain
+        integer, intent (IN) :: nel, ngllx, ngllz
+        real, dimension(0:ngllx-1,0:ngllz-1,0:1), intent (IN):: field_veloc
+        real, dimension(0:ngllx-1,0:ngllz-1), intent (INOUT) :: field_rotat
+        integer :: mat
+
+        mat = Tdomain%specel(nel)%mat_index
+
+        field_rotat = Tdomain%specel(nel)%InvGrad(:,:,0,0) * &
+                      MATMUL (Tdomain%Ssubdomain(mat)%hTprimex, field_veloc(:,:,1)) &
+                    + Tdomain%specel(nel)%InvGrad(:,:,0,1) * &
+                      MATMUL (field_veloc(:,:,1), Tdomain%Ssubdomain(mat)%hprimez) &
+                    - Tdomain%specel(nel)%InvGrad(:,:,1,0) * &
+                      MATMUL (Tdomain%Ssubdomain(mat)%hTprimex, field_veloc(:,:,0)) &
+                    - Tdomain%specel(nel)%InvGrad(:,:,1,1) * &
+                      MATMUL (field_veloc(:,:,0), Tdomain%Ssubdomain(mat)%hprimez)
+
+        return
+    end subroutine compute_rotational
 
 end module msnapshots
 

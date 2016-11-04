@@ -291,9 +291,13 @@ subroutine read_mesh(tDomain)
                     Tdomain%sFace(i)%coherency = .true.
             endif
         elseif (Tdomain%sFace(i)%Near_Element(1) == -1) then
+            ! Set Coherency for faces on the Boundaries
             Tdomain%sFace(i)%coherency = .true.
         endif
     enddo
+
+    if (Tdomain%Implicitness == TIME_INTEG_SEMI_IMPLICIT) &
+        call set_Vertex_Valence (Tdomain)
 
     call read_material_file(Tdomain)
 

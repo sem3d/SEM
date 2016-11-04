@@ -380,7 +380,8 @@ contains
     subroutine init_domains(Tdomain)
         type (domain), intent (INOUT), target :: Tdomain
         !
-        call init_domain_solidpml(Tdomain, Tdomain%spmldom)
+        if (Tdomain%spmldom%nglltot /= 0) call init_domain_solidpml(Tdomain, Tdomain%spmldom)
+        if (Tdomain%fpmldom%nglltot /= 0) call init_domain_fluidpml(Tdomain, Tdomain%fpmldom)
     end subroutine init_domains
 
     subroutine init_materials(Tdomain)
@@ -421,7 +422,6 @@ contains
         type(subdomain), intent(in) :: mat
         !
         real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu
-        real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
         logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
         aniso = .false.
