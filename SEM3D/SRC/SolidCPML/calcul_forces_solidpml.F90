@@ -50,21 +50,23 @@ contains
         end select
     end subroutine calcul_forces_solidpml
     !
-    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, U, Rx, Ry, Rz)
+    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, Unew, Rx, Ry, Rz)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
-        real(fpp), intent(in), dimension(0:2) :: U
+        real(fpp), intent(in), dimension(0:2) :: Unew
         integer, intent(in) :: i, j, k, bnum, ee
         real(fpp), intent(out) :: Rx, Ry, Rz
         !
         real(fpp) :: a3b
+        real(fpp), dimension(0:2) :: U
         real(fpp) :: k0, d0, a0, dt
         integer :: n1, n2
 
         n1 = dom%I1(ee,bnum)
         n2 = dom%I2(ee,bnum)
 
+        U = Unew !1d0*Unew + 0d0*dom%Uold(ee,:,i,j,k,bnum)
         ! XXX valable pour ndir=1
         dt = dom%dt
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
@@ -84,6 +86,9 @@ contains
             Ry = 0d0
             Rz = 0d0
         end if
+
+        ! Save Uold
+        dom%Uold(ee,:,i,j,k,bnum) = Unew
     end subroutine compute_L_convolution_terms
 
     subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, DUDV, LC)
