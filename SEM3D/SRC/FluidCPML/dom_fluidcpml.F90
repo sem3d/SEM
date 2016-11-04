@@ -71,6 +71,13 @@ contains
         call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluidpml
 
+    subroutine init_domain_fluidpml(Tdomain, dom)
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_fluidpml), intent(inout) :: dom
+        !
+        ! TODO : useless, kill this method, needed for build compatibility SolidPML / SolidCPML
+    end subroutine init_domain_fluidpml
+
     subroutine fluid_velocity(ngll,hprime,InvGrad,idensity,phi,veloc)
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)
         implicit none

@@ -95,6 +95,13 @@ contains
         call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluidpml
 
+    subroutine init_domain_fluidpml(Tdomain, dom)
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_fluidpml), intent(inout) :: dom
+        !
+        ! TODO : useless, kill this method, needed for build compatibility SolidPML / SolidCPML
+    end subroutine init_domain_fluidpml
+
     subroutine get_fluidpml_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none

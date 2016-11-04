@@ -380,7 +380,8 @@ contains
     subroutine init_domains(Tdomain)
         type (domain), intent (INOUT), target :: Tdomain
         !
-        call init_domain_solidpml(Tdomain, Tdomain%spmldom)
+        if (Tdomain%spmldom%nglltot /= 0) call init_domain_solidpml(Tdomain, Tdomain%spmldom)
+        if (Tdomain%fpmldom%nglltot /= 0) call init_domain_fluidpml(Tdomain, Tdomain%fpmldom)
     end subroutine init_domains
 
     subroutine init_materials(Tdomain)
