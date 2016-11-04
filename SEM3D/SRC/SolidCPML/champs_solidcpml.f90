@@ -73,7 +73,7 @@ module champs_solidpml
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_0, R2_0
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: R1_1, R2_1
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: R1_2, R2_2
-
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: DUDVold, Uold
         ! CPML parameters
         real(fpp) :: cpml_c
         real(fpp) :: cpml_n
