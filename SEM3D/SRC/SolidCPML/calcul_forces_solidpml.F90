@@ -91,17 +91,20 @@ contains
         dom%Uold(ee,:,i,j,k,bnum) = Unew
     end subroutine compute_L_convolution_terms
 
-    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, DUDV, LC)
+    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, DUDVnew, LC)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent(in), dimension(0:8) :: DUDV
+        real(fpp), intent(in), dimension(0:8) :: DUDVnew
         real(fpp), intent(out), dimension(0:20) :: LC
+        !
+        real(fpp), dimension(0:8) :: DUDV
         integer :: n1, n2
         n1 = dom%I1(ee,bnum)
         n2 = dom%I2(ee,bnum)
 
+        DUDV = DUDVnew ! 1d0*DUDVnew+0d0*dom%DUDVold(ee,:,i,j,k,bnum)
         if (n2==-1) then
             if (n1==-1) then
                 call compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DUDV, LC)
@@ -111,6 +114,8 @@ contains
         else
             call compute_convolution_terms_3d(dom, i, j, k, bnum, ee, DUDV, LC)
         end if
+        ! Save current value as previous
+        dom%DUDVold(ee,:,i,j,k,bnum) = DUDVnew
     end subroutine compute_convolution_terms
 
     subroutine compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DUDV, LC)
