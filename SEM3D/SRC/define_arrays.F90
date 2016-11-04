@@ -65,11 +65,11 @@ contains
         endif
 
 
-        call init_domains(Tdomain)
         call init_materials(Tdomain)
         ! We need the timestep to continue with PML defs...
         call Compute_Courant(Tdomain,rg)
 !
+        call init_domains(Tdomain)
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
             ! Compute MassMat
