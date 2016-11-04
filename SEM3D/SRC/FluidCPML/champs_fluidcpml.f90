@@ -30,6 +30,17 @@ module champs_fluidpml
         ! Champs
         type(champsfluidpml) :: champs0
         type(champsfluidpml) :: champs1
+
+        ! CPML parameters
+        real(fpp) :: cpml_c
+        real(fpp) :: cpml_n
+        real(fpp) :: cpml_rc
+        real(fpp) :: cpml_kappa_0, cpml_kappa_1
+        real(fpp) :: alphamax
+
+        ! Integration Rxx
+        real(fpp) :: dt
+
     end type domain_fluidpml
 
     contains

@@ -51,7 +51,16 @@ contains
             dom%champs0%Phi = 0d0
             dom%champs0%VelPhi = 0d0
         endif
-        if(Tdomain%rank==0) write(*,*) "INFO - fluid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+
+        ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
+
+        dom%cpml_c = 1.0
+        dom%cpml_n = Tdomain%config%cpml_n
+        dom%cpml_rc = Tdomain%config%cpml_rc
+        dom%cpml_kappa_0 = Tdomain%config%cpml_kappa0
+        dom%cpml_kappa_1 = Tdomain%config%cpml_kappa1
+        dom%alphamax = 0.
+        if(Tdomain%rank==0) write(*,*) "INFO - fluidpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluidpml
 
     subroutine deallocate_dom_fluidpml (dom)
@@ -75,7 +84,15 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_fluidpml), intent(inout) :: dom
         !
-        ! TODO : useless, kill this method, needed for build compatibility SolidPML / SolidCPML
+        real(fpp) :: fmax
+
+        ! Store dt for ADE equations
+        dom%dt = Tdomain%TimeD%dtmin
+
+        ! Compute alphamax (from fmax)
+        fmax = Tdomain%TimeD%fmax
+        if (fmax < 0.) stop "SolidCPML : fmax < 0."
+        dom%alphamax = M_PI * fmax
     end subroutine init_domain_fluidpml
 
     subroutine fluid_velocity(ngll,hprime,InvGrad,idensity,phi,veloc)
