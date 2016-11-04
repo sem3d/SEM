@@ -33,7 +33,7 @@ set(SEMDIR ${PROJECT_SOURCE_DIR})
 set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
-include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
+include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 include_directories(${PROJECT_BINARY_DIR}/libs/common)
 

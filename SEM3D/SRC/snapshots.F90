@@ -1640,7 +1640,7 @@ contains
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
                                 dt = 2d0*Tdomain%TimeD%dtmin
 #ifdef CPML
-                                dumpsx(idx) = Tdomain%spmldom%Alpha_0(ee,0,i,j,k,bnum)
+                                dumpsx(idx) = Tdomain%spmldom%Alpha_0(ee,i,j,k,bnum)
 #else
                                 dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
                                 dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
