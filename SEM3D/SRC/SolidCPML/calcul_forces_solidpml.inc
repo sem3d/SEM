@@ -64,7 +64,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     integer :: i,j,k,l,e,ee
     real(fpp), dimension(0:8) :: DUDV ! derivatives dUx/dx, ... dUz/dz
     real(fpp), dimension(0:20) :: LC
-    real(fpp), dimension(0:2) :: Li, Lijk, B0ijk
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp) :: t4

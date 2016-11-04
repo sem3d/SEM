@@ -338,7 +338,7 @@ contains
         ! here (in init_solidpml_properties) at the same time : broadcast fmax of each proc to all procs and get
         ! the max could NOT work ?!... Right ? Wrong ? Don't know !...
         ! TODO : replace all this by fmax from read_input.c
-        if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
+!        if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
 
         fmax = Tdomain%TimeD%fmax
         if (fmax < 0.) stop "SolidCPML : fmax < 0."
@@ -541,7 +541,7 @@ contains
         case (1)
             a0b = k0
             a1b = k0*d0
-            a2b = k0*d0*a0
+            a2b = -k0*d0*a0
         case (2)
             i1 = dom%I1(ee,bnum)
             k1 = dom%Kappa_1(i,j,k,i1)
@@ -559,9 +559,9 @@ contains
             k2 = dom%Kappa_2(i,j,k,i2)
             a2 = dom%Alpha_2(i,j,k,i2)
             d2 = dom%dxi_k_2(i,j,k,i2)
+            ! Delta term from L : (12a) or (14a) from Ref1
             a0b = k0*k1*k2
             a1b = a0b*(d0+d1+d2)
-            ! Delta term from L : (12a) or (14a) from Ref1
             a2b = a0b*(d0*(d1-a0) + d1*(d2-a1) + d2*(d0-a2))
         end select
         mass_0 = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
@@ -596,7 +596,7 @@ contains
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
-        real(fpp) :: Rx, Ry, Rz, wk, wjk, wijk
+        real(fpp) :: Rx, Ry, Rz, wk, wjk, wijk, kijk
 
         ngll = dom%ngll
 
@@ -628,11 +628,12 @@ contains
                         e = bnum*VCHUNK+ee
                         if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
+                        kijk = wijk*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
                         call compute_L_convolution_terms(dom, i, j, k, bnum, ee, Depla(ee,i,j,k,0:2), &
                             Rx, Ry, Rz)
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)-wijk*Rx
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)-wijk*Ry
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)-wijk*Rz
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)-kijk*Rx
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)-kijk*Ry
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)-kijk*Rz
                         !R(idx,0) += wijk*(R1+R2+R3)
                     enddo
                 enddo
@@ -688,8 +689,8 @@ contains
         integer :: bnum
         type (domain), intent (INOUT), target :: Tdomain
         !
-        real(fpp) :: a1, a2, a3, ui, t1, t2, t3, t, dt
-        integer :: i_dir, i, j, k, ee, idx
+!        real(fpp) :: a1, a2, a3, ui, t1, t2, t3, t, dt
+!        integer :: i_dir, i, j, k, ee, idx
 
 !        t  = Tdomain%timeD%rtime
 !        dt = Tdomain%timeD%dtmin
@@ -742,7 +743,7 @@ contains
         !
         integer :: i_dir, n
         !
-        real(fpp) :: D, V, F ! Displacement, Velocity, Force
+        real(fpp) :: V, F ! Displacement, Velocity, Force
 
         ! Note: the solid domain use a leap-frop time scheme => we get D_n+3/2 and V_n+1
         !       to compute V_n+2, we need F_n+1. To compute F_n+1, we need D_n+1 and V_n+1
@@ -754,8 +755,8 @@ contains
                 ! Get V = V_n+1
                 V = dom%champs0%Veloc(n,i_dir) ! V = V_n+1
 
-                ! Estimate D = D_n+1
-                D = dom%champs0%Depla(n,i_dir) - V*0.5*dt
+!                ! Estimate D = D_n+1
+!                D = dom%champs0%Depla(n,i_dir) - V*0.5*dt
 
                 ! Compute F_n+1 : (61a) from Ref1 with F = -F (as we add -Fo* in forces_int_sol_pml)
                 F =    &
