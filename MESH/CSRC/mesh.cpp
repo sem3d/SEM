@@ -214,6 +214,7 @@ void Mesh3D::write_materials_v2(const std::string& str)
     FILE* f = fopen(str.c_str(), "w");
     int nmats = m_materials.size();
 
+    fprintf(f, "%d\n", nmats);
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
         fprintf(f, "%c %lf %lf %lf %d %lf %lf\n",
@@ -222,7 +223,6 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.m_ngll,
                 mat.Qpression, mat.Qmu);
     }
-    fprintf(f, "%d\n", nmats);
 
     fprintf(f, "# PML properties\n");
     fprintf(f, "# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat\n");
