@@ -98,7 +98,7 @@ contains
         call assemble_mass_matrices(Tdomain)
         call finalize_pml_properties(Tdomain)
         call inverse_mass_mat(Tdomain)
-        
+
         ! Copy Idom from element to domain_XXX
 
         if ((Tdomain%n_DIRIC /= 0).and.(Tdomain%logicD%surfBC)) then
@@ -111,7 +111,7 @@ contains
                 end if
              enddo
         endif
-        
+
         do n = 0,Tdomain%n_elem-1
             if(allocated(Tdomain%specel(n)%Idom)) &
                 deallocate(Tdomain%specel(n)%Idom) ! TODO : delete when non-CPML domains use dom%Idom_ instead of specel%Idom
@@ -131,7 +131,7 @@ contains
                write(char,*) Tdomain%nsurfsource(ns)%index(s)
                block: &
                do n = 0,size(Tdomain%sSurfaces)-1
-                  if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(1:len_trim(char)))) then   
+                  if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(1:len_trim(char)))) then
                       call init_dirichlet_surface_MT(Tdomain, Tdomain%sSurfaces(n))
                       exit block
                   endif
@@ -142,9 +142,9 @@ contains
     end subroutine init_dirichlet_unstructuredMesh
 
     subroutine dirichlet_gll_map(dirichlet, dirichlet_out)
-    
+
         implicit none
-        integer, dimension(:), intent( in  )              :: dirichlet 
+        integer, dimension(:), intent( in  )              :: dirichlet
         integer, dimension(:), allocatable, intent(out)   :: dirichlet_out
         integer, dimension(:), allocatable                :: dummy
         integer                                           :: pp, n, m
@@ -166,9 +166,9 @@ contains
         deallocate(dummy)
 
     end subroutine dirichlet_gll_map
-     
+
     subroutine init_dirichlet_surface_MT(Tdomain, surf)
-        
+
         implicit none
         type (domain), intent (INOUT)      :: Tdomain
         type (SurfaceT), intent(INOUT)     :: surf
@@ -179,7 +179,7 @@ contains
             if (allocated(Tdomain%sdom%dirich)) then
                 allocate(dummy(0:size(Tdomain%sdom%dirich)-1))
                 dummy=Tdomain%sdom%dirich
-                deallocate(Tdomain%sdom%dirich) 
+                deallocate(Tdomain%sdom%dirich)
                 call dirichlet_gll_map((/dummy, surf%surf_sl%map/),Tdomain%sdom%dirich)
                 Tdomain%sdom%n_dirich = size(Tdomain%sdom%dirich)
             else
@@ -227,7 +227,7 @@ contains
             endif
         end if
         if (allocated(dummy)) deallocate(dummy)
-    
+
     end subroutine init_dirichlet_surface_MT
 
 
@@ -396,7 +396,7 @@ contains
             !write(*,*) "Init mat ", mat
             !write(*,*) "Tdomain%sSubdomain(mat)%material_definition = ", Tdomain%sSubdomain(mat)%material_definition
             !write(*,*) "MATERIAL_FILE = ", MATERIAL_FILE
-            
+
             isfile = Tdomain%sSubdomain(mat)%material_definition == MATERIAL_FILE
             if (isfile) then
                 call init_prop_file(Tdomain%sSubdomain(mat))
@@ -475,7 +475,7 @@ contains
             ! XXX TODO
         case(MATDEF_MU_SYLD_RHO)
             mu = v0
-            lambda = 2.0*nu*v0/(1.0-2.0*nu)                     
+            lambda = 2.0*nu*v0/(1.0-2.0*nu)
         end select
 
         select case (specel%domain)
