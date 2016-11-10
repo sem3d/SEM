@@ -114,12 +114,14 @@ contains
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les solides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs0%Forces(0:dom%nglltot-1,0:2))
-            allocate(dom%champs0%Depla (0:dom%nglltot-1,0:2))
-            allocate(dom%champs0%Veloc (0:dom%nglltot-1,0:2))
-            allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
-            allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
-            allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
+            ! Allocate ONE more gll than necessary to use as a dummy target for
+            ! indirections for fake elements.
+            allocate(dom%champs0%Forces(0:dom%nglltot,0:2))
+            allocate(dom%champs0%Depla (0:dom%nglltot,0:2))
+            allocate(dom%champs0%Veloc (0:dom%nglltot,0:2))
+            allocate(dom%champs1%Forces(0:dom%nglltot,0:2))
+            allocate(dom%champs1%Depla (0:dom%nglltot,0:2))
+            allocate(dom%champs1%Veloc (0:dom%nglltot,0:2))
 
             dom%champs0%Forces = 0d0
             dom%champs0%Depla = 0d0
@@ -818,7 +820,7 @@ contains
                     call calcul_forces_nl(dom,bnum,Fox,Foy,Foz,Depla)
                 else
                     call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
-                endif 
+                endif
             end if
         end if
 
@@ -827,7 +829,6 @@ contains
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         e = bnum*VCHUNK+ee
-                        if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
                         champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)

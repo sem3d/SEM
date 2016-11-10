@@ -51,12 +51,12 @@ module pml
         return
     end subroutine define_PML_DumpInit
 
-    subroutine define_PML_DumpEnd(ngll,Massmat,DumpMass,DumpV)
+    subroutine define_PML_DumpEnd(nglltot,Massmat,DumpMass,DumpV)
         implicit none
-        integer, intent(in)   :: ngll
-        real, dimension(0:ngll-1), intent(in) :: MassMat
-        real, dimension(0:ngll-1,0:2), intent(in) :: DumpMass
-        real, dimension(0:ngll-1,0:1,0:2), intent(out) :: DumpV
+        integer, intent(in)   :: nglltot
+        real, dimension(0:nglltot), intent(in) :: MassMat
+        real, dimension(0:nglltot,0:2), intent(in) :: DumpMass
+        real, dimension(0:nglltot,0:1,0:2), intent(out) :: DumpV
 
         DumpV(:,1,:) = spread(MassMat(:),2,3) + DumpMass(:,:)
         DumpV(:,1,:) = 1d0/DumpV(:,1,:)

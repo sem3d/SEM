@@ -69,12 +69,17 @@ contains
             allocate (bz%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate (bz%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate (bz%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            bz%m_Idom = 0
+            ! Initialize to point after the last gll
+            ! Since we allocate nblock*VCHUNK elements we could have up to VCHUNK-1 extra (fake)
+            ! elements those will point to this extra gll so we can ignore them in most
+            ! vectorized loops
+            bz%m_Idom = bz%nglltot
         end if
         if (bz%nglltot /= 0) then
             ! Allocation de MassMat
-            allocate(bz%MassMat(0:bz%nglltot-1))
+            allocate(bz%MassMat(0:bz%nglltot))
             bz%MassMat = 0d0
+            bz%MassMat(bz%nglltot) = 1d0
         end if
     end subroutine init_dombase
 

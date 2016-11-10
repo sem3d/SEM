@@ -69,16 +69,17 @@ contains
         end if
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs1%ForcesPML(0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs0%VelocPML (0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs1%VelocPML (0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs0%DumpV    (0:dom%nglltot-1,0:1,0:2))
+            allocate(dom%champs1%ForcesPML(0:dom%nglltot,0:2,0:2))
+            allocate(dom%champs0%VelocPML (0:dom%nglltot,0:2,0:2))
+            allocate(dom%champs1%VelocPML (0:dom%nglltot,0:2,0:2))
+            allocate(dom%champs0%DumpV    (0:dom%nglltot,0:1,0:2))
             dom%champs1%ForcesPML = 0d0
             dom%champs0%VelocPML = 0d0
             dom%champs0%DumpV = 0d0
 
-            allocate(dom%DumpMass(0:dom%nglltot-1,0:2))
+            allocate(dom%DumpMass(0:dom%nglltot,0:2))
             dom%DumpMass = 0d0
+            dom%DumpMass(dom%nglltot,:) = 1d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid pml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solidpml
@@ -343,7 +344,6 @@ contains
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    if (e>=dom%nbelem) exit
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(ee,:,i,j,k)
                     champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(ee,:,i,j,k)

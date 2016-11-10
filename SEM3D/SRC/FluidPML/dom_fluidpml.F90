@@ -55,18 +55,19 @@ contains
 
         ! Allocation et initialisation de champs0 pour les PML fluides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs1%fpml_Forces(0:dom%nglltot-1,0:2))
-            allocate(dom%champs0%fpml_VelPhi(0:dom%nglltot-1,0:2))
-            allocate(dom%champs0%fpml_Phi   (0:dom%nglltot-1,0:2))
-            allocate(dom%champs1%fpml_VelPhi(0:dom%nglltot-1,0:2))
-            allocate(dom%champs0%fpml_DumpV (0:dom%nglltot-1,0:1,0:2))
+            allocate(dom%champs1%fpml_Forces(0:dom%nglltot,0:2))
+            allocate(dom%champs0%fpml_VelPhi(0:dom%nglltot,0:2))
+            allocate(dom%champs0%fpml_Phi   (0:dom%nglltot,0:2))
+            allocate(dom%champs1%fpml_VelPhi(0:dom%nglltot,0:2))
+            allocate(dom%champs0%fpml_DumpV (0:dom%nglltot,0:1,0:2))
             dom%champs1%fpml_Forces = 0d0
             dom%champs0%fpml_VelPhi = 0d0
             dom%champs0%fpml_Phi = 0d0
             dom%champs0%fpml_DumpV = 0d0
 
-            allocate(dom%DumpMass(0:dom%nglltot-1,0:2))
+            allocate(dom%DumpMass(0:dom%nglltot,0:2))
             dom%DumpMass = 0d0
+            dom%DumpMass(dom%nglltot,:) = 1d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - fluid pml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluidpml
@@ -252,7 +253,6 @@ contains
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    if (e>=dom%nbelem) exit
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     ! We should have atomic adds with openmp // here
                     champs1%fpml_Forces(ind,d) = champs1%fpml_Forces(ind,d) + FFl(ee,i,j,k)

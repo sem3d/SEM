@@ -293,7 +293,6 @@ contains
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         e = bnum*VCHUNK+ee
-                        if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         val = champs1%ForcesFl(idx)
                         val = val - Fo_Fl(ee,i,j,k)
