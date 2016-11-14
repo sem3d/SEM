@@ -171,7 +171,9 @@ program main_RandomField
                 unv_path = IPT_Temp%unv_path, &
                 monotype = IPT_Temp%monotype, &
                 coordList_local = IPT_Temp%coordList_local, &
-                connectList_local = IPT_Temp%connectList_local)
+                connectList_local = IPT_Temp%connectList_local, &
+                calculateCorrL = IPT_Temp%calculateCorrL, &
+                deleteSampleAfterStatistics = IPT_Temp%deleteSampleAfterStatistics)
 
         else
             call init_IPT_RF_std(&

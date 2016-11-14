@@ -58,11 +58,6 @@ contains
                            IPT%nTotalFields, IPT%coords, IPT%neigh, IPT%op_neigh, IPT%neighShift, &
                            IPT%global)
 
-
-        !if(IPT%rang == 0) write(*,*) "  IPT%loc_Comm = ", IPT%loc_Comm
-        !if(IPT%rang == 0) write(*,*) "  IPT%gen_Comm = ", IPT%gen_Comm
-
-
         call wLog("-----LOCALIZATION---------------")
         call wLog("     IPT%loc_group = ")
         call wLog(IPT%loc_group)
@@ -453,18 +448,13 @@ contains
                                      "../h5", "RF",IPT%gen_groupMax)
         end if
 
-        if(IPT%rang == 0) call write_stat_input("./stat_input", BBoxPath)
-
-        !call MPI_BARRIER(IPT%loc_Comm, code)
+        if(IPT%rang == 0) call write_stat_input("./stat_input", BBoxPath, IPT%calculateCorrL, IPT%deleteSampleAfterStatistics)
 
         if(allocated(unityPartition))   deallocate(unityPartition)
         if(allocated(randField_Gen)) deallocate(randField_Gen)
-        !if(allocated(randField_inProc)) deallocate(randField_inProc)
         if(allocated(randField_Local))  deallocate(randField_Local)
         if(allocated(randField_Group))  deallocate(randField_Group)
-        !if(associated(RF_2D_Proc))  nullify(RF_2D_Proc)
         if(associated(RF_2D_Group)) nullify(RF_2D_Group)
-        !if(associated(RF_3D_Proc))  nullify(RF_3D_Proc)
         if(associated(RF_3D_Group)) nullify(RF_3D_Group)
 
         !Build Times

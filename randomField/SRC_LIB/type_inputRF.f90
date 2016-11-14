@@ -37,7 +37,9 @@ module type_inputRF
         logical :: monotype
         logical :: unv = .false.
         character(len=buf_RF) :: unv_path, outputFolder, outputName
-
+        !STATISTICS
+        integer :: calculateCorrL
+        integer :: deleteSampleAfterStatistics
         !GENERATION
         integer :: nDim_gen
         double precision   :: fieldAvg = -1, fieldVar = -1;
@@ -123,7 +125,9 @@ contains
                                 unv_path, &
                                 monotype, &
                                 coordList_local, &
-                                connectList_local)
+                                connectList_local, &
+                                calculateCorrL, &
+                                deleteSampleAfterStatistics)
 
             !OUTPUT
             type(IPT_RF), intent(inout)  :: IPT
@@ -157,6 +161,9 @@ contains
             integer, intent(in) :: Nmc, seedStart
             integer, dimension(:), intent(in) :: nFields
             integer, intent(in) :: localizationLevel
+
+            !STATISTICS
+            integer :: calculateCorrL, deleteSampleAfterStatistics
 
             !FILE MANAGER
             logical, intent(in) :: writeDataSet
@@ -203,6 +210,8 @@ contains
             IPT%writeUNVinterpolation = writeUNVinterpolation
             IPT%outputFolder = outputFolder
             IPT%outputName = outputName
+            IPT%calculateCorrL = calculateCorrL
+            IPT%deleteSampleAfterStatistics = deleteSampleAfterStatistics
 
             IPT%xMinGlob = IPT%xMinGlob_in
             IPT%xMaxGlob = IPT%xMaxGlob_in
@@ -295,7 +304,9 @@ contains
                             sampleFields=.true., &
                             writeUNVinterpolation=.false., &
                             outputFolder=outputFolder, &
-                            outputName=outputName)
+                            outputName=outputName, &
+                            calculateCorrL=0, &
+                            deleteSampleAfterStatistics = 0)
 
         end subroutine init_IPT_RF_std
 
@@ -397,82 +408,6 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
-        subroutine copy_IPT_RF(IPT, IPT_orig)
-
-            implicit none
-
-            !INPUT
-            type(IPT_RF), intent(in)  :: IPT_orig
-            !OUTPUT
-            type(IPT_RF), intent(inout)  :: IPT
-
-            IPT%init   = IPT_orig%init
-            IPT%xMaxGlob = IPT_orig%xMaxGlob
-            IPT%xMinGlob = IPT_orig%xMinGlob
-            IPT%xMinGlob_in = IPT_orig%xMinGlob_in
-            IPT%xMinGlob_in = IPT_orig%xMinGlob_in
-            IPT%pointsPerCorrL = IPT_orig%pointsPerCorrL
-            IPT%corrL_in   = IPT_orig%corrL_in
-            IPT%overlap_in = IPT_orig%overlap_in
-            IPT%procPerDim = IPT_orig%procPerDim
-            IPT%nFields = IPT_orig%nFields
-            IPT%log_ID = IPT_orig%log_ID
-            IPT%rang   = IPT_orig%rang
-            IPT%overlap = IPT_orig%overlap
-            IPT%comm = IPT_orig%comm
-            IPT%nb_procs = IPT_orig%nb_procs
-            IPT%writeDataSet = IPT_orig%writeDataSet
-
-            IPT%nDim_mesh = IPT_orig%nDim_mesh
-            IPT%meshMod = IPT_orig%meshMod
-
-            IPT%coordList   => IPT_orig%coordList
-            IPT%connectList => IPT_orig%connectList
-
-            !UNV
-            !if(allocated(IPT_orig%coordList)) then
-            !    if(.not. allocated(IPT%coordList)) then
-            !        allocate(IPT%coordList(size(IPT_orig%connectList,1), size(IPT_orig%connectList,2)))
-            !    end if
-            !    IPT%coordList = IPT_orig%coordList
-            !end if
-            !if(allocated(IPT_orig%connectList)) then
-            !   if(.not. allocated(IPT%connectList)) then
-            !        allocate(IPT%connectList(size(IPT_orig%connectList,1), size(IPT_orig%connectList,2)))
-            !    end if
-            !    IPT%connectList = IPT_orig%connectList
-            !end if
-
-            IPT%monotype = IPT_orig%monotype
-            IPT%unv = IPT_orig%unv
-            IPT%unv_path = IPT_orig%unv_path
-
-            !GENERATION
-            IPT%nDim_gen = IPT_orig%nDim_gen
-            IPT%fieldAvg = IPT_orig%fieldAvg
-            IPT%fieldVar = IPT_orig%fieldVar
-            IPT%margiFirst = IPT_orig%margiFirst
-            IPT%corrL = IPT_orig%corrL
-            IPT%overlap = IPT_orig%overlap
-            IPT%corrMod = IPT_orig%corrMod
-            IPT%method = IPT_orig%method
-            IPT%Nmc = IPT_orig%Nmc
-            IPT%seedStart = IPT_orig%seedStart
-            IPT%nFields = IPT_orig%nFields
-            IPT%localizationLevel = IPT_orig%localizationLevel
-
-            IPT%corrL = IPT_orig%corrL
-            IPT%overlap = IPT_orig%overlap
-            IPT%xStep = IPT_orig%xStep
-            IPT%stepProc = IPT_orig%stepProc
-            IPT%procExtent = IPT_orig%procExtent
-
-        end subroutine copy_IPT_RF
-
-        !---------------------------------------------------------------------------------
-        !---------------------------------------------------------------------------------
-        !---------------------------------------------------------------------------------
-        !---------------------------------------------------------------------------------
         subroutine read_main_input(IPT, auto)
 
             implicit none
@@ -522,6 +457,8 @@ contains
                 if(IPT%rang == 0) write(*,*) "      Native lecture"
                 call read_DataTable(dataTable, "nSamples", IPT%nSamples)
                 call read_DataTable(dataTable, "timeFolder", IPT%timeFolder)
+                call read_DataTable(dataTable, "calculateCorrL", IPT%calculateCorrL)
+                call read_DataTable(dataTable, "deleteSampleAfterStatistics", IPT%deleteSampleAfterStatistics)
                 allocate(IPT%out_folders(IPT%nSamples))
                 allocate(IPT%out_names(IPT%nSamples))
                 allocate(IPT%mesh_inputs(IPT%nSamples))
@@ -709,12 +646,9 @@ contains
                     !buffer = "eof_gl" !TEST 
                 end do
 
-                write(*,*) "AFTER"
-                write(*,*) "AFTER"
 
             close(fid_2)
 
-                write(*,*) "AFTER 1"
             prop_Count = 0
             do mat = 0, nMat-1
                 do j = 0, nProp_Mat(mat)-1
@@ -729,7 +663,6 @@ contains
             !CREATING FOLDER
             call create_folder(".", SEM_gen_path, 0, 0, singleProc = .true.)
             call create_folder(".", string_join_many(SEM_gen_path,"/input"), 0, 0, singleProc = .true.)
-                write(*,*) "AFTER 2"
 
             !WRITING new RF_main_input
 
@@ -740,8 +673,10 @@ contains
             write(fid,"(A)")  "$application 1"
             write(fid,"(A)")  "$timeFolder 0"
             write(fid,*) " "
-                write(*,*) "AFTER 3"
-
+            write(fid,"(A)")  "$calculateCorrL 1"
+            write(fid,"(A)")  "$deleteSampleAfterStatistics 0"
+            write(fid,*) " "
+            
             call getcwd(absPath)
 
             write(*,*) "absPath = ", trim(adjustL(absPath))
@@ -786,126 +721,6 @@ contains
                 write(*,*) "AFTER 5"
 
             close(fid)
-!            !READING material.input
-!            open (unit = fid_2 , file = "./material.input", action = 'read', status="old", form="formatted")
-!                buffer = getLine(fid_2, '#')
-!                read(buffer,*) nMat
-!                write(*,*) "nMat = ", nMat
-!
-!                allocate(materialType(nMat))
-!                allocate(Pspeed(nMat))
-!                allocate(Sspeed(nMat))
-!                allocate(Dens(nMat))
-!                allocate(assocMat(nMat))
-!
-!                assocMat = -1
-!
-!                !READ material.input
-!                do i = 1, nMat
-!                    buffer = getLine(fid_2, '#')
-!                    read(buffer,*) materialType(i), Pspeed(i), Sspeed(i), Dens(i)
-!
-!                    if (materialType(i) == "P" .or. materialType(i) == "L") then
-!                        npml = npml + 1
-!                    else
-!                        if (materialType(i) == "R") nRand = nRand + 1
-!                        assocMat(i) = i-1
-!                    end if
-!
-!                end do
-!
-!                do i = 1, nMat
-!                    if (materialType(i) == "P" .or. materialType(i) == "L") then
-!                        buffer = getLine(fid_2, '#')
-!                        read(buffer,*) npow, Apow, posX, widthX, posY, widthY, posZ, widthZ, assocMat(i)
-!                    end if
-!                end do
-
-!                if(nRand > 0) then
-!
-!                    do i = 1, nMat
-!                        if (materialType(i) == "R") then
-!                            buffer = getLine(fid_2, '#')
-!                            read(buffer,*) lambdaSwitch(i)
-!                            do j = 1, nprop
-!                                buffer = getLine(fid_2, '#')
-!                                read(buffer,*) corrMod(j, i), corrL(1,j,i), corrL(2,j,i), corrL(3,j,i), margiF(j,i), CV(j,i), seedStart(j, i)
-!                            end do
-!                        end if
-!                    end do
-!
-!                end if
-!
-!                !call DispCarvalhol(materialType, "materialType")
-!                !call DispCarvalhol(assocMat, "assocMat")
-!
-!            close(fid_2)
-
-
-!
-!            do i = 1, nMat
-!                if (materialType(i) == "R") then
-!
-!                    propNames=["Density", "Kappa  ", "Mu     "]
-!
-!                    fieldAvg(1) = Dens(i) !Density
-!                    fieldAvg(2) = Dens(i)*(Pspeed(i)**2d0 - 4d0*(Sspeed(i)**2d0)/3d0) !Kappa
-!                    fieldAvg(3) = Dens(i)*Sspeed(i)**2d0 !Mu
-!
-!                    if(lambdaSwitch(i) == 1) then
-!                        propNames=["Density", "Lambda ", "Mu     "]
-!                        !fieldAvg(2) = (Pspeed(i)**2d0 - 2d0*Sspeed(i)**2d0)*Dens(i) !Lambda
-!                        fieldAvg(2) = 2d0*Dens(i)*Sspeed(i)**2d0 !Lambda = 2*Mu
-!                    end if
-!
-!                    fieldVar(:) = (CV(:,i)*fieldAvg)**2d0
-!
-!                    do j = 1, nProp
-!
-!                        randCount = randCount + 1
-!
-!                        mesh_path = trim(string_join_many(SEM_gen_path,"/input/", &
-!                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_mesh"))
-!                        gen_path  = trim(string_join_many(SEM_gen_path,"/input/", &
-!                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_gen"))
-!
-!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
-!                                         trim(string_join_many(absPath,"/",mesh_path,'"'))
-!                        call write_mesh_file(3, bbox_min(:,i), bbox_max(:,i), [5, 5, 5], &
-!                                             mesh_path)
-!
-!
-!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
-!                                     trim(string_join_many(absPath,'/',gen_path,'"'))
-!                        call write_gen_file(3, 1, corrMod(j, i), margiF(j, i), corrL(:,j,i), &
-!                                            fieldAvg(j), fieldVar(j), 4, &
-!                                            seedStart(j,i), [5d0, 5d0, 5d0], &
-!                                            gen_path,  &
-!                                            1, [0, 0, 0])
-!
-!                        out_folder = trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
-!                                          ' "'//trim(adjustL(absPath))//"/"//trim(adjustL(SEM_gen_path))//'"'
-!                        !out_folder = trim(string_join_many(stringNumb_join("A", randCount)))//&
-!                        !             ' "', '"'
-!                        !write(*,*) "out_folder = ", out_folder
-!                        write(fid,"(A)") trim(adjustL(out_folder))
-!                        !write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
-!                        !                  ' "',trim(adjustL(absPath)),"/",trim(adjustL(SEM_gen_path)),'"'
-!
-!
-!                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
-!                                     trim(stringNumb_join("Mat_", i-1))//"_"//&
-!                                     trim(propNames(j))//'"'
-!                        write(fid,"(A)") " "
-!                    end do
-!                end if
-!            end do
-!
-!            write(fid,"(A)") "$nSamples "//numb2String(randCount)
-!
-!            !write(fid,*) "$$nDim "
-!
-!            close(fid)
 
             if(allocated(prop)) deallocate(prop)
             if(allocated(nProp_Mat)) deallocate(nProp_Mat)
@@ -948,7 +763,6 @@ contains
                     IPT%xMinGlob = IPT%xMinGlob_in
                     IPT%xMaxGlob = IPT%xMaxGlob_in
                 case(2)
-                    !stop("Inside read_mesh_input UNV not updated")
                     if(IPT%rang==0) write(*,*) "   Mesh UNV"
                     call wLog("    Mesh UNV")
                     call wLog("        file: ")
