@@ -1539,11 +1539,14 @@ contains
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" NumberType="Float" Precision="4"  Dimensions="',nn, &
                 '">geometry',group,'.h5:/Mass</DataItem>'
             write(61,"(a)") '</Attribute>'
+#ifdef CPML
+#else
             ! ALPHA/DUMPSX
             write(61,"(a)") '<Attribute Name="Alpha" Center="Node" AttributeType="Scalar">'
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Alpha" Format="HDF" NumberType="Float" Precision="4"  Dimensions="',nn, &
                 '">geometry',group,'.h5:/Alpha</DataItem>'
             write(61,"(a)") '</Attribute>'
+#endif
             ! JACOBIAN
             write(61,"(a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar">'
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
@@ -1592,23 +1595,31 @@ contains
         integer, intent(in) :: nnodes
         integer, dimension(:), allocatable, intent(in) :: domains
         !
-        real, dimension(:),allocatable :: mass, jac, dumpsx
+        real, dimension(:),allocatable :: mass, jac
+#ifdef CPML
+        real, dimension(:,:),allocatable :: alpha, dxi_k
+#else
+        real, dimension(:),allocatable :: dumpsx
+        real(fpp) :: dx, dy, dz, dt
+#endif
         real, dimension(:),allocatable :: dens, lamb, mu, kappa
         integer :: ngll, idx
         integer :: i, j, k, n, lnum, nnodes_tot, bnum, ee
         integer :: domain_type, imat
-        real(fpp) :: dx, dy, dz, dt
 
         allocate(mass(0:nnodes-1))
-        allocate(dumpsx(0:nnodes-1))
         allocate(jac(0:nnodes-1))
         allocate(dens(0:nnodes-1))
         allocate(lamb(0:nnodes-1))
         allocate(mu(0:nnodes-1))
         allocate(kappa(0:nnodes-1))
+#ifdef CPML
+#else
+        allocate(dumpsx(0:nnodes-1))
+        dumpsx = 0d0
+#endif
 
         mass = 0d0
-        dumpsx = 0d0
         dens = 0d0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
@@ -1637,11 +1648,10 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
+#ifdef CPML
+#else
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
                                 dt = 2d0*Tdomain%TimeD%dtmin
-#ifdef CPML
-                                dumpsx(idx) = Tdomain%spmldom%Alpha_0(ee,i,j,k,bnum)
-#else
                                 dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
                                 dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
                                 dz = ((1d0/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,bnum,ee))-1.)/dt
@@ -1721,16 +1731,12 @@ contains
                             case (DM_SOLID)
                                 dens(idx) = Tdomain%sdom%Density_        (i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
-#ifdef CPML
-                                dens(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DDensity
-#else
                                 dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
-#endif
                             case (DM_FLUID)
                                 dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)
 #ifdef CPML
-                                dens(idx) = 0. ! Tdomain%fpmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DDensity ! TODO
+                                dens(idx) = 0. ! Tdomain%fpmldom%Density_(i,j,k,bnum,ee) ! TODO
 #else
                                 dens(idx) = Tdomain%fpmldom%Density_     (i,j,k,bnum,ee)
 #endif
@@ -1756,11 +1762,7 @@ contains
                             case (DM_SOLID)
                                 lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
-#ifdef CPML
-                                lamb(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DLambda
-#else
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
-#endif
                             case (DM_FLUID)
                                 lamb(idx) = Tdomain%fdom%Lambda_        (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)
@@ -1787,11 +1789,7 @@ contains
                             case (DM_SOLID)
                                 mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
-#ifdef CPML
-                                mu(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DMu
-#else
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
-#endif
                             case (DM_FLUID)
                                 mu(idx) = -1d0
                             case (DM_FLUID_PML)
@@ -1832,7 +1830,10 @@ contains
         end do
 
         call grp_write_real_1d(Tdomain, fid, "Mass", nnodes, mass, nnodes_tot)
+#ifdef CPML
+#else
         call grp_write_real_1d(Tdomain, fid, "Alpha", nnodes, dumpsx, nnodes_tot)
+#endif
         call grp_write_real_1d(Tdomain, fid, "Jac", nnodes, jac, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Dens", nnodes, dens, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Lamb", nnodes, lamb, nnodes_tot)
