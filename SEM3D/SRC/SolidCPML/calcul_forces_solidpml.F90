@@ -164,7 +164,6 @@ contains
             cf(DXY) = a0+d0
             cf(DXZ) = a0+d0
         case(1)
-            stop 1
             b0(kB012) = k0
             b0(kB021) = 1./k0
             b0(kB120) = k0
@@ -181,7 +180,6 @@ contains
             cf(DYY) = a0+d0
             cf(DYZ) = a0+d0
         case(2)
-            stop 1
             b0(kB012) = 1./k0
             b0(kB021) = k0
             b0(kB120) = k0
