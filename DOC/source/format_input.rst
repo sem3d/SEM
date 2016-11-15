@@ -48,13 +48,13 @@ Le fichier suivant correspond à celui d'un cas test : ::
 
   # -*- mode: perl -*-
   run_name = "Run_3D_trial";
-  
+
   # duration of the run
   sim_time = 1.0;
   mesh_file = "mesh4spec"; # input mesh file
   mat_file = "material.input";
   dim = 3;
-  
+
   snapshots {
     save_snap = true;
     snap_interval = 0.01;
@@ -70,8 +70,8 @@ Le fichier suivant correspond à celui d'un cas test : ::
     file = "file_station";
     period = 2; # Une iteration sur 2
   };
-  
-  
+
+
   source {                 # introduce a source
     # coordinates of the sources
     coords = 0. 0. 0.;
@@ -81,10 +81,10 @@ Le fichier suivant correspond à celui d'un cas test : ::
     tau = 0.2;              # tau
     freq = 5.;           # source main frequency (only for Ricker)
   };
-  
-  
+
+
   #gradient_file="gradients.dat"  # fichier gradient
-  
+
   time_scheme {
     accel_scheme = false;  # Acceleration scheme for Newmark
     veloc_scheme = true;   # Velocity scheme for Newmark
@@ -190,7 +190,7 @@ Le mécanisme d'atténuation est décrit en deux endroits :
 
 L'atténuation est modélisée par N mécanismes (``nsolids``) sur une bande
 de fréquences décrite par ``atn_band``. Les N mécanismes sont centrés sur
-N fréquences choisies dans la bande spécifiée. 
+N fréquences choisies dans la bande spécifiée.
 
 Le paramètre ``atn_period`` spécifie la période pour laquelle les
 valeurs de :math:`V_p` et :math:`V_s` sont exactement celles
@@ -230,12 +230,12 @@ tau               réel     --                 Un temps caractéristique :math:`
 freq              réel     --                 Une fréquence :math:`f_c`
 band              réel(4)  --                 Description des bornes :math:`f_1,f_2,f_3,f_4` pour tf_heaviside
 ts                réel     --                 Un offset de temps :math:`t_0`
-gamma             réel     --                 Paramètre pour décrire les fonctions 
+gamma             réel     --                 Paramètre pour décrire les fonctions
 time_file         chaîne   --                 Fichier contenant la source ``gabor``, ``square``, ``tanh``
 amplitude         réel     --                 Facteur multiplicatif appliqué à la source temporelle
 Q                 réel     --                 Amplitude de la charge mobile
 Y                 réel     --                 Paramètre lié au sol pour la charge mobile
-X                 réel     --                 Paramètre lié au sol pour la charge mobile 
+X                 réel     --                 Paramètre lié au sol pour la charge mobile
 L                 réel     --                 Longueur critique pour la charge mobile
 v                 réel     --                 Vitesse de la charge mobile
 d                 réel     --                 Distance entre les deux charges mobiles
@@ -256,21 +256,21 @@ Les formes d'ondes temporelles des sources sont décrites ci-dessous. Les
 paramètres sont décrits dans la section ``source``. Certains sont calculés :
 
   - :math:`f_c` : paramètre ``freq``
-  
+
   - :math:`T_c = \frac{1}{f_c}`
-  
+
   - :math:`\tau` : paramètre ``tau``
-  
+
   - :math:`t_0` : paramètre ``ts``
-  
+
   - :math:`f_1,f_2,f_3,f_4` : décrits par le paramètre (4 composantes) ``band``
-  
+
   - :math:`\gamma` : paramètre ``gamma``
 
 
 Les fonctions temporelles sont:
 
-- ``gaussian`` :  
+- ``gaussian`` :
 
   .. math::
 
@@ -292,7 +292,7 @@ Les fonctions temporelles sont:
 
 .. figure:: ../figures/ricker.eps
    :scale: 60
-   :align: center 
+   :align: center
 
 - ``tf_heaviside`` :
 
@@ -360,7 +360,7 @@ Les fonctions temporelles sont:
    :align: center
 
 - ``square`` : Un carré *arrondi*
- 
+
   .. math::
 
      f(t) = \frac{\exp(2.*\gamma*(x-t_0))-1.}{\exp(2.*\gamma*(x-t_0))+1}+\frac{\exp(2.*\gamma*(t_0+\tau-x))-1.}{\exp(2.*\gamma*(t_0+\tau-x))+1}
@@ -388,7 +388,7 @@ Les fonctions temporelles sont:
 
   .. math::
 
-     f(t) = \frac{Q*Y}{2}*(X^{\frac{v*(t-t_0)-a}{d^2}}+X^{\frac{v*(t-t_0)-a-L}{d^2}}) 
+     f(t) = \frac{Q*Y}{2}*(X^{\frac{v*(t-t_0)-a}{d^2}}+X^{\frac{v*(t-t_0)-a-L}{d^2}})
 
 
 Section ``snapshots``
@@ -518,13 +518,13 @@ eTotal            bool     0                  energies de l'ensemble des domaine
 
 
 Section ``surface``
-====================
+===================
 
-La section ``surface``  est introduite pour définir d'éventuelles conditions aux limites 
+La section ``surface``  est introduite pour définir d'éventuelles conditions aux limites
 imposées sur une (des) surface(s) spécifiée(s).
 
 
-Les types de conditions aux limites concernés sont : 
+Les types de conditions aux limites concernés sont :
 
 -  `condition de Neumann`
 
@@ -537,465 +537,481 @@ Les types de conditions aux limites concernés sont :
 -  `présence de faille (futur: non utilisé)`
 
 
-Cette structure dans input.spec n'est utilisable que pour un maillage non structuré 
+Cette structure dans input.spec n'est utilisable que pour un maillage non structuré
 importé sous le format ``.msh`` (cf les Annexes  pour plus de précision).
 
-#. Déclaration d'une section `surface`
-      
-      La déclaration d'un section surface dans input.spec se présente comme suit : ::
-      
-           surface {
-             use   = 1;               
-             type  = ??;         
-             mat_i = 0;               
-             nsurf = 1;               
-             index = 1;               
-             C     = 0.0 0.0 0.0;     
-             time  = ricker;        
-             freq  = 30.0;            
-             tau   = 0.0333333333;    
-             ampli = 100;             
-             shape = paraboloid;      
-             size  = 0.5;             
-             dir   = 0.0 0.0 1.0;     
-           }; 
-      
-      
-      La signification des différents mots clés est consignée dans le tableau ci-dessous:
-            
-      ================  ========  =================  =================================================================
-      Mot-clef          Type      Val. par défaut    Description
-      ================  ========  =================  =================================================================
-      use               entier    --                 surface activée(1) ou désactivée (0)
-      type              chaine    --                 condition  associée à la section
-      mat_i             entier    --                 domain qui fournit propriétés matériaux
-      nsurf             entier    --                 Nb de surfaces concerné
-      index             entier    --                 liste des tags de surfaces concernées
-      C                 réel(3)   --                 point de référence
-      time              chaîne    --                 type temporel appliqué
-      freq              réel      --                 fréquence de ricker (`time`=`ricker`)
-      tau               réel      --                 temps caractéristique (`time` = ricker) :math:`\tau`
-      ampli             réel      --                 facteur multiplicatif de la source temporelle 
-      shape             chaîne    --                 forme spatiale de la source
-      size              réel      --                 rayon max de la forme spatiale
-      dir               réel(3)   --                 direction de la force surfacique :math:`\underline{\underline{\sigma}}.\overrightarrow{n}` 
-      ================  ========  =================  =================================================================
-      
-      
-      
-#. Valeurs des différents mots clés 
+Déclaration d'une section `surface`
+-----------------------------------
 
-   #. `type`::
-   
-       neumann, dirichlet, fault, planewave
-       
-    Les type `planewave` et `fault` ne sont pas encore disponible dans SEM
-    
-   #. `shape`::
-   
-       gaussian, paraboloid, square, cylinder, uniform
-       
-   #. `time`::
-      
-       ricker, gauss, analytic       
-      
+La déclaration d'un section surface dans input.spec se présente comme suit : ::
 
-#. Conditions de Neumann
+  surface {
+    use   = 1;
+    type  = ??;
+    mat_i = 0;
+    nsurf = 1;
+    index = 1;
+    C     = 0.0 0.0 0.0;
+    time  = ricker;
+    freq  = 30.0;
+    tau   = 0.0333333333;
+    ampli = 100;
+    shape = paraboloid;
+    size  = 0.5;
+    dir   = 0.0 0.0 1.0;
+  };
+
+La signification des différents mots clés est consignée dans le tableau ci-dessous:
+
+================  ========  =================  =================================================================
+Mot-clef          Type      Val. par défaut    Description
+================  ========  =================  =================================================================
+use               entier    --                 surface activée(1) ou désactivée (0)
+type              chaine    --                 condition  associée à la section
+mat_i             entier    --                 domain qui fournit propriétés matériaux
+nsurf             entier    --                 Nb de surfaces concerné
+index             entier    --                 liste des tags de surfaces concernées
+C                 réel(3)   --                 point de référence
+time              chaîne    --                 type temporel appliqué
+freq              réel      --                 fréquence de ricker (`time`=`ricker`)
+tau               réel      --                 temps caractéristique (`time` = ricker) :math:`\tau`
+ampli             réel      --                 facteur multiplicatif de la source temporelle
+shape             chaîne    --                 forme spatiale de la source
+size              réel      --                 rayon max de la forme spatiale
+dir               réel(3)   --                 direction de la force surfacique :math:`\underline{\underline{\sigma}}.\overrightarrow{n}`
+================  ========  =================  =================================================================
 
 
-   #.  Conditions prédéfinies
-       
-       Les conditions de Neumann sont celles qui consistent à imposer des forces surfaciques 
-       données sous la forme :math:`\underline{\underline{\sigma}}.\overrightarrow{n}`, où 
-       :math:`\overrightarrow{n}` est la normale extérieure à la surface et `\underline{\underline{\sigma}}`
-       les contraintes imposées sur la surface. Il est admis dans un premier temps, que le 
-       champs de contraintes :math:`\underline{\underline{\sigma}}` imposable sur une surface 
-       se met sous la forme d'une fonction à varaiables séparées : une fonction `f(x,y,z)` 
-       d'écrivant la distribution spatiale des contraintes et une fonction `g(t)` qui décrit 
-       son allure temporelle. Dans ce cas particulier de conditions de Neumann, 
-       les contraintes applicables sont des contraintes de direction sans cisaillement. 
-         .. math::
-             \underline{\underline{\sigma}} = \begin{bmatrix} \sigma_{11}    &    0        &     0 \\
-                                                                   0         & \sigma_{22} &     0 \\
-                                                                   0         &    0        &  \sigma_{33} 
-                                                              \end{bmatrix}
-       tel que :   
-         .. math:: 
-             \sigma_{ii}(x,y,z,t) = k_if(x,y,z)g(t), i=1,2,3
-       
-       où :math:`k_i`  sont les composantes du vecteur définissant la direction de la force 
-       données par le mot clé ``dir``. Les seuls valeurs possibles sont 1 et 0 pour chaque 
-       composante de ce vecteur. Dans le cas contraire, le programme redéfinit le vecteur en 
-       attribuant la valeur 1 aux composantes non nulles
-           
-           #.  `Forme spatiale`
-            
-               Les formes spatiales prédéfinies (les noms constituent les valeurs que prends `shape`) 
-               sont présentées ci-dessous. Dans ces expressions, `R` désigne la valeur attribuée à `size`, 
-               délimitant la zone sur laquelle la forme spatiale `f(x,y,z)` est valable. Au delà de cette zone, 
-               les contraintes sur la surfaces concernée sont nulles. `r` désigne la distance radiale du point 
-               de coordonées `(x,y,z)` par rapport au point de référence :math:`C=(x_0,y_0,z_0)`.
-               
-               - ``paraboloid`` :
-               
-                 Cette forme est un cas non-uniforme de repartition des contraintes sur la surface. La répartition se 
-                 limite essentiellement sur un disc de rayon `R`. La distribution des contraintes en espace 
-                 présente une forme paraboloide dont l'expression est définie comme suit : 
-               
-                .. math::
-               
-                     f(x,y,z) = \sqrt{1-\frac{r^2}{R^2}}
-                
-                .. _fig-surface-para:
-                
-                .. figure:: ../figures/neu_paraboloid.png
-                   :scale: 60
-                   :align: center
-               
-               - ``gaussian`` :
-                
-                 IL s'agit d'une autre forme de répartition non uniforme. Cette répartition est 
-                 une gaussienne dont l'expression est définie comme suit :
-               
-                .. math::
-                   f(x,y,z) = e^{-\frac{r^2}{R^2}}
-               
-                .. _fig-surface-gau:
-                    
-                .. figure:: ../figures/neu_gaussian.png
-                   :scale: 60
-                   :align: center
-               
-               - ``cylinder`` :
-                
-                Il s'agit d'une répartition uniforme et homogène du champ de contraintes sur un disc de rayon `R` 
-                centrée sur le point `C` sur la surface concernée.
-                 
-                .. math::
-                   
-                   f(x,y,z) = 1
-               
-                .. _fig-surface-cyl:
-                 
-                .. figure:: ../figures/neu_cylinder.png
-                   :scale: 60
-                   :align: center
-               
-               - ``square`` :
-                
-                 Il s'agit d'une répartition uniforme et homogène du champ de contraintes sur une portion carrée 
-                 et dont la longueur de chaque côté vaut `2R` sur la surface concernée. Le carré est centré sur le point `C`.
-               
-                .. math::
-                   
-                   f(x,y,z) = 1
-               
-                .. _fig-source-squ:
-                 
-                .. figure:: ../figures/neu_square.png
-                   :scale: 60
-                   :align: center
-               
-               - ``uniform`` :
-               
-                  Cette forme spatiale définie une répartition uniforme et homogène sur toute(s) la(les) surface(s) 
-                  concernée(s).
-               
-           #.  `Forme temporelle`
-       
-               L'évolution temporelle `g(t)` prédéfinie se limite essentiellement à une forme `ricker` 
-               et `gaussienne` déjà définie dans la section `source`.
-               
-       
-   #.  Généralisation des conditions de Neumann
-       
-       Pour appliquée une condition de Neumann ne figurant pas parmi les cas prédéfinis, SEM offre la 
-       possibilité à l'utilisateur de définir par lui même ces contraintes impossable 
-       :math:`\underline{\underline{\sigma}}`. Pour ce faire, il suffit de donner au mot clé
-       `time=analytic`. Ce qui offre la possibilité d'imposser des contraintes en cisaillement : 
-       
-        .. math::
-               \underline{\underline{\sigma}} = \begin{bmatrix} \sigma_{11}  & \sigma_{12} & \sigma_{13} \\
-                                                                \sigma_{12}  & \sigma_{22} & \sigma_{23} \\
-                                                                \sigma_{13}  & \sigma_{23} & \sigma_{33} 
-                                                                \end{bmatrix}
-       
-       Ce cas nécéssite l'introduction de nouveaux mots clés dans la section `surface` pour 
-       indiquer une imposition particulière des conditions de Neumann. Les nouveaux mots sont 
-       consignés dans le tableau ci-dessous :
-              
-       ================  ========  =================  ====================================
-       Mot-clef          Type      Val. défaut        Description
-       ================  ========  =================  ====================================
-       var               chaîne    --                 dimension en espace et temps 
-       fxx               chaîne    --                 expression analytique  
-       fyy               chaîne    --                 expression analytique
-       fzz               chaîne    --                 expression analytique
-       fxy               chaîne    --                 expression analytique
-       fxz               chaîne    --                 expression analytique
-       fyz               chaîne    --                 expression analytique
-       ================  ========  =================  ====================================
-       
-       
+Valeurs des différents mots clés
+--------------------------------
 
-                #.  Le mot clé ``var`` indique les variables dont dépendent les fonctions analytiques.
-                    Les valeurs possibles que peut prendre ``var`` sont les suivantes : ::
-         
-                     "xyzt"; "xyt"; "xzt"; "yzt"; "yt"; "zt"; "xt";
-                     "t"; "z"; "y"; "z"; "xyz"; "xy"; "xz"; "yz"
-       
-       
-                #.  ``Les possibilités sont les suivantes``
-       
-       
-                     -  cas pour reproduire les conditions prédéfinies lorsque la forme temporelle est 
-                        différente de ``ricker`` et ``gauss`` ::
-                     
-                            surface{
-                               use   = 1;             
-                               type  = neumann;      
-                               mat_i = 0;            
-                               nsurf = n;            
-                               index =  ...;           
-                               C     = 0.0 0.0 0.0; 
-                               time  = analytic;    
-                               shape = paraboloid; 
-                               size  = 0.5;         
-                               dir   = ? ? ?; 
-                               var   ="t";
-                               fxx   ="g(t)";
-                            };
-                    
-                        Un example type de cette déclaration est celui ayant permis la validation. Il s'agit 
-                        du cas-test `TEST_0007_cube_surf` que l'utilisateur peut retrouver dans les cas de 
-                        NON-REGRESSION
+   #. ``type``::
+
+        neumann, dirichlet, fault, planewave
+
+      Les type ``planewave`` et ``fault`` ne sont pas encore disponible dans SEM
+
+   #. ``shape``::
+
+        gaussian, paraboloid, square, cylinder, uniform
+
+   #. ``time``::
+
+        ricker, gauss, analytic
+
+Conditions de Neumann
+---------------------
+
+Conditions prédéfinies
+~~~~~~~~~~~~~~~~~~~~~~
+
+Les conditions de Neumann sont celles qui consistent à imposer des forces surfaciques
+données sous la forme :math:`\underline{\underline{\sigma}}.\overrightarrow{n}`, où
+:math:`\overrightarrow{n}` est la normale extérieure à la surface et `\underline{\underline{\sigma}}`
+les contraintes imposées sur la surface. Il est admis dans un premier temps, que le
+champs de contraintes :math:`\underline{\underline{\sigma}}` imposable sur une surface
+se met sous la forme d'une fonction à varaiables séparées : une fonction `f(x,y,z)`
+d'écrivant la distribution spatiale des contraintes et une fonction `g(t)` qui décrit
+son allure temporelle. Dans ce cas particulier de conditions de Neumann,
+les contraintes applicables sont des contraintes de direction sans cisaillement.
+
+.. math::
+
+   \underline{\underline{\sigma}} = \begin{bmatrix} \sigma_{11}    &    0        &     0 \\
+                                                         0         & \sigma_{22} &     0 \\
+                                                         0         &    0        &  \sigma_{33}
+                                    \end{bmatrix}
+tel que :
+
+.. math::
+
+   \sigma_{ii}(x,y,z,t) = k_if(x,y,z)g(t), i=1,2,3
+
+où :math:`k_i`  sont les composantes du vecteur définissant la direction de la force
+données par le mot clé ``dir``. Les seuls valeurs possibles sont 1 et 0 pour chaque
+composante de ce vecteur. Dans le cas contraire, le programme redéfinit le vecteur en
+attribuant la valeur 1 aux composantes non nulles
+
+Forme spatiale (``shape``)
+--------------------------
+
+Les formes spatiales prédéfinies (les noms constituent les valeurs
+que prends `shape`) sont présentées ci-dessous. Dans ces
+expressions, `R` désigne la valeur attribuée à `size`, délimitant
+la zone sur laquelle la forme spatiale `f(x,y,z)` est valable. Au
+delà de cette zone, les contraintes sur la surfaces concernée sont
+nulles. `r` désigne la distance radiale du point de coordonées
+`(x,y,z)` par rapport au point de référence
+:math:`C=(x_0,y_0,z_0)`.
+
+- ``paraboloid`` :
+
+  Cette forme est un cas non-uniforme de repartition des
+  contraintes sur la surface. La répartition se limite
+  essentiellement sur un disc de rayon `R`. La distribution des
+  contraintes en espace présente une forme paraboloide dont
+  l'expression est définie comme suit :
+
+  .. math::
+
+     f(x,y,z) = \sqrt{1-\frac{r^2}{R^2}}
+
+  .. _fig-surface-para:
+
+  .. figure:: ../figures/neu_paraboloid.png
+     :scale: 60
+     :align: center
+
+- ``gaussian`` :
+
+  IL s'agit d'une autre forme de répartition non uniforme. Cette répartition est
+  une gaussienne dont l'expression est définie comme suit :
+
+  .. math::
+
+      f(x,y,z) = e^{-\frac{r^2}{R^2}}
+
+  .. _fig-surface-gau:
+
+  .. figure:: ../figures/neu_gaussian.png
+     :scale: 60
+     :align: center
+
+- ``cylinder`` :
+
+  Il s'agit d'une répartition uniforme et homogène du champ de contraintes sur un disc de rayon `R`
+  centrée sur le point `C` sur la surface concernée.
+
+  .. math::
+
+     f(x,y,z) = 1
+
+  .. _fig-surface-cyl:
+
+  .. figure:: ../figures/neu_cylinder.png
+     :scale: 60
+     :align: center
+
+- ``square`` :
+
+  Il s'agit d'une répartition uniforme et homogène du champ de contraintes sur une portion carrée
+  et dont la longueur de chaque côté vaut `2R` sur la surface concernée. Le carré est centré sur le point `C`.
+
+  .. math::
+
+     f(x,y,z) = 1
+
+  .. _fig-source-squ:
+
+  .. figure:: ../figures/neu_square.png
+     :scale: 60
+     :align: center
+
+- ``uniform`` :
+
+  Cette forme spatiale définie une répartition uniforme et homogène sur toute(s) la(les) surface(s)
+  concernée(s).
+
+Forme temporelle (``time``)
+---------------------------
+
+L'évolution temporelle `g(t)` prédéfinie se limite essentiellement à une forme `ricker`
+et `gaussienne` déjà définie dans la section `source`.
 
 
-                     -  cas pour reproduire les conditions prédéfinies lorsque la forme temporelle est 
-                        différente de ``ricker`` et ``gauss`` et les formes spatiales différentes de 
-                        celles illustrées plus haut ::
-                     
-                       
-                           surface{
-                             use   = 1;             
-                             type  = neumann;       
-                             mat_i = 0;            
-                             nsurf = n;            
-                             index = ... ;            
-                             C     = 0.0 0.0 0.0; 
-                             time  = analytic;    
-                             var   ="xyzt";
-                             fxx   ="h(x,y,z,t)";
-                             fyy   ="h(x,y,z,t)";
-                             fzz   ="h(x,y,z,t)";
-                            }; 
-                        
-                     -  cas permettant d'imposser en moment donc introduir des conditions en cisaillement ::
-                        
-                        
-                           surface{
-                             use   = 1;             
-                             type  = neumann;       
-                             mat_i = 0;            
-                             nsurf = n;                   
-                             index = ... ;            
-                             C     = 0.0 0.0 0.0; 
-                             time  = analytic;    
-                             var   ="xyzt";
-                             fxx   ="h(x,y,z,t)";
-                             fyy   ="h(x,y,z,t)";
-                             fzz   ="h(x,y,z,t)";
-                             fxy   ="h(x,y,z,t)";
-                             fyz   ="h(x,y,z,t)";
-                             fxz   ="h(x,y,z,t)";
-                            }; 
-                
-                  
-       A noter :
-               
-               Dans les trois cas illustrés ci-dessus, la présence des autres mots clés reportés dans le 
-               premier tableau de cette section n'influence pas la condition définie. Seul les mots clés du 
+Généralisation des conditions de Neumann
+----------------------------------------
+
+Pour appliquée une condition de Neumann ne figurant pas parmi les cas prédéfinis, SEM offre la
+possibilité à l'utilisateur de définir par lui même ces contraintes impossable
+:math:`\underline{\underline{\sigma}}`. Pour ce faire, il suffit de donner au mot clé
+`time=analytic`. Ce qui offre la possibilité d'imposser des contraintes en cisaillement :
+
+.. math::
+
+   \underline{\underline{\sigma}} = \begin{bmatrix} \sigma_{11}  & \sigma_{12} & \sigma_{13} \\
+                                                    \sigma_{12}  & \sigma_{22} & \sigma_{23} \\
+                                                    \sigma_{13}  & \sigma_{23} & \sigma_{33}
+                                    \end{bmatrix}
+
+
+Ce cas nécéssite l'introduction de nouveaux mots clés dans la section `surface` pour
+indiquer une imposition particulière des conditions de Neumann. Les nouveaux mots sont
+consignés dans le tableau ci-dessous :
+
+================  ========  =================  ====================================
+Mot-clef          Type      Val. défaut        Description
+================  ========  =================  ====================================
+var               chaîne    --                 dimension en espace et temps
+fxx               chaîne    --                 expression analytique
+fyy               chaîne    --                 expression analytique
+fzz               chaîne    --                 expression analytique
+fxy               chaîne    --                 expression analytique
+fxz               chaîne    --                 expression analytique
+fyz               chaîne    --                 expression analytique
+================  ========  =================  ====================================
+
+
+
+#.  Le mot clé ``var`` indique les variables dont dépendent les fonctions analytiques.
+    Les valeurs possibles que peut prendre ``var`` sont les suivantes : ::
+
+     "xyzt"; "xyt"; "xzt"; "yzt"; "yt"; "zt"; "xt";
+     "t"; "z"; "y"; "z"; "xyz"; "xy"; "xz"; "yz"
+
+
+#. Les possibilités sont les suivantes
+
+   -  cas pour reproduire les conditions prédéfinies lorsque la forme temporelle est
+      différente de ``ricker`` et ``gauss`` ::
+
+        surface{
+           use   = 1;
+           type  = neumann;
+           mat_i = 0;
+           nsurf = n;
+           index =  ...;
+           C     = 0.0 0.0 0.0;
+           time  = analytic;
+           shape = paraboloid;
+           size  = 0.5;
+           dir   = ? ? ?;
+           var   ="t";
+           fxx   ="g(t)";
+        };
+
+      Un example type de cette déclaration est celui ayant permis la validation. Il s'agit
+      du cas-test `TEST_0007_cube_surf` que l'utilisateur peut retrouver dans les cas de
+      NON-REGRESSION
+
+
+   -  cas pour reproduire les conditions prédéfinies lorsque la forme temporelle est
+      différente de ``ricker`` et ``gauss`` et les formes spatiales différentes de
+      celles illustrées plus haut ::
+
+
+        surface {
+           use   = 1;
+           type  = neumann;
+           mat_i = 0;
+           nsurf = n;
+           index = ... ;
+           C     = 0.0 0.0 0.0;
+           time  = analytic;
+           var   ="xyzt";
+           fxx   ="h(x,y,z,t)";
+           fyy   ="h(x,y,z,t)";
+           fzz   ="h(x,y,z,t)";
+        };
+
+   -  cas permettant d'imposser en moment donc introduir des conditions en cisaillement ::
+
+
+        surface {
+           use   = 1;
+           type  = neumann;
+           mat_i = 0;
+           nsurf = n;
+           index = ... ;
+           C     = 0.0 0.0 0.0;
+           time  = analytic;
+           var   ="xyzt";
+           fxx   ="h(x,y,z,t)";
+           fyy   ="h(x,y,z,t)";
+           fzz   ="h(x,y,z,t)";
+           fxy   ="h(x,y,z,t)";
+           fyz   ="h(x,y,z,t)";
+           fxz   ="h(x,y,z,t)";
+        };
+
+
+A noter :
+
+               Dans les trois cas illustrés ci-dessus, la présence des autres mots clés reportés dans le
+               premier tableau de cette section n'influence pas la condition définie. Seul les mots clés du
                deuxième tableau définissent la forme des conditions imposées.
-               
-       
-       Les fonctions analytiques sont données sous forme de chaine de caratères et construites grace à 
-       toute une liste de fonctions analytiques élémentaires et d'opérateurs arithmétiques et aussi 
-       des constantes prédéfinies. 
-       
-       
-       #. Fonctions élémentaires prédéfinies :
-                
-            ==============   ================   ======================================
-            Mots-clé         Valeur de retour   Description
-            ==============   ================   ======================================
-            cos(x)             réel             renvoie `cosinus` de x
-            acos(x)            réel             renvoie `arccosinus` de x
-            sin(x)             réel             renvoie `sinus` de x
-            asin(x)            réel             renvoie `arcsinus` de x
-            tan(x)             réel             renvoie `tangente` de x
-            atan(x)            réel             renvoie inverse de `tangente` de x
-            abs(x)             réel             renvoie  la valeur absolue de x
-            floor(x)           réel             renvoie la partie entière de x
-            exp(x)             réel             renvoie l'exponentielle  de x
-            log10(x)           réel             logarithme à base 10 de x
-            log(x)             réel             logarithme naturel de x
-            sqrt(x)            réel             renvoie la racine carrée de x
-            sinh(x)            réel             renvoie `sh` de x
-            cosh(x)            réel             renvoie  `ch` de x
-            tanh(x)            réel             renvoie `th` de x
-            sign(x)            réel             renvoie Heaviside de x
-            dirac(x)           réel             renvoie  Dirac de x
-            ==============   ================   ======================================
-                   
-       #. Les opérateurs arithmétiques disponibles : 
-          
-            ==============   ===============================
-            Opérateur        Description
-            ==============   ===============================
-            ** ou ^          élevation à la puissance
-            \*               multiplication
-            \+               addition
-            \-               soustraction
-            /                division
-            (                parenthèse ouvrante
-            )                parenthèse fermante
-            ==============   ===============================
-            
 
-       
-       #. Les constantes prédéfines :
-          
-          Une seule constante est prédéfinie. Il s'agit de la valeur de :math:`\pi` que l'utilisateur 
-          peut directement utiliser en écrivant `pi`. L'utilisateur peut également définir ses propres
-          valeurs constantes à l'aide des mots clés consigné dans le tableau ci-dessous.
-           
-          ==============  ========    ===========================
-          Mots-clés        type       Description
-          ==============  ========    ===========================
-          paramvar         entier     indicateur de présence (0/1) 
-          npara            entier     nombre de paramètres
-          param            chaîne     liste des paramètres
-          value            réel       liste des valeurs des paramètres
-          ==============  ========    ===========================      
-          
-          A noter :
 
-                  Les noms des contantes définir par l'utilisateur doivent être de même longueur que `pi`
-                  c'est-à-dire des nom constitués de deux caractères sans espace.
+Les fonctions analytiques sont données sous forme de chaine de caratères et construites grace à
+toute une liste de fonctions analytiques élémentaires et d'opérateurs arithmétiques et aussi
+des constantes prédéfinies.
 
-                 
-       #. Example d'utilisation de `time = analytic`  
-       
-          L'utilisateur peut utiliser l'example ci-dessous avec le cas-test `TEST_0007_cube_surf`. 
-          Il s'agit appliquer une forme spatiale paraboloide et une évolution temporelle donnée 
-          par `sinus`. Cet example montre également comment définir ces propres constantes ::
 
-              surface {
-                use  = 0;
-                type = neumann;
-                mat_i= 0;
-                nsurf = 1;
-                index = 1;
-                C = 0.0 0.0 0.0;
-                time  = analytic;
-                var= "xyzt";
-                fxx= "0.0";
-                fyy= "0.0";
-                fzz= "500.0*sqrt((1.0-(x^2+y^2+z^2)/RR^2)*sign(RR^2-(x^2+y^2
-                                  +z^2)))*sin(pi*t/UU)*sign(UU-t)";                                  
-                fxy= "0.0";
-                fxz= "0.0";
-                #
-                paramvar= 1;
-                npara   = 2;
-                param   = "UU RR";
-                value   = 0.001  0.05;
-              };
-                                                            
-              
-#. Condition de Dirichlet
+Fonctions élémentaires prédéfinies
+----------------------------------
+==============   ================   ======================================
+Mots-clé         Valeur de retour   Description
+==============   ================   ======================================
+cos(x)             réel             renvoie `cosinus` de x
+acos(x)            réel             renvoie `arccosinus` de x
+sin(x)             réel             renvoie `sinus` de x
+asin(x)            réel             renvoie `arcsinus` de x
+tan(x)             réel             renvoie `tangente` de x
+atan(x)            réel             renvoie inverse de `tangente` de x
+abs(x)             réel             renvoie  la valeur absolue de x
+floor(x)           réel             renvoie la partie entière de x
+exp(x)             réel             renvoie l'exponentielle  de x
+log10(x)           réel             logarithme à base 10 de x
+log(x)             réel             logarithme naturel de x
+sqrt(x)            réel             renvoie la racine carrée de x
+sinh(x)            réel             renvoie `sh` de x
+cosh(x)            réel             renvoie  `ch` de x
+tanh(x)            réel             renvoie `th` de x
+sign(x)            réel             renvoie Heaviside de x
+dirac(x)           réel             renvoie  Dirac de x
+==============   ================   ======================================
+
+Les opérateurs arithmétiques disponibles
+----------------------------------------
+
+==============   ===============================
+Opérateur        Description
+==============   ===============================
+** ou ^          élevation à la puissance
+\*               multiplication
+\+               addition
+\-               soustraction
+/                division
+(                parenthèse ouvrante
+)                parenthèse fermante
+==============   ===============================
+
+
+
+Les constantes prédéfines
+-------------------------
+
+Une seule constante est prédéfinie. Il s'agit de la valeur de :math:`\pi` que l'utilisateur
+peut directement utiliser en écrivant `pi`. L'utilisateur peut également définir ses propres
+valeurs constantes à l'aide des mots clés consigné dans le tableau ci-dessous.
+
+==============  ========    ===========================
+Mots-clés        type       Description
+==============  ========    ===========================
+paramvar         entier     indicateur de présence (0/1)
+npara            entier     nombre de paramètres
+param            chaîne     liste des paramètres
+value            réel       liste des valeurs des paramètres
+==============  ========    ===========================
+
+A noter :
+
+        Les noms des contantes définir par l'utilisateur doivent être de même longueur que `pi`
+        c'est-à-dire des nom constitués de deux caractères sans espace.
+
+
+Example d'utilisation de `time = analytic`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+L'utilisateur peut utiliser l'example ci-dessous avec le cas-test `TEST_0007_cube_surf`.
+Il s'agit appliquer une forme spatiale paraboloide et une évolution temporelle donnée
+par `sinus`. Cet example montre également comment définir ces propres constantes ::
+
+  surface {
+      use  = 0;
+      type = neumann;
+      mat_i= 0;
+      nsurf = 1;
+      index = 1;
+      C = 0.0 0.0 0.0;
+      time  = analytic;
+      var= "xyzt";
+      fxx= "0.0";
+      fyy= "0.0";
+      fzz= "500.0*sqrt((1.0-(x^2+y^2+z^2)/RR^2)*sign(RR^2-(x^2+y^2
+                        +z^2)))*sin(pi*t/UU)*sign(UU-t)";
+      fxy= "0.0";
+      fxz= "0.0";
+      #
+      paramvar= 1;
+      npara   = 2;
+      param   = "UU RR";
+      value   = 0.001  0.05;
+  };
+
+
+Condition de Dirichlet
+----------------------
 
 Les conditions de Dirichlet traitées ici sont celle imposéer lorsqu'on fait un maillage structurée. Ces conditions consistent
 à imposer une vitesse nulle et est applicable uniquement lorqu'on traite d'un problème de fluide. Une telle conditions au limite
 se déclare comme suit dans ``input.spec`` : ::
 
 
-          surface {
-              use   = 1;
-              type  = dirichlet;
-              mat_i = 0;
-              nsurf = n;
-              index = ... ;
-            };
- 
- 
+  surface {
+     use   = 1;
+     type  = dirichlet;
+     mat_i = 0;
+     nsurf = n;
+     index = ... ;
+  };
+
+
 A noter :
- 
-      #. L'architecture de cette section offre la possibilité d'introduite simultanément plusieurs conditions différentes.
-                   
-             Example : 
-                   
-                   #. dirichlet+neumann;:: 
-                      
-                         surface {
-                           use   = 1;
-                           type  = dirichlet;
-                           mat_i = 1;
-                           nsurf = m;
-                           index = ... ;
-                          };
 
-                         surface{
-                            use   = 1;             
-                            type  = neumann;       
-                            mat_i = 0;            
-                            nsurf = n;            
-                            index = 1 ... ;            
-                            C     = 0.0 0.0 0.0; 
-                            time  = analytic;    
-                            var   ="xyzt";
-                            fxx   ="h(x,y,z,t)";
-                            fyy   ="h(x,y,z,t)";
-                            fzz   ="h(x,y,z,t)";
-                           }; 
-                   
-                   #. neumann+neumann+ ... :: 
+     L'architecture de cette section offre la possibilité d'introduite simultanément plusieurs conditions différentes.
 
-                         surface{
-                            use   = 1;             
-                            type  = neumann;       
-                            mat_i = 0;            
-                            nsurf = n;            
-                            index = 4 8 20 ... ;            
-                            C     = 0.0 0.0 0.0; 
-                            time  = analytic;    
-                            var   ="xyzt";
-                            fxx   ="h(x,y,z,t)";
-                            fyy   ="h(x,y,z,t)";
-                            fzz   ="h(x,y,z,t)";
-                           }; 
-                     
-                         surface{
-                            use   = 1;             
-                            type  = neumann;       
-                            mat_i = 0;            
-                            nsurf = m ;            
-                            index = 10 15 ... ;            
-                            C     = 0.0 0.0 0.0; 
-                            time  = analytic;    
-                            var   ="xyzt";
-                            fxx   ="h(x,y,z,t)";
-                            fyy   ="h(x,y,z,t)";
-                            fzz   ="h(x,y,z,t)";
-                            fxy   ="h(x,y,z,t)";
-                            fyz   ="h(x,y,z,t)";
-                            fxz   ="h(x,y,z,t)";
-                          };  
-                                                            
-                          . ...; ...
- 
-      #.  Les numéros des tags fournit par le mot clé ``index`` doivent être les mêmes que 
-          ceux attribués aux surfaces identifiées dans ``.msh``. En présence d'un tags non 
-          identifié, un message d'erreur est retourné entrainant l'arrêt de tous les calculs.
- 
- 
+Example :
+
+#. dirichlet+neumann;::
+
+     surface {
+        use   = 1;
+        type  = dirichlet;
+        mat_i = 1;
+        nsurf = m;
+        index = ... ;
+     };
+
+     surface{
+        use   = 1;
+        type  = neumann;
+        mat_i = 0;
+        nsurf = n;
+        index = 1 ... ;
+        C     = 0.0 0.0 0.0;
+        time  = analytic;
+        var   ="xyzt";
+        fxx   ="h(x,y,z,t)";
+        fyy   ="h(x,y,z,t)";
+        fzz   ="h(x,y,z,t)";
+     };
+
+#. neumann+neumann+ ... ::
+
+     surface{
+        use   = 1;
+        type  = neumann;
+        mat_i = 0;
+        nsurf = n;
+        index = 4 8 20 ... ;
+        C     = 0.0 0.0 0.0;
+        time  = analytic;
+        var   ="xyzt";
+        fxx   ="h(x,y,z,t)";
+        fyy   ="h(x,y,z,t)";
+        fzz   ="h(x,y,z,t)";
+     };
+
+     surface{
+        use   = 1;
+        type  = neumann;
+        mat_i = 0;
+        nsurf = m ;
+        index = 10 15 ... ;
+        C     = 0.0 0.0 0.0;
+        time  = analytic;
+        var   ="xyzt";
+        fxx   ="h(x,y,z,t)";
+        fyy   ="h(x,y,z,t)";
+        fzz   ="h(x,y,z,t)";
+        fxy   ="h(x,y,z,t)";
+        fyz   ="h(x,y,z,t)";
+        fxz   ="h(x,y,z,t)";
+     };
+
+     . ...; ...
+
+ #.  Les numéros des tags fournit par le mot clé ``index`` doivent être les mêmes que
+     ceux attribués aux surfaces identifiées dans ``.msh``. En présence d'un tags non
+     identifié, un message d'erreur est retourné entrainant l'arrêt de tous les calculs.
