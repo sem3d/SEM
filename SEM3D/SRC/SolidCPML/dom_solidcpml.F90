@@ -640,8 +640,6 @@ contains
                 enddo
             enddo
         enddo
-        ! Update convolution terms
-        call update_convolution_terms(dom, champs1, bnum, Tdomain)
     end subroutine forces_int_sol_pml
 
 
@@ -683,38 +681,6 @@ contains
             end if
         end if
     end subroutine select_terms
-
-    subroutine update_convolution_terms(dom, champs1, bnum, Tdomain)
-        type(domain_solidpml), intent (INOUT) :: dom
-        type(champssolidpml), intent(inout) :: champs1
-        integer :: bnum
-        type (domain), intent (INOUT), target :: Tdomain
-        !
-!        real(fpp) :: a1, a2, a3, ui, t1, t2, t3, t, dt
-!        integer :: i_dir, i, j, k, ee, idx
-
-!        t  = Tdomain%timeD%rtime
-!        dt = Tdomain%timeD%dtmin
-!        do i_dir = 0,2
-!            do k = 0,dom%ngll-1
-!                do j = 0,dom%ngll-1
-!                    do i = 0,dom%ngll-1
-!                        do ee = 0, VCHUNK-1
-!                            idx = dom%Idom_(i,j,k,bnum,ee)
-!                            a1 = dom%Alpha(idx,0)
-!                            a2 = dom%Alpha(idx,1)
-!                            a3 = dom%Alpha(idx,2)
-!                            ui = champs1%Depla(idx,i_dir)
-!                            call select_terms(a1,a2,a3,t,t1,t2,t3)
-!                            dom%R4(ee,i_dir,i,j,k,bnum) = dom%R4(ee,i_dir,i,j,k,bnum)*(1-dt*b1)+dt*ui
-!                            dom%R5(ee,i_dir,i,j,k,bnum) = dom%R5(ee,i_dir,i,j,k,bnum)*(1-dt*b2)+dt*ui
-!                            dom%R6(ee,i_dir,i,j,k,bnum) = dom%R6(ee,i_dir,i,j,k,bnum)*(1-dt*b3)+dt*ui
-!                        end do
-!                    end do
-!                end do
-!            end do
-!        end do
-    end subroutine update_convolution_terms
 
     subroutine newmark_predictor_solidpml(dom, Tdomain)
         type(domain_solidpml), intent (INOUT) :: dom
