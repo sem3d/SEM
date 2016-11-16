@@ -18,7 +18,7 @@ module sreceivers
        character(Len=100) :: name
        ! FOR HDG POST-PROCESSING
        real, dimension(:,:,:,:), pointer :: InvGrad
-       real, dimension(:,:), pointer :: JacobWhei, ReinterpX, ReinterpZ, hprimex, hprimez
+       real, dimension(:,:), pointer :: JacobWheiN1, JacobWheiN2, ReinterpX, ReinterpZ, ReinterpNX, ReinterpNZ, hprimex, hprimez
        real, dimension(:,:), pointer :: MatPostProc
     end type receiver
 

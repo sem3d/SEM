@@ -62,6 +62,30 @@ subroutine derivlag(GLLc,n,ip,x0,dy0)
 
 end subroutine derivlag
 
+!------------------------------------------------------------------------------
+subroutine mderlag(n,GLLc,np,Xpts,MatDer)
+
+    ! computes derivatives of n Lagrange polynomials given by GLLc, at np coordinates points
+    ! given in the vector Xpts. Results are stored in the derivative matrix MatDer such that
+    ! MatDer(i,j) = l_i(xi_j). Note that it is the transpose of the result given by subroutine DMLEGL.
+    implicit none
+    integer, intent(in) :: n, np
+    double precision, dimension(0:n-1), intent(in) :: GLLc
+    double precision, dimension(0:np-1),intent(in) :: Xpts
+    double precision, dimension(0:n-1,0:np-1),intent(out) :: MatDer
+    double precision :: res
+    integer :: i,j
+
+    do i=0,n-1
+        do j=0,np-1
+            call derivlag(GLLc,n,i,Xpts(j),res)
+            MatDer(i,j) = res
+        enddo
+    enddo
+
+
+end subroutine mderlag
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
