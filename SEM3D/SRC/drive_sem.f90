@@ -654,14 +654,6 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
         write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
     endif
     call save_field_h5(Tdomain, isort)
-    if(rg == 0)then
-        write(78,*) isort, Tdomain%TimeD%rtime
-        call semname_nb_proc(isort,fnamef)
-        open (79,file = fnamef,status="UNKNOWN")
-        write(79,*) Tdomain%nb_procs
-        close(79)
-    endif
-
     isort = isort + 1  ! a faire avant le save_checkpoint
 
 end subroutine OUTPUT_SNAPSHOTS
