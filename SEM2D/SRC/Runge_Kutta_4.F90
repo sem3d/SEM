@@ -14,6 +14,7 @@ module srungekutta
     use scouplage
     use mpi
     use constants
+    use smidpoint
 
     implicit none
 contains
@@ -74,8 +75,8 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           case (GALERKIN_CONT)
               call Assemblage(Tdomain,n)
           case (GALERKIN_HDG_RP)
-              call compute_TracFace (Tdomain%specel(n))
-              call get_traction_el2f(Tdomain,n)
+              if (i .NE. 1) call compute_TracFace (Tdomain%specel(n))
+              if (i .NE. 1) call get_traction_el2f(Tdomain,n)
           case (GALERKIN_DG_STRONG)
               call get_data_el2f(Tdomain,n)
           case (GALERKIN_DG_WEAK)
@@ -101,7 +102,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
            type_DG = Tdomain%sface(nface)%Type_DG
            select case (type_DG)
            case (GALERKIN_HDG_RP)
-               call Compute_Vhat_Face_Expl(Tdomain%sFace(nface))
+               if (i .NE. 1) call Compute_Vhat_Face_Expl(Tdomain%sFace(nface))
            case(GALERKIN_DG_STRONG)
                call Compute_Flux_DGstrong(Tdomain%sFace(nface))
            case(GALERKIN_DG_WEAK)
@@ -142,6 +143,11 @@ subroutine Runge_Kutta4 (Tdomain, dt)
        call Update_FV_RK4 (Tdomain,coeffs(1),coeffs(2),dt)
 
     enddo ! End loop RK4
+
+    ! Calcul Traces a la fin du pas de temps (HDG only)
+    if (Tdomain%type_elem == GALERKIN_HDG_RP) &
+        call get_vhat_from_current_state(Tdomain)
+
 
     return
 
