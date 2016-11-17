@@ -46,6 +46,11 @@ subroutine check_inputs_and_mesh(Tdomain)
         !STOP "Error : Please choose dg_type = hdg_rp if you want to use Midpoint_iter"
     endif
 
+    if ((Tdomain%logicD%post_proc) .AND. (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
+        WRITE (*,*) "Post-processing is available for HDG only !!!!!"
+        STOP "Please choose dg_type = hdg_rp or disable the post_processing option."
+    endif
+
     if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT) .AND. &
         (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
         WRITE (*,*) "This choice of element for the Midpoint time integration is not available"

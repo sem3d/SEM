@@ -79,7 +79,7 @@ typedef struct station_def_t {
     int period;
 } station_def_t;
 
-// structire définissant les surfaces 
+// structure définissant les surfaces
 typedef struct surface{
     struct surface* next;
     int surface_list[40];
@@ -144,6 +144,7 @@ typedef struct {
     int traces_format;
     char* station_file;
     int capt_loc_type;
+    int post_processing;
 
     // Snapshots
     int save_snap;

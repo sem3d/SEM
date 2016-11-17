@@ -43,6 +43,7 @@ module sem_c_config
        integer(C_INT) :: traces_format
        type(C_PTR)    :: station_file
        integer(C_INT) :: capt_loc_type
+       integer(C_INT) :: post_processing
 
        !! Snapshots
        integer(C_INT) :: save_snap

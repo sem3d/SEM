@@ -4,7 +4,7 @@
 !!
 !>
 !!\file logical_input.F90
-!!\brief Contient la définition du type Logical_array.
+!!\brief Contient la definition du type Logical_array.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -20,7 +20,7 @@ module logical_input
        logical :: run_exec, run_debug, run_echo
        logical :: run_restart, save_restart
        logical :: any_source, super_object, super_object_local_present
-       logical :: compEnerg, Lamb_test
+       logical :: compEnerg, Lamb_test, post_proc
     end type Logical_array
 
 

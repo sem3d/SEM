@@ -94,8 +94,8 @@ subroutine ReceiverPosition(Tdomain)
         endif
     enddo
 
-    ! Prepare Post-Processing if HDG
-    if(Tdomain%type_elem==GALERKIN_HDG_RP) &
+    ! Prepare of the Post-Processing
+    if (Tdomain%logicD%post_proc) &
         call prepare_HDG_postprocess(Tdomain)
 
     ! Prepare to store receiver trace
@@ -143,7 +143,7 @@ subroutine save_trace (Tdomain, it)
             if (Tdomain%type_timeInteg == TIME_INTEG_RK4) &
                 Field = Tdomain%specel(nr)%Veloc
 
-            if (Tdomain%specel(nr)%type_DG==GALERKIN_HDG_RP) then
+            if (Tdomain%logicD%post_proc) then
                 mat = Tdomain%specel(nr)%mat_index
                 ngllx = ngllx +1 ; ngllz = ngllz +1
                 call compute_InternalForces_HDG_Weak(Tdomain%specel(nr), &
