@@ -51,8 +51,11 @@ contains
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
         end if
-!        write(*,*) "DEBUG:", dir1_count,"Elements 2 dir"
-!        write(*,*) "DEBUG:", dir2_count,"Elements 3 dir"
+#ifdef DBG
+        ! Write infos for all procs as all procs have different informations !... A bit messy output but no other way
+        write(*,*) "INFO - solid cpml domain : ", dir1_count, " elems attenuated in 2 directions on proc", Tdomain%rank
+        write(*,*) "INFO - solid cpml domain : ", dir2_count, " elems attenuated in 3 directions on proc", Tdomain%rank
+#endif
     end subroutine allocate_multi_dir_pml
 
     subroutine allocate_dom_solidpml (Tdomain, dom)
@@ -388,7 +391,6 @@ contains
 
         dxi   = dom%cpml_c*d0*(xoverl)**dom%cpml_n / kappa
         alpha = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
-        write(*,*) "DXI", i,j,k, dxi, alpha
     end subroutine compute_dxi_alpha_kappa
 
     ! Compute parameters for the first direction of attenuation (maybe the only one)
