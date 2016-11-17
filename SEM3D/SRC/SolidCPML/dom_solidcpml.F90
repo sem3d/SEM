@@ -103,6 +103,7 @@ contains
             dom%I1(:,:) = -1
             dom%I2(:,:) = -1
             dom%D0(:,:) = 0
+            dom%D1(:,:) = 0
             dom%Kappa_0 = 1.
             dom%DUDVold = 0.
             dom%Uold = 0.
