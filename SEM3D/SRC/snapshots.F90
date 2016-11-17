@@ -1540,6 +1540,11 @@ contains
                 '">geometry',group,'.h5:/Mass</DataItem>'
             write(61,"(a)") '</Attribute>'
 #ifdef CPML
+            write(61,"(a)") '<Attribute Name="GlobCoord_PML" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="GlobCoord_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
+                '">geometry',group,'.h5:/GlobCoord_PML</DataItem>'
+            write(61,"(a)") '</Attribute>'
+
             write(61,"(a)") '<Attribute Name="Alpha_PML" Center="Node" AttributeType="Vector">'
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Alpha_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
                 '">geometry',group,'.h5:/Alpha_PML</DataItem>'
@@ -1609,7 +1614,7 @@ contains
         !
         real, dimension(:),allocatable :: mass, jac
 #ifdef CPML
-        real, dimension(:), allocatable :: alpha_pml, kappa_pml, dxi_k_pml
+        real, dimension(:), allocatable :: globcoord_pml, alpha_pml, kappa_pml, dxi_k_pml
 #else
         real, dimension(:),allocatable :: dumpsx
         real(fpp) :: dx, dy, dz, dt
@@ -1626,6 +1631,9 @@ contains
         allocate(mu(0:nnodes-1))
         allocate(kappa(0:nnodes-1))
 #ifdef CPML
+        allocate(globcoord_pml(0:2+3*(nnodes-1))) ! 0-based: 2+ for idx 0
+        globcoord_pml = 0.0
+
         allocate(alpha_pml(0:2+3*(nnodes-1))) ! 0-based: 2+ for idx 0
         alpha_pml = -1.0
         allocate(kappa_pml(0:2+3*(nnodes-1))) ! 0-based: 2+ for idx 0
@@ -1693,6 +1701,10 @@ contains
                                     dir = dir - Tdomain%spmldom%I1(ee, bnum) - Tdomain%spmldom%I2(ee, bnum) ! Remove known directions
                                     dxi_k_pml(dir + 3*idx) = Tdomain%spmldom%dxi_k_2(i, j, k, 0)
                                 end if
+
+                                globcoord_pml(0 + 3*idx) = Tdomain%spmldom%GlobCoord(0, idx)
+                                globcoord_pml(1 + 3*idx) = Tdomain%spmldom%GlobCoord(1, idx)
+                                globcoord_pml(2 + 3*idx) = Tdomain%spmldom%GlobCoord(2, idx)
 #else
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
                                 dt = 2d0*Tdomain%TimeD%dtmin
@@ -1875,6 +1887,8 @@ contains
 
         call grp_write_real_1d(Tdomain, fid, "Mass", nnodes, mass, nnodes_tot)
 #ifdef CPML
+        call grp_write_real_1d(Tdomain, fid, "GlobCoord_PML", 3*nnodes, globcoord_pml, nnodes_tot)
+
         call grp_write_real_1d(Tdomain, fid, "Alpha_PML", 3*nnodes, alpha_pml, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Kappa_PML", 3*nnodes, kappa_pml, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Dxi_K_PML", 3*nnodes, dxi_k_pml, nnodes_tot)
@@ -1890,6 +1904,8 @@ contains
         deallocate(mass,jac)
         deallocate(dens, lamb, mu, kappa)
 #ifdef CPML
+        deallocate(globcoord_pml)
+
         deallocate(alpha_pml)
         deallocate(kappa_pml)
         deallocate(dxi_k_pml)
