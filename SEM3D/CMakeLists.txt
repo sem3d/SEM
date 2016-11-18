@@ -8,6 +8,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/dombase.F90
+    ${PRJ}/SRC/snapdata.F90
     ${PRJ}/SRC/Solid/champs_solid.f90
     ${PRJ}/SRC/Fluid/champs_fluid.f90
     ${PRJ}/SRC/Modules/Element.f90

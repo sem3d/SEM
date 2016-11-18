@@ -181,7 +181,7 @@ subroutine RUN_PREPARED(Tdomain)
     implicit none
     type(domain), intent(inout) :: Tdomain
     integer :: rg
-    integer :: code, i, ierr, group, subgroup
+    integer :: code, i
 
     rg = Tdomain%rank
     if(rg == 0) print*
@@ -202,13 +202,6 @@ subroutine RUN_PREPARED(Tdomain)
  !- reading external data: run parameters (geometry, materials, time evolution,..)
     if(rg == 0) write(*,*) "--> READING INPUT PARAMETERS AND DATA"
     call read_input(Tdomain, code)
-
- !- Create subdomains communicators
-    group = rg/Tdomain%ngroup
-    subgroup = mod(rg,Tdomain%ngroup)
-    call MPI_Comm_split(Tdomain%communicateur, group, subgroup, Tdomain%comm_output, ierr)
-    call MPI_Comm_size(Tdomain%comm_output, Tdomain%nb_output_procs,  code)
-    call MPI_Comm_rank(Tdomain%comm_output, Tdomain%output_rank, code)
 
 
  !- eventual plane wave (transmission process: Bielak & Cristiano 1984)
@@ -366,7 +359,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
 
 !- snapshots
     if (Tdomain%logicD%save_snapshots)  then
-        call write_snapshot_geom(Tdomain)
+        call write_snapshot_geom(Tdomain, Tdomain%SnapData)
         Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         Tdomain%timeD%nsnap = max(1, Tdomain%timeD%nsnap)
         if(rg == 0) write (*,*) "--> SNAPSHOTS RECORDED EVERY ", Tdomain%timeD%nsnap, " iterations"
@@ -647,13 +640,12 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
     integer, intent(inout)      :: isort
     !
     integer :: rg
-    character(Len=MAX_FILE_SIZE) :: fnamef
 
     rg = Tdomain%rank
     if(rg == 0)then
         write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
     endif
-    call save_field_h5(Tdomain, isort)
+    call save_field_h5(Tdomain, isort, Tdomain%SnapData)
     isort = isort + 1  ! a faire avant le save_checkpoint
 
 end subroutine OUTPUT_SNAPSHOTS
@@ -693,7 +685,9 @@ subroutine END_SEM(Tdomain,ntime)
     close(50)
 #endif
 
-    call MPI_Comm_free(Tdomain%comm_output, ierr)
+    if (Tdomain%logicD%save_snapshots)  then
+        call MPI_Comm_free(Tdomain%SnapData%comm, ierr)
+    end if
 end subroutine END_SEM
 
 subroutine START_SEM(rg)

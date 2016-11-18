@@ -31,6 +31,7 @@ module sdomain
     use champs_fluid
     use champs_fluidpml
     use constants
+    use msnapdata, only : output_var_t
     implicit none
 
 
@@ -41,19 +42,13 @@ module sdomain
        ! Without coupling : communicateur=communicateur_global
        ! With coupling    : communicateur : includes every processes
        integer :: communicateur_global
-       ! Communicator used for output grouping. Only rank 0 of this comm produces outputs
-       integer :: comm_output
-       ! Nombre de processeur dans le groupe de communication associe a comm_output
-       integer :: nb_output_procs
-       integer :: output_rank
-       integer, dimension(:), allocatable :: output_nodes, output_nodes_offset, output_elems
-       ! Nombre de process par sorties pour le reassemblage
-       integer :: ngroup
        ! Nombre de processeur avec qui on communique (size(sComm))
        integer :: tot_comm_proc
        ! En mode couplage : Rg du superviseur dans le communicateur global
        integer :: master_superviseur
-
+       !
+       integer :: ngroup
+       type(output_var_t)  :: SnapData
        type(time)          :: TimeD
        type(logical_array) :: logicD
        type(planew)        :: sPlaneW
