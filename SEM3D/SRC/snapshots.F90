@@ -412,6 +412,7 @@ contains
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
+
         if (Tdomain%output_rank==0) then
             deallocate(all_data_1d_n)
             deallocate(all_data_2d_n)
@@ -421,7 +422,6 @@ contains
             deallocate(displs_c)
             deallocate(counts_c)
         end if
-
     end subroutine grp_write_fields
 
     subroutine grp_write_int_2d(Tdomain, parent_id, name, dim1, dim2, data, ntot_nodes)
@@ -1310,9 +1310,32 @@ contains
         integer, intent(in) :: group, isort, nnodes
         integer, dimension(0:), intent(in) :: out_variables
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, nn, ne
+        integer :: i, j, nn, ne
         real :: time
+        character(len=11) :: R2label(0:20)
         call semname_xdmf(group, fnamef)
+
+        R2label( 0) = "R2_L120_uxx"
+        R2label( 1) = "R2_L120_uxy"
+        R2label( 2) = "R2_L120_uxz"
+        R2label( 3) = "R2_L021_uyx"
+        R2label( 4) = "R2_L021_uyy"
+        R2label( 5) = "R2_L021_uyz"
+        R2label( 6) = "R2_L012_uzx"
+        R2label( 7) = "R2_L012_uzy"
+        R2label( 8) = "R2_L012_uzz"
+        R2label( 9) = "R2_L0_uyy"
+        R2label(10) = "R2_L0_uyz"
+        R2label(11) = "R2_L0_uzy"
+        R2label(12) = "R2_L0_uzz"
+        R2label(13) = "R2_L1_uxx"
+        R2label(14) = "R2_L1_uxz"
+        R2label(15) = "R2_L1_uzx"
+        R2label(16) = "R2_L1_uzz"
+        R2label(17) = "R2_L2_uxx"
+        R2label(18) = "R2_L2_uxy"
+        R2label(19) = "R2_L2_uyx"
+        R2label(20) = "R2_L2_uyy"
 
         nn = nnodes
         ne = Tdomain%n_hexa
@@ -1557,6 +1580,26 @@ contains
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dxi_K_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
                 '">geometry',group,'.h5:/Dxi_K_PML</DataItem>'
             write(61,"(a)") '</Attribute>'
+
+            write(61,"(a)") '<Attribute Name="R1_x" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="R1_x" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
+                '">geometry',group,'.h5:/R1_x</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="R1_y" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="R1_y" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
+                '">geometry',group,'.h5:/R1_y</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="R1_z" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="R1_z" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
+                '">geometry',group,'.h5:/R1_z</DataItem>'
+            write(61,"(a)") '</Attribute>'
+
+            do j = 0, 20
+                write(61,"(a)") '<Attribute Name="', trim(R2label(j)),'" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,a,a,a,I9,a,I4.4,a,a)") '<DataItem Name="', trim(R2label(j)),'" Format="HDF" NumberType="Float" Precision="4"' &
+                  , ' Dimensions="',nn, '">geometry',group,'.h5:/', trim(R2label(j)),'</DataItem>'
+                write(61,"(a)") '</Attribute>'
+            end do
 #else
             ! ALPHA/DUMPSX
             write(61,"(a)") '<Attribute Name="Alpha" Center="Node" AttributeType="Scalar">'
@@ -1615,6 +1658,14 @@ contains
         real, dimension(:),allocatable :: mass, jac
 #ifdef CPML
         real, dimension(:), allocatable :: globcoord_pml, alpha_pml, kappa_pml, dxi_k_pml
+        real, dimension(:), allocatable :: R1_x, R1_y, R1_z
+        real, dimension(:), allocatable :: R2_L120_uxx, R2_L120_uxy, R2_L120_uxz
+        real, dimension(:), allocatable :: R2_L021_uyx, R2_L021_uyy, R2_L021_uyz
+        real, dimension(:), allocatable :: R2_L012_uzx, R2_L012_uzy, R2_L012_uzz
+        real, dimension(:), allocatable :: R2_L0_uyy, R2_L0_uyz, R2_L0_uzy, R2_L0_uzz
+        real, dimension(:), allocatable :: R2_L1_uxx, R2_L1_uxz, R2_L1_uzx, R2_L1_uzz
+        real, dimension(:), allocatable :: R2_L2_uxx, R2_L2_uxy, R2_L2_uyx, R2_L2_uyy
+        integer :: dir
 #else
         real, dimension(:),allocatable :: dumpsx
         real(fpp) :: dx, dy, dz, dt
@@ -1640,6 +1691,20 @@ contains
         kappa_pml = -1.0
         allocate(dxi_k_pml(0:2+3*(nnodes-1))) ! 0-based: 2+ for idx 0
         dxi_k_pml = -1.0
+
+        allocate(R1_x(0:2+3*(nnodes-1))) ! 0-based: 2+ for idx 0
+        R1_x = 0.0
+        allocate(R1_y(0:2+3*(nnodes-1))) ! 0-based: 2+ for idx 0
+        R1_y = 0.0
+        allocate(R1_z(0:2+3*(nnodes-1))) ! 0-based: 2+ for idx 0
+        R1_z = 0.0
+
+        allocate(R2_L120_uxx(0:nnodes-1), R2_L120_uxy(0:nnodes-1), R2_L120_uxz(0:nnodes-1)                       )
+        allocate(R2_L021_uyx(0:nnodes-1), R2_L021_uyy(0:nnodes-1), R2_L021_uyz(0:nnodes-1)                       )
+        allocate(R2_L012_uzx(0:nnodes-1), R2_L012_uzy(0:nnodes-1), R2_L012_uzz(0:nnodes-1)                       )
+        allocate(R2_L0_uyy  (0:nnodes-1), R2_L0_uyz  (0:nnodes-1), R2_L0_uzy  (0:nnodes-1), R2_L0_uzz(0:nnodes-1))
+        allocate(R2_L1_uxx  (0:nnodes-1), R2_L1_uxz  (0:nnodes-1), R2_L1_uzx  (0:nnodes-1), R2_L1_uzz(0:nnodes-1))
+        allocate(R2_L2_uxx  (0:nnodes-1), R2_L2_uxy  (0:nnodes-1), R2_L2_uyx  (0:nnodes-1), R2_L2_uyy(0:nnodes-1))
 #else
         allocate(dumpsx(0:nnodes-1))
         dumpsx = 0d0
@@ -1705,6 +1770,69 @@ contains
                                 globcoord_pml(0 + 3*idx) = Tdomain%spmldom%GlobCoord(0, idx)
                                 globcoord_pml(1 + 3*idx) = Tdomain%spmldom%GlobCoord(1, idx)
                                 globcoord_pml(2 + 3*idx) = Tdomain%spmldom%GlobCoord(2, idx)
+
+                                R2_L120_uxx(idx) = Tdomain%spmldom%R2_0(ee, 0, i, j, k, bnum)
+                                R2_L120_uxy(idx) = Tdomain%spmldom%R2_0(ee, 1, i, j, k, bnum)
+                                R2_L120_uxz(idx) = Tdomain%spmldom%R2_0(ee, 2, i, j, k, bnum)
+                                R2_L021_uyx(idx) = Tdomain%spmldom%R2_0(ee, 3, i, j, k, bnum)
+                                R2_L021_uyy(idx) = Tdomain%spmldom%R2_0(ee, 4, i, j, k, bnum)
+                                R2_L021_uyz(idx) = Tdomain%spmldom%R2_0(ee, 5, i, j, k, bnum)
+                                R2_L012_uzx(idx) = Tdomain%spmldom%R2_0(ee, 6, i, j, k, bnum)
+                                R2_L012_uzy(idx) = Tdomain%spmldom%R2_0(ee, 7, i, j, k, bnum)
+                                R2_L012_uzz(idx) = Tdomain%spmldom%R2_0(ee, 8, i, j, k, bnum)
+                                select case(Tdomain%spmldom%D0(ee, bnum))
+                                case(0)
+                                    R1_x(0 + 3*idx) = Tdomain%spmldom%R1_0(ee, 0, i, j, k, bnum)
+                                    R1_x(1 + 3*idx) = Tdomain%spmldom%R1_0(ee, 1, i, j, k, bnum)
+                                    R1_x(2 + 3*idx) = Tdomain%spmldom%R1_0(ee, 2, i, j, k, bnum)
+
+                                    R2_L0_uyy(idx) = Tdomain%spmldom%R2_0(ee, 4, i, j, k, bnum)
+                                    R2_L0_uyz(idx) = Tdomain%spmldom%R2_0(ee, 5, i, j, k, bnum)
+                                    R2_L0_uzy(idx) = Tdomain%spmldom%R2_0(ee, 7, i, j, k, bnum)
+                                    R2_L0_uzz(idx) = Tdomain%spmldom%R2_0(ee, 8, i, j, k, bnum)
+                                    R2_L1_uxx(idx) = 0.
+                                    R2_L1_uxz(idx) = 0.
+                                    R2_L1_uzx(idx) = 0.
+                                    R2_L1_uzz(idx) = 0.
+                                    R2_L2_uxx(idx) = 0.
+                                    R2_L2_uxy(idx) = 0.
+                                    R2_L2_uyx(idx) = 0.
+                                    R2_L2_uyy(idx) = 0.
+                                case(1)
+                                    R1_y(0 + 3*idx) = Tdomain%spmldom%R1_0(ee, 0, i, j, k, bnum)
+                                    R1_y(1 + 3*idx) = Tdomain%spmldom%R1_0(ee, 1, i, j, k, bnum)
+                                    R1_y(2 + 3*idx) = Tdomain%spmldom%R1_0(ee, 2, i, j, k, bnum)
+
+                                    R2_L0_uyy(idx) = 0.
+                                    R2_L0_uyz(idx) = 0.
+                                    R2_L0_uzy(idx) = 0.
+                                    R2_L0_uzz(idx) = 0.
+                                    R2_L1_uxx(idx) = Tdomain%spmldom%R2_0(ee, 0, i, j, k, bnum)
+                                    R2_L1_uxz(idx) = Tdomain%spmldom%R2_0(ee, 2, i, j, k, bnum)
+                                    R2_L1_uzx(idx) = Tdomain%spmldom%R2_0(ee, 6, i, j, k, bnum)
+                                    R2_L1_uzz(idx) = Tdomain%spmldom%R2_0(ee, 8, i, j, k, bnum)
+                                    R2_L2_uxx(idx) = 0.
+                                    R2_L2_uxy(idx) = 0.
+                                    R2_L2_uyx(idx) = 0.
+                                    R2_L2_uyy(idx) = 0.
+                                case(2)
+                                    R1_z(0 + 3*idx) = Tdomain%spmldom%R1_0(ee, 0, i, j, k, bnum)
+                                    R1_z(1 + 3*idx) = Tdomain%spmldom%R1_0(ee, 1, i, j, k, bnum)
+                                    R1_z(2 + 3*idx) = Tdomain%spmldom%R1_0(ee, 2, i, j, k, bnum)
+
+                                    R2_L0_uyy(idx) = 0.
+                                    R2_L0_uyz(idx) = 0.
+                                    R2_L0_uzy(idx) = 0.
+                                    R2_L0_uzz(idx) = 0.
+                                    R2_L1_uxx(idx) = 0.
+                                    R2_L1_uxz(idx) = 0.
+                                    R2_L1_uzx(idx) = 0.
+                                    R2_L1_uzz(idx) = 0.
+                                    R2_L2_uxx(idx) = Tdomain%spmldom%R2_0(ee, 0, i, j, k, bnum)
+                                    R2_L2_uxy(idx) = Tdomain%spmldom%R2_0(ee, 1, i, j, k, bnum)
+                                    R2_L2_uyx(idx) = Tdomain%spmldom%R2_0(ee, 3, i, j, k, bnum)
+                                    R2_L2_uyy(idx) = Tdomain%spmldom%R2_0(ee, 4, i, j, k, bnum)
+                                end select
 #else
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
                                 dt = 2d0*Tdomain%TimeD%dtmin
@@ -1892,6 +2020,33 @@ contains
         call grp_write_real_1d(Tdomain, fid, "Alpha_PML", 3*nnodes, alpha_pml, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Kappa_PML", 3*nnodes, kappa_pml, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Dxi_K_PML", 3*nnodes, dxi_k_pml, nnodes_tot)
+
+        call grp_write_real_1d(Tdomain, fid, "R1_x", 3*nnodes, R1_x, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R1_y", 3*nnodes, R1_y, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R1_z", 3*nnodes, R1_z, nnodes_tot)
+
+        call grp_write_real_1d(Tdomain, fid, "R2_L120_uxx", nnodes, R2_L120_uxx, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L120_uxy", nnodes, R2_L120_uxy, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L120_uxz", nnodes, R2_L120_uxz, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L021_uyx", nnodes, R2_L021_uyx, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L021_uyy", nnodes, R2_L021_uyy, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L021_uyz", nnodes, R2_L021_uyz, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L012_uzx", nnodes, R2_L012_uzx, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L012_uzy", nnodes, R2_L012_uzy, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L012_uzz", nnodes, R2_L012_uzz, nnodes_tot)
+
+        call grp_write_real_1d(Tdomain, fid, "R2_L0_uyy", nnodes, R2_L0_uyy, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L0_uyz", nnodes, R2_L0_uyz, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L0_uzy", nnodes, R2_L0_uzy, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L0_uzz", nnodes, R2_L0_uzz, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L1_uxx", nnodes, R2_L1_uxx, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L1_uxz", nnodes, R2_L1_uxz, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L1_uzx", nnodes, R2_L1_uzx, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L1_uzz", nnodes, R2_L1_uzz, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L2_uxx", nnodes, R2_L2_uxx, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L2_uxy", nnodes, R2_L2_uxy, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L2_uyx", nnodes, R2_L2_uyx, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "R2_L2_uyy", nnodes, R2_L2_uyy, nnodes_tot)
 #else
         call grp_write_real_1d(Tdomain, fid, "Alpha", nnodes, dumpsx, nnodes_tot)
 #endif
@@ -1909,6 +2064,17 @@ contains
         deallocate(alpha_pml)
         deallocate(kappa_pml)
         deallocate(dxi_k_pml)
+
+        deallocate(R1_x)
+        deallocate(R1_y)
+        deallocate(R1_z)
+
+        deallocate(R2_L120_uxx, R2_L120_uxy, R2_L120_uxz           )
+        deallocate(R2_L021_uyx, R2_L021_uyy, R2_L021_uyz           )
+        deallocate(R2_L012_uzx, R2_L012_uzy, R2_L012_uzz           )
+        deallocate(R2_L0_uyy  , R2_L0_uyz  , R2_L0_uzy  , R2_L0_uzz)
+        deallocate(R2_L1_uxx  , R2_L1_uxz  , R2_L1_uzx  , R2_L1_uzz)
+        deallocate(R2_L2_uxx  , R2_L2_uxy  , R2_L2_uyx  , R2_L2_uyy)
 #endif
 
     end subroutine write_constant_fields
