@@ -266,7 +266,7 @@ contains
             allocate(all_data(0:ntot_nodes-1))
         end if
 
-        write(*,*) lbound(data), ubound(data), dim1, displs(0), counts(0)
+
         call MPI_Gatherv(data, dim1, MPI_INTEGER, all_data, counts, displs, &
             MPI_INTEGER, 0, outputs%comm, ierr)
         if (outputs%rank==0) then
@@ -995,12 +995,12 @@ contains
         write(61,"(a)") '</Attribute>'
     end subroutine write_xdmf_attr_vector_nodes
 
-    subroutine write_xdmf_attr_scalar_cells(aname, nn, i, group, adata)
+    subroutine write_xdmf_attr_scalar_cells(aname, ne, i, group, adata)
         character(len=*) :: aname, adata
-        integer :: nn, i, group
+        integer :: ne, i, group
         !
         write(61,"(a,a,a,a,a,a)") '<Attribute Name="', trim(aname), '" Center="Cell" AttributeType="Scalar">'
-        write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="', nn, '">'
+        write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="', ne, '">'
         write(61,"(a,I4.4,a,I4.4,a,a)") 'Rsem', i, '/sem_field.', group, '.h5:/', adata
         write(61,"(a)") '</DataItem>'
         write(61,"(a)") '</Attribute>'
@@ -1017,6 +1017,9 @@ contains
         integer :: i, nn, ne, group
         real :: time
         character(len=11) :: R2label(0:20)
+#ifdef CPML
+        integer :: j
+#endif
 
         nn = outputs%ntot_nodes
         ne = outputs%ntot_cells
@@ -1075,34 +1078,34 @@ contains
             if (out_variables(OUT_VITESSE)  == 1) call write_xdmf_attr_vector_nodes("Veloc",      nn, i, group, "veloc"     )
             if (out_variables(OUT_ACCEL)    == 1) call write_xdmf_attr_vector_nodes("Accel",      nn, i, group, "accel"     )
             if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_nodes("Press_gll",  nn, i, group, "press_gll" )
-            if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_cells("Press_elem", nn, i, group, "press_elem")
-            if (out_variables(OUT_EPS_VOL)  == 1) call write_xdmf_attr_scalar_cells("eps_vol",    nn, i, group, "eps_vol"   )
+            if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_cells("Press_elem", ne, i, group, "press_elem")
+            if (out_variables(OUT_EPS_VOL)  == 1) call write_xdmf_attr_scalar_cells("eps_vol",    ne, i, group, "eps_vol"   )
             if (out_variables(OUT_EPS_DEV) == 1) then
-                call write_xdmf_attr_scalar_cells("eps_dev_xx", nn, i, group, "eps_dev_xx")
-                call write_xdmf_attr_scalar_cells("eps_dev_yy", nn, i, group, "eps_dev_yy")
-                call write_xdmf_attr_scalar_cells("eps_dev_zz", nn, i, group, "eps_dev_zz")
-                call write_xdmf_attr_scalar_cells("eps_dev_xy", nn, i, group, "eps_dev_xy")
-                call write_xdmf_attr_scalar_cells("eps_dev_xz", nn, i, group, "eps_dev_xz")
-                call write_xdmf_attr_scalar_cells("eps_dev_yz", nn, i, group, "eps_dev_yz")
+                call write_xdmf_attr_scalar_cells("eps_dev_xx", ne, i, group, "eps_dev_xx")
+                call write_xdmf_attr_scalar_cells("eps_dev_yy", ne, i, group, "eps_dev_yy")
+                call write_xdmf_attr_scalar_cells("eps_dev_zz", ne, i, group, "eps_dev_zz")
+                call write_xdmf_attr_scalar_cells("eps_dev_xy", ne, i, group, "eps_dev_xy")
+                call write_xdmf_attr_scalar_cells("eps_dev_xz", ne, i, group, "eps_dev_xz")
+                call write_xdmf_attr_scalar_cells("eps_dev_yz", ne, i, group, "eps_dev_yz")
                 if (Tdomain%nl_flag) then
-                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xx", nn, i, group, "eps_dev_pl_xx")
-                    call write_xdmf_attr_scalar_cells("eps_dev_pl_yy", nn, i, group, "eps_dev_pl_yy")
-                    call write_xdmf_attr_scalar_cells("eps_dev_pl_zz", nn, i, group, "eps_dev_pl_zz")
-                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xy", nn, i, group, "eps_dev_pl_xy")
-                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xz", nn, i, group, "eps_dev_pl_xz")
-                    call write_xdmf_attr_scalar_cells("eps_dev_pl_yz", nn, i, group, "eps_dev_pl_yz")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xx", ne, i, group, "eps_dev_pl_xx")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_yy", ne, i, group, "eps_dev_pl_yy")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_zz", ne, i, group, "eps_dev_pl_zz")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xy", ne, i, group, "eps_dev_pl_xy")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xz", ne, i, group, "eps_dev_pl_xz")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_yz", ne, i, group, "eps_dev_pl_yz")
                 end if
             end if
             if (out_variables(OUT_STRESS_DEV) == 1) then
-                call write_xdmf_attr_scalar_cells("sig_dev_xx", nn, i, group, "sig_dev_xx")
-                call write_xdmf_attr_scalar_cells("sig_dev_yy", nn, i, group, "sig_dev_yy")
-                call write_xdmf_attr_scalar_cells("sig_dev_zz", nn, i, group, "sig_dev_zz")
-                call write_xdmf_attr_scalar_cells("sig_dev_xy", nn, i, group, "sig_dev_xy")
-                call write_xdmf_attr_scalar_cells("sig_dev_xz", nn, i, group, "sig_dev_xz")
-                call write_xdmf_attr_scalar_cells("sig_dev_yz", nn, i, group, "sig_dev_yz")
+                call write_xdmf_attr_scalar_cells("sig_dev_xx", ne, i, group, "sig_dev_xx")
+                call write_xdmf_attr_scalar_cells("sig_dev_yy", ne, i, group, "sig_dev_yy")
+                call write_xdmf_attr_scalar_cells("sig_dev_zz", ne, i, group, "sig_dev_zz")
+                call write_xdmf_attr_scalar_cells("sig_dev_xy", ne, i, group, "sig_dev_xy")
+                call write_xdmf_attr_scalar_cells("sig_dev_xz", ne, i, group, "sig_dev_xz")
+                call write_xdmf_attr_scalar_cells("sig_dev_yz", ne, i, group, "sig_dev_yz")
             end if
-            if (out_variables(OUT_ENERGYP) == 1) call write_xdmf_attr_scalar_cells("P_energy", nn, i, group, "P_energy")
-            if (out_variables(OUT_ENERGYS) == 1) call write_xdmf_attr_scalar_cells("S_energy", nn, i, group, "S_energy")
+            if (out_variables(OUT_ENERGYP) == 1) call write_xdmf_attr_scalar_cells("P_energy", ne, i, group, "P_energy")
+            if (out_variables(OUT_ENERGYS) == 1) call write_xdmf_attr_scalar_cells("S_energy", ne, i, group, "S_energy")
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" NumberType="Int"  Dimensions="1">',group,'</DataItem>'
@@ -1604,7 +1607,7 @@ contains
         call grp_write_real_1d(outputs, fid, "Lamb", nnodes, lamb, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Mu", nnodes, mu, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Kappa", nnodes, kappa, nnodes_tot)
-        write(*,*) "DOM:", lbound(outputs%domains), ubound(outputs%domains), nnodes, outputs%nnodes
+
         call grp_write_int_1d(outputs, fid, "Dom", nnodes, outputs%domains, nnodes_tot)
         deallocate(mass,jac)
         deallocate(dens, lamb, mu, kappa)
