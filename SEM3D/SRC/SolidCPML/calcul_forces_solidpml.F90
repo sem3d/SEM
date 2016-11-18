@@ -77,8 +77,8 @@ contains
             cf0 = 1d0-0.5d0*a0*dt
             cf1 = 1d0/(1d0+0.5d0*a0*dt)
             dom%R1_0(ee,0,i,j,k,bnum) = (cf0*dom%R1_0(ee,0,i,j,k,bnum) + dt*U(0))*cf1
-            dom%R1_0(ee,1,i,j,k,bnum) = (cf0*dom%R1_0(ee,0,i,j,k,bnum) + dt*U(1))*cf1
-            dom%R1_0(ee,2,i,j,k,bnum) = (cf0*dom%R1_0(ee,0,i,j,k,bnum) + dt*U(2))*cf1
+            dom%R1_0(ee,1,i,j,k,bnum) = (cf0*dom%R1_0(ee,1,i,j,k,bnum) + dt*U(1))*cf1
+            dom%R1_0(ee,2,i,j,k,bnum) = (cf0*dom%R1_0(ee,2,i,j,k,bnum) + dt*U(2))*cf1
             a3b = k0*a0*a0*d0
             Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
             Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
@@ -164,7 +164,6 @@ contains
             cf(DXY) = a0+d0
             cf(DXZ) = a0+d0
         case(1)
-            stop 1
             b0(kB012) = k0
             b0(kB021) = 1./k0
             b0(kB120) = k0
@@ -181,7 +180,6 @@ contains
             cf(DYY) = a0+d0
             cf(DYZ) = a0+d0
         case(2)
-            stop 1
             b0(kB012) = 1./k0
             b0(kB021) = k0
             b0(kB120) = k0

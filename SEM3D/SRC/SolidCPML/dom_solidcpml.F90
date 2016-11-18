@@ -45,14 +45,27 @@ contains
             allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%dxi_k_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+
+            allocate(dom%R1_1(0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            allocate(dom%R2_1(0:8,0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            dom%R1_1 = 0d0
+            dom%R2_1 = 0d0
         endif
         if (dir2_count>0) then
             allocate(dom%Alpha_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+
+            allocate(dom%R1_2(0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+            allocate(dom%R2_2(0:8,0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+            dom%R1_2 = 0d0
+            dom%R2_2 = 0d0
         end if
-!        write(*,*) "DEBUG:", dir1_count,"Elements 2 dir"
-!        write(*,*) "DEBUG:", dir2_count,"Elements 3 dir"
+#ifdef DBG
+        ! Write infos for all procs as all procs have different informations !... A bit messy output but no other way
+        write(*,*) "INFO - solid cpml domain : ", dir1_count, " elems attenuated in 2 directions on proc", Tdomain%rank
+        write(*,*) "INFO - solid cpml domain : ", dir2_count, " elems attenuated in 3 directions on proc", Tdomain%rank
+#endif
     end subroutine allocate_multi_dir_pml
 
     subroutine allocate_dom_solidpml (Tdomain, dom)
@@ -103,6 +116,7 @@ contains
             dom%I1(:,:) = -1
             dom%I2(:,:) = -1
             dom%D0(:,:) = 0
+            dom%D1(:,:) = 0
             dom%Kappa_0 = 1.
             dom%DUDVold = 0.
             dom%Uold = 0.
@@ -387,7 +401,6 @@ contains
 
         dxi   = dom%cpml_c*d0*(xoverl)**dom%cpml_n / kappa
         alpha = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
-        write(*,*) "DXI", i,j,k, dxi, alpha
     end subroutine compute_dxi_alpha_kappa
 
     ! Compute parameters for the first direction of attenuation (maybe the only one)
@@ -640,8 +653,6 @@ contains
                 enddo
             enddo
         enddo
-        ! Update convolution terms
-        call update_convolution_terms(dom, champs1, bnum, Tdomain)
     end subroutine forces_int_sol_pml
 
 
@@ -683,38 +694,6 @@ contains
             end if
         end if
     end subroutine select_terms
-
-    subroutine update_convolution_terms(dom, champs1, bnum, Tdomain)
-        type(domain_solidpml), intent (INOUT) :: dom
-        type(champssolidpml), intent(inout) :: champs1
-        integer :: bnum
-        type (domain), intent (INOUT), target :: Tdomain
-        !
-!        real(fpp) :: a1, a2, a3, ui, t1, t2, t3, t, dt
-!        integer :: i_dir, i, j, k, ee, idx
-
-!        t  = Tdomain%timeD%rtime
-!        dt = Tdomain%timeD%dtmin
-!        do i_dir = 0,2
-!            do k = 0,dom%ngll-1
-!                do j = 0,dom%ngll-1
-!                    do i = 0,dom%ngll-1
-!                        do ee = 0, VCHUNK-1
-!                            idx = dom%Idom_(i,j,k,bnum,ee)
-!                            a1 = dom%Alpha(idx,0)
-!                            a2 = dom%Alpha(idx,1)
-!                            a3 = dom%Alpha(idx,2)
-!                            ui = champs1%Depla(idx,i_dir)
-!                            call select_terms(a1,a2,a3,t,t1,t2,t3)
-!                            dom%R4(ee,i_dir,i,j,k,bnum) = dom%R4(ee,i_dir,i,j,k,bnum)*(1-dt*b1)+dt*ui
-!                            dom%R5(ee,i_dir,i,j,k,bnum) = dom%R5(ee,i_dir,i,j,k,bnum)*(1-dt*b2)+dt*ui
-!                            dom%R6(ee,i_dir,i,j,k,bnum) = dom%R6(ee,i_dir,i,j,k,bnum)*(1-dt*b3)+dt*ui
-!                        end do
-!                    end do
-!                end do
-!            end do
-!        end do
-    end subroutine update_convolution_terms
 
     subroutine newmark_predictor_solidpml(dom, Tdomain)
         type(domain_solidpml), intent (INOUT) :: dom
