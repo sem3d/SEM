@@ -45,11 +45,21 @@ contains
             allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%dxi_k_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+
+            allocate(dom%R1_1(0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            allocate(dom%R2_1(0:8,0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            dom%R1_1 = 0d0
+            dom%R2_1 = 0d0
         endif
         if (dir2_count>0) then
             allocate(dom%Alpha_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+
+            allocate(dom%R1_2(0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+            allocate(dom%R2_2(0:8,0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+            dom%R1_2 = 0d0
+            dom%R2_2 = 0d0
         end if
 #ifdef DBG
         ! Write infos for all procs as all procs have different informations !... A bit messy output but no other way
