@@ -973,6 +973,39 @@ contains
 
     end subroutine write_master_xdmf
 
+    subroutine write_xdmf_attr_scalar_nodes(aname, nn, i, group, adata)
+        character(len=*) :: aname, adata
+        integer :: nn, i, group
+        !
+        write(61,"(a,a,a,a,a,a)") '<Attribute Name="', trim(aname), '" Center="Node" AttributeType="Scalar">'
+        write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="', nn, '">'
+        write(61,"(a,I4.4,a,I4.4,a,a)") 'Rsem', i, '/sem_field.', group, '.h5:/', adata
+        write(61,"(a)") '</DataItem>'
+        write(61,"(a)") '</Attribute>'
+    end subroutine write_xdmf_attr_scalar_nodes
+
+    subroutine write_xdmf_attr_vector_nodes(aname, nn, i, group, adata)
+        character(len=*) :: aname, adata
+        integer :: nn, i, group
+        !
+        write(61,"(a,a,a,a,a,a)") '<Attribute Name="', trim(aname), '" Center="Node" AttributeType="Vector">'
+        write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="', nn,' 3">'
+        write(61,"(a,I4.4,a,I4.4,a,a)") 'Rsem', i, '/sem_field.', group, '.h5:/', adata
+        write(61,"(a)") '</DataItem>'
+        write(61,"(a)") '</Attribute>'
+    end subroutine write_xdmf_attr_vector_nodes
+
+    subroutine write_xdmf_attr_scalar_cells(aname, nn, i, group, adata)
+        character(len=*) :: aname, adata
+        integer :: nn, i, group
+        !
+        write(61,"(a,a,a,a,a,a)") '<Attribute Name="', trim(aname), '" Center="Cell" AttributeType="Scalar">'
+        write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="', nn, '">'
+        write(61,"(a,I4.4,a,I4.4,a,a)") 'Rsem', i, '/sem_field.', group, '.h5:/', adata
+        write(61,"(a)") '</DataItem>'
+        write(61,"(a)") '</Attribute>'
+    end subroutine write_xdmf_attr_scalar_cells
+
     subroutine write_xdmf(Tdomain, isort, outputs, out_variables)
         implicit none
         type (domain), intent (IN):: Tdomain
@@ -1037,185 +1070,39 @@ contains
             write(61,"(a,I4.4,a)") 'geometry',group,'.h5:/Nodes'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
-            ! DISPL
-            if (out_variables(OUT_DEPLA) == 1) then
-                write(61,"(a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,' 3">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/displ'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-            end if
-            ! VELOC
-            if (out_variables(OUT_VITESSE) == 1) then
-                write(61,"(a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,' 3">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/veloc'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-            end if
-            ! ACCEL
-            if (out_variables(OUT_ACCEL) == 1) then
-                write(61,"(a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,' 3">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/accel'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-            end if
-            ! PRESSURE
-            if (out_variables(OUT_PRESSION) == 1) then
-                write(61,"(a)") '<Attribute Name="Press_gll" Center="Node" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press_gll'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-            end if
-            if (out_variables(OUT_PRESSION) == 1) then
-                write(61,"(a)") '<Attribute Name="Press_elem" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press_elem'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-            end if
-            ! VOLUMETRIC STRAIN
-            if (out_variables(OUT_EPS_VOL) == 1) then
-                write(61,"(a)") '<Attribute Name="eps_vol" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_vol'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-            end if
-            ! DEVIATORIC STRAIN
+
+            if (out_variables(OUT_DEPLA)    == 1) call write_xdmf_attr_vector_nodes("Displ",      nn, i, group, "displ"     )
+            if (out_variables(OUT_VITESSE)  == 1) call write_xdmf_attr_vector_nodes("Veloc",      nn, i, group, "veloc"     )
+            if (out_variables(OUT_ACCEL)    == 1) call write_xdmf_attr_vector_nodes("Accel",      nn, i, group, "accel"     )
+            if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_nodes("Press_gll",  nn, i, group, "press_gll" )
+            if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_cells("Press_elem", nn, i, group, "press_elem")
+            if (out_variables(OUT_EPS_VOL)  == 1) call write_xdmf_attr_scalar_cells("eps_vol",    nn, i, group, "eps_vol"   )
             if (out_variables(OUT_EPS_DEV) == 1) then
-                ! EPS_DEV_XX
-                write(61,"(a)") '<Attribute Name="eps_dev_xx" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_xx'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! EPS_DEV_XX
-                write(61,"(a)") '<Attribute Name="eps_dev_yy" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_yy'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! EPS_DEV_ZZ
-                write(61,"(a)") '<Attribute Name="eps_dev_zz" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_zz'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! EPS_DEV_XY
-                write(61,"(a)") '<Attribute Name="eps_dev_xy" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_xy'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! EPS_DEV_XZ
-                write(61,"(a)") '<Attribute Name="eps_dev_xz" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_xz'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! EPS_DEV_YZ
-                write(61,"(a)") '<Attribute Name="eps_dev_yz" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_yz'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
+                call write_xdmf_attr_scalar_cells("eps_dev_xx", nn, i, group, "eps_dev_xx")
+                call write_xdmf_attr_scalar_cells("eps_dev_yy", nn, i, group, "eps_dev_yy")
+                call write_xdmf_attr_scalar_cells("eps_dev_zz", nn, i, group, "eps_dev_zz")
+                call write_xdmf_attr_scalar_cells("eps_dev_xy", nn, i, group, "eps_dev_xy")
+                call write_xdmf_attr_scalar_cells("eps_dev_xz", nn, i, group, "eps_dev_xz")
+                call write_xdmf_attr_scalar_cells("eps_dev_yz", nn, i, group, "eps_dev_yz")
                 if (Tdomain%nl_flag) then
-                    ! EPS_DEV_PL_XX
-                    write(61,"(a)") '<Attribute Name="eps_dev_pl_xx" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
-                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xx'
-                    write(61,"(a)") '</DataItem>'
-                    write(61,"(a)") '</Attribute>'
-                    ! EPS_DEV_PL_XX
-                    write(61,"(a)") '<Attribute Name="eps_dev_pl_yy" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
-                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_yy'
-                    write(61,"(a)") '</DataItem>'
-                    write(61,"(a)") '</Attribute>'
-                    ! EPS_DEV_PL_ZZ
-                    write(61,"(a)") '<Attribute Name="eps_dev_pl_zz" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
-                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_zz'
-                    write(61,"(a)") '</DataItem>'
-                    write(61,"(a)") '</Attribute>'
-                    ! EPS_DEV_PL_XY
-                    write(61,"(a)") '<Attribute Name="eps_dev_pl_xy" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
-                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xy'
-                    write(61,"(a)") '</DataItem>'
-                    write(61,"(a)") '</Attribute>'
-                    ! EPS_DEV_PL_XZ
-                    write(61,"(a)") '<Attribute Name="eps_dev_pl_xz" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
-                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xz'
-                    write(61,"(a)") '</DataItem>'
-                    write(61,"(a)") '</Attribute>'
-                    ! EPS_DEV_PL_YZ
-                    write(61,"(a)") '<Attribute Name="eps_dev_pl_yz" Center="Cell" AttributeType="Scalar">'
-                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="4" Dimensions="',ne,'">'
-                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_yz'
-                    write(61,"(a)") '</DataItem>'
-                    write(61,"(a)") '</Attribute>'
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xx", nn, i, group, "eps_dev_pl_xx")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_yy", nn, i, group, "eps_dev_pl_yy")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_zz", nn, i, group, "eps_dev_pl_zz")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xy", nn, i, group, "eps_dev_pl_xy")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_xz", nn, i, group, "eps_dev_pl_xz")
+                    call write_xdmf_attr_scalar_cells("eps_dev_pl_yz", nn, i, group, "eps_dev_pl_yz")
                 end if
             end if
-            ! DEVIATORIC STRESS
             if (out_variables(OUT_STRESS_DEV) == 1) then
-                ! SIG_DEV_XX
-                write(61,"(a)") '<Attribute Name="sig_dev_xx" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_xx'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! SIG_DEV_XX
-                write(61,"(a)") '<Attribute Name="sig_dev_yy" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_yy'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! SIG_DEV_ZZ
-                write(61,"(a)") '<Attribute Name="sig_dev_zz" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_zz'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! SIG_DEV_XY
-                write(61,"(a)") '<Attribute Name="sig_dev_xy" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_xy'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! SIG_DEV_XZ
-                write(61,"(a)") '<Attribute Name="sig_dev_xz" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_xz'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! SIG_DEV_YZ
-                write(61,"(a)") '<Attribute Name="sig_dev_yz" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_yz'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
+                call write_xdmf_attr_scalar_cells("sig_dev_xx", nn, i, group, "sig_dev_xx")
+                call write_xdmf_attr_scalar_cells("sig_dev_yy", nn, i, group, "sig_dev_yy")
+                call write_xdmf_attr_scalar_cells("sig_dev_zz", nn, i, group, "sig_dev_zz")
+                call write_xdmf_attr_scalar_cells("sig_dev_xy", nn, i, group, "sig_dev_xy")
+                call write_xdmf_attr_scalar_cells("sig_dev_xz", nn, i, group, "sig_dev_xz")
+                call write_xdmf_attr_scalar_cells("sig_dev_yz", nn, i, group, "sig_dev_yz")
             end if
-            ! P_ENERGY
-            if (out_variables(OUT_ENERGYP) == 1) then
-                write(61,"(a)") '<Attribute Name="P_energy" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/P_energy'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-            end if
-            ! S_ENERGY
-            if (out_variables(OUT_ENERGYS) == 1) then
-                write(61,"(a)") '<Attribute Name="S_energy" Center="Cell" AttributeType="Scalar">'
-                write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="',ne,'">'
-                write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/S_energy'
-                write(61,"(a)") '</DataItem>'
-                write(61,"(a)") '</Attribute>'
-            end if
+            if (out_variables(OUT_ENERGYP) == 1) call write_xdmf_attr_scalar_cells("P_energy", nn, i, group, "P_energy")
+            if (out_variables(OUT_ENERGYS) == 1) call write_xdmf_attr_scalar_cells("S_energy", nn, i, group, "S_energy")
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" NumberType="Int"  Dimensions="1">',group,'</DataItem>'
@@ -1254,24 +1141,12 @@ contains
                 '">geometry',group,'.h5:/Dxi_K_PML</DataItem>'
             write(61,"(a)") '</Attribute>'
 
-            write(61,"(a)") '<Attribute Name="R1_x" Center="Node" AttributeType="Vector">'
-            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="R1_x" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
-                '">geometry',group,'.h5:/R1_x</DataItem>'
-            write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="R1_y" Center="Node" AttributeType="Vector">'
-            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="R1_y" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
-                '">geometry',group,'.h5:/R1_y</DataItem>'
-            write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="R1_z" Center="Node" AttributeType="Vector">'
-            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="R1_z" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
-                '">geometry',group,'.h5:/R1_z</DataItem>'
-            write(61,"(a)") '</Attribute>'
+            call write_xdmf_attr_vector_nodes("R1_x", nn, i, group, "R1_x")
+            call write_xdmf_attr_vector_nodes("R1_y", nn, i, group, "R1_y")
+            call write_xdmf_attr_vector_nodes("R1_z", nn, i, group, "R1_z")
 
             do j = 0, 20
-                write(61,"(a)") '<Attribute Name="', trim(R2label(j)),'" Center="Node" AttributeType="Scalar">'
-                write(61,"(a,a,a,a,I9,a,I4.4,a,a)") '<DataItem Name="', trim(R2label(j)),'" Format="HDF" NumberType="Float" Precision="4"' &
-                  , ' Dimensions="',nn, '">geometry',group,'.h5:/', trim(R2label(j)),'</DataItem>'
-                write(61,"(a)") '</Attribute>'
+                call write_xdmf_attr_scalar_nodes(trim(R2label(j)), nn, i, group, trim(R2label(j)))
             end do
 #else
             ! ALPHA/DUMPSX
