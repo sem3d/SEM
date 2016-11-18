@@ -30,7 +30,7 @@ contains
         real(FPP), parameter                 :: XEPS=1e-10
         real(FPP)                            :: dxp, dyp, dzp
         integer                              :: bnum, ee
-        integer                              :: ve, i_surf
+        integer                              :: i_surf
 
         ! Tdomain%n_glob_points is the number of degrees of fredom
         allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))

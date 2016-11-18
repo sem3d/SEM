@@ -287,7 +287,6 @@ contains
         real, dimension(4), intent(in) :: plane
         logical :: is_in_plane
         !
-        integer :: i
         real :: w
 
         is_in_plane = .false.
@@ -357,7 +356,6 @@ contains
         integer, intent(out)         :: code
         character(Len=MAX_FILE_SIZE) :: fnamef
         logical                      :: logic_scheme
-        integer                      :: imat
         integer                      :: rg
         integer i
 
@@ -469,30 +467,6 @@ contains
 
         endif
 
-
-!        if( Tdomain%config%material_present == 1) then
-!
-!            select case (Tdomain%config%material_type)
-!
-!            case (MATERIAL_PREM)
-!                Tdomain%aniso=.true.
-!            case (MATERIAL_EARTHCHUNK)
-!                Tdomain%earthchunk_isInit=1
-!                Tdomain%aniso=.true.
-!                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
-!                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
-!                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
-!
-!            end select
-!
-!            do imat=0,Tdomain%n_mat-1
-!                Tdomain%sSubDomain(imat)%material_definition = Tdomain%config%material_type
-!            enddo
-!        else
-!            do imat=0,Tdomain%n_mat-1
-!                Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
-!            enddo
-!        endif
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input
     

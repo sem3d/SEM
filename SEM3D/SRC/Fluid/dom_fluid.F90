@@ -92,7 +92,6 @@ contains
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
-        type(domain)                               :: TDomain
         type(domain_fluid), intent(inout)          :: dom
         integer, dimension(0:), intent(in)         :: out_variables
         integer, intent(in)                        :: lnum
@@ -203,15 +202,7 @@ contains
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy
 
-        integer                  :: ngll, i, j, k, ind
-        real(fpp)                :: DXX, DXY, DXZ
-        real(fpp)                :: DYX, DYY, DYZ
-        real(fpp)                :: DZX, DZY, DZZ
-        real(fpp)                :: xmu, xlambda, xkappa
-        real(fpp)                :: onemSbeta, onemPbeta
-        real(fpp)                :: elem_energy_P, elem_energy_S
-        real(fpp)                :: xeps_vol
-        real, dimension(0:2,0:2) :: invgrad_ijk
+        integer                  :: ngll
         !
         integer :: bnum, ee
 

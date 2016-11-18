@@ -204,8 +204,8 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         !
-        logical                  :: flag_gradU
-        integer                  :: ngll, i, j, k, ind, nblocks
+        logical                  :: flag_gradU 
+        integer                  :: ngll, i, j, k, ind
         real(fpp)                :: EXY, EXZ, EYZ
         real(fpp)                :: DXX, DXY, DXZ
         real(fpp)                :: DYX, DYY, DYZ

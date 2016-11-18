@@ -381,7 +381,7 @@ contains
         !
         integer(HID_T) :: dset_id, space_id, memspace_id
         integer(HSIZE_T), dimension(3) :: start, count
-        integer :: hdferr, i0, i1,i2
+        integer :: hdferr
 
         start = imin
         count = imax-imin+[1,1,1]

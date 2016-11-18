@@ -24,9 +24,9 @@ subroutine double_couple(Tdomain,rg)
     integer, intent(in) :: rg
 
     integer :: n, elem, x,y,z, ngll, a, b, k
-    real :: ct,st,cp,sp, xi,eta,zeta, coord, xa,ya,za, xb,yb,zb, num,denom,prod
-    real, dimension(:), allocatable :: xpol,ypol,zpol, xdh,ydh,zdh
-    real, dimension(0:2,0:2) :: Pcs, Psc, TMP, M, Rot, tRot
+    real :: xi,eta,zeta,coord,xa,ya,za,xb,yb,zb,num,denom,prod
+    real, dimension(:), allocatable :: xpol,ypol,zpol,xdh,ydh,zdh
+    real, dimension(0:2,0:2) :: TMP, M
     real, dimension(:), allocatable :: GLLc
 
     do n = 0,Tdomain%n_source-1
