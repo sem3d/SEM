@@ -412,7 +412,7 @@ contains
         type(element), intent(inout) :: specel
         type(subdomain), intent(in) :: mat
         !
-        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu, syld
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu, nlkp
         real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
         logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
@@ -438,9 +438,12 @@ contains
                 case(MATDEF_HOOKE_RHO)
                     aniso = .true.
                     ! XXX TODO REQUIRED ATTENTION
-                case(MATDEF_MU_SYLD_RHO)
-                    v0 = mat%DMu
-                    v1 = mat%DSyld
+                case(MATDEF_NLKP_VS_RHO)
+                    v0 = mat%DNlkp
+                    v1 = mat%Sspeed
+                case(MATDEF_NU_VS_RHO)
+                    v0 = mat%DNu
+                    v1 = mat%Sspeed
                 end select
             case( MATERIAL_FILE )
                 ! XXX interpolate rho/v0/v1 from file
@@ -451,33 +454,38 @@ contains
 
         select case(mat%deftype)
         case(MATDEF_VP_VS_RHO)
-            syld = 0d0
+            nlkp = 1.0d40
             mu = rho * v1**2
             lambda = rho*(v0**2 - 2d0 *v1**2)
         case(MATDEF_E_NU_RHO)
-            syld = 0d0
+            nlkp = 1.0d40
             lambda = v0*v1/((1d0+v1)*(1d0-2d0*v1))
             mu = v0/(2d0*(1d0+v1))
         case(MATDEF_LAMBDA_MU_RHO)
-            syld = 0d0
+            nlkp = 1.0d40
             lambda = v0
             mu = v1
         case(MATDEF_KAPPA_MU_RHO)
-            syld = 0d0
+            nlkp = 1.0d40
             mu = v1
             lambda = v0 - 2d0*mu/3d0
         case(MATDEF_HOOKE_RHO)
             ! XXX TODO
-        case(MATDEF_MU_SYLD_RHO)
+        case(MATDEF_NLKP_VS_RHO)
             nu = mat%DNu
-            mu = v0
-            syld = v1
-            lambda = 2.0*nu*v0/(1.0-2.0*nu)                     
+            mu = rho*v1**2
+            lambda = 2.0d0*nu*v1/(1.0d0-2.0d0*nu)
+            nlkp = v0
+        case(MATDEF_NU_VS_RHO)
+            nu = v0
+            mu = rho*v1**2
+            lambda = 2.0d0*nu*v1/(1.0d0-2.0d0*nu)
+            nlkp = 1.0d40
         end select
 
         select case (specel%domain)
         case (DM_SOLID)
-            call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,syld)
+            call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,nlkp,Tdomain%nl_flag)
         case (DM_FLUID)
             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
         case (DM_SOLID_PML)

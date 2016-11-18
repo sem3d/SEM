@@ -25,7 +25,7 @@ typedef struct Material {
     int ngll;
     double Vp, Vs, Rho;
     double Qp, Qmu;
-    double syld, ckin, kkin, biso, rinf;
+    double nlkp, biso, rinf;
     struct Material* next;
 } material_t;
 
@@ -94,7 +94,7 @@ int expect_mat_const(yyscan_t scanner, mat_config_t* config)
 	if (cmp(scanner,"Rho")) err=expect_eq_float(scanner, &mat->Rho, 1);
 	if (cmp(scanner,"Vp")) err=expect_eq_float(scanner, &mat->Vp, 1);
 	if (cmp(scanner,"Vs")) err=expect_eq_float(scanner, &mat->Vs, 1);
-	
+
 	if (err==0) { printf("ERR01\n"); return 0;}
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);

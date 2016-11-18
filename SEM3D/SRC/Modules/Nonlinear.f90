@@ -255,7 +255,7 @@ contains
         endif
 
         if (.not.flagxit)then
-            write(*,*) "ERROR IN FINDING INTERSECTION"
+            write(*,*) "ERROR IN FINDING INTERSECTION!!  F = ",FS
             stop
         endif
 

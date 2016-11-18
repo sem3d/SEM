@@ -56,7 +56,8 @@ MODULE constants
     integer, parameter :: MATDEF_LAMBDA_MU_RHO = 2
     integer, parameter :: MATDEF_KAPPA_MU_RHO  = 3
     integer, parameter :: MATDEF_HOOKE_RHO     = 4
-    integer, parameter :: MATDEF_MU_SYLD_RHO  = 5
+    integer, parameter :: MATDEF_NLKP_VS_RHO   = 5
+    integer, parameter :: MATDEF_NU_VS_RHO     = 6
 
     ! DOMAINS (par ordre de priorite pour les sauvegardes)
     integer, parameter :: DM_SOLID = 4

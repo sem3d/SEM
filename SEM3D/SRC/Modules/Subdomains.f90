@@ -59,7 +59,9 @@ module ssubdomains
         ! TODO
         
         !! NONLINEAR LEMAITRE-CHABOCHE
-        real(fpp) :: DSyld,DCkin,DKkin,DRinf,DBiso
+        ! real(fpp) :: DSyld,DCkin,DKkin
+        real(fpp) :: DRinf,DBiso
+        real(fpp) :: DNlkp
         
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression

@@ -642,7 +642,7 @@ contains
     end subroutine get_solid_dom_elem_energy
 
 
-    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, nlparam)
+    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, nlkp, nl_flag)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -650,8 +650,10 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
-        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: nlparam
-        
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: nlkp
+        logical, intent(in) :: nl_flag
+        real(fpp),parameter :: gamma_el = 1.0d-5
+        real(fpp),parameter :: gamma_pl = 1.0d-4
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
@@ -660,14 +662,23 @@ contains
         dom%Density_(:,:,:,bnum,ee) = density
         dom%Lambda_ (:,:,:,bnum,ee) = lambda
         dom%Mu_     (:,:,:,bnum,ee) = mu
-        if (mat%deftype==MATDEF_MU_SYLD_RHO) then
-            dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = nlparam
-            dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mat%DCkin
-            dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = mat%DKkin
+        
+        if (mat%deftype.eq.MATDEF_NLKP_VS_RHO) then
+            dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = gamma_el*mu*sqrt(3.0d0)
+            dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mu
+            dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1/(sqrt(3.0d0)*(gamma_pl-gamma_el))
             dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%DRinf 
             dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = mat%DBiso
+        else
+            if (nl_flag) then
+                dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = nlkp*mu*sqrt(3.0d0)
+                dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = nlkp
+                dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1/(sqrt(3.0d0)*(gamma_pl-gamma_el))
+                dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = 0.0D0 
+                dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = 0.0D0
+            endif
         endif
-
+          
         if (dom%n_sls>0)  then
             dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
             if (dom%aniso) then
