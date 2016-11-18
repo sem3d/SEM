@@ -692,29 +692,6 @@ contains
         return
     end subroutine integrate_on_element
 
-    subroutine apply_integrated_value_on_output(ngll, input_integral, output_field, count_subel)
-
-        implicit none
-        !INPUT
-        integer,intent(in) :: ngll
-        real(fpp), intent(in) :: input_integral
-        !OUTPUT
-        integer, intent(inout) :: count_subel
-        real(fpp), dimension(0:), intent(inout) :: output_field
-        !LOCAL
-        integer :: i,j,k
-
-
-        do k = 0,ngll-2
-            do j = 0,ngll-2
-                do i = 0,ngll-2
-                    ! Output of the integral for every element
-                    output_field(count_subel) = input_integral !Integrated Value
-                    count_subel=count_subel+1
-                end do
-            end do
-        end do
-    end subroutine apply_integrated_value_on_output
 
     subroutine evaluate_cell_centers(ngll, gllc, start, input_field, output_field)
         ! intent IN
