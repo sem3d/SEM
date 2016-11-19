@@ -321,6 +321,89 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
+    subroutine get_solidpml_rfields(Tdomain, dom, n, lnum, outputs)
+        use msnapdata, only : output_var_t
+        type(domain), intent(inout) :: TDomain
+        type(domain_solidpml), intent(inout) :: dom
+        type(output_var_t), intent(inout) :: outputs
+        integer, intent(in) :: lnum, n
+        !
+        integer :: bnum, ee
+        integer :: i, j, k, idx
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        !
+        do k=0,dom%ngll-1
+            do j=0,dom%ngll-1
+                do i=0,dom%ngll-1
+                    idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                    outputs%R2_L120_uxx(idx) = dom%R2_0(ee, 0, i, j, k, bnum)
+                    outputs%R2_L120_uxy(idx) = dom%R2_0(ee, 1, i, j, k, bnum)
+                    outputs%R2_L120_uxz(idx) = dom%R2_0(ee, 2, i, j, k, bnum)
+                    outputs%R2_L021_uyx(idx) = dom%R2_0(ee, 3, i, j, k, bnum)
+                    outputs%R2_L021_uyy(idx) = dom%R2_0(ee, 4, i, j, k, bnum)
+                    outputs%R2_L021_uyz(idx) = dom%R2_0(ee, 5, i, j, k, bnum)
+                    outputs%R2_L012_uzx(idx) = dom%R2_0(ee, 6, i, j, k, bnum)
+                    outputs%R2_L012_uzy(idx) = dom%R2_0(ee, 7, i, j, k, bnum)
+                    outputs%R2_L012_uzz(idx) = dom%R2_0(ee, 8, i, j, k, bnum)
+                    select case(dom%D0(ee, bnum))
+                    case(0)
+                        outputs%R1_x(0,idx) = dom%R1_0(ee, 0, i, j, k, bnum)
+                        outputs%R1_x(1,idx) = dom%R1_0(ee, 1, i, j, k, bnum)
+                        outputs%R1_x(2,idx) = dom%R1_0(ee, 2, i, j, k, bnum)
+
+                        outputs%R2_L0_uyy(idx) = dom%R2_0(ee, 4, i, j, k, bnum)
+                        outputs%R2_L0_uyz(idx) = dom%R2_0(ee, 5, i, j, k, bnum)
+                        outputs%R2_L0_uzy(idx) = dom%R2_0(ee, 7, i, j, k, bnum)
+                        outputs%R2_L0_uzz(idx) = dom%R2_0(ee, 8, i, j, k, bnum)
+                        outputs%R2_L1_uxx(idx) = 0.
+                        outputs%R2_L1_uxz(idx) = 0.
+                        outputs%R2_L1_uzx(idx) = 0.
+                        outputs%R2_L1_uzz(idx) = 0.
+                        outputs%R2_L2_uxx(idx) = 0.
+                        outputs%R2_L2_uxy(idx) = 0.
+                        outputs%R2_L2_uyx(idx) = 0.
+                        outputs%R2_L2_uyy(idx) = 0.
+                    case(1)
+                        outputs%R1_y(0,idx) = dom%R1_0(ee, 0, i, j, k, bnum)
+                        outputs%R1_y(1,idx) = dom%R1_0(ee, 1, i, j, k, bnum)
+                        outputs%R1_y(2,idx) = dom%R1_0(ee, 2, i, j, k, bnum)
+
+                        outputs%R2_L0_uyy(idx) = 0.
+                        outputs%R2_L0_uyz(idx) = 0.
+                        outputs%R2_L0_uzy(idx) = 0.
+                        outputs%R2_L0_uzz(idx) = 0.
+                        outputs%R2_L1_uxx(idx) = dom%R2_0(ee, 0, i, j, k, bnum)
+                        outputs%R2_L1_uxz(idx) = dom%R2_0(ee, 2, i, j, k, bnum)
+                        outputs%R2_L1_uzx(idx) = dom%R2_0(ee, 6, i, j, k, bnum)
+                        outputs%R2_L1_uzz(idx) = dom%R2_0(ee, 8, i, j, k, bnum)
+                        outputs%R2_L2_uxx(idx) = 0.
+                        outputs%R2_L2_uxy(idx) = 0.
+                        outputs%R2_L2_uyx(idx) = 0.
+                        outputs%R2_L2_uyy(idx) = 0.
+                    case(2)
+                        outputs%R1_z(0,idx) = dom%R1_0(ee, 0, i, j, k, bnum)
+                        outputs%R1_z(1,idx) = dom%R1_0(ee, 1, i, j, k, bnum)
+                        outputs%R1_z(2,idx) = dom%R1_0(ee, 2, i, j, k, bnum)
+
+                        outputs%R2_L0_uyy(idx) = 0.
+                        outputs%R2_L0_uyz(idx) = 0.
+                        outputs%R2_L0_uzy(idx) = 0.
+                        outputs%R2_L0_uzz(idx) = 0.
+                        outputs%R2_L1_uxx(idx) = 0.
+                        outputs%R2_L1_uxz(idx) = 0.
+                        outputs%R2_L1_uzx(idx) = 0.
+                        outputs%R2_L1_uzz(idx) = 0.
+                        outputs%R2_L2_uxx(idx) = dom%R2_0(ee, 0, i, j, k, bnum)
+                        outputs%R2_L2_uxy(idx) = dom%R2_0(ee, 1, i, j, k, bnum)
+                        outputs%R2_L2_uyx(idx) = dom%R2_0(ee, 3, i, j, k, bnum)
+                        outputs%R2_L2_uyy(idx) = dom%R2_0(ee, 4, i, j, k, bnum)
+                    end select
+                end do
+            end do
+        end do
+    end subroutine get_solidpml_rfields
+
     subroutine init_domain_solidpml(Tdomain, dom)
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
