@@ -11,9 +11,9 @@ module nonlinear
     use constants
 
     implicit none
-    real(KIND=8), parameter :: FTOL = 0.0000010000000000D0
+    real(KIND=8), parameter :: FTOL = 0.00010000000000D0
     real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
-    real(KIND=8), parameter :: STOL = 0.0000010000000000D0
+    real(KIND=8), parameter :: STOL = 0.00010000000000D0
     real(KIND=8), parameter :: PSI  = one!5.0D0
     real(KIND=8), parameter :: OMEGA= zero!1.0D6
     real, dimension(0:2),     parameter   :: veci = (/ one, zero, zero /)
