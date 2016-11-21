@@ -220,7 +220,7 @@ contains
         LC(L021_DYY) = b0(kB021)*DUDVn(DYY) + b1(kB021)*dom%R2_0(ee,DYY,i,j,k,bnum)
         LC(L0_DZZ  ) = b0(kB0  )*DUDVn(DZZ) + b1(kB0  )*dom%R2_0(ee,DZZ,i,j,k,bnum)
         LC(L021_DYZ) = b0(kB021)*DUDVn(DYZ) + b1(kB021)*dom%R2_0(ee,DYZ,i,j,k,bnum)
-        LC(L0_DZY  ) = b0(kB0  )*DUDVn(DYZ) + b1(kB0  )*dom%R2_0(ee,DYZ,i,j,k,bnum)
+        LC(L0_DZY  ) = b0(kB0  )*DUDVn(DZY) + b1(kB0  )*dom%R2_0(ee,DZY,i,j,k,bnum)
         LC(L012_DZX) = b0(kB012)*DUDVn(DZX) + b1(kB012)*dom%R2_0(ee,DZX,i,j,k,bnum)
         LC(L1_DXZ  ) = b0(kB1  )*DUDVn(DXZ) + b1(kB1  )*dom%R2_0(ee,DXZ,i,j,k,bnum)
         LC(L012_DZY) = b0(kB012)*DUDVn(DZY) + b1(kB012)*dom%R2_0(ee,DZY,i,j,k,bnum)
