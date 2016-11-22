@@ -667,9 +667,9 @@ contains
         if (out_flags(OUT_EPS_DEV_PL) == 1) outputs%eps_dev_pl = 0.
         !
 #ifdef CPML
-        allocate(outputs%R1_x(0:2,0:(nnodes-1))) ! 0-based: 2+ for idx 0
-        allocate(outputs%R1_y(0:2,0:(nnodes-1))) ! 0-based: 2+ for idx 0
-        allocate(outputs%R1_z(0:2,0:(nnodes-1))) ! 0-based: 2+ for idx 0
+        allocate(outputs%R1_x(0:2,0:(nnodes-1)))
+        allocate(outputs%R1_y(0:2,0:(nnodes-1)))
+        allocate(outputs%R1_z(0:2,0:(nnodes-1)))
         allocate(outputs%R2_L120_uxx(0:nnodes-1))
         allocate(outputs%R2_L120_uxy(0:nnodes-1))
         allocate(outputs%R2_L120_uxz(0:nnodes-1))
