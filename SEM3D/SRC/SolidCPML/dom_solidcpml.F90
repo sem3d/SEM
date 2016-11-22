@@ -408,7 +408,7 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
         !
-        integer n, bnum, ee
+        integer n
         real(fpp) :: fmax
         integer :: i,j,k, indL, indG
         ! Handle on node global coords : mandatory to compute distances in the PML (compute_dxi_alpha_kappa)
@@ -583,7 +583,7 @@ contains
         real(fpp) :: k0, k1, k2, a0, a1, a2, d0, d1, d2
         real(fpp) :: a0b, a1b, a2b ! solidcpml_a0b_a1b_a2b
         real(fpp) :: mass_0
-        integer :: mi, nd, ndir, i1, i2
+        integer :: mi, ndir, i1, i2
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
