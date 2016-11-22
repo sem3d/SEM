@@ -35,6 +35,7 @@ module msnapdata
         real(fpp), dimension(:), allocatable :: R2_L0_uyy, R2_L0_uyz, R2_L0_uzy, R2_L0_uzz
         real(fpp), dimension(:), allocatable :: R2_L1_uxx, R2_L1_uxz, R2_L1_uzx, R2_L1_uzz
         real(fpp), dimension(:), allocatable :: R2_L2_uxx, R2_L2_uxy, R2_L2_uyx, R2_L2_uyy
+        real(fpp), dimension(:,:), allocatable :: FDump, FMasU, Fint
 #endif
         ! Cell fields
         real(fpp), dimension(:)  , allocatable   :: press_c, eps_vol

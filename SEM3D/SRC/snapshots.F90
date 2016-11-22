@@ -217,6 +217,10 @@ contains
         call write_1d_var_n(outputs, parent_id, "R2_L2_uxy"  , outputs%R2_L2_uxy  )
         call write_1d_var_n(outputs, parent_id, "R2_L2_uyx"  , outputs%R2_L2_uyx  )
         call write_1d_var_n(outputs, parent_id, "R2_L2_uyy"  , outputs%R2_L2_uyy  )
+
+        call write_2d_var_vecn(outputs, parent_id, "FDump", outputs%FDump)
+        call write_2d_var_vecn(outputs, parent_id, "FMasU", outputs%FMasU)
+        call write_2d_var_vecn(outputs, parent_id, "Fint" , outputs%Fint )
 #endif
     end subroutine grp_write_fields
 
@@ -694,6 +698,12 @@ contains
         outputs%R1_x = 0.0
         outputs%R1_y = 0.0
         outputs%R1_z = 0.0
+        allocate(outputs%FDump(0:2,0:(nnodes-1)))
+        allocate(outputs%FMasU(0:2,0:(nnodes-1)))
+        allocate(outputs%Fint (0:2,0:(nnodes-1)))
+        outputs%FDump = 0.
+        outputs%FMasU = 0.
+        outputs%Fint  = 0.
 #endif
         return
         !
@@ -740,6 +750,9 @@ contains
         deallocate(fields%R2_L2_uxy  )
         deallocate(fields%R2_L2_uyx  )
         deallocate(fields%R2_L2_uyy  )
+        deallocate(fields%FDump)
+        deallocate(fields%FMasU)
+        deallocate(fields%Fint )
 #endif
         return
         !
@@ -1211,6 +1224,10 @@ contains
             do j = 0, 20
                 call write_xdmf_attr_scalar_nodes(trim(R2label(j)), nn, i, group, trim(R2label(j)))
             end do
+
+            call write_xdmf_attr_vector_nodes("FDump", nn, i, group, "FDump")
+            call write_xdmf_attr_vector_nodes("FMasU", nn, i, group, "FMasU")
+            call write_xdmf_attr_vector_nodes("Fint" , nn, i, group, "Fint" )
 #else
             ! ALPHA/DUMPSX
             write(61,"(a)") '<Attribute Name="Alpha" Center="Node" AttributeType="Scalar">'

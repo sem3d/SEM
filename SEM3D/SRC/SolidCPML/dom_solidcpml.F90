@@ -148,6 +148,15 @@ contains
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
+        if (Tdomain%logicD%save_snapshots) then
+            allocate(dom%FDump(0:dom%nglltot-1, 0:2))
+            allocate(dom%FMasU(0:dom%nglltot-1, 0:2))
+            allocate(dom%Fint (0:dom%nglltot-1, 0:2))
+            dom%FDump = 0.
+            dom%FMasU = 0.
+            dom%Fint  = 0.
+        end if
+
         ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
 
         dom%cpml_c = 1.0
@@ -198,6 +207,10 @@ contains
         if(allocated(dom%R2_0)) deallocate(dom%R2_0)
 
         if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
+
+        if(allocated(dom%FDump)) deallocate(dom%FDump)
+        if(allocated(dom%FMasU)) deallocate(dom%FMasU)
+        if(allocated(dom%Fint))  deallocate(dom%Fint )
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
@@ -329,7 +342,7 @@ contains
         integer, intent(in) :: lnum, n
         !
         integer :: bnum, ee
-        integer :: i, j, k, idx
+        integer :: i, j, k, idx, ind
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
         !
@@ -399,6 +412,10 @@ contains
                         outputs%R2_L2_uyx(idx) = dom%R2_0(ee, 3, i, j, k, bnum)
                         outputs%R2_L2_uyy(idx) = dom%R2_0(ee, 4, i, j, k, bnum)
                     end select
+                    ind = dom%Idom_(i,j,k,bnum,ee)
+                    if(allocated(dom%FDump)) outputs%FDump(0:2, idx) = dom%FDump(ind, 0:2)
+                    if(allocated(dom%FMasU)) outputs%FMasU(0:2, idx) = dom%FMasU(ind, 0:2)
+                    if(allocated(dom%Fint))  outputs%Fint (0:2, idx) = dom%Fint (ind, 0:2)
                 end do
             end do
         end do
@@ -821,6 +838,11 @@ contains
 
 !                ! Estimate D = D_n+1
 !                D = dom%champs0%Depla(n,i_dir) - V*0.5*dt
+
+                ! Save forces contributions for snapshots
+                if(allocated(dom%FDump)) dom%FDump(n, i_dir) = - dom%DumpMat(n)*V
+                if(allocated(dom%FMasU)) dom%FMasU(n, i_dir) = - dom%MasUMat(n)*dom%champs0%Depla(n,i_dir)
+                if(allocated(dom%Fint))  dom%Fint (n, i_dir) =   dom%champs1%Forces(n,i_dir)
 
                 ! Compute F_n+1 : (61a) from Ref1 with F = -F (as we add -Fo* in forces_int_sol_pml)
                 F =    &
