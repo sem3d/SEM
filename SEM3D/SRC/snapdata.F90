@@ -28,13 +28,13 @@ module msnapdata
         real(fpp), dimension(:,:), allocatable :: displ, veloc, accel
         real(fpp), dimension(:)  , allocatable :: press_n
 #ifdef CPML
-        real, dimension(:,:), allocatable :: R1_x, R1_y, R1_z
-        real, dimension(:), allocatable :: R2_L120_uxx, R2_L120_uxy, R2_L120_uxz
-        real, dimension(:), allocatable :: R2_L021_uyx, R2_L021_uyy, R2_L021_uyz
-        real, dimension(:), allocatable :: R2_L012_uzx, R2_L012_uzy, R2_L012_uzz
-        real, dimension(:), allocatable :: R2_L0_uyy, R2_L0_uyz, R2_L0_uzy, R2_L0_uzz
-        real, dimension(:), allocatable :: R2_L1_uxx, R2_L1_uxz, R2_L1_uzx, R2_L1_uzz
-        real, dimension(:), allocatable :: R2_L2_uxx, R2_L2_uxy, R2_L2_uyx, R2_L2_uyy
+        real(fpp), dimension(:,:), allocatable :: R1_x, R1_y, R1_z
+        real(fpp), dimension(:), allocatable :: R2_L120_uxx, R2_L120_uxy, R2_L120_uxz
+        real(fpp), dimension(:), allocatable :: R2_L021_uyx, R2_L021_uyy, R2_L021_uyz
+        real(fpp), dimension(:), allocatable :: R2_L012_uzx, R2_L012_uzy, R2_L012_uzz
+        real(fpp), dimension(:), allocatable :: R2_L0_uyy, R2_L0_uyz, R2_L0_uzy, R2_L0_uzz
+        real(fpp), dimension(:), allocatable :: R2_L1_uxx, R2_L1_uxz, R2_L1_uzx, R2_L1_uzz
+        real(fpp), dimension(:), allocatable :: R2_L2_uxx, R2_L2_uxy, R2_L2_uyx, R2_L2_uyy
 #endif
         ! Cell fields
         real(fpp), dimension(:)  , allocatable   :: press_c, eps_vol
