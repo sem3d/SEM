@@ -12,7 +12,7 @@ module sreceivers
     type :: receiver
 
        logical :: located_here
-       integer :: Nr, Nv
+       integer :: Nr, Nv, lwork
        real :: xRec, zRec,xi,eta
        real, dimension(:,:), pointer :: Interp_coeff
        character(Len=100) :: name
@@ -20,6 +20,7 @@ module sreceivers
        real, dimension(:,:,:,:), pointer :: InvGrad
        real, dimension(:,:), pointer :: JacobWheiN1, JacobWheiN2, ReinterpX, ReinterpZ, ReinterpNX, ReinterpNZ, hprimex, hprimez
        real, dimension(:,:), pointer :: MatPostProc
+       real, dimension(:),   pointer :: tau
     end type receiver
 
 end module sreceivers

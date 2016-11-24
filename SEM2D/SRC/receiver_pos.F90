@@ -277,10 +277,10 @@ subroutine postprocess_HDG(Tdomain,nelem,nrec,field)
     type(element),  pointer   :: Elem
     type(receiver), pointer   :: rec
     real, dimension (:,:,:), allocatable :: p
-    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac, Amat
+    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
     real,  dimension (:),     allocatable :: smbr, WORK
     integer :: i, j, k, l, r, s
-    integer :: ngx, ngz, nlin, nddl, lwork, info, mat
+    integer :: ngx, ngz, nlin, nddl, info, mat
     real    :: aux1, aux2, res
 
     Elem => Tdomain%specel(nelem)
@@ -384,22 +384,16 @@ subroutine postprocess_HDG(Tdomain,nelem,nrec,field)
     smbr(nddl+3) = xix(0,0)          * smbr(nddl+3)
 
 
-    ! Solve rectangular System using least squares method
-    allocate (Amat(1:nddl+3,1:nddl))
-    Amat = rec%MatPostProc
-    allocate (WORK(1:1000))
-    ! Query the optimal workspace
-    lwork = -1
-    CALL DGELS('N', nddl+3, nddl, 1, Amat, nddl+3, smbr, nddl+3, WORK, lwork, info)
-    lwork = INT(WORK(1))
-    deallocate(WORK) ; allocate (WORK(lwork))
-    call dgels('N', nddl+3, nddl, 1, Amat, nddl+3, smbr, nddl+3, WORK, lwork, info)
-    IF( INFO.GT.0 ) THEN
-        WRITE(*,*)'The diagonal element ',INFO,' of the triangular '
-        WRITE(*,*)'factor of A is zero, so that A does not have full '
-        WRITE(*,*)'rank; the least squares solution could not be computed.'
-        STOP
-    END IF
+    !======================================================!
+    !    Solves the system using the QR decomposition      !
+    !======================================================!
+
+    ! Perform the Q multiplication first
+    allocate(work(rec%lwork))
+    call DORMQR('L','T', nddl+3, 1, nddl, rec%MatPostProc, nddl+3, rec%tau, smbr, nddl+3, work, rec%lwork, info)
+
+    ! Perform solves the Upper triangular problem
+    call DTRTRS('U', 'N', 'N', nddl, 1, rec%MatPostProc, nddl+3, smbr, nddl+3, info)
 
     ! Reorganize the results as a matrix
     do i = 0,ngx
@@ -410,7 +404,8 @@ subroutine postprocess_HDG(Tdomain,nelem,nrec,field)
             field(i,j,1) = smbr(nlin)
         enddo
     enddo
-    deallocate(p, smbr, xix, xiz, etax, etaz, jac, WORK, Amat)
+
+    deallocate(p, smbr, xix, xiz, etax, etaz, jac, WORK)
 
 end subroutine postprocess_HDG
 
@@ -432,11 +427,12 @@ subroutine prepare_HDG_postprocess(Tdomain)
     type(domain), intent(inout) :: Tdomain
     real, dimension (:),   allocatable :: GLLcxN2, GLLwxN2, GLLpolxN2, GLLczN2, GLLwzN2, GLLpolzN2
     real, dimension (:),   allocatable :: GLLcxN1, GLLwxN1, GLLpolxN1, GLLczN1, GLLwzN1, GLLpolzN1
+    real, dimension (:),   allocatable :: work
     real, dimension (:,:), allocatable :: coord, hprimex_aux, hprimez_aux
     real, dimension (0:1,0:1) :: LocInvGrad
     type(receiver), pointer   :: rec
     real    :: xi, eta, Jac, res, outx, outz
-    integer :: nrec, ngx, ngz, nr, nddl, i_aus, mat, i, j
+    integer :: nrec, ngx, ngz, nr, nddl, i_aus, mat, i, j, info
 
     do nrec = 0, Tdomain%n_receivers-1
         ! Matrices Allocation used for Post-Process
@@ -594,6 +590,22 @@ subroutine prepare_HDG_postprocess(Tdomain)
 
         ! Computation of the coefficients of matrix MatPostProc
         call build_MatPostProc(tdomain,nrec,ngx,ngz)
+
+        ! Querry the optimal size of blocks for QR decomposition
+        rec%lwork = -1
+        allocate(rec%tau(1:nddl)) ; allocate(work(1))
+        call DGEQRF(nddl+3, nddl, rec%MatPostProc, nddl+3, rec%tau, work, rec%lwork, info)
+
+        ! Perform the QR factorization
+        rec%lwork = int(work(1))
+        deallocate(work) ; allocate(work(rec%lwork))
+        call DGEQRF(nddl+3, nddl, rec%MatPostProc, nddl+3, rec%tau, work, rec%lwork, info)
+        deallocate(work)
+
+        IF( INFO .NE. 0 ) THEN
+            WRITE(*,*)'Argument ',INFO,' has an illegal value. '
+            STOP
+        END IF
 
     enddo
 
