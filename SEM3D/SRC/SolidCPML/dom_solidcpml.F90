@@ -663,7 +663,8 @@ contains
         if (a0b==0d0.or.mass_0==0d0) then
             stop 1
         endif
-        dom%MassMat(ind) = dom%MassMat(ind) + a0b*mass_0
+
+        dom%MassMat(ind) = dom%MassMat(ind) + (a0b+0.5d0*dom%dt*a1b)*mass_0
         dom%DumpMat(ind) = dom%DumpMat(ind) + a1b*mass_0
         dom%MasUMat(ind) = dom%MasUMat(ind) + a2b*mass_0
     end subroutine init_local_mass_solidpml
