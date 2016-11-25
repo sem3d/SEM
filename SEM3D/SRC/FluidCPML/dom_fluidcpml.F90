@@ -14,6 +14,21 @@ module dom_fluidpml
 
 contains
 
+    subroutine allocate_champs_fluidcpml(dom, i)
+        type(domain_fluidpml), intent (INOUT) :: dom
+        integer, intent(in) :: i
+
+        ! Allocate ONE more gll than necessary to use as a dummy target for
+        ! indirections for fake elements.
+        allocate(dom%champs(i)%ForcesFl(0:dom%nglltot-1))
+        allocate(dom%champs(i)%Phi     (0:dom%nglltot-1))
+        allocate(dom%champs(i)%VelPhi  (0:dom%nglltot-1))
+
+        dom%champs(i)%ForcesFl = 0d0
+        dom%champs(i)%Phi = 0d0
+        dom%champs(i)%VelPhi = 0d0
+    end subroutine allocate_champs_fluidcpml
+
     subroutine allocate_multi_dir_pml(Tdomain, dom)
         use gll3d
         implicit none
@@ -105,16 +120,8 @@ contains
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs0%ForcesFl(0:dom%nglltot-1))
-            allocate(dom%champs0%Phi     (0:dom%nglltot-1))
-            allocate(dom%champs0%VelPhi  (0:dom%nglltot-1))
-            allocate(dom%champs1%ForcesFl(0:dom%nglltot-1))
-            allocate(dom%champs1%Phi     (0:dom%nglltot-1))
-            allocate(dom%champs1%VelPhi  (0:dom%nglltot-1))
-
-            dom%champs0%ForcesFl = 0d0
-            dom%champs0%Phi = 0d0
-            dom%champs0%VelPhi = 0d0
+            call allocate_champs_fluidcpml(dom, 0)
+            call allocate_champs_fluidcpml(dom, 1)
 
             ! Allocation de DumpMat pour les PML solides
             allocate(dom%DumpMat(0:dom%nglltot-1))
@@ -139,6 +146,8 @@ contains
     subroutine deallocate_dom_fluidpml (dom)
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
+        !
+        integer :: i
 
         if(allocated(dom%m_IDensity)) deallocate(dom%m_IDensity)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
@@ -160,12 +169,11 @@ contains
         if(allocated(dom%D0)) deallocate(dom%D0)
         if(allocated(dom%D1)) deallocate(dom%D1)
 
-        if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
-        if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
-        if(allocated(dom%champs0%VelPhi  )) deallocate(dom%champs0%VelPhi  )
-        if(allocated(dom%champs1%ForcesFl)) deallocate(dom%champs1%ForcesFl)
-        if(allocated(dom%champs1%Phi     )) deallocate(dom%champs1%Phi     )
-        if(allocated(dom%champs1%VelPhi  )) deallocate(dom%champs1%VelPhi  )
+        do i=0,1
+            if(allocated(dom%champs(i)%ForcesFl)) deallocate(dom%champs(i)%ForcesFl)
+            if(allocated(dom%champs(i)%Phi     )) deallocate(dom%champs(i)%Phi     )
+            if(allocated(dom%champs(i)%VelPhi  )) deallocate(dom%champs(i)%VelPhi  )
+        end do
 
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
         if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
@@ -268,7 +276,7 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        phi(i,j,k) = dom%champs0%Phi(ind)
+                        phi(i,j,k) = dom%champs(0)%Phi(ind)
                     enddo
                 enddo
             enddo
@@ -283,7 +291,7 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        vphi(i,j,k) = dom%champs0%VelPhi(ind)
+                        vphi(i,j,k) = dom%champs(0)%VelPhi(ind)
                     enddo
                 enddo
             enddo
@@ -297,7 +305,7 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
+                        fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
                     enddo
                 enddo
             enddo
@@ -671,46 +679,48 @@ contains
       ! TODO : kill (needed for compatibility - build)
     end subroutine forces_int_flu_pml
 
-    subroutine newmark_predictor_fluidpml(dom, Tdomain)
+    subroutine newmark_predictor_fluidpml(dom, Tdomain, f0, f1)
         type(domain_fluidpml), intent (INOUT) :: dom
         type(domain)                          :: TDomain
+        integer :: f0, f1
         !
         integer :: n, indpml, indflu
 
         ! Reset forces
-        dom%champs1%ForcesFl = 0d0
+        dom%champs(f1)%ForcesFl = 0d0
 
         ! Coupling at solid PML interface
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)
-            dom%champs0%VelPhi(indpml) = Tdomain%fdom%champs0%VelPhi(indflu)
-            dom%champs0%Phi(indpml) = Tdomain%fdom%champs0%Phi(indflu)
+            dom%champs(f1)%VelPhi(indpml) = Tdomain%fdom%champs(f0)%VelPhi(indflu)
+            dom%champs(f1)%Phi(indpml) = Tdomain%fdom%champs(f0)%Phi(indflu)
         enddo
 
         ! The prediction will be based on the current state
-        dom%champs1%VelPhi = dom%champs0%VelPhi
-        dom%champs1%Phi    = dom%champs0%Phi
+        dom%champs(f1)%VelPhi = dom%champs(f0)%VelPhi
+        dom%champs(f1)%Phi    = dom%champs(f0)%Phi
     end subroutine newmark_predictor_fluidpml
 
-    subroutine newmark_corrector_fluidpml(dom, dt)
+    subroutine newmark_corrector_fluidpml(dom, dt, f0, f1)
         type(domain_fluidpml), intent (INOUT) :: dom
         double precision :: dt
+        integer :: f0, f1
         !
         integer :: n, indpml
 
-        dom%champs0%ForcesFl = (- dom%DumpMat*dom%champs0%VelPhi - dom%MasUMat*dom%champs0%Phi &
-                                + dom%champs1%ForcesFl) * dom%MassMat
-        dom%champs0%VelPhi = (dom%champs0%VelPhi + dt * dom%champs0%ForcesFl)
+        dom%champs(f0)%ForcesFl = (- dom%DumpMat*dom%champs(f0)%VelPhi - dom%MasUMat*dom%champs(f0)%Phi &
+                                   + dom%champs(f1)%ForcesFl) * dom%MassMat
+        dom%champs(f0)%VelPhi = (dom%champs(f0)%VelPhi + dt * dom%champs(f0)%ForcesFl)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%VelPhi(indpml) = 0. ! Apply (dirichlet) BC for PML
+            dom%champs(f0)%VelPhi(indpml) = 0. ! Apply (dirichlet) BC for PML
         enddo
 
-        dom%champs0%Phi = dom%champs0%Phi + dt * dom%champs0%VelPhi
+        dom%champs(f0)%Phi = dom%champs(f0)%Phi + dt * dom%champs(f0)%VelPhi
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%Phi = 0. ! Apply (dirichlet) BC for PML
+            dom%champs(f0)%Phi = 0. ! Apply (dirichlet) BC for PML
         enddo
     end subroutine newmark_corrector_fluidpml
 

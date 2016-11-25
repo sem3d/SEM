@@ -29,8 +29,7 @@ module champs_fluidpml
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champsfluidpml) :: champs0
-        type(champsfluidpml) :: champs1
+        type(champsfluidpml), dimension(0:1) :: champs
 
         ! Masse pour elements solide cpml
         real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
