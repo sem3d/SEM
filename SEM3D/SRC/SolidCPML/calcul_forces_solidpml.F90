@@ -79,6 +79,16 @@ contains
             dom%R1_0(ee,0,i,j,k,bnum) = (cf0*dom%R1_0(ee,0,i,j,k,bnum) + dt*U(0))*cf1
             dom%R1_0(ee,1,i,j,k,bnum) = (cf0*dom%R1_0(ee,1,i,j,k,bnum) + dt*U(1))*cf1
             dom%R1_0(ee,2,i,j,k,bnum) = (cf0*dom%R1_0(ee,2,i,j,k,bnum) + dt*U(2))*cf1
+!            cf0 = exp(-a0*dt)
+!            if (abs(a0)<1e-8) then
+!                cf1 = dt
+!            else
+!                cf1 = (1d0-cf0)/a0
+!            endif
+!            dom%R1_0(ee,0,i,j,k,bnum) = cf0*dom%R1_0(ee,0,i,j,k,bnum) + cf1*U(0)
+!            dom%R1_0(ee,1,i,j,k,bnum) = cf0*dom%R1_0(ee,1,i,j,k,bnum) + cf1*U(1)
+!            dom%R1_0(ee,2,i,j,k,bnum) = cf0*dom%R1_0(ee,2,i,j,k,bnum) + cf1*U(2)
+
             a3b = k0*a0*a0*d0
             Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
             Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
@@ -205,7 +215,16 @@ contains
             cf0 = 1d0-0.5d0*cf(r)*dt
             cf1 = 1d0/(1d0+0.5d0*cf(r)*dt)
             dom%R2_0(ee,r,i,j,k,bnum) = (cf0*dom%R2_0(ee,r,i,j,k,bnum)+dt*DUDV(r))*cf1
+            ! First order
+!            cf0 = exp(-cf(r)*dt)
+!            if (abs(cf(r))<1e-8) then
+!                cf1 = dt
+!            else
+!                cf1 = (1d0-cf0)/cf(r)
+!            end if
+!            dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DUDV(r)
         end do
+
         ! We add the terms in Dirac with the (only) convolution term
         LC(L120_DXX) = b0(kB120)*DUDVn(DXX) + b1(kB120)*dom%R2_0(ee,DXX,i,j,k,bnum)
         LC(L2_DYY  ) = b0(kB2  )*DUDVn(DYY) + b1(kB2  )*dom%R2_0(ee,DYY,i,j,k,bnum)
