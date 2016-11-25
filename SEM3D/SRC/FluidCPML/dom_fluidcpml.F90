@@ -310,8 +310,7 @@ contains
 
         ! Fluid : inertial term ponderation by the inverse of the bulk modulus
 
-        specel%MassMat(i,j,k) = Whei*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
-        dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
+        dom%MassMat(ind)      = dom%MassMat(ind) + Whei*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
     end subroutine init_local_mass_fluidpml
 
     subroutine forces_int_fluidpml(dom, champs1, bnum)
