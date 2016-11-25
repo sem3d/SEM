@@ -38,11 +38,15 @@ contains
             allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%dxi_k_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            allocate(dom%R1_1(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
+            dom%R1_1 = 0d0
         endif
         if (dir2_count>0) then
             allocate(dom%Alpha_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+            allocate(dom%R1_2(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
+            dom%R1_2 = 0d0
         end if
 #ifdef DBG
         ! Write infos for all procs as all procs have different informations !... A bit messy output but no other way
@@ -93,6 +97,11 @@ contains
             dom%D0(:,:) = 0
             dom%D1(:,:) = 0
             dom%Kappa_0 = 1.
+            allocate(dom%R1_0(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            dom%R1_0 = 0d0
+
+            allocate(dom%Uold(0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            dom%Uold = 0.
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
@@ -588,6 +597,7 @@ contains
         integer :: ngll,i,j,k,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
         real(fpp) :: val
+        real(fpp) :: wk, wjk, wijk, kijk, R
 
         ngll = dom%ngll
 
@@ -609,8 +619,11 @@ contains
         ! internal forces
         call calcul_forces_fluidpml(dom,dom%ngll,bnum,Fo_Fl,Phi)
         do k = 0,ngll-1
+            wk = dom%gllw(k)
             do j = 0,ngll-1
+                wjk = wk*dom%gllw(j)
                 do i = 0,ngll-1
+                    wijk = wjk*dom%gllw(i)
                     do ee = 0, VCHUNK-1
                         e = bnum*VCHUNK+ee
                         if (e>=dom%nbelem) exit
@@ -618,6 +631,9 @@ contains
                         val = champs1%ForcesFl(idx)
                         val = val - Fo_Fl(ee,i,j,k)
                         champs1%ForcesFl(idx) = val
+                        call compute_L_convolution_terms(dom, i, j, k, bnum, ee, Phi(ee,i,j,k), R)
+                        kijk = wijk*1./dom%IDensity_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
+                        champs1%ForcesFl(idx) = champs1%ForcesFl(idx) - kijk*R
                     enddo
                 enddo
             enddo
