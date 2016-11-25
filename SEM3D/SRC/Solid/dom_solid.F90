@@ -275,8 +275,13 @@ contains
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
                     end if
-                    if (out_variables(OUT_VITESSE) == 1) fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
-                    if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs0%Forces(ind,:)
+                end do
+            end do
+        end do
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    ind = dom%Idom_(i,j,k,bnum,ee)
                     if (flag_gradU) then
                         invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
                         call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
@@ -287,6 +292,8 @@ contains
                              invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                         divU = DXX+DYY+DZZ
                     end if
+                    if (out_variables(OUT_VITESSE) == 1) fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
+                    if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs0%Forces(ind,:)
                     if (flag_gradU .and. .not. nl_flag) then
                         ! PRESSION
                         if (out_variables(OUT_PRESSION) == 1) then
