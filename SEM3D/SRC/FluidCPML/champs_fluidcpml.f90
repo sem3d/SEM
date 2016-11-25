@@ -42,6 +42,21 @@ module champs_fluidpml
         ! Copy of node global coords : mandatory to compute distances in the PML
         real(fpp), allocatable, dimension(:,:) :: GlobCoord
 
+        ! We keep separate variables for the cases where we have 1, 2 or 3 attenuation directions
+        ! since we always have at least one, xxx_0 are indexed by ee,bnum
+        real(fpp), allocatable, dimension(:,:,:,:,:) :: Alpha_0, dxi_k_0, Kappa_0 ! dxi_k = dxi/kappa
+        ! for the other two cases we have much less elements (12*N and 8 in case of cube NxNxN)
+        ! so we maintain two separate indirection indices I1/I2
+        ! I1 = -1 means we have only one dir, I1>=0 and I2==-1 we have two directions, 3 otherwise
+        ! D0 : index of first direction with pml!=0
+        ! D1 : index of second direction with pml!=0
+        ! There is no D2 because with 3 dirs!=0 we have D0=0 D1=1 D2=2
+        integer,   allocatable, dimension(:,:) :: I1, I2, D0, D1 ! ee, bnum
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_1, Kappa_1, dxi_k_1
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_2, Kappa_2, dxi_k_2
+        ! the number of elements with 2 (resp. 3) attenuation direction
+        integer :: dir1_count, dir2_count
+
         ! CPML parameters
         real(fpp) :: cpml_c
         real(fpp) :: cpml_n
