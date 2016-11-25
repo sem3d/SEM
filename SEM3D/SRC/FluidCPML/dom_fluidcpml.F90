@@ -659,24 +659,43 @@ contains
         type(domain_fluidpml), intent (INOUT) :: dom
         type(domain)                          :: TDomain
         !
+        integer :: n, indpml, indflu
+
+        ! Reset forces
+        dom%champs1%ForcesFl = 0d0
+
+        ! Coupling at solid PML interface
+        do n = 0,Tdomain%intFluPml%surf0%nbtot-1
+            indflu = Tdomain%intFluPml%surf0%map(n)
+            indpml = Tdomain%intFluPml%surf1%map(n)
+            dom%champs0%VelPhi(indpml) = Tdomain%fdom%champs0%VelPhi(indflu)
+            dom%champs0%Phi(indpml) = Tdomain%fdom%champs0%Phi(indflu)
+        enddo
+
+        ! The prediction will be based on the current state
         dom%champs1%VelPhi = dom%champs0%VelPhi
         dom%champs1%Phi    = dom%champs0%Phi
-        dom%champs1%ForcesFl = 0d0
     end subroutine newmark_predictor_fluidpml
 
     subroutine newmark_corrector_fluidpml(dom, dt)
         type(domain_fluidpml), intent (INOUT) :: dom
         double precision :: dt
         !
-        integer  :: n,  indpml
+        integer :: n, indpml
 
-        dom%champs0%ForcesFl = dom%champs1%ForcesFl * dom%MassMat
+        dom%champs0%ForcesFl = (- dom%DumpMat*dom%champs0%VelPhi - dom%MasUMat*dom%champs0%Phi &
+                                + dom%champs1%ForcesFl) * dom%MassMat
         dom%champs0%VelPhi = (dom%champs0%VelPhi + dt * dom%champs0%ForcesFl)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%VelPhi(indpml) = 0.
+            dom%champs0%VelPhi(indpml) = 0. ! Apply (dirichlet) BC for PML
         enddo
+
         dom%champs0%Phi = dom%champs0%Phi + dt * dom%champs0%VelPhi
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%Phi = 0. ! Apply (dirichlet) BC for PML
+        enddo
     end subroutine newmark_corrector_fluidpml
 
     function fluidpml_Pspeed(dom, lnum, i, j, k) result(Pspeed)
