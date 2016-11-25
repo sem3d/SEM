@@ -16,7 +16,6 @@ module champs_fluidpml
         real(fpp), dimension(:,:), allocatable   :: fpml_Forces
         real(fpp), dimension(:,:), allocatable   :: fpml_Phi
         real(fpp), dimension(:,:), allocatable   :: fpml_VelPhi
-        real(fpp), dimension(:,:,:), allocatable :: fpml_DumpV
 
     end type champsfluidpml
 
@@ -24,13 +23,13 @@ module champs_fluidpml
         ! D'abord, les données membres qui ne sont pas modifiées
 
         real(fpp), dimension(:,:), allocatable :: DumpMass
+        real(fpp), dimension(:,:,:), allocatable :: DumpV
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Density
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champsfluidpml) :: champs0
-        type(champsfluidpml) :: champs1
+        type(champsfluidpml), dimension(0:1) :: champs
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLVeloc
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSx
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSy

@@ -49,8 +49,7 @@ module champs_solid
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champssolid) :: champs0
-        type(champssolid) :: champs1
+        type(champssolid), dimension(0:1) :: champs
         ! Attenuation
         integer :: n_sls
         real(fpp) :: dt

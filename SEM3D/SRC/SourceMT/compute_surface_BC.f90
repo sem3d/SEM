@@ -20,12 +20,13 @@ module surface_load
 contains
     !-------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------
-    subroutine add_surface_force(Tdomain)
+    subroutine add_surface_force(Tdomain, f0, f1)
         use sdomain
         use constants
 
         implicit none
         type(domain), intent(inout)  :: Tdomain
+        integer, intent(in) :: f0, f1
         integer                      :: n, n1, n2, n3, n4, ns
         character(len=30 )           :: char
 
@@ -39,11 +40,11 @@ contains
                         if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(:len_trim(char)))) then
                             select case (Tdomain%sSurfaces(n)%domain)
                             case(DM_SOLID)
-                                call surface_force(Tdomain%sSurfaces(n)%surf_sl, Tdomain%nsurfsource(n2), &
-                                    Tdomain%sSurfaces(n),Tdomain)
+                                call surface_force(f0, f1, Tdomain%sSurfaces(n)%surf_sl, &
+                                    Tdomain%nsurfsource(n2), Tdomain%sSurfaces(n),Tdomain)
                             case(DM_FLUID)
-                                call surface_force(Tdomain%sSurfaces(n)%surf_fl, Tdomain%nsurfsource(n2), &
-                                    Tdomain%sSurfaces(n),Tdomain)
+                                call surface_force(f0, f1, Tdomain%sSurfaces(n)%surf_fl, &
+                                    Tdomain%nsurfsource(n2), Tdomain%sSurfaces(n),Tdomain)
                             case(DM_SOLID_PML,DM_FLUID_PML)
                                 stop "Neumann condition should not be used on PML surface"
                             end select
@@ -66,8 +67,9 @@ contains
                             select case (Tdomain%sSurfaces(n)%domain)
                             case(DM_SOLID)
                                 Tdomain%sdom%PlaneW%Exist = .true.
-                                call surface_force(Tdomain%sSurfaces(n)%surf_sl, Tdomain%nsurfsource(n2), &
-                                    Tdomain%sSurfaces(n),Tdomain,Tdomain%sdom%champs0%Veloc)
+                                call surface_force(f0, f1, Tdomain%sSurfaces(n)%surf_sl, &
+                                    Tdomain%nsurfsource(n2), Tdomain%sSurfaces(n), &
+                                    Tdomain, Tdomain%sdom%champs(f0)%Veloc)
                             case(DM_SOLID_PML,DM_FLUID_PML,DM_FLUID)
                                 stop "Plane wave problem is implemented only for solid domains"
                             endselect
@@ -137,13 +139,14 @@ contains
     end subroutine get_surf_gll_coord
     !-------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------
-    subroutine surface_force(surf, surf_source, surf_norm, Tdomain, veloc_field)
+    subroutine surface_force(f0, f1, surf, surf_source, surf_norm, Tdomain, veloc_field)
         use sdomain
         use sinterface
         use ssurf
         use constants
 
         implicit none
+        integer, intent(in) :: f0, f1
         type(surf_num),     intent(in)   :: surf
         type(SurfaceParam), intent(in)   :: surf_source
         type(SurfaceT),     intent(in)   :: surf_norm
@@ -176,7 +179,7 @@ contains
 
             select case (surf_norm%domain)
             case (DM_SOLID)
-                Tdomain%sdom%champs1%Forces(idx,:) = Tdomain%sdom%champs1%Forces(idx,:) + force
+                Tdomain%sdom%champs(f1)%Forces(idx,:) = Tdomain%sdom%champs(f1)%Forces(idx,:) + force
             case (DM_FLUID)
 
             case default

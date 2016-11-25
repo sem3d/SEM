@@ -11,6 +11,20 @@ module dom_solid
 
 contains
 
+    subroutine allocate_champs_solid(dom, i)
+        type(domain_solid), intent (INOUT) :: dom
+        integer, intent(in) :: i
+
+        ! Allocate ONE more gll than necessary to use as a dummy target for
+        ! indirections for fake elements.
+        allocate(dom%champs(i)%Forces(0:dom%nglltot,0:2))
+        allocate(dom%champs(i)%Depla (0:dom%nglltot,0:2))
+        allocate(dom%champs(i)%Veloc (0:dom%nglltot,0:2))
+
+        dom%champs(i)%Forces = 0d0
+        dom%champs(i)%Depla = 0d0
+        dom%champs(i)%Veloc = 0d0
+    end subroutine allocate_champs_solid
     subroutine allocate_dom_solid (Tdomain, dom)
         use sdomain
         use gll3d
@@ -114,18 +128,8 @@ contains
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les solides
         if (dom%nglltot /= 0) then
-            ! Allocate ONE more gll than necessary to use as a dummy target for
-            ! indirections for fake elements.
-            allocate(dom%champs0%Forces(0:dom%nglltot,0:2))
-            allocate(dom%champs0%Depla (0:dom%nglltot,0:2))
-            allocate(dom%champs0%Veloc (0:dom%nglltot,0:2))
-            allocate(dom%champs1%Forces(0:dom%nglltot,0:2))
-            allocate(dom%champs1%Depla (0:dom%nglltot,0:2))
-            allocate(dom%champs1%Veloc (0:dom%nglltot,0:2))
-
-            dom%champs0%Forces = 0d0
-            dom%champs0%Depla = 0d0
-            dom%champs0%Veloc = 0d0
+            call allocate_champs_solid(dom, 0)
+            call allocate_champs_solid(dom, 1)
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid
@@ -134,6 +138,7 @@ contains
         implicit none
         type(domain_solid), intent (INOUT) :: dom
         logical, intent(in) :: nl_flag
+        integer :: i
 
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
@@ -159,13 +164,11 @@ contains
         if(allocated(dom%m_R_xz           )) deallocate (dom%m_R_xz           )
         if(allocated(dom%m_R_yz           )) deallocate (dom%m_R_yz           )
 
-        if(allocated(dom%champs0%Forces)) deallocate(dom%champs0%Forces)
-        if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
-        if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
-        if(allocated(dom%champs1%Forces)) deallocate(dom%champs1%Forces)
-        if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
-        if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
-
+        do i=0,1
+            if(allocated(dom%champs(i)%Forces)) deallocate(dom%champs(i)%Forces)
+            if(allocated(dom%champs(i)%Depla )) deallocate(dom%champs(i)%Depla )
+            if(allocated(dom%champs(i)%Veloc )) deallocate(dom%champs(i)%Veloc )
+        end do
         ! nonlinear parameters TODO
         if (nl_flag) then
             if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
@@ -273,7 +276,7 @@ contains
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                        fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
+                        fieldU(i,j,k,:) = dom%champs(0)%Depla(ind,:)
                     end if
                 end do
             end do
@@ -292,8 +295,8 @@ contains
                              invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                         divU = DXX+DYY+DZZ
                     end if
-                    if (out_variables(OUT_VITESSE) == 1) fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
-                    if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs0%Forces(ind,:)
+                    if (out_variables(OUT_VITESSE) == 1) fieldV(i,j,k,:) = dom%champs(0)%Veloc(ind,:)
+                    if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs(0)%Forces(ind,:)
                     if (flag_gradU .and. .not. nl_flag) then
                         ! PRESSION
                         if (out_variables(OUT_PRESSION) == 1) then
@@ -488,8 +491,8 @@ contains
             do j=0,ngll-1
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
-                    fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
-                    fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
+                    fieldU(i,j,k,:) = dom%champs(0)%Depla(ind,:)
+                    fieldV(i,j,k,:) = dom%champs(0)%Veloc(ind,:)
                 enddo
             enddo
         enddo
@@ -721,7 +724,8 @@ contains
         enddo
     end subroutine forces_int_solid
 
-    subroutine compute_planeW_Exafield(lnum,ctime,Tdomain)
+    ! XXX WTF?
+    subroutine compute_planeW_Exafield(lnum,ctime,Tdomain,f)
         use sdomain
         use Surface_prbl_type
 
@@ -729,6 +733,8 @@ contains
         type(domain),               intent(inout) :: Tdomain
         real(kind=8),               intent(in  )  :: ctime
         integer,                    intent(in   ) :: lnum
+        integer,                    intent(in)    :: f
+        !
         real(kind=8), dimension(0:2):: coord, displ, veloc, accel
         real(kind=8)                :: PWspeed
         character(len=20)           :: char
@@ -739,63 +745,65 @@ contains
         ee = mod(lnum,VCHUNK)
 
         do ns=1,size(Tdomain%list_PWBC)
-           ipw     = Tdomain%list_PWBC(ns)
-           im      = Tdomain%nsurfsource(ipw)%mat_index
-           dom     = Tdomain%sSubDomain(im)%dom
-           ngll     = Tdomain%sSubDomain(im)%NGLL
-           write(char,*) Tdomain%nsurfsource(ipw)%index(1)
+            ipw     = Tdomain%list_PWBC(ns)
+            im      = Tdomain%nsurfsource(ipw)%mat_index
+            dom     = Tdomain%sSubDomain(im)%dom
+            ngll     = Tdomain%sSubDomain(im)%NGLL
+            write(char,*) Tdomain%nsurfsource(ipw)%index(1)
 
-           do ss=0,size(Tdomain%sSurfaces)-1
-              if (Tdomain%sSurfaces(ss)%name=="surface"//adjustl(char(:len_trim(char)))) &
-                  exit
-           end do
-           PWspeed = Tdomain%sSurfaces(ss)%Elastic%PWspeed
-           select case (dom)
-                  case (DM_SOLID)
-                       ngll     = Tdomain%sdom%ngll
-                       do k=0,ngll-1
-                          do j=0,ngll-1
-                             do i=0,ngll-1
-                                ind = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
-                                coord = Tdomain%GlobCoord(:,ind)-Tdomain%nsurfsource(ipw)%scoord(:)
-                                call PlaneWavedispl(Tdomain%nsurfsource(ipw),coord,ctime,PWspeed, displ,veloc,accel)
-                               if (allocated(Tdomain%sdom%champs0%Depla))  Tdomain%sdom%champs0%Depla(ind,:)  = Tdomain%sdom%champs0%Depla(ind,:) + displ
-                               if (allocated(Tdomain%sdom%champs0%Veloc))  Tdomain%sdom%champs0%Veloc(ind,:)  = Tdomain%sdom%champs0%Veloc(ind,:) + veloc
-                               if (allocated(Tdomain%sdom%champs0%Forces)) Tdomain%sdom%champs0%Forces(ind,:) = Tdomain%sdom%champs0%Forces(ind,:) + accel
-                             enddo
-                          enddo
-                       enddo
-                   case(DM_FLUID)
-                      ! pas encore implémenté
-           end select
+            do ss=0,size(Tdomain%sSurfaces)-1
+                if (Tdomain%sSurfaces(ss)%name=="surface"//adjustl(char(:len_trim(char)))) &
+                    exit
+            end do
+            PWspeed = Tdomain%sSurfaces(ss)%Elastic%PWspeed
+            select case (dom)
+            case (DM_SOLID)
+                ngll     = Tdomain%sdom%ngll
+                do k=0,ngll-1
+                    do j=0,ngll-1
+                        do i=0,ngll-1
+                            ind = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
+                            coord = Tdomain%GlobCoord(:,ind)-Tdomain%nsurfsource(ipw)%scoord(:)
+                            call PlaneWavedispl(Tdomain%nsurfsource(ipw),coord,ctime,PWspeed, displ,veloc,accel)
+                            Tdomain%sdom%champs(f)%Depla(ind,:)  = Tdomain%sdom%champs(f)%Depla(ind,:) + displ
+                            Tdomain%sdom%champs(f)%Veloc(ind,:)  = Tdomain%sdom%champs(f)%Veloc(ind,:) + veloc
+                            Tdomain%sdom%champs(f)%Forces(ind,:) = Tdomain%sdom%champs(f)%Forces(ind,:) + accel
+                        enddo
+                    enddo
+                enddo
+            case(DM_FLUID)
+                ! pas encore implémenté
+            end select
         enddo
 
     end subroutine compute_planeW_Exafield
 
-    subroutine newmark_predictor_solid(dom)
+    subroutine newmark_predictor_solid(dom, f0, f1)
         type(domain_solid), intent (INOUT) :: dom
+        integer :: f0, f1
         !
-        dom%champs1%Depla = dom%champs0%Depla
-        dom%champs1%Veloc = dom%champs0%Veloc
-        dom%champs1%Forces = 0d0
+        dom%champs(f1)%Depla = dom%champs(f0)%Depla
+        dom%champs(f1)%Veloc = dom%champs(f0)%Veloc
+        dom%champs(f1)%Forces = 0d0
     end subroutine newmark_predictor_solid
 
-    subroutine newmark_corrector_solid(dom, dt)
+    subroutine newmark_corrector_solid(dom, dt, f0, f1)
         type(domain_solid), intent (INOUT) :: dom
-        double precision :: dt
+        real(fpp):: dt
+        integer, intent(in) :: f0, f1
         !
         integer :: i_dir, n, indpml
         do i_dir = 0,2
             do n = 0,dom%nglltot-1
-                dom%champs0%Forces(n,i_dir) = dom%champs1%Forces(n,i_dir) * dom%MassMat(n)
-                dom%champs0%Veloc(n,i_dir) = dom%champs0%Veloc(n,i_dir) + dt * dom%champs0%Forces(n,i_dir)
+                dom%champs(f0)%Forces(n,i_dir) = dom%champs(f1)%Forces(n,i_dir) * dom%MassMat(n)
+                dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f0)%Forces(n,i_dir)
             end do
         enddo
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%Veloc(indpml,:) = 0.
+            dom%champs(f0)%Veloc(indpml,:) = 0.
         enddo
-        dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
+        dom%champs(f0)%Depla = dom%champs(f0)%Depla + dt * dom%champs(f0)%Veloc
     end subroutine newmark_corrector_solid
 
     function solid_Pspeed(dom, lnum, i, j, k) result(Pspeed)

@@ -14,6 +14,18 @@ module dom_fluid
 
 contains
 
+    subroutine allocate_champs_fluid(dom, i)
+        type(domain_fluid), intent (INOUT) :: dom
+        integer, intent(in) :: i
+        allocate(dom%champs(i)%ForcesFl(0:dom%nglltot-1))
+        allocate(dom%champs(i)%Phi     (0:dom%nglltot-1))
+        allocate(dom%champs(i)%VelPhi  (0:dom%nglltot-1))
+
+        dom%champs(i)%ForcesFl = 0d0
+        dom%champs(i)%Phi = 0d0
+        dom%champs(i)%VelPhi = 0d0
+    end subroutine allocate_champs_fluid
+
     subroutine allocate_dom_fluid (Tdomain, dom)
         use gll3d
         implicit none
@@ -40,16 +52,8 @@ contains
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs0%ForcesFl(0:dom%nglltot-1))
-            allocate(dom%champs0%Phi     (0:dom%nglltot-1))
-            allocate(dom%champs0%VelPhi  (0:dom%nglltot-1))
-            allocate(dom%champs1%ForcesFl(0:dom%nglltot-1))
-            allocate(dom%champs1%Phi     (0:dom%nglltot-1))
-            allocate(dom%champs1%VelPhi  (0:dom%nglltot-1))
-
-            dom%champs0%ForcesFl = 0d0
-            dom%champs0%Phi = 0d0
-            dom%champs0%VelPhi = 0d0
+            call allocate_champs_fluid(dom, 0)
+            call allocate_champs_fluid(dom, 1)
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - fluid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluid
@@ -57,17 +61,16 @@ contains
     subroutine deallocate_dom_fluid (dom)
         implicit none
         type(domain_fluid), intent (INOUT) :: dom
-
+        !
+        integer :: i
         if(allocated(dom%m_IDensity)) deallocate(dom%m_IDensity)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
 
-        if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
-        if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
-        if(allocated(dom%champs0%VelPhi  )) deallocate(dom%champs0%VelPhi  )
-        if(allocated(dom%champs1%ForcesFl)) deallocate(dom%champs1%ForcesFl)
-        if(allocated(dom%champs1%Phi     )) deallocate(dom%champs1%Phi     )
-        if(allocated(dom%champs1%VelPhi  )) deallocate(dom%champs1%VelPhi  )
-
+        do i=0,1
+            if(allocated(dom%champs(i)%ForcesFl)) deallocate(dom%champs(i)%ForcesFl)
+            if(allocated(dom%champs(i)%Phi     )) deallocate(dom%champs(i)%Phi     )
+            if(allocated(dom%champs(i)%VelPhi  )) deallocate(dom%champs(i)%VelPhi  )
+        end do
         call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluid
 
@@ -130,7 +133,7 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        phi(i,j,k) = dom%champs0%Phi(ind)
+                        phi(i,j,k) = dom%champs(0)%Phi(ind)
                     enddo
                 enddo
             enddo
@@ -145,7 +148,7 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        vphi(i,j,k) = dom%champs0%VelPhi(ind)
+                        vphi(i,j,k) = dom%champs(0)%VelPhi(ind)
                     enddo
                 enddo
             enddo
@@ -159,7 +162,7 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
+                        fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
                     enddo
                 enddo
             enddo
@@ -250,10 +253,10 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluid
 
-    subroutine forces_int_fluid(dom, champs1, bnum)
+    subroutine forces_int_fluid(dom, field, bnum)
         use m_calcul_forces_fluid
         type(domain_fluid), intent (INOUT) :: dom
-        type(champsfluid), intent(inout) :: champs1
+        type(champsfluid), intent(inout) :: field
         integer, intent(in) :: bnum
         !
         integer :: ngll,i,j,k,e,ee,idx
@@ -270,7 +273,7 @@ contains
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        Phi(ee,i,j,k) = champs1%Phi(idx)
+                        Phi(ee,i,j,k) = field%Phi(idx)
                         Fo_Fl(ee,i,j,k) = 0d0
                     enddo
                 enddo
@@ -285,36 +288,38 @@ contains
                     do ee = 0, VCHUNK-1
                         e = bnum*VCHUNK+ee
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        val = champs1%ForcesFl(idx)
+                        val = field%ForcesFl(idx)
                         val = val - Fo_Fl(ee,i,j,k)
-                        champs1%ForcesFl(idx) = val
+                        field%ForcesFl(idx) = val
                     enddo
                 enddo
             enddo
         enddo
     end subroutine forces_int_fluid
 
-    subroutine newmark_predictor_fluid(dom)
+    subroutine newmark_predictor_fluid(dom, f0, f1)
         type(domain_fluid), intent (INOUT) :: dom
+        integer, intent(in) :: f0, f1
         !
-        dom%champs1%VelPhi = dom%champs0%VelPhi
-        dom%champs1%Phi    = dom%champs0%Phi
-        dom%champs1%ForcesFl = 0d0
+        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
+        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
+        dom%champs(f1)%ForcesFl = 0d0
     end subroutine newmark_predictor_fluid
 
-    subroutine newmark_corrector_fluid(dom, dt)
+    subroutine newmark_corrector_fluid(dom, dt, f0, f1)
         type(domain_fluid), intent (INOUT) :: dom
-        double precision :: dt
+        real(fpp), intent(in) :: dt
+        integer, intent(in) :: f0, f1
         !
         integer  :: n,  indpml
 
-        dom%champs0%ForcesFl = dom%champs1%ForcesFl * dom%MassMat
-        dom%champs0%VelPhi = (dom%champs0%VelPhi + dt * dom%champs0%ForcesFl)
+        dom%champs(f0)%ForcesFl = dom%champs(f1)%ForcesFl * dom%MassMat
+        dom%champs(f0)%VelPhi = (dom%champs(f0)%VelPhi + dt * dom%champs(f0)%ForcesFl)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%VelPhi(indpml) = 0.
+            dom%champs(f0)%VelPhi(indpml) = 0.
         enddo
-        dom%champs0%Phi = dom%champs0%Phi + dt * dom%champs0%VelPhi
+        dom%champs(f0)%Phi = dom%champs(f0)%Phi + dt * dom%champs(f0)%VelPhi
     end subroutine newmark_corrector_fluid
 
     function fluid_Pspeed(dom, lnum, i, j, k) result(Pspeed)

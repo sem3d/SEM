@@ -915,8 +915,8 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     call write_attr_int(fid, "isort", isort)
 
     if (Tdomain%sdom%nglltot.gt.0) then
-        call write_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs0%Veloc)
-        call write_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs0%Depla)
+        call write_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs(0)%Veloc)
+        call write_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs(0)%Depla)
         ! nonlinear
         if (Tdomain%nl_flag) then
             call write_Stress_nl(Tdomain,offset(9),elem_id)
@@ -927,21 +927,21 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
         endif
     end if
     if (Tdomain%fdom%nglltot.gt.0) then
-        call write_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs0%VelPhi)
-        call write_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs0%Phi)
+        call write_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs(0)%VelPhi)
+        call write_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs(0)%Phi)
     end if
     if (Tdomain%spmldom%nglltot.gt.0) then
 #ifdef CPML
-        call write_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%Veloc)
+        call write_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs(0)%Veloc)
 #else
-        call write_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%VelocPML)
+        call write_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs(0)%VelocPML)
 #endif
     end if
     if (Tdomain%fpmldom%nglltot.gt.0) then
 #ifdef CPML
-        call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%VelPhi)
+        call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs(0)%VelPhi)
 #else
-        call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi)
+        call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs(0)%fpml_VelPhi)
 #endif
         call write_Veloc_Fluid_PML(Tdomain, offset(12), elem_id)
     end if

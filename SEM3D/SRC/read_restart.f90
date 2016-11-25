@@ -455,8 +455,8 @@ subroutine read_restart (Tdomain,rg, isort)
     endif
 
     if (Tdomain%sdom%nglltot.gt.0) then
-        call read_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs0%Veloc, ibase=0)
-        call read_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs0%Depla, ibase=0)
+        call read_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs(0)%Veloc, ibase=0)
+        call read_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs(0)%Depla, ibase=0)
         if (Tdomain%nl_flag) then
             call read_Stress_nl(Tdomain, elem_id)
             call read_Strain_nl(Tdomain, elem_id)
@@ -466,21 +466,21 @@ subroutine read_restart (Tdomain,rg, isort)
         endif
     end if
     if (Tdomain%fdom%nglltot.gt.0) then
-        call read_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs0%VelPhi, ibase=0)
-        call read_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs0%Phi, ibase=0)
+        call read_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs(0)%VelPhi, ibase=0)
+        call read_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs(0)%Phi, ibase=0)
     end if
     if (Tdomain%spmldom%nglltot.gt.0) then
 #ifdef CPML
-        call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%Veloc,    ibase=0)
+        call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs(0)%Veloc,    ibase=0)
 #else
-        call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%VelocPML, ibase=0)
+        call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs(0)%VelocPML, ibase=0)
 #endif
     end if
     if (Tdomain%fpmldom%nglltot.gt.0) then
 #ifdef CPML
-        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%VelPhi, ibase=0)
+        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs(0)%VelPhi, ibase=0)
 #else
-        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi, ibase=0)
+        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs(0)%fpml_VelPhi, ibase=0)
 #endif
         call read_Veloc_Fluid_PML(Tdomain, elem_id)
     end if

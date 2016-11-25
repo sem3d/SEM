@@ -16,11 +16,23 @@ module dom_fluidpml
 
 contains
 
+    subroutine allocate_champs_fluidpml(dom, i)
+        type(domain_fluidpml), intent(inout) :: dom
+        integer, intent(in) :: i
+
+        allocate(dom%champs(i)%fpml_VelPhi(0:dom%nglltot,0:2))
+        allocate(dom%champs(i)%fpml_Phi   (0:dom%nglltot,0:2))
+        allocate(dom%champs(i)%fpml_Forces(0:dom%nglltot,0:2))
+        dom%champs(i)%fpml_VelPhi = 0d0
+        dom%champs(i)%fpml_Phi = 0d0
+        dom%champs(i)%fpml_Forces = 0d0
+    end subroutine allocate_champs_fluidpml
+
     subroutine allocate_dom_fluidpml (Tdomain, dom)
         use gll3d
         implicit none
-        type(domain) :: TDomain
-        type(domain_fluidpml) :: dom
+        type(domain), intent(inout) :: TDomain
+        type(domain_fluidpml), intent(inout) :: dom
         !
         integer :: nbelem, ngll, nblocks
         !
@@ -55,18 +67,13 @@ contains
 
         ! Allocation et initialisation de champs0 pour les PML fluides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs1%fpml_Forces(0:dom%nglltot,0:2))
-            allocate(dom%champs0%fpml_VelPhi(0:dom%nglltot,0:2))
-            allocate(dom%champs0%fpml_Phi   (0:dom%nglltot,0:2))
-            allocate(dom%champs1%fpml_VelPhi(0:dom%nglltot,0:2))
-            allocate(dom%champs0%fpml_DumpV (0:dom%nglltot,0:1,0:2))
-            dom%champs1%fpml_Forces = 0d0
-            dom%champs0%fpml_VelPhi = 0d0
-            dom%champs0%fpml_Phi = 0d0
-            dom%champs0%fpml_DumpV = 0d0
-
+            call allocate_champs_fluidpml(dom, 0)
+            call allocate_champs_fluidpml(dom, 1)
+            allocate(dom%DumpV (0:dom%nglltot,0:1,0:2))
             allocate(dom%DumpMass(0:dom%nglltot,0:2))
+            dom%DumpV = 0d0
             dom%DumpMass = 0d0
+            dom%DumpV(dom%nglltot,1,:) = 1d0
             dom%DumpMass(dom%nglltot,:) = 1d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - fluid pml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
@@ -75,6 +82,8 @@ contains
     subroutine deallocate_dom_fluidpml (dom)
         implicit none
         type(domain_fluidpml) :: dom
+        !
+        integer :: i
 
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
@@ -84,14 +93,13 @@ contains
         if(allocated(dom%m_PMLDumpSy)) deallocate(dom%m_PMLDumpSy)
         if(allocated(dom%m_PMLDumpSz)) deallocate(dom%m_PMLDumpSz)
 
-        if(allocated(dom%champs1%fpml_Forces)) deallocate(dom%champs1%fpml_Forces)
-        if(allocated(dom%champs0%fpml_VelPhi)) deallocate(dom%champs0%fpml_VelPhi)
-        if(allocated(dom%champs0%fpml_Phi   )) deallocate(dom%champs0%fpml_Phi   )
-        if(allocated(dom%champs1%fpml_VelPhi)) deallocate(dom%champs1%fpml_VelPhi)
-        if(allocated(dom%champs0%fpml_DumpV )) deallocate(dom%champs0%fpml_DumpV )
-
+        do i=0,1
+            if(allocated(dom%champs(i)%fpml_VelPhi)) deallocate(dom%champs(i)%fpml_VelPhi)
+            if(allocated(dom%champs(i)%fpml_Phi   )) deallocate(dom%champs(i)%fpml_Phi   )
+        end do
 
         if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
+        if(allocated(dom%DumpV )) deallocate(dom%DumpV )
 
         call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluidpml
@@ -459,12 +467,13 @@ contains
       type (domain), intent (INOUT), target :: Tdomain
       type (domain_fluidpml), intent (INOUT), target :: dom
       !
-      call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%fpml_DumpV)
+      call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%DumpV)
     end subroutine finalize_fluidpml_properties
 
-    subroutine newmark_predictor_fluidpml(dom, Tdomain)
+    subroutine newmark_predictor_fluidpml(dom, Tdomain, i0, i1)
         type(domain_fluidpml), intent (INOUT) :: dom
         type(domain), intent(inout)   :: Tdomain
+        integer, intent(in) :: i0, i1
         !
         integer :: n, indpml, indflu
         real :: bega, dt
@@ -472,35 +481,37 @@ contains
         bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
         dt = Tdomain%TimeD%dtmin
 
-        dom%champs1%fpml_Forces = 0.
+        dom%champs(i1)%fpml_Forces = 0.
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             ! Couplage à l'interface fluide / PML
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)
-            dom%champs0%fpml_VelPhi(indpml,0) = Tdomain%fdom%champs0%VelPhi(indflu)
-            dom%champs0%fpml_VelPhi(indpml,1) = 0.
-            dom%champs0%fpml_VelPhi(indpml,2) = 0.
+            dom%champs(i0)%fpml_VelPhi(indpml,0) = Tdomain%fdom%champs(i0)%VelPhi(indflu)
+            dom%champs(i0)%fpml_VelPhi(indpml,1) = 0.
+            dom%champs(i0)%fpml_VelPhi(indpml,2) = 0.
         enddo
         ! Prediction
-        dom%champs1%fpml_Velphi = dom%champs0%fpml_VelPhi + dt*(0.5-bega)*dom%champs1%fpml_Forces
+        dom%champs(i1)%fpml_Velphi = dom%champs(i0)%fpml_VelPhi + dt*(0.5-bega)*dom%champs(i1)%fpml_Forces
     end subroutine newmark_predictor_fluidpml
 
-    subroutine newmark_corrector_fluidpml(dom, dt)
+    subroutine newmark_corrector_fluidpml(dom, dt, i0, i1)
         type(domain_fluidpml), intent (INOUT) :: dom
-        double precision :: dt
+        real(fpp), intent(in) :: dt
+        integer, intent(in) :: i0, i1
         !
         integer  :: n,  indpml
 
-        dom%champs0%fpml_VelPhi(:,:) = dom%champs0%fpml_DumpV(:,0,:) * dom%champs0%fpml_VelPhi(:,:) + &
-                                       dt * dom%champs0%fpml_DumpV(:,1,:) * dom%champs1%fpml_Forces(:,:)
+        dom%champs(i0)%fpml_VelPhi(:,:) = dom%DumpV(:,0,:) * dom%champs(i0)%fpml_VelPhi(:,:) + &
+                                       dt * dom%DumpV(:,1,:) * dom%champs(i1)%fpml_Forces(:,:)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%fpml_VelPhi(indpml,0) = 0.
-            dom%champs0%fpml_VelPhi(indpml,1) = 0.
-            dom%champs0%fpml_VelPhi(indpml,2) = 0.
+            dom%champs(i0)%fpml_VelPhi(indpml,0) = 0.
+            dom%champs(i0)%fpml_VelPhi(indpml,1) = 0.
+            dom%champs(i0)%fpml_VelPhi(indpml,2) = 0.
         enddo
-        dom%champs0%fpml_Phi = dom%champs0%fpml_Phi + dt*dom%champs0%fpml_VelPhi
+        dom%champs(i0)%fpml_Phi = dom%champs(i0)%fpml_Phi + dt*dom%champs(i0)%fpml_VelPhi
     end subroutine newmark_corrector_fluidpml
+
     function fluidpml_Pspeed(dom, lnum, i, j, k) result(Pspeed)
         type(domain_fluidpml), intent (IN) :: dom
         integer, intent(in) :: lnum, i, j, k
