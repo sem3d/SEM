@@ -21,6 +21,20 @@ module dom_solidpml
 
 contains
 
+    subroutine allocate_champs_solidcpml(dom, i)
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: i
+
+        ! Allocate ONE more gll than necessary to use as a dummy target for
+        ! indirections for fake elements.
+        allocate(dom%champs(i)%Forces(0:dom%nglltot-1,0:2))
+        allocate(dom%champs(i)%Depla (0:dom%nglltot-1,0:2))
+        allocate(dom%champs(i)%Veloc (0:dom%nglltot-1,0:2))
+        dom%champs(i)%Depla  = 0d0
+        dom%champs(i)%Veloc  = 0d0
+        dom%champs(i)%Forces = 0d0
+    end subroutine allocate_champs_solidcpml
+
     subroutine allocate_multi_dir_pml(Tdomain, dom)
         use gll3d
         implicit none
@@ -124,18 +138,8 @@ contains
 
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs0%Forces(0:dom%nglltot-1,0:2))
-            allocate(dom%champs0%Depla (0:dom%nglltot-1,0:2))
-            allocate(dom%champs0%Veloc (0:dom%nglltot-1,0:2))
-            allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
-            allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
-            allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
-            dom%champs0%Depla  = 0d0
-            dom%champs0%Veloc  = 0d0
-            dom%champs0%Forces = 0d0
-            dom%champs1%Depla  = 0d0
-            dom%champs1%Veloc  = 0d0
-            dom%champs1%Forces = 0d0
+            call allocate_champs_solidcpml(dom, 0)
+            call allocate_champs_solidcpml(dom, 1)
 
             ! Allocation de DumpMat pour les PML solides
             allocate(dom%DumpMat(0:dom%nglltot-1))
@@ -173,6 +177,8 @@ contains
     subroutine deallocate_dom_solidpml (dom)
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
+        !
+        integer :: i
 
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
@@ -195,12 +201,11 @@ contains
         if(allocated(dom%D0)) deallocate(dom%D0)
         if(allocated(dom%D1)) deallocate(dom%D1)
 
-        if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
-        if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
-        if(allocated(dom%champs0%Forces )) deallocate(dom%champs0%Forces )
-        if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
-        if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
-        if(allocated(dom%champs1%Forces )) deallocate(dom%champs1%Forces )
+        do i=0,1
+            if(allocated(dom%champs(i)%Depla )) deallocate(dom%champs(i)%Depla )
+            if(allocated(dom%champs(i)%Veloc )) deallocate(dom%champs(i)%Veloc )
+            if(allocated(dom%champs(i)%Forces)) deallocate(dom%champs(i)%Forces )
+        end do
 
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
         if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
@@ -256,7 +261,7 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
-                        fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
+                        fieldU(i,j,k,:) = dom%champs(0)%Depla(ind,:)
                     enddo
                 enddo
             enddo
@@ -286,12 +291,12 @@ contains
 
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
+                        fieldV(i,j,k,:) = dom%champs(0)%Veloc(ind,:)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldA(i,j,k,:) = dom%Massmat(ind) * dom%champs1%Forces(ind,:)
+                        fieldA(i,j,k,:) = dom%Massmat(ind) * dom%champs(1)%Forces(ind,:)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
@@ -798,31 +803,33 @@ contains
         end if
     end subroutine select_terms
 
-    subroutine newmark_predictor_solidpml(dom, Tdomain)
+    subroutine newmark_predictor_solidpml(dom, Tdomain, f0, f1)
         type(domain_solidpml), intent (INOUT) :: dom
         type (domain), intent (INOUT) :: Tdomain
+        integer :: f0, f1
         !
         integer :: n, indpml, indsol
 
         ! Reset forces
-        dom%champs1%Forces = 0d0
+        dom%champs(f1)%Forces = 0d0
 
         ! Coupling at solid PML interface
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            dom%champs0%Veloc(indpml,:) = Tdomain%sdom%champs0%Veloc(indsol,:)
-            dom%champs0%Depla(indpml,:) = Tdomain%sdom%champs0%Depla(indsol,:)
+            dom%champs(f0)%Veloc(indpml,:) = Tdomain%sdom%champs(f0)%Veloc(indsol,:)
+            dom%champs(f0)%Depla(indpml,:) = Tdomain%sdom%champs(f0)%Depla(indsol,:)
         enddo
 
         ! The prediction will be based on the current state
-        dom%champs1%Depla = dom%champs0%Depla
-        dom%champs1%Veloc = dom%champs0%Veloc
+        dom%champs(f1)%Depla = dom%champs(f0)%Depla
+        dom%champs(f1)%Veloc = dom%champs(f0)%Veloc
     end subroutine newmark_predictor_solidpml
 
-    subroutine newmark_corrector_solidpml(dom, dt, t)
+    subroutine newmark_corrector_solidpml(dom, dt, t, f0, f1)
         type(domain_solidpml), intent (INOUT) :: dom
         double precision :: dt, t
+        integer :: f0, f1
         !
         integer :: i_dir, n, indpml
         !
@@ -836,27 +843,27 @@ contains
         do i_dir = 0,2
             do n = 0,dom%nglltot-1
                 ! Get V = V_n+1
-                V = dom%champs0%Veloc(n,i_dir) ! V = V_n+1
+                V = dom%champs(f0)%Veloc(n,i_dir) ! V = V_n+1
 
 !                ! Estimate D = D_n+1
-!                D = dom%champs0%Depla(n,i_dir) - V*0.5*dt
+!                D = dom%champs(f0)%Depla(n,i_dir) - V*0.5*dt
 
                 ! Save forces contributions for snapshots
                 if(allocated(dom%FDump)) dom%FDump(n, i_dir) = - dom%DumpMat(n)*V
-                if(allocated(dom%FMasU)) dom%FMasU(n, i_dir) = - dom%MasUMat(n)*dom%champs0%Depla(n,i_dir)
-                if(allocated(dom%Fint))  dom%Fint (n, i_dir) =   dom%champs1%Forces(n,i_dir)
+                if(allocated(dom%FMasU)) dom%FMasU(n, i_dir) = - dom%MasUMat(n)*dom%champs(f0)%Depla(n,i_dir)
+                if(allocated(dom%Fint))  dom%Fint (n, i_dir) =   dom%champs(f1)%Forces(n,i_dir)
 
                 ! Compute F_n+1 : (61a) from Ref1 with F = -F (as we add -Fo* in forces_int_sol_pml)
                 F =    &
-                    dom%MassMat(n)*(- dom%DumpMat(n)*V - dom%MasUMat(n)*dom%champs0%Depla(n,i_dir)  &
-                    + dom%champs1%Forces(n,i_dir))
+                    dom%MassMat(n)*(- dom%DumpMat(n)*V - dom%MasUMat(n)*dom%champs(f0)%Depla(n,i_dir)  &
+                    + dom%champs(f1)%Forces(n,i_dir))
 
                 ! Compute V_n+2
                 ! since dom%MassMat = 1./dom%MassMat (define_arrays inverse_mass_mat)
-                dom%champs0%Veloc(n,i_dir) = V + dt*F
+                dom%champs(f0)%Veloc(n,i_dir) = V + dt*F
 
                 ! Update displacement: compute D_n+5/2
-                dom%champs0%Depla(n,i_dir) = dom%champs0%Depla(n,i_dir) + dt * dom%champs0%Veloc(n,i_dir)
+                dom%champs(f0)%Depla(n,i_dir) = dom%champs(f0)%Depla(n,i_dir) + dt * dom%champs(f0)%Veloc(n,i_dir)
             end do
         end do
 
@@ -866,8 +873,8 @@ contains
         ! yes we can
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%Veloc(indpml,:) = 0.
-            dom%champs0%Depla(indpml,:) = 0.
+            dom%champs(f0)%Veloc(indpml,:) = 0.
+            dom%champs(f0)%Depla(indpml,:) = 0.
         enddo
 
     end subroutine newmark_corrector_solidpml
