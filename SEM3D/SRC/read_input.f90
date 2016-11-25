@@ -378,6 +378,7 @@ contains
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
         Tdomain%TimeD%fmax                = Tdomain%config%fmax
+        Tdomain%TimeD%type_timeinteg      = Tdomain%config%type_timeinteg
         Tdomain%nl_flag = .false.
         if(Tdomain%config%nl_flag == 1) Tdomain%nl_flag = .true.
         if (rg==0) then
