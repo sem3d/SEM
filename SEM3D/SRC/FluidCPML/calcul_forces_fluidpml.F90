@@ -43,23 +43,23 @@ contains
         end select
     end subroutine calcul_forces_fluidpml
 
-    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, Unew, R)
+    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, PhiNew, R)
         use champs_fluidpml
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
-        real(fpp), intent(in), dimension(0:2) :: Unew
+        real(fpp), intent(in) :: PhiNew
         integer, intent(in) :: i, j, k, bnum, ee
         real(fpp), intent(out) :: R
         !
         real(fpp) :: a3b
-        real(fpp), dimension(0:2) :: U
+        real(fpp) :: Phi
         real(fpp) :: k0, d0, a0, dt, cf0,cf1
         integer :: n1, n2
 
         n1 = dom%I1(ee,bnum)
         n2 = dom%I2(ee,bnum)
 
-        U = 0.5d0*Unew + 0.5d0*dom%Uold(ee,:,i,j,k,bnum)
+        Phi = 0.5d0*PhiNew + 0.5d0*dom%PhiOld(ee,i,j,k,bnum)
         ! XXX valable pour ndir=1
         dt = dom%dt
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
@@ -69,15 +69,15 @@ contains
             ! Update convolution term (implicit midpoint)
             cf0 = 1d0-0.5d0*a0*dt
             cf1 = 1d0/(1d0+0.5d0*a0*dt)
-            dom%R1_0(ee,i,j,k,bnum) = (cf0*dom%R1_0(ee,i,j,k,bnum) + dt*U(0))*cf1
+            dom%R1_0(ee,i,j,k,bnum) = (cf0*dom%R1_0(ee,i,j,k,bnum) + dt*Phi)*cf1
             a3b = k0*a0*a0*d0
             R = a3b*dom%R1_0(ee,i,j,k,bnum)
         else
             R = 0d0
         end if
 
-        ! Save Uold
-        dom%Uold(ee,:,i,j,k,bnum) = Unew
+        ! Save PhiOld
+        dom%PhiOld(ee,i,j,k,bnum) = PhiNew
     end subroutine compute_L_convolution_terms
 
 #define NGLLVAL 4
