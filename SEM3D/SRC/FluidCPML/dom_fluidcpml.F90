@@ -488,7 +488,10 @@ contains
         real(kind=fpp), intent(in) :: Whei
         !
         integer :: bnum, ee
-        integer :: mi, ndir
+        real(fpp) :: k0, k1, k2, a0, a1, a2, d0, d1, d2
+        real(fpp) :: a0b, a1b, a2b
+        real(fpp) :: mass_0
+        integer :: mi, ndir, i1, i2
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
@@ -529,9 +532,51 @@ contains
             stop 1
         endif
 
+        ! gamma_ab  defined after (12c) in Ref1
+        ! gamma_abc defined after (12c) in Ref1
+        ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+        if (k0==0d0) stop 1
+        select case(ndir)
+        case (1)
+            a0b = k0
+            a1b = k0*d0
+            a2b = -k0*d0*a0
+        case (2)
+            i1 = dom%I1(ee,bnum)
+            k1 = dom%Kappa_1(i,j,k,i1)
+            a1 = dom%Alpha_1(i,j,k,i1)
+            d1 = dom%dxi_k_1(i,j,k,i1)
+            a0b = k0*k1
+            a1b = a0b*(d0+d1)
+            a2b = a0b*(d0*(d1-a0) - d1*a1)
+        case (3)
+            i1 = dom%I1(ee,bnum)
+            k1 = dom%Kappa_1(i,j,k,i1)
+            a1 = dom%Alpha_1(i,j,k,i1)
+            d1 = dom%dxi_k_1(i,j,k,i1)
+            i2 = dom%I2(ee,bnum)
+            k2 = dom%Kappa_2(i,j,k,i2)
+            a2 = dom%Alpha_2(i,j,k,i2)
+            d2 = dom%dxi_k_2(i,j,k,i2)
+            ! Delta term from L : (12a) or (14a) from Ref1
+            a0b = k0*k1*k2
+            a1b = a0b*(d0+d1+d2)
+            a2b = a0b*(d0*(d1-a0) + d1*(d2-a1) + d2*(d0-a2))
+        end select
+
         ! Fluid : inertial term ponderation by the inverse of the bulk modulus
 
-        dom%MassMat(ind) = dom%MassMat(ind) + Whei*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
+        mass_0 = Whei*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
+        ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
+        if (a0b==0d0.or.mass_0==0d0) then
+            stop 1
+        endif
+        dom%MassMat(ind) = dom%MassMat(ind) + a0b*mass_0
+        dom%DumpMat(ind) = dom%DumpMat(ind) + a1b*mass_0
+        dom%MasUMat(ind) = dom%MasUMat(ind) + a2b*mass_0
     end subroutine init_local_mass_fluidpml
 
     subroutine forces_int_fluidpml(dom, champs1, bnum)
