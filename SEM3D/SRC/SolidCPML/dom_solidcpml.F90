@@ -192,6 +192,8 @@ contains
 
         if(allocated(dom%I1)) deallocate(dom%I1)
         if(allocated(dom%I2)) deallocate(dom%I2)
+        if(allocated(dom%D0)) deallocate(dom%D0)
+        if(allocated(dom%D1)) deallocate(dom%D1)
 
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
