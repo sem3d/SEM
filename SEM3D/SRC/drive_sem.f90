@@ -420,6 +420,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use semdatafiles
     use mpi
     use msnapshots
+    use mtimestep
     use semconfig !< pour config C
     use sem_c_bindings
     use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO
@@ -486,8 +487,13 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- TIME STEPPER TO CHOSE
 !---------------------------------------------------------!
-      !- Newmark reduced to leap-frog
-        call NEWMARK(Tdomain, ntime)
+        !- Newmark reduced to leap-frog
+        select case(Tdomain%TimeD%type_timeinteg)
+        case (TIME_INTEG_NEWMARK)
+            call Newmark(Tdomain, ntime)
+        case (TIME_INTEG_RK4)
+            call Timestep_RK4(Tdomain, ntime)
+        end select
 
 !---------------------------------------------------------!
     !- logical end of run
