@@ -33,13 +33,13 @@ module pml
         !- defining parameters related to stresses and mass matrix elements, in the case of
         !    a PML, along a given splitted direction:
         integer, intent(in)  :: ngll
-        real, intent(in) :: dt
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: alpha
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: MassMat
-        real, dimension(0:1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpS
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpMass
+        real(fpp), intent(in) :: dt
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: alpha
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: MassMat
+        real(fpp), dimension(0:1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpS
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpMass
 
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1)  :: Id
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1)  :: Id
 
         Id = 1d0
 
@@ -54,9 +54,9 @@ module pml
     subroutine define_PML_DumpEnd(nglltot,Massmat,DumpMass,DumpV)
         implicit none
         integer, intent(in)   :: nglltot
-        real, dimension(0:nglltot), intent(in) :: MassMat
-        real, dimension(0:nglltot,0:2), intent(in) :: DumpMass
-        real, dimension(0:nglltot,0:1,0:2), intent(out) :: DumpV
+        real(fpp), dimension(0:nglltot), intent(in) :: MassMat
+        real(fpp), dimension(0:nglltot,0:2), intent(in) :: DumpMass
+        real(fpp), dimension(0:nglltot,0:1,0:2), intent(out) :: DumpV
 
         DumpV(:,1,:) = spread(MassMat(:),2,3) + DumpMass(:,:)
         DumpV(:,1,:) = 1d0/DumpV(:,1,:)
@@ -65,5 +65,61 @@ module pml
 
         return
     end subroutine define_PML_DumpEnd
+    !
+    subroutine cpml_compute_coefs(m, a0, dt, cf0, cf1, cf2)
+        integer, intent(in) :: m
+        real(fpp), intent(in) :: a0, dt
+        real(fpp), intent(out) :: cf0, cf1, cf2
+        select case (m)
+        case (CPML_MIDPOINT)
+            call cpml_compute_coefs_midpoint(a0,dt,cf0,cf1,cf2)
+        case (CPML_ORDER1)
+            call  cpml_compute_coefs_O1(a0,dt,cf0,cf1,cf2)
+        case (CPML_ORDER2)
+            call cpml_compute_coefs_O2(a0,dt,cf0,cf1,cf2)
+        case default
+            stop "Unknown CPML integration scheme"
+        end select
+    end subroutine cpml_compute_coefs
+    !
+    subroutine cpml_compute_coefs_midpoint(a0, dt, cf0, cf1, cf2)
+        real(fpp), intent(in) :: a0, dt
+        real(fpp), intent(out) :: cf0, cf1, cf2
+        !
+        real(fpp) :: c
+        ! Update convolution term (implicit midpoint)
+        c = (1d0+0.5d0*a0*dt)
+        cf0 = (1d0-0.5d0*a0*dt)/c
+        cf1 = dt/c
+        cf2 = 0d0
+    end subroutine cpml_compute_coefs_midpoint
+    !
+    subroutine cpml_compute_coefs_O1(a0, dt, cf0, cf1, cf2)
+        real(fpp), intent(in) :: a0, dt
+        real(fpp), intent(out) :: cf0, cf1, cf2
+        ! First order CPML
+        cf0 = exp(-a0*dt)
+        if (abs(a0)<1e-8) then
+            cf1 = dt
+        else
+            cf1 = (1d0-cf0)/a0
+        endif
+        cf2 = 0d0
+    end subroutine cpml_compute_coefs_O1
+    !
+    subroutine cpml_compute_coefs_O2(a0, dt, cf0, cf1, cf2)
+        real(fpp), intent(in) :: a0, dt
+        real(fpp), intent(out) :: cf0, cf1, cf2
+        ! First order CPML
+        cf0 = exp(-a0*dt)
+        if (abs(a0)<1e-8) then
+             cf1 = 0.5d0*dt
+             cf2 = cf1*exp(-0.5d0*a0*dt)
+         else
+             cf1 = (1d0-exp(-0.5d0*a0*dt))/a0
+             cf2 = cf1*exp(-0.5d0*a0*dt)
+         endif
+     end subroutine cpml_compute_coefs_O2
+    !
 
 end module pml

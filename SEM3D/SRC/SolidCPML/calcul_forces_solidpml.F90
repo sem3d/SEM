@@ -7,8 +7,10 @@
 
 module m_calcul_forces_solidpml
     use constants
+    use pml
     implicit none
 
+    integer, parameter :: CPML_INTEG = CPML_ORDER2
     integer, parameter :: L120_DXX= 0, L2_DYY= 1, L1_DZZ= 2
     integer, parameter :: L120_DXY= 3, L2_DYX= 4
     integer, parameter :: L120_DXZ= 5, L1_DZX= 6
@@ -59,35 +61,24 @@ contains
         real(fpp), intent(out) :: Rx, Ry, Rz
         !
         real(fpp) :: a3b
-        real(fpp), dimension(0:2) :: U
-        real(fpp) :: k0, d0, a0, dt, cf0,cf1
+        real(fpp), dimension(0:2) :: Uold
+        real(fpp) :: k0, d0, a0, dt, cf0,cf1,cf2
         integer :: n1, n2
 
         n1 = dom%I1(ee,bnum)
         n2 = dom%I2(ee,bnum)
 
-        U = 0.5d0*Unew + 0.5d0*dom%Uold(ee,:,i,j,k,bnum)
+        Uold = dom%Uold(ee,:,i,j,k,bnum)
         ! XXX valable pour ndir=1
         dt = dom%dt
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         if (n1==-1 .and. n2==-1) then
-            ! Update convolution term (implicit midpoint)
-            cf0 = 1d0-0.5d0*a0*dt
-            cf1 = 1d0/(1d0+0.5d0*a0*dt)
-            dom%R1_0(ee,0,i,j,k,bnum) = (cf0*dom%R1_0(ee,0,i,j,k,bnum) + dt*U(0))*cf1
-            dom%R1_0(ee,1,i,j,k,bnum) = (cf0*dom%R1_0(ee,1,i,j,k,bnum) + dt*U(1))*cf1
-            dom%R1_0(ee,2,i,j,k,bnum) = (cf0*dom%R1_0(ee,2,i,j,k,bnum) + dt*U(2))*cf1
-!            cf0 = exp(-a0*dt)
-!            if (abs(a0)<1e-8) then
-!                cf1 = dt
-!            else
-!                cf1 = (1d0-cf0)/a0
-!            endif
-!            dom%R1_0(ee,0,i,j,k,bnum) = cf0*dom%R1_0(ee,0,i,j,k,bnum) + cf1*U(0)
-!            dom%R1_0(ee,1,i,j,k,bnum) = cf0*dom%R1_0(ee,1,i,j,k,bnum) + cf1*U(1)
-!            dom%R1_0(ee,2,i,j,k,bnum) = cf0*dom%R1_0(ee,2,i,j,k,bnum) + cf1*U(2)
+            call cpml_compute_coefs(CPML_INTEG, a0, dt, cf0, cf1, cf2)
+            dom%R1_0(ee,0,i,j,k,bnum) = cf0*dom%R1_0(ee,0,i,j,k,bnum) + cf1*Unew(0) + cf2*Uold(0)
+            dom%R1_0(ee,1,i,j,k,bnum) = cf0*dom%R1_0(ee,1,i,j,k,bnum) + cf1*Unew(1) + cf2*Uold(1)
+            dom%R1_0(ee,2,i,j,k,bnum) = cf0*dom%R1_0(ee,2,i,j,k,bnum) + cf1*Unew(2) + cf2*Uold(2)
 
             a3b = k0*a0*a0*d0
             Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
@@ -116,7 +107,7 @@ contains
         n1 = dom%I1(ee,bnum)
         n2 = dom%I2(ee,bnum)
 
-        DUDV = 0.5d0*DUDVnew+0.5d0*dom%DUDVold(ee,:,i,j,k,bnum)
+        DUDV = dom%DUDVold(ee,:,i,j,k,bnum) !0.5d0*DUDVnew+0.5d0*dom%DUDVold(ee,:,i,j,k,bnum)
         if (n2==-1) then
             if (n1==-1) then
                 call compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DUDVnew, DUDV, LC)
@@ -139,7 +130,7 @@ contains
         real(fpp), intent(out), dimension(0:20) :: LC
         !
         integer   :: dim0, r
-        real(fpp) :: k0, d0, a0, dt, cf0, cf1
+        real(fpp) :: k0, d0, a0, dt, cf0, cf1, cf2
         real(fpp), dimension(0:5) :: b0, b1
         real(fpp), dimension(0:8) :: cf
 
@@ -211,18 +202,8 @@ contains
 
         ! update convolution terms
         do r=0,8
-            ! implicit midpoint
-            cf0 = 1d0-0.5d0*cf(r)*dt
-            cf1 = 1d0/(1d0+0.5d0*cf(r)*dt)
-            dom%R2_0(ee,r,i,j,k,bnum) = (cf0*dom%R2_0(ee,r,i,j,k,bnum)+dt*DUDV(r))*cf1
-            ! First order
-!            cf0 = exp(-cf(r)*dt)
-!            if (abs(cf(r))<1e-8) then
-!                cf1 = dt
-!            else
-!                cf1 = (1d0-cf0)/cf(r)
-!            end if
-!            dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DUDV(r)
+            call cpml_compute_coefs(CPML_INTEG, cf(r), dt, cf0, cf1, cf2)
+            dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DUDVn(r)+cf2*DUDV(r)
         end do
 
         ! We add the terms in Dirac with the (only) convolution term
