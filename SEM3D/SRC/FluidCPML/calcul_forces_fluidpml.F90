@@ -3,9 +3,10 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module m_calcul_forces_fluidpml ! wrap subroutine in module to get arg type check at build time
-
+    use constants
+    use pml
     integer, parameter :: kB012=0, kB021=1, kB120=2
-
+    integer, parameter :: CPML_INTEG = CPML_MIDPOINT
 contains
 
 #include "index.h"
@@ -56,14 +57,14 @@ contains
         real(fpp), intent(out) :: R
         !
         real(fpp) :: a3b
-        real(fpp) :: Phi
-        real(fpp) :: k0, d0, a0, dt, cf0,cf1
+        real(fpp) :: PhiOld
+        real(fpp) :: k0, d0, a0, dt, cf0,cf1, cf2
         integer :: n1, n2
 
         n1 = dom%I1(ee,bnum)
         n2 = dom%I2(ee,bnum)
 
-        Phi = 0.5d0*PhiNew + 0.5d0*dom%PhiOld(ee,i,j,k,bnum)
+        PhiOld = dom%PhiOld(ee,i,j,k,bnum)
         ! XXX valable pour ndir=1
         dt = dom%dt
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
@@ -71,15 +72,13 @@ contains
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         if (n1==-1 .and. n2==-1) then
             ! Update convolution term (implicit midpoint)
-            cf0 = 1d0-0.5d0*a0*dt
-            cf1 = 1d0/(1d0+0.5d0*a0*dt)
-            dom%R1_0(ee,i,j,k,bnum) = (cf0*dom%R1_0(ee,i,j,k,bnum) + dt*Phi)*cf1
+            call cpml_compute_coefs(CPML_INTEG, a0, dt, cf0, cf1, cf2)
+            dom%R1_0(ee,i,j,k,bnum) = cf0*dom%R1_0(ee,i,j,k,bnum) + cf1*PhiNew + cf2*PhiOld
             a3b = k0*a0*a0*d0
             R = a3b*dom%R1_0(ee,i,j,k,bnum)
         else
             R = 0d0
         end if
-
         ! Save PhiOld
         dom%PhiOld(ee,i,j,k,bnum) = PhiNew
     end subroutine compute_L_convolution_terms
@@ -120,7 +119,7 @@ contains
         real(fpp), intent(out), dimension(0:2) :: LC
         !
         integer   :: dim0, r
-        real(fpp) :: k0, d0, a0, dt, cf0, cf1
+        real(fpp) :: k0, d0, a0, dt, cf0, cf1, cf2
         real(fpp), dimension(0:2) :: b0, b1
         real(fpp), dimension(0:2) :: cf
 
@@ -168,10 +167,8 @@ contains
 
         ! update convolution terms
         do r=0,2
-            ! implicit midpoint
-            cf0 = 1d0-0.5d0*cf(r)*dt
-            cf1 = 1d0/(1d0+0.5d0*cf(r)*dt)
-            dom%R2_0(ee,r,i,j,k,bnum) = (cf0*dom%R2_0(ee,r,i,j,k,bnum)+dt*DPhi(r))*cf1
+            call cpml_compute_coefs(CPML_INTEG, cf(r), dt, cf0, cf1, cf2)
+            dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DPhiNew(r)+cf2*DPhi(r)
         end do
 
         ! We add the terms in Dirac with the (only) convolution term
