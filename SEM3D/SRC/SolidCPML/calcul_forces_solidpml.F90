@@ -10,7 +10,7 @@ module m_calcul_forces_solidpml
     use pml
     implicit none
 
-    integer, parameter :: CPML_INTEG = CPML_ORDER2
+    integer, parameter :: CPML_INTEG = CPML_MIDPOINT
     integer, parameter :: L120_DXX= 0, L2_DYY= 1, L1_DZZ= 2
     integer, parameter :: L120_DXY= 3, L2_DYX= 4
     integer, parameter :: L120_DXZ= 5, L1_DZX= 6
