@@ -1408,7 +1408,36 @@ contains
                         do i = 0,ngll-1
                             idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (outputs%domains(idx)==domain_type) then
+#ifdef CPML
+                                alpha_pml(Tdomain%fpmldom%D0(ee, bnum) + 3*idx) = Tdomain%fpmldom%Alpha_0(ee, i, j, k, bnum)
+                                if(allocated(Tdomain%fpmldom%Alpha_1)) & ! May NOT be allocated
+                                alpha_pml(Tdomain%fpmldom%D1(ee, bnum) + 3*idx) = Tdomain%fpmldom%Alpha_1(i, j, k, 0)
+                                if(allocated(Tdomain%fpmldom%Alpha_2)) then ! May NOT be allocated
+                                    dir = 0 + 1 + 2 ! All possible directions
+                                    dir = dir - Tdomain%fpmldom%I1(ee, bnum) - Tdomain%fpmldom%I2(ee, bnum) ! Remove known directions
+                                    alpha_pml(dir + 3*idx) = Tdomain%fpmldom%Alpha_2(i, j, k, 0)
+                                end if
+
+                                kappa_pml(Tdomain%fpmldom%D0(ee, bnum) + 3*idx) = Tdomain%fpmldom%Kappa_0(ee, i, j, k, bnum)
+                                if(allocated(Tdomain%fpmldom%Kappa_1)) & ! May NOT be allocated
+                                kappa_pml(Tdomain%fpmldom%D1(ee, bnum) + 3*idx) = Tdomain%fpmldom%Kappa_1(i, j, k, 0)
+                                if(allocated(Tdomain%fpmldom%Kappa_2)) then ! May NOT be allocated
+                                    dir = 0 + 1 + 2 ! All possible directions
+                                    dir = dir - Tdomain%fpmldom%I1(ee, bnum) - Tdomain%fpmldom%I2(ee, bnum) ! Remove known directions
+                                    kappa_pml(dir + 3*idx) = Tdomain%fpmldom%Kappa_2(i, j, k, 0)
+                                end if
+
+                                dxi_k_pml(Tdomain%fpmldom%D0(ee, bnum) + 3*idx) = Tdomain%fpmldom%dxi_k_0(ee, i, j, k, bnum)
+                                if(allocated(Tdomain%fpmldom%dxi_k_1)) & ! May NOT be allocated
+                                dxi_k_pml(Tdomain%fpmldom%D1(ee, bnum) + 3*idx) = Tdomain%fpmldom%dxi_k_1(i, j, k, 0)
+                                if(allocated(Tdomain%fpmldom%dxi_k_2)) then ! May NOT be allocated
+                                    dir = 0 + 1 + 2 ! All possible directions
+                                    dir = dir - Tdomain%fpmldom%I1(ee, bnum) - Tdomain%fpmldom%I2(ee, bnum) ! Remove known directions
+                                    dxi_k_pml(dir + 3*idx) = Tdomain%fpmldom%dxi_k_2(i, j, k, 0)
+                                end if
+#else
                                 mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,bnum,ee))
+#endif
                             endif
                         end do
                     end do
