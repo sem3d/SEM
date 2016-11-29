@@ -527,7 +527,7 @@ contains
         ind = dom%Idom_(i,j,k,bnum,ee)
         mi = specel%mat_index
         ndir = 1
-        if (.not. dom%sSubDomain(mi)%dom == DM_SOLID_PML) &
+        if (.not. dom%sSubDomain(mi)%dom == DM_FLUID_PML) &
             stop "init_local_mass_fluidpml : material is not a PML material"
 
         ! Compute alpha, beta, kappa
