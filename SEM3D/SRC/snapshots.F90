@@ -926,8 +926,8 @@ contains
                     call get_solidpml_rfields(Tdomain, Tdomain%spmldom, n, el%lnum, outputs)
 #endif
                 case (DM_FLUID_PML)
-                  call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
-                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                    call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
+                    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case default
                   stop "unknown domain"
             end select
