@@ -212,7 +212,7 @@ contains
         type(domain_fluidpml), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
-        real :: Whei
+        real(fpp) :: Whei
         !
         integer :: bnum, ee
         bnum = specel%lnum/VCHUNK
@@ -289,7 +289,7 @@ contains
         real(fpp) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
         integer :: ngll
         integer :: i, j, k, l, ind, e, ee
-        real, dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: VelPhi
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: VelPhi
         real(fpp) :: dVPhi_dxi,dVPhi_deta,dVPhi_dzeta
         real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
 
@@ -476,7 +476,7 @@ contains
         integer, intent(in) :: i0, i1
         !
         integer :: n, indpml, indflu
-        real :: bega, dt
+        real(fpp) :: bega, dt
 
         bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
         dt = Tdomain%TimeD%dtmin

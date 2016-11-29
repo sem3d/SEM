@@ -60,10 +60,10 @@ contains
         type(C_PTR) :: station_next;
         type(sem_station), pointer :: station_ptr
         character(Len=MAX_FILE_SIZE) :: nom
-        double precision :: xc, yc, zc, xi, eta, zeta
+        real(fpp) :: xc, yc, zc, xi, eta, zeta
         character(len=MAX_FILE_SIZE) :: fnamef
         integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out
-        double precision, allocatable, dimension(:,:) :: coordl
+        real(fpp), allocatable, dimension(:,:) :: coordl
         integer :: periodeRef
 
 
@@ -474,7 +474,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real, dimension(:), allocatable :: GLLc
+        real(fpp), dimension(:), allocatable :: GLLc
         logical :: nl_flag
         integer :: nComp
 
@@ -666,7 +666,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, R_energy, C_energy
         real(fpp) :: local_sum_P_energy, local_sum_S_energy, local_sum_R_energy, local_sum_C_energy
         real(fpp) :: global_sum_P_energy, global_sum_S_energy, global_sum_R_energy, global_sum_C_energy
-        real, dimension(:), allocatable :: GLLw
+        real(fpp), dimension(:), allocatable :: GLLw
         integer :: bnum, ee
         real(fpp), dimension(:,:,:), allocatable :: jac
         real(fpp) :: elem_P_En, elem_S_En, elem_R_En, elem_C_En
@@ -804,17 +804,17 @@ contains
         use mlocations3d
         implicit none
         type (domain), INTENT(INOUT)  :: Tdomain
-        double precision, intent(in) :: xc, yc, zc
+        real(fpp), intent(in) :: xc, yc, zc
         integer, intent(out) :: n_el, n_eln
-        double precision, intent(out) :: xi, eta, zeta
+        real(fpp), intent(out) :: xi, eta, zeta
         !
         integer :: i
         logical :: inside
         integer :: nmax
         integer, parameter :: NMAXEL=20
         integer, dimension(NMAXEL) :: elems
-        double precision, dimension(0:2,NMAXEL) :: coordloc
-        double precision, parameter :: EPS = 1D-13, EPSN = 0.1D0
+        real(fpp), dimension(0:2,NMAXEL) :: coordloc
+        real(fpp), parameter :: EPS = 1D-13, EPSN = 0.1D0
 
         nmax = NMAXEL
         call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)

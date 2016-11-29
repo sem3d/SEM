@@ -12,6 +12,7 @@
 !<
 
 module selement
+    use constants
     use deriv3d
     use blas
     implicit none
@@ -20,7 +21,7 @@ module selement
         integer :: mat_index
         integer :: lnum ! local number of element within its domain
         integer :: domain ! Type de domaine, voir constants : DOM_SOLID, DOM_FLUID, ...
-        real, dimension (:,:,:), allocatable :: MassMat
+        real(fpp), dimension (:,:,:), allocatable :: MassMat
 
         ! Whether this element will be part of snapshot outputs
         logical :: OUTPUT
@@ -37,11 +38,11 @@ module selement
         integer, dimension (:,:,:), allocatable :: Idom ! deallocated in define_array + copied into domain_XXX
 
         ! Integrated Energy inside the Element
-        double precision :: En_S_int
-        double precision :: En_P_int
+        real(fpp) :: En_S_int
+        real(fpp) :: En_P_int
         ! Averaged Energy inside the subElements (defined by GLLs division)
-        double precision, dimension (:,:,:), allocatable :: En_S_avg
-        double precision, dimension (:,:,:), allocatable :: En_P_avg
+        real(fpp), dimension (:,:,:), allocatable :: En_S_avg
+        real(fpp), dimension (:,:,:), allocatable :: En_P_avg
 
     end type element
 

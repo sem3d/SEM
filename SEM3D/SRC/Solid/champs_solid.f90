@@ -27,11 +27,11 @@ module champs_solid
     end type champssolid
 
     type :: lmc_param ! LAMAITRE & CHABOCHE NONLINEAR PARAMETERS
-        real, dimension (:,:,:,:,:), allocatable :: m_biso
-        real, dimension (:,:,:,:,:), allocatable :: m_rinf
-        real, dimension (:,:,:,:,:), allocatable :: m_ckin
-        real, dimension (:,:,:,:,:), allocatable :: m_kkin
-        real, dimension (:,:,:,:,:), allocatable :: m_syld
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_biso
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_rinf
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_ckin
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_kkin
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_syld
     end type lmc_param
 
     type :: nl_parameters  ! STRUCTURE CONTAINING NL PARAMETER SETS

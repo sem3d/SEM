@@ -210,7 +210,7 @@ contains
         type(sem_config), intent(in) :: config
         type(sem_source), pointer :: src
         integer :: nsrc
-        real :: ndir
+        real(fpp) :: ndir
 
         Tdomain%n_source = config%nsources
         allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
@@ -268,8 +268,8 @@ contains
 
 
     function is_in_box(pos, box)
-        real, dimension(3), intent(in) :: pos
-        real, dimension(6), intent(in) :: box
+        real(fpp), dimension(3), intent(in) :: pos
+        real(fpp), dimension(6), intent(in) :: box
         logical :: is_in_box
         !
         integer :: i
@@ -283,11 +283,11 @@ contains
     !
     ! Renvoie true si le point est a une distance <1 du plane
     function is_in_plane(pos, plane)
-        real, dimension(3), intent(in) :: pos
-        real, dimension(4), intent(in) :: plane
+        real(fpp), dimension(3), intent(in) :: pos
+        real(fpp), dimension(4), intent(in) :: plane
         logical :: is_in_plane
         !
-        real :: w
+        real(fpp) :: w
 
         is_in_plane = .false.
         w = plane(1)*pos(1)+plane(2)*pos(2)+plane(3)*pos(3)+plane(4)
@@ -304,7 +304,7 @@ contains
 
         type(sem_snapshot_cond), pointer :: selection
         integer :: n, i, ipoint
-        real, dimension(3) :: pos
+        real(fpp), dimension(3) :: pos
         logical :: sel
 
         do n = 0, Tdomain%n_elem-1

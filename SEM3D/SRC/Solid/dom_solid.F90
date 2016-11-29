@@ -226,7 +226,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         !
-        logical                  :: flag_gradU 
+        logical                  :: flag_gradU
         integer                  :: ngll, i, j, k, ind
         real(fpp)                :: EXY, EXZ, EYZ
         real(fpp)                :: DXX, DXY, DXZ
@@ -237,7 +237,7 @@ contains
         real(fpp)                :: x2mu, xlambda2mu
         real(fpp)                :: onemSbeta, onemPbeta
         real(fpp), dimension(0:20) :: CC
-        real, dimension(0:2,0:2) :: invgrad_ijk
+        real(fpp), dimension(0:2,0:2) :: invgrad_ijk
         !
         integer :: bnum, ee, flag_gradUint
 
@@ -436,9 +436,9 @@ contains
         real(fpp)                :: xeps_vol
         real(fpp), dimension(0:2,0:2) :: invgrad_ijk
         real(fpp), dimension(0:2) ::xvel
-        real :: dUx_dx,dUx_dy,dUx_dz,  &
-                dUy_dx,dUy_dy,dUy_dz,  &
-                dUz_dx,dUz_dy,dUz_dz
+        real(fpp) :: dUx_dx,dUx_dy,dUx_dz
+        real(fpp) :: dUy_dx,dUy_dy,dUy_dz
+        real(fpp) :: dUz_dx,dUz_dy,dUz_dz
         !
         integer :: bnum, ee
 
@@ -625,7 +625,7 @@ contains
         type(domain_solid), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
-        real Whei
+        real(fpp) :: Whei
         !
         integer :: bnum, ee
         bnum = specel%lnum/VCHUNK

@@ -83,9 +83,9 @@ contains
         type(domain), intent(inout) :: Tdomain
         integer(HID_T) :: fid
         !
-        integer, allocatable, dimension(:,:) :: itemp2, itemp2b
-        integer, allocatable, dimension(:)   :: itemp
-        real,    allocatable, dimension(:,:) :: rtemp2
+        integer,   allocatable, dimension(:,:) :: itemp2, itemp2b
+        integer,   allocatable, dimension(:)   :: itemp
+        real(fpp), allocatable, dimension(:,:) :: rtemp2
         integer :: i, mat
         !
         ! Global nodes' coordinates for each proc.
@@ -209,7 +209,7 @@ contains
             do k=0,2
                 if (Tdomain%sSubDomain(i)%MinBound_loc(k)>Tdomain%sSubDomain(i)%MaxBound_loc(k)) then
                     ! Material is not present on this domain
-                    
+
                 end if
             end do
         end do
@@ -355,7 +355,7 @@ contains
         use semdatafiles, only : MAX_FILE_SIZE
         use constants
         use surface_input
-   
+
         implicit none
         !
         type(domain), intent(inout) :: Tdomain

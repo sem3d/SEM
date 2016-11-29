@@ -238,7 +238,7 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
-        real Whei
+        real(fpp) Whei
         !
         integer :: bnum, ee
         bnum = specel%lnum/VCHUNK
@@ -258,8 +258,8 @@ contains
         !
         integer :: ngll
         integer :: i, j, k, l, ind, e, ee
-        real :: sum_vx, sum_vy, sum_vz, acoeff
-        real, dimension(0:VCHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
+        real(fpp) :: sum_vx, sum_vy, sum_vz, acoeff
+        real(fpp), dimension(0:VCHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
 
         ngll = dom%ngll
 
@@ -579,7 +579,7 @@ contains
         integer, intent(in) :: f0, f1
         !
         integer :: n, indsol, indpml
-        real :: bega, dt
+        real(fpp) :: bega, dt
 
         bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
         dt = Tdomain%TimeD%dtmin

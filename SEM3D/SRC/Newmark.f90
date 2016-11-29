@@ -12,15 +12,72 @@
 #include "index.h"
 
 module mtimestep
+    use constants
     use sdomain
     implicit none
 
+    real(fpp), dimension(6), parameter :: LDDRK_beta = (/ &
+        0.0d0, &
+        -0.737101392796d0, &
+        -1.634740794341d0, &
+        -0.744739003780d0, &
+        -1.469897351522d0, &
+        -2.813971388035d0 /)
+    real(fpp), dimension(6), parameter :: LDDRK_gamma = (/ &
+        0.032918605146d0, &
+        0.823256998200d0, &
+        0.381530948900d0, &
+        0.200092213184d0, &
+        1.718581042715d0, &
+        0.27d0 /)
+    real(fpp), dimension(6), parameter :: LDDRK_c = (/ &
+        0.0d0, &
+        0.032918605146d0, &
+        0.249351723343d0, &
+        0.466911705055d0, &
+        0.582030414044d0, &
+        0.847252983783d0 /)
 contains
-    subroutine Timestep_RK4(Tdomain,ntime)
+
+    subroutine Timestep_LDDRK(Tdomain,ntime)
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: ntime
+        !
+        real(fpp) :: cb, cg, cc, t0, t, dt
+        integer :: i0, i1, tmp, i
+        i0 = 0
+        i1 = 1
+        t0 = Tdomain%TimeD%rtime
+        dt = Tdomain%TimeD%dtmin
+        Tdomain%sdom%champs(i1)%Veloc = Tdomain%sdom%champs(i0)%Veloc
+        Tdomain%sdom%champs(i1)%Depla = Tdomain%sdom%champs(i0)%Depla
+        Tdomain%sdom%champs(i0)%Forces = 0d0
+        do i=1,6
+            cb = LDDRK_beta(i)
+            cg = LDDRK_gamma(i)
+            cc = LDDRK_c(i)
+            t = t0 + cc*dt
 
-    end subroutine Timestep_RK4
+
+            call internal_forces(Tdomain, i0, i1)
+            call external_forces(Tdomain,t,ntime, i1)
+            call comm_forces(Tdomain,i1)
+
+
+            ! Only solid for starters
+            Tdomain%sdom%champs(i1)%Veloc = cb*Tdomain%sdom%champs(i0)%Veloc + dt*Tdomain%sdom%champs(i1)%Forces
+            Tdomain%sdom%champs(i1)%Depla = cb*Tdomain%sdom%champs(i0)%Depla + dt*Tdomain%sdom%champs(i1)%Veloc
+
+            Tdomain%sdom%champs(i1)%Veloc = Tdomain%sdom%champs(i0)%Veloc+Tdomain%sdom%champs(i0)%Veloc
+            Tdomain%sdom%champs(i1)%Depla = Tdomain%sdom%champs(i0)%Depla
+
+            ! SWAP i0,i1 for storage
+            tmp = i1
+            i1 = i0
+            i0 = tmp
+        end do
+    end subroutine Timestep_LDDRK
+    !
     subroutine Newmark(Tdomain,ntime)
         ! Predictor-MultiCorrector Newmark Velocity Scheme within a
         ! Time staggered Stress-Velocity formulation inside PML

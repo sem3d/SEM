@@ -264,7 +264,7 @@ contains
 
         integer :: n, indsol, indflu, indpml
         integer :: k
-        real :: Mass
+        real(fpp) :: Mass
 
         ! Couplage à l'interface solide / PML
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
@@ -505,7 +505,7 @@ contains
         !
         integer :: i, j, k, ind
         real(fpp) :: Whei
-        real, dimension(:), allocatable :: GLLw
+        real(fpp), dimension(:), allocatable :: GLLw
 
         integer ngll
 

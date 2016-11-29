@@ -4,17 +4,17 @@
 !!
 
 module surface_load
-
+    use constants, only : fpp
     implicit none
     ! Vitesse des ondes directes P et S
-    Real(kind=8) :: Velocity_P, Velocity_S
+    real(fpp) :: Velocity_P, Velocity_S
     ! Coefficients : propriétés matériaux
-    real(kind=8) :: Coef_lambda, Coef_mu, rho
+    real(fpp) :: Coef_lambda, Coef_mu, rho
     ! Vitesse de l'onde plane
-    real(kind=8) :: PWSpeed
-    real(kind=8), dimension(0:2) :: Velocity_PW
+    real(fpp) :: PWSpeed
+    real(fpp), dimension(0:2) :: Velocity_PW
     ! amplitude spatiale
-    real(kind=8) :: srcshape
+    real(fpp) :: srcshape
 
 
 contains
@@ -93,7 +93,7 @@ contains
         use constants
 
         implicit none
-        real(kind=8), dimension(:,:), allocatable :: coord
+        real(fpp), dimension(:,:), allocatable :: coord
         type(domain), intent(in)                  :: Tdomain
         type(surf_num), intent(in)                :: surf
         integer                                   :: ngll_if, nv, ne,  nf, nfs
@@ -151,9 +151,9 @@ contains
         type(SurfaceParam), intent(in)   :: surf_source
         type(SurfaceT),     intent(in)   :: surf_norm
         type(domain),       intent(inout):: Tdomain
-        real(kind=8), dimension(:,:), optional,intent(in)   :: veloc_field
-        real(kind=8), dimension(0:2)               :: BtN, force, veloc
-        real(kind=8), dimension(:,:), allocatable  :: coord
+        real(fpp), dimension(:,:), optional,intent(in)   :: veloc_field
+        real(fpp), dimension(0:2)               :: BtN, force, veloc
+        real(fpp), dimension(:,:), allocatable  :: coord
         integer                                    :: i, idx
 
         Velocity_P = surf_norm%Elastic%Pspeed
@@ -200,14 +200,14 @@ contains
         use Surface_prbl_type
 
         implicit none
-        real(kind=8)                         ,intent(in ):: ctime, dt
-        real(kind=8),dimension(0:2)          ,intent(out):: force
-        real(kind=8), dimension(0:2),         intent(in) :: Btn, gllcoord
-        real(kind=8), dimension(0:2),optional,intent(in) :: veloc
+        real(fpp)                         ,intent(in ):: ctime, dt
+        real(fpp),dimension(0:2)          ,intent(out):: force
+        real(fpp), dimension(0:2),         intent(in) :: Btn, gllcoord
+        real(fpp), dimension(0:2),optional,intent(in) :: veloc
         type(SurfaceParam),                   intent(in) :: Param
         type (source)                    :: Sour
-        real(kind=8)                     :: midtime
-        real(kind=8), dimension(0:2)     :: coord
+        real(fpp)                     :: midtime
+        real(fpp), dimension(0:2)     :: coord
 
         force = 0.d0
         midtime = ctime
@@ -238,11 +238,11 @@ contains
 
         implicit none
         type(SurfaceParam),            intent(in)   :: Param
-        real(kind=8), dimension(0:2), intent(inout) :: Traction_i
-        real(kind=8), dimension(0:2), intent(in)    :: Btn, Veloc, coord
-        real(kind=8),                 intent(in)    :: time, dt
-        real(kind=8), dimension(0:2)                :: vel_i, voloc_0
-        real(kind=8)                                :: S11, S22 ,S33, S12, S13, S23
+        real(fpp), dimension(0:2), intent(inout) :: Traction_i
+        real(fpp), dimension(0:2), intent(in)    :: Btn, Veloc, coord
+        real(fpp),                 intent(in)    :: time, dt
+        real(fpp), dimension(0:2)                :: vel_i, voloc_0
+        real(fpp)                                :: S11, S22 ,S33, S12, S13, S23
 
         call PlaneWaveDerive(Param,coord,time,PWSpeed,vel_i, voloc_0)
 
@@ -268,11 +268,11 @@ contains
 
         implicit none
         type(SurfaceParam),            intent(in)   :: Param
-        real(kind=8), dimension(0:2), intent(inout) :: force
-        real(kind=8), dimension(0:2), intent(in)    :: Btn, Veloc, coord
-        real(kind=8),                 intent(in)    :: time, dt
-        real(kind=8), dimension(0:2)                :: Nm, V, voloc_0
-        real(kind=8)                                :: nn, VV
+        real(fpp), dimension(0:2), intent(inout) :: force
+        real(fpp), dimension(0:2), intent(in)    :: Btn, Veloc, coord
+        real(fpp),                 intent(in)    :: time, dt
+        real(fpp), dimension(0:2)                :: Nm, V, voloc_0
+        real(fpp)                                :: nn, VV
 
         Nm = Btn
         V  = Veloc - voloc_0
@@ -289,10 +289,10 @@ contains
         use Mathfval
         implicit none
         type(SurfaceParam),            intent(in)   :: Param
-        real(kind=8), dimension(0:2), intent(inout) :: force
-        real(kind=8), dimension(0:2), intent(in)    :: Btn, Veloc, coord
-        real(kind=8),                 intent(in)    :: time, dt
-        real(kind=8), dimension(0:2)                :: Traction_i
+        real(fpp), dimension(0:2), intent(inout) :: force
+        real(fpp), dimension(0:2), intent(in)    :: Btn, Veloc, coord
+        real(fpp),                 intent(in)    :: time, dt
+        real(fpp), dimension(0:2)                :: Traction_i
 
         call PlaneWane_IncidenteTraction(Btn, coord, Veloc, time, dt, Param, Traction_i)
 

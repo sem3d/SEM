@@ -3,7 +3,7 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module deriv3d
-
+    use constants
 contains
     ! TODO : kill elem_part_deriv not used ?!...
     subroutine elem_part_deriv(ngllx,nglly,ngllz,hprimex,hprimey,hprimez,Scalp,    &
@@ -11,13 +11,12 @@ contains
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, intent(in)  :: ngllx,nglly,ngllz
-        real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hprimex
-        real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
-        real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Scalp
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dScalp_dxi,dScalp_deta,dScalp_dzeta
+        real(fpp), dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hprimex
+        real(fpp), dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
+        real(fpp), dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
+        real(fpp), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Scalp
+        real(fpp), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dScalp_dxi,dScalp_deta,dScalp_dzeta
         integer :: i,j,k,l
-        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
 
         dScalp_dxi = ZERO
         dScalp_deta = ZERO
@@ -57,10 +56,10 @@ contains
         !- partial derivatives of the scalar property Scalp, with respect to x,y,z
         implicit none
         integer, intent(in) :: ngll
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
 
         ! Simple optimisation that allows the compiler to unroll loops for the most common cases
         if (ngll==5) then
@@ -83,11 +82,10 @@ contains
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, intent(in) :: ngll
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
-        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
 
         integer :: i,j,k
 
@@ -106,13 +104,13 @@ contains
         implicit none
         integer :: i,j,k
         integer, intent(in) :: ngll
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:2,0:2), intent(in) :: InvGrad_ijk
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
-        real, intent(out) :: dS_dx,dS_dy,dS_dz
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2), intent(in) :: InvGrad_ijk
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
+        real(fpp), intent(out) :: dS_dx,dS_dy,dS_dz
 
         integer :: l
-        real :: dS_dxi, dS_deta, dS_dzeta
+        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
 
         dS_dxi   = 0.0D+0
         dS_deta  = 0.0D+0
@@ -132,13 +130,12 @@ contains
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, parameter :: ngll=5
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
-        real :: dS_dxi, dS_deta, dS_dzeta
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
+        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: i,j,k,l
-        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
 
         DO K = 0, ngll-1
             ! d(Scalp)_dxi
@@ -168,13 +165,13 @@ contains
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, parameter :: ngll=6
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
-        real :: dS_dxi, dS_deta, dS_dzeta
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
+        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: i,j,k,l
-        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
+
 
         DO K = 0, ngll-1
             ! d(Scalp)_dxi
@@ -204,13 +201,12 @@ contains
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, parameter :: ngll=7
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
-        real :: dS_dxi, dS_deta, dS_dzeta
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
+        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: i,j,k,l
-        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
 
         DO K = 0, ngll-1
             ! d(Scalp)_dxi
@@ -240,13 +236,12 @@ contains
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, parameter :: ngll=8
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
-        real :: dS_dxi, dS_deta, dS_dzeta
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
+        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: i,j,k,l
-        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
 
         DO K = 0, ngll-1
             ! d(Scalp)_dxi

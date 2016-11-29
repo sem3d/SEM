@@ -4,17 +4,18 @@
 !!
 
 module mleastsq
+    use constants, only : fpp
     implicit none
     public :: minimize_cg
     ! if we need these put them in a separate module
     private :: vnorm, vdot, mnorm, line_search
 contains
 
-    double precision function vnorm(dim, x)
+    real(fpp) function vnorm(dim, x)
         integer, intent(in) :: dim
-        double precision, dimension(0:dim-1), intent(in) :: x
+        real(fpp), dimension(0:dim-1), intent(in) :: x
         !
-        double precision :: sum
+        real(fpp) :: sum
         integer :: i
         sum = 0.0
         do i=0, dim-1
@@ -23,9 +24,9 @@ contains
         vnorm = sqrt(sum)
     end function vnorm
 
-    double precision function vdot(dim, x, y)
+    real(fpp) function vdot(dim, x, y)
         integer, intent(in) :: dim
-        double precision, dimension(0:dim-1), intent(in) :: x, y
+        real(fpp), dimension(0:dim-1), intent(in) :: x, y
         !
         integer :: i
         vdot = 0.0
@@ -34,11 +35,11 @@ contains
         end do
     end function vdot
 
-    double precision function mnorm(dim, m)
+    real(fpp) function mnorm(dim, m)
         integer, intent(in) :: dim
-        double precision, dimension(0:dim-1,0:dim-1), intent(in) :: m
+        real(fpp), dimension(0:dim-1,0:dim-1), intent(in) :: m
         !
-        double precision :: sum
+        real(fpp) :: sum
         integer :: i,j
         sum = 0.0
         do j=0, dim-1
@@ -50,21 +51,24 @@ contains
     end function mnorm
 
     subroutine line_search(dim, nn, args0, args1, fun, x0, dir, alpha)
+        use constants, only : fpp
         integer, intent(in) :: dim, nn
-        double precision, dimension(0:dim-1), intent(in) :: args1, x0, dir
-        double precision, dimension(0:dim-1,0:nn-1), intent(in) :: args0
-        double precision, intent(inout) :: alpha
+        real(fpp), dimension(0:dim-1), intent(in) :: args1, x0, dir
+        real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: args0
+        real(fpp), intent(inout) :: alpha
         !
         interface
-            double precision function fun(dim, nn, x, args0, args1)
+            function fun(dim, nn, x, args0, args1)
+                import :: fpp
                 integer, intent(in) :: dim, nn
-                double precision, dimension(0:dim-1), intent(in) :: x, args1
-                double precision, dimension(0:dim-1,0:nn-1), intent(in) :: args0
+                real(fpp), dimension(0:dim-1), intent(in) :: x, args1
+                real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: args0
+                real(fpp) :: fun
             end function fun
         end interface
-        double precision, dimension(0:dim-1) :: xx
-        double precision :: r, val
-        double precision :: fmin, alphamin
+        real(fpp), dimension(0:dim-1) :: xx
+        real(fpp) :: r, val
+        real(fpp) :: fmin, alphamin
         ! Very simple line search that chooses between 0.1 x alpha and 2 x alpha
         alphamin = alpha
         fmin = 1d100
@@ -86,31 +90,34 @@ contains
         ! starting with initial guess x0
         ! 
         integer, intent(in) :: dim, nn
-        double precision, dimension(0:dim-1), intent(in) :: x0, args1
-        double precision, dimension(0:dim-1), intent(out) :: xout
-        double precision, dimension(0:dim-1,0:nn-1), intent(in) :: args0
-        double precision, intent(in) :: alpha0
+        real(fpp), dimension(0:dim-1), intent(in) :: x0, args1
+        real(fpp), dimension(0:dim-1), intent(out) :: xout
+        real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: args0
+        real(fpp), intent(in) :: alpha0
         integer, intent(out) :: niter
         interface
-            double precision function fun(dim, nn, x, args0, args1)
+            function fun(dim, nn, x, args0, args1)
+                import :: fpp
                 integer, intent(in) :: dim, nn
-                double precision, dimension(0:dim-1), intent(in) :: x, args1
-                double precision, dimension(0:dim-1,0:nn-1), intent(in) :: args0
+                real(fpp), dimension(0:dim-1), intent(in) :: x, args1
+                real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: args0
+                real(fpp) :: fun
             end function fun
             subroutine gradfun(dim, nn, x, args0, args1, grad)
+                import :: fpp
                 integer, intent(in) :: dim, nn
-                double precision, dimension(0:dim-1), intent(in) :: x, args1
-                double precision, dimension(0:dim-1,0:nn-1), intent(in) :: args0
-                double precision, dimension(0:dim-1), intent(out) :: grad
+                real(fpp), dimension(0:dim-1), intent(in) :: x, args1
+                real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: args0
+                real(fpp), dimension(0:dim-1), intent(out) :: grad
             end subroutine gradfun
         end interface
         !
-        double precision, dimension(0:dim-1) :: grad, pgrad, sdir, gdiff
-        double precision :: gnorm, old_gnorm, alpha, beta
+        real(fpp), dimension(0:dim-1) :: grad, pgrad, sdir, gdiff
+        real(fpp) :: gnorm, old_gnorm, alpha, beta
         integer :: i
         !
         integer, parameter :: maxiter=1000
-        double precision, parameter :: gtol=1e-20
+        real(fpp), parameter :: gtol=1e-20
         logical :: ok
 
         ok = .true.
@@ -158,11 +165,11 @@ contains
         !   of the corrector's coefficient
         implicit none
         integer, intent(in)  :: m,n
-        real, dimension(0:m-1,0:n-1),intent(in)  :: Amat
-        real, dimension(0:m-1), intent(in)  :: dataval
-        real, dimension(0:n-1), intent(out)  :: model_val
-        real, allocatable   :: Atrans(:,:), Acp(:,:), Dmat(:,:)
-        real, allocatable   :: U(:,:),VT(:,:),SI(:),sigma(:,:),WORK(:)
+        real(fpp), dimension(0:m-1,0:n-1),intent(in)  :: Amat
+        real(fpp), dimension(0:m-1), intent(in)  :: dataval
+        real(fpp), dimension(0:n-1), intent(out)  :: model_val
+        real(fpp), allocatable   :: Atrans(:,:), Acp(:,:), Dmat(:,:)
+        real(fpp), allocatable   :: U(:,:),VT(:,:),SI(:),sigma(:,:),WORK(:)
         integer             :: info,lwork,i
 
         !---------------------------------------------------
@@ -170,7 +177,7 @@ contains
         allocate(Acp(m,n),Atrans(n,m))
         allocate(Dmat(n,m))
 
-        Acp(:,:) = real(Amat(0:,0:),8)
+        Acp(:,:) = real(Amat(0:,0:),fpp)
 
         lwork = 2*(3*min(M,N)*min(M,N) + max(max(M,N),4*min(M,N)*min(M,N)+4*min(M,N)))
         allocate(WORK(lwork))

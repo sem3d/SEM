@@ -78,11 +78,11 @@ contains
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)
         implicit none
         integer, intent(in)  :: ngll
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: idensity,phi
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(out) :: Veloc
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dphi_dx,dphi_dy,dphi_dz
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: idensity,phi
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(out) :: Veloc
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dphi_dx,dphi_dy,dphi_dz
 
         ! physical gradient
         call physical_part_deriv(ngll,hprime,InvGrad,phi,dphi_dx,dphi_dy,dphi_dz)
@@ -241,7 +241,7 @@ contains
         type(domain_fluid), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer, intent(in) :: i,j,k,ind
-        real(kind=fpp), intent(in) :: Whei
+        real(fpp), intent(in) :: Whei
         !
         integer :: bnum, ee
         bnum = specel%lnum/VCHUNK

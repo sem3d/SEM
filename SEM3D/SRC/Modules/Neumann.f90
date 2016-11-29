@@ -9,7 +9,7 @@
 !<
 
 module sneu
-
+    use constants, only : fpp
     implicit none
 
     ! Neumann face properties
@@ -19,20 +19,20 @@ module sneu
        integer, dimension(0:3) :: Near_Edges, Near_Vertices
        ! all 3 edges and vertices for a Neumann face
        integer, dimension(0:3) :: Near_Edges_Orient
-       real, dimension(:,:,:), pointer  :: normal,Forces,Coord
-       real, dimension(:,:,:), pointer  :: BtN
+       real(fpp), dimension(:,:,:), pointer  :: normal,Forces,Coord
+       real(fpp), dimension(:,:,:), pointer  :: BtN
     end type face_Neu
 
     type :: edge_Neu
        integer :: mat_index
        integer :: Edge,ngll
        integer :: Orient_Edge
-       real, dimension(:,:), pointer  :: BtN,Forces,Coord
+       real(fpp), dimension(:,:), pointer  :: BtN,Forces,Coord
     end type edge_Neu
 
     type :: vertex_Neu
        integer :: vertex
-       real, dimension(0:2)  :: BtN,Forces,Coord
+       real(fpp), dimension(0:2)  :: BtN,Forces,Coord
     end type vertex_Neu
 
     ! general parameters: description of the type of Neumann B.C.
@@ -40,7 +40,7 @@ module sneu
     !    in time; "F": time evolution given in a file.
     type Param_Neu
        integer  :: mat_index
-       real :: Mu,Lambda,speed,lx,ly,lz,xs,ys,zs,f0
+       real(fpp) :: Mu,Lambda,speed,lx,ly,lz,xs,ys,zs,f0
        character :: wtype,what_bc
        !! Add by Mtaro
        character(len=1500)                :: neu_funcx, neu_funcy, neu_funcz
@@ -49,7 +49,7 @@ module sneu
        character                          :: neu_source
        integer                            :: neu_dim
        integer, allocatable               :: neu_index(:)
-       real(kind=8), allocatable          :: neu_paravalue(:)
+       real(fpp), allocatable             :: neu_paravalue(:)
        character(len=2), dimension(1:100) :: neu_paramname
        integer                            :: neu_nparamvar, neu_paramvar
 

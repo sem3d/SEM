@@ -3,6 +3,7 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module scomm
+    use constants, only : fpp
     implicit none
     interface comm_give_data
         module procedure comm_give_data_1, comm_give_data_2, comm_give_data_3
@@ -54,8 +55,8 @@ contains
     end subroutine exchange_sem_var
 
     subroutine comm_give_data_1(give, igive, data, pos)
-        real, dimension(0:), intent(inout) :: give
-        real, dimension(0:), intent(in)  :: data
+        real(fpp), dimension(0:), intent(inout) :: give
+        real(fpp), dimension(0:), intent(in)  :: data
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
@@ -67,8 +68,8 @@ contains
     end subroutine comm_give_data_1
 
     subroutine comm_give_data_2(give, igive, data, pos)
-        real, dimension(0:), intent(inout) :: give
-        real, dimension(0:,0:), intent(in)  :: data
+        real(fpp), dimension(0:), intent(inout) :: give
+        real(fpp), dimension(0:,0:), intent(in)  :: data
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
@@ -82,8 +83,8 @@ contains
     end subroutine comm_give_data_2
 
     subroutine comm_give_data_3(give, igive, data, pos)
-        real, dimension(0:), intent(inout) :: give
-        real, dimension(0:,0:,0:), intent(in)  :: data
+        real(fpp), dimension(0:), intent(inout) :: give
+        real(fpp), dimension(0:,0:,0:), intent(in)  :: data
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
@@ -99,9 +100,9 @@ contains
     end subroutine comm_give_data_3
 
     subroutine comm_take_data_1(take, itake, data, pos)
-        real, dimension(0:), intent(in) :: take
+        real(fpp), dimension(0:), intent(in) :: take
         integer, dimension(0:), intent(in) :: itake
-        real, dimension(0:), intent(inout)  :: data
+        real(fpp), dimension(0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
         integer :: i, idx
@@ -113,9 +114,9 @@ contains
     end subroutine comm_take_data_1
 
     subroutine comm_take_data_2(take, itake, data, pos)
-        real, dimension(0:), intent(in) :: take
+        real(fpp), dimension(0:), intent(in) :: take
         integer, dimension(0:), intent(in) :: itake
-        real, dimension(0:,0:), intent(inout)  :: data
+        real(fpp), dimension(0:,0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
         integer :: i, j, idx
@@ -129,9 +130,9 @@ contains
     end subroutine comm_take_data_2
 
     subroutine comm_take_data_3(take, itake, data, pos)
-        real, dimension(0:), intent(in) :: take
+        real(fpp), dimension(0:), intent(in) :: take
         integer, dimension(0:), intent(in) :: itake
-        real, dimension(0:,0:,0:), intent(inout)  :: data
+        real(fpp), dimension(0:,0:,0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
         integer :: i, j, k, idx

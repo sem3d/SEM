@@ -5,6 +5,7 @@
 !----------------------------------------------------------------
 !----------------------------------------------------------------
 module sf_coupling
+    use constants, only : fpp
     implicit none
 
 contains
@@ -19,8 +20,8 @@ subroutine StoF_coupling(Tdomain, f0, f1)
     integer:: ngll_sf, ngll_sf_pml
     integer  :: i,j
     integer :: idxS, idxF
-    real :: vn, vn1, vn2, vn3
-    real, dimension(0:2) :: btn
+    real(fpp) :: vn, vn1, vn2, vn3
+    real(fpp), dimension(0:2) :: btn
 
     ngll_sf = Tdomain%SF%intSolFlu%surf0%nbtot
     ngll_sf_pml = Tdomain%SF%intSolFluPml%surf0%nbtot
@@ -76,7 +77,7 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: f0, f1
     !
-    real, dimension(0:2) :: BtN
+    real(fpp), dimension(0:2) :: BtN
     integer :: ngll_sf, ngll_sf_pml
     integer :: i,j
     integer :: idxS, idxF

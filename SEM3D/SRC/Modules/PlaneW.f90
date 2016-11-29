@@ -9,6 +9,7 @@
 !<
 
 module splanew
+    use constants, only : fpp
     implicit none
     ! #####################################################################################
     ! #####################################################################################
@@ -17,8 +18,8 @@ module splanew
 
        integer :: ngll1, ngll2, mat_index, dir, Face_UP, Face_DOWN, Orient, Face
        integer, dimension (0:3) :: Near_Edges, Near_Vertices, Orient_Edges
-       real, dimension (:,:), pointer :: ds, MassMat_Up, MassMat_Down
-       real, dimension (:,:,:), pointer :: normal, Btn, Coord_nodes, Forces_Up, Forces_Down
+       real(fpp), dimension (:,:), pointer :: ds, MassMat_Up, MassMat_Down
+       real(fpp), dimension (:,:,:), pointer :: normal, Btn, Coord_nodes, Forces_Up, Forces_Down
 
     end type Face_PlaneW
 
@@ -26,8 +27,8 @@ module splanew
     type Edge_PlaneW
 
        integer :: ngll, mat_index, dir, Edge_UP, Edge_DOWN, Orient, Edge
-       real, dimension (:), pointer :: MassMat_Up, MassMat_Down
-       real, dimension (:,:), pointer :: Btn, Coord_nodes, Forces_Up, Forces_Down
+       real(fpp), dimension (:), pointer :: MassMat_Up, MassMat_Down
+       real(fpp), dimension (:,:), pointer :: Btn, Coord_nodes, Forces_Up, Forces_Down
 
     end type Edge_PlaneW
 
@@ -35,16 +36,16 @@ module splanew
     type Vertex_PlaneW
 
        integer :: Vertex_UP, Vertex_DOWN, mat_index
-       real :: MassMat_Up, MassMat_Down
+       real(fpp) :: MassMat_Up, MassMat_Down
        integer :: vertex
-       real, dimension (0:2) :: Btn, Coord_nodes, Forces_Up, Forces_Down
+       real(fpp), dimension (0:2) :: Btn, Coord_nodes, Forces_Up, Forces_Down
 
     end type Vertex_PlaneW
 
 
     type Param_PlaneW
 
-       real              :: Mu, Lambda, Kappa, speed, lx, ly, lz, xs, ys, zs, f0
+       real(fpp)              :: Mu, Lambda, Kappa, speed, lx, ly, lz, xs, ys, zs, f0
        character (len=1) :: wtype
        integer           :: mat_index
     end type Param_PlaneW
@@ -55,7 +56,7 @@ module splanew
          character(len=12)   :: PlaneW_varia
          character           :: PlaneW_source
          integer             :: PlaneW_dim
-         real(kind=8),dimension(1:100) :: PlaneW_paravalue
+         real(fpp), dimension(1:100) :: PlaneW_paravalue
          character(len=3), dimension(1:100) :: PlaneW_paramname
          integer     :: PlaneW_nparamvar, PlaneW_paramvar
     end type
@@ -78,12 +79,12 @@ contains
 
         type (Face_PlaneW), intent (INOUT) :: Face
         type (Param_PlaneW), intent (IN) :: Param
-        real, dimension (1:Face%ngll1-2,1:Face%ngll2-2,0:2), intent (IN) :: Vfree
-        real, intent (IN) :: dt, ctime
+        real(fpp), dimension (1:Face%ngll1-2,1:Face%ngll2-2,0:2), intent (IN) :: Vfree
+        real(fpp), intent (IN) :: dt, ctime
 
         integer :: i,j, ngll1, ngll2
-        real, dimension (:,:,:), allocatable :: Traction_i, vel_i
-        real :: xpt, ypt, zpt, velixn, veliyn, velizn, Sigma11, Sigma22 ,Sigma33, Sigma12, Sigma13, Sigma23
+        real(fpp), dimension (:,:,:), allocatable :: Traction_i, vel_i
+        real(fpp) :: xpt, ypt, zpt, velixn, veliyn, velizn, Sigma11, Sigma22 ,Sigma33, Sigma12, Sigma13, Sigma23
 
 
         ngll1 = Face%ngll1
@@ -172,12 +173,12 @@ contains
 
         type (Edge_PlaneW), intent (INOUT) :: Edge
         type (Param_PlaneW), intent (IN) :: Param
-        real, dimension (1:Edge%ngll-2,0:2), intent (IN) :: Vfree
-        real, intent (IN) :: dt, ctime
+        real(fpp), dimension (1:Edge%ngll-2,0:2), intent (IN) :: Vfree
+        real(fpp), intent (IN) :: dt, ctime
 
         integer :: i, ngll
-        real :: xpt, ypt, zpt, velixn, veliyn, velizn, Sigma11, Sigma22 ,Sigma33, Sigma12, Sigma13, Sigma23
-        real, dimension(:,:), allocatable :: Traction_i, vel_i
+        real(fpp) :: xpt, ypt, zpt, velixn, veliyn, velizn, Sigma11, Sigma22 ,Sigma33, Sigma12, Sigma13, Sigma23
+        real(fpp), dimension(:,:), allocatable :: Traction_i, vel_i
 
 
         ngll = Edge%ngll
@@ -232,11 +233,11 @@ contains
 
         type (Vertex_PlaneW), intent (INOUT) :: Vertex
         type (Param_PlaneW), intent (IN) :: Param
-        real, dimension (0:2), intent (IN) :: Vfree
-        real, intent (IN) :: dt, ctime
+        real(fpp), dimension (0:2), intent (IN) :: Vfree
+        real(fpp), intent (IN) :: dt, ctime
 
-        real :: xpt, ypt, zpt, velixn, veliyn, velizn, Sigma11, Sigma22 ,Sigma33, Sigma12, Sigma13, Sigma23
-        real, dimension(0:2) :: Traction_i, vel_i
+        real(fpp) :: xpt, ypt, zpt, velixn, veliyn, velizn, Sigma11, Sigma22 ,Sigma33, Sigma12, Sigma13, Sigma23
+        real(fpp), dimension(0:2) :: Traction_i, vel_i
 
         vel_i = 0.
 
@@ -280,11 +281,11 @@ contains
         implicit none
 
         type (Param_PlaneW), intent (IN) :: Param
-        real, intent(IN) :: x,z,y,ctime
-        real, intent(INOUT) :: velx,vely,velz
+        real(fpp), intent(IN) :: x,z,y,ctime
+        real(fpp), intent(INOUT) :: velx,vely,velz
 
-        real :: lx,ly,lz,phasex,phasey,phasez,f0,force
-        real :: vel,xsour,ysour,zsour,xpt,ypt,zpt,arg,pi
+        real(fpp) :: lx,ly,lz,phasex,phasey,phasez,f0,force
+        real(fpp) :: vel,xsour,ysour,zsour,xpt,ypt,zpt,arg,pi
 
         pi = Acos(-1.)
         xsour = Param%xs

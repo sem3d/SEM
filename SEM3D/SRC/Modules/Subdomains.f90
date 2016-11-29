@@ -17,11 +17,11 @@ module ssubdomains
     type LMC_properties
 
         ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
-        real :: sigma_yld   ! first yielding limit
-        real :: C_kin       ! variable for kinematic hardening
-        real :: kapa_kin    ! variable for kinematic hardening
-        real :: b_iso       ! variable for isotropic hardening
-        real :: Rinf_iso    ! variable for isotropic hardening
+        real(fpp) :: sigma_yld   ! first yielding limit
+        real(fpp) :: C_kin       ! variable for kinematic hardening
+        real(fpp) :: kapa_kin    ! variable for kinematic hardening
+        real(fpp) :: b_iso       ! variable for isotropic hardening
+        real(fpp) :: Rinf_iso    ! variable for isotropic hardening
 
     end type LMC_properties
     !
@@ -57,10 +57,10 @@ module ssubdomains
         real(kind=8) :: dt
         !! Definition materiau solide anisotrope
         ! TODO
-        
+
         !! NONLINEAR LEMAITRE-CHABOCHE
         real(fpp) :: DSyld,DCkin,DKkin,DRinf,DBiso
-        
+
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression
         !! PML

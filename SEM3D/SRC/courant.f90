@@ -19,9 +19,9 @@ contains
         implicit none
         type (Domain), intent (INOUT) :: Tdomain
         integer, intent(in) :: idef0, idef1
-        real, intent(inout) :: dxmin, dxmax
+        real(fpp), intent(inout) :: dxmin, dxmax
         !
-        real :: dx
+        real(fpp) :: dx
 
         if (idef0==idef1) then
             write(*,*) "Numbering problem"

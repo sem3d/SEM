@@ -64,7 +64,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90
     ${PRJ}/SRC/source_excit.F90
-    ${PRJ}/SRC/boundary_conditions_init.f90
+#    ${PRJ}/SRC/boundary_conditions_init.f90
 
     ${PRJ}/SRC/snapshots.F90
 

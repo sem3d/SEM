@@ -17,45 +17,36 @@ module ssources
     implicit none
 
     type :: Source
-
        ! GENERAL PARAMETERS (see SourcePosition.f90-Source.f90)
-       integer                              :: proc                      ! source belonging processor
-       integer                              :: elem                      ! source belonging elem
-       integer                              :: i_type_source             ! source type (solid pulse-moment-fluid pulse)
-
+       integer                     :: proc                      ! source belonging processor
+       integer                     :: elem                      ! source belonging elem
+       integer                     :: i_type_source             ! source type (solid pulse-moment-fluid pulse)
        ! SPATIAL PARAMETERS
-       real, dimension(0:2)                 :: refcoord                  ! local coordinates (master element)
-       real, dimension(0:2)                 :: dir                       ! source direction
-       real                                 :: Xsource, YSource, Zsource ! source coordinates
-       real                                 :: amplitude_factor          ! amplitude factor
-
+       real(fpp), dimension(0:2)   :: refcoord                  ! local coordinates (master element)
+       real(fpp), dimension(0:2)   :: dir                       ! source direction
+       real(fpp)                   :: Xsource, YSource, Zsource ! source coordinates
+       real(fpp)                   :: amplitude_factor          ! amplitude factor
        ! TIME PARAMETERS
-       real                                 :: ts                        ! time shift
-       integer                              :: i_time_function           ! source type (ricker, gabor, etc.)
-
+       real(fpp)                   :: ts                        ! time shift
+       integer                     :: i_time_function           ! source type (ricker, gabor, etc.)
        ! MOMENT SOURCE
-       real, dimension(0:2,0:2)             :: InvGrad                   ! Inverse Jacobian
-       real, dimension(0:2,0:2)             :: Moment                    ! Moment tensor
-       real, dimension (:,:,:,:), pointer   :: coeff                     ! weight coefficient
-
+       real(fpp), dimension(0:2,0:2)             :: InvGrad     ! Inverse Jacobian
+       real(fpp), dimension(0:2,0:2)             :: Moment      ! Moment tensor
+       real(fpp), dimension (:,:,:,:), pointer   :: coeff       ! weight coefficient
        ! SOURCE FROM EXTERNAL FILE
-       character(len = 30)                  :: time_file                 ! file name of external source
+       character(len = 30)                  :: time_file        ! file name of external source
 
-
-       real :: tau_b,cutoff_freq,Q,X,Y,L,v,d,a
-       real :: radius,realcolat,reallong,refcolat,reflong
-
+       real(fpp) :: tau_b,cutoff_freq,Q,X,Y,L,v,d,a
+       real(fpp) :: radius,realcolat,reallong,refcolat,reflong
        !   ajout de parametres pour definir Gabor signal source de type 4
        !   ajout de gamma et ts
-       real ::  gamma
+       real(fpp) ::  gamma
 
+       real(fpp), dimension(0:3) :: fh
 
-
-       real, dimension(0:3) :: fh
-
-       real, dimension(:), pointer :: timefunc
-       real, dimension(:), pointer :: ampli, time
-       real, allocatable, dimension(:,:,:,:) :: ExtForce
+       real(fpp), dimension(:), pointer :: timefunc
+       real(fpp), dimension(:), pointer :: ampli, time
+       real(fpp), allocatable, dimension(:,:,:,:) :: ExtForce
     end type Source
 
 contains
@@ -66,11 +57,11 @@ contains
     !! \param type (source) Sour
     !! \param real time
     !<
-    real function CompSource (Sour,time,ntime)
+    real(fpp) function CompSource (Sour,time,ntime)
         implicit none
         type (source), intent(in) :: Sour
         integer, intent(in) :: ntime
-        real, intent(in) :: time
+        real(fpp), intent(in) :: time
 
         CompSource = 0d0
 
@@ -119,12 +110,12 @@ contains
     end function CompSource
 
 
-    real function Source_Spice_Bench(time, Sour)
+    real(fpp) function Source_Spice_Bench(time, Sour)
         implicit none
         type(source), intent(in) :: Sour
-        real, intent(in) :: time
+        real(fpp), intent(in) :: time
         !
-        real :: T, k, s
+        real(fpp) :: T, k, s
 
         if (time<Sour%ts) then
             Source_Spice_Bench = 0d0
@@ -141,12 +132,12 @@ contains
         return
     end function Source_Spice_Bench
 
-    real function Source_tanh(time, Sour)
+    real(fpp) function Source_tanh(time, Sour)
         implicit none
         type(source), intent(in) :: Sour
-        real, intent(in) :: time
+        real(fpp), intent(in) :: time
         !
-        real :: k,t0
+        real(fpp) :: k,t0
 
         t0 = Sour%ts
         k = Sour%gamma
@@ -155,13 +146,13 @@ contains
         return
     end function Source_tanh
 
-    real function Source_square(t, Sour)
+    real(fpp) function Source_square(t, Sour)
         implicit none
         ! A smoothed square
         type(source), intent(in) :: Sour
-        real, intent(in) :: t
+        real(fpp), intent(in) :: t
         !
-        real :: dt,t0,k,w0,winf
+        real(fpp) :: dt,t0,k,w0,winf
 
         dt = Sour%tau_b
         t0 = Sour%ts
@@ -175,12 +166,12 @@ contains
         return
     end function Source_square
 
-    real function Source_sinewave(time, Sour)
+    real(fpp) function Source_sinewave(time, Sour)
         implicit none
         type(source), intent(in) :: Sour
-        real, intent(in) :: time
+        real(fpp), intent(in) :: time
         !
-        real :: f0, t0
+        real(fpp) :: f0, t0
 
         f0 = Sour%cutoff_freq
         t0 = Sour%ts
@@ -189,11 +180,11 @@ contains
         return
     end function Source_sinewave
 
-    
-    real function Source_File(tt,Sour)
+
+    real(fpp) function Source_File(tt,Sour)
         implicit none
         type(source), intent(in)  :: Sour
-        real, intent(in)          :: tt
+        real(fpp), intent(in)          :: tt
         integer :: iflag, i
 
         if(tt < Sour%time(0) .or. tt > Sour%time(size(Sour%time)-1))then
@@ -222,7 +213,7 @@ contains
         type(Source), intent(inout)   :: Sour
         integer                       :: nb_time_step
         integer                       :: i
-        real                          :: tr, trr
+        real(fpp)                          :: tr, trr
 
         i = 0 ; nb_time_step = 0
         ! count
@@ -248,9 +239,9 @@ contains
     !   modif pour benchmark can2
     !-------------------------------------------------
 
-    real function Gaussian (time,ts,tau)
+    real(fpp) function Gaussian (time,ts,tau)
         implicit none
-        real, intent(in) :: tau, time, ts
+        real(fpp), intent(in) :: tau, time, ts
 
         if ( (time-ts) < 8*tau ) then
             Gaussian = -2*(time-ts) * exp (-(time-ts)**2/tau**2)
@@ -274,11 +265,11 @@ contains
 
 
 
-    real function Triangle (time,tau)
+    real(fpp) function Triangle (time,tau)
         implicit none
         !
-    
-         real, intent(in) :: time, tau
+
+         real(fpp), intent(in) :: time, tau
 
          !! tau = coefficient of pression
 
@@ -289,17 +280,17 @@ contains
          else
               Triangle = 0.
          endif
-        
+
          return
     end function Triangle
 
    ! ###############################################################################
 
-    real function HSF (time, tau)
+    real(fpp) function HSF (time, tau)
         implicit none
         ! HEAVISIDE STEP FUNCTION (KAUSEL-2006)
-        real, intent(in) :: time, tau
-        
+        real(fpp), intent(in) :: time, tau
+
         if ( time < 0.00000001 ) then
             HSF =0.
         endif
@@ -311,27 +302,27 @@ contains
         endif
         return
     end function HSF
- 
 
 
-    real function DM (time, tau,Q,X,Y,L,v,d,a)
+
+    real(fpp) function DM (time, tau,Q,X,Y,L,v,d,a)
         implicit none
         ! DoubleM (Al Shaer et al 2008)
-        real, intent(in) :: time, tau,Q,X,Y,L,v,d,a
+        real(fpp), intent(in) :: time, tau,Q,X,Y,L,v,d,a
 
         DM = Q*Y/2*((X)**(((v*(time-tau)-a)**2/d**2))+(X)**(((v*(time-tau)-a-L)**2/d**2)))
 
         return
     end function DM
-    
+
     ! ############################################################################
 
-    real function Ricker (time,tau,f0)
+    real(fpp) function Ricker (time,tau,f0)
         implicit none
         !
-        real, intent(in) :: time, tau, f0
-        real :: sigma, alpha
- 
+        real(fpp), intent(in) :: time, tau, f0
+        real(fpp) :: sigma, alpha
+
         alpha = -1d0*M_PI**2*f0**2
         if ( time < 2.5*tau ) then
             sigma = alpha * (time-tau)**2
@@ -345,13 +336,13 @@ contains
 
     ! #################################################
 
-    real function Gabor (time,tau,fp,gamma,ts)
+    real(fpp) function Gabor (time,tau,fp,gamma,ts)
         implicit none
         !
-        real, intent(in) :: time, tau, fp, gamma, ts
+        real(fpp), intent(in) :: time, tau, fp, gamma, ts
         !
-        real :: sigma
-        real ::  xomega,  xval1, xval2
+        real(fpp) :: sigma
+        real(fpp) ::  xomega,  xval1, xval2
         xomega  = M_PI*0.5
 
         if ( time < 32. ) then
@@ -375,13 +366,13 @@ contains
 
     !----------------------------------------------------
     !----------------------------------------------------
-    real function Ricker_Fl(time,tau,f0)
+    real(fpp) function Ricker_Fl(time,tau,f0)
         implicit none
         ! Ricker function for pressure wave: the same as the previous one, but with
         !    one time derivative to be coherent
-        real,intent(in)  :: time, tau, f0
+        real(fpp),intent(in)  :: time, tau, f0
         !
-        real  :: sigma,sigma2,sigma3
+        real(fpp)  :: sigma,sigma2,sigma3
 
         sigma = M_PI*f0*(time-tau)
         sigma2 = sigma**2

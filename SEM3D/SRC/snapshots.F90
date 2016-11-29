@@ -20,12 +20,12 @@ contains
         type (output_var_t), intent (INOUT):: outputs
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim1, dim2
-        real, dimension(0:dim1-1,0:dim2-1), intent(in) :: data
+        real(fpp), dimension(0:dim1-1,0:dim2-1), intent(in) :: data
         character(len=*), INTENT(IN) :: name
         integer, intent(out) :: ntot_nodes
         !
         integer(HID_T) :: dset_id
-        real, dimension(:,:), allocatable :: all_data
+        real(fpp), dimension(:,:), allocatable :: all_data
         integer, dimension(:), allocatable :: displs, counts
         integer :: n
         integer(HSIZE_T), dimension(2) :: dims
@@ -317,12 +317,12 @@ contains
         type (output_var_t), intent (INOUT):: outputs
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim1
-        real, dimension(:), intent(in) :: data
+        real(fpp), dimension(:), intent(in) :: data
         character(len=*), INTENT(IN) :: name
         integer, intent(OUT) :: ntot_nodes
         !
         integer(HID_T) :: dset_id
-        real, dimension(:), allocatable :: all_data
+        real(fpp), dimension(:), allocatable :: all_data
         integer, dimension(:), allocatable :: displs, counts
         integer :: n
         integer(HSIZE_T), dimension(2) :: dims
@@ -537,7 +537,7 @@ contains
         integer(HID_T), intent(in) :: fid
         type(output_var_t), intent(in) :: outputs
         !
-        real, dimension(:,:), allocatable :: nodes
+        real(fpp), dimension(:,:), allocatable :: nodes
         integer :: n
         !
         allocate(nodes(0:2,0:outputs%nnodes-1))
@@ -879,7 +879,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         integer :: bnum, ee
-        real, dimension(:), allocatable :: GLLc ! GLLw
+        real(fpp), dimension(:), allocatable :: GLLc ! GLLw
         real(fpp), dimension(:,:,:), allocatable :: jac
 
         integer, dimension(0:size(Tdomain%out_variables)-1) :: out_variables
@@ -1093,7 +1093,7 @@ contains
         !
         character (len=MAX_FILE_SIZE) :: fnamef
         integer :: i, nn, ne, group
-        real :: time
+        real(fpp) :: time
         character(len=11) :: R2label(0:20)
 #ifdef CPML
         integer :: j
@@ -1283,15 +1283,15 @@ contains
         integer(HID_T), intent(in) :: fid
         type (output_var_t), intent(inout) :: outputs
         !
-        real, dimension(:),allocatable :: mass, jac
+        real(fpp), dimension(:),allocatable :: mass, jac
 #ifdef CPML
-        real, dimension(:), allocatable :: alpha_pml, kappa_pml, dxi_k_pml
+        real(fpp), dimension(:), allocatable :: alpha_pml, kappa_pml, dxi_k_pml
         integer :: dir
 #else
-        real, dimension(:),allocatable :: dumpsx
+        real(fpp), dimension(:),allocatable :: dumpsx
         real(fpp) :: dx, dy, dz, dt
 #endif
-        real, dimension(:),allocatable :: dens, lamb, mu, kappa
+        real(fpp), dimension(:),allocatable :: dens, lamb, mu, kappa
         integer :: ngll, idx
         integer :: i, j, k, n, lnum, nnodes_tot, bnum, ee
         integer :: domain_type, imat

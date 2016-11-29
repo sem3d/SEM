@@ -3,17 +3,18 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module earth_transform
+    use constants, only : fpp, M_PI
     implicit none
 
-    real, parameter :: Earth_radius=6371000.d0, Pi = 3.141592653, Pi180 = Pi/180.0
+    real(fpp), parameter :: Earth_radius=6371000.d0, Pi180 = M_PI/180.0
 
 contains
 
     subroutine getRotMat_loc2glob(lon, lat, M)
-        real, intent(in) :: lon, lat
-        real, intent(out), dimension(3,3) :: M
+        real(fpp), intent(in) :: lon, lat
+        real(fpp), intent(out), dimension(3,3) :: M
 
-        real :: theta, phi
+        real(fpp) :: theta, phi
 
         theta = (90.0-lat)*Pi180
         phi = lon*Pi180
@@ -41,8 +42,8 @@ contains
     end subroutine getRotMat_loc2glob
 
     subroutine cart2sph(x, y, z, r, theta, phi)
-        real, intent(in) :: x, y, z
-        real, intent(out) :: r, theta, phi
+        real(fpp), intent(in) :: x, y, z
+        real(fpp), intent(out) :: r, theta, phi
 
         r = sqrt(x*x+y*y+z*z)
         theta = acos(z/r)

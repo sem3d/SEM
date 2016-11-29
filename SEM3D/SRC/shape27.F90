@@ -3,6 +3,7 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module mshape27
+    use constants, only : fpp
     implicit none
 #include "index.h"
 
@@ -18,10 +19,10 @@ contains
         type(domain), target, intent (INOUT) :: Tdomain
 
         integer :: n,ngll,i,j,k,ipoint
-        real :: xi,eta,zeta, xp,yp,zp, Jac
-        real, dimension(0:2,0:26) :: coord
-        real, dimension(0:2,0:2) :: LocInvGrad
-        real, dimension(:), allocatable :: GLLc
+        real(fpp) :: xi,eta,zeta, xp,yp,zp, Jac
+        real(fpp), dimension(0:2,0:26) :: coord
+        real(fpp), dimension(0:2,0:2) :: LocInvGrad
+        real(fpp), dimension(:), allocatable :: GLLc
         !
         integer :: bnum, ee
 
@@ -76,10 +77,10 @@ contains
         enddo
     end subroutine shape27_init
     !---------------------------------------------------------------------------
-    real function shape27_func(which_nod,xi,eta,zeta)
+    real(fpp) function shape27_func(which_nod,xi,eta,zeta)
 
         integer :: which_nod
-        real :: xi,eta,zeta
+        real(fpp) :: xi,eta,zeta
 
         shape27_func = 0.0
         select case (which_nod)
@@ -142,12 +143,12 @@ contains
         return
     end function shape27_func
     !---------------------------------------------------------------------------
-    real function shape27_derivfunc(which_nod,xi,eta,zeta,compo)
+    real(fpp) function shape27_derivfunc(which_nod,xi,eta,zeta,compo)
 
         integer :: which_nod, compo
-        real :: xi,eta,zeta
+        real(fpp) :: xi,eta,zeta
 
-        real, dimension(0:2) :: df
+        real(fpp), dimension(0:2) :: df
 
         select case (which_nod)
         case (0)
@@ -266,12 +267,12 @@ contains
     end function shape27_derivfunc
     !---------------------------------------------------------------------------
     subroutine shape27_local2global(coord, xi, eta, zeta, xa, ya, za)
-        real, dimension(0:2,0:26), intent(in) :: coord
-        real, intent(in) :: xi, eta, zeta
-        real, intent(out) :: xa, ya, za
+        real(fpp), dimension(0:2,0:26), intent(in) :: coord
+        real(fpp), intent(in) :: xi, eta, zeta
+        real(fpp), intent(out) :: xa, ya, za
         !
         integer :: i
-        double precision :: f
+        real(fpp) :: f
         !
         xa = 0;   ya = 0;   za = 0;
         do i = 0,26
@@ -283,11 +284,11 @@ contains
     end subroutine shape27_local2global
     !---------------------------------------------------------------------------
     subroutine shape27_local2jacob(coord, xi, eta, zeta, jac)
-        double precision, dimension(0:2,0:26), intent(in)  :: coord
-        double precision, intent(in) :: xi, eta, zeta
-        double precision, dimension(0:2,0:2), intent(out) :: jac
+        real(fpp), dimension(0:2,0:26), intent(in)  :: coord
+        real(fpp), intent(in) :: xi, eta, zeta
+        real(fpp), dimension(0:2,0:2), intent(out) :: jac
         !
-        double precision :: f
+        real(fpp) :: f
         integer :: i, j
         !- computation of the derivative matrix, J(i,j)= dx_(jj)/dxi_(ii)
         jac = 0.
@@ -301,11 +302,11 @@ contains
         enddo
     end subroutine shape27_local2jacob
     !---------------------------------------------------------------------------
-    double precision function shape27_min(dim, nn, x, nodes, xref)
+    real(fpp) function shape27_min(dim, nn, x, nodes, xref)
         integer, intent(in) :: dim, nn
-        double precision, dimension(0:dim-1), intent(in) :: x, xref
-        double precision, dimension(0:dim-1,0:nn-1), intent(in) :: nodes
-        double precision :: xa, ya, za, xrx, xry, xrz
+        real(fpp), dimension(0:dim-1), intent(in) :: x, xref
+        real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: nodes
+        real(fpp) :: xa, ya, za, xrx, xry, xrz
         call shape27_local2global(nodes, x(0), x(1), x(2), xa, ya, za)
         xrx = 1d0/max(abs(xref(0)),1d0)
         xry = 1d0/max(abs(xref(1)),1d0)
@@ -316,11 +317,11 @@ contains
     !---------------------------------------------------------------------------
     subroutine shape27_mingrad(dim, nn, x, nodes, xref, grad)
         integer, intent(in) :: dim, nn
-        double precision, dimension(0:dim-1), intent(in) :: x, xref
-        double precision, dimension(0:dim-1,0:nn-1), intent(in) :: nodes
-        double precision, dimension(0:dim-1), intent(out) :: grad
-        double precision, dimension(0:dim-1,0:dim-1) :: jac
-        double precision :: xa, ya, za, xrx, xry, xrz
+        real(fpp), dimension(0:dim-1), intent(in) :: x, xref
+        real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: nodes
+        real(fpp), dimension(0:dim-1), intent(out) :: grad
+        real(fpp), dimension(0:dim-1,0:dim-1) :: jac
+        real(fpp) :: xa, ya, za, xrx, xry, xrz
         call shape27_local2global(nodes, x(0), x(1), x(2), xa, ya, za)
         call shape27_local2jacob(nodes, x(0), x(1), x(2), jac)
         xrx = 1d0/max(xref(0)**2,1d0)
@@ -335,13 +336,13 @@ contains
     end subroutine shape27_mingrad
     !---------------------------------------------------------------------------
     subroutine simple_newton_27(nodes, xref, xin, xout, nit)
-        double precision, dimension(0:2), intent(in) :: xref, xin
-        double precision, dimension(0:2), intent(out) :: xout
+        real(fpp), dimension(0:2), intent(in) :: xref, xin
+        real(fpp), dimension(0:2), intent(out) :: xout
         integer, intent(out) :: nit
-        double precision, dimension(0:2,0:26), intent(in) :: nodes
-        double precision, dimension(0:2,0:2) :: jac
-        double precision, dimension(0:2) :: x
-        double precision :: xa, ya, za, err, Det
+        real(fpp), dimension(0:2,0:26), intent(in) :: nodes
+        real(fpp), dimension(0:2,0:2) :: jac
+        real(fpp), dimension(0:2) :: x
+        real(fpp) :: xa, ya, za, err, Det
         integer, parameter :: niter=1000
         integer :: i
         xout = xin
@@ -364,13 +365,13 @@ contains
     !---------------------------------------------------------------------------
     subroutine shape27_global2local(coord, xa, ya, za, xi, eta, zeta, ok)
         use mleastsq
-        double precision, dimension(0:2,0:26), intent(in)  :: coord
-        double precision, intent(in) :: xa, ya, za
-        double precision, intent(out) :: xi, eta, zeta
+        real(fpp), dimension(0:2,0:26), intent(in)  :: coord
+        real(fpp), intent(in) :: xa, ya, za
+        real(fpp), intent(out) :: xi, eta, zeta
         logical, intent(out) :: ok
         !
         integer :: niter
-        double precision, dimension(0:2) :: xin, xout, xref
+        real(fpp), dimension(0:2) :: xin, xout, xref
         ok = .true.
         xin(0) = 0.
         xin(1) = 0.

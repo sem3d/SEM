@@ -4,6 +4,7 @@
 !!
 
 module scomms
+    use constants, only : fpp
     implicit none
 
     type :: exchange_vector
@@ -13,7 +14,7 @@ module scomms
        ! si on echange 4 ddl pour solpml et 2 pour sol alors ndata=2*nsol+4*nsolpml...
        integer :: src, dest
        integer :: ncomm ! bookeeping numero de la structure comm associee
-       real, dimension(:), allocatable :: Give, Take
+       real(fpp), dimension(:), allocatable :: Give, Take
        integer, dimension(:), allocatable :: IGiveS, IGiveSPML, IGiveF, IGiveFPML
     end type exchange_vector
 

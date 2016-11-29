@@ -3,7 +3,7 @@
 !! Copyright CEA, ECP, IPGP
 !!
 subroutine  initialize_material_prem(Tdomain, mat, elem, coorPt, npts)
-    use constants, only : DM_SOLID_PML
+    use constants, only : DM_SOLID_PML, fpp
     use selement
     use ssubdomains
     use model_prem
@@ -18,14 +18,14 @@ subroutine  initialize_material_prem(Tdomain, mat, elem, coorPt, npts)
     type (domain), intent (INOUT), target :: Tdomain
     type(subdomain), intent(in) :: mat
     type(element), intent(inout) :: elem
-    real, dimension(0:2,0:npts-1), intent(in) :: coorPt
+    real(fpp), dimension(0:2,0:npts-1), intent(in) :: coorPt
     integer, intent(in) :: npts
 
     integer :: i,j,k,ii,jj,ngll,idef
-    real :: x, y, z, A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi
-    real, dimension(1:6,1:6) :: Cij
-    real, dimension(1:6,1:6,0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: gCij
-    real, dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: lambda, mu, rho
+    real(fpp) :: x, y, z, A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi
+    real(fpp), dimension(1:6,1:6) :: Cij
+    real(fpp), dimension(1:6,1:6,0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: gCij
+    real(fpp), dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: lambda, mu, rho
 
     ngll = Tdomain%sdom%ngll
 

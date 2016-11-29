@@ -7,26 +7,26 @@
 !! \brief
 !!
 !<
-module DimensionalShape 
+module DimensionalShape
+    use constants, only : fpp
+    implicit none
+    real(fpp)  :: Radius
 
-implicit none
-real(kind=8)  :: Radius
-  
 contains
     !-------------------------------------------------------------------------------
     !------------------------------------------------------------------------------
     subroutine surfaceSource(nbtot,Tdomain,surface)
-    
+
        use sdomain
        use ssurf
-    
+
        implicit none
        integer,       intent(in   ):: nbtot
        type(domain),  intent(in   ):: Tdomain
        type(SurfaceT),intent(inout):: surface
        integer                     :: i, shape, ssrc
-       real(kind=8)                :: x, y, z, RR
-    
+       real(fpp)                :: x, y, z, RR
+
        allocate(surface%source(0:nbtot-1))
        ssrc = nsurfindex(Tdomain, surface%name)
        surface%source = 1.0d0
@@ -45,16 +45,16 @@ contains
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
     function SrcShape(x, y, z, R, index)
-    
+
        implicit none
        integer,      intent(in) :: index
-       real(kind=8), intent(in) :: x, y, R, z
-       real(kind=8)             :: SrcShape
-    
+       real(fpp), intent(in)    :: x, y, R, z
+       real(fpp)                :: SrcShape
+
        SrcShape = 0.d0
        select case (index)
               case (1)
-                   SrcShape = gaussienne(x,y,z,R) 
+                   SrcShape = gaussienne(x,y,z,R)
               case (2)
                    SrcShape = Paraboloid(x,y,z,R)
               case (3)
@@ -64,41 +64,41 @@ contains
               case default
                    SrcShape = 1.0d0
        end select
-    
-    end function SrcShape 
+
+    end function SrcShape
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
     function gaussienne(x,y,z,Radius)
-    
+
        implicit none
-       real(kind=8)             :: gaussienne
-       real(kind=8), intent(in) :: x, y, z, Radius
-       
+       real(fpp)             :: gaussienne
+       real(fpp), intent(in) :: x, y, z, Radius
+
        gaussienne = exp(-(x**2 + y**2 + z**2)/Radius**2)
-    
+
     end function gaussienne
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
     function Paraboloid(x,y,z,Radius)
-       
+
        implicit none
-       real(kind=8)             :: Paraboloid
-       real(kind=8), intent(in) :: x, y, z, Radius
-       real(kind=8)             :: ray
-    
+       real(fpp)             :: Paraboloid
+       real(fpp), intent(in) :: x, y, z, Radius
+       real(fpp)             :: ray
+
        Paraboloid = 0.d0
        ray = dsqrt(x**2 + y**2 + z**2)
-       if (ray.le.Radius) Paraboloid=dsqrt(1.-ray**2/Radius**2) 
-    
+       if (ray.le.Radius) Paraboloid=dsqrt(1.-ray**2/Radius**2)
+
     end function Paraboloid
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
     function square(x,y,z,Radius)
-        
+
         implicit none
-        real(kind=8)             :: square
-        real(kind=8), intent(in) :: x, y, z, Radius
-    
+        real(fpp)             :: square
+        real(fpp), intent(in) :: x, y, z, Radius
+
         square = 0
         if ((abs(x).le.radius).and.(abs(y).le.Radius)) square = 1.0d0
 
@@ -106,16 +106,16 @@ contains
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
     function cylinder(x,y,z,Radius)
-    
+
        implicit none
-       real(kind=8)             :: cylinder
-       real(kind=8), intent(in) :: x, y, z, Radius
-       real(kind=8)             :: ray
-    
+       real(fpp)             :: cylinder
+       real(fpp), intent(in) :: x, y, z, Radius
+       real(fpp)             :: ray
+
        cylinder=0.d0
        ray = dsqrt(x**2 + y**2 + z**2)
        if (ray.le.Radius) cylinder = 1.0d0
-    
+
     end function cylinder
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
@@ -127,7 +127,7 @@ contains
        type(domain),       intent(in) :: Tdomain
        character(len=*),   intent(in) :: name
        integer                        :: ns, s, id, n
-         
+
        nsurfindex = -1
        do ns = 0, Tdomain%nsurface-1
           do s = lbound(Tdomain%nsurfsource(ns)%index,1),ubound(Tdomain%nsurfsource(ns)%index,1)
@@ -155,5 +155,3 @@ end module DimensionalShape
 !! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent :
-
-

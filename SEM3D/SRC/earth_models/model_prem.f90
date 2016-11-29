@@ -3,9 +3,10 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module model_prem
+    use constants, only : fpp
     implicit none
 
-    real, parameter :: Earth_radius=6371000.d0, mille=1000.0
+    real(fpp), parameter :: Earth_radius=6371000.d0, mille=1000.0
 
 
 
@@ -18,12 +19,12 @@ contains
 
         implicit none
 
-        real, intent(in) :: r
-        real, intent(out) :: rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu
-        real :: vpv,vph,vsv,vsh,eta_aniso
+        real(fpp), intent(in) :: r
+        real(fpp), intent(out) :: rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu
+        real(fpp) :: vpv,vph,vsv,vsh,eta_aniso
 
         call prem_aniso(r/Earth_radius,rho,vpv,vph,vsv,vsh,eta_aniso,Qmu)
-    
+
 
         rho = rho*mille;   vpv = vpv*mille;   vsv = vsv*mille;   vph = vph*mille;   vsh = vsh*mille
         A = rho*vph**2
@@ -34,17 +35,17 @@ contains
         Gc=0.d0; Gs=0.d0; Hc=0.d0; Hs=0.d0; Bc=0.d0; Bs=0.d0; Ec=0.d0; Es=0.d0
 
 
-    end subroutine get_value_prem    
+    end subroutine get_value_prem
 
 
 ! #######################################################
     subroutine prem_aniso(x0,rho,vpv,vph,vsv,vsh,eta,Qmu)
 
-        real  :: x0,rho,vpv,vph,vsv,vsh,eta,Qmu
+        real(fpp)  :: x0,rho,vpv,vph,vsv,vsh,eta,Qmu
         integer :: i
-        real    :: x
-        real, dimension(14)    :: r,q
-        real, dimension(13,4)  :: d,pv,ph,sv,sh,et
+        real(fpp)    :: x
+        real(fpp), dimension(14)    :: r,q
+        real(fpp), dimension(13,4)  :: d,pv,ph,sv,sh,et
         logical :: pastrouve
 
 
