@@ -14,7 +14,11 @@ module scomm
     end interface comm_take_data
 
 contains
-
+#ifdef SINGLEPRECISION
+#define MPI_REAL_FPP MPI_FLOAT
+#else
+#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
+#endif
     subroutine exchange_sem_var(Tdomain, tag, vector)
         use sdomain
         use mpi
@@ -39,11 +43,11 @@ contains
             src = vector%Data(i)%src
             if (vector%Data(i)%ndata>0) then
                 call MPI_Isend(vector%Data(i)%Give, vector%Data(i)%ndata, &
-                    MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
+                    MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
                     vector%send_reqs(i), ierr)
 
                 call MPI_Irecv(vector%Data(i)%Take, vector%Data(i)%ndata, &
-                    MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
+                    MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
                     vector%recv_reqs(i), ierr)
             end if
         enddo

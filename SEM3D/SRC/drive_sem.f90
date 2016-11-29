@@ -249,10 +249,10 @@ subroutine RUN_PREPARED(Tdomain)
         write (*,*) Tdomain%n_nodes, "control points not yet implemented in the code. Wait for an upgrade"
         stop
     endif
-    call check_interface_orient(Tdomain, Tdomain%intSolPml, 1d-10)
-    call check_interface_orient(Tdomain, Tdomain%intFluPml, 1d-10)
-    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1d-10)
-    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1d-10)
+    call check_interface_orient(Tdomain, Tdomain%intSolPml, 1e-10_fpp)
+    call check_interface_orient(Tdomain, Tdomain%intFluPml, 1e-10_fpp)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1e-10_fpp)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10_fpp)
     call MPI_Barrier(Tdomain%communicateur,code)
 
     !- elementary properties (mass matrices, PML factors,..) geometry

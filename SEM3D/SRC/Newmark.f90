@@ -17,26 +17,26 @@ module mtimestep
     implicit none
 
     real(fpp), dimension(6), parameter :: LDDRK_beta = (/ &
-        0.0d0, &
-        -0.737101392796d0, &
-        -1.634740794341d0, &
-        -0.744739003780d0, &
-        -1.469897351522d0, &
-        -2.813971388035d0 /)
+        0.0_fpp, &
+        -0.737101392796_fpp, &
+        -1.634740794341_fpp, &
+        -0.744739003780_fpp, &
+        -1.469897351522_fpp, &
+        -2.813971388035_fpp /)
     real(fpp), dimension(6), parameter :: LDDRK_gamma = (/ &
-        0.032918605146d0, &
-        0.823256998200d0, &
-        0.381530948900d0, &
-        0.200092213184d0, &
-        1.718581042715d0, &
-        0.27d0 /)
+        0.032918605146_fpp, &
+        0.823256998200_fpp, &
+        0.381530948900_fpp, &
+        0.200092213184_fpp, &
+        1.718581042715_fpp, &
+        0.27_fpp /)
     real(fpp), dimension(6), parameter :: LDDRK_c = (/ &
-        0.0d0, &
-        0.032918605146d0, &
-        0.249351723343d0, &
-        0.466911705055d0, &
-        0.582030414044d0, &
-        0.847252983783d0 /)
+        0.0_fpp, &
+        0.032918605146_fpp, &
+        0.249351723343_fpp, &
+        0.466911705055_fpp, &
+        0.582030414044_fpp, &
+        0.847252983783_fpp /)
 contains
 
     subroutine Timestep_LDDRK(Tdomain,ntime)
@@ -336,7 +336,7 @@ contains
         implicit none
 
         type(domain), intent(inout)   :: Tdomain
-        double precision :: dt
+        real(fpp) :: dt
 
         dt = Tdomain%TimeD%dtmin
         ! Si il existe des éléments PML fluides
@@ -363,7 +363,7 @@ contains
         implicit none
 
         type(domain), intent(inout)   :: Tdomain
-        double precision :: dt, t
+        real(fpp) :: dt, t
 
         dt = Tdomain%TimeD%dtmin
         t = Tdomain%TimeD%rtime
@@ -492,7 +492,7 @@ contains
                 ! le temps n'est plus decale pour les sources, pour un saute-mouton
                 !   on rajoute le 1/2 pas de temps qui correspond au fait que la
                 !    exterieure doive etre prise a t_(n+1/2)
-                t = timer+Tdomain%TimeD%dtmin/2d0
+                t = timer+Tdomain%TimeD%dtmin/2_fpp
                 ! TAG_SOURCE
                 ft = CompSource(Tdomain%sSource(ns), t, ntime)
                 if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then

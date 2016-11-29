@@ -730,13 +730,13 @@ contains
         use Surface_prbl_type
 
         implicit none
-        type(domain),               intent(inout) :: Tdomain
-        real(kind=8),               intent(in  )  :: ctime
-        integer,                    intent(in   ) :: lnum
-        integer,                    intent(in)    :: f
+        type(domain),            intent(inout) :: Tdomain
+        real(fpp),               intent(in  )  :: ctime
+        integer,                 intent(in   ) :: lnum
+        integer,                 intent(in)    :: f
         !
-        real(kind=8), dimension(0:2):: coord, displ, veloc, accel
-        real(kind=8)                :: PWspeed
+        real(fpp), dimension(0:2):: coord, displ, veloc, accel
+        real(fpp)                :: PWspeed
         character(len=20)           :: char
         integer                     :: ns, im, i, j, k, dom, ipw, ngll
         integer                     :: bnum, ee, ind, ss

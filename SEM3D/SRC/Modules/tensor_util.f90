@@ -25,10 +25,10 @@ contains
         call kelvin2ijkl(CIJ,T)
 
         ! passage de cartersien a spherique
-        ct=dcos(theta)
-        st=dsin(theta)
-        cp=dcos(phi  )
-        sp=dsin(phi  )
+        ct=cos(theta)
+        st=sin(theta)
+        cp=cos(phi  )
+        sp=sin(phi  )
         Ccs(1,1)= st*cp; Ccs(1,2)=st*sp; Ccs(1,3)=  ct
         Ccs(2,1)= ct*cp; Ccs(2,2)=ct*sp; Ccs(2,3)= -st
         Ccs(3,1)=-sp   ; Ccs(3,2)=cp   ; Ccs(3,3)= 0.d0

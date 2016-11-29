@@ -51,7 +51,7 @@ contains
     end function mnorm
 
     subroutine line_search(dim, nn, args0, args1, fun, x0, dir, alpha)
-        use constants, only : fpp
+        use constants, only : fpp, MAX_DOUBLE
         integer, intent(in) :: dim, nn
         real(fpp), dimension(0:dim-1), intent(in) :: args1, x0, dir
         real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: args0
@@ -71,7 +71,7 @@ contains
         real(fpp) :: fmin, alphamin
         ! Very simple line search that chooses between 0.1 x alpha and 2 x alpha
         alphamin = alpha
-        fmin = 1d100
+        fmin = MAX_DOUBLE
         r = 0.05
         do while (r<1.1)
             xx = x0+r*alpha*dir
@@ -211,10 +211,10 @@ contains
             close(10)
         end if
 
-        where(abs(si/maxval(si))<1d-10)
+        where(abs(si/maxval(si))<1e-10_fpp)
             si = 0d0
         elsewhere
-            si = 1d0/si
+            si = 1_fpp/si
         end where
 
         sigma = 0d0

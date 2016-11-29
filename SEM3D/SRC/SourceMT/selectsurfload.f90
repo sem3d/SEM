@@ -224,19 +224,19 @@ contains
         case('d')
             !! expression exacte du déplacement
             sigma  = M_PI**2*f0**2*xx**2
-            Ricker = - (1.d0 - 2.d0*sigma)*dexp(-sigma)
+            Ricker = - (1.d0 - 2.d0*sigma)*exp(-sigma)
         case('w')
             !! dérive spatiale
             sigma  = M_PI**2*f0**2
-            Ricker = 2.d0*sigma*(3.d0*xx - 2.d0*sigma*xx**3)*dexp(-sigma*xx**2)
+            Ricker = 2.d0*sigma*(3.d0*xx - 2.d0*sigma*xx**3)*exp(-sigma*xx**2)
         case('v')
             !! vitesse
             sigma  = M_PI**2*f0**2
-            Ricker = -2.d0*C0*sigma*(3.d0*xx - 2.d0*sigma*xx**3)*dexp(-sigma*xx**2)
+            Ricker = -2.d0*C0*sigma*(3.d0*xx - 2.d0*sigma*xx**3)*exp(-sigma*xx**2)
         case('a')
             !! accélération
             sigma  = M_PI**2*f0**2
-            Ricker = 2.d0*C0**2*sigma*(3.d0 - 12.d0*sigma*xx**2+4.d0*sigma**2*xx**4)*dexp(-sigma*xx**2)
+            Ricker = 2.d0*C0**2*sigma*(3.d0 - 12.d0*sigma*xx**2+4.d0*sigma**2*xx**4)*exp(-sigma*xx**2)
         end select
 
     end function RickerPW

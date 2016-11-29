@@ -269,7 +269,7 @@ contains
 
     function is_in_box(pos, box)
         real(fpp), dimension(3), intent(in) :: pos
-        real(fpp), dimension(6), intent(in) :: box
+        double precision, dimension(6), intent(in) :: box
         logical :: is_in_box
         !
         integer :: i
@@ -284,7 +284,7 @@ contains
     ! Renvoie true si le point est a une distance <1 du plane
     function is_in_plane(pos, plane)
         real(fpp), dimension(3), intent(in) :: pos
-        real(fpp), dimension(4), intent(in) :: plane
+        double precision, dimension(4), intent(in) :: plane
         logical :: is_in_plane
         !
         real(fpp) :: w

@@ -6,6 +6,12 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
+
+option(OPT_SINGLE "Single precision" OFF)
+if (OPT_SINGLE)
+  add_definitions(-DSINGLEPRECISION)
+endif(OPT_SINGLE)
+
 option(OPT_CPML "CPML" OFF)
 if (OPT_CPML)
   add_definitions(-DCPML)
@@ -59,7 +65,8 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   set(USE_MKL TRUE)
 else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # Assume gfortran
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
+#  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -ffree-line-length-0")
   set(USE_MKL FALSE)
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (NOT BUILD_WITH_MKA)

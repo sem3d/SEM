@@ -326,7 +326,7 @@ contains
         alpha = -1d0*M_PI**2*f0**2
         if ( time < 2.5*tau ) then
             sigma = alpha * (time-tau)**2
-            Ricker = 2d0*alpha*(1 + 2*sigma) * dexp(sigma)
+            Ricker = 2d0*alpha*(1 + 2*sigma) * exp(sigma)
         else
             Ricker = 0.
         endif

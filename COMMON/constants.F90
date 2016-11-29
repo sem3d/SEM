@@ -11,32 +11,37 @@
 MODULE constants
     IMPLICIT none
     ! Precision
+#ifdef SINGLEPRECISION
+    integer, parameter :: FPP=kind(0E0)
+    real(fpp), parameter :: MAX_DOUBLE = 1E15
+#else
     integer, parameter :: FPP=kind(0D0)
+    real(fpp), parameter :: MAX_DOUBLE = 1.79769313486231570d+307
+#endif
     ! Constantes mathematique
     ! Les valeurs suivantes et leurs noms sont tirees de math.h
-    real(fpp), parameter :: M_E = 2.7182818284590452354D0         ! e
-    real(fpp), parameter :: M_LOG2E = 1.4426950408889634074D0     ! log_2 e
-    real(fpp), parameter :: M_LOG10E = 0.43429448190325182765D0   ! log_10 e
-    real(fpp), parameter :: M_LN2 = 0.69314718055994530942D0      ! log_e 2
-    real(fpp), parameter :: M_LN10 = 2.30258509299404568402D0     ! log_e 10
-    real(fpp), parameter :: M_PI = 3.14159265358979323846D0       ! pi
-    real(fpp), parameter :: M_PI_2 = 1.57079632679489661923D0     ! pi/2
-    real(fpp), parameter :: M_PI_4 = 0.78539816339744830962D0     ! pi/4
-    real(fpp), parameter :: M_1_PI = 0.31830988618379067154D0     ! 1/pi
-    real(fpp), parameter :: M_2_PI = 0.63661977236758134308D0     ! 2/pi
-    real(fpp), parameter :: M_2_SQRTPI = 1.12837916709551257390D0 ! 2/sqrt(pi)
-    real(fpp), parameter :: M_SQRT2 = 1.41421356237309504880D0    ! sqrt(2)
-    real(fpp), parameter :: M_SQRT1_2 = 0.70710678118654752440D0  ! 1/sqrt(2)
-    real(fpp), parameter :: M_1_3 =     0.33333333333333333333D0 ! 1/3
-    real(fpp), parameter :: zero=0.d0,one=1.0d0
-    real(fpp), parameter :: half=0.5d0,two=2.0d0,three=3.0d0
-    real(fpp), parameter :: deps=1.d-12
+    real(fpp), parameter :: M_E        = 2.7182818284590452354_fpp  ! e
+    real(fpp), parameter :: M_LOG2E    = 1.4426950408889634074_fpp  ! log_2 e
+    real(fpp), parameter :: M_LOG10E   = 0.43429448190325182765_fpp ! log_10 e
+    real(fpp), parameter :: M_LN2      = 0.69314718055994530942_fpp ! log_e 2
+    real(fpp), parameter :: M_LN10     = 2.30258509299404568402_fpp ! log_e 10
+    real(fpp), parameter :: M_PI       = 3.14159265358979323846_fpp ! pi
+    real(fpp), parameter :: M_PI_2     = 1.57079632679489661923_fpp ! pi/2
+    real(fpp), parameter :: M_PI_4     = 0.78539816339744830962_fpp ! pi/4
+    real(fpp), parameter :: M_1_PI     = 0.31830988618379067154_fpp ! 1/pi
+    real(fpp), parameter :: M_2_PI     = 0.63661977236758134308_fpp ! 2/pi
+    real(fpp), parameter :: M_2_SQRTPI = 1.12837916709551257390_fpp ! 2/sqrt(pi)
+    real(fpp), parameter :: M_SQRT2    = 1.41421356237309504880_fpp ! sqrt(2)
+    real(fpp), parameter :: M_SQRT1_2  = 0.70710678118654752440_fpp ! 1/sqrt(2)
+    real(fpp), parameter :: M_1_3      = 0.33333333333333333333_fpp ! 1/3
+    real(fpp), parameter :: zero=0._fpp,one=1.0_fpp
+    real(fpp), parameter :: half=0.5_fpp,two=2.0_fpp,three=3.0_fpp
+    real(fpp), parameter :: deps=1e-12_fpp
 
     ! Constantes physiques
 
     ! Parametres systemes
     integer     , parameter :: MAX_INT = 2147483647
-    real(fpp), parameter :: MAX_DOUBLE = 1.79769313486231570d+307
 
     ! Parametres algorithmes & code
     integer, parameter :: TIME_INTEG_NEWMARK=0
@@ -148,7 +153,7 @@ MODULE constants
     integer, parameter :: CPML_ORDER1  =1
     integer, parameter :: CPML_ORDER2  =2
     integer, parameter :: k012 = 0, k021 = 1, k120 = 2
-    real(KIND=8), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
+    real(fpp), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
 CONTAINS
 
 

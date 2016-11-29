@@ -87,8 +87,8 @@ contains
        real(fpp)             :: ray
 
        Paraboloid = 0.d0
-       ray = dsqrt(x**2 + y**2 + z**2)
-       if (ray.le.Radius) Paraboloid=dsqrt(1.-ray**2/Radius**2)
+       ray = sqrt(x**2 + y**2 + z**2)
+       if (ray.le.Radius) Paraboloid=sqrt(1.-ray**2/Radius**2)
 
     end function Paraboloid
     !----------------------------------------------------------------------------------
@@ -113,7 +113,7 @@ contains
        real(fpp)             :: ray
 
        cylinder=0.d0
-       ray = dsqrt(x**2 + y**2 + z**2)
+       ray = sqrt(x**2 + y**2 + z**2)
        if (ray.le.Radius) cylinder = 1.0d0
 
     end function cylinder

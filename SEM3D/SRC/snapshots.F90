@@ -15,6 +15,11 @@ module msnapshots
     implicit none
 #include "index.h"
 contains
+#ifdef SINGLEPRECISION
+#define MPI_REAL_FPP MPI_FLOAT
+#else
+#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
+#endif
 
     subroutine grp_write_real_2d(outputs, parent_id, name, dim1, dim2, data, ntot_nodes)
         type (output_var_t), intent (INOUT):: outputs
@@ -47,8 +52,8 @@ contains
             allocate(all_data(0:dim1-1,0:ntot_nodes-1))
         end if
 
-        call MPI_Gatherv(data, dim1*dim2, MPI_DOUBLE_PRECISION, all_data, counts, displs, &
-            MPI_DOUBLE_PRECISION, 0, outputs%comm, ierr)
+        call MPI_Gatherv(data, dim1*dim2, MPI_REAL_FPP, all_data, counts, displs, &
+            MPI_REAL_FPP, 0, outputs%comm, ierr)
         if (outputs%rank==0) then
             dims(1) = dim1
             dims(2) = ntot_nodes
@@ -71,8 +76,8 @@ contains
         integer(HID_T) :: dset_id
         integer :: hdferr, ierr
 
-        call MPI_Gatherv(field, outputs%ncells, MPI_DOUBLE_PRECISION, &
-            outputs%all_data_1d_c, outputs%counts_c, outputs%displs_c, MPI_DOUBLE_PRECISION, 0,&
+        call MPI_Gatherv(field, outputs%ncells, MPI_REAL_FPP, &
+            outputs%all_data_1d_c, outputs%counts_c, outputs%displs_c, MPI_REAL_FPP, 0,&
             outputs%comm, ierr)
         if (outputs%rank==0) then
             dims(1) = outputs%ntot_cells
@@ -92,8 +97,8 @@ contains
         integer(HID_T) :: dset_id
         integer :: hdferr, ierr
 
-        call MPI_Gatherv(field, outputs%nnodes, MPI_DOUBLE_PRECISION, &
-            outputs%all_data_1d_n, outputs%counts_n, outputs%displs_n, MPI_DOUBLE_PRECISION, 0,&
+        call MPI_Gatherv(field, outputs%nnodes, MPI_REAL_FPP, &
+            outputs%all_data_1d_n, outputs%counts_n, outputs%displs_n, MPI_REAL_FPP, 0,&
             outputs%comm, ierr)
         if (outputs%rank==0) then
             dims(1) = outputs%ntot_nodes
@@ -113,8 +118,8 @@ contains
         integer(HID_T) :: dset_id
         integer :: hdferr, ierr
 
-        call MPI_Gatherv(field, 3*outputs%nnodes, MPI_DOUBLE_PRECISION, &
-            outputs%all_data_2d_n, outputs%counts2d_n, outputs%displs2d_n, MPI_DOUBLE_PRECISION, 0,&
+        call MPI_Gatherv(field, 3*outputs%nnodes, MPI_REAL_FPP, &
+            outputs%all_data_2d_n, outputs%counts2d_n, outputs%displs2d_n, MPI_REAL_FPP, 0,&
             outputs%comm, ierr)
         if (outputs%rank==0) then
             dims(1) = 3
@@ -343,8 +348,8 @@ contains
             allocate(all_data(0:ntot_nodes-1))
         end if
 
-        call MPI_Gatherv(data, dim1, MPI_DOUBLE_PRECISION, all_data, counts, displs, &
-            MPI_DOUBLE_PRECISION, 0, outputs%comm, ierr)
+        call MPI_Gatherv(data, dim1, MPI_REAL_FPP, all_data, counts, displs, &
+            MPI_REAL_FPP, 0, outputs%comm, ierr)
         if (outputs%rank==0) then
             dims(1) = ntot_nodes
             call create_dset(parent_id, name, H5T_IEEE_F32LE, dims(1), dset_id)
@@ -1376,10 +1381,10 @@ contains
 
 #else
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
-                                dt = 2d0*Tdomain%TimeD%dtmin
-                                dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
-                                dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
-                                dz = ((1d0/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,bnum,ee))-1.)/dt
+                                dt = 2_fpp*Tdomain%TimeD%dtmin
+                                dx = ((1_fpp/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
+                                dy = ((1_fpp/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
+                                dz = ((1_fpp/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,bnum,ee))-1.)/dt
                                 dumpsx(idx) = dx+dy+dz
 #endif
                             endif

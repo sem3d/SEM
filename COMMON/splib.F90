@@ -1,9 +1,9 @@
 !! The original code in this module was written by Daniele Funaro (see below)
 !! It has been reworked as F90 module
 MODULE splib
-    USE constants, only : M_PI, M_PI_2
+    USE constants, only : M_PI, M_PI_2, fpp
     IMPLICIT none
-
+    integer, parameter :: lfpp=kind(0d0)
     PUBLIC ZELEGL, WELEGL, DMLEGL
 CONTAINS
 
@@ -15,7 +15,7 @@ CONTAINS
 
         INTEGER, INTENT(IN) :: N
         INTEGER, INTENT(OUT) :: IFAIL
-        REAL(kind=8), DIMENSION(N), INTENT(INOUT) :: X
+        REAL(lfpp), DIMENSION(N), INTENT(INOUT) :: X
         X=N+1
         IFAIL=1
     END SUBROUTINE C06EBF
@@ -26,7 +26,7 @@ CONTAINS
 
         INTEGER, INTENT(IN) :: N
         INTEGER, INTENT(OUT) :: IFAIL
-        REAL(kind=8), DIMENSION(N), INTENT(INOUT) :: X
+        REAL(lfpp), DIMENSION(N), INTENT(INOUT) :: X
         X=N+1
         IFAIL=1
     END SUBROUTINE C06EAF
@@ -47,12 +47,12 @@ CONTAINS
         !*     GX= VALUE OF GAMMA IN X
         !*****************************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), INTENT(OUT) :: GX
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), INTENT(OUT) :: GX
         INTEGER :: IND, K
-        REAL(kind=8), parameter :: EPS = 1.D-14
-        REAL(kind=8) :: XX, PR, S, G
-        REAL(kind=8), parameter, dimension(11) :: &
+        REAL(lfpp), parameter :: EPS = 1.E-14_fpp
+        REAL(lfpp) :: XX, PR, S, G
+        REAL(lfpp), parameter, dimension(11) :: &
             C = (/-0.524741987629368444D0, 0.116154405493589130D0, &
             -0.765978624506602380D-2, 0.899719449391378898D-4, &
             -0.194536980009534621D-7, 0.199382839513630987D-10, &
@@ -87,7 +87,7 @@ CONTAINS
         S  = 0.426401432711220868D0
 
         DO K=1,11
-            PR = PR*(XX-real(K,kind=8))/(XX+real(K-1,kind=8))
+            PR = PR*(XX-real(K,lfpp))/(XX+real(K-1,lfpp))
             S  = S+C(K)*PR
         END DO
 
@@ -116,10 +116,10 @@ CONTAINS
         !************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B, X
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: A, B, X
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER :: I
-        REAL(kind=8) :: AB, YP, DYP, D2YP, DI, C0, C1, C2, C3, C4, YM, DYM, D2YM
+        REAL(lfpp) :: AB, YP, DYP, D2YP, DI, C0, C1, C2, C3, C4, YM, DYM, D2YM
 
         Y   = 1.D0
         DY  = 0.D0
@@ -136,7 +136,7 @@ CONTAINS
         DYP  = 0.D0
         D2YP = 0.D0
         DO I=2,N
-            DI = real(I,kind=8)
+            DI = real(I,lfpp)
             C0 = 2.D0*DI+AB
             C1 = 2.D0*DI*(DI+AB)*(C0-2.D0)
             C2 = (C0-1.D0)*(C0-2.D0)*C0
@@ -167,11 +167,11 @@ CONTAINS
         !*   D2Y= VALUE OF THE SECOND DERIVATIVE IN X
         !**************************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER, INTENT(IN) :: N
         INTEGER :: I
-        REAL(kind=8) :: C1, C2, C4, YP, DYP, D2YP, YM, DYM, D2YM
+        REAL(lfpp) :: C1, C2, C4, YP, DYP, D2YP, YM, DYM, D2YM
 
         Y   = 1.D0
         DY  = 0.D0
@@ -187,7 +187,7 @@ CONTAINS
         DYP  = 0.D0
         D2YP = 0.D0
         DO I=2,N
-            C1 = real(I,kind=8)
+            C1 = real(I,lfpp)
             C2 = 2.D0*C1-1.D0
             C4 = C1-1.D0
             YM = Y
@@ -216,10 +216,10 @@ CONTAINS
         !*   D2Y= VALUE OF THE SECOND DERIVATIVE IN X
         !***************************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8) :: YP, DYP, DYM, D2YM, D2YP, YM
+        REAL(lfpp) :: YP, DYP, DYM, D2YM, D2YP, YM
         INTEGER :: K
 
         Y   = 1.D0
@@ -263,10 +263,10 @@ CONTAINS
         !*   D2Y= VALUE OF THE SECOND DERIVATIVE IN X
         !**************************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: X, A
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: X, A
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8) :: B1, B2, YP, DYP, DYM, D2YM, D2YP, DK, YM
+        REAL(lfpp) :: B1, B2, YP, DYP, DYM, D2YM, D2YP, DK, YM
         INTEGER :: K
 
         Y   = 1.D0
@@ -283,7 +283,7 @@ CONTAINS
         DYP = 0.D0
         D2YP= 0.D0
         DO K=2,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             B1 = (2.D0*DK+A-1.D0-X)/DK
             B2 = (DK+A-1.D0)/DK
             YM = Y
@@ -312,10 +312,10 @@ CONTAINS
         !*   D2Y= VALUE OF THE SECOND DERIVATIVE IN X
         !*************************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8) :: DK, DN, DNN, YP, YM, YPM
+        REAL(lfpp) :: DK, DN, DNN, YP, YM, YPM
         INTEGER :: K
 
         Y   = 1.D0
@@ -330,15 +330,15 @@ CONTAINS
 
         YP=1.D0
         DO K=2,N
-            DK = real(K-1,kind=8)
+            DK = real(K-1,lfpp)
             YM  = Y
             Y   = 2.D0*X*Y-2.D0*DK*YP
             YPM = YP
             YP  = YM
         END DO
 
-        DN  = 2.D0*real(N,kind=8)
-        DNN = 2.D0*real(N-1,kind=8)
+        DN  = 2.D0*real(N,lfpp)
+        DNN = 2.D0*real(N-1,lfpp)
         DY  = DN*YP
         D2Y = DN*DNN*YPM
 
@@ -357,11 +357,11 @@ CONTAINS
         !*   DY = VALUE OF THE FIRST DERIVATIVE IN X
         !*********************************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: X, A
-        REAL(kind=8), INTENT(OUT) :: Y, DY
+        REAL(lfpp), INTENT(IN) :: X, A
+        REAL(lfpp), INTENT(OUT) :: Y, DY
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8) :: DK, DK4, C0, C1, C2, C3, C4, C5, C6, C7
-        REAL(kind=8) :: YP, DYP, YM, DYM
+        REAL(lfpp) :: DK, DK4, C0, C1, C2, C3, C4, C5, C6, C7
+        REAL(lfpp) :: YP, DYP, YM, DYM
         INTEGER :: K
 
         Y  = 1.D0
@@ -377,7 +377,7 @@ CONTAINS
         YP  = 1.D0
         DYP = 0.D0
         DO K=2,N
-            DK  = real(K,kind=8)
+            DK  = real(K,lfpp)
             DK4 = 4.D0*DK
             C0  = 1.D0/(DK4+X)
             C1  = DK4+X-2.D0
@@ -386,7 +386,7 @@ CONTAINS
             C4  = 2.D0*DK+A-1.D0
             C5  = C4-X
             C6  = C4+DK4
-            C7  = C2*real(4*(K-1)**2,kind=8)
+            C7  = C2*real(4*(K-1)**2,lfpp)
             DYM = DY
             DY  = C3*(C5*DY-C0*C6*Y+C7*(2.D0*C0*C1*C2*YP-DYP))
             DYP = DYM
@@ -409,11 +409,11 @@ CONTAINS
         !*   DY = VALUE OF THE FIRST DERIVATIVE IN X
         !***********************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), INTENT(OUT) :: Y, DY
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), INTENT(OUT) :: Y, DY
         INTEGER, INTENT(IN) :: N
         INTEGER :: M
-        REAL(kind=8) :: A, XX
+        REAL(lfpp) :: A, XX
 
         Y  = 1.D0
         DY = 0.D0
@@ -446,12 +446,12 @@ CONTAINS
         !*   DZ = VECTOR OF THE DERIVATIVES AT THE ZEROES, DZ(I), I=1,N
         !***************************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: A, B
+        REAL(lfpp), INTENT(IN) :: A, B
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: CS, DZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: CS, DZ
         INTEGER :: I, IT
-        REAL(kind=8) :: AB, C, DI, CSX, Y, DY, D2Y
-        REAL(kind=8), PARAMETER :: EPS=1.D-17
+        REAL(lfpp) :: AB, C, DI, CSX, Y, DY, D2Y
+        REAL(lfpp), PARAMETER :: EPS=1.D-17
 
         IF (N .EQ. 0) RETURN
 
@@ -460,9 +460,9 @@ CONTAINS
         DZ(1) = .5D0*AB+1.D0
         IF(N .EQ. 1) RETURN
 
-        C  = M_PI_2/(2.D0*real(N,kind=8)+AB+1.D0)
+        C  = M_PI_2/(2.D0*real(N,lfpp)+AB+1.D0)
         DO I=1,N
-            DI  = real(I,kind=8)
+            DI  = real(I,lfpp)
             CSX = -COS(C*(4.D0*DI+AB-1.D0))
             DO IT=1,8
                 CALL VAJAPO(N,A,B,CSX,Y,DY,D2Y)
@@ -487,9 +487,9 @@ CONTAINS
         !***************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: CS, DZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: CS, DZ
         INTEGER :: I, IT, N2, IN
-        REAL(kind=8) :: Y, DY, D2Y, DI, CSX, C
+        REAL(lfpp) :: Y, DY, D2Y, DI, CSX, C
 
         IF (N .EQ. 0) RETURN
 
@@ -500,9 +500,9 @@ CONTAINS
         N2 = N/2
         IN = 2*N-4*N2-1
 
-        C  = M_PI_2/(2.D0*real(N,kind=8)+1.D0)
+        C  = M_PI_2/(2.D0*real(N,lfpp)+1.D0)
         DO I=1,N2
-            DI  = real(I,kind=8)
+            DI  = real(I,lfpp)
             CSX = COS(C*(4.D0*DI-1.D0))
             DO IT=1,8
                 CALL VALEPO(N,CSX,Y,DY,D2Y)
@@ -510,7 +510,7 @@ CONTAINS
             END DO
             CS(I) = -CSX
             CS(N-I+1) = CSX
-            DZ(I) = DY*real(IN,kind=8)
+            DZ(I) = DY*real(IN,lfpp)
             DZ(N-I+1) = DY
         END DO
 
@@ -532,9 +532,9 @@ CONTAINS
         !****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: CS, DZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: CS, DZ
         INTEGER :: I, N2, IN, N4, IN2
-        REAL(kind=8) :: DI, CSX, QX, SI, DN, C
+        REAL(lfpp) :: DI, CSX, QX, SI, DN, C
 
         IF (N .EQ. 0) RETURN
 
@@ -544,16 +544,16 @@ CONTAINS
 
         N2 = N/2
         IN = 1+4*N2-2*N
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = M_PI_2/DN
         SI = -1.D0
         DO I=1,N2
-            DI = real(I,kind=8)
+            DI = real(I,lfpp)
             CSX = COS(C*(2.D0*DI-1.D0))
             CS(I) = -CSX
             CS(N-I+1) = CSX
             QX = DN/SQRT(1.D0-CSX*CSX)
-            DZ(I) = QX*SI*real(IN,kind=8)
+            DZ(I) = QX*SI*real(IN,lfpp)
             DZ(N-I+1) = -QX*SI
             SI = -SI
         END DO
@@ -562,7 +562,7 @@ CONTAINS
         CS(N2+1) = 0.D0
         N4  = N2/2
         IN2 = 1+4*N4-2*N2
-        DZ(N2+1) = DN*real(IN2,kind=8)
+        DZ(N2+1) = DN*real(IN2,lfpp)
 
         RETURN
     END SUBROUTINE ZECHGA
@@ -578,10 +578,10 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: CS, DZ
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: CS, DZ
         INTEGER :: M, IT, IN
-        REAL(kind=8) :: A1, C1, DM, C2, XN, XP, Z, ZD, CSX, CSM, DZM, DN, Y, DY
+        REAL(lfpp) :: A1, C1, DM, C2, XN, XP, Z, ZD, CSX, CSM, DZM, DN, Y, DY
 
         IF (N .EQ. 0) RETURN
 
@@ -590,10 +590,10 @@ CONTAINS
         DZ(1) = -4.D0/(A1*(A+5.D0))
         IF (N .EQ. 1) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C1 = 2.D0*DN+A1
         DO M=1,N
-            DM = real(M,kind=8)
+            DM = real(M,lfpp)
             C2 = 2.D0*(DN+.75D0-DM)*M_PI/C1
             XN = (C2+M_PI)/2.D0
             DO IT=1,8
@@ -638,9 +638,9 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: CS, DZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: CS, DZ
         INTEGER :: I, M, IN
-        REAL(kind=8) :: CSX, A
+        REAL(lfpp) :: CSX, A
 
         IF (N .EQ. 0) RETURN
 
@@ -670,7 +670,7 @@ CONTAINS
 
         DO I=1,M
             CS(I) = -CS(N-I+1)
-            DZ(I) = DZ(N-I+1)*real(IN,kind=8)
+            DZ(I) = DZ(N-I+1)*real(IN,lfpp)
         END DO
 
         RETURN
@@ -688,11 +688,11 @@ CONTAINS
         !********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: ET, VN
-        REAL(kind=8), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: ET, VN
+        REAL(lfpp), INTENT(IN) :: A, B
         INTEGER :: I, IT, N1
-        REAL(kind=8) :: X, Y, DY, D2Y, AB, DN, A1, B1, ETX, DI, C
-        REAL(kind=8), PARAMETER :: EPS=1.D-17
+        REAL(lfpp) :: X, Y, DY, D2Y, AB, DN, A1, B1, ETX, DI, C
+        REAL(lfpp), PARAMETER :: EPS=1.D-17
 
         IF (N .EQ. 0) RETURN
 
@@ -708,13 +708,13 @@ CONTAINS
         IF (N .EQ. 1) RETURN
 
         AB = A+B
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = M_PI_2/(2.D0*DN+AB+1.D0)
         N1 = N-1
         A1 = A+1.D0
         B1 = B+1.D0
         DO I=1,N1
-            DI  = real(I,kind=8)
+            DI  = real(I,lfpp)
             ETX = -COS(C*(4.D0*DI+AB+1.D0))
             DO IT=1,8
                 CALL VAJAPO(N1,A1,B1,ETX,Y,DY,D2Y)
@@ -739,14 +739,14 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: ET, VN
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: ET, VN
         INTEGER :: I, IT, N2
-        REAL(kind=8) :: C, SN, X, Y, DY, D2Y, ETX
+        REAL(lfpp) :: C, SN, X, Y, DY, D2Y, ETX
 
         IF (N .EQ. 0) RETURN
 
         N2 = (N-1)/2
-        SN = real(2*N-4*N2-3,kind=8)
+        SN = real(2*N-4*N2-3,lfpp)
         ET(0) = -1.D0
         ET(N) = 1.D0
         VN(0) = SN
@@ -759,9 +759,9 @@ CONTAINS
         VN(N2+1) = Y
         IF(N .EQ. 2) RETURN
 
-        C  = M_PI/real(N,kind=8)
+        C  = M_PI/real(N,lfpp)
         DO I=1,N2
-            ETX = COS(C*real(I,kind=8))
+            ETX = COS(C*real(I,lfpp))
             DO IT=1,8
                 CALL VALEPO(N,ETX,Y,DY,D2Y)
                 ETX = ETX-DY/D2Y
@@ -784,9 +784,9 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: ET
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: ET
         INTEGER :: I, N2
-        REAL(kind=8) :: C, ETX
+        REAL(lfpp) :: C, ETX
 
         IF (N .EQ. 0) RETURN
 
@@ -798,9 +798,9 @@ CONTAINS
         ET(N2+1) = 0.D0
         IF(N .EQ. 2) RETURN
 
-        C  = M_PI/real(N,kind=8)
+        C  = M_PI/real(N,lfpp)
         DO I=1,N2
-            ETX = COS(C*real(I,kind=8))
+            ETX = COS(C*real(I,lfpp))
             ET(I) = -ETX
             ET(N-I) = ETX
         END DO
@@ -818,10 +818,10 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: ET, VN
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: ET, VN
         INTEGER :: M, IT, N1, IN
-        REAL(kind=8) :: A1, DN, DM, C1, C2, XN, XP, Z, ZD, ETX, Y, DY, ETM, VNM
+        REAL(lfpp) :: A1, DN, DM, C1, C2, XN, XP, Z, ZD, ETX, Y, DY, ETM, VNM
 
         IF (N .EQ. 0) RETURN
 
@@ -831,10 +831,10 @@ CONTAINS
 
         A1 = A+1.D0
         N1 = N-1
-        DN = real(N1,kind=8)
+        DN = real(N1,lfpp)
         C1 = 2.D0*DN+A1+1.D0
         DO M=1,N1
-            DM = real(M,kind=8)
+            DM = real(M,lfpp)
             C2 = 2.D0*(DN+.75D0-DM)*M_PI/C1
             XN = (C2+M_PI)/2.D0
             DO IT=1,8
@@ -882,12 +882,12 @@ CONTAINS
         !*   WE = VECTOR OF THE WEIGHTS, WE(I), I=1,N
         !****************************************************************
         IMPLICIT NONE
-        REAL(kind=8), INTENT(IN) :: A, B
+        REAL(lfpp), INTENT(IN) :: A, B
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: WE
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, DZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: WE
         INTEGER :: I, M
-        REAL(kind=8) :: AB, A2, B2, GA2, GB2, GAB, C, X, DY, DM
+        REAL(lfpp) :: AB, A2, B2, GA2, GB2, GAB, C, X, DY, DM
 
         IF (N .EQ. 0) RETURN
 
@@ -899,7 +899,7 @@ CONTAINS
         CALL GAMMAF(AB,GAB)
         C  = .5D0*(2.D0**AB)*GA2*GB2/GAB
         DO M=2,N
-            DM = real(M,kind=8)
+            DM = real(M,lfpp)
             C  = C*(DM+A)*(DM+B)/(DM*(DM+A+B))
         END DO
 
@@ -923,10 +923,10 @@ CONTAINS
         !*****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: WE
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, DZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: WE
         INTEGER :: I, N2
-        REAL(kind=8) :: WEX, DY, X
+        REAL(lfpp) :: WEX, DY, X
 
         IF (N .EQ. 0) RETURN
 
@@ -955,13 +955,13 @@ CONTAINS
         !*****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: WE
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: WE
         INTEGER :: I
-        REAL(kind=8) :: C
+        REAL(lfpp) :: C
 
         IF (N .EQ. 0) RETURN
 
-        C  = M_PI/real(N,kind=8)
+        C  = M_PI/real(N,lfpp)
         DO  I=1,N
             WE(I) = C
         END DO
@@ -980,21 +980,21 @@ CONTAINS
         !****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: WE
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: WE
         INTEGER :: M, I, N1
-        REAL(kind=8) :: A1, DN, C, GA1, X, Y, DY, D2Y, DM
+        REAL(lfpp) :: A1, DN, C, GA1, X, Y, DY, D2Y, DM
 
         IF (N .EQ. 0) RETURN
 
         A1 = A+1.D0
         CALL GAMMAF(A1,GA1)
         N1 = N+1
-        DN = real(N1,kind=8)
+        DN = real(N1,lfpp)
         C = GA1/DN
         DO M=1,N
-            DM = real(M,kind=8)
+            DM = real(M,lfpp)
             C = C*(DM+A)/(DM+1.D0)
         END DO
 
@@ -1016,23 +1016,23 @@ CONTAINS
         !****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: WE
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: WE
         INTEGER :: I, K, N2
-        REAL(kind=8) :: PR, R2, C, X, YP, Y, DK, RK, QK, YM, WEX
+        REAL(lfpp) :: PR, R2, C, X, YP, Y, DK, RK, QK, YM, WEX
 
         IF (N .EQ. 0) RETURN
 
         PR = 1.77245385090551588D0
         R2 = 1.41421356237309515D0
-        C  = PR/real(N,kind=8)
+        C  = PR/real(N,lfpp)
         N2 = N/2
         DO I=1,N2
             X  = CS(I)
             YP = 1.D0
             Y  = R2*X
             DO  K=2,N-1
-                DK = real(K,kind=8)
+                DK = real(K,lfpp)
                 RK = SQRT(DK)
                 QK = SQRT(DK-1.D0)
                 YM = Y
@@ -1047,7 +1047,7 @@ CONTAINS
         IF(N .EQ. 2*N2) RETURN
         Y = 1.D0
         DO K=2,N-1,2
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             Y  = Y*SQRT((DK-1.D0)/DK)
         END DO
         WE(N2+1) = C/(Y*Y)
@@ -1066,13 +1066,13 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: WT
+        REAL(lfpp), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: WT
         INTEGER :: I, K, M, N1
-        REAL(kind=8) :: C, C1, C2, C3, C4, A1, B1, AB, AB2, DK, SU
-        REAL(kind=8) :: GA1, GB1, GAB2, Y, DY, D2Y, DN, X
-        REAL(kind=8), PARAMETER :: EPS=1.D-17
+        REAL(lfpp) :: C, C1, C2, C3, C4, A1, B1, AB, AB2, DK, SU
+        REAL(lfpp) :: GA1, GB1, GAB2, Y, DY, D2Y, DN, X
+        REAL(lfpp), PARAMETER :: EPS=1.D-17
 
         IF (N .EQ. 0) RETURN
 
@@ -1089,13 +1089,13 @@ CONTAINS
         IF (N .EQ. 1) RETURN
 
         N1 = N-1
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = C*(2.D0*DN+AB)/(DN+AB+1.D0)
         C1 = C*A1/((B+2.D0)*AB2)
         C2 = C*B1/((A+2.D0)*AB2)
         C3 = .5D0*C*A1*B1
         DO K=1,N-2
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C1 = C1*(DK+A1)*DK/((DK+AB2)*(DK+B+2.D0))
             C2 = C2*(DK+B1)*DK/((DK+AB2)*(DK+A+2.D0))
             C3 = C3*(DK+A1)*(DK+B1)/((DK+2.D0)*(DK+AB+1.D0))
@@ -1128,15 +1128,15 @@ CONTAINS
         !***********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: WT
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: WT
         INTEGER :: I, N2
-        REAL(kind=8) :: DN, C, X, Y, WTX
+        REAL(lfpp) :: DN, C, X, Y, WTX
 
         IF (N .EQ. 0) RETURN
 
         N2 = (N-1)/2
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = 2.D0/(DN*(DN+1.D0))
         DO I=0,N2
             X = ET(I)
@@ -1162,13 +1162,13 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: WT
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: WT
         INTEGER :: I
-        REAL(kind=8) :: C, C2
+        REAL(lfpp) :: C, C2
 
         IF (N .EQ. 0) RETURN
 
-        C  = M_PI/real(N,kind=8)
+        C  = M_PI/real(N,lfpp)
         C2 = .5D0*C
         WT(0) =C2
         WT(N) =C2
@@ -1191,11 +1191,11 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(IN) :: ET
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: WT
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(IN) :: ET
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: WT
         INTEGER :: I, K, N1
-        REAL(kind=8) :: A1, C1, GA1, C2, DK, X, C3, Y, DY, D2Y
+        REAL(lfpp) :: A1, C1, GA1, C2, DK, X, C3, Y, DY, D2Y
 
         IF (N .EQ. 0) RETURN
 
@@ -1208,7 +1208,7 @@ CONTAINS
         N1 = N-1
         C2 = GA1
         DO K=1,N1
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C1 = C1*DK/(DK+A1)
             C2 = C2*(DK+A)/(DK+1.D0)
         END DO
@@ -1232,15 +1232,15 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:2*N), INTENT(OUT) :: WK
+        REAL(lfpp), DIMENSION(0:2*N), INTENT(OUT) :: WK
         INTEGER :: M, J, K
-        REAL(kind=8) :: DN, DM, C, DJ, SU, DK
+        REAL(lfpp) :: DN, DM, C, DJ, SU, DK
 
         IF (N .EQ. 0) RETURN
 
         M  = 2*N
-        DN = real(N,kind=8)
-        DM = real(M,kind=8)
+        DN = real(N,lfpp)
+        DM = real(M,lfpp)
         C  = 1.D0/(DM*DM-1.D0)
         WK(0) = C
         WK(M) = C
@@ -1248,10 +1248,10 @@ CONTAINS
         IF (N .EQ. 1) RETURN
 
         DO J=1,N-1
-            DJ = real(J,kind=8)
+            DJ = real(J,lfpp)
             SU = 1.D0-((-1.D0)**J)*C
             DO K=1,N-1
-                DK = 2.D0*real(K,kind=8)
+                DK = 2.D0*real(K,lfpp)
                 SU = SU+2.D0*COS(DJ*DK*M_PI/DM)/(1.D0-DK*DK)
             END DO
             WK(J) = SU/DN
@@ -1260,7 +1260,7 @@ CONTAINS
 
         SU = 1.D0-((-1.D0)**N)*C
         DO  K=1,N-1
-            DK = 2.D0*real(K,kind=8)
+            DK = 2.D0*real(K,lfpp)
             SU = SU+2.D0*((-1.D0)**K)/(1.D0-DK*DK)
         END DO
         WK(N) = SU/DN
@@ -1283,12 +1283,12 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B, X
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: A, B, X
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J
-        REAL(kind=8) :: ED, Y, DY, D2Y
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: ED, Y, DY, D2Y
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
@@ -1320,12 +1320,12 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J
-        REAL(kind=8) :: ED, Y, DY, D2Y
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: ED, Y, DY, D2Y
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
@@ -1356,21 +1356,21 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: DZ, QZ
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: DZ, QZ
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J
-        REAL(kind=8) :: DN, C, ED, Y, DY, D2Y
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: DN, C, ED, Y, DY, D2Y
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = M_PI_2/DN
         CALL VACHPO(N,X,Y,DY,D2Y)
         QX = 0.D0
         DO J=1,N
-            ED = X+COS(C*(2.D0*real(J,kind=8)-1.D0))
+            ED = X+COS(C*(2.D0*real(J,lfpp)-1.D0))
             IF(ABS(ED) .LT. EPS) THEN
                 QX = QZ(J)
                 RETURN
@@ -1396,12 +1396,12 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, X
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: A, X
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J, K
-        REAL(kind=8) :: ED, Y, DY, PR, DK
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: ED, Y, DY, PR, DK
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
@@ -1415,7 +1415,7 @@ CONTAINS
             ELSE
                 PR = 1.D0
                 DO  K=1,N
-                    DK = 4.D0*real(K,kind=8)
+                    DK = 4.D0*real(K,lfpp)
                     PR = PR*(DK+X)/(DK+CS(J))
                 END DO
                 QX = QX+QZ(J)*Y*PR/(DZ(J)*ED)
@@ -1439,12 +1439,12 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J, K
-        REAL(kind=8) :: ED, Y, DY, PR, DK
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: ED, Y, DY, PR, DK
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
@@ -1461,7 +1461,7 @@ CONTAINS
             ELSE
                 PR = 1.D0
                 DO K=1,N/2
-                    DK = 4.D0*real(K,kind=8)
+                    DK = 4.D0*real(K,lfpp)
                     PR = PR*(DK+X*X)/(DK+CS(J)**2)
                 END DO
                 QX = QX+QZ(J)*Y*PR/(DZ(J)*ED)
@@ -1486,17 +1486,17 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B, X
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: A, B, X
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J
-        REAL(kind=8) :: ED, Y, DY, D2Y, DN, C
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: ED, Y, DY, D2Y, DN, C
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
         CALL VAJAPO(N,A,B,X,Y,DY,D2Y)
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = 1.D0/(DN*(DN+A+B+1.D0))
         QX = QN(0)*C*DY*(B+1.D0)*(X-1.D0)/VN(0)
         QX = QX+QN(N)*C*DY*(A+1.D0)*(X+1.D0)/VN(N)
@@ -1528,17 +1528,17 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J
-        REAL(kind=8) :: ED, Y, DY, D2Y, DN, C
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: ED, Y, DY, D2Y, DN, C
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
         CALL VALEPO(N,X,Y,DY,D2Y)
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = 1.D0/(DN*(DN+1.D0))
         QX = QN(0)*C*DY*(X-1.D0)/VN(0)
         QX = QX+QN(N)*C*DY*(X+1.D0)/VN(N)
@@ -1568,18 +1568,18 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: QN
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: QN
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J
-        REAL(kind=8) :: ED, Y, DY, D2Y, DN, C, SN, PN, SJ
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: ED, Y, DY, D2Y, DN, C, SN, PN, SJ
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
         CALL VACHPO(N,X,Y,DY,D2Y)
-        DN = real(N,kind=8)
-        SN = real(1+4*(N/2)-2*N,kind=8)
+        DN = real(N,lfpp)
+        SN = real(1+4*(N/2)-2*N,lfpp)
         PN = M_PI/DN
         C  = 1.D0/(DN*DN)
         QX = .5D0*SN*QN(0)*C*DY*(X-1.D0)
@@ -1588,7 +1588,7 @@ CONTAINS
 
         SJ = -1.D0
         DO J=1,N-1
-            ED = X+COS(PN*real(J,kind=8))
+            ED = X+COS(PN*real(J,lfpp))
             IF(ABS(ED) .LT. EPS) THEN
                 QX = QN(J)
                 RETURN
@@ -1615,24 +1615,24 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, X
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(IN) :: ET, VN, QN
-        REAL(kind=8), INTENT(OUT) :: QX
+        REAL(lfpp), INTENT(IN) :: A, X
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(IN) :: ET, VN, QN
+        REAL(lfpp), INTENT(OUT) :: QX
         INTEGER :: J, K, M
-        REAL(kind=8) :: ED, Y, DY, DN, C, PR, SU, DM, DK
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: ED, Y, DY, DN, C, PR, SU, DM, DK
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
         QX = QN(0)
         IF (N .EQ. 1) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = -1.D0/DN
         PR = 1.D0
         SU = 0.D0
         DO M=1,N
-            DM = 4.D0*real(M,kind=8)
+            DM = 4.D0*real(M,lfpp)
             PR = PR*(DM+X)/DM
             SU = SU+1.D0/(DM+X)
         END DO
@@ -1646,7 +1646,7 @@ CONTAINS
             ELSE
                 PR = 1.D0
                 DO K=1,N
-                    DK = 4.D0*real(K,kind=8)
+                    DK = 4.D0*real(K,lfpp)
                     PR = PR*(DK+X)/(DK+ET(J))
                 END DO
                 QX = QX+QN(J)*C*PR*(DY+SU*Y)*X/(VN(J)*ED)
@@ -1667,11 +1667,11 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: QZ, WE
-        REAL(kind=8), INTENT(OUT) :: QI, QM
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: QZ, WE
+        REAL(lfpp), INTENT(OUT) :: QI, QM
         INTEGER :: J
-        REAL(kind=8) :: SU, Y
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: SU, Y
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
@@ -1701,23 +1701,23 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: DZ, QZ
-        REAL(kind=8), DIMENSION(0:2*N), INTENT(IN) :: WK
-        REAL(kind=8), INTENT(OUT) :: QW, QI, QM
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: DZ, QZ
+        REAL(lfpp), DIMENSION(0:2*N), INTENT(IN) :: WK
+        REAL(lfpp), INTENT(OUT) :: QW, QI, QM
         INTEGER :: J, J2
-        REAL(kind=8) :: DN, X, S1, S2, DJ, QX, Y
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: DN, X, S1, S2, DJ, QX, Y
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         X  = -1.D0
         CALL INCHGA(N,DZ,QZ,X,QX)
         S1 = 0.D0
         S2 = QX*QX*WK(0)
         QM = 0.D0
         DO J=1,N
-            DJ = real(J,kind=8)
+            DJ = real(J,lfpp)
             J2 = 2*J
             X  = -COS(M_PI*DJ/DN)
             Y  = ABS(QZ(J))
@@ -1748,13 +1748,13 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: VN, QN, WT
-        REAL(kind=8), INTENT(OUT) :: QW, QS, QM
+        REAL(lfpp), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: VN, QN, WT
+        REAL(lfpp), INTENT(OUT) :: QW, QS, QM
         INTEGER :: K, J
-        REAL(kind=8) :: A1, B1, AB, AB2, DN, C, DK, S1, S2, S3
-        REAL(kind=8) :: Y1, YM, Y2, GA1, GB1, GAB2
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: A1, B1, AB, AB2, DN, C, DK, S1, S2, S3
+        REAL(lfpp) :: Y1, YM, Y2, GA1, GB1, GAB2
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
@@ -1762,14 +1762,14 @@ CONTAINS
         B1  = B+1.D0
         AB  = A+B
         AB2 = AB+2.D0
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = ((2.D0)**(AB+1.D0))*(DN+AB+1.D0)/(2.D0*DN+AB+1.D0)
         CALL GAMMAF(A1,GA1)
         CALL GAMMAF(B1,GB1)
         CALL GAMMAF(AB2,GAB2)
         C  = C*GA1*GB1/GAB2
         DO K=1,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C  = C*(DK+A)*(DK+B)/(DK*(DK+AB+1.D0))
         END DO
 
@@ -1807,15 +1807,15 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: VN, QN, WT
-        REAL(kind=8), INTENT(OUT) :: QI, QS, QM
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: VN, QN, WT
+        REAL(lfpp), INTENT(OUT) :: QI, QS, QM
         INTEGER :: J
-        REAL(kind=8) :: DN, C, S1, S2, Y1, YM, Y2
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: DN, C, S1, S2, Y1, YM, Y2
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = .5D0*DN*(DN+1.D0)/(2.D0*DN+1.D0)
 
         S1 = 0.D0
@@ -1850,16 +1850,16 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: QN
-        REAL(kind=8), DIMENSION(0:2*N), INTENT(IN) :: WK
-        REAL(kind=8), INTENT(OUT) :: QW, QI, QS, QM
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: QN
+        REAL(lfpp), DIMENSION(0:2*N), INTENT(IN) :: WK
+        REAL(lfpp), INTENT(OUT) :: QW, QI, QS, QM
         INTEGER :: J, N2, J2
-        REAL(kind=8) :: DN, SN, Y, S1, S2, S3, SJ, DJ, X, YM, QX, DD
+        REAL(lfpp) :: DN, SN, Y, S1, S2, S3, SJ, DJ, X, YM, QX, DD
 
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
-        SN = real(1+4*(N/2)-2*N,kind=8)
+        DN = real(N,lfpp)
+        SN = real(1+4*(N/2)-2*N,lfpp)
         Y  = QN(0)
         S1 = .5D0*Y*Y
         S2 = .5D0*Y*SN
@@ -1869,7 +1869,7 @@ CONTAINS
         SJ = -1.D0
         DO J=1,N-1
             J2 = 2*J
-            DJ = real(J2-1,kind=8)
+            DJ = real(J2-1,lfpp)
             X  = -COS(M_PI_2*DJ/DN)
             Y  = QN(J)
             YM = ABS(Y)
@@ -1881,7 +1881,7 @@ CONTAINS
             SJ = -SJ
         END DO
         N2 = 2*N
-        DD = real(N2-1,kind=8)
+        DD = real(N2-1,lfpp)
         X  = -COS(M_PI_2*DD/DN)
         Y  = QN(N)
         YM = ABS(Y)
@@ -1912,12 +1912,12 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, QZ, WE
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: CO
+        REAL(lfpp), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, QZ, WE
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: A1, B1, AB, AB2, GA1, GB1, GAB2, C, SU
-        REAL(kind=8) :: X, YP, Y, DK, CC, C1, C2, C3, C4, YM
+        REAL(lfpp) :: A1, B1, AB, AB2, GA1, GB1, GAB2, C, SU
+        REAL(lfpp) :: X, YP, Y, DK, CC, C1, C2, C3, C4, YM
 
         IF (N .EQ. 0) RETURN
 
@@ -1944,7 +1944,7 @@ CONTAINS
             Y  = .5D0*YP*(AB2*X+A-B)
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = real(K+1,kind=8)
+                DK = real(K+1,lfpp)
                 CC = 2.D0*DK+AB
                 C1 = 2.D0*DK*(DK+AB)*(CC-2.D0)
                 C2 = (CC-1.D0)*(CC-2.D0)*CC
@@ -1957,7 +1957,7 @@ CONTAINS
         END DO
 
         DO K=1,N-1
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C  = C*(DK+A)*(DK+B)/DK
             CO(K) = CO(K)*(2.D0*DK+AB+1.D0)/C
             C  = C/(DK+AB+1.D0)
@@ -1978,10 +1978,10 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, QZ, WE
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: CO
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, QZ, WE
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: SU, X, YP, Y, DK, C1, C2, YM
+        REAL(lfpp) :: SU, X, YP, Y, DK, C1, C2, YM
 
         IF (N .EQ. 0) RETURN
 
@@ -1999,7 +1999,7 @@ CONTAINS
             Y  = X*YP
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = real(K+1,kind=8)
+                DK = real(K+1,lfpp)
                 C1 = 2.D0*DK-1.D0
                 C2 = DK-1.D0
                 YM = Y
@@ -2009,7 +2009,7 @@ CONTAINS
         END DO
 
         DO K=1,N-1
-            CO(K) = .5D0*CO(K)*(2.D0*real(K,kind=8)+1.D0)
+            CO(K) = .5D0*CO(K)*(2.D0*real(K,lfpp)+1.D0)
         END DO
 
         RETURN
@@ -2025,14 +2025,14 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: QZ
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: CO
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: QZ
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: DN, SU, SK, DK, DJ
+        REAL(lfpp) :: DN, SU, SK, DK, DJ
 
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         SU = 0.D0
         DO J=1,N
             SU = SU+QZ(J)
@@ -2042,10 +2042,10 @@ CONTAINS
 
         SK = -2.D0
         DO K=1,N-1
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             SU = 0.D0
             DO J=1,N
-                DJ = 2.D0*real(J,kind=8)-1.D0
+                DJ = 2.D0*real(J,lfpp)-1.D0
                 SU = SU+QZ(J)*COS(DK*DJ*M_PI_2/DN)
             END DO
             CO(K) = SK*SU/DN
@@ -2068,11 +2068,11 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, QZ, WE
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: CO
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, QZ, WE
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: A1, SU, X, YP, Y, DK, C, B1, B2, YM
+        REAL(lfpp) :: A1, SU, X, YP, Y, DK, C, B1, B2, YM
 
         IF (N .EQ. 0) RETURN
 
@@ -2092,7 +2092,7 @@ CONTAINS
             Y  = (A1-X)*YP
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = real(K+1,kind=8)
+                DK = real(K+1,lfpp)
                 B1 = (2.D0*DK+A-1.D0-X)/DK
                 B2 = (DK+A-1.D0)/DK
                 YM = Y
@@ -2102,7 +2102,7 @@ CONTAINS
         END DO
 
         DO K=1,N-1
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C  = C*(DK+A)/DK
             CO(K) = CO(K)/C
         END DO
@@ -2122,10 +2122,10 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, QZ, WE
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: CO
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, QZ, WE
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: PR, SU, X, YP, Y, DK, YM
+        REAL(lfpp) :: PR, SU, X, YP, Y, DK, YM
 
         IF (N .EQ. 0) RETURN
 
@@ -2144,7 +2144,7 @@ CONTAINS
             Y  = X*YP
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = real(K+1,kind=8)
+                DK = real(K+1,lfpp)
                 YM = Y
                 Y  = (X*Y-.5D0*YP)/DK
                 YP = YM
@@ -2168,12 +2168,12 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN, WT
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CO
+        REAL(lfpp), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN, WT
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: A1, B1, AB, AB2, GA1, GB1, GAB2, C, SU, X, YP, Y
-        REAL(kind=8) :: CN, DK, CC, C1, C2, C3, C4, YM
+        REAL(lfpp) :: A1, B1, AB, AB2, GA1, GB1, GAB2, C, SU, X, YP, Y
+        REAL(lfpp) :: CN, DK, CC, C1, C2, C3, C4, YM
 
         CO(0) = QN(0)
         IF (N .EQ. 0) RETURN
@@ -2205,7 +2205,7 @@ CONTAINS
             CN = CN+VN(J)*VN(J)*WT(J)
             DO K=1,N
                 CO(K) = CO(K)+Y
-                DK = real(K+1,kind=8)
+                DK = real(K+1,lfpp)
                 CC = 2.D0*DK+AB
                 C1 = 2.D0*DK*(DK+AB)*(CC-2.D0)
                 C2 = (CC-1.D0)*(CC-2.D0)*CC
@@ -2217,7 +2217,7 @@ CONTAINS
             END DO
         END DO
         DO K=1,N-1
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C  = C*(DK+A)*(DK+B)/DK
             CO(K) = CO(K)*(2.D0*DK+AB+1.D0)/C
             C  = C/(DK+AB+1.D0)
@@ -2239,10 +2239,10 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, QN, WT
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, QN, WT
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: SU, X, YP, Y, DK, C1, C2, YM, DN
+        REAL(lfpp) :: SU, X, YP, Y, DK, C1, C2, YM, DN
 
         CO(0) = QN(0)
         IF (N .EQ. 0) RETURN
@@ -2264,7 +2264,7 @@ CONTAINS
             Y  = X*YP
             DO K=1,N
                 CO(K) = CO(K)+Y
-                DK = real(K+1,kind=8)
+                DK = real(K+1,lfpp)
                 C1 = 2.D0*DK-1.D0
                 C2 = DK-1.D0
                 YM = Y
@@ -2273,12 +2273,12 @@ CONTAINS
             END DO
         END DO
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         CO(N) = .5D0*DN*CO(N)
         IF (N .EQ. 1) RETURN
 
         DO K=1,N-1
-            CO(K) = .5D0*CO(K)*(2.D0*real(K,kind=8)+1.D0)
+            CO(K) = .5D0*CO(K)*(2.D0*real(K,lfpp)+1.D0)
         END DO
 
         RETURN
@@ -2294,16 +2294,16 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: QN
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: QN
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: DN, DD, S0, SN, SJ, SK, DK, SU, DJ
+        REAL(lfpp) :: DN, DD, S0, SN, SJ, SK, DK, SU, DJ
 
         CO(0) = QN(0)
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
-        DD = real(1+4*(N/2)-2*N,kind=8)
+        DN = real(N,lfpp)
+        DD = real(1+4*(N/2)-2*N,lfpp)
         CO(0) = .5D0*(QN(0)+QN(N))
         CO(N) = .5D0*(QN(0)+DD*QN(N))
         IF (N .EQ. 1) RETURN
@@ -2321,10 +2321,10 @@ CONTAINS
 
         SK = -1.D0
         DO  K=1,N-1
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             SU = .5D0*(QN(0)+QN(N)*SK)
             DO  J=1,N-1
-                DJ = real(J,kind=8)
+                DJ = real(J,lfpp)
                 SU = SU+QN(J)*COS(DK*DJ*M_PI/DN)
             END DO
             CO(K) = 2.D0*SK*SU/DN
@@ -2347,11 +2347,11 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(IN) :: ET, QN, WT
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: CO
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(IN) :: ET, QN, WT
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: CO
         INTEGER :: J, K
-        REAL(kind=8) :: A1, SU, X, YP, Y, DK, B1, B2, YM, C
+        REAL(lfpp) :: A1, SU, X, YP, Y, DK, B1, B2, YM, C
 
         IF (N .EQ. 0) RETURN
 
@@ -2371,7 +2371,7 @@ CONTAINS
             Y  = (A1-X)*YP
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = real(K+1,kind=8)
+                DK = real(K+1,lfpp)
                 B1 = (2.D0*DK+A-1.D0-X)/DK
                 B2 = (DK+A-1.D0)/DK
                 YM = Y
@@ -2380,7 +2380,7 @@ CONTAINS
             END DO
         END DO
         DO K=1,N-1
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C  = C*(DK+A)/DK
             CO(K) = CO(K)/C
         END DO
@@ -2403,12 +2403,12 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B, X
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: A, B, X
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER :: K
-        REAL(kind=8) :: AB, P, DP, D2P, PP, DPP, D2PP, DK
-        REAL(kind=8) :: CC, C1, C2, C3, C4, PM, DPM, D2PM
+        REAL(lfpp) :: AB, P, DP, D2P, PP, DPP, D2PP, DK
+        REAL(lfpp) :: CC, C1, C2, C3, C4, PM, DPM, D2PM
 
         Y   = CO(0)
         DY  = 0.D0
@@ -2428,7 +2428,7 @@ CONTAINS
         DPP = 0.D0
         D2PP = 0.D0
         DO K=2,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             CC = 2.D0*DK+AB
             C1 = 2.D0*DK*(DK+AB)*(CC-2.D0)
             C2 = (CC-1.D0)*(CC-2.D0)*CC
@@ -2464,11 +2464,11 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER :: K
-        REAL(kind=8) :: P, DP, D2P, PP, DPP, D2PP, DK, C2, C4, PM, DPM, D2PM
+        REAL(lfpp) :: P, DP, D2P, PP, DPP, D2PP, DK, C2, C4, PM, DPM, D2PM
 
         Y   = CO(0)
         DY  = 0.D0
@@ -2487,7 +2487,7 @@ CONTAINS
         DPP = 0.D0
         D2PP = 0.D0
         DO K=2,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C2 = 2.D0*DK-1.D0
             C4 = DK-1.D0
             PM = P
@@ -2520,11 +2520,11 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER :: K
-        REAL(kind=8) :: P, DP, D2P, PP, DPP, D2PP, PM, DPM, D2PM
+        REAL(lfpp) :: P, DP, D2P, PP, DPP, D2PP, PM, DPM, D2PM
 
         Y   = CO(0)
         DY  = 0.D0
@@ -2574,11 +2574,11 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X, A
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: X, A
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER :: K
-        REAL(kind=8) :: P, DP, D2P, PP, DPP, D2PP, DK, B1, B2, PM, DPM, D2PM
+        REAL(lfpp) :: P, DP, D2P, PP, DPP, D2PP, DK, B1, B2, PM, DPM, D2PM
 
         Y   = CO(0)
         DY  = 0.D0
@@ -2597,7 +2597,7 @@ CONTAINS
         DPP = 0.D0
         D2PP = 0.D0
         DO K=2,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             B1 = (2.D0*DK+A-1.D0-X)/DK
             B2 = (DK+A-1.D0)/DK
             PM = P
@@ -2630,11 +2630,11 @@ CONTAINS
         !**********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: X
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: Y, DY, D2Y
+        REAL(lfpp), INTENT(IN) :: X
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: Y, DY, D2Y
         INTEGER :: K
-        REAL(kind=8) :: P, DP, D2P, PP, DPP, D2PP, DK, PM
+        REAL(lfpp) :: P, DP, D2P, PP, DPP, D2PP, DK, PM
 
         Y   = CO(0)
         DY  = 0.D0
@@ -2653,7 +2653,7 @@ CONTAINS
         DPP = 0.D0
         D2PP = 0.D0
         DO K=2,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             PM = P
             P  = 2.D0*X*P-2.D0*PP*(DK-1.D0)
             Y  = Y+P*CO(K)
@@ -2677,18 +2677,18 @@ CONTAINS
         !***************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: QW
+        REAL(lfpp), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: QW
         INTEGER :: K
-        REAL(kind=8) :: A1, B1, AB, AB2, DN, C, V, SU, GA1, GB1, GAB2, DK
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: A1, B1, AB, AB2, DN, C, V, SU, GA1, GB1, GAB2, DK
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         A1  = A+1.D0
         B1  = B+1.D0
         AB  = A+B
         AB2 = AB+2.D0
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         CALL GAMMAF(A1,GA1)
         CALL GAMMAF(B1,GB1)
         CALL GAMMAF(AB2,GAB2)
@@ -2701,7 +2701,7 @@ CONTAINS
         IF (V .LT. EPS) GOTO 1
         SU = C*V*V
 1       DO K=1,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C  = C*(DK+A)*(DK+B)/DK
             V  = ABS(CO(K))
             IF (V .LT. EPS) GOTO 3
@@ -2723,15 +2723,15 @@ CONTAINS
         !****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: QI
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: QI
         INTEGER :: K
-        REAL(kind=8) :: SU, DK, V
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: SU, DK, V
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         SU = 0.D0
         DO K=0,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             V  = ABS(CO(K))
             IF (V .LT. EPS) CYCLE
             SU = SU+V*V/(2.D0*DK+1.D0)
@@ -2752,11 +2752,11 @@ CONTAINS
         !****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: QW, QI
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: QW, QI
         INTEGER :: K, M
-        REAL(kind=8) :: PR, R2, V, SU, D1, D2, C
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: PR, R2, V, SU, D1, D2, C
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         PR = 1.77245385090551588D0
         R2 = 1.41421356237309515D0
@@ -2780,8 +2780,8 @@ CONTAINS
         DO K=0,N,2
             V  = CO(K)
             DO M=0,N,2
-                D1 = 1.D0-real((K+M)*(K+M),kind=8)
-                D2 = 1.D0-real((K-M)*(K-M),kind=8)
+                D1 = 1.D0-real((K+M)*(K+M),lfpp)
+                D2 = 1.D0-real((K-M)*(K-M),lfpp)
                 C  =1.D0/D1+1.D0/D2
                 SU = SU+C*V*CO(M)
             END DO
@@ -2789,8 +2789,8 @@ CONTAINS
         DO K=1,N,2
             V  = CO(K)
             DO M=1,N,2
-                D1 = 1.D0-real((K+M)*(K+M),kind=8)
-                D2 = 1.D0-real((K-M)*(K-M),kind=8)
+                D1 = 1.D0-real((K+M)*(K+M),lfpp)
+                D2 = 1.D0-real((K-M)*(K-M),lfpp)
                 C  =1.D0/D1+1.D0/D2
                 SU = SU+C*V*CO(M)
             END DO
@@ -2811,12 +2811,12 @@ CONTAINS
         !*****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: QW
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: QW
         INTEGER :: K
-        REAL(kind=8) :: A1, C, V, SU, DK
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: A1, C, V, SU, DK
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         A1  = A+1.D0
         CALL GAMMAF(A1,C)
@@ -2829,7 +2829,7 @@ CONTAINS
             SU = C*V*V
         END IF
         DO K=1,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C  = C*(DK+A)/DK
             V  = ABS(CO(K))
             IF (V .LT. EPS) CYCLE
@@ -2850,11 +2850,11 @@ CONTAINS
         !****************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), INTENT(OUT) :: QW
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), INTENT(OUT) :: QW
         INTEGER :: K
-        REAL(kind=8) :: PR, R2, V, SU, C, DK
-        REAL(kind=8), PARAMETER :: EPS = 1.D-14
+        REAL(lfpp) :: PR, R2, V, SU, C, DK
+        REAL(lfpp), PARAMETER :: EPS = 1.E-14_fpp
 
         PR = 1.33133536380038953D0
         R2 = 1.41421356237309515D0
@@ -2868,7 +2868,7 @@ CONTAINS
         END IF
         C  = 1.D0
         DO K=1,N
-            DK = real(K,kind=8)
+            DK = real(K,lfpp)
             C  = C*R2*SQRT(DK)
             V  = ABS(CO(K))
             IF (V .LT. EPS) CYCLE
@@ -2891,11 +2891,11 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: G
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
+        REAL(lfpp), INTENT(IN) :: G
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
         INTEGER :: K, KR
-        REAL(kind=8) :: G2, DK, C1, C2, DN
+        REAL(lfpp) :: G2, DK, C1, C2, DN
 
         CD(N)  = 0.D0
         CD2(N) = 0.D0
@@ -2905,13 +2905,13 @@ CONTAINS
         CD2(N-1) = 0.D0
         IF (N .EQ. 1) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         G2 = 2.D0*G
         CD(N-1) = (2.D0*DN+G2-1.D0)*(DN+G)*CO(N)/(DN+G2)
         DO K=0,N-2
             KR = N-K-2
             IF (KR .NE. 0) THEN
-                DK = real(KR,kind=8)
+                DK = real(KR,lfpp)
                 C1 = (2.D0*DK+G2+1.D0)*(DK+G+1.D0)/(DK+G2+1.D0)
                 C2 = (DK+G+2.D0)/((2.D0*DK+G2+5.D0)*(DK+G2+2.D0))
                 CD(KR)  = C1*(C2*CD(KR+2)+CO(KR+1))
@@ -2936,23 +2936,23 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
         INTEGER :: K, KR
-        REAL(kind=8) :: DN, DK
+        REAL(lfpp) :: DN, DK
 
         CD(N)  = 0.D0
         CD2(N) = 0.D0
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         CD(N-1)  = (2.D0*DN-1.D0)*CO(N)
         CD2(N-1) = 0.D0
         IF (N .EQ. 1) RETURN
 
         DO K=0,N-2
             KR = N-K-2
-            DK = 2.D0*real(KR,kind=8)+1.D0
+            DK = 2.D0*real(KR,lfpp)+1.D0
             CD(KR)  = DK*(CD(KR+2)/(DK+4.D0)+CO(KR+1))
             CD2(KR) = DK*(CD2(KR+2)/(DK+4.D0)+CD(KR+1))
         END DO
@@ -2971,10 +2971,10 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
         INTEGER :: K, KR
-        REAL(kind=8) :: DN, DK
+        REAL(lfpp) :: DN, DK
 
         CD(N)  = 0.D0
         CD2(N) = 0.D0
@@ -2984,12 +2984,12 @@ CONTAINS
         CD2(N-1) = 0.D0
         IF (N .EQ. 1) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         CD(N-1) = 2.D0*DN*CO(N)
         DO K=0,N-2
             KR = N-K-2
             IF (KR .NE. 0) THEN
-                DK = 2.D0*(real(KR,kind=8)+1.D0)
+                DK = 2.D0*(real(KR,lfpp)+1.D0)
                 CD(KR)  = CD(KR+2)+DK*CO(KR+1)
                 CD2(KR) = CD2(KR+2)+DK*CD(KR+1)
             ELSE
@@ -3012,8 +3012,8 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
         INTEGER :: K, KR
 
         CD(N)  = 0.D0
@@ -3044,23 +3044,23 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CD, CD2
         INTEGER :: K, KR
-        REAL(kind=8) :: DN, DK
+        REAL(lfpp) :: DN, DK
 
         CD(N)  = 0.D0
         CD2(N) = 0.D0
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         CD(N-1)  = 2.D0*DN*CO(N)
         CD2(N-1) = 0.D0
         IF (N .EQ. 1) RETURN
 
         DO K=0,N-2
             KR = N-K-2
-            DK = 2.D0*real(KR,kind=8)+2.D0
+            DK = 2.D0*real(KR,lfpp)+2.D0
             CD(KR)  = DK*CO(KR+1)
             CD2(KR) = DK*CD(KR+1)
         END DO
@@ -3082,11 +3082,11 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: DQZ
+        REAL(lfpp), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, DZ, QZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: DQZ
         INTEGER :: I, J
-        REAL(kind=8) :: SU, CI, DI, CJ, DJ
+        REAL(lfpp) :: SU, CI, DI, CJ, DJ
 
         IF (N .EQ. 0) RETURN
 
@@ -3121,12 +3121,12 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS
-        REAL(kind=8), DIMENSION(N), INTENT(INOUT) :: QZ
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: DQZ
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS
+        REAL(lfpp), DIMENSION(N), INTENT(INOUT) :: QZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: DQZ
         INTEGER :: I, J
-        REAL(kind=8) :: Y, DY, D2Y, SU, CI, DI, CJ
+        REAL(lfpp) :: Y, DY, D2Y, SU, CI, DI, CJ
 
         IF (N .EQ. 0) RETURN
 
@@ -3171,11 +3171,11 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS
-        REAL(kind=8), DIMENSION(N), INTENT(INOUT) :: QZ
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: DQZ
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS
+        REAL(lfpp), DIMENSION(N), INTENT(INOUT) :: QZ
+        REAL(lfpp), DIMENSION(N), INTENT(OUT) :: DQZ
         INTEGER :: I, J
-        REAL(kind=8) :: Y, DY, D2Y, SU, CI, DI, CJ
+        REAL(lfpp) :: Y, DY, D2Y, SU, CI, DI, CJ
 
         IF (N .EQ. 0) RETURN
 
@@ -3223,12 +3223,12 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: DQN
+        REAL(lfpp), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: DQN
         INTEGER :: I, J
-        REAL(kind=8) :: A1, B1, AB, DN, C1, C2, S1, S2, C3, C4
-        REAL(kind=8) :: VI, VJ, EI, EJ, SU
+        REAL(lfpp) :: A1, B1, AB, DN, C1, C2, S1, S2, C3, C4
+        REAL(lfpp) :: VI, VJ, EI, EJ, SU
 
         DQN(0) = 0.D0
         IF (N .EQ. 0) RETURN
@@ -3236,7 +3236,7 @@ CONTAINS
         A1 = A+1.D0
         B1 = B+1.D0
         AB = A+B
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C1 = DN*(DN+AB+1.D0)
         C2 = A1*VN(0)/(B1*VN(N))
         DQN(0) = .5D0*((A-C1)*QN(0)/(B+2.D0)-C2*QN(N))
@@ -3287,10 +3287,10 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: DQN
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN, QN
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: DQN
         INTEGER :: I, J
-        REAL(kind=8) :: DN, C, SU, VI, VJ, EI, EJ
+        REAL(lfpp) :: DN, C, SU, VI, VJ, EI, EJ
 
         DQN(0) = 0.D0
         IF (N .EQ. 0) RETURN
@@ -3308,7 +3308,7 @@ CONTAINS
             DQN(I) = VI*SU
         END DO
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = .25D0*DN*(DN+1.D0)
         DQN(0) = DQN(0)-C*QN(0)
         DQN(N) = DQN(N)+C*QN(N)
@@ -3327,17 +3327,17 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, QN
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: DQN
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, QN
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: DQN
         INTEGER :: I, J
-        REAL(kind=8) :: DN, CN, SN, S1, S2, SGN, SGNI, EI, SU, SGNJ, EJ, QJ
+        REAL(lfpp) :: DN, CN, SN, S1, S2, SGN, SGNI, EI, SU, SGNJ, EJ, QJ
 
         DQN(0) = 0.D0
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         CN = (2.D0*DN*DN+1.D0)/6.D0
-        SN = real(1+4*(N/2)-2*N,kind=8)
+        SN = real(1+4*(N/2)-2*N,lfpp)
         DQN(0) = -CN*QN(0)-.5D0*SN*QN(N)
         DQN(N) = .5D0*SN*QN(0)+CN*QN(N)
         IF (N .EQ. 1) RETURN
@@ -3388,14 +3388,14 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(IN) :: ET
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(INOUT) :: QN
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: DQN
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(IN) :: ET
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(INOUT) :: QN
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: DQN
         INTEGER :: I, J
-        REAL(kind=8) :: DN, A1, SU, X, C, Y, DY, D2Y, EI, EJ
+        REAL(lfpp) :: DN, A1, SU, X, C, Y, DY, D2Y, EI, EJ
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         DQN(0) = (1.D0-DN)*QN(0)/(A+2.D0)
         IF (N .EQ. 1) RETURN
 
@@ -3450,11 +3450,11 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N, NM
-        REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN
-        REAL(kind=8), DIMENSION(0:NM,0:N), INTENT(OUT) :: DMA
+        REAL(lfpp), INTENT(IN) :: A, B
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN
+        REAL(lfpp), DIMENSION(0:NM,0:N), INTENT(OUT) :: DMA
         INTEGER :: I, J
-        REAL(kind=8) :: A1, B1, AB, DN, C1, C2, C3, C4, VJ, EJ, VI, EI
+        REAL(lfpp) :: A1, B1, AB, DN, C1, C2, C3, C4, VJ, EJ, VI, EI
 
 
         DMA(0,0) = 0.D0
@@ -3463,7 +3463,7 @@ CONTAINS
         A1 = A+1.D0
         B1 = B+1.D0
         AB = A+B
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C1 = DN*(DN+AB+1.D0)
         C2 = A1*VN(0)/(B1*VN(N))
         DMA(0,0) = .5D0*(A-C1)/(B+2.D0)
@@ -3512,10 +3512,10 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N, NM
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN
-        REAL(kind=8), DIMENSION(0:NM,0:N), INTENT(OUT) :: DMA
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN
+        REAL(lfpp), DIMENSION(0:NM,0:N), INTENT(OUT) :: DMA
         INTEGER :: I, J
-        REAL(kind=8) :: DN, C, VJ, EJ, VI, EI
+        REAL(lfpp) :: DN, C, VJ, EJ, VI, EI
 
         DMA(0,0) = 0.D0
         IF (N .EQ. 0) RETURN
@@ -3534,7 +3534,7 @@ CONTAINS
             END DO
         END DO
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         C  = .25D0*DN*(DN+1.D0)
         DMA(0,0) = -C
         DMA(N,N) = C
@@ -3553,17 +3553,17 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N, NM
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET
-        REAL(kind=8), DIMENSION(0:NM,0:N), INTENT(OUT) :: DMA
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET
+        REAL(lfpp), DIMENSION(0:NM,0:N), INTENT(OUT) :: DMA
         INTEGER :: I, J
-        REAL(kind=8) :: DN, CN, SN, SGN, SGNI, SGNJ, EJ, EI
+        REAL(lfpp) :: DN, CN, SN, SGN, SGNI, SGNJ, EJ, EI
 
         DMA(0,0) = 0.D0
         IF (N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         CN = (2.D0*DN*DN+1.D0)/6.D0
-        SN = real(1+4*(N/2)-2*N,kind=8)
+        SN = real(1+4*(N/2)-2*N,lfpp)
         DMA(0,0) = -CN
         DMA(N,N) = CN
         DMA(0,N) = -.5D0*SN
@@ -3611,13 +3611,13 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N, NM
-        REAL(kind=8), INTENT(IN) :: A
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(IN) :: ET
-        REAL(kind=8), DIMENSION(0:NM,0:N-1), INTENT(OUT) :: DMA
+        REAL(lfpp), INTENT(IN) :: A
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(IN) :: ET
+        REAL(lfpp), DIMENSION(0:NM,0:N-1), INTENT(OUT) :: DMA
         INTEGER :: I, J
-        REAL(kind=8) :: DN, X, A1, Y, DY, D2Y, C, EI, EJ
+        REAL(lfpp) :: DN, X, A1, Y, DY, D2Y, C, EI, EJ
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         DMA(0,0) = (1.D0-DN)/(A+2.D0)
         IF (N .EQ. 1) RETURN
 
@@ -3667,21 +3667,21 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: QZ
-        REAL(kind=8), DIMENSION(0:N-1), INTENT(OUT) :: CO
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: QZ
+        REAL(lfpp), DIMENSION(0:N-1), INTENT(OUT) :: CO
         INTEGER :: I, M, N2, IFAIL
-        REAL(kind=8) :: R2, DN, C, SN, SM, AR, CS, SI, V1, V2
+        REAL(lfpp) :: R2, DN, C, SN, SM, AR, CS, SI, V1, V2
 
         IF(N .EQ. 0) RETURN
 
         R2 = 1.41421356237309515D0
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         CO(0) = QZ(1)/DN
         IF(N .EQ. 1) RETURN
 
         N2 = N/2
         C  = 2.D0/SQRT(DN)
-        SN = real(1+4*N2-2*N,kind=8)
+        SN = real(1+4*N2-2*N,lfpp)
         CO(N-N2-1) = QZ(N)
         DO I=1,N2
             CO(I-1) = QZ(2*I-1)
@@ -3700,7 +3700,7 @@ CONTAINS
         IF (N .EQ. 2) RETURN
         SM = -1.D0
         DO M=1,N-N2-1
-            AR = M_PI_2*real(M,kind=8)/DN
+            AR = M_PI_2*real(M,lfpp)/DN
             CS = COS(AR)
             SI = SIN(AR)
             V1 = C*SM*(CO(M)*CS+CO(N-M)*SI)
@@ -3723,16 +3723,16 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: QN
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: QN
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CO
         INTEGER :: I, J, M, N2, I2, IFAIL
-        REAL(kind=8) :: DN, SN, S1, S2, SJ, C, SM, V1, SI, V2, AR
+        REAL(lfpp) :: DN, SN, S1, S2, SJ, C, SM, V1, SI, V2, AR
 
         IF(N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         N2 = N/2
-        SN = real(1+4*N2-2*N,kind=8)
+        SN = real(1+4*N2-2*N,lfpp)
         S1 = .5D0*(QN(0)+QN(N))
         S2 = .5D0*(SN*QN(0)+QN(N))
         CO(0) = S1
@@ -3772,7 +3772,7 @@ CONTAINS
 
         SM = -1.D0
         DO M=1,N-N2-1
-            AR = M_PI*real(M,kind=8)/DN
+            AR = M_PI*real(M,lfpp)/DN
             SI = .5D0/SIN(AR)
             V1 = CO(M)*(1.D0+SI)+CO(N-M)*(1.D0-SI)
             V2 = CO(M)*(1.D0-SI)+CO(N-M)*(1.D0+SI)
@@ -3794,16 +3794,16 @@ CONTAINS
         !*******************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: CO
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: QN
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: CO
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: QN
         INTEGER :: I, J, N2, I2, IFAIL, M
-        REAL(kind=8) :: DN, SN, S1, S2, SJ, C, V1, SI, V2, AR
+        REAL(lfpp) :: DN, SN, S1, S2, SJ, C, V1, SI, V2, AR
 
         IF(N .EQ. 0) RETURN
 
-        DN = real(N,kind=8)
+        DN = real(N,lfpp)
         N2 = N/2
-        SN = real(1+4*N2-2*N,kind=8)
+        SN = real(1+4*N2-2*N,lfpp)
         S1 = CO(0)+SN*CO(N)
         S2 = CO(0)+CO(N)
         QN(0) = S1
@@ -3845,7 +3845,7 @@ CONTAINS
         IF(N .EQ. 2) RETURN
 
         DO M=1,N-N2-1
-            AR = M_PI*real(M,kind=8)/DN
+            AR = M_PI*real(M,lfpp)/DN
             SI = .5D0/SIN(AR)
             V1 = QN(M)*(1.D0+SI)+QN(N-M)*(1.D0-SI)
             V2 = QN(M)*(1.D0-SI)+QN(N-M)*(1.D0+SI)
@@ -3868,10 +3868,10 @@ CONTAINS
         !*********************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: QN
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: CD, DQN
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: QN
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: CD, DQN
         INTEGER :: K, KR
-        REAL(kind=8) :: DN, DK
+        REAL(lfpp) :: DN, DK
 
         IF(N .EQ. 0) RETURN
 
@@ -3879,12 +3879,12 @@ CONTAINS
         CD(N) = 0.D0
         CD(0) = DQN(1)
         IF(N .NE. 1) THEN
-            DN = real(N,kind=8)
+            DN = real(N,lfpp)
             CD(N-1) = 2.D0*DN*DQN(N)
             DO K=0,N-2
                 KR = N-K-2
                 IF(KR .NE. 0) THEN
-                    DK = 2.D0*(real(KR,kind=8)+1.D0)
+                    DK = 2.D0*(real(KR,lfpp)+1.D0)
                     CD(KR) = CD(KR+2)+DK*DQN(KR+1)
                 ELSE
                     CD(0) = .5D0*CD(2)+DQN(1)
@@ -3914,11 +3914,11 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N
-        REAL(kind=8), INTENT(IN) :: S1, S2, PA
-        REAL(kind=8), DIMENSION(0:N), INTENT(IN) :: ET, VN, FU
-        REAL(kind=8), DIMENSION(0:N), INTENT(OUT) :: SO, DSO, D2SO
+        REAL(lfpp), INTENT(IN) :: S1, S2, PA
+        REAL(lfpp), DIMENSION(0:N), INTENT(IN) :: ET, VN, FU
+        REAL(lfpp), DIMENSION(0:N), INTENT(OUT) :: SO, DSO, D2SO
         INTEGER :: I, J, IR, IT, IM
-        REAL(kind=8) :: C1, C2, C3, C4, TH, BE, D1, D2, D3
+        REAL(lfpp) :: C1, C2, C3, C4, TH, BE, D1, D2, D3
 
         IF (N .EQ. 0) RETURN
 
@@ -3995,10 +3995,10 @@ CONTAINS
         !************************************************************************
         IMPLICIT NONE
         INTEGER, INTENT(IN) :: N, NM
-        REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ
-        REAL(kind=8), DIMENSION(NM,N), INTENT(OUT) :: DGA
+        REAL(lfpp), DIMENSION(N), INTENT(IN) :: CS, DZ
+        REAL(lfpp), DIMENSION(NM,N), INTENT(OUT) :: DGA
         INTEGER :: I, J
-        REAL(kind=8) :: VI, ZI, VJ, ZJ
+        REAL(lfpp) :: VI, ZI, VJ, ZJ
 
         DGA(1,1) = 0.D0
         IF (N .LE. 1) RETURN

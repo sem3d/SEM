@@ -25,23 +25,23 @@ contains
     ! the mesh in which case nmax is -1 on return and only one candidate is selected
     subroutine find_location(Tdomain, x0,y0,z0, nmax, elems, localcoord)
         type(domain), intent(in) :: Tdomain
-        double precision, intent(in) :: x0, y0, z0
+        real(fpp), intent(in) :: x0, y0, z0
         integer, intent(inout) :: nmax
         integer, dimension(nmax) :: elems
-        double precision, dimension(0:2,nmax) :: localcoord
+        real(fpp), dimension(0:2,nmax) :: localcoord
         !
         integer :: n, nnodes, i, j, k
-        double precision :: mindist, dist
+        real(fpp) :: mindist, dist
         integer :: best_node
-        double precision, dimension(0:2) :: p
-        double precision :: xi, eta, zeta
-        double precision, allocatable, dimension(:,:) :: coord
+        real(fpp), dimension(0:2) :: p
+        real(fpp) :: xi, eta, zeta
+        real(fpp), allocatable, dimension(:,:) :: coord
         logical :: ok
         !! Find the closest node
         nnodes = Tdomain%n_nodes
         allocate(coord(0:2, 0:nnodes-1))
         best_node = 0
-        mindist = 1d100
+        mindist = MAX_DOUBLE
         do n = 0, Tdomain%n_glob_nodes-1
             p = Tdomain%Coord_Nodes(:, n)
             dist = (p(0)-x0)**2 + (p(1)-y0)**2 + (p(2)-z0)**2

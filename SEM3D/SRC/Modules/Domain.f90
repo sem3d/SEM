@@ -21,7 +21,6 @@ module sdomain
     use splanew
     use sneu
     use ssurf
-    use sbassin
     use solid_fluid
     use semdatafiles
     use sem_c_config

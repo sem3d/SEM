@@ -313,7 +313,7 @@ contains
             theta_2 = theta_2 + (omega_r*agamma(ns))/(1d0+omega_r*omega_r)
         end do
 
-        R = dsqrt(theta_1*theta_1 + theta_2*theta_2)
+        R = sqrt(theta_1*theta_1 + theta_2*theta_2)
 
         get_relaxed_modulus = r_m_part*(theta_1+R)/(2d0*R*R)
         if(get_relaxed_modulus > 1d0)   &

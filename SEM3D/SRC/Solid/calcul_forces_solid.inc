@@ -438,7 +438,7 @@ subroutine PROCNAME_ATN(dom,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX + DYY + DZZ)
+                epsilon_trace_over_3 = M_1_3 * (DXX + DYY + DZZ)
                 epsilonvol_loc = DXX + DYY + DZZ
                 epsilondev_xx_loc = DXX - epsilon_trace_over_3
                 epsilondev_yy_loc = DYY - epsilon_trace_over_3
@@ -452,7 +452,7 @@ subroutine PROCNAME_ATN(dom,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
                     gamma_mu = dom%agamma_mu_(i_sls,i,j,k,bnum,ee)
 #ifndef ANISO
                     ! get coefficients for that standard linear solid
-                    factor_common_P = 2d0*gamma_kappa*omega_tau_s
+                    factor_common_P = 2_fpp*gamma_kappa*omega_tau_s
                     factorP_loc   = dom%Kappa_(i,j,k,bnum,ee) * factor_common_P
                     RK4_attenu_coefs(dom%dt,omega_tau_s,alphaval, betaval, gammaval)
 
