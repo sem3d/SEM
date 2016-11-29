@@ -66,9 +66,14 @@ module champs_fluidpml
         ! Dimensions : R1_2(3,N,N,N,N2) R2_0(9,N,N,N,N2)
         ! with N=ngll, VS:vector size, NB : Nelements/VS
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: R1_0
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: R2_0
         real(fpp), dimension(:,:,:,:)    , allocatable :: R1_1
+        real(fpp), dimension(:,:,:,:,:)  , allocatable :: R2_1
         real(fpp), dimension(:,:,:,:)    , allocatable :: R1_2
+        real(fpp), dimension(:,:,:,:,:)  , allocatable :: R2_2
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: PhiOld
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: DPhiOld
+
         ! CPML parameters
         real(fpp) :: cpml_c
         real(fpp) :: cpml_n
