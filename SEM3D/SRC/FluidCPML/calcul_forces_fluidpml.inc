@@ -18,11 +18,11 @@
 
 #define USE_LOCAL_MEM
 
-subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_IDensity,FFl,Phi)
-    use sdomain
-    use deriv3d
+subroutine PROCNAME(dom,ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_IDensity,FFl,Phi)
+    use champs_fluidpml
     implicit none
 
+    type(domain_fluidpml), intent (INOUT) :: dom
     integer, intent(in) :: ngllvar
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
@@ -38,6 +38,7 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
     !
     real(fpp) :: dPhi_dX,dPhi_dY,dPhi_dZ
     real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
+    real(fpp), dimension(0:2) :: LC
     real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     integer :: i,j,k,l,ei,ee
     real(fpp) :: sx,sy,sz,t4
@@ -91,11 +92,13 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
                 dPhi_dy = dPhi_dxi*xi2 + dPhi_deta*et2 + dPhi_dzeta*ga2
                 dPhi_dz = dPhi_dxi*xi3 + dPhi_deta*et3 + dPhi_dzeta*ga3
 
+                call compute_convolution_terms(dom, i, j, k, bnum, ee, (/ dPhi_dx, dPhi_dy, dPhi_dz /), LC)
+
                 ! (fluid equivalent) stress  ( = physical velocity)
                 xdens = IDensity_(i,j,k,bnum,ee)
-                sx = xdens*dPhi_dX
-                sy = xdens*dPhi_dY
-                sz = xdens*dPhi_dZ
+                sx = xdens*dPhi_dX*LC(0)
+                sy = xdens*dPhi_dY*LC(1)
+                sz = xdens*dPhi_dZ*LC(2)
 
 
                 !=====================
