@@ -731,7 +731,7 @@ contains
         dom%champs(f0)%Phi = dom%champs(f0)%Phi + dt * dom%champs(f0)%VelPhi
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs(f0)%Phi = 0. ! Apply (dirichlet) BC for PML
+            dom%champs(f0)%Phi(indpml) = 0. ! Apply (dirichlet) BC for PML
         enddo
     end subroutine newmark_corrector_fluidpml
 
