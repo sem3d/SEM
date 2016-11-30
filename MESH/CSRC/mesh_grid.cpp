@@ -359,13 +359,10 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                     mesh.add_elem(mat, elem);
                     // Check for free fluid surface and free pml surface
                     int dom = mesh.m_materials[mat].domain();
-                    if (dom==DM_FLUID) {
-                        if (U) emit_free_face(dirich, dom, elem, 5);
+                    if (dom==DM_FLUID || dom==DM_FLUID_PML) {
+                        if (LU) emit_free_face(dirich, dom, elem, 5);
                     }
-                    if (dom==DM_FLUID_PML) {
-                        emit_free_face(dirich, dom, elem, W,E,S,N,U,D);
-                    }
-                    if (dom==DM_SOLID_PML) {
+                    if (dom==DM_SOLID_PML || dom==DM_FLUID_PML) {
                         double x_dir = mesh.m_materials[mat].xwidth;
                         double y_dir = mesh.m_materials[mat].ywidth;
                         double z_dir = mesh.m_materials[mat].zwidth;
