@@ -703,6 +703,27 @@ contains
         outputs%R1_x = 0.0
         outputs%R1_y = 0.0
         outputs%R1_z = 0.0
+        outputs%R2_L120_uxx = 0.
+        outputs%R2_L120_uxy = 0.
+        outputs%R2_L120_uxz = 0.
+        outputs%R2_L021_uyx = 0.
+        outputs%R2_L021_uyy = 0.
+        outputs%R2_L021_uyz = 0.
+        outputs%R2_L012_uzx = 0.
+        outputs%R2_L012_uzy = 0.
+        outputs%R2_L012_uzz = 0.
+        outputs%R2_L0_uyy   = 0.
+        outputs%R2_L0_uyz   = 0.
+        outputs%R2_L0_uzy   = 0.
+        outputs%R2_L0_uzz   = 0.
+        outputs%R2_L1_uxx   = 0.
+        outputs%R2_L1_uxz   = 0.
+        outputs%R2_L1_uzx   = 0.
+        outputs%R2_L1_uzz   = 0.
+        outputs%R2_L2_uxx   = 0.
+        outputs%R2_L2_uxy   = 0.
+        outputs%R2_L2_uyx   = 0.
+        outputs%R2_L2_uyy   = 0.
         allocate(outputs%FDump(0:2,0:(nnodes-1)))
         allocate(outputs%FMasU(0:2,0:(nnodes-1)))
         allocate(outputs%Fint (0:2,0:(nnodes-1)))
