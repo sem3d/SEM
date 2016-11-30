@@ -949,6 +949,9 @@ contains
                 case (DM_FLUID_PML)
                     call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
                     fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+#ifdef CPML
+                    call get_fluidpml_rfields(Tdomain, Tdomain%fpmldom, n, el%lnum, outputs)
+#endif
                 case default
                   stop "unknown domain"
             end select
