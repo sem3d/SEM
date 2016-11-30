@@ -248,8 +248,7 @@ contains
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
-        type(domain)                               :: TDomain
-        type(domain_fluidpml), intent(inout)          :: dom
+        type(domain_fluidpml), intent(inout)       :: dom
         integer, dimension(0:), intent(in)         :: out_variables
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable   :: phi
@@ -407,22 +406,12 @@ contains
         type(domain_fluidpml), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy
-
-        integer                  :: ngll, i, j, k, ind
-        real(fpp)                :: DXX, DXY, DXZ
-        real(fpp)                :: DYX, DYY, DYZ
-        real(fpp)                :: DZX, DZY, DZZ
-        real(fpp)                :: xmu, xlambda, xkappa
-        real(fpp)                :: onemSbeta, onemPbeta
-        real(fpp)                :: elem_energy_P, elem_energy_S
-        real(fpp)                :: xeps_vol
-        real, dimension(0:2,0:2) :: invgrad_ijk
         !
+        integer                  :: ngll
         integer :: bnum, ee
 
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
-
 
         ngll = dom%ngll
 
@@ -430,7 +419,6 @@ contains
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         S_energy = 0.0d0
         P_energy = 0.0d0 !TODO
-
     end subroutine get_fluidpml_dom_elem_energy
 
     subroutine init_material_properties_fluidpml(dom, lnum, mat, density, lambda)
