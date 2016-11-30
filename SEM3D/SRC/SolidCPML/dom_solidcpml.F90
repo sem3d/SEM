@@ -238,7 +238,7 @@ contains
         real(fpp)                :: DXX, DXY, DXZ
         real(fpp)                :: DYX, DYY, DYZ
         real(fpp)                :: DZX, DZY, DZZ
-        real, dimension(0:2,0:2) :: invgrad_ijk
+        real(fpp), dimension(0:2,0:2) :: invgrad_ijk
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
@@ -601,7 +601,7 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
-        real Whei
+        real(fpp) :: Whei
         !
         integer :: bnum, ee
         real(fpp) :: k0, k1, k2, a0, a1, a2, d0, d1, d2
