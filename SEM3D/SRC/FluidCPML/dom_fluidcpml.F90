@@ -364,15 +364,6 @@ contains
             do j=0,dom%ngll-1
                 do i=0,dom%ngll-1
                     idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                    outputs%R2_L120_uxx(idx) = dom%R2_0(ee, 0, i, j, k, bnum)
-                    outputs%R2_L120_uxy(idx) = dom%R2_0(ee, 1, i, j, k, bnum)
-                    outputs%R2_L120_uxz(idx) = dom%R2_0(ee, 2, i, j, k, bnum)
-                    outputs%R2_L021_uyx(idx) = dom%R2_0(ee, 3, i, j, k, bnum)
-                    outputs%R2_L021_uyy(idx) = dom%R2_0(ee, 4, i, j, k, bnum)
-                    outputs%R2_L021_uyz(idx) = dom%R2_0(ee, 5, i, j, k, bnum)
-                    outputs%R2_L012_uzx(idx) = dom%R2_0(ee, 6, i, j, k, bnum)
-                    outputs%R2_L012_uzy(idx) = dom%R2_0(ee, 7, i, j, k, bnum)
-                    outputs%R2_L012_uzz(idx) = dom%R2_0(ee, 8, i, j, k, bnum)
                     select case(dom%D0(ee, bnum))
                     case(0)
                         outputs%R1_x(0,idx) = dom%R1_0(ee, i, j, k, bnum)
