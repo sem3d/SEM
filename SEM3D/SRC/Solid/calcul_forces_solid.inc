@@ -146,6 +146,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
 #ifdef ATTENUATION
 #ifdef ANISO
+                ! ATTENUATION ISOTROPE
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
@@ -158,6 +159,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
 #undef CC
 #else
+                ! ATTENUATION ISOTROPE
                 xmu = dom%Mu_(i,j,k,bnum,ee) * dom%onemSbeta_(i,j,k,bnum,ee)
                 x2mu = 2. * xmu
                 sxx = x2mu * DXX
@@ -184,6 +186,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 syy = syy - stt + xpression
                 szz = szz - stt + xpression
 #else
+                ! SANS ATTENUATION
                 xmu = dom%Mu_    (i,j,k,bnum,ee)
                 xla = dom%Lambda_(i,j,k,bnum,ee)
                 xla2mu = xla + 2. * xmu
@@ -232,6 +235,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dom%radius_(i,j,k,bnum,ee)       = zero !radius
 
 #else
+                ! LINEAR ELASTIC ISOTROPE
                 sxx = xla2mu * DXX + xla * ( DYY + DZZ )
                 sxy = xmu * ( DXY + DYX )
                 sxz = xmu * ( DXZ + DZX )
