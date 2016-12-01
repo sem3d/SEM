@@ -11,15 +11,27 @@ module m_calcul_forces_solidpml
     implicit none
 
     integer, parameter :: CPML_INTEG = CPML_ORDER2
-    integer, parameter :: L120_DXX= 0, L2_DYY= 1, L1_DZZ= 2
-    integer, parameter :: L120_DYX= 3, L2_DYX= 4
-    integer, parameter :: L120_DZX= 5, L1_DZX= 6
-    integer, parameter :: L021_DXY= 7, L2_DXY= 8
-    integer, parameter :: L2_DXX= 9, L021_DYY=10, L0_DZZ=11
-    integer, parameter :: L021_DZY=12, L0_DZY=13
-    integer, parameter :: L012_DXZ=14, L1_DXZ=15
-    integer, parameter :: L012_DYZ=16, L0_DYZ=17
-    integer, parameter :: L1_DXX=18, L0_DYY=19, L012_DZZ=20
+    integer, parameter :: L120_DXX = 0
+    integer, parameter :: L2_DYY   = 1
+    integer, parameter :: L1_DZZ   = 2
+    integer, parameter :: L120_DYX = 3
+    integer, parameter :: L2_DYX   = 4
+    integer, parameter :: L120_DZX = 5
+    integer, parameter :: L1_DZX   = 6
+    integer, parameter :: L021_DXY = 7
+    integer, parameter :: L2_DXY   = 8
+    integer, parameter :: L2_DXX   = 9
+    integer, parameter :: L021_DYY =10
+    integer, parameter :: L0_DZZ   =11
+    integer, parameter :: L021_DZY =12
+    integer, parameter :: L0_DZY   =13
+    integer, parameter :: L012_DXZ =14
+    integer, parameter :: L1_DXZ   =15
+    integer, parameter :: L012_DYZ =16
+    integer, parameter :: L0_DYZ   =17
+    integer, parameter :: L1_DXX   =18
+    integer, parameter :: L0_DYY   =19
+    integer, parameter :: L012_DZZ =20
     integer, parameter :: dXX=0, dXY=1, dXZ=2
     integer, parameter :: dYX=3, dYY=4, dYZ=5
     integer, parameter :: dZX=6, dZY=7, dZZ=8
