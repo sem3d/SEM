@@ -164,13 +164,13 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 l2mu = lbd+2*mu
 
                 sxx = l2mu*LC(L120_DXX)+lbd*LC(L2_DYY)+lbd*LC(L1_DZZ)
-                sxy = mu*(LC(L120_DXY)+LC(L2_DYX))
-                sxz = mu*(LC(L120_DXZ)+LC(L1_DZX))
-                syx = mu*(LC(L021_DYX)+LC(L2_DXY))
+                sxy = mu*(LC(L120_DYX)+LC(L2_DXY))
+                sxz = mu*(LC(L120_DZX)+LC(L1_DXZ))
+                syx = mu*(LC(L021_DXY)+LC(L2_DYX))
                 syy = lbd*LC(L2_DXX) + l2mu*LC(L021_DYY) + lbd*LC(L0_DZZ)
-                syz = mu*(LC(L021_DYZ)+LC(L0_DZY))
-                szx = mu*(LC(L012_DZX)+LC(L1_DXZ))
-                szy = mu*(LC(L012_DZY)+LC(L0_DYZ))
+                syz = mu*(LC(L021_DZY)+LC(L0_DYZ))
+                szx = mu*(LC(L012_DXZ)+LC(L1_DZX))
+                szy = mu*(LC(L012_DYZ)+LC(L0_DZY))
                 szz = lbd*LC(L1_DXX) + lbd*LC(L0_DYY) + l2mu*LC(L012_DZZ)
 
                 !

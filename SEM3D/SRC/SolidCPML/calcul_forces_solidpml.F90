@@ -10,15 +10,15 @@ module m_calcul_forces_solidpml
     use pml
     implicit none
 
-    integer, parameter :: CPML_INTEG = CPML_MIDPOINT
+    integer, parameter :: CPML_INTEG = CPML_ORDER2
     integer, parameter :: L120_DXX= 0, L2_DYY= 1, L1_DZZ= 2
-    integer, parameter :: L120_DXY= 3, L2_DYX= 4
-    integer, parameter :: L120_DXZ= 5, L1_DZX= 6
-    integer, parameter :: L021_DYX= 7, L2_DXY= 8
+    integer, parameter :: L120_DYX= 3, L2_DYX= 4
+    integer, parameter :: L120_DZX= 5, L1_DZX= 6
+    integer, parameter :: L021_DXY= 7, L2_DXY= 8
     integer, parameter :: L2_DXX= 9, L021_DYY=10, L0_DZZ=11
-    integer, parameter :: L021_DYZ=12, L0_DZY=13
-    integer, parameter :: L012_DZX=14, L1_DXZ=15
-    integer, parameter :: L012_DZY=16, L0_DYZ=17
+    integer, parameter :: L021_DZY=12, L0_DZY=13
+    integer, parameter :: L012_DXZ=14, L1_DXZ=15
+    integer, parameter :: L012_DYZ=16, L0_DYZ=17
     integer, parameter :: L1_DXX=18, L0_DYY=19, L012_DZZ=20
     integer, parameter :: dXX=0, dXY=1, dXZ=2
     integer, parameter :: dYX=3, dYY=4, dYZ=5
@@ -210,20 +210,20 @@ contains
         LC(L120_DXX) = b0(kB120)*DUDVn(DXX) + b1(kB120)*dom%R2_0(ee,DXX,i,j,k,bnum)
         LC(L2_DYY  ) = b0(kB2  )*DUDVn(DYY) + b1(kB2  )*dom%R2_0(ee,DYY,i,j,k,bnum)
         LC(L1_DZZ  ) = b0(kB1  )*DUDVn(DZZ) + b1(kB1  )*dom%R2_0(ee,DZZ,i,j,k,bnum)
-        LC(L120_DXY) = b0(kB120)*DUDVn(DXY) + b1(kB120)*dom%R2_0(ee,DXY,i,j,k,bnum)
+        LC(L120_DYX) = b0(kB120)*DUDVn(DYX) + b1(kB120)*dom%R2_0(ee,DYX,i,j,k,bnum)
         LC(L2_DYX  ) = b0(kB2  )*DUDVn(DYX) + b1(kB2  )*dom%R2_0(ee,DYX,i,j,k,bnum)
-        LC(L120_DXZ) = b0(kB120)*DUDVn(DXZ) + b1(kB120)*dom%R2_0(ee,DXZ,i,j,k,bnum)
+        LC(L120_DZX) = b0(kB120)*DUDVn(DZX) + b1(kB120)*dom%R2_0(ee,DZX,i,j,k,bnum)
         LC(L1_DZX  ) = b0(kB1  )*DUDVn(DZX) + b1(kB1  )*dom%R2_0(ee,DZX,i,j,k,bnum)
-        LC(L021_DYX) = b0(kB021)*DUDVn(DYX) + b1(kB021)*dom%R2_0(ee,DYX,i,j,k,bnum)
+        LC(L021_DXY) = b0(kB021)*DUDVn(DXY) + b1(kB021)*dom%R2_0(ee,DXY,i,j,k,bnum)
         LC(L2_DXY  ) = b0(kB2  )*DUDVn(DXY) + b1(kB2  )*dom%R2_0(ee,DXY,i,j,k,bnum)
         LC(L2_DXX  ) = b0(kB2  )*DUDVn(DXX) + b1(kB2  )*dom%R2_0(ee,DXX,i,j,k,bnum)
         LC(L021_DYY) = b0(kB021)*DUDVn(DYY) + b1(kB021)*dom%R2_0(ee,DYY,i,j,k,bnum)
         LC(L0_DZZ  ) = b0(kB0  )*DUDVn(DZZ) + b1(kB0  )*dom%R2_0(ee,DZZ,i,j,k,bnum)
-        LC(L021_DYZ) = b0(kB021)*DUDVn(DYZ) + b1(kB021)*dom%R2_0(ee,DYZ,i,j,k,bnum)
+        LC(L021_DZY) = b0(kB021)*DUDVn(DZY) + b1(kB021)*dom%R2_0(ee,DZY,i,j,k,bnum)
         LC(L0_DZY  ) = b0(kB0  )*DUDVn(DZY) + b1(kB0  )*dom%R2_0(ee,DZY,i,j,k,bnum)
-        LC(L012_DZX) = b0(kB012)*DUDVn(DZX) + b1(kB012)*dom%R2_0(ee,DZX,i,j,k,bnum)
+        LC(L012_DXZ) = b0(kB012)*DUDVn(DXZ) + b1(kB012)*dom%R2_0(ee,DXZ,i,j,k,bnum)
         LC(L1_DXZ  ) = b0(kB1  )*DUDVn(DXZ) + b1(kB1  )*dom%R2_0(ee,DXZ,i,j,k,bnum)
-        LC(L012_DZY) = b0(kB012)*DUDVn(DZY) + b1(kB012)*dom%R2_0(ee,DZY,i,j,k,bnum)
+        LC(L012_DYZ) = b0(kB012)*DUDVn(DYZ) + b1(kB012)*dom%R2_0(ee,DYZ,i,j,k,bnum)
         LC(L0_DYZ  ) = b0(kB0  )*DUDVn(DYZ) + b1(kB0  )*dom%R2_0(ee,DYZ,i,j,k,bnum)
         LC(L1_DXX  ) = b0(kB1  )*DUDVn(DXX) + b1(kB1  )*dom%R2_0(ee,DXX,i,j,k,bnum)
         LC(L0_DYY  ) = b0(kB0  )*DUDVn(DYY) + b1(kB0  )*dom%R2_0(ee,DYY,i,j,k,bnum)
@@ -247,20 +247,20 @@ contains
         LC(L120_DXX) = DUDV(DXX)
         LC(L2_DYY  ) = DUDV(DYY)
         LC(L1_DZZ  ) = DUDV(DZZ)
-        LC(L120_DXY) = DUDV(DXY)
+        LC(L120_DYX) = DUDV(DYX)
         LC(L2_DYX  ) = DUDV(DYX)
-        LC(L120_DXZ) = DUDV(DXZ)
+        LC(L120_DZX) = DUDV(DZX)
         LC(L1_DZX  ) = DUDV(DZX)
-        LC(L021_DYX) = DUDV(DYX)
+        LC(L021_DXY) = DUDV(DXY)
         LC(L2_DXY  ) = DUDV(DXY)
         LC(L2_DXX  ) = DUDV(DXX)
         LC(L021_DYY) = DUDV(DYY)
         LC(L0_DZZ  ) = DUDV(DZZ)
-        LC(L021_DYZ) = DUDV(DYZ)
+        LC(L021_DZY) = DUDV(DZY)
         LC(L0_DZY  ) = DUDV(DYZ)
-        LC(L012_DZX) = DUDV(DZX)
+        LC(L012_DXZ) = DUDV(DXZ)
         LC(L1_DXZ  ) = DUDV(DXZ)
-        LC(L012_DZY) = DUDV(DZY)
+        LC(L012_DYZ) = DUDV(DYZ)
         LC(L0_DYZ  ) = DUDV(DYZ)
         LC(L1_DXX  ) = DUDV(DXX)
         LC(L0_DYY  ) = DUDV(DYY)
