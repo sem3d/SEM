@@ -677,10 +677,9 @@ contains
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         val = champs1%ForcesFl(idx)
                         val = val - Fo_Fl(ee,i,j,k)
-                        champs1%ForcesFl(idx) = val
                         call compute_L_convolution_terms(dom, i, j, k, bnum, ee, Phi(ee,i,j,k), R)
-                        kijk = wijk*1./dom%IDensity_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
-                        champs1%ForcesFl(idx) = champs1%ForcesFl(idx) - kijk*R
+                        kijk = wijk*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
+                        champs1%ForcesFl(idx) = val - kijk*R
                     enddo
                 enddo
             enddo
