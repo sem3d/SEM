@@ -75,11 +75,6 @@ contains
             dom%R1_2 = 0d0
             dom%R2_2 = 0d0
         end if
-#ifdef DBG
-        ! Write infos for all procs as all procs have different informations !... A bit messy output but no other way
-        write(*,*) "INFO - solid cpml domain : ", dir1_count, " elems attenuated in 2 directions on proc", Tdomain%rank
-        write(*,*) "INFO - solid cpml domain : ", dir2_count, " elems attenuated in 3 directions on proc", Tdomain%rank
-#endif
     end subroutine allocate_multi_dir_pml
 
     subroutine allocate_dom_solidpml (Tdomain, dom)
