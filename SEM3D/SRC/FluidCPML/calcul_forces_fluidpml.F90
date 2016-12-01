@@ -6,7 +6,7 @@ module m_calcul_forces_fluidpml ! wrap subroutine in module to get arg type chec
     use constants
     use pml
     integer, parameter :: kB012=0, kB021=1, kB120=2
-    integer, parameter :: CPML_INTEG = CPML_MIDPOINT
+    integer, parameter :: CPML_INTEG = CPML_ORDER2
 contains
 
 #include "index.h"
@@ -77,7 +77,7 @@ contains
             a3b = k0*a0*a0*d0
             R = a3b*dom%R1_0(ee,i,j,k,bnum)
         else
-            R = 0d0
+            R = 0_fpp
         end if
         ! Save PhiOld
         dom%PhiOld(ee,i,j,k,bnum) = PhiNew
@@ -91,20 +91,20 @@ contains
         real(fpp), intent(in), dimension(0:2) :: DPhiNew
         real(fpp), intent(out), dimension(0:2) :: LC
         !
-        real(fpp), dimension(0:2) :: DPhi
+        real(fpp), dimension(0:2) :: DPhiOld
         integer :: n1, n2
         n1 = dom%I1(ee,bnum)
         n2 = dom%I2(ee,bnum)
 
-        DPhi = 0.5d0*DPhiNew+0.5d0*dom%DPhiOld(ee,:,i,j,k,bnum)
+        DPhiOld = dom%DPhiOld(ee,:,i,j,k,bnum)
         if (n2==-1) then
             if (n1==-1) then
-                call compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DPhiNew, DPhi, LC)
+                call compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DPhiNew, DPhiOld, LC)
             else
-                call compute_convolution_terms_2d(dom, i, j, k, bnum, ee, DPhiNew, DPhi, LC)
+                call compute_convolution_terms_2d(dom, i, j, k, bnum, ee, DPhiNew, DPhiOld, LC)
             end if
         else
-            call compute_convolution_terms_3d(dom, i, j, k, bnum, ee, DPhiNew, DPhi, LC)
+            call compute_convolution_terms_3d(dom, i, j, k, bnum, ee, DPhiNew, DPhiOld, LC)
         end if
         ! Save current value as previous
         dom%DPhiOld(ee,:,i,j,k,bnum) = DPhiNew

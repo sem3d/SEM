@@ -96,21 +96,21 @@ subroutine PROCNAME(dom,ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jac
 
                 ! (fluid equivalent) stress  ( = physical velocity)
                 xdens = IDensity_(i,j,k,bnum,ee)
-                sx = xdens*dPhi_dX*LC(0)
-                sy = xdens*dPhi_dY*LC(1)
-                sz = xdens*dPhi_dZ*LC(2)
+                sx = xdens*LC(0)
+                sy = xdens*LC(1)
+                sz = xdens*LC(2)
 
-
+                !if (i==1.and.j==1.and.k==1) write(*,*) "SS", sx, sy, sz
                 !=====================
-                !       F1 
+                !       F1
                 xt1 = sx*xi1 + sy*xi2 + sz*xi3
 
                 !=====================
-                !       F2 
+                !       F2
                 xt6 = sx*et1 + sy*et2 + sz*et3
 
                 !=====================
-                !       F3 
+                !       F3
                 xt10 = sx*ga1 + sy*ga2 + sz*ga3
 
                 !

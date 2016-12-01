@@ -7,7 +7,6 @@ module dom_fluidpml
     use sdomain
     use constants
     use champs_fluidpml
-    use selement
     use ssubdomains
     implicit none
 #include "index.h"
@@ -639,15 +638,15 @@ contains
         if (a0b==0d0.or.mass_0==0d0) then
             stop 1
         endif
-        dom%MassMat(ind) = dom%MassMat(ind) + a0b*mass_0
+        dom%MassMat(ind) = dom%MassMat(ind) + (a0b+0.5d0*dom%dt*a1b)*mass_0
         dom%DumpMat(ind) = dom%DumpMat(ind) + a1b*mass_0
         dom%MasUMat(ind) = dom%MasUMat(ind) + a2b*mass_0
     end subroutine init_local_mass_fluidpml
 
-    subroutine forces_int_fluidpml(dom, champs1, bnum)
+    subroutine forces_int_flu_pml(dom, champs1, bnum)
         use m_calcul_forces_fluidpml
         type(domain_fluidpml), intent (INOUT) :: dom
-        type(champsfluid), intent(inout) :: champs1
+        type(champsfluidpml), intent(inout) :: champs1
         integer, intent(in) :: bnum
         !
         integer :: ngll,i,j,k,e,ee,idx
@@ -674,6 +673,7 @@ contains
 
         ! internal forces
         call calcul_forces_fluidpml(dom,dom%ngll,bnum,Fo_Fl,Phi)
+
         do k = 0,ngll-1
             wk = dom%gllw(k)
             do j = 0,ngll-1
@@ -694,7 +694,7 @@ contains
                 enddo
             enddo
         enddo
-    end subroutine forces_int_fluidpml
+    end subroutine forces_int_flu_pml
 
     subroutine pred_flu_pml(dom, dt, champs1, bnum)
         type (domain_fluidpml), intent (INOUT) :: dom
@@ -719,14 +719,6 @@ contains
       ! TODO : kill (needed for compatibility - build)
     end subroutine init_fluidpml_properties
 
-    subroutine forces_int_flu_pml(dom, champs1, bnum)
-        type (domain_fluidpml), intent (INOUT) :: dom
-        type(champsfluidpml), intent(inout) :: champs1
-        integer :: bnum
-        !
-      ! TODO : kill (needed for compatibility - build)
-    end subroutine forces_int_flu_pml
-
     subroutine newmark_predictor_fluidpml(dom, Tdomain, f0, f1)
         type(domain_fluidpml), intent (INOUT) :: dom
         type(domain)                          :: TDomain
@@ -741,8 +733,8 @@ contains
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)
-            dom%champs(f1)%VelPhi(indpml) = Tdomain%fdom%champs(f0)%VelPhi(indflu)
-            dom%champs(f1)%Phi(indpml) = Tdomain%fdom%champs(f0)%Phi(indflu)
+            dom%champs(f0)%VelPhi(indpml) = Tdomain%fdom%champs(f0)%VelPhi(indflu)
+            dom%champs(f0)%Phi(indpml) = Tdomain%fdom%champs(f0)%Phi(indflu)
         enddo
 
         ! The prediction will be based on the current state
