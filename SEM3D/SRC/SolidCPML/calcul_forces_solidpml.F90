@@ -174,8 +174,8 @@ contains
             b1(kB1) = 0.
             b1(kB2) = 0.
             cf(DXX) = a0+d0
-            cf(DXY) = a0+d0
-            cf(DXZ) = a0+d0
+            cf(DYX) = a0+d0
+            cf(DZX) = a0+d0
         case(1)
             b0(kB012) = k0
             b0(kB021) = 1./k0
@@ -189,9 +189,9 @@ contains
             b1(kB0) = 0.
             b1(kB1) = d0*k0
             b1(kB2) = 0.
-            cf(DYX) = a0+d0
+            cf(DXY) = a0+d0
             cf(DYY) = a0+d0
-            cf(DYZ) = a0+d0
+            cf(DZY) = a0+d0
         case(2)
             b0(kB012) = 1./k0
             b0(kB021) = k0
@@ -205,8 +205,8 @@ contains
             b1(kB0) = 0.
             b1(kB1) = 0.
             b1(kB2) = d0*k0
-            cf(DZX) = a0+d0
-            cf(DZY) = a0+d0
+            cf(DXZ) = a0+d0
+            cf(DYZ) = a0+d0
             cf(DZZ) = a0+d0
         case default
             stop 1
@@ -241,9 +241,6 @@ contains
         LC(L0_DYY  ) = b0(kB0  )*DUDVn(DYY) + b1(kB0  )*dom%R2_0(ee,DYY,i,j,k,bnum)
         LC(L012_DZZ) = b0(kB012)*DUDVn(DZZ) + b1(kB012)*dom%R2_0(ee,DZZ,i,j,k,bnum)
 
-!        if (i==1.and.j==0.and.k==0.and.bnum==1.and.ee==0) then
-!            write(*,*) b0(kB120), DUDVn(DXX), b1(kB120),dom%R2_0(ee,DXX,i,j,k,bnum),LC(L120_DXX)
-!        end if
     end subroutine compute_convolution_terms_1d
 
     ! Compute convolution terms with atn in 2 directions
