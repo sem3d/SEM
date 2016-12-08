@@ -4,6 +4,11 @@
 !!
 !----------------------------------------------------------------
 !----------------------------------------------------------------
+
+! For CPML, the reference used is :
+! Ref3. Application to ocean-acoustics simulations with solid ocean bottoms, Journal of the Acoustical Society of America, vol. 140(1), p.165-175
+!       Zhinan Xie, René Matzen, Paul Cristini, Dimitri Komatitsch and Roland Martin, A perfectly matched layer for fluid-solid problems:
+
 module sf_coupling
     use constants, only : fpp
     implicit none
@@ -46,6 +51,7 @@ subroutine StoF_coupling(Tdomain, f0, f1)
         idxF = Tdomain%SF%intSolFluPml%surf1%map(i)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
 #ifdef CPML
+        ! u_f.n = [M(t)*u_s].n (32) from Ref3. with u_f = grad(phi)
 #else
         vn1 = 0.
         vn2 = 0.
@@ -94,6 +100,7 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         idxF = Tdomain%SF%intSolFluPml%surf1%map(i)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
 #ifdef CPML
+        ! sigma_s.n = [N(t)*Phi].n (32) from Ref3.
 #else
         do j = 0,2
             Tdomain%spmldom%champs(f1)%ForcesPML(idxS,j,0) = Tdomain%spmldom%champs(f1)%ForcesPML(idxS,j,0) &
