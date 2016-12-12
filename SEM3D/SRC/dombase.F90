@@ -27,6 +27,9 @@ module mdombase
         ! Nombre d'elements alloues dans le domaine (>=nbelem)
         integer :: nblocks ! nbelem_alloc == nblocks*VCHUNK
 
+        ! Pas de temps d'integration (normalement le meme pour tout domaine)
+        real(fpp) :: dt
+
         ! Points, poids de gauss et derivees
         real(fpp), dimension (:), allocatable :: GLLc
         real(fpp), dimension (:), allocatable :: GLLw
@@ -46,6 +49,33 @@ module mdombase
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
     end type dombase
+
+    type, extends(dombase) :: dombase_cpml
+        ! Copy of node global coords : mandatory to compute distances in the PML
+        real(fpp), allocatable, dimension(:,:) :: GlobCoord
+
+        ! We keep separate variables for the cases where we have 1, 2 or 3 attenuation directions
+        ! since we always have at least one, xxx_0 are indexed by ee,bnum
+        real(fpp), allocatable, dimension(:,:,:,:,:) :: Alpha_0, dxi_k_0, Kappa_0 ! dxi_k = dxi/kappa
+        ! for the other two cases we have much less elements (12*N and 8 in case of cube NxNxN)
+        ! so we maintain two separate indirection indices I1/I2
+        ! I1 = -1 means we have only one dir, I1>=0 and I2==-1 we have two directions, 3 otherwise
+        ! D0 : index of first direction with pml!=0
+        ! D1 : index of second direction with pml!=0
+        ! There is no D2 because with 3 dirs!=0 we have D0=0 D1=1 D2=2
+        integer,   allocatable, dimension(:,:) :: I1, I2, D0, D1 ! ee, bnum
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_1, Kappa_1, dxi_k_1
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_2, Kappa_2, dxi_k_2
+        ! the number of elements with 2 (resp. 3) attenuation direction
+        integer :: dir1_count, dir2_count
+        ! CPML parameters
+        real(fpp) :: cpml_c
+        real(fpp) :: cpml_n
+        real(fpp) :: cpml_rc
+        real(fpp) :: cpml_kappa_0, cpml_kappa_1
+        real(fpp) :: alphamax
+
+    end type dombase_cpml
 contains
 
     subroutine init_dombase(bz)
@@ -95,6 +125,33 @@ contains
         if(allocated(bz%htprime)) deallocate(bz%htprime)
         if(allocated(bz%MassMat)) deallocate(bz%MassMat)
     end subroutine deallocate_dombase
+
+    subroutine allocate_dombase_cpml(dom)
+        class(dombase_cpml) :: dom
+    end subroutine allocate_dombase_cpml
+
+    subroutine deallocate_dombase_cpml(bz)
+        class(dombase_cpml), intent(inout) :: bz
+        !
+        if(allocated(bz%Alpha_0)) deallocate(bz%Alpha_0)
+        if(allocated(bz%dxi_k_0)) deallocate(bz%dxi_k_0)
+        if(allocated(bz%Kappa_0)) deallocate(bz%Kappa_0)
+
+        if(allocated(bz%Alpha_1)) deallocate(bz%Alpha_1)
+        if(allocated(bz%dxi_k_1)) deallocate(bz%dxi_k_1)
+        if(allocated(bz%Kappa_1)) deallocate(bz%Kappa_1)
+
+        if(allocated(bz%Alpha_2)) deallocate(bz%Alpha_2)
+        if(allocated(bz%dxi_k_2)) deallocate(bz%dxi_k_2)
+        if(allocated(bz%Kappa_2)) deallocate(bz%Kappa_2)
+
+        if(allocated(bz%I1)) deallocate(bz%I1)
+        if(allocated(bz%I2)) deallocate(bz%I2)
+        if(allocated(bz%D0)) deallocate(bz%D0)
+        if(allocated(bz%D1)) deallocate(bz%D1)
+
+        if(allocated(bz%GlobCoord)) deallocate(bz%GlobCoord)
+    end subroutine deallocate_dombase_cpml
 end module mdombase
 
 !! Local Variables:

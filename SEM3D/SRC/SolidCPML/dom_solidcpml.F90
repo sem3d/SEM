@@ -35,55 +35,14 @@ contains
         dom%champs(i)%Forces = 0d0
     end subroutine allocate_champs_solidcpml
 
-    subroutine allocate_multi_dir_pml(Tdomain, dom)
-        use gll3d
-        implicit none
-        type(domain) :: TDomain
-        type(domain_solidpml), intent (INOUT) :: dom
-        !
-        integer :: dir1_count, dir2_count, ndir, mi, n, ngll
-        dir1_count = 0
-        dir2_count = 0
-        ngll = dom%ngll
-        do n=0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
-            ndir = 0
-            mi = Tdomain%specel(n)%mat_index
-            if (Tdomain%sSubDomain(mi)%pml_width(0)/=0d0) ndir = ndir + 1
-            if (Tdomain%sSubDomain(mi)%pml_width(1)/=0d0) ndir = ndir + 1
-            if (Tdomain%sSubDomain(mi)%pml_width(2)/=0d0) ndir = ndir + 1
-            if (ndir>=2) dir1_count = dir1_count + 1
-            if (ndir>=3) dir2_count = dir2_count + 1
-        end do
-        if (dir1_count>0) then
-            allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-            allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-            allocate(dom%dxi_k_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-
-            allocate(dom%R1_1(0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-            allocate(dom%R2_1(0:8,0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-            dom%R1_1 = 0d0
-            dom%R2_1 = 0d0
-        endif
-        if (dir2_count>0) then
-            allocate(dom%Alpha_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-            allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-            allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-
-            allocate(dom%R1_2(0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-            allocate(dom%R2_2(0:8,0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-            dom%R1_2 = 0d0
-            dom%R2_2 = 0d0
-        end if
-    end subroutine allocate_multi_dir_pml
-
     subroutine allocate_dom_solidpml (Tdomain, dom)
+        use pml
         use gll3d
         implicit none
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
         !
-        integer nbelem, ngll, nblocks
+        integer nbelem, ngll, nblocks, dir1_count, dir2_count
         !
 
         ngll   = dom%ngll
@@ -92,7 +51,23 @@ contains
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
-        call allocate_multi_dir_pml(Tdomain, dom)
+        call cpml_allocate_multi_dir(Tdomain, dom, DM_SOLID_PML)
+
+        dir1_count = dom%dir1_count
+        dir2_count = dom%dir2_count
+        if (dir1_count>0) then
+            allocate(dom%R1_1(0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
+            allocate(dom%R2_1(0:8, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
+            dom%R1_1 = 0d0
+            dom%R2_1 = 0d0
+        end if
+        if (dir2_count>0) then
+            allocate(dom%R1_2(0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
+            allocate(dom%R2_2(0:8, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
+            dom%R1_2 = 0d0
+            dom%R2_2 = 0d0
+        end if
+
         ! We reset the count here, since we will use them to renumber the specel that
         ! have more than one direction of attenuation
         dom%dir1_count = 0
@@ -179,22 +154,7 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
-        if(allocated(dom%Alpha_0)) deallocate(dom%Alpha_0)
-        if(allocated(dom%dxi_k_0)) deallocate(dom%dxi_k_0)
-        if(allocated(dom%Kappa_0)) deallocate(dom%Kappa_0)
-
-        if(allocated(dom%Alpha_1)) deallocate(dom%Alpha_1)
-        if(allocated(dom%dxi_k_1)) deallocate(dom%dxi_k_1)
-        if(allocated(dom%Kappa_1)) deallocate(dom%Kappa_1)
-
-        if(allocated(dom%Alpha_2)) deallocate(dom%Alpha_2)
-        if(allocated(dom%dxi_k_2)) deallocate(dom%dxi_k_2)
-        if(allocated(dom%Kappa_2)) deallocate(dom%Kappa_2)
-
-        if(allocated(dom%I1)) deallocate(dom%I1)
-        if(allocated(dom%I2)) deallocate(dom%I2)
-        if(allocated(dom%D0)) deallocate(dom%D0)
-        if(allocated(dom%D1)) deallocate(dom%D1)
+        call deallocate_dombase_cpml(dom)
 
         do i=0,1
             if(allocated(dom%champs(i)%Depla )) deallocate(dom%champs(i)%Depla )
@@ -207,8 +167,6 @@ contains
 
         if(allocated(dom%R1_0)) deallocate(dom%R1_0)
         if(allocated(dom%R2_0)) deallocate(dom%R2_0)
-
-        if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
 
         if(allocated(dom%FDump)) deallocate(dom%FDump)
         if(allocated(dom%FMasU)) deallocate(dom%FMasU)
@@ -424,27 +382,15 @@ contains
     end subroutine get_solidpml_rfields
 
     subroutine init_domain_solidpml(Tdomain, dom)
+        use pml
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
         !
         integer n
         real(fpp) :: fmax
-        integer :: i,j,k, indL, indG
-        ! Handle on node global coords : mandatory to compute distances in the PML (compute_dxi_alpha_kappa)
-        ! TODO precompute usefull coeffs instead of copying coords...
-        allocate(dom%GlobCoord(0:2,0:dom%nglltot-1))
-        do n=0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
-            do k = 0,dom%ngll-1
-                do j = 0,dom%ngll-1
-                    do i = 0,dom%ngll-1
-                        indG = Tdomain%specel(n)%Iglobnum(i,j,k)
-                        indL = Tdomain%specel(n)%Idom(i,j,k)
-                        dom%GlobCoord(:,indL) = Tdomain%GlobCoord(:,indG)
-                    end do
-                end do
-            end do
-        end do
+
+
+        call copy_cpml_coordinates(Tdomain, dom, DM_SOLID_PML)
 
         ! Store dt for ADE equations
         dom%dt = Tdomain%TimeD%dtmin

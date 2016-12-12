@@ -52,7 +52,7 @@ module champs_solid
         type(champssolid), dimension(0:1) :: champs
         ! Attenuation
         integer :: n_sls
-        real(fpp) :: dt
+
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Q
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Qs
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Qp

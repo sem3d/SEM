@@ -1,8 +1,14 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 module pml
     use constants
+    use champs_solidpml
+    use champs_fluidpml
     implicit none
 
-    contains
+contains
 
     subroutine define_alpha_PML(Coord, dir, ngll, vp, pml_width, pml_pos, Apow, npow, alpha)
         !- routine determines attenuation profile in an PML layer (see Festa & Vilotte)
@@ -99,7 +105,7 @@ module pml
         real(fpp), intent(out) :: cf0, cf1, cf2
         !
         real(fpp) :: c
-        real(fpp), parameter :: theta=0.5d0
+        real(fpp), parameter :: theta=0.25d0
         ! Update convolution term (implicit midpoint)
         c = (1d0+0.5d0*a0*dt)
         cf0 = (1d0-0.5d0*a0*dt)/c
@@ -126,12 +132,110 @@ module pml
         ! First order CPML
         cf0 = exp(-a0*dt)
         if (abs(a0)<1e-8) then
-             cf1 = 0.5d0*dt
-             cf2 = cf1*exp(-0.5d0*a0*dt)
-         else
-             cf1 = (1d0-exp(-0.5d0*a0*dt))/a0
-             cf2 = cf1*exp(-0.5d0*a0*dt)
-         endif
-     end subroutine cpml_compute_coefs_O2
+            cf1 = 0.5d0*dt
+            cf2 = cf1*exp(-0.5d0*a0*dt)
+        else
+            cf1 = (1d0-exp(-0.5d0*a0*dt))/a0
+            cf2 = cf1*exp(-0.5d0*a0*dt)
+        endif
+    end subroutine cpml_compute_coefs_O2
     !
+    subroutine copy_cpml_coordinates(Tdomain, dom, dmtype)
+        use sdomain
+        type(domain), intent (INOUT) :: Tdomain
+        class(dombase_cpml), intent(inout) :: dom
+        integer, intent(in) :: dmtype
+        integer :: i, j, k, n, indL, indG
+
+        ! Handle on node global coords : mandatory to compute
+        ! distances in the PML (compute_dxi_alpha_kappa)
+        ! TODO precompute usefull coeffs instead of copying coords...
+        allocate(dom%GlobCoord(0:2,0:dom%nglltot-1))
+        do n=0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%domain/=dmtype) cycle
+            do k = 0,dom%ngll-1
+                do j = 0,dom%ngll-1
+                    do i = 0,dom%ngll-1
+                        indG = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        indL = Tdomain%specel(n)%Idom(i,j,k)
+                        dom%GlobCoord(:,indL) = Tdomain%GlobCoord(:,indG)
+                    end do
+                end do
+            end do
+        end do
+    end subroutine copy_cpml_coordinates
+
+    subroutine cpml_allocate_multi_dir(Tdomain, dom, dmtype)
+        use sdomain
+        use gll3d
+        implicit none
+        type(domain) :: TDomain
+        class(dombase_cpml), intent (INOUT) :: dom
+        integer, intent(in) :: dmtype
+        !
+        integer :: dir1_count, dir2_count, ndir, mi, n, ngll
+        dir1_count = 0
+        dir2_count = 0
+        ngll = dom%ngll
+        do n=0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%domain/=dmtype) cycle
+            ndir = 0
+            mi = Tdomain%specel(n)%mat_index
+            if (Tdomain%sSubDomain(mi)%pml_width(0)/=0d0) ndir = ndir + 1
+            if (Tdomain%sSubDomain(mi)%pml_width(1)/=0d0) ndir = ndir + 1
+            if (Tdomain%sSubDomain(mi)%pml_width(2)/=0d0) ndir = ndir + 1
+            if (ndir>=2) dir1_count = dir1_count + 1
+            if (ndir>=3) dir2_count = dir2_count + 1
+        end do
+        write(*,*) "Allocating: PML-N1:", dir1_count
+        write(*,*) "Allocating: PML-N2:", dir2_count
+        if (dir1_count>0) then
+            allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+            allocate(dom%dxi_k_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
+
+        endif
+        if (dir2_count>0) then
+            allocate(dom%Alpha_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+            allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+            allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
+        end if
+#ifdef DBG
+        ! Write infos for all procs as all procs have different informations !... A bit messy output but no other way
+        write(*,*) "INFO - fluid cpml domain : ", dir1_count, " elems attenuated in 2 directions on proc", Tdomain%rank
+        write(*,*) "INFO - fluid cpml domain : ", dir2_count, " elems attenuated in 3 directions on proc", Tdomain%rank
+#endif
+    end subroutine cpml_allocate_multi_dir
+
+    subroutine compute_dxi_alpha_kappa(dom, xi, L, wpml, Pspeed, alpha, kappa, dxi)
+        type(domain_fluidpml), intent(inout) :: dom
+        real(fpp), intent(in) :: xi, L, wpml, Pspeed
+        real(fpp), intent(out) :: alpha, kappa, dxi
+        !
+        real(fpp) :: xoverl, d0
+        integer :: lnum
+
+        xoverl = xi/wpml
+        if (xoverl > 1d0) xoverl = 1d0
+        if (xoverl < 0d0) xoverl = 0d0
+
+        d0 = -1.*(dom%cpml_n+1)*Pspeed*log(dom%cpml_rc)
+        d0 = d0/(2*wpml)
+
+        kappa = dom%cpml_kappa_0 + dom%cpml_kappa_1 * xoverl
+        dxi   = dom%cpml_c*d0*(xoverl)**dom%cpml_n / kappa
+        alpha = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
+    end subroutine compute_dxi_alpha_kappa
+
 end module pml
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent :
