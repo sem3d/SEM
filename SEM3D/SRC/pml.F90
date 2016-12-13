@@ -200,11 +200,6 @@ contains
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
         end if
-#ifdef DBG
-        ! Write infos for all procs as all procs have different informations !... A bit messy output but no other way
-        write(*,*) "INFO - fluid cpml domain : ", dir1_count, " elems attenuated in 2 directions on proc", Tdomain%rank
-        write(*,*) "INFO - fluid cpml domain : ", dir2_count, " elems attenuated in 3 directions on proc", Tdomain%rank
-#endif
     end subroutine cpml_allocate_multi_dir
 
     subroutine compute_dxi_alpha_kappa(dom, xi, L, wpml, Pspeed, alpha, kappa, dxi)

@@ -486,7 +486,7 @@ contains
         real(fpp) :: k0, k1, k2, a0, a1, a2, d0, d1, d2
         real(fpp) :: a0b, a1b, a2b
         real(fpp) :: mass_0
-        integer :: mi, ndir, i1, i2
+        integer :: mi, ndir, i1, i2, tdir
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
@@ -499,33 +499,58 @@ contains
 
         ! Compute alpha, beta, kappa
         if (dom%sSubDomain(mi)%pml_width(0)/=0) then
+            ! DIR X
             call compute_dxi_alpha_kappa_dir0(dom, 0, i, j, k, bnum, ee, mi)
             if (dom%sSubDomain(mi)%pml_width(1)/=0) then
+                ! DIR X+Y
                 call compute_dxi_alpha_kappa_dir1(dom, 1, i, j, k, bnum, ee, mi)
                 if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR X+Y+Z
                     call compute_dxi_alpha_kappa_dir2(dom, 2, i, j, k, bnum, ee, mi)
                     ndir = 3
+                    tdir = CPML_DIR_XYZ
                 else
                     ndir = 2
+                    tdir = CPML_DIR_XY
                 endif
-            else if (dom%sSubDomain(mi)%pml_width(1)/=0) then
-                call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
-                ndir = 2
-            endif
-        else if (dom%sSubDomain(mi)%pml_width(1)/=0) then
-            call compute_dxi_alpha_kappa_dir0(dom, 1, i, j, k, bnum, ee, mi)
-            if (dom%sSubDomain(mi)%pml_width(2)/=0) then
-                call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
-                ndir = 2
             else
-                ndir = 1
+                ! DIR X
+                if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR X+Z
+                    call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
+                    ndir = 2
+                    tdir = CPML_DIR_XZ
+                else
+                    ndir = 1
+                    tdir = CPML_DIR_X
+                end if
             endif
-        else if (dom%sSubDomain(mi)%pml_width(2)/=0) then
-            call compute_dxi_alpha_kappa_dir0(dom, 2, i, j, k, bnum, ee, mi)
-            ndir = 1
         else
-            stop 1
-        endif
+            ! NOT DIR X
+            if (dom%sSubDomain(mi)%pml_width(1)/=0) then
+                ! DIR Y
+                call compute_dxi_alpha_kappa_dir0(dom, 1, i, j, k, bnum, ee, mi)
+                if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR Y+Z
+                    call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
+                    ndir = 2
+                    tdir = CPML_DIR_YZ
+                else
+                    ndir = 1
+                    tdir = CPML_DIR_Y
+                endif
+            else
+                if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR Z
+                    call compute_dxi_alpha_kappa_dir0(dom, 2, i, j, k, bnum, ee, mi)
+                    ndir = 1
+                    tdir = CPML_DIR_Z
+                else
+                    ! BIG PROBLEM
+                    stop 1
+                endif
+            end if
+        end if
 
         ! gamma_ab  defined after (12c) in Ref1
         ! gamma_abc defined after (12c) in Ref1
