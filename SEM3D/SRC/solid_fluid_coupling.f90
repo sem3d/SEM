@@ -41,8 +41,13 @@ subroutine StoF_coupling(Tdomain, f0, f1)
         BtN = Tdomain%SF%SF_Btn(:,i)
         vn = 0.
         do j = 0,2
+#ifdef CPML
             Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) &
-                                                  + (BtN(j) * Tdomain%sdom%champs(f0)%Veloc(idxS,j))
+                                                     + (BtN(j) * Tdomain%sdom%champs(f0)%Forces(idxS,j))
+#else
+            Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) &
+                                                     + (BtN(j) * Tdomain%sdom%champs(f0)%Veloc(idxS,j))
+#endif
         enddo
     enddo
 
@@ -90,8 +95,15 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         idxF = Tdomain%SF%intSolFlu%surf1%map(i)
         BtN = Tdomain%SF%SF_Btn(:,i)
         do j = 0,2
+#ifdef CPML
+            ! Le potentiel Phi est tel que d2Phi/dt2 = -p
             Tdomain%sdom%champs(f1)%Forces(idxS,j) = Tdomain%sdom%champs(f1)%Forces(idxS,j) &
-                                                  - (BtN(j) * Tdomain%fdom%champs(f0)%VelPhi(idxF))
+                                                     - (BtN(j) * Tdomain%fdom%champs(f0)%ForcesFl(idxF))
+#else
+            ! Le potentiel Phi est tel que dPhi/dt = -p
+            Tdomain%sdom%champs(f1)%Forces(idxS,j) = Tdomain%sdom%champs(f1)%Forces(idxS,j) &
+                                                     - (BtN(j) * Tdomain%fdom%champs(f0)%VelPhi(idxF))
+#endif
         enddo
     enddo
 
