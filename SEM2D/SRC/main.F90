@@ -188,7 +188,7 @@ subroutine  sem(couplage)
 
 
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
-        Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
+        Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
         if (rg==0) write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif

@@ -51,6 +51,11 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "Please choose dg_type = hdg_rp or disable the post_processing option."
     endif
 
+    if ((Tdomain%logicD%post_proc) .AND. (Tdomain%capt_loc_type == CAPT_NEAREST_NODE)) then
+        WRITE (*,*) "Cannot Post-process AND relocalize receiver... results will be wrong !!!!!"
+        STOP "Please choose capt_loc_type = 0 or disable the post_processing option."
+    endif
+
     if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT) .AND. &
         (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
         WRITE (*,*) "This choice of element for the Midpoint time integration is not available"

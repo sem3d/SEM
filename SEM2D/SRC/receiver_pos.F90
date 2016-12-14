@@ -154,6 +154,7 @@ subroutine save_trace (Tdomain, it)
                 call postprocess_HDG(Tdomain,nr,ir,Field)
                 call compute_TracFace (Tdomain%specel(nr))
                 Tdomain%specel(nr)%TracFace(:,0) = Tdomain%specel(nr)%TracFace(:,0) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
+                if (.not.Tdomain%specel(nr)%acoustic) &
                 Tdomain%specel(nr)%TracFace(:,1) = Tdomain%specel(nr)%TracFace(:,1) * Tdomain%specel(nr)%Coeff_Integr_Faces(:)
             endif
 
@@ -163,6 +164,9 @@ subroutine save_trace (Tdomain, it)
                     dum1 = dum1 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Field(i,j,1)
                 enddo
             enddo
+
+            if (Tdomain%logicD%post_proc .and. Tdomain%specel(nr)%acoustic) &
+                dum1 = Field(0,0,1) ! Pressure without post-process
 
             Tdomain%Store_Trace(0,ind,ncache) = dum0
             Tdomain%Store_Trace(1,ind,ncache) = dum1
@@ -274,29 +278,179 @@ subroutine postprocess_HDG(Tdomain,nelem,nrec,field)
     integer, intent(in)       :: nelem
     integer, intent(in)       :: nrec
     real, dimension (:,:,:), allocatable, intent(inout) :: field
+    real, dimension (:),     allocatable :: smbr, WORK
     type(element),  pointer   :: Elem
     type(receiver), pointer   :: rec
-    real, dimension (:,:,:), allocatable :: p
-    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
-    real,  dimension (:),     allocatable :: smbr, WORK
-    integer :: i, j, k, l, r, s
-    integer :: ngx, ngz, nlin, nddl, info, mat
-    real    :: aux1, aux2, res
+    integer :: ngx, ngz, nlin, nddl, nddleq, info, mat
+    integer :: i, j
+    real    :: outx, outz
 
     Elem => Tdomain%specel(nelem)
     rec  => Tdomain%sReceiver(nrec)
+
+    ngx = Elem%ngllx ; ngz = Elem%ngllz
+    mat = Elem%mat_index
+
+    ! Allocate fields for solving linear system
+    deallocate(field)
+    allocate(field(0:ngx,0:ngz,0:1))
+    field(:,:,:) = 0.
+
+
+    ! Compute Second Member SMBR of the postproc system
+    if (Elem%acoustic) then
+        nddl = (ngx+1)*(ngz+1) ; nddleq = nddl+1
+        call compute_postproc_smbr_acou(rec, Elem, smbr)
+    else ! Elastic case
+        nddl = 2*(ngx+1)*(ngz+1) ; nddleq = nddl+3
+        call compute_postproc_smbr_elas(Tdomain, rec, Elem, smbr)
+    endif
+
+    !======================================================!
+    !    Solves the system using the QR decomposition      !
+    !======================================================!
+
+    ! Perform the Q multiplication first
+    allocate(work(rec%lwork))
+    call DORMQR('L','T', nddleq, 1, nddl, rec%MatPostProc, nddleq, rec%tau, smbr, nddleq, work, rec%lwork, info)
+
+    ! Perform solves the Upper triangular problem
+    call DTRTRS('U', 'N', 'N', nddl, 1, rec%MatPostProc, nddleq, smbr, nddleq, info)
+
+    ! Reorganize the results as a matrix
+    if (Elem%acoustic) then
+        do i = 0,ngx
+            do j = 0,ngz
+                nlin = Ind(i,j,0,ngx,ngz)
+                field(i,j,0) = smbr(nlin)
+            enddo
+        enddo
+    else ! Elastic case
+        do i = 0,ngx
+            do j = 0,ngz
+                nlin = Ind(i,j,0,ngx,ngz)
+                field(i,j,0) = smbr(nlin)
+                nlin = Ind(i,j,1,ngx,ngz)
+                field(i,j,1) = smbr(nlin)
+            enddo
+        enddo
+    endif
+
+    ! Computation of the non processed pressure for an acoustic element
+    if (Elem%acoustic) then
+        do j = 0, ngz-1
+            call pol_lagrange(ngz, Tdomain%sSubdomain(mat)%GLLcz, j, rec%eta, outz)
+            do i = 0, ngx-1
+                call pol_lagrange(ngx, Tdomain%sSubdomain(mat)%GLLcx, i, rec%xi, outx)
+                field(0,0,1) = field(0,0,1) - outx*outz*Elem%Lambda(i,j)*Elem%Strain(i,j,0)
+            enddo
+        enddo
+    endif
+
+    deallocate(smbr, WORK)
+
+end subroutine postprocess_HDG
+
+
+! ###########################################################
+!>
+!! \brief This subroutine computes the postprocessed
+!<
+subroutine compute_postproc_smbr_acou(rec, Elem, smbr)
+
+    use selement
+    implicit none
+
+    type(receiver), pointer, intent(in) :: rec
+    type(element),  pointer, intent(in) :: Elem
+    real, dimension (:), allocatable, intent(inout) :: smbr
+    real, dimension (:,:,:), allocatable :: q
+    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
+    integer :: i, j, k, l, r, s
+    integer :: ngx, ngz, nlin, nddl
+    real    :: aux1, aux2, res
+
+    ngx = Elem%ngllx ; ngz = Elem%ngllz ; nddl = (ngx+1)*(ngz+1)
+
+    ! Allocate fields for solving linear system
+    allocate(smbr(1:nddl+1))
+    allocate(q(0:ngx-1,0:ngz-1,0:1))
+    q(:,:,0) = - Elem%Forces(:,:,1) * Elem%Density(:,:)
+    q(:,:,1) = - Elem%Forces(:,:,2) * Elem%Density(:,:)
+
+        ! Allocate inverse Jacobian functions
+    allocate (xix (0:ngx+1,0:ngz+1)) ; allocate (xiz (0:ngx+1,0:ngz+1))
+    allocate (etax(0:ngx+1,0:ngz+1)) ; allocate (etaz(0:ngx+1,0:ngz+1))
+    allocate (Jac(0:ngx+1,0:ngz+1))
+    xix  = rec%InvGrad(:,:,0,0) ; xiz  = rec%InvGrad(:,:,1,0)
+    etax = rec%InvGrad(:,:,0,1) ; etaz = rec%InvGrad(:,:,1,1)
+    jac  = rec%JacobWheiN2(:,:)
+
+    ! Loop over test functions
+    do i = 0,ngx
+        do j = 0,ngz
+            nlin = Ind(i,j,0,ngx,ngz) ; res = 0.
+            ! Loop over quadrature points
+            do r = 0,ngx+1
+                do s = 0,ngz+1
+                    aux1 = 0. ; aux2 = 0.
+                    ! Loop over nodal p values
+                    do k = 0,ngx-1
+                        do l = 0,ngz-1
+                            aux1 = aux1 + (q(k,l,0)*xix(r,s)  + q(k,l,1)*xiz(r,s)) &
+                                *rec%ReinterpNX(k,r)*rec%ReinterpNZ(l,s)
+                            aux2 = aux2 + (q(k,l,0)*etax(r,s) + q(k,l,1)*etaz(r,s)) &
+                                *rec%ReinterpNX(k,r)*rec%ReinterpNZ(l,s)
+                        enddo
+                    enddo
+                    aux1 = aux1 * rec%ReinterpZ(j,s) * rec%hprimex(i,r)
+                    aux2 = aux2 * rec%ReinterpX(i,r) * rec%hprimez(j,s)
+                    res = res + (aux1 + aux2) * jac(r,s)
+                enddo
+            enddo
+            smbr(nlin) = res
+        enddo
+    enddo
+
+    ! Derniere ligne du systeme :
+    smbr(nddl+1) = -sum(Elem%Acoeff(:,:,4)*Elem%Lambda(:,:)*Elem%Strain(:,:,0))
+
+    ! Coefficient preconditionnement :
+    smbr(nddl+1) = xix(0,0)*xix(0,0) * smbr(nddl+1)
+
+    deallocate(q, xix, xiz, etax, etaz, jac)
+
+end subroutine compute_postproc_smbr_acou
+
+! ###########################################################
+!>
+!! \brief This subroutine computes the postprocessed
+!<
+subroutine compute_postproc_smbr_elas(Tdomain, rec, Elem, smbr)
+
+    use selement
+    implicit none
+
+    type(domain), intent (in) :: Tdomain
+    type(receiver), pointer, intent(in) :: rec
+    type(element),  pointer, intent(in) :: Elem
+    real, dimension (:), allocatable, intent(inout) :: smbr
+    real, dimension (:,:,:), allocatable :: p
+    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
+    integer :: i, j, k, l, r, s
+    integer :: ngx, ngz, nlin, nddl, mat
+    real    :: aux1, aux2, res
+
 
     ngx = Elem%ngllx ; ngz = Elem%ngllz ; nddl = 2*(ngx+1)*(ngz+1)
     mat = Elem%mat_index
 
     ! Allocate fields for solving linear system
-    allocate(p(0:ngx-1,0:ngz-1,0:2))
     allocate(smbr(1:nddl+3))
-    deallocate(field)
-    allocate(field(0:ngx,0:ngz,0:1))
+    allocate(p(0:ngx-1,0:ngz-1,0:2))
     p = Elem%Forces(:,:,0:2)
 
-    ! Allocate inverse Jacobian functions
+        ! Allocate inverse Jacobian functions
     allocate (xix (0:ngx+1,0:ngz+1)) ; allocate (xiz (0:ngx+1,0:ngz+1))
     allocate (etax(0:ngx+1,0:ngz+1)) ; allocate (etaz(0:ngx+1,0:ngz+1))
     allocate (Jac(0:ngx+1,0:ngz+1))
@@ -356,7 +510,7 @@ subroutine postprocess_HDG(Tdomain,nelem,nrec,field)
         enddo
     enddo
 
-    ! Avant-avant-derniere et avant-derniere lignes du systeme, avec coefficient de preconditionnement :
+    ! Avant-avant-derniere et avant-derniere lignes du systeme :
     smbr(nddl+1) = sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,0))
     smbr(nddl+2) = sum(Elem%Acoeff(:,:,12)*Elem%Veloc(:,:,1))
 
@@ -383,31 +537,10 @@ subroutine postprocess_HDG(Tdomain,nelem,nrec,field)
     smbr(nddl+2) = xix(0,0)*xix(0,0) * smbr(nddl+2)
     smbr(nddl+3) = xix(0,0)          * smbr(nddl+3)
 
+    deallocate(p, xix, xiz, etax, etaz, jac)
 
-    !======================================================!
-    !    Solves the system using the QR decomposition      !
-    !======================================================!
+end subroutine compute_postproc_smbr_elas
 
-    ! Perform the Q multiplication first
-    allocate(work(rec%lwork))
-    call DORMQR('L','T', nddl+3, 1, nddl, rec%MatPostProc, nddl+3, rec%tau, smbr, nddl+3, work, rec%lwork, info)
-
-    ! Perform solves the Upper triangular problem
-    call DTRTRS('U', 'N', 'N', nddl, 1, rec%MatPostProc, nddl+3, smbr, nddl+3, info)
-
-    ! Reorganize the results as a matrix
-    do i = 0,ngx
-        do j = 0,ngz
-            nlin = Ind(i,j,0,ngx,ngz)
-            field(i,j,0) = smbr(nlin)
-            nlin = Ind(i,j,1,ngx,ngz)
-            field(i,j,1) = smbr(nlin)
-        enddo
-    enddo
-
-    deallocate(p, smbr, xix, xiz, etax, etaz, jac, WORK)
-
-end subroutine postprocess_HDG
 
 
 ! ###########################################################
@@ -432,17 +565,24 @@ subroutine prepare_HDG_postprocess(Tdomain)
     real, dimension (0:1,0:1) :: LocInvGrad
     type(receiver), pointer   :: rec
     real    :: xi, eta, Jac, res, outx, outz
-    integer :: nrec, ngx, ngz, nr, nddl, i_aus, mat, i, j, info
+    integer :: nrec, ngx, ngz, nr, nddl, nddleq, i_aus, mat, i, j, info
 
     do nrec = 0, Tdomain%n_receivers-1
         ! Matrices Allocation used for Post-Process
         rec => Tdomain%sReceiver(nrec)
         nr = rec%nr
-        if (Tdomain%specel(nr)%Acoustic) cycle
+        mat = Tdomain%specel(nr)%mat_index
         ngx = Tdomain%specel(nr)%ngllx
         ngz = Tdomain%specel(nr)%ngllz
         nddl= 2*(ngx+1)*(ngz+1)
-        mat = Tdomain%specel(nr)%mat_index
+
+        if (Tdomain%specel(nr)%Acoustic) then
+            nddl   = (ngx+1)*(ngz+1)
+            nddleq = nddl+1
+        else ! Elastic case
+            nddl   = 2*(ngx+1)*(ngz+1)
+            nddleq = nddl+3
+        endif
 
         ! Remark : Element's interpolation order is (ngx-1,ngz-1)
         ! when in post-traitment, it becomes (ngx,ngz).
@@ -457,7 +597,7 @@ subroutine prepare_HDG_postprocess(Tdomain)
         allocate(rec%hprimez(0:ngz,0:ngz+1))
         allocate(hprimex_aux(0:ngx+1,0:ngx))
         allocate(hprimez_aux(0:ngz+1,0:ngz))
-        allocate(rec%MatPostProc(1:nddl+3,1:nddl))
+        allocate(rec%MatPostProc(1:nddleq,1:nddl))
         deallocate(rec%Interp_Coeff)
         allocate(rec%Interp_Coeff(0:ngx,0:ngz))
 
@@ -589,17 +729,21 @@ subroutine prepare_HDG_postprocess(Tdomain)
         deallocate(coord,hprimex_aux,hprimez_aux)
 
         ! Computation of the coefficients of matrix MatPostProc
-        call build_MatPostProc(tdomain,nrec,ngx,ngz)
+        if (Tdomain%specel(nr)%acoustic) then
+            call build_MatPostProc_acou(tdomain,nrec,ngx,ngz)
+        else
+            call build_MatPostProc_elas(tdomain,nrec,ngx,ngz)
+        endif
 
         ! Querry the optimal size of blocks for QR decomposition
         rec%lwork = -1
         allocate(rec%tau(1:nddl)) ; allocate(work(1))
-        call DGEQRF(nddl+3, nddl, rec%MatPostProc, nddl+3, rec%tau, work, rec%lwork, info)
+        call DGEQRF(nddleq, nddl, rec%MatPostProc, nddleq, rec%tau, work, rec%lwork, info)
 
         ! Perform the QR factorization
         rec%lwork = int(work(1))
         deallocate(work) ; allocate(work(rec%lwork))
-        call DGEQRF(nddl+3, nddl, rec%MatPostProc, nddl+3, rec%tau, work, rec%lwork, info)
+        call DGEQRF(nddleq, nddl, rec%MatPostProc, nddleq, rec%tau, work, rec%lwork, info)
         deallocate(work)
 
         IF( INFO .NE. 0 ) THEN
@@ -615,10 +759,87 @@ end subroutine prepare_HDG_postprocess
 ! ###########################################################
 !>
 !! \brief This subroutine builds the matrix MatPostProc for the n-th receiver
+!! in an acoustic element. This matrix will be inverted in order to compute
+!! the postprocessed pressures p^*
+!!
+!<
+subroutine build_MatPostProc_acou(Tdomain,nrec,ngx,ngz)
+
+    implicit none
+    type(Domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: nrec, ngx, ngz
+    type(receiver), pointer     :: rec
+    real, dimension(:,:), allocatable :: xix, etax, xiz, etaz
+    real    :: ps
+    integer :: i, j, k, l, r, s, nlin, ncol
+
+    rec => Tdomain%sReceiver(nrec)
+
+    ! Allocate inverse Jacobian functions
+    allocate (xix (0:ngx+1,0:ngz+1)) ; allocate (xiz (0:ngx+1,0:ngz+1))
+    allocate (etax(0:ngx+1,0:ngz+1)) ; allocate (etaz(0:ngx+1,0:ngz+1))
+    xix  = rec%InvGrad(:,:,0,0)
+    xiz  = rec%InvGrad(:,:,1,0)
+    etax = rec%InvGrad(:,:,0,1)
+    etaz = rec%InvGrad(:,:,1,1)
+    rec%MatPostProc = 0.
+
+    ! Compute entries of matrix MatPostProc
+    ! Here, (i,j) indexes corresponds to test function w_ij which gives line number of MatPostProc
+    ! indexes (k,l) corresponds to the nodal value of the postprocessed pressures p^* and gives
+    ! the column number of MatPostProc. Finally, indexes (r,s) correspond to the quadrature points.
+
+    ! Loop over test functions
+    do i = 0,ngx
+        do j = 0,ngz
+            nlin = Ind(i,j,0,ngx,ngz)
+            ! Loop over quadrature points
+            do k = 0,ngx
+                do l = 0,ngz
+                    ps = 0.
+                    ! Loop over nodal values of v^*
+                    do r = 0,ngx+1
+                        do s = 0,ngz+1
+                        ps = ps + (rec%hprimex(k,r)*rec%ReinterpZ(l,s)*xix(r,s) + rec%ReinterpX(k,r)*rec%hprimez(l,s)*etax(r,s)) &
+                                 *(rec%hprimex(i,r)*rec%ReinterpZ(j,s)*xix(r,s) + rec%ReinterpX(i,r)*rec%hprimez(j,s)*etax(r,s)) &
+                                 * rec%JacobWheiN2(r,s) &
+                                 +(rec%hprimex(k,r)*rec%ReinterpZ(l,s)*xiz(r,s) + rec%ReinterpX(k,r)*rec%hprimez(l,s)*etaz(r,s)) &
+                                 *(rec%hprimex(i,r)*rec%ReinterpZ(j,s)*xiz(r,s) + rec%ReinterpX(i,r)*rec%hprimez(j,s)*etaz(r,s)) &
+                                 * rec%JacobWheiN2(r,s)
+                        enddo
+                    enddo
+                    ncol = Ind(k,l,0,ngx,ngz)
+                    rec%MatPostProc(nlin,ncol) = ps
+                enddo
+            enddo
+        enddo
+    enddo
+
+    ! Building the last line of the matrix system corresponding to the equality
+    ! in the mean between the post-processed pressure and the regular pressure.
+    nlin = (ngx+1)*(ngz+1)+1
+    do k = 0,ngx
+        do l = 0,ngz
+            ncol = Ind(k,l,0,ngx,ngz)
+            rec%MatPostProc(nlin,ncol)  = rec%JacobWheiN1(k,l)
+        enddo
+    enddo
+
+    ! Coefficient multiplication on the last line for preconditioning.
+    nlin = (ngx+1)*(ngz+1)+1
+    rec%MatPostProc(nlin,:) = xix(0,0)*xix(0,0) * rec%MatPostProc(nlin,:)
+
+    deallocate(xix, xiz, etax, etaz)
+
+end subroutine build_MatPostProc_acou
+
+! ###########################################################
+!>
+!! \brief This subroutine builds the matrix MatPostProc for the n-th receiver
 !! that will be inverted in order to compute the postprocessed velocities v^*
 !!
 !<
-subroutine build_MatPostProc(Tdomain,nrec,ngx,ngz)
+subroutine build_MatPostProc_elas(Tdomain,nrec,ngx,ngz)
 
     implicit none
     type(Domain), intent(inout) :: Tdomain
@@ -738,7 +959,7 @@ subroutine build_MatPostProc(Tdomain,nrec,ngx,ngz)
 
     deallocate(xix, xiz, etax, etaz)
 
-end subroutine build_MatPostProc
+end subroutine build_MatPostProc_elas
 
 
 ! ###########################################################
