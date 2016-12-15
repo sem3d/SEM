@@ -14,9 +14,11 @@ MODULE constants
 #ifdef SINGLEPRECISION
     integer, parameter :: FPP=kind(0E0)
     real(fpp), parameter :: MAX_DOUBLE = 1E15
+    real(fpp), parameter :: SMALLFPP=1e-5
 #else
     integer, parameter :: FPP=kind(0D0)
     real(fpp), parameter :: MAX_DOUBLE = 1.79769313486231570d+307
+    real(fpp), parameter :: SMALLFPP=1e-12
 #endif
     ! Constantes mathematique
     ! Les valeurs suivantes et leurs noms sont tirees de math.h

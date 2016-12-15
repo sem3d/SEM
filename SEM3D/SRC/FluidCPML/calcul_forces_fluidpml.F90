@@ -5,11 +5,17 @@
 module m_calcul_forces_fluidpml ! wrap subroutine in module to get arg type check at build time
     use constants
     use pml
-    integer, parameter :: kB012=0, kB021=1, kB120=2
+    implicit none
+    integer, parameter :: kB012=2, kB021=1, kB120=0
     integer, parameter :: CPML_INTEG = CPML_ORDER2
 contains
 
 #include "index.h"
+    function isclose(a,b)
+        real(fpp) :: a,b
+        logical :: isclose
+        isclose = abs(a-b)<SMALLFPP
+    end function isclose
 
     subroutine calcul_forces_fluidpml(dom,ngll,bnum,FFl,Phi)
         use sdomain
@@ -57,7 +63,7 @@ contains
         real(fpp), intent(out) :: R
         !
         real(fpp) :: a3b, a4b, a5b
-        real(fpp) :: PhiOld
+        real(fpp) :: PhiOld, R0, R1
         real(fpp) :: k0, d0, a0
         real(fpp) :: k1, d1, a1
         real(fpp) :: k2, d2, a2
@@ -76,20 +82,31 @@ contains
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         ! Update convolution term (implicit midpoint)
         call cpml_compute_coefs(CPML_INTEG, a0, dt, cf0, cf1, cf2)
-        dom%R1_0(ee,i,j,k,bnum) = cf0*dom%R1_0(ee,i,j,k,bnum) + cf1*PhiNew + cf2*PhiOld
+        R0 = cf0*dom%R1_0(ee,i,j,k,bnum) + cf1*PhiNew + cf2*PhiOld
+        dom%R1_0(ee,i,j,k,bnum) = R0
         if (n1==-1 .and. n2==-1) then
             a3b = k0*a0*a0*d0
-            R = a3b*dom%R1_0(ee,i,j,k,bnum)
+            R = a3b*R0
         else
             k1 = dom%Kappa_1(i,j,k,n1)
             a1 = dom%Alpha_1(i,j,k,n1)
             d1 = dom%dxi_k_1(i,j,k,n1)
             call cpml_compute_coefs(CPML_INTEG, a1, dt, cf0, cf1, cf2)
-            dom%R1_1(i,j,k,n1) = cf0*dom%R1_1(i,j,k,n1) + cf1*PhiNew + cf2*PhiOld
+            if (.not. isclose(a0,a1)) then
+                R1 = cf0*dom%R1_1(i,j,k,n1) + cf1*PhiNew + cf2*PhiOld
+            else
+                R1 = cf0*dom%R1_1(i,j,k,n1) + cf1*(R0+PhiNew) + cf2*(R0+PhiOld)
+            end if
+            dom%R1_1(i,j,k,n1) = R1
             if (n2==-1) then
-                a3b = k0*k1*a0*a0*d0*(d1+a1-a0)/(a1-a0)
-                a4b = k0*k1*a1*a1*d1*(d0+a0-a1)/(a0-a1)
-                R = a3b*dom%R1_0(ee,i,j,k,bnum) + a4b*dom%R1_1(i,j,k,n1)
+                if (.not. isclose(a0,a1)) then
+                    a3b = k0*k1*a0*a0*d0*(d1+a1-a0)/(a1-a0)
+                    a4b = k0*k1*a1*a1*d1*(d0+a0-a1)/(a0-a1)
+                else
+                    a3b = k0*k1*a0*(a0*d0+a0*d1-2*d0*d1)
+                    a4b = k0*k1*a0*a0*d0*(a1-a0+d1)
+                end if
+                R = a3b*R0 + a4b*R1
             else
                 call cpml_compute_coefs(CPML_INTEG, a2, dt, cf0, cf1, cf2)
                 dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + cf1*PhiNew + cf2*PhiOld
@@ -195,9 +212,9 @@ contains
         end do
 
         ! We add the terms in Dirac with the (only) convolution term
-        LC(0) = b0(kB120)*DPhiNew(0) + b1(kB120)*dom%R2_0(ee,0,i,j,k,bnum)
-        LC(1) = b0(kB021)*DPhiNew(1) + b1(kB021)*dom%R2_0(ee,1,i,j,k,bnum)
-        LC(2) = b0(kB012)*DPhiNew(2) + b1(kB012)*dom%R2_0(ee,2,i,j,k,bnum)
+        do r=0,2
+            LC(r) = b0(r)*DPhiNew(r) + b1(r)*dom%R2_0(ee,r,i,j,k,bnum)
+        end do
     end subroutine compute_convolution_terms_1d
 
     ! Compute convolution terms with atn in 2 directions
@@ -212,7 +229,7 @@ contains
         integer   :: dim0, dim1, r, i1
         real(fpp) :: k0, d0, a0
         real(fpp) :: k1, d1, a1
-        real(fpp) :: dt, cf0, cf1, cf2
+        real(fpp) :: dt, cf0, cf1, cf2, r0
         real(fpp) :: AA, BB, CC, DD ! common subexpressions
         real(fpp), dimension(0:2) :: b0, b1, b2
         real(fpp), dimension(0:2) :: e0, e1
@@ -245,27 +262,31 @@ contains
 
             e0(kB120) = a0+d0
             e1(kB120) = a1
-            if (e0(kB120)/=e1(kB120)) then
+            if (.not. isclose(e0(kB120),e1(kB120))) then
                 b1(kB120) = -b0(kB120)*d0*AA/BB !b3_120
                 b2(kB120) =  b0(kB120)*d1*CC/BB !b1_120
             else
-                b1(kB120) = (d1+a0-a1)
-                b2(kB120) = (a0-a1)*d1
+                b1(kB120) = b0(kB120)*(d1+a0-a1)
+                b2(kB120) = b0(kB120)*(a0-a1)*d1
             end if
 
             e0(kB021) = a0
             e1(kB021) = a1+d1
-            if (e0(kB021)/=e1(kB021)) then
+            if (.not. isclose(e0(kB021),e1(kB021))) then
                 b1(kB021) = b0(kB021)*d0*CC/DD  !b1_021
                 b2(kB021) = b0(kB021)*d1*AA/DD  !b3_021
             else
+                b1(kB021) = b0(kB021)*(d0+a1-a0)
+                b2(kB021) = b0(kB021)*(a1-a0)*d0
             end if
             e0(kB012) = a0
             e1(kB012) = a1
-            if (e0(kB021)/=e1(kB021)) then
+            if (.not. isclose(e0(kB012),e1(kB012))) then
                 b1(kB012) = b0(kB012)*d0*DD/CC  !b1_012
                 b2(kB012) = b0(kB012)*d1*BB/CC  !b2_012
             else
+                b1(kB012) = b0(kB012)*(d0+d1)   !b1_012
+                b2(kB012) = b0(kB012)*d1*d0     !b2_012
             end if
         else if (dim0==0.and.dim1==2) then
             ! X=0,Z=1
@@ -300,35 +321,37 @@ contains
 
             e0(kB021) =  a0+d0
             e1(kB021) =  a1
-            b1(kB021) =  b0(kB021)*d0*AA/BB  !b3_021
+            b1(kB021) = -b0(kB021)*d0*AA/BB  !b3_021
             b2(kB021) =  b0(kB021)*d1*CC/BB  !b2_021
 
             e0(kB012) =  a0
             e1(kB012) =  a1+d1
             b1(kB012) =  b0(kB012)*d0*CC/DD  !b2_012
-            b2(kB012) = -b0(kB012)*d1*AA/DD  !b3_012
+            b2(kB012) =  b0(kB012)*d1*AA/DD  !b3_012
         else
             stop 1
         end if
 
         ! update convolution terms
-        do r=0,2
+        do r=0,2  ! ie 120, 021, 012
             call cpml_compute_coefs(CPML_INTEG, e0(r), dt, cf0, cf1, cf2)
             dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DPhiNew(r)+cf2*DPhi(r)
 
             call cpml_compute_coefs(CPML_INTEG, e1(r), dt, cf0, cf1, cf2)
-            if (e0(r)/=e1(r)) then
+            if (.not. isclose(e0(r),e1(r))) then
                 dom%R2_1(r,i,j,k,i1) = cf0*dom%R2_1(r,i,j,k,i1)+cf1*DPhiNew(r)+cf2*DPhi(r)
             else
-                R = dom%R2_0(ee,r,i,j,k,bnum)
-                dom%R2_1(r,i,j,k,i1) = cf0*dom%R2_1(r,i,j,k,i1)+cf1*(R+DPhiNew(r))+cf2*(R+DPhi(r))
+                R0 = dom%R2_0(ee,r,i,j,k,bnum)
+                dom%R2_1(r,i,j,k,i1) = cf0*dom%R2_1(r,i,j,k,i1)+cf1*(R0+DPhiNew(r))+cf2*(R0+DPhi(r))
             end if
+            !write(*,*) i,j,k, r, e0(r), e1(r), b1(r), b2(r), dom%R2_0(ee,r,i,j,k,bnum), dom%R2_1(r,i,j,k,i1)
         end do
-
+        b1 = 0.0
+        b2 = 0.0
         ! We add the terms in Dirac with the (only) convolution term
-        LC(0)=b0(kB120)*DPhiNew(0)+b1(kB120)*dom%R2_0(ee,0,i,j,k,bnum)+b2(kB120)*dom%R2_1(0,i,j,k,i1)
-        LC(1)=b0(kB021)*DPhiNew(1)+b1(kB021)*dom%R2_0(ee,1,i,j,k,bnum)+b2(kB021)*dom%R2_1(1,i,j,k,i1)
-        LC(2)=b0(kB012)*DPhiNew(2)+b1(kB012)*dom%R2_0(ee,2,i,j,k,bnum)+b2(kB012)*dom%R2_1(2,i,j,k,i1)
+        do r=0,2 ! ie 120, 021, 012 
+            LC(r)=b0(r)*DPhiNew(r)+b1(r)*dom%R2_0(ee,r,i,j,k,bnum)+b2(r)*dom%R2_1(r,i,j,k,i1)
+        end do
 
     end subroutine compute_convolution_terms_2d
 

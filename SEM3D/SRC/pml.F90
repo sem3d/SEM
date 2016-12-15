@@ -200,6 +200,8 @@ contains
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
         end if
+        dom%dir1_count = dir1_count
+        dom%dir2_count = dir2_count
     end subroutine cpml_allocate_multi_dir
 
     subroutine compute_dxi_alpha_kappa(dom, xi, L, wpml, Pspeed, alpha, kappa, dxi)
