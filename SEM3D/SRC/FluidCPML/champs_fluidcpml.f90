@@ -84,6 +84,11 @@ module champs_fluidpml
         ! Integration Rxx
         real(fpp) :: dt
 
+        ! Solid - Fluid coupling
+
+        real(fpp), dimension(:,:), allocatable :: Kappa_SF, Alpha_SF, dxi_k_SF
+        real(fpp), dimension(:,:), allocatable :: R1_SF
+
     end type domain_fluidpml
 
     contains

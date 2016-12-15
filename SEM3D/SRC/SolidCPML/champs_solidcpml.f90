@@ -77,6 +77,11 @@ module champs_solidpml
         ! Save forces contributions for snapshots
         real(fpp), dimension(:,:), allocatable :: FDump, FMasU, Fint
 
+        ! Solid - Fluid coupling
+
+        real(fpp), dimension(:,:), allocatable :: Kappa_SF, Alpha_SF, dxi_k_SF
+        real(fpp), dimension(:,:), allocatable :: R2_SF
+
         ! CPML parameters
         real(fpp) :: cpml_c
         real(fpp) :: cpml_n
