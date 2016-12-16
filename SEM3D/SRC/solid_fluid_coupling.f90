@@ -35,46 +35,46 @@ contains
         !
         real(fpp) :: k0, a0, d0, b0, k1, a1, d1, b1
         real(fpp) :: b0bar, b1bar, b2bar
-        integer :: i1, i2, dir
+        integer :: dir0, dir1, dir
 
         mu(0:2) = 1 ! No convolution
 
         ! Convolute the first direction to attenuate (A.20*) from Ref1. (s2 = 1, s3 cancels)
 
-        i1 = dom%I1(ee,bnum)
-        if (i1 /= -1) then
+        dir0 = dom%D0(ee,bnum)
+        if (dir0 /= -1) then
             dir = -1
-            if (i1 == 0) dir = dXX
-            if (i1 == 1) dir = dYY
-            if (i1 == 2) dir = dZZ
-            if (dir == -1) stop "compute_convolution_StoF - invalid i1"
+            if (dir0 == 0) dir = dXX
+            if (dir0 == 1) dir = dYY
+            if (dir0 == 2) dir = dZZ
+            if (dir == -1) stop "compute_convolution_StoF - invalid dir0"
 
-            k0 = dom%Kappa_SF(idxSF, i1)
-            a0 = dom%Alpha_SF(idxSF, i1)
-            d0 = dom%dxi_k_SF(idxSF, i1)
+            k0 = dom%Kappa_SF(idxSF, dir0)
+            a0 = dom%Alpha_SF(idxSF, dir0)
+            d0 = dom%dxi_k_SF(idxSF, dir0)
             b0 = a0 + d0
 
             b0bar = k0
             b1bar = -b0bar * (-d0)
 
             mu(dir) =           b0bar * dom%champs(f0)%Depla(idxS, dir)
-            mu(dir) = mu(dir) + b1bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(i1, idxSF)
+            mu(dir) = mu(dir) + b1bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(dir0, idxSF)
         end if
 
         ! Convolute the second direction to attenuate (A.20*) from Ref1. (s2 != 1, s3 cancels)
 
-        i2 = dom%I2(ee,bnum)
-        if (i2 /= -1) then
+        dir1 = dom%D1(ee,bnum)
+        if (dir1 /= -1) then
             dir = -1
-            if (i2 == 0) dir = dXX
-            if (i2 == 1) dir = dYY
-            if (i2 == 2) dir = dZZ
-            if (dir == -1) stop "compute_convolution_StoF - invalid i2"
-            if (i1 == -1) stop "compute_convolution_StoF - invalid i1 for i2"
+            if (dir1 == 0) dir = dXX
+            if (dir1 == 1) dir = dYY
+            if (dir1 == 2) dir = dZZ
+            if (dir == -1) stop "compute_convolution_StoF - invalid dir1"
+            if (dir0 == -1) stop "compute_convolution_StoF - invalid dir0 for dir1"
 
-            k1 = dom%Kappa_SF(idxSF, i2)
-            a1 = dom%Alpha_SF(idxSF, i2)
-            d1 = dom%dxi_k_SF(idxSF, i2)
+            k1 = dom%Kappa_SF(idxSF, dir1)
+            a1 = dom%Alpha_SF(idxSF, dir1)
+            d1 = dom%dxi_k_SF(idxSF, dir1)
             b1 = a1 + d1
 
             b0bar = k0 * k1
@@ -82,8 +82,8 @@ contains
             b2bar = -b0bar * (-d1) * (a1 - b0) / (a1 - a0)
 
             mu(dir) =           b0bar * dom%champs(f0)%Depla(idxS, dir)
-            mu(dir) = mu(dir) + b1bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(i1, idxSF)
-            mu(dir) = mu(dir) + b2bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(i2, idxSF)
+            mu(dir) = mu(dir) + b1bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(dir0, idxSF)
+            mu(dir) = mu(dir) + b2bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(dir1, idxSF)
         end if
     end subroutine compute_convolution_StoF
 
@@ -98,23 +98,23 @@ contains
         real(fpp) :: k0, a0, d0, b0, k1, a1, d1, b1
         real(fpp) :: a0bar, a1bar, a2bar, a3bar, a4bar
         real(fpp) :: AccPhi
-        integer :: i1, i2, dir
+        integer :: dir0, dir1, dir
 
         nphi(0:2) = 1 ! No convolution
 
         ! Convolute the first direction to attenuate (A.5*) from Ref1. (s2 = 1, s3 cancels)
 
-        i1 = dom%I1(ee,bnum)
-        if (i1 /= -1) then
+        dir0 = dom%D0(ee,bnum)
+        if (dir0 /= -1) then
             dir = -1
-            if (i1 == 0) dir = dXX
-            if (i1 == 1) dir = dYY
-            if (i1 == 2) dir = dZZ
-            if (dir == -1) stop "compute_convolution_FtoS - invalid i1"
+            if (dir0 == 0) dir = dXX
+            if (dir0 == 1) dir = dYY
+            if (dir0 == 2) dir = dZZ
+            if (dir == -1) stop "compute_convolution_FtoS - invalid dir0"
 
-            k0 = dom%Kappa_SF(idxSF, i1)
-            a0 = dom%Alpha_SF(idxSF, i1)
-            d0 = dom%dxi_k_SF(idxSF, i1)
+            k0 = dom%Kappa_SF(idxSF, dir0)
+            a0 = dom%Alpha_SF(idxSF, dir0)
+            d0 = dom%dxi_k_SF(idxSF, dir0)
             b0 = a0 + d0
 
             a0bar = k0
@@ -126,23 +126,23 @@ contains
             nphi(dir) =             a0bar * AccPhi
             nphi(dir) = nphi(dir) + a1bar * dom%champs(f0)%VelPhi(idxF)
             nphi(dir) = nphi(dir) + a2bar * dom%champs(f0)%Phi(idxF)
-            nphi(dir) = nphi(dir) + a3bar * dom%R1_SF(i1, idxSF)
+            nphi(dir) = nphi(dir) + a3bar * dom%R1_SF(dir0, idxSF)
         end if
 
         ! Convolute the second direction to attenuate (A.5*) from Ref1. (s2 != 1, s3 cancels)
 
-        i2 = dom%i2(ee,bnum)
-        if (i2 /= -1) then
+        dir1 = dom%D1(ee,bnum)
+        if (dir1 /= -1) then
             dir = -1
-            if (i2 == 0) dir = dXX
-            if (i2 == 1) dir = dYY
-            if (i2 == 2) dir = dZZ
-            if (dir == -1) stop "compute_convolution_FtoS - invalid i2"
-            if (i1 == -1) stop "compute_convolution_FtoS - invalid i1 for i2"
+            if (dir1 == 0) dir = dXX
+            if (dir1 == 1) dir = dYY
+            if (dir1 == 2) dir = dZZ
+            if (dir == -1) stop "compute_convolution_FtoS - invalid dir1"
+            if (dir0 == -1) stop "compute_convolution_FtoS - invalid dir0 for dir1"
 
-            k1 = dom%Kappa_SF(idxSF, i2)
-            a1 = dom%Alpha_SF(idxSF, i2)
-            d1 = dom%dxi_k_SF(idxSF, i2)
+            k1 = dom%Kappa_SF(idxSF, dir1)
+            a1 = dom%Alpha_SF(idxSF, dir1)
+            d1 = dom%dxi_k_SF(idxSF, dir1)
             b1 = a1 + d1
 
             a0bar = k0 * k1
@@ -155,8 +155,8 @@ contains
             nphi(dir) =             a0bar * AccPhi
             nphi(dir) = nphi(dir) + a1bar * dom%champs(f0)%VelPhi(idxF)
             nphi(dir) = nphi(dir) + a2bar * dom%champs(f0)%Phi(idxF)
-            nphi(dir) = nphi(dir) + a3bar * dom%R1_SF(i1, idxSF)
-            nphi(dir) = nphi(dir) + a4bar * dom%R1_SF(i2, idxSF)
+            nphi(dir) = nphi(dir) + a3bar * dom%R1_SF(dir0, idxSF)
+            nphi(dir) = nphi(dir) + a4bar * dom%R1_SF(dir1, idxSF)
         end if
     end subroutine compute_convolution_FtoS
 
