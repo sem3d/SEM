@@ -20,11 +20,14 @@ module champs_fluidpml
 
     end type champsfluidpml
 
-    type, extends(dombase) :: domain_fluidpml
+    type, extends(dombase_cpml) :: domain_fluidpml
         ! D'abord, les données membres qui ne sont pas modifiées
 
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_IDensity ! Inverse of density
+
+        ! Element materials
+        type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
@@ -34,27 +37,6 @@ module champs_fluidpml
         ! Masse pour elements solide cpml
         real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
         real(fpp), dimension(:), allocatable :: MasUMat ! M^U <=> Delta term in (12a) from Ref1
-
-        ! Element materials
-        type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
-
-        ! Copy of node global coords : mandatory to compute distances in the PML
-        real(fpp), allocatable, dimension(:,:) :: GlobCoord
-
-        ! We keep separate variables for the cases where we have 1, 2 or 3 attenuation directions
-        ! since we always have at least one, xxx_0 are indexed by ee,bnum
-        real(fpp), allocatable, dimension(:,:,:,:,:) :: Alpha_0, dxi_k_0, Kappa_0 ! dxi_k = dxi/kappa
-        ! for the other two cases we have much less elements (12*N and 8 in case of cube NxNxN)
-        ! so we maintain two separate indirection indices I1/I2
-        ! I1 = -1 means we have only one dir, I1>=0 and I2==-1 we have two directions, 3 otherwise
-        ! D0 : index of first direction with pml!=0
-        ! D1 : index of second direction with pml!=0
-        ! There is no D2 because with 3 dirs!=0 we have D0=0 D1=1 D2=2
-        integer,   allocatable, dimension(:,:) :: I1, I2, D0, D1 ! ee, bnum
-        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_1, Kappa_1, dxi_k_1
-        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_2, Kappa_2, dxi_k_2
-        ! the number of elements with 2 (resp. 3) attenuation direction
-        integer :: dir1_count, dir2_count
 
         ! Convolutional terms R
         ! First dimension : 0, 1, 2 <=> u, t*u, t^2*u
@@ -74,21 +56,8 @@ module champs_fluidpml
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: PhiOld
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: DPhiOld
 
-        ! CPML parameters
-        real(fpp) :: cpml_c
-        real(fpp) :: cpml_n
-        real(fpp) :: cpml_rc
-        real(fpp) :: cpml_kappa_0, cpml_kappa_1
-        real(fpp) :: alphamax
-
-        ! Integration Rxx
-        real(fpp) :: dt
-
         ! Solid - Fluid coupling
-
-        real(fpp), dimension(:,:), allocatable :: Kappa_SF, Alpha_SF, dxi_k_SF
         real(fpp), dimension(:,:), allocatable :: R1_SF
-
     end type domain_fluidpml
 
     contains

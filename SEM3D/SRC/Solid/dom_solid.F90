@@ -551,6 +551,13 @@ contains
 
     end subroutine get_solid_dom_elem_energy
 
+    subroutine init_domain_solid(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_solid), intent(inout) :: dom
+
+        dom%dt = Tdomain%TimeD%dtmin
+    end subroutine init_domain_solid
 
     subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu)
         use ssubdomains

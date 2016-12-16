@@ -1315,7 +1315,7 @@ contains
         real(fpp), dimension(:),allocatable :: mass, jac
 #ifdef CPML
         real(fpp), dimension(:), allocatable :: alpha_pml, kappa_pml, dxi_k_pml
-        integer :: dir
+        integer :: i1, i2, d0, d1
 #else
         real(fpp), dimension(:),allocatable :: dumpsx
         real(fpp) :: dx, dy, dz, dt
@@ -1376,31 +1376,23 @@ contains
                             idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (outputs%domains(idx)==domain_type) then
 #ifdef CPML
-                                alpha_pml(Tdomain%spmldom%D0(ee, bnum) + 3*idx) = Tdomain%spmldom%Alpha_0(ee, i, j, k, bnum)
-                                if(allocated(Tdomain%spmldom%Alpha_1)) & ! May NOT be allocated
-                                alpha_pml(Tdomain%spmldom%D1(ee, bnum) + 3*idx) = Tdomain%spmldom%Alpha_1(i, j, k, 0)
-                                if(allocated(Tdomain%spmldom%Alpha_2)) then ! May NOT be allocated
-                                    dir = 0 + 1 + 2 ! All possible directions
-                                    dir = dir - Tdomain%spmldom%I1(ee, bnum) - Tdomain%spmldom%I2(ee, bnum) ! Remove known directions
-                                    alpha_pml(dir + 3*idx) = Tdomain%spmldom%Alpha_2(i, j, k, 0)
-                                end if
+                                d0 = Tdomain%spmldom%D0(ee, bnum)
+                                alpha_pml(d0 + 3*idx) = Tdomain%spmldom%Alpha_0(ee, i, j, k, bnum)
+                                kappa_pml(d0 + 3*idx) = Tdomain%spmldom%Kappa_0(ee, i, j, k, bnum)
+                                dxi_k_pml(d0 + 3*idx) = Tdomain%spmldom%dxi_k_0(ee, i, j, k, bnum)
 
-                                kappa_pml(Tdomain%spmldom%D0(ee, bnum) + 3*idx) = Tdomain%spmldom%Kappa_0(ee, i, j, k, bnum)
-                                if(allocated(Tdomain%spmldom%Kappa_1)) & ! May NOT be allocated
-                                kappa_pml(Tdomain%spmldom%D1(ee, bnum) + 3*idx) = Tdomain%spmldom%Kappa_1(i, j, k, 0)
-                                if(allocated(Tdomain%spmldom%Kappa_2)) then ! May NOT be allocated
-                                    dir = 0 + 1 + 2 ! All possible directions
-                                    dir = dir - Tdomain%spmldom%I1(ee, bnum) - Tdomain%spmldom%I2(ee, bnum) ! Remove known directions
-                                    kappa_pml(dir + 3*idx) = Tdomain%spmldom%Kappa_2(i, j, k, 0)
+                                i1 = Tdomain%spmldom%I1(ee, bnum)
+                                i2 = Tdomain%spmldom%I2(ee, bnum)
+                                if (i1/=-1) then
+                                    d1 = Tdomain%spmldom%D1(ee, bnum)
+                                    alpha_pml(d1 + 3*idx) = Tdomain%spmldom%Alpha_1(i, j, k, i1)
+                                    kappa_pml(d1 + 3*idx) = Tdomain%spmldom%Kappa_1(i, j, k, i1)
+                                    dxi_k_pml(d1 + 3*idx) = Tdomain%spmldom%dxi_k_1(i, j, k, i1)
                                 end if
-
-                                dxi_k_pml(Tdomain%spmldom%D0(ee, bnum) + 3*idx) = Tdomain%spmldom%dxi_k_0(ee, i, j, k, bnum)
-                                if(allocated(Tdomain%spmldom%dxi_k_1)) & ! May NOT be allocated
-                                dxi_k_pml(Tdomain%spmldom%D1(ee, bnum) + 3*idx) = Tdomain%spmldom%dxi_k_1(i, j, k, 0)
-                                if(allocated(Tdomain%spmldom%dxi_k_2)) then ! May NOT be allocated
-                                    dir = 0 + 1 + 2 ! All possible directions
-                                    dir = dir - Tdomain%spmldom%I1(ee, bnum) - Tdomain%spmldom%I2(ee, bnum) ! Remove known directions
-                                    dxi_k_pml(dir + 3*idx) = Tdomain%spmldom%dxi_k_2(i, j, k, 0)
+                                if (i2/=-1) then
+                                    alpha_pml(2 + 3*idx) = Tdomain%spmldom%Alpha_2(i, j, k, i2)
+                                    kappa_pml(2 + 3*idx) = Tdomain%spmldom%Kappa_2(i, j, k, i2)
+                                    dxi_k_pml(2 + 3*idx) = Tdomain%spmldom%dxi_k_2(i, j, k, i2)
                                 end if
 
 #else
@@ -1433,31 +1425,23 @@ contains
                             idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (outputs%domains(idx)==domain_type) then
 #ifdef CPML
-                                alpha_pml(Tdomain%fpmldom%D0(ee, bnum) + 3*idx) = Tdomain%fpmldom%Alpha_0(ee, i, j, k, bnum)
-                                if(allocated(Tdomain%fpmldom%Alpha_1)) & ! May NOT be allocated
-                                alpha_pml(Tdomain%fpmldom%D1(ee, bnum) + 3*idx) = Tdomain%fpmldom%Alpha_1(i, j, k, 0)
-                                if(allocated(Tdomain%fpmldom%Alpha_2)) then ! May NOT be allocated
-                                    dir = 0 + 1 + 2 ! All possible directions
-                                    dir = dir - Tdomain%fpmldom%I1(ee, bnum) - Tdomain%fpmldom%I2(ee, bnum) ! Remove known directions
-                                    alpha_pml(dir + 3*idx) = Tdomain%fpmldom%Alpha_2(i, j, k, 0)
-                                end if
+                                i1 = Tdomain%fpmldom%I1(ee, bnum)
+                                i2 = Tdomain%fpmldom%I2(ee, bnum)
+                                d0 = Tdomain%fpmldom%D0(ee, bnum)
+                                alpha_pml(d0 + 3*idx) = Tdomain%fpmldom%Alpha_0(ee, i, j, k, bnum)
+                                kappa_pml(d0 + 3*idx) = Tdomain%fpmldom%Kappa_0(ee, i, j, k, bnum)
+                                dxi_k_pml(d0 + 3*idx) = Tdomain%fpmldom%dxi_k_0(ee, i, j, k, bnum)
 
-                                kappa_pml(Tdomain%fpmldom%D0(ee, bnum) + 3*idx) = Tdomain%fpmldom%Kappa_0(ee, i, j, k, bnum)
-                                if(allocated(Tdomain%fpmldom%Kappa_1)) & ! May NOT be allocated
-                                kappa_pml(Tdomain%fpmldom%D1(ee, bnum) + 3*idx) = Tdomain%fpmldom%Kappa_1(i, j, k, 0)
-                                if(allocated(Tdomain%fpmldom%Kappa_2)) then ! May NOT be allocated
-                                    dir = 0 + 1 + 2 ! All possible directions
-                                    dir = dir - Tdomain%fpmldom%I1(ee, bnum) - Tdomain%fpmldom%I2(ee, bnum) ! Remove known directions
-                                    kappa_pml(dir + 3*idx) = Tdomain%fpmldom%Kappa_2(i, j, k, 0)
-                                end if
-
-                                dxi_k_pml(Tdomain%fpmldom%D0(ee, bnum) + 3*idx) = Tdomain%fpmldom%dxi_k_0(ee, i, j, k, bnum)
-                                if(allocated(Tdomain%fpmldom%dxi_k_1)) & ! May NOT be allocated
-                                dxi_k_pml(Tdomain%fpmldom%D1(ee, bnum) + 3*idx) = Tdomain%fpmldom%dxi_k_1(i, j, k, 0)
-                                if(allocated(Tdomain%fpmldom%dxi_k_2)) then ! May NOT be allocated
-                                    dir = 0 + 1 + 2 ! All possible directions
-                                    dir = dir - Tdomain%fpmldom%I1(ee, bnum) - Tdomain%fpmldom%I2(ee, bnum) ! Remove known directions
-                                    dxi_k_pml(dir + 3*idx) = Tdomain%fpmldom%dxi_k_2(i, j, k, 0)
+                                if (i1/=-1) then
+                                    d1 = Tdomain%fpmldom%D1(ee, bnum)
+                                    alpha_pml(d1 + 3*idx) = Tdomain%fpmldom%Alpha_1(i, j, k, i1)
+                                    kappa_pml(d1 + 3*idx) = Tdomain%fpmldom%Kappa_1(i, j, k, i1)
+                                    dxi_k_pml(d1 + 3*idx) = Tdomain%fpmldom%dxi_k_1(i, j, k, i1)
+                                endif
+                                if (i2/=-1) then
+                                    alpha_pml(2 + 3*idx) = Tdomain%fpmldom%Alpha_2(i, j, k, i2)
+                                    kappa_pml(2 + 3*idx) = Tdomain%fpmldom%Kappa_2(i, j, k, i2)
+                                    dxi_k_pml(2 + 3*idx) = Tdomain%fpmldom%dxi_k_2(i, j, k, i2)
                                 end if
 #else
                                 mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,bnum,ee))

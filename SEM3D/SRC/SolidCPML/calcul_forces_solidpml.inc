@@ -175,7 +175,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
                 !
                 !=====================
-                !       FX
+                !         FX
                 !=====================
                 !
                 xt1 = sxx*JXX+sxy*JYX+sxz*JZX

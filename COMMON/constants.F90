@@ -14,9 +14,11 @@ MODULE constants
 #ifdef SINGLEPRECISION
     integer, parameter :: FPP=kind(0E0)
     real(fpp), parameter :: MAX_DOUBLE = 1E15
+    real(fpp), parameter :: SMALLFPP=1e-5
 #else
     integer, parameter :: FPP=kind(0D0)
     real(fpp), parameter :: MAX_DOUBLE = 1.79769313486231570d+307
+    real(fpp), parameter :: SMALLFPP=1e-12
 #endif
     ! Constantes mathematique
     ! Les valeurs suivantes et leurs noms sont tirees de math.h
@@ -153,6 +155,13 @@ MODULE constants
     integer, parameter :: CPML_ORDER1  =1
     integer, parameter :: CPML_ORDER2  =2
     integer, parameter :: k012 = 0, k021 = 1, k120 = 2
+    integer, parameter :: CPML_DIR_X  =0
+    integer, parameter :: CPML_DIR_Y  =1
+    integer, parameter :: CPML_DIR_Z  =2
+    integer, parameter :: CPML_DIR_XY =3
+    integer, parameter :: CPML_DIR_XZ =4
+    integer, parameter :: CPML_DIR_YZ =5
+    integer, parameter :: CPML_DIR_XYZ=6
     real(fpp), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
 CONTAINS
 

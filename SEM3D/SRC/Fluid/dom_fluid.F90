@@ -222,6 +222,14 @@ contains
 
     end subroutine get_fluid_dom_elem_energy
 
+    subroutine init_domain_fluid(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_fluid), intent(inout) :: dom
+
+        dom%dt = Tdomain%TimeD%dtmin
+    end subroutine init_domain_fluid
+
     subroutine init_material_properties_fluid(dom, lnum, mat, density, lambda)
         type(domain_fluid), intent(inout) :: dom
         integer, intent(in) :: lnum

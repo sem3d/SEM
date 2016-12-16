@@ -28,60 +28,14 @@ contains
         dom%champs(i)%VelPhi = 0d0
     end subroutine allocate_champs_fluidcpml
 
-    subroutine allocate_multi_dir_pml(Tdomain, dom)
-        use gll3d
-        implicit none
-        type(domain) :: TDomain
-        type(domain_fluidpml), intent (INOUT) :: dom
-        !
-        integer :: dir1_count, dir2_count, ndir, mi, n, ngll
-        dir1_count = 0
-        dir2_count = 0
-        ngll = dom%ngll
-        do n=0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
-            ndir = 0
-            mi = Tdomain%specel(n)%mat_index
-            if (Tdomain%sSubDomain(mi)%pml_width(0)/=0d0) ndir = ndir + 1
-            if (Tdomain%sSubDomain(mi)%pml_width(1)/=0d0) ndir = ndir + 1
-            if (Tdomain%sSubDomain(mi)%pml_width(2)/=0d0) ndir = ndir + 1
-            if (ndir>=2) dir1_count = dir1_count + 1
-            if (ndir>=3) dir2_count = dir2_count + 1
-        end do
-        if (dir1_count>0) then
-            allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-            allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-            allocate(dom%dxi_k_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-
-            allocate(dom%R1_1(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
-            allocate(dom%R2_1(0:3, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
-            dom%R1_1 = 0d0
-            dom%R2_1 = 0d0
-        endif
-        if (dir2_count>0) then
-            allocate(dom%Alpha_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-            allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-            allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
-
-            allocate(dom%R1_2(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
-            allocate(dom%R2_2(0:3, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
-            dom%R1_2 = 0d0
-            dom%R2_2 = 0d0
-        end if
-#ifdef DBG
-        ! Write infos for all procs as all procs have different informations !... A bit messy output but no other way
-        write(*,*) "INFO - fluid cpml domain : ", dir1_count, " elems attenuated in 2 directions on proc", Tdomain%rank
-        write(*,*) "INFO - fluid cpml domain : ", dir2_count, " elems attenuated in 3 directions on proc", Tdomain%rank
-#endif
-    end subroutine allocate_multi_dir_pml
-
     subroutine allocate_dom_fluidpml (Tdomain, dom)
+        use pml
         use gll3d
         implicit none
         type(domain) :: TDomain
         type(domain_fluidpml), intent (INOUT) :: dom
         !
-        integer :: nbelem, ngll, nblocks
+        integer :: nbelem, ngll, nblocks, dir1_count, dir2_count
         !
 
         ngll   = dom%ngll
@@ -92,7 +46,23 @@ contains
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
-        call allocate_multi_dir_pml(Tdomain, dom)
+        call cpml_allocate_multi_dir(Tdomain, dom, DM_FLUID_PML)
+        dir1_count = dom%dir1_count
+        dir2_count = dom%dir2_count
+        write(*,*) "ALLOCATE:", dir1_count, dir2_count
+        if (dir1_count>0) then
+            allocate(dom%R1_1(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
+            allocate(dom%R2_1(0:3, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
+            dom%R1_1 = 0d0
+            dom%R2_1 = 0d0
+        end if
+        if (dir2_count>0) then
+            allocate(dom%R1_2(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
+            allocate(dom%R2_2(0:3, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
+            dom%R1_2 = 0d0
+            dom%R2_2 = 0d0
+        end if
+
         ! We reset the count here, since we will use them to renumber the specel that
         ! have more than one direction of attenuation
         dom%dir1_count = 0
@@ -162,22 +132,7 @@ contains
         if(allocated(dom%m_IDensity)) deallocate(dom%m_IDensity)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
 
-        if(allocated(dom%Alpha_0)) deallocate(dom%Alpha_0)
-        if(allocated(dom%dxi_k_0)) deallocate(dom%dxi_k_0)
-        if(allocated(dom%Kappa_0)) deallocate(dom%Kappa_0)
-
-        if(allocated(dom%Alpha_1)) deallocate(dom%Alpha_1)
-        if(allocated(dom%dxi_k_1)) deallocate(dom%dxi_k_1)
-        if(allocated(dom%Kappa_1)) deallocate(dom%Kappa_1)
-
-        if(allocated(dom%Alpha_2)) deallocate(dom%Alpha_2)
-        if(allocated(dom%dxi_k_2)) deallocate(dom%dxi_k_2)
-        if(allocated(dom%Kappa_2)) deallocate(dom%Kappa_2)
-
-        if(allocated(dom%I1)) deallocate(dom%I1)
-        if(allocated(dom%I2)) deallocate(dom%I2)
-        if(allocated(dom%D0)) deallocate(dom%D0)
-        if(allocated(dom%D1)) deallocate(dom%D1)
+        call deallocate_dombase_cpml(dom)
 
         do i=0,1
             if(allocated(dom%champs(i)%ForcesFl)) deallocate(dom%champs(i)%ForcesFl)
@@ -192,27 +147,13 @@ contains
     end subroutine deallocate_dom_fluidpml
 
     subroutine init_domain_fluidpml(Tdomain, dom)
+        use pml
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_fluidpml), intent(inout) :: dom
         !
         real(fpp) :: fmax
-        integer :: i, j, k, n, indL, indG
 
-        ! Handle on node global coords : mandatory to compute distances in the PML (compute_dxi_alpha_kappa)
-        ! TODO precompute usefull coeffs instead of copying coords...
-        allocate(dom%GlobCoord(0:2,0:dom%nglltot-1))
-        do n=0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
-            do k = 0,dom%ngll-1
-                do j = 0,dom%ngll-1
-                    do i = 0,dom%ngll-1
-                        indG = Tdomain%specel(n)%Iglobnum(i,j,k)
-                        indL = Tdomain%specel(n)%Idom(i,j,k)
-                        dom%GlobCoord(:,indL) = Tdomain%GlobCoord(:,indG)
-                    end do
-                end do
-            end do
-        end do
+        call copy_cpml_coordinates(Tdomain, dom, DM_FLUID_PML)
 
         ! Store dt for ADE equations
         dom%dt = Tdomain%TimeD%dtmin
@@ -356,34 +297,60 @@ contains
         integer, intent(in) :: lnum, n
         !
         integer :: bnum, ee
-        integer :: i, j, k, idx
+        integer :: i, j, k, idx, i1, i2, d0, d1
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
         !
+        i1 = dom%I1(ee,bnum)
+        i2 = dom%I2(ee,bnum)
         do k=0,dom%ngll-1
             do j=0,dom%ngll-1
                 do i=0,dom%ngll-1
                     idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                    select case(dom%D0(ee, bnum))
+                    outputs%R1_x(:,idx) = 0.
+                    outputs%R1_y(:,idx) = 0.
+                    outputs%R1_z(:,idx) = 0.
+
+                    d0 = dom%D0(ee, bnum)
+                    outputs%R1_x(d0,idx) = dom%R1_0(ee, i, j, k, bnum)
+                    select case(d0)
                     case(0)
-                        outputs%R1_x(0,idx) = dom%R1_0(ee, i, j, k, bnum)
-                        outputs%R1_x(1,idx) = 0.
-                        outputs%R1_x(2,idx) = 0.
-
                         outputs%R2_L120_uxx(idx) = dom%R2_0(ee, 0, i, j, k, bnum)
+                        outputs%R2_L021_uyx(idx) = dom%R2_0(ee, 1, i, j, k, bnum)
+                        outputs%R2_L012_uzx(idx) = dom%R2_0(ee, 2, i, j, k, bnum)
                     case(1)
-                        outputs%R1_y(0,idx) = dom%R1_0(ee, i, j, k, bnum)
-                        outputs%R1_y(1,idx) = 0.
-                        outputs%R1_y(2,idx) = 0.
-
+                        outputs%R2_L120_uxy(idx) = dom%R2_0(ee, 0, i, j, k, bnum)
                         outputs%R2_L021_uyy(idx) = dom%R2_0(ee, 1, i, j, k, bnum)
+                        outputs%R2_L012_uzy(idx) = dom%R2_0(ee, 2, i, j, k, bnum)
                     case(2)
-                        outputs%R1_z(0,idx) = dom%R1_0(ee, i, j, k, bnum)
-                        outputs%R1_z(1,idx) = 0.
-                        outputs%R1_z(2,idx) = 0.
-
+                        outputs%R2_L120_uxz(idx) = dom%R2_0(ee, 0, i, j, k, bnum)
+                        outputs%R2_L021_uyz(idx) = dom%R2_0(ee, 1, i, j, k, bnum)
                         outputs%R2_L012_uzz(idx) = dom%R2_0(ee, 2, i, j, k, bnum)
                     end select
+                    if (i1/=-1) then
+                        d1 = dom%D1(ee, bnum)
+                        outputs%R1_x(d1,idx) = dom%R1_1(i, j, k, i1)
+                        select case(d1)
+                        case(0)
+                            outputs%R2_L120_uxx(idx) = dom%R2_1(0, i, j, k, i1)
+                            outputs%R2_L021_uyx(idx) = dom%R2_1(1, i, j, k, i1)
+                            outputs%R2_L012_uzx(idx) = dom%R2_1(2, i, j, k, i1)
+                        case(1)
+                            outputs%R2_L120_uxy(idx) = dom%R2_1(0, i, j, k, i1)
+                            outputs%R2_L021_uyy(idx) = dom%R2_1(1, i, j, k, i1)
+                            outputs%R2_L012_uzy(idx) = dom%R2_1(2, i, j, k, i1)
+                        case(2)
+                            outputs%R2_L120_uxz(idx) = dom%R2_1(0, i, j, k, i1)
+                            outputs%R2_L021_uyz(idx) = dom%R2_1(1, i, j, k, i1)
+                            outputs%R2_L012_uzz(idx) = dom%R2_1(2, i, j, k, i1)
+                        end select
+                    end if
+                    if (i2/=-1) then
+                        outputs%R1_x(2,idx) = dom%R1_2(i, j, k, i2)
+                        outputs%R2_L120_uxz(idx) = dom%R2_2(0, i, j, k, i2)
+                        outputs%R2_L021_uyz(idx) = dom%R2_2(1, i, j, k, i2)
+                        outputs%R2_L012_uzz(idx) = dom%R2_2(2, i, j, k, i2)
+                    end if
                 end do
             end do
         end do
@@ -518,7 +485,7 @@ contains
         nd = dom%I1(ee,bnum)
         if (nd==-1) then
             nd = dom%dir1_count
-            dom%I1(ee,bnum)=nd
+            dom%I1(ee,bnum) = nd
             dom%dir1_count = nd+1
         endif
     end function get_dir1_index
@@ -540,13 +507,13 @@ contains
         type(domain_fluidpml), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
-        real(kind=fpp), intent(in) :: Whei
+        real(fpp), intent(in) :: Whei
         !
         integer :: bnum, ee
         real(fpp) :: k0, k1, k2, a0, a1, a2, d0, d1, d2
         real(fpp) :: a0b, a1b, a2b
         real(fpp) :: mass_0
-        integer :: mi, ndir, i1, i2
+        integer :: mi, ndir, i1, i2, tdir
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
@@ -559,33 +526,58 @@ contains
 
         ! Compute alpha, beta, kappa
         if (dom%sSubDomain(mi)%pml_width(0)/=0) then
+            ! DIR X
             call compute_dxi_alpha_kappa_dir0(dom, 0, i, j, k, bnum, ee, mi)
             if (dom%sSubDomain(mi)%pml_width(1)/=0) then
+                ! DIR X+Y
                 call compute_dxi_alpha_kappa_dir1(dom, 1, i, j, k, bnum, ee, mi)
                 if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR X+Y+Z
                     call compute_dxi_alpha_kappa_dir2(dom, 2, i, j, k, bnum, ee, mi)
                     ndir = 3
+                    tdir = CPML_DIR_XYZ
                 else
                     ndir = 2
+                    tdir = CPML_DIR_XY
                 endif
-            else if (dom%sSubDomain(mi)%pml_width(1)/=0) then
-                call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
-                ndir = 2
-            endif
-        else if (dom%sSubDomain(mi)%pml_width(1)/=0) then
-            call compute_dxi_alpha_kappa_dir0(dom, 1, i, j, k, bnum, ee, mi)
-            if (dom%sSubDomain(mi)%pml_width(2)/=0) then
-                call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
-                ndir = 2
             else
-                ndir = 1
+                ! DIR X
+                if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR X+Z
+                    call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
+                    ndir = 2
+                    tdir = CPML_DIR_XZ
+                else
+                    ndir = 1
+                    tdir = CPML_DIR_X
+                end if
             endif
-        else if (dom%sSubDomain(mi)%pml_width(2)/=0) then
-            call compute_dxi_alpha_kappa_dir0(dom, 2, i, j, k, bnum, ee, mi)
-            ndir = 1
         else
-            stop 1
-        endif
+            ! NOT DIR X
+            if (dom%sSubDomain(mi)%pml_width(1)/=0) then
+                ! DIR Y
+                call compute_dxi_alpha_kappa_dir0(dom, 1, i, j, k, bnum, ee, mi)
+                if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR Y+Z
+                    call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
+                    ndir = 2
+                    tdir = CPML_DIR_YZ
+                else
+                    ndir = 1
+                    tdir = CPML_DIR_Y
+                endif
+            else
+                if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR Z
+                    call compute_dxi_alpha_kappa_dir0(dom, 2, i, j, k, bnum, ee, mi)
+                    ndir = 1
+                    tdir = CPML_DIR_Z
+                else
+                    ! BIG PROBLEM
+                    stop 1
+                endif
+            end if
+        end if
 
         ! gamma_ab  defined after (12c) in Ref1
         ! gamma_abc defined after (12c) in Ref1
