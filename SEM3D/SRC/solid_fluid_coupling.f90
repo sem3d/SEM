@@ -26,11 +26,11 @@ contains
 #ifdef CPML
 
     ! M_ij = delta_ij . F^-1[s0 s1 s2 / si]
-    subroutine compute_convolution_StoF(dom, f0, idxS, idxSF, ee, bnum, mu)
+    subroutine compute_convolution_StoF(dom, f0, idxS, idxSF, mu)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
-        integer, intent(in) :: f0, idxS, idxSF, ee, bnum
+        integer, intent(in) :: f0, idxS, idxSF
         real(fpp), intent(out) :: mu(0:2)
         !
         real(fpp) :: k0, a0, d0, b0, k1, a1, d1, b1
@@ -41,7 +41,7 @@ contains
 
         ! Convolute the first direction to attenuate (A.20*) from Ref1. (s2 = 1, s3 cancels)
 
-        dir0 = dom%D0(ee,bnum)
+        dir0 = dom%D0_SF(idxSF)
         if (dir0 /= -1) then
             dir = -1
             if (dir0 == 0) dir = dXX
@@ -63,7 +63,7 @@ contains
 
         ! Convolute the second direction to attenuate (A.20*) from Ref1. (s2 != 1, s3 cancels)
 
-        dir1 = dom%D1(ee,bnum)
+        dir1 = dom%D1_SF(idxSF)
         if (dir1 /= -1) then
             dir = -1
             if (dir1 == 0) dir = dXX
@@ -88,11 +88,11 @@ contains
     end subroutine compute_convolution_StoF
 
     ! N_ij = delta_ij . F^-1[-w^2 s0 s1 s2 / si]
-    subroutine compute_convolution_FtoS(dom, f0, idxF, idxSF, ee, bnum, nphi)
+    subroutine compute_convolution_FtoS(dom, f0, idxF, idxSF, nphi)
         use champs_fluidpml
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
-        integer, intent(in) :: f0, idxF, idxSF, ee, bnum
+        integer, intent(in) :: f0, idxF, idxSF
         real(fpp), intent(out) :: nphi(0:2)
         !
         real(fpp) :: k0, a0, d0, b0, k1, a1, d1, b1
@@ -104,7 +104,7 @@ contains
 
         ! Convolute the first direction to attenuate (A.5*) from Ref1. (s2 = 1, s3 cancels)
 
-        dir0 = dom%D0(ee,bnum)
+        dir0 = dom%D0_SF(idxSF)
         if (dir0 /= -1) then
             dir = -1
             if (dir0 == 0) dir = dXX
@@ -131,7 +131,7 @@ contains
 
         ! Convolute the second direction to attenuate (A.5*) from Ref1. (s2 != 1, s3 cancels)
 
-        dir1 = dom%D1(ee,bnum)
+        dir1 = dom%D1_SF(idxSF)
         if (dir1 /= -1) then
             dir = -1
             if (dir1 == 0) dir = dXX
@@ -206,7 +206,7 @@ subroutine StoF_coupling(Tdomain, f0, f1)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
 #ifdef CPML
         ! u_f.n = [M(t)*u_s].n (32) from Ref3. with u_f = grad(phi)
-        !call compute_convolution_StoF(Tdomain%spmldom, f0, idxS, ??, ??, ??, ??, ??, mu)
+        call compute_convolution_StoF(Tdomain%spmldom, f0, idxS, i, mu)
         vn = (BtN(0) * mu(0)) + (BtN(1) * mu(1)) + (BtN(2) * mu(2))
         Tdomain%fpmldom%champs(f1)%ForcesFl(idxF) = Tdomain%fpmldom%champs(f1)%ForcesFl(idxF) + vn
 #else
@@ -268,7 +268,7 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
 #ifdef CPML
         ! sigma_s.n = [N(t)*Phi].n (32) from Ref3.
-        !call compute_convolution_FtoS(Tdomain%fpmldom, f0, idxF, ??, ??, ??, ??, ??, nphi)
+        call compute_convolution_FtoS(Tdomain%fpmldom, f0, idxF, i, nphi)
         Tdomain%spmldom%champs(f1)%Forces(idxS,0) = Tdomain%spmldom%champs(f1)%Forces(idxS,0) - (BtN(0)*nphi(0))
         Tdomain%spmldom%champs(f1)%Forces(idxS,1) = Tdomain%spmldom%champs(f1)%Forces(idxS,1) - (BtN(1)*nphi(1))
         Tdomain%spmldom%champs(f1)%Forces(idxS,2) = Tdomain%spmldom%champs(f1)%Forces(idxS,2) - (BtN(2)*nphi(2))

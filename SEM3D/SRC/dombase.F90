@@ -77,6 +77,7 @@ module mdombase
 
         ! Solid - Fluid coupling
         real(fpp), dimension(:,:), allocatable :: Kappa_SF, Alpha_SF, dxi_k_SF
+        integer, dimension(:), allocatable :: D0_SF, D1_SF
     end type dombase_cpml
 contains
 
