@@ -142,6 +142,7 @@ contains
         if(Tdomain%rank==0) then
             write(*,*) "INFO - solid cpml domain : kappa0 ", dom%cpml_kappa_0, " kappa1 ", dom%cpml_kappa_1
         endif
+        call allocate_dombase_cpml(dom, Tdomain%SF%intSolFluPml%surf0%nbtot)
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)

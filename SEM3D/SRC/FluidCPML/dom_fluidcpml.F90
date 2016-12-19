@@ -121,6 +121,7 @@ contains
         dom%cpml_kappa_1 = Tdomain%config%cpml_kappa1
         dom%alphamax = 0.
         if(Tdomain%rank==0) write(*,*) "INFO - fluidpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+        call allocate_dombase_cpml(dom, Tdomain%SF%intSolFluPml%surf0%nbtot)
     end subroutine allocate_dom_fluidpml
 
     subroutine deallocate_dom_fluidpml (dom)

@@ -129,8 +129,20 @@ contains
         if(allocated(bz%MassMat)) deallocate(bz%MassMat)
     end subroutine deallocate_dombase
 
-    subroutine allocate_dombase_cpml(dom)
+    subroutine allocate_dombase_cpml(dom, nbtot_SF)
+        implicit none
         class(dombase_cpml) :: dom
+        integer :: nbtot_SF
+        !
+        ! Note: nbtot_SF << nbelems (or ngll) as the SF coupling surface is small compared to the full mesh.
+        ! This is why the allocations are sized with nbtot_SF (not ngll, not nbelems). Otherwise, we allocate
+        ! huge amount of data that will not be used !
+        if (nbtot_SF <= 0) return
+        allocate(dom%D0_SF   (0:nbtot_SF-1     ))
+        allocate(dom%D1_SF   (0:nbtot_SF-1     ))
+        allocate(dom%Kappa_SF(0:nbtot_SF-1, 0:2))
+        allocate(dom%Alpha_SF(0:nbtot_SF-1, 0:2))
+        allocate(dom%dxi_k_SF(0:nbtot_SF-1, 0:2))
     end subroutine allocate_dombase_cpml
 
     subroutine deallocate_dombase_cpml(bz)
@@ -154,6 +166,12 @@ contains
         if(allocated(bz%D1)) deallocate(bz%D1)
 
         if(allocated(bz%GlobCoord)) deallocate(bz%GlobCoord)
+
+        if(allocated(bz%D0_SF   )) deallocate(bz%D0_SF   )
+        if(allocated(bz%D1_SF   )) deallocate(bz%D1_SF   )
+        if(allocated(bz%Kappa_SF)) deallocate(bz%Kappa_SF)
+        if(allocated(bz%Alpha_SF)) deallocate(bz%Alpha_SF)
+        if(allocated(bz%dxi_k_SF)) deallocate(bz%dxi_k_SF)
     end subroutine deallocate_dombase_cpml
 end module mdombase
 
