@@ -33,57 +33,40 @@ contains
         integer, intent(in) :: f0, idxS, idxSF
         real(fpp), intent(out) :: mu(0:2)
         !
-        real(fpp) :: k0, a0, d0, b0, k1, a1, d1, b1
-        real(fpp) :: b0bar, b1bar, b2bar
-        integer :: dir0, dir1, dir
+        real(fpp) :: k0, a0, d0, b0, k1, a1, d1
+        real(fpp), dimension(0:2) :: b0bar, b1bar, b2bar
+        integer :: dir0, dir1
 
         mu(0:2) = 1 ! No convolution
 
-        ! Convolute the first direction to attenuate (A.20*) from Ref1. (s2 = 1, s3 cancels)
+        ! Convolute the first direction to attenuate (A.20*) from Ref1.
 
         dir0 = dom%D0_SF(idxSF)
-        if (dir0 /= -1) then
-            dir = -1
-            if (dir0 == 0) dir = dXX
-            if (dir0 == 1) dir = dYY
-            if (dir0 == 2) dir = dZZ
-            if (dir == -1) stop "compute_convolution_StoF - invalid dir0"
+        if (dir0 == -1) stop "compute_convolution_StoF - invalid dir0"
 
-            k0 = dom%Kappa_SF(dir0, idxSF)
-            a0 = dom%Alpha_SF(dir0, idxSF)
-            d0 = dom%dxi_k_SF(dir0, idxSF)
-            b0 = a0 + d0
+        k0 = dom%Kappa_SF(0, idxSF)
+        a0 = dom%Alpha_SF(0, idxSF)
+        d0 = dom%dxi_k_SF(0, idxSF)
+        b0 = a0 + d0
 
-            b0bar = k0
-            b1bar = -b0bar * (-d0)
+        b0bar = k0
+        b1bar = -b0bar * (-d0)
 
-            mu(dir) =           b0bar * dom%champs(f0)%Depla(idxS, dir)
-            mu(dir) = mu(dir) + b1bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(dir0, idxSF)
-        end if
+        mu(:) =         b0bar(:) * dom%champs(f0)%Depla(idxS, :)
+        mu(:) = mu(:) + b1bar(:) * dom%champs(f0)%Depla(idxS, :) * dom%R1_0_SF(:, idxSF)
 
-        ! Convolute the second direction to attenuate (A.20*) from Ref1. (s2 != 1, s3 cancels)
+        ! Convolute the second direction to attenuate (A.20*) from Ref1.
 
         dir1 = dom%D1_SF(idxSF)
         if (dir1 /= -1) then
-            dir = -1
-            if (dir1 == 0) dir = dXX
-            if (dir1 == 1) dir = dYY
-            if (dir1 == 2) dir = dZZ
-            if (dir == -1) stop "compute_convolution_StoF - invalid dir1"
-            if (dir0 == -1) stop "compute_convolution_StoF - invalid dir0 for dir1"
-
-            k1 = dom%Kappa_SF(dir1, idxSF)
-            a1 = dom%Alpha_SF(dir1, idxSF)
-            d1 = dom%dxi_k_SF(dir1, idxSF)
-            b1 = a1 + d1
+            k1 = dom%Kappa_SF(1, idxSF)
+            a1 = dom%Alpha_SF(1, idxSF)
+            d1 = dom%dxi_k_SF(1, idxSF)
 
             b0bar = k0 * k1
-            b1bar = -b0bar * (-d0) * (a0 - b1) / (a0 - a1)
-            b2bar = -b0bar * (-d1) * (a1 - b0) / (a1 - a0)
+            b2bar = -b0bar * (-d1) * (a1 - b0) / (a1 - a0) ! TODO : check this is correct
 
-            mu(dir) =           b0bar * dom%champs(f0)%Depla(idxS, dir)
-            mu(dir) = mu(dir) + b1bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(dir0, idxSF)
-            mu(dir) = mu(dir) + b2bar * dom%champs(f0)%Depla(idxS, dir) * dom%R2_SF(dir1, idxSF)
+            mu(:) = mu(:) + b2bar(:) * dom%champs(f0)%Depla(idxS, :) * dom%R1_1_SF(:, idxSF)
         end if
     end subroutine compute_convolution_StoF
 
