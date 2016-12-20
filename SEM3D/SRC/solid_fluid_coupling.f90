@@ -15,10 +15,6 @@ module sf_coupling
 
 #ifdef CPML
 
-    integer, parameter :: dXX=0, dXY=1, dXZ=2
-    integer, parameter :: dYX=3, dYY=4, dYZ=5
-    integer, parameter :: dZX=6, dZY=7, dZZ=8
-
 #endif
 
 contains
@@ -78,68 +74,83 @@ contains
         integer, intent(in) :: f0, idxF, idxSF
         real(fpp), intent(out) :: nphi(0:2)
         !
-        real(fpp) :: k0, a0, d0, b0, k1, a1, d1, b1
-        real(fpp) :: a0bar, a1bar, a2bar, a3bar, a4bar
+        real(fpp) :: k0, a0, d0, k1, a1, d1
+        real(fpp), dimension(0:2) :: a0bar, a1bar, a2bar, a3bar, a4bar
         real(fpp) :: AccPhi
-        integer :: dir0, dir1, dir
+        integer :: dir0, dir1
+        integer :: Is0, Is1, Is0s1
 
         nphi(0:2) = 1 ! No convolution
 
-        ! Convolute the first direction to attenuate (A.5*) from Ref1. (s2 = 1, s3 cancels)
-
         dir0 = dom%D0_SF(idxSF)
-        if (dir0 /= -1) then
-            dir = -1
-            if (dir0 == 0) dir = dXX
-            if (dir0 == 1) dir = dYY
-            if (dir0 == 2) dir = dZZ
-            if (dir == -1) stop "compute_convolution_FtoS - invalid dir0"
+        if (dir0 == -1) stop "compute_convolution_FtoS - invalid dir0"
+        dir1 = dom%D1_SF(idxSF)
 
-            k0 = dom%Kappa_SF(dir0, idxSF)
-            a0 = dom%Alpha_SF(dir0, idxSF)
-            d0 = dom%dxi_k_SF(dir0, idxSF)
-            b0 = a0 + d0
+        k0 = dom%Kappa_SF(0, idxSF)
+        a0 = dom%Alpha_SF(0, idxSF)
+        d0 = dom%dxi_k_SF(0, idxSF)
+
+        if (dir1 == -1) then
+            ! Convolute the first direction to attenuate (A.5*) from Ref1.
 
             a0bar = k0
             a1bar = a0bar * d0
             a2bar = a0bar * d0 * (-a0)
             a3bar = a0bar * a0**2 * d0
 
-            AccPhi = dom%champs(f0)%ForcesFl(idxF) * dom%MassMat(idxF)
-            nphi(dir) =             a0bar * AccPhi
-            nphi(dir) = nphi(dir) + a1bar * dom%champs(f0)%VelPhi(idxF)
-            nphi(dir) = nphi(dir) + a2bar * dom%champs(f0)%Phi(idxF)
-            nphi(dir) = nphi(dir) + a3bar * dom%R1_SF(dir0, idxSF)
-        end if
-
-        ! Convolute the second direction to attenuate (A.5*) from Ref1. (s2 != 1, s3 cancels)
-
-        dir1 = dom%D1_SF(idxSF)
-        if (dir1 /= -1) then
-            dir = -1
-            if (dir1 == 0) dir = dXX
-            if (dir1 == 1) dir = dYY
-            if (dir1 == 2) dir = dZZ
-            if (dir == -1) stop "compute_convolution_FtoS - invalid dir1"
-            if (dir0 == -1) stop "compute_convolution_FtoS - invalid dir0 for dir1"
-
-            k1 = dom%Kappa_SF(dir1, idxSF)
-            a1 = dom%Alpha_SF(dir1, idxSF)
-            d1 = dom%dxi_k_SF(dir1, idxSF)
-            b1 = a1 + d1
-
-            a0bar = k0 * k1
-            a1bar = a0bar * d0 + a0bar * d1
-            a2bar = a0bar * d0 * (d1 - a0) + a0bar * d1 * (-a1)
-            a3bar = a0bar * a0**2 * d0 * (b1 - a0) / (a1 - a0)
-            a4bar = a0bar * a1**2 * d1 * (b0 - a1) / (a0 - a1)
+            a0bar(dir0) = 0.
+            a1bar(dir0) = 0.
+            a2bar(dir0) = 0.
+            a3bar(dir0) = 0.
 
             AccPhi = dom%champs(f0)%ForcesFl(idxF) * dom%MassMat(idxF)
-            nphi(dir) =             a0bar * AccPhi
-            nphi(dir) = nphi(dir) + a1bar * dom%champs(f0)%VelPhi(idxF)
-            nphi(dir) = nphi(dir) + a2bar * dom%champs(f0)%Phi(idxF)
-            nphi(dir) = nphi(dir) + a3bar * dom%R1_SF(dir0, idxSF)
-            nphi(dir) = nphi(dir) + a4bar * dom%R1_SF(dir1, idxSF)
+            nphi(:) =           a0bar * AccPhi
+            nphi(:) = nphi(:) + a1bar * dom%champs(f0)%VelPhi(idxF)
+            nphi(:) = nphi(:) + a2bar * dom%champs(f0)%Phi(idxF)
+            nphi(:) = nphi(:) + a3bar * dom%R1_SF(0, idxSF)
+        else
+            ! Convolute the second direction to attenuate (A.5*) from Ref1.
+
+            k1 = dom%Kappa_SF(1, idxSF)
+            a1 = dom%Alpha_SF(1, idxSF)
+            d1 = dom%dxi_k_SF(1, idxSF)
+
+            if (dir0==0.and.dir1==1) then
+                ! For X=0,Y=1
+                Is0   = 1
+                Is1   = 0
+                Is0s1 = 2
+            else if (dir0==0.and.dir1==2) then
+                ! For X=0,Z=1
+                Is0   = 2
+                Is1   = 0
+                Is0s1 = 1
+            else if (dir0==1.and.dir1==2) then
+                ! For Y=0,Z=1
+                Is0   = 2
+                Is1   = 1
+                Is0s1 = 0
+            else
+                stop 1
+            end if
+
+            a0bar(Is0)   = k0
+            a0bar(Is1)   = k1
+            a0bar(Is0s1) = k0 * k1
+            a1bar(Is0)   = a0bar(Is0)   * d0
+            a1bar(Is1)   = a0bar(Is1)   * d1
+            a1bar(Is0s1) = a0bar(Is0s1) * (d0 + d1)
+            a2bar(Is0)   = a0bar(Is0)   * d0 * (-a0)
+            a2bar(Is1)   = a0bar(Is1)   * d1 * (-a1)
+            a2bar(Is0s1) = a0bar(Is0s1) * (d0 * d1 - a0 * d0 - a1 * d1)
+            a3bar(Is0)   = a0bar(Is0)   * a0 ** 2 * d0
+            a3bar(Is1)   = a0bar(Is1)   * a1 ** 2 * d1
+            a3bar(Is0s1) = a0bar(Is0s1) * a0 ** 2 * d0 * (a1 - a0 + d1) / (a1 - a0)
+            a4bar(Is0)   = a0bar(Is0)   * a1 ** 2 * d1
+            a4bar(Is1)   = a0bar(Is1)   * a0 ** 2 * d0
+            a4bar(Is0s1) = a0bar(Is0s1) * a1 ** 2 * d1 * (a0 - a1 + d0) / (a0 - a1)
+
+            nphi(:) = nphi(:) + a4bar * dom%R1_SF(1, idxSF)
         end if
     end subroutine compute_convolution_FtoS
 
