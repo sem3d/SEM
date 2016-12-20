@@ -627,11 +627,12 @@ contains
         dom%MasUMat(ind) = dom%MasUMat(ind) + a2b*mass_0
     end subroutine init_local_mass_fluidpml
 
-    subroutine forces_int_flu_pml(dom, champs1, bnum)
+    subroutine forces_int_flu_pml(dom, champs1, bnum, Tdomain)
         use m_calcul_forces_fluidpml
         type(domain_fluidpml), intent (INOUT) :: dom
         type(champsfluidpml), intent(inout) :: champs1
         integer, intent(in) :: bnum
+        type (domain), intent (INOUT), target :: Tdomain
         !
         integer :: ngll,i,j,k,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
@@ -673,11 +674,54 @@ contains
                         call compute_L_convolution_terms(dom, i, j, k, bnum, ee, Phi(ee,i,j,k), R)
                         kijk = wijk*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
                         champs1%ForcesFl(idx) = val - kijk*R
+#ifdef CPML
+                         call save_FtoS(ee, bnum, i, j, k, idx, dom, Tdomain)
+#endif
                     enddo
                 enddo
             enddo
         enddo
     end subroutine forces_int_flu_pml
+
+#ifdef CPML
+    ! TODO : rewrite this another way ! For now, this should enable SF coupling to "work"... Unless NOT efficient (vecto KO) !...
+    ! Problem :
+    ! 1. in the domain, alpha, kappa, dxi are stored per element (ee, bnum) and per local gll (i,j,k)
+    ! 2. in the coupling, we have lost (ee, bnum) and (i, j, k) but we have a mapping between local SF index (n) and global gll (idx)
+    ! Solution :
+    ! For now, loop over SF interface, if idx == nS then save (ee, bnum, i, j, k -> nS)
+    subroutine save_FtoS(ee, bnum, i, j, k, idx, dom, Tdomain)
+        implicit none
+        integer, intent(in) :: ee, bnum, i, j, k, idx
+        type(domain_fluidpml), intent(inout) :: dom
+        type (domain), intent (INOUT), target :: Tdomain
+        !
+        integer :: n, nS
+        integer :: dir0, dir1, dir2
+
+        do n = 0, Tdomain%SF%intSolFluPml%surf0%nbtot-1
+            nS = Tdomain%SF%intSolFluPml%surf0%map(n)
+            if (nS == idx) then
+                dom%D0_SF(n) = dom%D0(ee, bnum)
+                dom%D1_SF(n) = dom%D1(ee, bnum)
+
+                dir0 = dom%D0(ee, bnum)
+                dir1 = dom%D1(ee, bnum)
+                dir2 = 0 + 1 + 2 - dir0 - dir1
+                if(dir0 .ne. -1) dom%Alpha_SF(n, dir0) = dom%Alpha_0(ee,i,j,k,          bnum)
+                if(dir1 .ne. -1) dom%Alpha_SF(n, dir1) = dom%Alpha_1(   i,j,k,dom%I1(ee,bnum))
+                if(dir2 .ne. -1) dom%Alpha_SF(n, dir2) = dom%Alpha_2(   i,j,k,dom%I2(ee,bnum))
+                if(dir0 .ne. -1) dom%Kappa_SF(n, dir0) = dom%Kappa_0(ee,i,j,k,          bnum)
+                if(dir1 .ne. -1) dom%Kappa_SF(n, dir1) = dom%Kappa_1(   i,j,k,dom%I1(ee,bnum))
+                if(dir2 .ne. -1) dom%Kappa_SF(n, dir2) = dom%Kappa_2(   i,j,k,dom%I2(ee,bnum))
+                if(dir0 .ne. -1) dom%dxi_k_SF(n, dir0) = dom%dxi_k_0(ee,i,j,k,          bnum)
+                if(dir1 .ne. -1) dom%dxi_k_SF(n, dir1) = dom%dxi_k_1(   i,j,k,dom%I1(ee,bnum))
+                if(dir2 .ne. -1) dom%dxi_k_SF(n, dir2) = dom%dxi_k_2(   i,j,k,dom%I2(ee,bnum))
+                return ! Done : get out
+            end if
+        end do
+    end subroutine save_FtoS
+#endif
 
     subroutine pred_flu_pml(dom, dt, champs1, bnum)
         type (domain_fluidpml), intent (INOUT) :: dom

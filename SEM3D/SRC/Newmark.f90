@@ -408,7 +408,7 @@ contains
             call stat_starttick()
             do n = 0,Tdomain%fpmldom%nblocks-1
                 call pred_flu_pml(Tdomain%fpmldom, Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs(i1), n)
-                call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%fpmldom%champs(i1), n)
+                call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%fpmldom%champs(i1), n, Tdomain)
             end do
             call stat_stoptick(STAT_PFLU)
         end if
