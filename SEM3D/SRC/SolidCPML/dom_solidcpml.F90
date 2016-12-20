@@ -722,7 +722,7 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         !
         integer :: n, nS
-        integer :: dir0, dir1, dir2
+        integer :: dir0, dir1
 
         do n = 0, Tdomain%SF%intSolFluPml%surf0%nbtot-1
             nS = Tdomain%SF%intSolFluPml%surf0%map(n)
@@ -732,16 +732,12 @@ contains
 
                 dir0 = dom%D0(ee, bnum)
                 dir1 = dom%D1(ee, bnum)
-                dir2 = 0 + 1 + 2 - dir0 - dir1
-                if(dir0 .ne. -1) dom%Alpha_SF(dir0, n) = dom%Alpha_0(ee,i,j,k,          bnum)
-                if(dir1 .ne. -1) dom%Alpha_SF(dir1, n) = dom%Alpha_1(   i,j,k,dom%I1(ee,bnum))
-                if(dir2 .ne. -1) dom%Alpha_SF(dir2, n) = dom%Alpha_2(   i,j,k,dom%I2(ee,bnum))
-                if(dir0 .ne. -1) dom%Kappa_SF(dir0, n) = dom%Kappa_0(ee,i,j,k,          bnum)
-                if(dir1 .ne. -1) dom%Kappa_SF(dir1, n) = dom%Kappa_1(   i,j,k,dom%I1(ee,bnum))
-                if(dir2 .ne. -1) dom%Kappa_SF(dir2, n) = dom%Kappa_2(   i,j,k,dom%I2(ee,bnum))
-                if(dir0 .ne. -1) dom%dxi_k_SF(dir0, n) = dom%dxi_k_0(ee,i,j,k,          bnum)
-                if(dir1 .ne. -1) dom%dxi_k_SF(dir1, n) = dom%dxi_k_1(   i,j,k,dom%I1(ee,bnum))
-                if(dir2 .ne. -1) dom%dxi_k_SF(dir2, n) = dom%dxi_k_2(   i,j,k,dom%I2(ee,bnum))
+                if(dir0 .ne. -1) dom%Alpha_SF(0, n) = dom%Alpha_0(ee,i,j,k,          bnum)
+                if(dir1 .ne. -1) dom%Alpha_SF(1, n) = dom%Alpha_1(   i,j,k,dom%I1(ee,bnum))
+                if(dir0 .ne. -1) dom%Kappa_SF(0, n) = dom%Kappa_0(ee,i,j,k,          bnum)
+                if(dir1 .ne. -1) dom%Kappa_SF(1, n) = dom%Kappa_1(   i,j,k,dom%I1(ee,bnum))
+                if(dir0 .ne. -1) dom%dxi_k_SF(0, n) = dom%dxi_k_0(ee,i,j,k,          bnum)
+                if(dir1 .ne. -1) dom%dxi_k_SF(1, n) = dom%dxi_k_1(   i,j,k,dom%I1(ee,bnum))
                 return ! Done : get out
             end if
         end do
