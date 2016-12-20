@@ -72,6 +72,7 @@ contains
         return
     end subroutine define_PML_DumpEnd
     !
+#ifdef CPML
     subroutine cpml_compute_coefs(m, a0, dt, cf0, cf1, cf2)
         integer, intent(in) :: m
         real(fpp), intent(in) :: a0, dt
@@ -223,6 +224,12 @@ contains
         dxi   = dom%cpml_c*d0*(xoverl)**dom%cpml_n / kappa
         alpha = dom%alphamax*(1. - xoverl) ! alpha*: (76) from Ref1
     end subroutine compute_dxi_alpha_kappa
+#endif
+    function isclose(a,b)
+        real(fpp) :: a,b
+        logical :: isclose
+        isclose = abs(a-b)<SMALLFPP
+    end function isclose
 
 end module pml
 !! Local Variables:
