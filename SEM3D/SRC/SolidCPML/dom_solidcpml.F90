@@ -42,7 +42,7 @@ contains
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
         !
-        integer nbelem, ngll, nblocks, dir1_count, dir2_count
+        integer nbelem, ngll, nblocks, dir1_count, dir2_count, nbtot_SF
         !
 
         ngll   = dom%ngll
@@ -142,7 +142,11 @@ contains
         if(Tdomain%rank==0) then
             write(*,*) "INFO - solid cpml domain : kappa0 ", dom%cpml_kappa_0, " kappa1 ", dom%cpml_kappa_1
         endif
-        call allocate_dombase_cpml(dom, Tdomain%SF%intSolFluPml%surf0%nbtot)
+
+        nbtot_SF = Tdomain%SF%intSolFluPml%surf0%nbtot
+        call allocate_dombase_cpml(dom, nbtot_SF)
+        if (nbtot_SF >= 0) allocate(dom%R1_0_SF(0:2, 0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R1_1_SF(0:2, 0:nbtot_SF-1))
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
@@ -156,6 +160,8 @@ contains
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
         call deallocate_dombase_cpml(dom)
+        if (allocated(dom%R1_0_SF)) deallocate(dom%R1_0_SF)
+        if (allocated(dom%R1_1_SF)) deallocate(dom%R1_1_SF)
 
         do i=0,1
             if(allocated(dom%champs(i)%Depla )) deallocate(dom%champs(i)%Depla )
@@ -738,6 +744,10 @@ contains
                 if(dir1 .ne. -1) dom%Kappa_SF(1, n) = dom%Kappa_1(   i,j,k,dom%I1(ee,bnum))
                 if(dir0 .ne. -1) dom%dxi_k_SF(0, n) = dom%dxi_k_0(ee,i,j,k,          bnum)
                 if(dir1 .ne. -1) dom%dxi_k_SF(1, n) = dom%dxi_k_1(   i,j,k,dom%I1(ee,bnum))
+
+                if(dir0 .ne. -1) dom%R1_0_SF(:, n) = dom%R1_0(ee, :, i, j, k,           bnum)
+                if(dir1 .ne. -1) dom%R1_1_SF(:, n) = dom%R1_1(    :, i, j, k, dom%I1(ee,bnum))
+
                 return ! Done : get out
             end if
         end do
