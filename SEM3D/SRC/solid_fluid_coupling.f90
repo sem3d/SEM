@@ -49,9 +49,9 @@ contains
             if (dir0 == 2) dir = dZZ
             if (dir == -1) stop "compute_convolution_StoF - invalid dir0"
 
-            k0 = dom%Kappa_SF(idxSF, dir0)
-            a0 = dom%Alpha_SF(idxSF, dir0)
-            d0 = dom%dxi_k_SF(idxSF, dir0)
+            k0 = dom%Kappa_SF(dir0, idxSF)
+            a0 = dom%Alpha_SF(dir0, idxSF)
+            d0 = dom%dxi_k_SF(dir0, idxSF)
             b0 = a0 + d0
 
             b0bar = k0
@@ -72,9 +72,9 @@ contains
             if (dir == -1) stop "compute_convolution_StoF - invalid dir1"
             if (dir0 == -1) stop "compute_convolution_StoF - invalid dir0 for dir1"
 
-            k1 = dom%Kappa_SF(idxSF, dir1)
-            a1 = dom%Alpha_SF(idxSF, dir1)
-            d1 = dom%dxi_k_SF(idxSF, dir1)
+            k1 = dom%Kappa_SF(dir1, idxSF)
+            a1 = dom%Alpha_SF(dir1, idxSF)
+            d1 = dom%dxi_k_SF(dir1, idxSF)
             b1 = a1 + d1
 
             b0bar = k0 * k1
@@ -112,9 +112,9 @@ contains
             if (dir0 == 2) dir = dZZ
             if (dir == -1) stop "compute_convolution_FtoS - invalid dir0"
 
-            k0 = dom%Kappa_SF(idxSF, dir0)
-            a0 = dom%Alpha_SF(idxSF, dir0)
-            d0 = dom%dxi_k_SF(idxSF, dir0)
+            k0 = dom%Kappa_SF(dir0, idxSF)
+            a0 = dom%Alpha_SF(dir0, idxSF)
+            d0 = dom%dxi_k_SF(dir0, idxSF)
             b0 = a0 + d0
 
             a0bar = k0
@@ -140,9 +140,9 @@ contains
             if (dir == -1) stop "compute_convolution_FtoS - invalid dir1"
             if (dir0 == -1) stop "compute_convolution_FtoS - invalid dir0 for dir1"
 
-            k1 = dom%Kappa_SF(idxSF, dir1)
-            a1 = dom%Alpha_SF(idxSF, dir1)
-            d1 = dom%dxi_k_SF(idxSF, dir1)
+            k1 = dom%Kappa_SF(dir1, idxSF)
+            a1 = dom%Alpha_SF(dir1, idxSF)
+            d1 = dom%dxi_k_SF(dir1, idxSF)
             b1 = a1 + d1
 
             a0bar = k0 * k1

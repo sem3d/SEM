@@ -138,11 +138,11 @@ contains
         ! This is why the allocations are sized with nbtot_SF (not ngll, not nbelems). Otherwise, we allocate
         ! huge amount of data that will not be used !
         if (nbtot_SF <= 0) return
-        allocate(dom%D0_SF   (0:nbtot_SF-1     ))
-        allocate(dom%D1_SF   (0:nbtot_SF-1     ))
-        allocate(dom%Kappa_SF(0:nbtot_SF-1, 0:2))
-        allocate(dom%Alpha_SF(0:nbtot_SF-1, 0:2))
-        allocate(dom%dxi_k_SF(0:nbtot_SF-1, 0:2))
+        allocate(dom%D0_SF   (     0:nbtot_SF-1))
+        allocate(dom%D1_SF   (     0:nbtot_SF-1))
+        allocate(dom%Kappa_SF(0:2, 0:nbtot_SF-1))
+        allocate(dom%Alpha_SF(0:2, 0:nbtot_SF-1))
+        allocate(dom%dxi_k_SF(0:2, 0:nbtot_SF-1))
     end subroutine allocate_dombase_cpml
 
     subroutine deallocate_dombase_cpml(bz)
