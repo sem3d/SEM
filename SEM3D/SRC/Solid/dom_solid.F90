@@ -663,22 +663,26 @@ contains
         dom%Lambda_ (:,:,:,bnum,ee) = lambda
         dom%Mu_     (:,:,:,bnum,ee) = mu
         
-        if (mat%deftype.eq.MATDEF_NLKP_VS_RHO) then
-            dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = gamma_el*mu*sqrt(3.0d0)
-            dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mu
-            dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1.0d0/(sqrt(3.0d0)*(gamma_pl-gamma_el))
-            dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%DRinf 
-            dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = mat%DBiso
-        else
-            if (nl_flag) then
-                dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = nlkp*mu*sqrt(3.0d0)
+        if (nl_flag) then
+            if (mat%deftype.eq.MATDEF_NLKP_VS_RHO) then
+                dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = gamma_el*mu*sqrt(3.0d0)
+                dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mu
+                dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1.0d0/(sqrt(3.0d0)*(nlkp-gamma_el))
+                dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%DRinf 
+                dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = mat%DBiso
+            else
+                dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = gamma_el*nlkp*sqrt(3.0d0)
                 dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = nlkp
-                dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1.0d0/(sqrt(3.0d0)*(gamma_pl-gamma_el))
+                dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1.0d0/(sqrt(3.0d0)*(nlkp-gamma_el))
                 dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = 0.0D0 
                 dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = 0.0D0
             endif
+            write(*,*) "parameters"
+            write(*,*) "syld", dom%nl_param%LMC%syld_(0,0,0,bnum,ee)
+            write(*,*) "ckin", dom%nl_param%LMC%ckin_(0,0,0,bnum,ee)
+            write(*,*) "kkin", dom%nl_param%LMC%kkin_(0,0,0,bnum,ee)
         endif
-         
+
         if (dom%n_sls>0)  then
             dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
             if (dom%aniso) then
