@@ -19,17 +19,17 @@
 !! 1. Cijkl are convoluted at each time iteration.
 !! 2. Cijkl has 15 terms (upper part).
 !!
-!!      sigij               C0ijkl                 epskl                       Conv = FT^-1(si*sj/sk)
+!!      sigij                  C0ijkl                   epskl                     Conv = FT^-1(si*sj/sk)
 !!
-!!    | sig11 |   | l+2m l    l                   |   | eps11 |     | L231 L3   L2                                 |
-!!    | sig22 |   | l    l+2m l                   |   | eps22 |     | L3   L132 L1                                 |
-!!    | sig33 | = | l    l    l+2m                |   | eps33 |     | L2   L1   L123                               |
-!!    | sig23 |   |                 m  m          |   | eps23 |     |                L132 L1                       |
-!!    | sig32 |   |                 m  m          | * | eps32 | and |                L1   L123                     |
-!!    | sig13 |   |                      m m      |   | eps13 |     |                          L231 L2             |
-!!    | sig31 |   |                      m m      |   | eps31 |     |                          L2   L123           |
-!!    | sig12 |   |                           m m |   | eps12 |     |                                    L231 L3   |
-!!    | sig21 |   |                           m m |   | eps21 |     |                                    L3   L132 |
+!!    | sig00 |   | l+2m l    l                   |   | eps00 |     | L120 L2   L1                                 |
+!!    | sig11 |   | l    l+2m l                   |   | eps11 |     | L2   L021 L0                                 |
+!!    | sig22 | = | l    l    l+2m                |   | eps22 |     | L1   L0   L012                               |
+!!    | sig12 |   |                 m  m          |   | eps12 |     |                L021 L0                       |
+!!    | sig21 |   |                 m  m          | * | eps21 | and |                L0   L012                     |
+!!    | sig02 |   |                      m m      |   | eps02 |     |                          L120 L1             |
+!!    | sig20 |   |                      m m      |   | eps20 |     |                          L1   L012           |
+!!    | sig01 |   |                           m m |   | eps01 |     |                                    L120 L2   |
+!!    | sig10 |   |                           m m |   | eps10 |     |                                    L2   L021 |
 !!
 !!    Li and Lijk (from Conv) are defined in (A.4) from Ref1.
 !!
