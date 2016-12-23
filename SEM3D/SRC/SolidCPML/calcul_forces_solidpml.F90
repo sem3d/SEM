@@ -11,30 +11,36 @@ module m_calcul_forces_solidpml
     implicit none
 
     integer, parameter :: CPML_INTEG = CPML_ORDER2
-    integer, parameter :: L120_DXX = 0
-    integer, parameter :: L2_DYY   = 1
-    integer, parameter :: L1_DZZ   = 2
-    integer, parameter :: L120_DYX = 3
-    integer, parameter :: L2_DYX   = 4
-    integer, parameter :: L120_DZX = 5
-    integer, parameter :: L1_DZX   = 6
-    integer, parameter :: L021_DXY = 7
-    integer, parameter :: L2_DXY   = 8
-    integer, parameter :: L2_DXX   = 9
-    integer, parameter :: L021_DYY =10
-    integer, parameter :: L0_DZZ   =11
-    integer, parameter :: L021_DZY =12
-    integer, parameter :: L0_DZY   =13
-    integer, parameter :: L012_DXZ =14
-    integer, parameter :: L1_DXZ   =15
-    integer, parameter :: L012_DYZ =16
-    integer, parameter :: L0_DYZ   =17
-    integer, parameter :: L1_DXX   =18
-    integer, parameter :: L0_DYY   =19
-    integer, parameter :: L012_DZZ =20
-    integer, parameter :: dXX=0, dXY=1, dXZ=2
-    integer, parameter :: dYX=3, dYY=4, dYZ=5
-    integer, parameter :: dZX=6, dZY=7, dZZ=8
+    integer, parameter :: DXX=0
+    integer, parameter :: DXY=1
+    integer, parameter :: DXZ=2
+    integer, parameter :: DYX=3
+    integer, parameter :: DYY=4
+    integer, parameter :: DYZ=5
+    integer, parameter :: DZX=6
+    integer, parameter :: DZY=7
+    integer, parameter :: DZZ=8
+    integer, parameter :: L120_DXX = DXX
+    integer, parameter :: L120_DYX = DYX
+    integer, parameter :: L120_DZX = DZX
+    integer, parameter :: L021_DXY = DXY
+    integer, parameter :: L021_DYY = DYY
+    integer, parameter :: L021_DZY = DZY
+    integer, parameter :: L012_DXZ = DXZ
+    integer, parameter :: L012_DYZ = DYZ
+    integer, parameter :: L012_DZZ = DZZ
+    integer, parameter :: L0_DZZ   =  9
+    integer, parameter :: L0_DZY   = 10
+    integer, parameter :: L0_DYY   = 11
+    integer, parameter :: L0_DYZ   = 12
+    integer, parameter :: L1_DZZ   = 13
+    integer, parameter :: L1_DZX   = 14
+    integer, parameter :: L1_DXZ   = 15
+    integer, parameter :: L1_DXX   = 16
+    integer, parameter :: L2_DYY   = 17
+    integer, parameter :: L2_DYX   = 18
+    integer, parameter :: L2_DXY   = 19
+    integer, parameter :: L2_DXX   = 20
     integer, parameter :: kB012=0, kB021=1, kB120=2, kB0=3, kB1=4, kB2=5
 contains
 
@@ -214,6 +220,7 @@ contains
 
         ! update convolution terms
         do r=0,8
+            ! This loop relies on the fact that r=DXX or r=L120_DXX coincide for the right equations
             call cpml_compute_coefs(CPML_INTEG, cf(r), dt, cf0, cf1, cf2)
             dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DUDVn(r)+cf2*DUDV(r)
         end do
