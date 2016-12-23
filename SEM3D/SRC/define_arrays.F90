@@ -304,6 +304,11 @@ contains
 #ifndef CPML
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
+#else
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMat, k)
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MasUMat, k)
 #endif
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
@@ -318,6 +323,11 @@ contains
 #ifndef CPML
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMass, k)
+#else
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMat, k)
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MasUMat, k)
 #endif
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MassMat, k)
@@ -341,6 +351,11 @@ contains
 #ifndef CPML
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
+#else
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMat, k)
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MasUMat, k)
 #endif
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
@@ -355,6 +370,11 @@ contains
 #ifndef CPML
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMass, k)
+#else
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMat, k)
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MasUMat, k)
 #endif
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MassMat, k)
