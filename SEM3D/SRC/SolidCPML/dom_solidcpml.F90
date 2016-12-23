@@ -393,7 +393,6 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
         !
-        integer n
         real(fpp) :: fmax
 
 
