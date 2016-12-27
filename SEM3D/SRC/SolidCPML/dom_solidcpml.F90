@@ -145,8 +145,8 @@ contains
 
         nbtot_SF = Tdomain%SF%intSolFluPml%surf0%nbtot
         call allocate_dombase_cpml(dom, nbtot_SF)
-        if (nbtot_SF >= 0) allocate(dom%R1_0_SF(0:2, 0:nbtot_SF-1))
-        if (nbtot_SF >= 0) allocate(dom%R1_1_SF(0:2, 0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R2_0_SF(0:2, 0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R2_1_SF(0:2, 0:nbtot_SF-1))
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
@@ -160,8 +160,8 @@ contains
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
         call deallocate_dombase_cpml(dom)
-        if (allocated(dom%R1_0_SF)) deallocate(dom%R1_0_SF)
-        if (allocated(dom%R1_1_SF)) deallocate(dom%R1_1_SF)
+        if (allocated(dom%R2_0_SF)) deallocate(dom%R2_0_SF)
+        if (allocated(dom%R2_1_SF)) deallocate(dom%R2_1_SF)
 
         do i=0,1
             if(allocated(dom%champs(i)%Depla )) deallocate(dom%champs(i)%Depla )
@@ -722,6 +722,7 @@ contains
     ! Solution :
     ! For now, loop over SF interface, if idx == nS then save (ee, bnum, i, j, k -> nS)
     subroutine save_StoF(ee, bnum, i, j, k, idx, dom, Tdomain)
+        use m_calcul_forces_solidpml
         implicit none
         integer, intent(in) :: ee, bnum, i, j, k, idx
         type(domain_solidpml), intent(inout) :: dom
@@ -737,17 +738,21 @@ contains
                 dom%I1_SF(n) = dom%I1(ee, bnum)
                 dom%D1_SF(n) = dom%D1(ee, bnum)
 
-                dom%Alpha_SF(0, n) = dom%Alpha_0(ee,   i,j,k,bnum)
-                dom%Kappa_SF(0, n) = dom%Kappa_0(ee,   i,j,k,bnum)
-                dom%dxi_k_SF(0, n) = dom%dxi_k_0(ee,   i,j,k,bnum)
-                dom%R1_0_SF (:, n) = dom%R1_0   (ee,:, i,j,k,bnum)
+                dom%Alpha_SF(0, n) = dom%Alpha_0(ee,    i,j,k,bnum)
+                dom%Kappa_SF(0, n) = dom%Kappa_0(ee,    i,j,k,bnum)
+                dom%dxi_k_SF(0, n) = dom%dxi_k_0(ee,    i,j,k,bnum)
+                dom%R2_0_SF (0, n) = dom%R2_0   (ee,DXX,i,j,k,bnum)
+                dom%R2_0_SF (1, n) = dom%R2_0   (ee,DYY,i,j,k,bnum)
+                dom%R2_0_SF (2, n) = dom%R2_0   (ee,DZZ,i,j,k,bnum)
 
                 i1 = dom%I1(ee, bnum)
                 if(i1 .ne. -1) then
-                    dom%Alpha_SF(1, n) = dom%Alpha_1(  i,j,k,i1)
-                    dom%Kappa_SF(1, n) = dom%Kappa_1(  i,j,k,i1)
-                    dom%dxi_k_SF(1, n) = dom%dxi_k_1(  i,j,k,i1)
-                    dom%R1_1_SF (:, n) = dom%R1_1   (:,i,j,k,i1)
+                    dom%Alpha_SF(1, n) = dom%Alpha_1(    i,j,k,i1)
+                    dom%Kappa_SF(1, n) = dom%Kappa_1(    i,j,k,i1)
+                    dom%dxi_k_SF(1, n) = dom%dxi_k_1(    i,j,k,i1)
+                    dom%R2_1_SF (0, n) = dom%R2_1   (DXX,i,j,k,i1)
+                    dom%R2_1_SF (1, n) = dom%R2_1   (DYY,i,j,k,i1)
+                    dom%R2_1_SF (2, n) = dom%R2_1   (DZZ,i,j,k,i1)
                 end if
 
                 return ! Done : get out

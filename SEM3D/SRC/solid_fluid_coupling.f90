@@ -45,7 +45,7 @@ contains
         b1bar = -b0bar * (-d0)
 
         mu(:) =         b0bar(:) * dom%champs(f0)%Depla(idxS, :)
-        mu(:) = mu(:) + b1bar(:) * dom%champs(f0)%Depla(idxS, :) * dom%R1_0_SF(:, idxSF)
+        mu(:) = mu(:) + b1bar(:) * dom%champs(f0)%Depla(idxS, :) * dom%R2_0_SF(:, idxSF)
 
         ! Convolute the second direction to attenuate (A.20*) from Ref1.
 
@@ -57,7 +57,7 @@ contains
             b0bar = k0 * k1
             b2bar = -b0bar * (-d1) * (a1 - b0) / (a1 - a0) ! TODO : check this is correct
 
-            mu(:) = mu(:) + b2bar(:) * dom%champs(f0)%Depla(idxS, :) * dom%R1_1_SF(:, idxSF)
+            mu(:) = mu(:) + b2bar(:) * dom%champs(f0)%Depla(idxS, :) * dom%R2_1_SF(:, idxSF)
         end if
     end subroutine compute_convolution_StoF
 
