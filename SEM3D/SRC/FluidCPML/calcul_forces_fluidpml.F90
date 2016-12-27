@@ -394,6 +394,22 @@ contains
         b0(kB120) = k1*k2/k0
         b0(kB021) = k0*k2/k1
         b0(kB012) = k0*k1/k2
+
+        ! (ai-ak)(-di)(ai-aj-dj)/(ai-aj)(ai-ak-dk)
+        b1(kB120) = b0(kB120)*(a1-a0)*d1*(a1-a2-d2)/((a1-a2)*(a1-a0-d0))
+        b1(kB021) = b0(kB021)*(a0-a1)*d0*(a0-a2-d2)/((a0-a2)*(a0-a1-d1))
+        b1(kB012) = b0(kB012)*(a0-a2)*d0*(a0-a1-d1)/((a0-a1)*(a0-a2-d2))
+
+        ! ((aj-ak)(aj-ai-di)(-dj)/(aj-ai)(aj-ak-dk)
+        b2(kB120) = b0(kB120)*(a2-a0)*(a2-a1-d1)*d2/((a2-a1)*(a2-a0-d0))
+        b2(kB021) = b0(kB021)*(a2-a1)*(a2-a0-d0)*d2/((a2-a0)*(a2-a1-d1))
+        b2(kB012) = b0(kB012)*(a1-a2)*(a1-a0-d0)*d1/((a1-a0)*(a1-a2-d2))
+
+        ! (dk)(ak+dk-ai-di)(ak+dk-aj-dj)/(ak+dk-ai)(ak+dk-aj)
+        b3(kB120) = -b0(kB120)*d0*(a0-a1+d0-d1)*(a0-a2+d0-d2)/((a0+d0-a1)*(a0+d0-a2))
+        b3(kB021) = -b0(kB021)*d1*(a1-a0+d1-d0)*(a1-a2+d1-d2)/((a1+d1-a0)*(a1+d1-a2))
+        b3(kB012) = -b0(kB012)*d2*(a2-a0+d2-d0)*(a2-a1+d2-d1)/((a2+d2-a0)*(a2+d2-a0))
+
         stop 1
     end subroutine compute_convolution_terms_3d
 
