@@ -270,9 +270,10 @@ contains
         enddo
     end subroutine forces_int_flu_pml_dim
 
-    subroutine forces_int_flu_pml(dom, champs1, bnum)
+    subroutine forces_int_flu_pml(dom, champs1, bnum, Tdomain)
         type (domain_fluidpml), intent (INOUT) :: dom
         type(champsfluidpml), intent(inout) :: champs1
+        type (domain), intent (INOUT), target :: Tdomain
         integer :: bnum
         !
         call forces_int_flu_pml_dim(dom, champs1, bnum, 0)
