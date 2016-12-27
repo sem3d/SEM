@@ -40,12 +40,20 @@ contains
         a0 = dom%Alpha_SF(0, idxSF)
         d0 = dom%dxi_k_SF(0, idxSF)
         b0 = a0 + d0
-
         b0bar = k0
         b1bar = -b0bar * (-d0)
 
+
+        ! Update convolution terms for R0
+        do r=0,2
+            call cpml_compute_coefs(CPML_INTEG, e0(r), dt, cf0, cf1, cf2)
+            dom%R0_SF(r, idxSF) = cf0*dom%R0_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)
+            call cpml_compute_coefs(CPML_INTEG, e1(r), dt, cf0, cf1, cf2)
+            dom%R1_SF(r, idxSF) = cf0*dom%R1_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)
+        end do
+
         mu(:) =         b0bar(:) * dom%champs(f0)%Depla(idxS, :)
-        mu(:) = mu(:) + b1bar(:) * dom%champs(f0)%Depla(idxS, :) * dom%R2_0_SF(:, idxSF)
+        mu(:) = mu(:) + b1bar(:) * dom%R0_SF(:, idxSF)
 
         ! Convolute the second direction to attenuate (A.20*) from Ref1.
 
@@ -57,7 +65,12 @@ contains
             b0bar = k0 * k1
             b2bar = -b0bar * (-d1) * (a1 - b0) / (a1 - a0) ! TODO : check this is correct
 
-            mu(:) = mu(:) + b2bar(:) * dom%champs(f0)%Depla(idxS, :) * dom%R2_1_SF(:, idxSF)
+            do r=0,2
+                call cpml_compute_coefs(CPML_INTEG, e0(r), dt, cf0, cf1, cf2)
+                dom%R1_SF(r, idxSF) = cf0*dom%R1_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)
+            end do
+
+            mu(:) = mu(:) + b2bar(:) * dom%R1_SF(:, idxSF)
         end if
     end subroutine compute_convolution_StoF
 
