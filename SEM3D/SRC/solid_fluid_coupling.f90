@@ -31,14 +31,10 @@ contains
         !
         real(fpp) :: k0, a0, d0, b0, k1, a1, d1
         real(fpp), dimension(0:2) :: b0bar, b1bar, b2bar
-        integer :: dir0, dir1
 
         mu(0:2) = 1 ! No convolution
 
         ! Convolute the first direction to attenuate (A.20*) from Ref1.
-
-        dir0 = dom%D0_SF(idxSF)
-        if (dir0 == -1) stop "compute_convolution_StoF - invalid dir0"
 
         k0 = dom%Kappa_SF(0, idxSF)
         a0 = dom%Alpha_SF(0, idxSF)
@@ -53,8 +49,7 @@ contains
 
         ! Convolute the second direction to attenuate (A.20*) from Ref1.
 
-        dir1 = dom%D1_SF(idxSF)
-        if (dir1 /= -1) then
+        if (dom%I1_SF(idxSF) /= -1) then
             k1 = dom%Kappa_SF(1, idxSF)
             a1 = dom%Alpha_SF(1, idxSF)
             d1 = dom%dxi_k_SF(1, idxSF)
@@ -90,9 +85,7 @@ contains
         a0 = dom%Alpha_SF(0, idxSF)
         d0 = dom%dxi_k_SF(0, idxSF)
 
-        if (dir1 == -1) then
-            ! Convolute the first direction to attenuate (A.5*) from Ref1.
-
+        if(dom%I1_SF(idxSF) == -1) then ! Attenuate one direction (A.5*) from Ref1.
             a0bar = k0
             a1bar = a0bar * d0
             a2bar = a0bar * d0 * (-a0)
@@ -108,9 +101,7 @@ contains
             nphi(:) = nphi(:) + a1bar * dom%champs(f0)%VelPhi(idxF)
             nphi(:) = nphi(:) + a2bar * dom%champs(f0)%Phi(idxF)
             nphi(:) = nphi(:) + a3bar * dom%R1_SF(0, idxSF)
-        else
-            ! Convolute the second direction to attenuate (A.5*) from Ref1.
-
+        else ! Attenuate two directions (A.5*) from Ref1.
             k1 = dom%Kappa_SF(1, idxSF)
             a1 = dom%Alpha_SF(1, idxSF)
             d1 = dom%dxi_k_SF(1, idxSF)

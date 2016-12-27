@@ -733,6 +733,7 @@ contains
             nS = Tdomain%SF%intSolFluPml%surf0%map(n)
             if (nS == idx) then
                 dom%D0_SF(n) = dom%D0(ee, bnum)
+                dom%I1_SF(n) = dom%I1(ee, bnum)
                 dom%D1_SF(n) = dom%D1(ee, bnum)
 
                 dom%Alpha_SF(0, n) = dom%Alpha_0(ee,   i,j,k,bnum)

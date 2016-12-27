@@ -77,7 +77,7 @@ module mdombase
 
         ! Solid - Fluid coupling
         real(fpp), dimension(:,:), allocatable :: Kappa_SF, Alpha_SF, dxi_k_SF
-        integer, dimension(:), allocatable :: D0_SF, D1_SF
+        integer, dimension(:), allocatable :: D0_SF, D1_SF, I1_SF
     end type dombase_cpml
 contains
 
@@ -139,6 +139,7 @@ contains
         ! huge amount of data that will not be used !
         if (nbtot_SF <= 0) return
         allocate(dom%D0_SF   (     0:nbtot_SF-1))
+        allocate(dom%I1_SF   (     0:nbtot_SF-1))
         allocate(dom%D1_SF   (     0:nbtot_SF-1))
         allocate(dom%Kappa_SF(0:1, 0:nbtot_SF-1))
         allocate(dom%Alpha_SF(0:1, 0:nbtot_SF-1))
@@ -168,6 +169,7 @@ contains
         if(allocated(bz%GlobCoord)) deallocate(bz%GlobCoord)
 
         if(allocated(bz%D0_SF   )) deallocate(bz%D0_SF   )
+        if(allocated(bz%I1_SF   )) deallocate(bz%I1_SF   )
         if(allocated(bz%D1_SF   )) deallocate(bz%D1_SF   )
         if(allocated(bz%Kappa_SF)) deallocate(bz%Kappa_SF)
         if(allocated(bz%Alpha_SF)) deallocate(bz%Alpha_SF)
