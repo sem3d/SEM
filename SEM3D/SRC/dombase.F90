@@ -187,12 +187,12 @@ contains
         class(dombase_cpml) :: dom
         integer :: idxsf, i, j, k, ee, bnum
         !
-        dom%Kappa_SF(0, idxsf) = dom%Kappa_0(ee,i,j,k,          bnum)
-        dom%Kappa_SF(1, idxsf) = dom%Kappa_1(   i,j,k,dom%I1(ee,bnum))
-        dom%Alpha_SF(0, idxsf) = dom%Alpha_0(ee,i,j,k,          bnum)
-        dom%Alpha_SF(1, idxsf) = dom%Alpha_1(   i,j,k,dom%I1(ee,bnum))
-        dom%dxi_k_SF(0, idxsf) = dom%dxi_k_0(ee,i,j,k,          bnum)
-        dom%dxi_k_SF(1, idxsf) = dom%dxi_k_1(   i,j,k,dom%I1(ee,bnum))
+                                    dom%Kappa_SF(0, idxsf) = dom%Kappa_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%Kappa_SF(1, idxsf) = dom%Kappa_1(   i,j,k,dom%I1(ee,bnum))
+                                    dom%Alpha_SF(0, idxsf) = dom%Alpha_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%Alpha_SF(1, idxsf) = dom%Alpha_1(   i,j,k,dom%I1(ee,bnum))
+                                    dom%dxi_k_SF(0, idxsf) = dom%dxi_k_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%dxi_k_SF(1, idxsf) = dom%dxi_k_1(   i,j,k,dom%I1(ee,bnum))
         dom%D0_SF(idxsf) = dom%D0(ee,bnum)
         dom%D1_SF(idxsf) = dom%D1(ee,bnum)
         dom%I1_SF(idxsf) = dom%I1(ee,bnum)
