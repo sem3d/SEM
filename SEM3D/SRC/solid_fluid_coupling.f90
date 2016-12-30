@@ -24,65 +24,131 @@ contains
     ! M_ij = delta_ij . F^-1[s0 s1 s2 / si]
     subroutine compute_convolution_StoF(dom, f0, idxS, idxSF, mu)
         use champs_solidpml
+        use m_calcul_forces_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: f0, idxS, idxSF
         real(fpp), intent(out) :: mu(0:2)
         !
-        real(fpp) :: k0, a0, d0, b0, k1, a1, d1
+        real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1, cf2
         real(fpp), dimension(0:2) :: b0bar, b1bar, b2bar
+        integer :: r
+        integer :: dir0, dir1
+        integer :: Ix, Iy, Iz
 
         mu(0:2) = 1 ! No convolution
 
-        ! Convolute the first direction to attenuate (A.20*) from Ref1.
+        dir0 = dom%D0_SF(idxSF)
+        dir1 = dom%D1_SF(idxSF)
 
         k0 = dom%Kappa_SF(0, idxSF)
         a0 = dom%Alpha_SF(0, idxSF)
         d0 = dom%dxi_k_SF(0, idxSF)
-        b0 = a0 + d0
-        b0bar = k0
-        b1bar = -b0bar * (-d0)
 
+        k1 = dom%Kappa_SF(1, idxSF)
+        a1 = dom%Alpha_SF(1, idxSF)
+        d1 = dom%dxi_k_SF(1, idxSF)
 
         ! Update convolution terms for R0
         do r=0,2
-            call cpml_compute_coefs(CPML_INTEG, e0(r), dt, cf0, cf1, cf2)
-            dom%R0_SF(r, idxSF) = cf0*dom%R0_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)
-            call cpml_compute_coefs(CPML_INTEG, e1(r), dt, cf0, cf1, cf2)
-            dom%R1_SF(r, idxSF) = cf0*dom%R1_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)
+            call cpml_compute_coefs(CPML_INTEG, a0, dom%dt, cf0, cf1, cf2)
+            dom%R_0_SF(r, idxSF) = cf0*dom%R_0_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)&
+                                  +cf2*dom%champs(f0)%Depla(idxS, r)
+
+            call cpml_compute_coefs(CPML_INTEG, a1, dom%dt, cf0, cf1, cf2)
+            if(.not. isclose(a0, a1)) then
+                dom%R_1_SF(r, idxSF) = cf0*dom%R_1_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)&
+                                      +cf2*dom%champs(f0)%Depla(idxS, r)
+            else
+                dom%R_1_SF(r, idxSF) = cf0*dom%R_1_SF(r,idxSF)+cf1*dom%R_0_SF(r, idxSF)&
+                                      +cf2*dom%R_0_SF(r, idxSF)
+            end if
         end do
 
-        mu(:) =         b0bar(:) * dom%champs(f0)%Depla(idxS, :)
-        mu(:) = mu(:) + b1bar(:) * dom%R0_SF(:, idxSF)
+        if (dom%I1_SF(idxSF) == -1) then
+            select case(dir0)
+            case(0)
+                Ix = 0
+                Iy = 1
+                Iz = 2
+            case(1)
+                Ix = 1
+                Iy = 0
+                Iz = 2
+            case(2)
+                Ix = 2
+                Iy = 1
+                Iz = 0
+            case default
+                stop 1
+            end select
 
-        ! Convolute the second direction to attenuate (A.20*) from Ref1.
+            b0bar(Ix) = 1.
+            b0bar(Iy) = k0
+            b0bar(Iz) = k0
+            b1bar(Ix) = 0.
+            b1bar(Iy) = k0*d0
+            b1bar(Iz) = k0*d0
+            b2bar(Ix) = 0.
+            b2bar(Iy) = 0.
+            b2bar(Iz) = 0.
+        else
+            select case(dir0)
+            case(0)
+                Ix = 0
+                if(dir1==1) then
+                    Iy = 1
+                    Iz = 2
+                else
+                    Iy = 2
+                    Iz = 1
+                end if
+            case(1)
+                Ix = 1
+                Iy = 2
+                Iz = 0
+            case default
+                stop 1
+            end select
 
-        if (dom%I1_SF(idxSF) /= -1) then
-            k1 = dom%Kappa_SF(1, idxSF)
-            a1 = dom%Alpha_SF(1, idxSF)
-            d1 = dom%dxi_k_SF(1, idxSF)
-
-            b0bar = k0 * k1
-            b2bar = -b0bar * (-d1) * (a1 - b0) / (a1 - a0) ! TODO : check this is correct
-
-            do r=0,2
-                call cpml_compute_coefs(CPML_INTEG, e0(r), dt, cf0, cf1, cf2)
-                dom%R1_SF(r, idxSF) = cf0*dom%R1_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)
-            end do
-
-            mu(:) = mu(:) + b2bar(:) * dom%R1_SF(:, idxSF)
+            if(.not. isclose(a0, a1)) then
+                b0bar(Ix) = k1    ! F-1(s1)
+                b0bar(Iy) = k0    ! F-1(s0)
+                b0bar(Iz) = k0*k1 ! F-1(s0s1)
+                b1bar(Ix) = 0.
+                b1bar(Iy) = k0*d0
+                b1bar(Iz) = k0*k1*d0*(a0-a1-d1)/(a0-a1)
+                b2bar(Ix) = k1*d1
+                b2bar(Iy) = 0.
+                b2bar(Iz) = k0*k1*d1*(a0-a1+d0)/(a0-a1)
+            else
+                b0bar(Ix) = k1    ! F-1(s1)
+                b0bar(Iy) = k0    ! F-1(s0)
+                b0bar(Iz) = k0*k1 ! F-1(s0s1)
+                b1bar(Ix) = k1*d1
+                b1bar(Iy) = k0*d0
+                b1bar(Iz) = k0*k1*(d0+d1)
+                b2bar(Ix) = 0.
+                b2bar(Iy) = 0.
+                b2bar(Iz) = k0*k1*d0*d1
+            end if
         end if
+
+        mu(:) =         b0bar(:) * dom%champs(f0)%Depla(idxS, :)
+        mu(:) = mu(:) + b1bar(:) * dom%R_0_SF(:, idxSF)
+        mu(:) = mu(:) + b2bar(:) * dom%R_1_SF(:, idxSF)
     end subroutine compute_convolution_StoF
 
     ! N_ij = delta_ij . F^-1[-w^2 s0 s1 s2 / si]
     subroutine compute_convolution_FtoS(dom, f0, idxF, idxSF, nphi)
         use champs_fluidpml
+        use m_calcul_forces_fluidpml
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
         integer, intent(in) :: f0, idxF, idxSF
         real(fpp), intent(out) :: nphi(0:2)
         !
-        real(fpp) :: k0, a0, d0, k1, a1, d1
+        real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1, cf2
         real(fpp), dimension(0:2) :: a0bar, a1bar, a2bar, a3bar, a4bar
         real(fpp) :: AccPhi
         integer :: dir0, dir1
@@ -90,31 +156,34 @@ contains
 
         nphi(0:2) = 1 ! No convolution
 
+        ! Convolute the first direction to attenuate (A.5*) from Ref1.
+
         dir0 = dom%D0_SF(idxSF)
-        if (dir0 == -1) stop "compute_convolution_FtoS - invalid dir0"
         dir1 = dom%D1_SF(idxSF)
 
         k0 = dom%Kappa_SF(0, idxSF)
         a0 = dom%Alpha_SF(0, idxSF)
         d0 = dom%dxi_k_SF(0, idxSF)
 
-        if(dom%I1_SF(idxSF) == -1) then ! Attenuate one direction (A.5*) from Ref1.
-            a0bar = k0
-            a1bar = a0bar * d0
-            a2bar = a0bar * d0 * (-a0)
-            a3bar = a0bar * a0**2 * d0
+        a0bar = k0
+        a1bar = a0bar * d0
+        a2bar = a0bar * d0 * (-a0)
+        a3bar = a0bar * a0**2 * d0
+        a4bar = 0.
 
-            a0bar(dir0) = 0.
-            a1bar(dir0) = 0.
-            a2bar(dir0) = 0.
-            a3bar(dir0) = 0.
+        a0bar(dir0) = 0.
+        a1bar(dir0) = 0.
+        a2bar(dir0) = 0.
+        a3bar(dir0) = 0.
 
-            AccPhi = dom%champs(f0)%ForcesFl(idxF) * dom%MassMat(idxF)
-            nphi(:) =           a0bar * AccPhi
-            nphi(:) = nphi(:) + a1bar * dom%champs(f0)%VelPhi(idxF)
-            nphi(:) = nphi(:) + a2bar * dom%champs(f0)%Phi(idxF)
-            nphi(:) = nphi(:) + a3bar * dom%R1_SF(0, idxSF)
-        else ! Attenuate two directions (A.5*) from Ref1.
+        ! Update convolution terms for R0
+        call cpml_compute_coefs(CPML_INTEG, a0, dom%dt, cf0, cf1, cf2)
+        dom%R_0_SF(idxSF) = cf0*dom%R_0_SF(idxSF)+cf1*dom%champs(f0)%Phi(idxF)&
+                           +cf2*dom%champs(f0)%Phi(idxF)
+
+        ! Convolute the second direction to attenuate (A.5*) from Ref1.
+
+        if(dom%I1_SF(idxSF) /= -1) then
             k1 = dom%Kappa_SF(1, idxSF)
             a1 = dom%Alpha_SF(1, idxSF)
             d1 = dom%dxi_k_SF(1, idxSF)
@@ -154,8 +223,19 @@ contains
             a4bar(Is1)   = a0bar(Is1)   * a0 ** 2 * d0
             a4bar(Is0s1) = a0bar(Is0s1) * a1 ** 2 * d1 * (a0 - a1 + d0) / (a0 - a1)
 
-            nphi(:) = nphi(:) + a4bar * dom%R1_SF(1, idxSF)
+            ! Update convolution terms for R1
+            call cpml_compute_coefs(CPML_INTEG, a1, dom%dt, cf0, cf1, cf2)
+            dom%R_1_SF(idxSF) = cf0*dom%R_1_SF(idxSF)+cf1*dom%champs(f0)%Phi(idxF)&
+                               +cf2*dom%champs(f0)%Phi(idxF)
+
         end if
+
+        AccPhi = dom%champs(f0)%ForcesFl(idxF) * dom%MassMat(idxF)
+        nphi(:) =           a0bar * AccPhi
+        nphi(:) = nphi(:) + a1bar * dom%champs(f0)%VelPhi(idxF)
+        nphi(:) = nphi(:) + a2bar * dom%champs(f0)%Phi(idxF)
+        nphi(:) = nphi(:) + a3bar * dom%R_0_SF(idxSF)
+        nphi(:) = nphi(:) + a4bar * dom%R_1_SF(idxSF)
     end subroutine compute_convolution_FtoS
 
 #endif

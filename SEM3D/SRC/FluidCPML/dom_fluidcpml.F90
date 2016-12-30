@@ -124,7 +124,10 @@ contains
 
         nbtot_SF = Tdomain%SF%intSolFluPml%surf0%nbtot
         call allocate_dombase_cpml(dom, nbtot_SF)
-        if (nbtot_SF >= 0) allocate(dom%R1_SF(0:1, 0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R_0_SF(0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R_1_SF(0:nbtot_SF-1))
+        dom%R_0_SF = 0.
+        dom%R_1_SF = 0.
     end subroutine allocate_dom_fluidpml
 
     subroutine deallocate_dom_fluidpml (dom)
@@ -137,7 +140,8 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
 
         call deallocate_dombase_cpml(dom)
-        if (allocated(dom%R1_SF)) deallocate(dom%R1_SF)
+        if (allocated(dom%R_0_SF)) deallocate(dom%R_0_SF)
+        if (allocated(dom%R_1_SF)) deallocate(dom%R_1_SF)
 
         do i=0,1
             if(allocated(dom%champs(i)%ForcesFl)) deallocate(dom%champs(i)%ForcesFl)
@@ -650,26 +654,6 @@ contains
         dom%MasUMat(ind) = dom%MasUMat(ind) + a2b*mass_0
     end subroutine init_local_mass_fluidpml
 
-
-    subroutine init_solid_fluid_coupling()
-
-        call get_surface_numbering(surf0, renum)
-        ! renum(idom) gives n such that surf0%map(n) = idom
-        do el=0,nelem-1
-            do i=0,ngll-1
-                do j=0,ngll-1
-                    do k=0,ngll-1
-                        idxsf = renum(specel(el)%Idom(i,j,k))
-                        if (idxsf==-1) cycle
-                        dom%Kappa_SF(idxsf) = dom%Kappa_0(el,i,j,k)
-                        ! Better :
-                        ! compute directly here b0bar, b1bar, b2bar, alpha0, alpha1
-                    end do
-                end do
-            end do
-        end do
-    end subroutine init_solid_fluid_coupling
-
     subroutine forces_int_flu_pml(dom, champs1, bnum, Tdomain)
         use m_calcul_forces_fluidpml
         type(domain_fluidpml), intent (INOUT) :: dom
@@ -732,11 +716,41 @@ contains
     end subroutine pred_flu_pml
 
     subroutine finalize_fluidpml_properties(Tdomain,dom)
-      type (domain), intent (INOUT), target :: Tdomain
-      type (domain_fluidpml), intent (INOUT), target :: dom
-      !
-      ! TODO : kill (needed for compatibility - build)
+        type (domain), intent (INOUT), target :: Tdomain
+        type (domain_fluidpml), intent (INOUT), target :: dom
+        !
+        call init_fluid_solid_coupling(Tdomain, dom)
     end subroutine finalize_fluidpml_properties
+
+    subroutine init_fluid_solid_coupling(Tdomain, dom)
+        use mrenumber, only : get_surface_numbering
+        implicit none
+        type (domain), intent (INOUT), target :: Tdomain
+        type (domain_fluidpml), intent (INOUT), target :: dom
+        !
+        integer, dimension(:), allocatable :: renum ! renum(idom) gives n such that surf0%map(n) = idom
+        integer :: ngll, el, i, j, k, idxsf, ee, bnum
+
+        ngll = dom%ngll
+        call get_surface_numbering(Tdomain, Tdomain%SF%intSolFluPML%surf1, DM_FLUID_PML, renum)
+        do el=0,Tdomain%n_elem-1
+            if (Tdomain%specel(el)%domain /= DM_FLUID_PML) cycle
+            do i=0,ngll-1
+                do j=0,ngll-1
+                    do k=0,ngll-1
+                        idxsf = renum(Tdomain%specel(el)%Idom(i,j,k))
+                        if (idxsf==-1) cycle
+                        bnum = Tdomain%specel(el)%lnum/VCHUNK
+                        ee = mod(Tdomain%specel(el)%lnum,VCHUNK)
+                        call setup_dombase_cpml(dom, idxsf, i, j, k, ee, bnum)
+                        ! Better :
+                        ! compute directly here b0bar, b1bar, b2bar, alpha0, alpha1
+                    end do
+                end do
+            end do
+        end do
+        deallocate(renum)
+    end subroutine init_fluid_solid_coupling
 
     subroutine init_fluidpml_properties(Tdomain,specel,mat)
         type (domain), intent (INOUT), target :: Tdomain

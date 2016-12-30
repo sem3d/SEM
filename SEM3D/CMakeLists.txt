@@ -23,6 +23,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
     ${PRJ}/SRC/Modules/Nonlinear.f90
+    ${PRJ}/SRC/indexation.f90
+    ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/partial_deriv.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/Capteur.f90
@@ -48,7 +50,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
-    ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/mesh3d.f90
     ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/read_restart.f90
@@ -60,7 +61,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/find_location.f90
     ${PRJ}/SRC/charFunctions.f90
 
-    ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90
     ${PRJ}/SRC/source_excit.F90
 #    ${PRJ}/SRC/boundary_conditions_init.f90

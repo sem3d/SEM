@@ -121,39 +121,53 @@ contains
 
         ngll = dom%ngll
 
-        if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
+        if(.not. allocated(phi))    allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    ind = dom%Idom_(i,j,k,bnum,ee)
+                    phi(i,j,k) = dom%champs(0)%Phi(ind)
+                enddo
+            enddo
+        enddo
+        if(.not. allocated(vphi))   allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    ind = dom%Idom_(i,j,k,bnum,ee)
+                    vphi(i,j,k) = dom%champs(0)%VelPhi(ind)
+                enddo
+            enddo
+        enddo
+        if (out_variables(OUT_DEPLA) == 1) then
             if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-            fieldU(:,:,:,:) = 0d0
+#ifdef CPML
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                 dom%IDensity_(:,:,:,bnum,ee),phi,fieldU)
+#else
+            fieldU(:,:,:,:) = 0.
+#endif
         end if
 
         if (out_variables(OUT_VITESSE) == 1) then
             if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-            if(.not. allocated(phi))    allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
-            do k=0,ngll-1
-                do j=0,ngll-1
-                    do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,bnum,ee)
-                        phi(i,j,k) = dom%champs(0)%Phi(ind)
-                    enddo
-                enddo
-            enddo
+#ifdef CPML
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                 dom%IDensity_(:,:,:,bnum,ee),vphi,fieldV)
+#else
             call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                  dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
+#endif
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
             if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-            if(.not. allocated(vphi))   allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
-            do k=0,ngll-1
-                do j=0,ngll-1
-                    do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,bnum,ee)
-                        vphi(i,j,k) = dom%champs(0)%VelPhi(ind)
-                    enddo
-                enddo
-            enddo
+#ifdef CPML
+            fieldA(:,:,:,:) = 0.
+#else
             call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                  dom%IDensity_(:,:,:,bnum,ee),vphi,fieldA)
+#endif
         end if
 
         if (out_variables(OUT_PRESSION) == 1) then
@@ -162,7 +176,11 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
+#ifdef CPML
+                        fieldP(i,j,k) = -dom%champs(0)%ForcesFl(ind)
+#else
                         fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
+#endif
                     enddo
                 enddo
             enddo
@@ -257,7 +275,7 @@ contains
 
         ! Fluid : inertial term ponderation by the inverse of the bulk modulus
 
-        specel%MassMat(i,j,k) = Whei*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
+        specel%MassMat(i,j,k) = Whei*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluid
 

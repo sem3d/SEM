@@ -144,6 +144,12 @@ contains
         allocate(dom%Kappa_SF(0:1, 0:nbtot_SF-1))
         allocate(dom%Alpha_SF(0:1, 0:nbtot_SF-1))
         allocate(dom%dxi_k_SF(0:1, 0:nbtot_SF-1))
+        dom%D0_SF =  0
+        dom%I1_SF = -1
+        dom%D1_SF =  0
+        dom%Kappa_SF = 0.
+        dom%Alpha_SF = 0.
+        dom%dxi_k_SF = 0.
     end subroutine allocate_dombase_cpml
 
     subroutine deallocate_dombase_cpml(bz)
@@ -175,6 +181,22 @@ contains
         if(allocated(bz%Alpha_SF)) deallocate(bz%Alpha_SF)
         if(allocated(bz%dxi_k_SF)) deallocate(bz%dxi_k_SF)
     end subroutine deallocate_dombase_cpml
+
+    subroutine setup_dombase_cpml(dom, idxsf, i, j, k, ee, bnum)
+        implicit none
+        class(dombase_cpml) :: dom
+        integer :: idxsf, i, j, k, ee, bnum
+        !
+                                    dom%Kappa_SF(0, idxsf) = dom%Kappa_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%Kappa_SF(1, idxsf) = dom%Kappa_1(   i,j,k,dom%I1(ee,bnum))
+                                    dom%Alpha_SF(0, idxsf) = dom%Alpha_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%Alpha_SF(1, idxsf) = dom%Alpha_1(   i,j,k,dom%I1(ee,bnum))
+                                    dom%dxi_k_SF(0, idxsf) = dom%dxi_k_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%dxi_k_SF(1, idxsf) = dom%dxi_k_1(   i,j,k,dom%I1(ee,bnum))
+        dom%D0_SF(idxsf) = dom%D0(ee,bnum)
+        dom%D1_SF(idxsf) = dom%D1(ee,bnum)
+        dom%I1_SF(idxsf) = dom%I1(ee,bnum)
+    end subroutine setup_dombase_cpml
 end module mdombase
 
 !! Local Variables:
