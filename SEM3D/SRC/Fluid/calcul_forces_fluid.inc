@@ -18,8 +18,7 @@
 
 #define USE_LOCAL_MEM
 
-subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_IDensity,FFl,Phi)
-    use sdomain
+subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_IDensity,m_Lambda,FFl,Phi)
     use deriv3d
     implicit none
 
@@ -34,7 +33,7 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
     real(fpp), dimension(0:ngll-1), intent(in) :: gllw
     real(fpp), dimension(IND_MNIJKE(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_InvGrad
     real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_Jacob
-    real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_IDensity
+    real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_IDensity, m_Lambda
     !
     real(fpp) :: dPhi_dX,dPhi_dY,dPhi_dZ
     real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
@@ -182,7 +181,7 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
                 ! FX
                 F1 = F1 + t61*t13
                 !
-                FFl(ee,i,j,k) = F1
+                FFl(ee,i,j,k) = F1*m_Lambda(ee,i,j,k,bnum)
                 !=-=-=-=-=-=-=-=-=-=-
                 END_SUBELEM_LOOP()
             enddo
