@@ -61,7 +61,7 @@ module champs_solidpml
         real(fpp), dimension(:,:), allocatable :: FDump, FMasU, Fint
 
         ! Solid - Fluid coupling
-        real(fpp), dimension(:,:), allocatable :: R2_0_SF, R2_1_SF
+        real(fpp), dimension(:,:), allocatable :: R_0_SF, R_1_SF
     end type domain_solidpml
 
     contains

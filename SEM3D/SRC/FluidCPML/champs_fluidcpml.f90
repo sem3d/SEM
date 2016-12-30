@@ -57,7 +57,7 @@ module champs_fluidpml
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: DPhiOld
 
         ! Solid - Fluid coupling
-        real(fpp), dimension(:,:), allocatable :: R1_SF
+        real(fpp), dimension(:), allocatable :: R_0_SF, R_1_SF
     end type domain_fluidpml
 
     contains

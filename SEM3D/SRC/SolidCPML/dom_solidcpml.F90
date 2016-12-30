@@ -145,8 +145,10 @@ contains
 
         nbtot_SF = Tdomain%SF%intSolFluPml%surf0%nbtot
         call allocate_dombase_cpml(dom, nbtot_SF)
-        if (nbtot_SF >= 0) allocate(dom%R2_0_SF(0:2, 0:nbtot_SF-1))
-        if (nbtot_SF >= 0) allocate(dom%R2_1_SF(0:2, 0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R_0_SF(0:2, 0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R_1_SF(0:2, 0:nbtot_SF-1))
+        dom%R_0_SF = 0.
+        dom%R_1_SF = 0.
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
@@ -160,8 +162,8 @@ contains
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
         call deallocate_dombase_cpml(dom)
-        if (allocated(dom%R2_0_SF)) deallocate(dom%R2_0_SF)
-        if (allocated(dom%R2_1_SF)) deallocate(dom%R2_1_SF)
+        if (allocated(dom%R_0_SF)) deallocate(dom%R_0_SF)
+        if (allocated(dom%R_1_SF)) deallocate(dom%R_1_SF)
 
         do i=0,1
             if(allocated(dom%champs(i)%Depla )) deallocate(dom%champs(i)%Depla )
@@ -705,61 +707,11 @@ contains
 !                        if (i==1.and.j==0.and.k==0.and.bnum==1.and.ee==0) then
 !                            write(*,*) kijk, Rx, Ry, Rz, Fox(ee,i,j,k), Foy(ee,i,j,k), Foz(ee,i,j,k)
 !                        end if
-#ifdef CPML
-                         call save_StoF(ee, bnum, i, j, k, idx, dom, Tdomain)
-#endif
                     enddo
                 enddo
             enddo
         enddo
     end subroutine forces_int_sol_pml
-
-#ifdef CPML
-    ! TODO : rewrite this another way ! For now, this should enable SF coupling to "work"... Unless NOT efficient (vecto KO) !...
-    ! Problem :
-    ! 1. in the domain, alpha, kappa, dxi are stored per element (ee, bnum) and per local gll (i,j,k)
-    ! 2. in the coupling, we have lost (ee, bnum) and (i, j, k) but we have a mapping between local SF index (n) and global gll (idx)
-    ! Solution :
-    ! For now, loop over SF interface, if idx == nS then save (ee, bnum, i, j, k -> nS)
-    subroutine save_StoF(ee, bnum, i, j, k, idx, dom, Tdomain)
-        use m_calcul_forces_solidpml
-        implicit none
-        integer, intent(in) :: ee, bnum, i, j, k, idx
-        type(domain_solidpml), intent(inout) :: dom
-        type (domain), intent (INOUT), target :: Tdomain
-        !
-        integer :: n, nS
-        integer :: i1
-
-        do n = 0, Tdomain%SF%intSolFluPml%surf0%nbtot-1
-            nS = Tdomain%SF%intSolFluPml%surf0%map(n)
-            if (nS == idx) then
-                dom%D0_SF(n) = dom%D0(ee, bnum)
-                dom%I1_SF(n) = dom%I1(ee, bnum)
-                dom%D1_SF(n) = dom%D1(ee, bnum)
-
-                dom%Alpha_SF(0, n) = dom%Alpha_0(ee,    i,j,k,bnum)
-                dom%Kappa_SF(0, n) = dom%Kappa_0(ee,    i,j,k,bnum)
-                dom%dxi_k_SF(0, n) = dom%dxi_k_0(ee,    i,j,k,bnum)
-                dom%R2_0_SF (0, n) = dom%R2_0   (ee,DXX,i,j,k,bnum)
-                dom%R2_0_SF (1, n) = dom%R2_0   (ee,DYY,i,j,k,bnum)
-                dom%R2_0_SF (2, n) = dom%R2_0   (ee,DZZ,i,j,k,bnum)
-
-                i1 = dom%I1(ee, bnum)
-                if(i1 .ne. -1) then
-                    dom%Alpha_SF(1, n) = dom%Alpha_1(    i,j,k,i1)
-                    dom%Kappa_SF(1, n) = dom%Kappa_1(    i,j,k,i1)
-                    dom%dxi_k_SF(1, n) = dom%dxi_k_1(    i,j,k,i1)
-                    dom%R2_1_SF (0, n) = dom%R2_1   (DXX,i,j,k,i1)
-                    dom%R2_1_SF (1, n) = dom%R2_1   (DYY,i,j,k,i1)
-                    dom%R2_1_SF (2, n) = dom%R2_1   (DZZ,i,j,k,i1)
-                end if
-
-                return ! Done : get out
-            end if
-        end do
-    end subroutine save_StoF
-#endif
 
     subroutine init_solidpml_properties(Tdomain,specel,mat)
         type (domain), intent (INOUT), target :: Tdomain
@@ -773,8 +725,38 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type (domain_solidpml), intent (INOUT), target :: dom
         !
-        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
+        call init_solid_fluid_coupling(Tdomain, dom)
     end subroutine finalize_solidpml_properties
+
+    subroutine init_solid_fluid_coupling(Tdomain, dom)
+        use mrenumber, only : get_surface_numbering
+        implicit none
+        type (domain), intent (INOUT), target :: Tdomain
+        type (domain_solidpml), intent (INOUT), target :: dom
+        !
+        integer, dimension(:), allocatable :: renum ! renum(idom) gives n such that surf0%map(n) = idom
+        integer :: ngll, el, i, j, k, idxsf, ee, bnum
+
+        ngll = dom%ngll
+        call get_surface_numbering(Tdomain, Tdomain%SF%intSolFlu%surf0, DM_SOLID_PML, renum)
+        do el=0,Tdomain%n_elem-1
+            if (Tdomain%specel(el)%domain /= DM_SOLID_PML) cycle
+            do i=0,ngll-1
+                do j=0,ngll-1
+                    do k=0,ngll-1
+                        idxsf = renum(Tdomain%specel(el)%Idom(i,j,k))
+                        if (idxsf==-1) cycle
+                        bnum = Tdomain%specel(el)%lnum/VCHUNK
+                        ee = mod(Tdomain%specel(el)%lnum,VCHUNK)
+                        call setup_dombase_cpml(dom, idxsf, i, j, k, ee, bnum)
+                        ! Better :
+                        ! compute directly here b0bar, b1bar, b2bar, alpha0, alpha1
+                    end do
+                end do
+            end do
+        end do
+        deallocate(renum)
+    end subroutine init_solid_fluid_coupling
 
     subroutine select_terms(a1,a2,a3,t,t1,t2,t3)
         real(fpp), intent(in)  :: a1, a2, a3, t
