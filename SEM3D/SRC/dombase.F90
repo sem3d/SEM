@@ -144,6 +144,12 @@ contains
         allocate(dom%Kappa_SF(0:1, 0:nbtot_SF-1))
         allocate(dom%Alpha_SF(0:1, 0:nbtot_SF-1))
         allocate(dom%dxi_k_SF(0:1, 0:nbtot_SF-1))
+        dom%D0_SF =  0
+        dom%I1_SF = -1
+        dom%D1_SF =  0
+        dom%Kappa_SF = 0.
+        dom%Alpha_SF = 0.
+        dom%dxi_k_SF = 0.
     end subroutine allocate_dombase_cpml
 
     subroutine deallocate_dombase_cpml(bz)
