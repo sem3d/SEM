@@ -738,7 +738,7 @@ contains
         integer :: ngll, el, i, j, k, idxsf, ee, bnum
 
         ngll = dom%ngll
-        call get_surface_numbering(Tdomain, Tdomain%SF%intSolFlu%surf0, DM_SOLID_PML, renum)
+        call get_surface_numbering(Tdomain, Tdomain%SF%intSolFluPML%surf0, DM_SOLID_PML, renum)
         do el=0,Tdomain%n_elem-1
             if (Tdomain%specel(el)%domain /= DM_SOLID_PML) cycle
             do i=0,ngll-1
