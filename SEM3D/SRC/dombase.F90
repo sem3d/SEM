@@ -196,7 +196,7 @@ contains
         dom%D0_SF(idxsf) = dom%D0(ee,bnum)
         dom%D1_SF(idxsf) = dom%D1(ee,bnum)
         dom%I1_SF(idxsf) = dom%I1(ee,bnum)
-    end subroutine
+    end subroutine setup_dombase_cpml
 end module mdombase
 
 !! Local Variables:
