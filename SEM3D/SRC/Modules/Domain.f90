@@ -294,7 +294,6 @@ contains
 
     subroutine map_surface_faces_to_elem(Tdomain, ngll, surf, renum, map)
         use mindex, only : ind_elem_face, face_def
-        use mrenumber, only : get_surface_numbering
         type(domain), intent(in) :: Tdomain
         type(surf_num), intent(in) :: surf
         integer, intent(in) :: ngll
