@@ -36,7 +36,7 @@ contains
         integer :: dir0, dir1
         integer :: Ix, Iy, Iz
 
-        mu(0:2) = 1 ! No convolution
+        mu(0:2) = 0 ! No convolution
 
         dir0 = dom%D0_SF(idxSF)
         dir1 = dom%D1_SF(idxSF)
@@ -154,7 +154,7 @@ contains
         integer :: dir0, dir1
         integer :: Is0, Is1, Is0s1
 
-        nphi(0:2) = 1 ! No convolution
+        nphi(0:2) = 0 ! No convolution
 
         ! Convolute the first direction to attenuate (A.5*) from Ref1.
 
