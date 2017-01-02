@@ -178,18 +178,17 @@ contains
             call add_surface_force(Tdomain,0,1)
         endif
         !- solid -> fluid coupling (normal dot velocity)
+        call Newmark_Corrector_S(Tdomain)
         if(Tdomain%logicD%SF_local_present)then
             call StoF_coupling(Tdomain,0,1)
         end if
 
         !- correction phase
         call Newmark_Corrector_F(Tdomain)
-
         if(Tdomain%logicD%SF_local_present)then
             !- fluid -> solid coupling (pressure times velocity)
             call FtoS_coupling(Tdomain,0,1)
         end if
-        call Newmark_Corrector_S(Tdomain)
 
         if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
