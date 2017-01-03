@@ -270,7 +270,7 @@ subroutine StoF_coupling(Tdomain, f0, f1)
         do j = 0,2
 #ifdef CPML
             Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) &
-                                                     + (BtN(j) * Tdomain%sdom%champs(f0)%Forces(idxS,j))
+                                                     + (BtN(j) * Tdomain%sdom%champs(f0)%Depla(idxS,j))
 #else
             Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) &
                                                      + (BtN(j) * Tdomain%sdom%champs(f0)%Veloc(idxS,j))
