@@ -21,25 +21,25 @@ contains
         select case(ngll)
         case(4)
             call calcul_forces_fluid_4(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,dom%m_Lambda,FFl,Phi)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case(5)
             call calcul_forces_fluid_5(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,dom%m_Lambda,FFl,Phi)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case (6)
             call calcul_forces_fluid_6(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,dom%m_Lambda,FFl,Phi)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case (7)
             call calcul_forces_fluid_7(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,dom%m_Lambda,FFl,Phi)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case (8)
             call calcul_forces_fluid_8(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,dom%m_Lambda,FFl,Phi)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case (9)
             call calcul_forces_fluid_9(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,dom%m_Lambda,FFl,Phi)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case default
             call calcul_forces_fluid_n(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,dom%m_Lambda,FFl,Phi)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         end select
     end subroutine calcul_forces_fluid
 
