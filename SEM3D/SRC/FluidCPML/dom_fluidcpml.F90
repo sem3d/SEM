@@ -39,17 +39,17 @@ contains
         !
 
         ngll   = dom%ngll
+        if (ngll == 0) return ! Domain doesn't exist anywhere
+        call cpml_reorder_elements(Tdomain, dom, DM_FLUID_PML)
         nbelem = dom%nbelem
         write(*,*) "DOM_fluidpml ngll   = ", ngll
         write(*,*) "DOM_fluidpml nbelem = ", nbelem
-        if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
         call cpml_allocate_multi_dir(Tdomain, dom, DM_FLUID_PML)
         dir1_count = dom%dir1_count
         dir2_count = dom%dir2_count
-        write(*,*) "ALLOCATE:", dir1_count, dir2_count
         if (dir1_count>0) then
             allocate(dom%R1_1(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
             allocate(dom%R2_1(0:3, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))

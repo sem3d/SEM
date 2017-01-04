@@ -166,6 +166,73 @@ contains
         end do
     end subroutine copy_cpml_coordinates
 
+    subroutine cpml_reorder_elements(Tdomain, dom, dmtype)
+        use sdomain
+        use gll3d
+        implicit none
+        type(domain) :: TDomain
+        class(dombase_cpml), intent (INOUT) :: dom
+        integer, intent(in) :: dmtype
+        !
+        integer, allocatable, dimension(:) :: types
+        integer :: dir1_count, dir2_count, ndir, mi, n, dir, num, itype, lnum
+        dir1_count = 0
+        dir2_count = 0
+        !
+        allocate(types(0:Tdomain%n_elem-1))
+        !
+        ! We sort elements according to PML attenuation direction, and associate a type :
+        ! Type=0 PML attenuation in X only
+        ! Type=1 PML attenuation in Y only
+        ! Type=2 PML attenuation in Z only
+        ! Type=3 all other
+        ! We also count the number of elements with 2 or 3 attenuating directions
+        types = -1
+        do n=0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%domain/=dmtype) cycle
+            ndir = 0
+            dir = -1
+            mi = Tdomain%specel(n)%mat_index
+            if (Tdomain%sSubDomain(mi)%pml_width(0)/=0d0) then
+                ndir = ndir + 1
+                dir = 0
+            endif
+            if (Tdomain%sSubDomain(mi)%pml_width(1)/=0d0) then
+                ndir = ndir + 1
+                dir = 1
+            endif
+            if (Tdomain%sSubDomain(mi)%pml_width(2)/=0d0) then
+                ndir = ndir + 1
+                dir = 2
+            endif
+            if (ndir==1) then
+                types(n) = dir
+            else
+                types(n) = 3
+            end if
+            if (ndir>=2) dir1_count = dir1_count + 1
+            if (ndir>=3) dir2_count = dir2_count + 1
+        end do
+        ! Now renumber elements according to their type
+!        num = 0
+!        do itype=0,3
+!            ! Skip num to the next VCHUNK
+!            num = VCHUNK*((num+VCHUNK-1)/VCHUNK)
+!            do n=0,Tdomain%n_elem-1
+!                if (types(n)/=itype) cycle
+!                write(*,*) Tdomain%specel(n)%lnum, "->", num
+!                Tdomain%specel(n)%lnum = num
+!                num = num+1
+!            end do
+!        end do
+!        if (dom%nbelem /= num) stop 1
+!        ! Cheat dom%nelem so we allocate all chunks correctly
+!        dom%nbelem = num
+        dom%dir1_count = dir1_count
+        dom%dir2_count = dir2_count
+        deallocate(types)
+    end subroutine cpml_reorder_elements
+
     subroutine cpml_allocate_multi_dir(Tdomain, dom, dmtype)
         use sdomain
         use gll3d
@@ -174,35 +241,22 @@ contains
         class(dombase_cpml), intent (INOUT) :: dom
         integer, intent(in) :: dmtype
         !
-        integer :: dir1_count, dir2_count, ndir, mi, n, ngll
-        dir1_count = 0
-        dir2_count = 0
+        integer :: dir1_count, dir2_count, ngll
         ngll = dom%ngll
-        do n=0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=dmtype) cycle
-            ndir = 0
-            mi = Tdomain%specel(n)%mat_index
-            if (Tdomain%sSubDomain(mi)%pml_width(0)/=0d0) ndir = ndir + 1
-            if (Tdomain%sSubDomain(mi)%pml_width(1)/=0d0) ndir = ndir + 1
-            if (Tdomain%sSubDomain(mi)%pml_width(2)/=0d0) ndir = ndir + 1
-            if (ndir>=2) dir1_count = dir1_count + 1
-            if (ndir>=3) dir2_count = dir2_count + 1
-        end do
+        dir1_count = dom%dir1_count
+        dir2_count = dom%dir2_count
         write(*,*) "Allocating: PML-N1:", dir1_count
         write(*,*) "Allocating: PML-N2:", dir2_count
         if (dir1_count>0) then
             allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%dxi_k_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
-
         endif
         if (dir2_count>0) then
             allocate(dom%Alpha_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%Kappa_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
             allocate(dom%dxi_k_2(0:ngll-1,0:ngll-1,0:ngll-1,0:dir2_count-1))
         end if
-        dom%dir1_count = dir1_count
-        dom%dir2_count = dir2_count
     end subroutine cpml_allocate_multi_dir
 
     subroutine compute_dxi_alpha_kappa(dom, xi, L, wpml, Pspeed, alpha, kappa, dxi)

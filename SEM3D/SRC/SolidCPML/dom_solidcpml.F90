@@ -46,8 +46,9 @@ contains
         !
 
         ngll   = dom%ngll
-        nbelem = dom%nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
+        call cpml_reorder_elements(Tdomain, dom, DM_SOLID_PML)
+        nbelem = dom%nbelem
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
