@@ -288,6 +288,180 @@ contains
         isclose = abs(a-b)<SMALLFPP
     end function isclose
 
+    subroutine get_coefs_L_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: a3b, a4b, a5b
+        !
+        real(fpp) :: k
+        k = k0*k1*k2
+        a3b = k*a0*a0*d0*(d1+a1-a0)*(d2+a2-a0)/((a1-a0)*(a2-a0))
+        a4b = k*a1*a1*d1*(d0+a0-a1)*(d2+a2-a1)/((a0-a1)*(a2-a1))
+        a5b = k*a2*a2*d2*(d0+a0-a2)*(d1+a1-a2)/((a0-a2)*(a1-a2))
+    end subroutine get_coefs_L_abc
+
+    subroutine get_coefs_L_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: a3b, a4b, a5b
+        !
+        real(fpp) :: k
+        k = k0*k1*k2
+        a3b = k*a0*(a0**3*d0 + a0**3*d2 - 2*a0**2*a1*d0 - 2*a0**2*a1*d2 - a0**2*d0*d1 &
+            - 2*a0**2*d0*d2 - a0**2*d1*d2 + a0*a1**2*d0 + a0*a1**2*d2 + a0*a1*d0*d1 &
+            + 4*a0*a1*d0*d2 + a0*a1*d1*d2 + a0*d0*d1*d2 - 2*a1**2 *d0*d2 - 2*a1*d0*d1*d2)/(a0 - a1)**2
+        a4b = k*a1**2*d1*( a0 - a1 + d0)*(a0 - a1 + d2)/(a0 - a1)**2
+        a5b = k*a0**2*d0*d2*(a0 - a1 - d1)/(a0 - a1)
+    end subroutine get_coefs_L_aba
+
+    subroutine get_coefs_L_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: a3b, a4b, a5b
+        !
+        real(fpp) :: k
+        k = k0*k1*k2
+        a3b = k*a0*(a0**3*d0 + a0**3*d1 - 2*a0**2*a2*d0 - 2*a0**2*a2*d1 - 2*a0**2 *d0*d1 &
+            - a0**2*d0*d2 - a0**2*d1*d2 + a0*a2**2*d0 + a0*a2**2*d1 + 4*a0*a2*d0*d1 + a0*a2*d0*d2 &
+            + a0*a2*d1*d2 + a0*d0*d1*d2 - 2*a2**2 *d0*d1 - 2*a2*d0*d1*d2)/(a0 - a2)**2
+        a4b = k*a0**2*d0*d1*(a0 - a2 - d2)/(a0 - a2)
+        a5b = k*a2**2*d2*( a0 - a2 + d0)*(a0 - a2 + d1)/(a0 - a2)**2
+    end subroutine get_coefs_L_aac
+
+    subroutine get_coefs_L_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: a3b, a4b, a5b
+        !
+        real(fpp) :: k
+        k = k0*k1*k2
+        a3b = k*a0**2*d0*(a0 - a1 - d1)*(a0 - a1 - d2)/(a0 - a1)**2
+        a4b = k* a1*(a0**2*a1*d1 + a0**2*a1*d2 - 2*a0**2*d1*d2 - 2*a0*a1**2*d1 &
+            - 2*a0*a1**2*d2 + a0*a1*d0*d1 + a0*a1*d0*d2 + 4*a0*a1*d1*d2 &
+            - 2*a0*d0*d1*d2 + a1**3*d1 + a1**3*d2 - a1**2*d0*d1 - a1**2 *d0*d2 &
+            - 2*a1**2*d1*d2 + a1*d0*d1*d2)/(a0 - a1)**2
+        a5b = k*a1**2*d1*d2*(a0 - a1 + d0)/(a0 - a1)
+    end subroutine get_coefs_L_abb
+
+    subroutine get_coefs_L_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: a3b, a4b, a5b
+        !
+        real(fpp) :: k
+        k = k0*k1*k2
+        a3b = k*(a0**2*d0 + a0**2*d1 + a0**2*d2 - 2*a0*d0*d1 - 2*a0*d0*d2 - 2*a0*d1*d2 + d0*d1*d2)
+        a4b = k*a0*(a0*d0*d1 + a0*d0*d2 + a0*d1*d2 - 2*d0*d1*d2)
+        a5b = k*a0**2*d0*d1*d2
+    end subroutine get_coefs_L_aaa
+
+
+    subroutine get_coefs_Lijk(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3, sel)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: cb0, cb1, cb2, cb3
+        integer  , intent(out) :: sel
+        !
+        real(fpp) :: b2
+        !
+        b2 = a2+d2
+        if (.not. isclose(a0,a1)) then
+            if (.not. isclose(a1,b2)) then
+                if(.not. isclose(a0,b2)) then
+                    ! a0/=a1/=b2
+                    call get_coefs_Lijk_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+                    sel = 0
+                else
+                    ! a0==b2
+                    call get_coefs_Lijk_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+                    sel = 1
+                end if
+            else
+                if(.not. isclose(a0,b2)) then
+                    ! a1==b2 a0/=b2
+                    call get_coefs_Lijk_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+                    sel = 2
+                else
+                    ! a1==b2 a0==b2 (a0/=a1) ...
+                    call get_coefs_Lijk_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+                    sel = 4
+                end if
+            end if
+        else
+            ! a0==a1
+            if (.not. isclose(a1,b2)) then
+                call get_coefs_Lijk_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+                sel = 3
+            else
+                ! a0==a1==b2
+                call get_coefs_Lijk_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+                sel = 4
+            end if
+        end if
+    end subroutine get_coefs_Lijk
+
+    subroutine get_coefs_Lijk_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: cb0, cb1, cb2, cb3
+        !
+        real(fpp) :: k
+        !
+        cb0 =  k0*k1/k2
+        cb1 =  cb0*(a0-a2)*d0*(a0-a1-d1)/((a0-a1)*(a0-a2-d2))
+        cb2 =  cb0*(a1-a2)*(a1-a0-d0)*d1/((a1-a0)*(a1-a2-d2))
+        cb3 = -cb0*d2*(a2-a0+d2-d0)*(a2-a1+d2-d1)/((a2+d2-a0)*(a2+d2-a0))
+    end subroutine get_coefs_Lijk_abc
+
+    subroutine get_coefs_Lijk_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: cb0, cb1, cb2, cb3
+        !
+        real(fpp) :: k
+        !
+        cb0 =  k0*k1/k2
+
+        cb2 = cb0*d0*d1*(a0 - a2)/(a0 - a2 - d2)
+        cb3 = - cb0*d2*(a0 - a2 + d0 - d2)*(a0 - a2 + d1 - d2)/(a0 - a2 - d2)**2
+        cb1 = cb0*(a0**2*d0 + a0**2*d1 - 2*a0*a2*d0 - 2*a0*a2*d1 - a0*d0*d2 &
+            -a0*d1*d2 + a2**2*d0 + a2**2*d1 + a2*d0*d2 + a2*d1*d2 &
+            + d0*d1*d2)/(a0 - a2 - d2)**2
+    end subroutine get_coefs_Lijk_aac
+
+    subroutine get_coefs_Lijk_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: cb0, cb1, cb2, cb3
+        !
+        real(fpp) :: k
+        !
+        cb0 =  k0*k1/k2
+        cb1 = cb0*d0*(a0 - a2)*(a0 - a1 - d1)/(a0 - a1)**2
+        cb3 = -cb0*d1*(a1 - a2)*(a0 - a1 + d0)/(a0 - a1)
+        cb2 = -cb0*(a0**2*a1 - a0**2*a2 - a0**2*d1 - 2*a0*a1**2 + 2*a0*a1*a2 &
+            + a0*a1*d0 + 2*a0*a1*d1 - a0*a2*d0 - a0*d0*d1 + a1**3 - a1**2*a2 &
+            - a1**2*d0 - a1**2*d1 + a1*a2*d0 + a2*d0*d1)/(a0 - a1)**2
+    end subroutine get_coefs_Lijk_abb
+
+    subroutine get_coefs_Lijk_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: cb0, cb1, cb2, cb3
+        !
+        real(fpp) :: k
+        !
+        cb0 =  k0*k1/k2
+        cb3 = -cb0*d0*(a0 - a2)*(a0 - a1 - d1)/(a0 - a1)
+        cb2 = -cb0*d1*(a1 - a2)* (a0 - a1 + d0)/(a0 - a1)**2
+        cb1 = -cb0*(a0**3 - 2*a0**2 *a1 - a0**2*a2 - a0**2*d0 - a0**2*d1 &
+            + a0*a1**2 + 2*a0*a1*a2 + 2*a0*a1*d0 + a0*a1*d1 + a0*a2*d1 - &
+            a1**2*a2 - a1**2*d0 - a1*a2*d1 - a1*d0*d1 + a2*d0*d1)/(a0 - a1)**2
+    end subroutine get_coefs_Lijk_aba
+
+    subroutine get_coefs_Lijk_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
+        real(fpp), intent(out) :: cb0, cb1, cb2, cb3
+        !
+        real(fpp) :: k
+        !
+        cb0 =  k0*k1/k2
+        cb3 = - cb0*d0*d1*(a0 - a2)
+        cb1 = - cb0*(a0 - a2 - d0 - d1)
+        cb2 = - cb0*(a0*d0 + a0*d1 - a2*d0 - a2*d1 - d0*d1)
+    end subroutine get_coefs_Lijk_aaa
+
+
 end module pml
 !! Local Variables:
 !! mode: f90

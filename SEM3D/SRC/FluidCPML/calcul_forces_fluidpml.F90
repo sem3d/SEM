@@ -106,39 +106,37 @@ contains
                 k2 = dom%Kappa_2(i,j,k,n2)
                 a2 = dom%Alpha_2(i,j,k,n2)
                 d2 = dom%dxi_k_2(i,j,k,n2)
-                a3b = k0*k1*k2*a0*a0*d0*(d1+a1-a0)*(d2+a2-a0)/((a1-a0)*(a2-a0))
-                a4b = k0*k1*k2*a1*a1*d1*(d0+a0-a1)*(d2+a2-a1)/((a0-a1)*(a2-a1))
-                a5b = k0*k1*k2*a2*a2*d2*(d0+a0-a2)*(d1+a1-a2)/((a0-a2)*(a1-a2))
                 if (.not. isclose(a0,a1)) then
                     if (.not. isclose(a1,a2)) then
                         if(.not. isclose(a0,a2)) then
                             ! a0/=a1/=a2
                             dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + cf1*PhiNew + cf2*PhiOld
+                            call get_coefs_L_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                         else
                             ! a0==a2
                             dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + (cf1+cf2)*R0
-                            a3b = k0*k1*k2*a0*a0*d0*(d1+a1-a0)*(d2+a2-a0)/((a1-a0)*(a2-a0))
-                            a5b = k0*k1*k2*a2*a2*d2*(d0+a0-a2)*(d1+a1-a2)/((a0-a2)*(a1-a2))
+                            call get_coefs_L_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                         end if
                     else
                         if(.not. isclose(a0,a2)) then
                             ! a1==a2 a0/=a2
                             dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + (cf1+cf2)*R1
-                            a4b = k0*k1*k2*a1*a1*d1*(d0+a0-a1)*(d2+a2-a1)/((a0-a1)*(a2-a1))
-                            a5b = k0*k1*k2*a2*a2*d2*(d0+a0-a2)*(d1+a1-a2)/((a0-a2)*(a1-a2))
+                            call get_coefs_L_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                         else
                             ! a1==a2 a0==a2 (a0/=a1) ...
                             dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + 2*(cf1+cf2)*R1
+                            call get_coefs_L_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                         end if
                     end if
                 else
                     ! a0==a1
                     if (.not. isclose(a1,a2)) then
                         dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + cf1*PhiNew + cf2*PhiOld
-                        a3b = k0*k1*k2*a0*a0*d0*(d1+a1-a0)*(d2+a2-a0)/((a1-a0)*(a2-a0))
-                        a4b = k0*k1*k2*a1*a1*d1*(d0+a0-a1)*(d2+a2-a1)/((a0-a1)*(a2-a1))
+                        call get_coefs_L_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                     else
+                        ! a0==a1==a2
                         dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + 2*(cf1+cf2)*R1
+                        call get_coefs_L_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                     end if
                 end if
                 R = a3b*dom%R1_0(ee,i,j,k,bnum) + a4b*dom%R1_1(i,j,k,n1) + a5b*dom%R1_2(i,j,k,n2)
@@ -368,10 +366,14 @@ contains
         real(fpp) :: k0, d0, a0
         real(fpp) :: k1, d1, a1
         real(fpp) :: k2, d2, a2
-        real(fpp) :: dt, cf0, cf1, cf2, r0
-        real(fpp) :: AA, BB, CC, DD ! common subexpressions
+        real(fpp) :: dt
+        real(fpp) :: cf00, cf01, cf02
+        real(fpp) :: cf10, cf11, cf12
+        real(fpp) :: cf20, cf21, cf22
         real(fpp), dimension(0:2) :: b0, b1, b2, b3
-        real(fpp), dimension(0:2) :: e0, e1
+        real(fpp), dimension(0:2,0:2) :: e
+        real(fpp) :: r0, r1, r2
+        integer, dimension(0:2) :: sel
 
         dt = dom%dt
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
@@ -390,26 +392,57 @@ contains
             stop 1
         endif
         !
-        b0(kB120) = k1*k2/k0
-        b0(kB021) = k0*k2/k1
-        b0(kB012) = k0*k1/k2
+        e(:,kB012) = (/ a0, a1, a2+d2 /)
+        e(:,kB120) = (/ a1, a2, a0+d0 /)
+        e(:,kB021) = (/ a0, a2, a1+d1 /)
+        call get_coefs_Lijk(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel(r))
+        call get_coefs_Lijk(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel(r))
+        call get_coefs_Lijk(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel(r))
 
-        ! (ai-ak)(-di)(ai-aj-dj)/(ai-aj)(ai-ak-dk)
-        b1(kB120) = b0(kB120)*(a1-a0)*d1*(a1-a2-d2)/((a1-a2)*(a1-a0-d0))
-        b1(kB021) = b0(kB021)*(a0-a1)*d0*(a0-a2-d2)/((a0-a2)*(a0-a1-d1))
-        b1(kB012) = b0(kB012)*(a0-a2)*d0*(a0-a1-d1)/((a0-a1)*(a0-a2-d2))
 
-        ! ((aj-ak)(aj-ai-di)(-dj)/(aj-ai)(aj-ak-dk)
-        b2(kB120) = b0(kB120)*(a2-a0)*(a2-a1-d1)*d2/((a2-a1)*(a2-a0-d0))
-        b2(kB021) = b0(kB021)*(a2-a1)*(a2-a0-d0)*d2/((a2-a0)*(a2-a1-d1))
-        b2(kB012) = b0(kB012)*(a1-a2)*(a1-a0-d0)*d1/((a1-a0)*(a1-a2-d2))
+        do r=0,2  ! ie 120, 021, 012
+            R0 = dom%R2_0(ee,r,i,j,k,bnum)
+            R1 = dom%R2_1(r,i,j,k,i1)
+            R2 = dom%R2_2(r,i,j,k,i2)
+            call cpml_compute_coefs(dom%cpml_integ, e(0,r), dt, cf00, cf01, cf02)
+            call cpml_compute_coefs(dom%cpml_integ, e(1,r), dt, cf10, cf11, cf12)
+            call cpml_compute_coefs(dom%cpml_integ, e(2,r), dt, cf20, cf21, cf22)
+            select case(sel(r))
+            case (0)
+                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
+                R1 = cf10*R1+cf11*DPhiNew(r)+cf12*DPhi(r)
+                R2 = cf20*R2+cf21*DPhiNew(r)+cf22*DPhi(r)
+            case (1)
+                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
+                R1 = cf10*R1+cf11*DPhiNew(r)+cf12*DPhi(r)
+                R2 = cf20*R2+cf21*R0        +cf22*R0
+            case (2)
+                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
+                R1 = cf10*R1+cf11*DPhiNew(r)+cf12*DPhi(r)
+                R2 = cf20*R2+cf21*R1        +cf22*R1
+            case (3)
+                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
+                R1 = cf10*R1+cf11*R0        +cf12*R0
+                R2 = cf20*R2+cf21*DPhiNew(r)+cf22*DPhi(r)
+            case (4)
+                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
+                R1 = cf10*R1+cf11*R0        +cf12*R0
+                R2 = cf20*R2+cf21*R1        +cf22*R1
+            case default
+                stop 1
+            end select
+            dom%R2_0(ee,r,i,j,k,bnum) = R0
+            dom%R2_1(r,i,j,k,i1) = R1
+            dom%R2_2(r,i,j,k,i2) = R2
+        end do
 
-        ! (dk)(ak+dk-ai-di)(ak+dk-aj-dj)/(ak+dk-ai)(ak+dk-aj)
-        b3(kB120) = -b0(kB120)*d0*(a0-a1+d0-d1)*(a0-a2+d0-d2)/((a0+d0-a1)*(a0+d0-a2))
-        b3(kB021) = -b0(kB021)*d1*(a1-a0+d1-d0)*(a1-a2+d1-d2)/((a1+d1-a0)*(a1+d1-a2))
-        b3(kB012) = -b0(kB012)*d2*(a2-a0+d2-d0)*(a2-a1+d2-d1)/((a2+d2-a0)*(a2+d2-a0))
+        do r=0,2 ! ie 120, 021, 012
+            LC(r)=b0(r)*DPhiNew(r) + &
+                b1(r)*dom%R2_0(ee,r,i,j,k,bnum) + &
+                b2(r)*dom%R2_1(r,i,j,k,i1) + &
+                b3(r)*dom%R2_2(r,i,j,k,i2)
+        end do
 
-        stop 1
     end subroutine compute_convolution_terms_3d
 
 #define NGLLVAL 4
