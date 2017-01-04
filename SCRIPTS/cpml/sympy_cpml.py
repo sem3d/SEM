@@ -96,6 +96,14 @@ f.write(HEADER_TEX)
 
 f.write("\\section{Calcul des termes en L pour Solide et Fluide}\n")
 
+# 3 racines distinces
+eL_ab = w*w*s(a0,a0+d0,w)*s(a1,a1+d1,w)
+L_ab = apart(eL_abc,w)
+
+# a0==a1
+eL_aa = w*w*s(a0,a0+d0,w)*s(a0,a0+d1,w)
+L_aa = apart(eL_aa,w)
+
 f.write("\\subsection{$L = \\mathcal{F}^{-1}(s_{0} s_{1} s_{2})$}\n")
 write_def(f, "L_{abc}", L_abc)
 write_def(f, "L_{aac}", L_aac)
@@ -103,6 +111,9 @@ write_def(f, "L_{aba}", L_aba)
 write_def(f, "L_{abb}", L_abb)
 write_def(f, "L_{aaa}", L_aaa)
 
+f.write("\\subsection{$L = \\mathcal{F}^{-1}(s_{0} s_{1})$}\n")
+write_def(f, "L_{ab}", L_ab)
+write_def(f, "L_{aa}", L_aa)
 
 def calc_ijk(f, lbl, aijk,dijk):
     ai,aj,ak = aijk
@@ -138,9 +149,58 @@ def calc_ijk(f, lbl, aijk,dijk):
     write_def(f, "L^{%s}_{aaa}" % lbl, Lijk_aaa)
 
 
+f.write("\\section{Calcul des termes $L_{ijk}$}\n")
+
 calc_ijk(f, "012", (a0,a1,a2), (d0,d1,d2) )
 calc_ijk(f, "021", (a0,a2,a1), (d0,d2,d1) )
 calc_ijk(f, "120", (a1,a2,a0), (d1,d2,d0) )
+
+
+def calc_ixj(f, lbl, aij,dij):
+    ai,aj = aij
+    di,dj = dij
+
+    # Calcul de Lijk = F-1(si.sj/(sk=1))  (Lijk)
+
+    # 3 racines distinctes
+    eLijk_abc = s(ai,ai+di,w)*s(aj,aj+dj,w)
+    Lijk_abc = apart(eLijk_abc,w)
+
+    # a0==a1
+    eLijk_aac = s(ai,ai+di,w)*s(ai,ai+dj,w)
+    Lijk_aac = apart(eLijk_aac,w)
+
+    f.write("\\subsection{$L^{%s} = \\mathcal{F}^{-1}(s_{%s}s_{%s})$}\n\n" % (lbl, lbl[0],lbl[1]))
+    write_def(f, "L^{%s}_{ab}" % lbl, Lijk_abc)
+    write_def(f, "L^{%s}_{aa}" % lbl, Lijk_aac)
+
+def calc_ioj(f, lbl, aij, dij):
+    ai,aj = aij
+    di,dj = dij
+
+    # Calcul de Lijk = F-1(si.1/sj)  (Lijk)
+
+    # 3 racines distinctes
+    eLijk_abc = s(ai,ai+di,w)/s(aj,aj+dj,w)
+    Lijk_abc = apart(eLijk_abc,w)
+
+    # a0==a1
+    eLijk_aac = s(ai,ai+di,w)/s(aj,ai,w)
+    Lijk_aac = apart(eLijk_aac,w)
+
+    f.write("\\subsection{$L^{%s} = \\mathcal{F}^{-1}(\\frac{s_{%s}}{s_{%s}})$}\n\n" % (lbl, lbl[0],lbl[1]))
+    write_def(f, "L^{%s}_{ab}" % lbl, Lijk_abc)
+    write_def(f, "L^{%s}_{aa}" % lbl, Lijk_aac)
+
+calc_ixj(f, "01x", (a0,a1), (d0,d1) )
+calc_ixj(f, "02x", (a0,a2), (d0,d2) )
+calc_ixj(f, "12x", (a1,a2), (d1,d2) )
+
+calc_ioj(f, "0x2", (a0,a2), (d0,d2) )
+calc_ioj(f, "0x1", (a0,a1), (d0,d1) )
+calc_ioj(f, "1x0", (a1,a0), (d1,d0) )
+
+
 
 
 f.write("\\section{Calcul des termes en L pour le couplage}\n")
