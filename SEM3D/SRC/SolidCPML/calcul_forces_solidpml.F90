@@ -10,7 +10,6 @@ module m_calcul_forces_solidpml
     use pml
     implicit none
 
-    integer, parameter :: CPML_INTEG = CPML_ORDER2
     integer, parameter :: DXX=0
     integer, parameter :: DXY=1
     integer, parameter :: DXZ=2
@@ -92,12 +91,12 @@ contains
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
-        if (n1==-1 .and. n2==-1) then
-            call cpml_compute_coefs(CPML_INTEG, a0, dt, cf0, cf1, cf2)
-            dom%R1_0(ee,0,i,j,k,bnum) = cf0*dom%R1_0(ee,0,i,j,k,bnum) + cf1*Unew(0) + cf2*Uold(0)
-            dom%R1_0(ee,1,i,j,k,bnum) = cf0*dom%R1_0(ee,1,i,j,k,bnum) + cf1*Unew(1) + cf2*Uold(1)
-            dom%R1_0(ee,2,i,j,k,bnum) = cf0*dom%R1_0(ee,2,i,j,k,bnum) + cf1*Unew(2) + cf2*Uold(2)
+        call cpml_compute_coefs(dom%cpml_integ, a0, dt, cf0, cf1, cf2)
+        dom%R1_0(ee,0,i,j,k,bnum) = cf0*dom%R1_0(ee,0,i,j,k,bnum) + cf1*Unew(0) + cf2*Uold(0)
+        dom%R1_0(ee,1,i,j,k,bnum) = cf0*dom%R1_0(ee,1,i,j,k,bnum) + cf1*Unew(1) + cf2*Uold(1)
+        dom%R1_0(ee,2,i,j,k,bnum) = cf0*dom%R1_0(ee,2,i,j,k,bnum) + cf1*Unew(2) + cf2*Uold(2)
 
+        if (n1==-1 .and. n2==-1) then
             a3b = k0*a0*a0*d0
             Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
             Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
@@ -221,7 +220,7 @@ contains
         ! update convolution terms
         do r=0,8
             ! This loop relies on the fact that r=DXX or r=L120_DXX coincide for the right equations
-            call cpml_compute_coefs(CPML_INTEG, cf(r), dt, cf0, cf1, cf2)
+            call cpml_compute_coefs(dom%cpml_integ, cf(r), dt, cf0, cf1, cf2)
             dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DUDVn(r)+cf2*DUDV(r)
         end do
 

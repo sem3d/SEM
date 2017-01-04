@@ -51,11 +51,11 @@ contains
 
         ! Update convolution terms for R0
         do r=0,2
-            call cpml_compute_coefs(CPML_INTEG, a0, dom%dt, cf0, cf1, cf2)
+            call cpml_compute_coefs(dom%cpml_integ, a0, dom%dt, cf0, cf1, cf2)
             dom%R_0_SF(r, idxSF) = cf0*dom%R_0_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)&
                                   +cf2*dom%champs(f0)%Depla(idxS, r)
 
-            call cpml_compute_coefs(CPML_INTEG, a1, dom%dt, cf0, cf1, cf2)
+            call cpml_compute_coefs(dom%cpml_integ, a1, dom%dt, cf0, cf1, cf2)
             if(.not. isclose(a0, a1)) then
                 dom%R_1_SF(r, idxSF) = cf0*dom%R_1_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)&
                                       +cf2*dom%champs(f0)%Depla(idxS, r)
@@ -177,7 +177,7 @@ contains
         a3bar(dir0) = 0.
 
         ! Update convolution terms for R0
-        call cpml_compute_coefs(CPML_INTEG, a0, dom%dt, cf0, cf1, cf2)
+        call cpml_compute_coefs(dom%cpml_integ, a0, dom%dt, cf0, cf1, cf2)
         dom%R_0_SF(idxSF) = cf0*dom%R_0_SF(idxSF)+cf1*dom%champs(f0)%Phi(idxF)&
                            +cf2*dom%champs(f0)%Phi(idxF)
 
@@ -224,7 +224,7 @@ contains
             a4bar(Is0s1) = a0bar(Is0s1) * a1 ** 2 * d1 * (a0 - a1 + d0) / (a0 - a1)
 
             ! Update convolution terms for R1
-            call cpml_compute_coefs(CPML_INTEG, a1, dom%dt, cf0, cf1, cf2)
+            call cpml_compute_coefs(dom%cpml_integ, a1, dom%dt, cf0, cf1, cf2)
             dom%R_1_SF(idxSF) = cf0*dom%R_1_SF(idxSF)+cf1*dom%champs(f0)%Phi(idxF)&
                                +cf2*dom%champs(f0)%Phi(idxF)
 

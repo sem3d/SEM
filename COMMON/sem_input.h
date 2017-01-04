@@ -176,6 +176,7 @@ typedef struct {
     double cpml_kappa1;
     int cpml_n;
     double cpml_rc;
+    int cpml_integ_type;
 
     // Type Elements (DG)
     int type_elem;

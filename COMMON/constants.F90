@@ -151,9 +151,10 @@ MODULE constants
     integer, parameter :: SCREEN=6
     integer, parameter :: buf_RF=1024 !Buffer for text
     ! Constants for referencing arrays in CPML code
-    integer, parameter :: CPML_MIDPOINT=0
-    integer, parameter :: CPML_ORDER1  =1
-    integer, parameter :: CPML_ORDER2  =2
+    integer, parameter :: CPML_ORDER2    = 0
+    integer, parameter :: CPML_MIDPOINT1 = 1
+    integer, parameter :: CPML_MIDPOINT2 = 2
+    integer, parameter :: CPML_ORDER1    = 3
     integer, parameter :: k012 = 0, k021 = 1, k120 = 2
     integer, parameter :: CPML_DIR_X  =0
     integer, parameter :: CPML_DIR_Y  =1

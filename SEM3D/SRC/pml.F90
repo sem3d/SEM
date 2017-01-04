@@ -78,14 +78,17 @@ contains
         real(fpp), intent(in) :: a0, dt
         real(fpp), intent(out) :: cf0, cf1, cf2
         select case (m)
-        case (CPML_MIDPOINT)
+        case (CPML_MIDPOINT1)
+            call cpml_compute_coefs_midpoint(a0,dt,cf0,cf1,cf2)
+        case (CPML_MIDPOINT2)
             call cpml_compute_coefs_midpoint_ctr(a0,dt,cf0,cf1,cf2)
         case (CPML_ORDER1)
             call  cpml_compute_coefs_O1(a0,dt,cf0,cf1,cf2)
         case (CPML_ORDER2)
             call cpml_compute_coefs_O2(a0,dt,cf0,cf1,cf2)
         case default
-            stop "Unknown CPML integration scheme"
+            write(*,*) "Unknown CPML integration scheme", m
+            stop 1
         end select
     end subroutine cpml_compute_coefs
     !

@@ -119,6 +119,7 @@ contains
         dom%cpml_rc = Tdomain%config%cpml_rc
         dom%cpml_kappa_0 = Tdomain%config%cpml_kappa0
         dom%cpml_kappa_1 = Tdomain%config%cpml_kappa1
+        dom%cpml_integ = Tdomain%config%cpml_integ_type
         dom%alphamax = 0.
         if(Tdomain%rank==0) write(*,*) "INFO - fluidpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 

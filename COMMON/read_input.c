@@ -52,6 +52,15 @@ const keyword_t kw_pml_type[] = {
     { 5, NULL },
 };
 
+// Integration mode for cpml
+const keyword_t kw_cpml_integ_type[] = {
+    { 0, "Order2"},
+    { 1, "Midpoint1"},
+    { 2, "Midpoint2"},
+    { 3, "Order1"},
+    { 4, NULL },
+};
+
 const keyword_t kw_file_format[] = {
     { 1, "text" },
     { 2, "hdf5" },
@@ -303,6 +312,7 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"cpml_rc")) err=expect_eq_float(scanner, &config->cpml_rc, 1);
         if (cmp(scanner,"cpml_kappa0")) err=expect_eq_float(scanner, &config->cpml_kappa0, 1);
         if (cmp(scanner,"cpml_kappa1")) err=expect_eq_float(scanner, &config->cpml_kappa1, 1);
+	if (cmp(scanner,"cpml_integration")) err=expect_eq_keyword(scanner, kw_cpml_integ_type, &config->cpml_integ_type);
 
         if (!expect_eos(scanner)) { return 0; }
     } while(1);

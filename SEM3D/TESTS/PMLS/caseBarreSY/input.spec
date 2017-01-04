@@ -109,6 +109,7 @@ pml_infos {
 pml_type = CPML;
 cpml_kappa0 = 1.0;
 cpml_kappa1 = 0.0;
-cpml_rc = 0.000001;
+cpml_rc = 0.001;
+cpml_integration = Order2;
 };
 

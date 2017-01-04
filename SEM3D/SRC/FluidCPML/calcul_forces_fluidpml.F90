@@ -7,7 +7,6 @@ module m_calcul_forces_fluidpml ! wrap subroutine in module to get arg type chec
     use pml
     implicit none
     integer, parameter :: kB012=2, kB021=1, kB120=0
-    integer, parameter :: CPML_INTEG = CPML_ORDER2
 contains
 
 #include "index.h"
@@ -76,7 +75,7 @@ contains
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         ! Update convolution term (implicit midpoint)
-        call cpml_compute_coefs(CPML_INTEG, a0, dt, cf0, cf1, cf2)
+        call cpml_compute_coefs(dom%cpml_integ, a0, dt, cf0, cf1, cf2)
         R0 = cf0*dom%R1_0(ee,i,j,k,bnum) + cf1*PhiNew + cf2*PhiOld
         dom%R1_0(ee,i,j,k,bnum) = R0
         if (n1==-1 .and. n2==-1) then
@@ -86,7 +85,7 @@ contains
             k1 = dom%Kappa_1(i,j,k,n1)
             a1 = dom%Alpha_1(i,j,k,n1)
             d1 = dom%dxi_k_1(i,j,k,n1)
-            call cpml_compute_coefs(CPML_INTEG, a1, dt, cf0, cf1, cf2)
+            call cpml_compute_coefs(dom%cpml_integ, a1, dt, cf0, cf1, cf2)
             if (.not. isclose(a0,a1)) then
                 R1 = cf0*dom%R1_1(i,j,k,n1) + cf1*PhiNew + cf2*PhiOld
             else
@@ -103,7 +102,7 @@ contains
                 end if
                 R = a3b*R0 + a4b*R1
             else
-                call cpml_compute_coefs(CPML_INTEG, a2, dt, cf0, cf1, cf2)
+                call cpml_compute_coefs(dom%cpml_integ, a2, dt, cf0, cf1, cf2)
                 k2 = dom%Kappa_2(i,j,k,n2)
                 a2 = dom%Alpha_2(i,j,k,n2)
                 d2 = dom%dxi_k_2(i,j,k,n2)
@@ -233,7 +232,7 @@ contains
 
         ! update convolution terms
         do r=0,2
-            call cpml_compute_coefs(CPML_INTEG, cf(r), dt, cf0, cf1, cf2)
+            call cpml_compute_coefs(dom%cpml_integ, cf(r), dt, cf0, cf1, cf2)
             dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DPhiNew(r)+cf2*DPhi(r)
         end do
 
@@ -337,10 +336,10 @@ contains
 
         ! update convolution terms
         do r=0,2  ! ie 120, 021, 012
-            call cpml_compute_coefs(CPML_INTEG, e0(r), dt, cf0, cf1, cf2)
+            call cpml_compute_coefs(dom%cpml_integ, e0(r), dt, cf0, cf1, cf2)
             dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DPhiNew(r)+cf2*DPhi(r)
 
-            call cpml_compute_coefs(CPML_INTEG, e1(r), dt, cf0, cf1, cf2)
+            call cpml_compute_coefs(dom%cpml_integ, e1(r), dt, cf0, cf1, cf2)
             if (.not. isclose(e0(r),e1(r))) then
                 dom%R2_1(r,i,j,k,i1) = cf0*dom%R2_1(r,i,j,k,i1)+cf1*DPhiNew(r)+cf2*DPhi(r)
             else
