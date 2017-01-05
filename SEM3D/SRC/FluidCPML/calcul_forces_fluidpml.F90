@@ -102,10 +102,10 @@ contains
                 end if
                 R = a3b*R0 + a4b*R1
             else
-                call cpml_compute_coefs(dom%cpml_integ, a2, dt, cf0, cf1, cf2)
                 k2 = dom%Kappa_2(i,j,k,n2)
                 a2 = dom%Alpha_2(i,j,k,n2)
                 d2 = dom%dxi_k_2(i,j,k,n2)
+                call cpml_compute_coefs(dom%cpml_integ, a2, dt, cf0, cf1, cf2)
                 if (.not. isclose(a0,a1)) then
                     if (.not. isclose(a1,a2)) then
                         if(.not. isclose(a0,a2)) then
@@ -384,9 +384,9 @@ contains
         a1 = dom%Alpha_1(i,j,k,i1)
         d1 = dom%dxi_k_1(i,j,k,i1)
         i2 = dom%I2(ee,bnum)
-        k2 = dom%Kappa_2(i,j,k,i1)
-        a2 = dom%Alpha_2(i,j,k,i1)
-        d2 = dom%dxi_k_2(i,j,k,i1)
+        k2 = dom%Kappa_2(i,j,k,i2)
+        a2 = dom%Alpha_2(i,j,k,i2)
+        d2 = dom%dxi_k_2(i,j,k,i2)
         if (k0<0.or.k1<0.or.k2<0) then
             write(*,*) "Erreur:", bnum, ee, i,j,k, k0
             stop 1
@@ -395,9 +395,9 @@ contains
         e(:,kB012) = (/ a0, a1, a2+d2 /)
         e(:,kB120) = (/ a1, a2, a0+d0 /)
         e(:,kB021) = (/ a0, a2, a1+d1 /)
-        call get_coefs_Lijk(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel(r))
-        call get_coefs_Lijk(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel(r))
-        call get_coefs_Lijk(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel(r))
+        call get_coefs_Lijk(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel(0))
+        call get_coefs_Lijk(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel(1))
+        call get_coefs_Lijk(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel(2))
 
 
         do r=0,2  ! ie 120, 021, 012
@@ -408,26 +408,26 @@ contains
             call cpml_compute_coefs(dom%cpml_integ, e(1,r), dt, cf10, cf11, cf12)
             call cpml_compute_coefs(dom%cpml_integ, e(2,r), dt, cf20, cf21, cf22)
             select case(sel(r))
-            case (0)
-                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
-                R1 = cf10*R1+cf11*DPhiNew(r)+cf12*DPhi(r)
-                R2 = cf20*R2+cf21*DPhiNew(r)+cf22*DPhi(r)
-            case (1)
-                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
-                R1 = cf10*R1+cf11*DPhiNew(r)+cf12*DPhi(r)
-                R2 = cf20*R2+cf21*R0        +cf22*R0
-            case (2)
-                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
-                R1 = cf10*R1+cf11*DPhiNew(r)+cf12*DPhi(r)
-                R2 = cf20*R2+cf21*R1        +cf22*R1
-            case (3)
-                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
-                R1 = cf10*R1+cf11*R0        +cf12*R0
-                R2 = cf20*R2+cf21*DPhiNew(r)+cf22*DPhi(r)
-            case (4)
-                R0 = cf00*R0+cf01*DPhiNew(r)+cf02*DPhi(r)
-                R1 = cf10*R1+cf11*R0        +cf12*R0
-                R2 = cf20*R2+cf21*R1        +cf22*R1
+            case (0) ! abc
+                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
+                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
+                R2 = cf20*R2 + cf21*DPhiNew(r) + cf22*DPhi(r)
+            case (1) ! aba
+                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
+                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
+                R2 = cf20*R2 + cf21*R0         + cf22*R0
+            case (2) ! abb
+                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
+                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
+                R2 = cf20*R2 + cf21*R1         + cf22*R1
+            case (3) ! aac
+                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
+                R1 = cf10*R1 + cf11*R0         + cf12*R0
+                R2 = cf20*R2 + cf21*DPhiNew(r) + cf22*DPhi(r)
+            case (4) ! aaa
+                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
+                R1 = cf10*R1 + cf11*R0         + cf12*R0
+                R2 = cf20*R2 + cf21*R1         + cf22*R1
             case default
                 stop 1
             end select
@@ -437,10 +437,10 @@ contains
         end do
 
         do r=0,2 ! ie 120, 021, 012
-            LC(r)=b0(r)*DPhiNew(r) + &
-                b1(r)*dom%R2_0(ee,r,i,j,k,bnum) + &
-                b2(r)*dom%R2_1(r,i,j,k,i1) + &
-                b3(r)*dom%R2_2(r,i,j,k,i2)
+            LC(r) = b0(r)*DPhiNew(r) + &
+                    b1(r)*dom%R2_0(ee,r,i,j,k,bnum) + &
+                    b2(r)*dom%R2_1(r,i,j,k,i1) + &
+                    b3(r)*dom%R2_2(r,i,j,k,i2)
         end do
 
     end subroutine compute_convolution_terms_3d
