@@ -336,6 +336,8 @@ contains
                         outputs%R2_L120_uxz(idx) = dom%R2_0(ee, 0, i, j, k, bnum)
                         outputs%R2_L021_uyz(idx) = dom%R2_0(ee, 1, i, j, k, bnum)
                         outputs%R2_L012_uzz(idx) = dom%R2_0(ee, 2, i, j, k, bnum)
+                    case default
+                        stop 1
                     end select
                     if (i1/=-1) then
                         d1 = dom%D1(ee, bnum)
@@ -353,6 +355,8 @@ contains
                             outputs%R2_L120_uxz(idx) = dom%R2_1(0, i, j, k, i1)
                             outputs%R2_L021_uyz(idx) = dom%R2_1(1, i, j, k, i1)
                             outputs%R2_L012_uzz(idx) = dom%R2_1(2, i, j, k, i1)
+                        case default
+                            stop 1
                         end select
                     end if
                     if (i2/=-1) then
