@@ -63,7 +63,7 @@ contains
         real(fpp) :: k2, d2, a2
         real(fpp) :: dt, cf0,cf1, cf2
 
-        integer :: n1, n2
+        integer :: n1, n2, sel
 
         n1 = dom%I1(ee,bnum)
         n2 = dom%I2(ee,bnum)
@@ -106,39 +106,26 @@ contains
                 a2 = dom%Alpha_2(i,j,k,n2)
                 d2 = dom%dxi_k_2(i,j,k,n2)
                 call cpml_compute_coefs(dom%cpml_integ, a2, dt, cf0, cf1, cf2)
-                if (.not. isclose(a0,a1)) then
-                    if (.not. isclose(a1,a2)) then
-                        if(.not. isclose(a0,a2)) then
-                            ! a0/=a1/=a2
-                            dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + cf1*PhiNew + cf2*PhiOld
-                            call get_coefs_L_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
-                        else
-                            ! a0==a2
-                            dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + (cf1+cf2)*R0
-                            call get_coefs_L_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
-                        end if
-                    else
-                        if(.not. isclose(a0,a2)) then
-                            ! a1==a2 a0/=a2
-                            dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + (cf1+cf2)*R1
-                            call get_coefs_L_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
-                        else
-                            ! a1==a2 a0==a2 (a0/=a1) ...
-                            dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + 2*(cf1+cf2)*R1
-                            call get_coefs_L_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
-                        end if
-                    end if
-                else
-                    ! a0==a1
-                    if (.not. isclose(a1,a2)) then
-                        dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + cf1*PhiNew + cf2*PhiOld
-                        call get_coefs_L_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
-                    else
-                        ! a0==a1==a2
-                        dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + 2*(cf1+cf2)*R1
-                        call get_coefs_L_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
-                    end if
-                end if
+                sel = compare_roots(a0,a1,a2)
+                select case(sel)
+                case (CMP_ABC)
+                    dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + cf1*PhiNew + cf2*PhiOld
+                    call get_coefs_L_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case (CMP_ABA)
+                    dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + (cf1+cf2)*R0
+                    call get_coefs_L_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case (CMP_AAC)
+                    dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + cf1*PhiNew + cf2*PhiOld
+                    call get_coefs_L_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case (CMP_ABB)
+                    dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + (cf1+cf2)*R1
+                    call get_coefs_L_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case (CMP_AAA)
+                    dom%R1_2(i,j,k,n2) = cf0*dom%R1_2(i,j,k,n2) + 2*(cf1+cf2)*R1
+                    call get_coefs_L_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case default
+                    stop 1
+                end select
                 R = a3b*dom%R1_0(ee,i,j,k,bnum) + a4b*dom%R1_1(i,j,k,n1) + a5b*dom%R1_2(i,j,k,n2)
             end if
         end if
@@ -408,23 +395,23 @@ contains
             call cpml_compute_coefs(dom%cpml_integ, e(1,r), dt, cf10, cf11, cf12)
             call cpml_compute_coefs(dom%cpml_integ, e(2,r), dt, cf20, cf21, cf22)
             select case(sel(r))
-            case (0) ! abc
+            case (CMP_ABC)
                 R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
                 R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
                 R2 = cf20*R2 + cf21*DPhiNew(r) + cf22*DPhi(r)
-            case (1) ! aba
-                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
-                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
-                R2 = cf20*R2 + cf21*R0         + cf22*R0
-            case (2) ! abb
-                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
-                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
-                R2 = cf20*R2 + cf21*R1         + cf22*R1
-            case (3) ! aac
+            case (CMP_AAC)
                 R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
                 R1 = cf10*R1 + cf11*R0         + cf12*R0
                 R2 = cf20*R2 + cf21*DPhiNew(r) + cf22*DPhi(r)
-            case (4) ! aaa
+            case (CMP_ABA)
+                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
+                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
+                R2 = cf20*R2 + cf21*R0         + cf22*R0
+            case (CMP_ABB)
+                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
+                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
+                R2 = cf20*R2 + cf21*R1         + cf22*R1
+            case (CMP_AAA)
                 R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
                 R1 = cf10*R1 + cf11*R0         + cf12*R0
                 R2 = cf20*R2 + cf21*R1         + cf22*R1

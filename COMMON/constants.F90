@@ -163,6 +163,11 @@ MODULE constants
     integer, parameter :: CPML_DIR_XZ =4
     integer, parameter :: CPML_DIR_YZ =5
     integer, parameter :: CPML_DIR_XYZ=6
+    integer, parameter :: CMP_ABC=0
+    integer, parameter :: CMP_AAC=1
+    integer, parameter :: CMP_ABA=2
+    integer, parameter :: CMP_ABB=3
+    integer, parameter :: CMP_AAA=4
     real(fpp), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
 CONTAINS
 

@@ -351,6 +351,27 @@ contains
     end subroutine get_coefs_L_aaa
 
 
+    function compare_roots(a,b,c) result(sel)
+        real(fpp), intent(in) :: a,b,c
+        integer :: sel
+        sel = CMP_ABC
+        if (isclose(a,b)) sel = CMP_AAC
+        if (isclose(a,c)) then
+            if (sel==0) then
+                sel = CMP_ABA
+            else
+                sel = CMP_AAA
+            end if
+        end if
+        if (isclose(b,c)) then
+            if (sel==0) then
+                sel = CMP_ABB
+            else
+                sel = CMP_AAA
+            end if
+        end if
+    end function compare_roots
+
     subroutine get_coefs_Lijk(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3, sel)
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
@@ -359,39 +380,21 @@ contains
         real(fpp) :: b2
         !
         b2 = a2+d2
-        if (.not. isclose(a0,a1)) then
-            if (.not. isclose(a1,b2)) then
-                if(.not. isclose(a0,b2)) then
-                    ! a0/=a1/=b2
-                    call get_coefs_Lijk_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
-                    sel = 0
-                else
-                    ! a0==b2
-                    call get_coefs_Lijk_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
-                    sel = 1
-                end if
-            else
-                if(.not. isclose(a0,b2)) then
-                    ! a1==b2 a0/=b2
-                    call get_coefs_Lijk_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
-                    sel = 2
-                else
-                    ! a1==b2 a0==b2 (a0/=a1) ...
-                    call get_coefs_Lijk_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
-                    sel = 4
-                end if
-            end if
-        else
-            ! a0==a1
-            if (.not. isclose(a1,b2)) then
-                call get_coefs_Lijk_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
-                sel = 3
-            else
-                ! a0==a1==b2
-                call get_coefs_Lijk_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
-                sel = 4
-            end if
-        end if
+        sel = compare_roots(a0,a1,b2)
+        select case(sel)
+        case (CMP_ABC)
+            call get_coefs_Lijk_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        case (CMP_AAC)
+            call get_coefs_Lijk_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        case (CMP_ABA)
+            call get_coefs_Lijk_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        case (CMP_ABB)
+            call get_coefs_Lijk_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        case (CMP_AAA)
+            call get_coefs_Lijk_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
+        case default
+            stop 1
+        end select
     end subroutine get_coefs_Lijk
 
     subroutine get_coefs_Lijk_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
