@@ -24,10 +24,38 @@ del os, histfile
 
 HEADER_TEX = """
 \\documentclass[a4paper,10pt]{article}
-\\usepackage[margin=1cm]{geometry}
-\\usepackage{breqn}
+\\usepackage[margin=1cm,landscape]{geometry}
+%\\usepackage{breqn}
+\\usepackage{amsmath}
 \\begin{document}
 """
+def write_as_terms(f,e,w):
+    cst = []
+    d = {}
+    p = Wild("p")
+    for t in e.args:
+        for n in (1,2,3):
+            u = t.find( 1/(p+w)**n )
+            if len(u)==1:
+                u = list(u)[0]
+                d[u] = collect(simplify(t/u),(a0,a1,a2))
+                break
+        else:
+            cst.append(t)
+    cterm = Add(*cst)
+    f.write(" &=" + latex(cterm))
+    # Trick to sort terms in w
+    if len(d)>1:
+        keys = Add(*d.keys()).args
+    else:
+        # With one Item Add(x) reduces to x and x.args is not what we want
+        keys = d.keys()
+    for u in keys:
+        f.write("\\\\\n")
+        f.write("&+ ")
+        f.write(latex(d[u]))
+        f.write(" \\cdot ")
+        f.write(latex(u))
 
 def write_def(f, lbl, expr):
     f.write("\n\\begin{eqnarray}\n %s & = & " % lbl)
@@ -46,6 +74,11 @@ def write_def(f, lbl, expr):
     f.write("\n\\begin{dmath*}\n %s = " % lbl)
     f.write(latex(expr))
     f.write("\n\\end{dmath*}\n")
+
+def write_def(f, lbl, expr):
+    f.write("\n\\begin{align*}\n %s " % lbl)
+    write_as_terms(f, expr, w)
+    f.write("\n\\end{align*}\n")
 
 from sympy import *
 #import sympy.galgebra.latex_ex as tex
