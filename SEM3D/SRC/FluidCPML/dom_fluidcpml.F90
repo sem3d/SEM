@@ -52,13 +52,13 @@ contains
         dir2_count = dom%dir2_count
         if (dir1_count>0) then
             allocate(dom%R1_1(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
-            allocate(dom%R2_1(0:3, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
+            allocate(dom%R2_1(0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir1_count-1))
             dom%R1_1 = 0d0
             dom%R2_1 = 0d0
         end if
         if (dir2_count>0) then
             allocate(dom%R1_2(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
-            allocate(dom%R2_2(0:3, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
+            allocate(dom%R2_2(0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:dir2_count-1))
             dom%R1_2 = 0d0
             dom%R2_2 = 0d0
         end if
@@ -89,7 +89,7 @@ contains
             dom%Kappa_0 = 1.
 
             allocate(dom%R1_0(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            allocate(dom%R2_0(0:VCHUNK-1, 0:3, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
+            allocate(dom%R2_0(0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
             dom%R1_0 = 0d0
             dom%R2_0 = 0d0
 
