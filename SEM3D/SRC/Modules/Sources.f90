@@ -372,15 +372,16 @@ contains
         !    one time derivative to be coherent
         real(fpp),intent(in)  :: time, tau, f0
         !
-        real(fpp)  :: sigma,sigma2,sigma3
+        real(fpp) :: alpha,sigma,Ricker
 
-        sigma = M_PI*f0*(time-tau)
-        sigma2 = sigma**2
-        sigma3 = M_PI*f0
-
-        Ricker_Fl = -4d0*sigma*sigma3*exp(-sigma2)-2d0*sigma*sigma3*Ricker(time,tau,f0)
-
-        return
+        alpha = -1d0*M_PI**2*f0**2
+        if ( time < 2.5*tau ) then
+            sigma = alpha * (time-tau)**2
+            Ricker = 2d0*alpha*(1 + 2*sigma) * exp(sigma)
+            Ricker_fl = 2d0*alpha*(time-tau)*Ricker + 8d0*alpha*alpha*(time-tau)*exp(sigma)
+        else
+            Ricker_fl = 0.
+        endif
     end function Ricker_Fl
 
 end module ssources
