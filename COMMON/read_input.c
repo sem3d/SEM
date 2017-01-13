@@ -194,6 +194,47 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+
+void init_extended_source(extended_source_t* extended_source)
+{
+    memset(extended_source, 0, sizeof(extended_source_t));
+    extended_source->dip    = 0.;
+    extended_source->strike = 0.;
+    extended_source->rake   = 0.;
+}
+
+int expect_extended_source(yyscan_t scanner, sem_config_t* config)
+{
+    extended_source_t *extended_source;
+    int tok, err;
+
+    extended_source = (extended_source_t*)malloc(sizeof(extended_source_t));
+    init_extended_source(extended_source);
+
+    extended_source->next = config->extended_source;
+
+    config->extended_source = extended_source;
+    config->nextended_sources ++;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+	tok = skip_blank(scanner);
+	if (tok!=K_ID) break;
+	if      (cmp(scanner,"kine_file")) err=expect_eq_string(scanner, &extended_source->kine_file,1);
+	else if (cmp(scanner,"slip_file")) err=expect_eq_string(scanner, &extended_source->slip_file,1);
+	else if (cmp(scanner,"dip")) err=expect_eq_float(scanner, &extended_source->dip, 1);
+	else if (cmp(scanner,"strike")) err=expect_eq_float(scanner, &extended_source->strike, 1);
+	else if (cmp(scanner,"rake")) err=expect_eq_float(scanner, &extended_source->rake, 1);
+
+	if (err<=0) return 0;
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    return 1;
+}
+
+
 int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err, k;
@@ -852,6 +893,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);
 	else if (cmp(scanner,"sim_time")) err=expect_eq_float(scanner, &config->sim_time,1);
 	else if (cmp(scanner,"source")) err=expect_source(scanner, config);
+	else if (cmp(scanner,"extended_source")) err=expect_extended_source(scanner, config);
 	else if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
 	else if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
 	else if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
@@ -887,6 +929,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->fmax = 1.0;
     cfg->material_type = 1;
     cfg->stations = NULL;
+    cfg->nextended_sources = 0;
 
     cfg->out_variables[0]  = 0; // Energy P
     cfg->out_variables[1]  = 0; // Energy S

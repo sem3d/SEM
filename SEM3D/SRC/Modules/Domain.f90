@@ -15,6 +15,7 @@ module sdomain
     use svertices
     use scomms
     use ssources
+    use sextended_sources
     use stimeparam
     use logical_input
     use ssubdomains
@@ -68,12 +69,13 @@ module sdomain
        type(subdomain), dimension (:), pointer     :: sSubDomain
        type(SurfaceT) , dimension (:), allocatable :: sSurfaces
        type(comm)     , dimension (:), allocatable :: sComm
+       type(extended_source) , dimension (:), allocatable :: sExtendSource
 
        logical :: aniso
        logical :: any_Random, any_PropOnFile
        logical :: nl_flag
        integer :: nRandom
-       integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
+       integer :: n_source, n_extsource, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
        integer :: n_hexa_local !< Nombre de subelements hexa dans le proc(division aux GLLs)

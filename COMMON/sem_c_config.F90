@@ -35,6 +35,8 @@ module sem_c_config
        type(C_PTR)    :: mat_file
        integer(C_INT) :: nsources
        type(C_PTR)    :: source
+       integer(C_INT) :: nextended_sources
+       type(C_PTR)    :: extended_source
        integer(C_INT) :: is_lamb_test
 
        !! Capteurs
@@ -121,6 +123,17 @@ module sem_c_config
        real(C_DOUBLE) :: d
        real(C_DOUBLE) :: a
     end type sem_source
+
+
+    ! Ce type doit correspondre au type extended_source_t de sem_input.h **a l'ordre pres**
+    type, bind(c) :: sem_extended_source
+       type(C_PTR) :: next
+       type(C_PTR) :: kine_file
+       type(C_PTR) :: slip_file
+       real(C_DOUBLE) :: dip
+       real(C_DOUBLE) :: strike
+       real(C_DOUBLE) :: rake
+    end type sem_extended_source
 
     ! ce type doit correspondre au type station_def_t de sem_input.h **a l'ordre pres**
     type, bind(c) :: sem_station

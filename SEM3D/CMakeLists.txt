@@ -15,6 +15,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Face.f90
     ${PRJ}/SRC/Modules/Vertex.f90
     ${PRJ}/SRC/Modules/Sources.f90
+    ${PRJ}/SRC/Modules/Extended_source.f90
     ${PRJ}/SRC/Modules/TimeP.f90
     ${PRJ}/SRC/Modules/logical_input.f90
     ${PRJ}/SRC/Modules/Subdomains.f90

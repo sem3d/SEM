@@ -212,9 +212,6 @@ contains
         integer :: nsrc
         real :: ndir
 
-        Tdomain%n_source = config%nsources
-        allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
-
         call c_f_pointer(config%source, src)
         nsrc = 0
         do while(associated(src))
@@ -267,6 +264,172 @@ contains
     end subroutine create_sem_sources
 
 
+    subroutine create_sem_extended_sources(Tdomain, config)
+        use sdomain
+        use sem_hdf5
+        implicit none
+        type(domain), intent(inout)  :: Tdomain
+        type(sem_config), intent(in) :: config
+        type(sem_extended_source), pointer :: ext_src
+        integer :: nsrc, ntotal, nextsrc, hdferr
+        integer(HID_T) :: fid
+
+        nsrc = config%nsources ! Number of isolated point sources
+        Tdomain%n_extsource = config%nextended_sources
+        allocate (Tdomain%sExtendSource(0:Tdomain%n_extsource-1))
+        call init_hdf5()
+
+        ! Calcul nombre total de sources pour allouer Tdomain%Ssource
+        call c_f_pointer(config%extended_source, ext_src)
+        ntotal = nsrc ; nextsrc = 0
+        do while(associated(ext_src))
+            Tdomain%sExtendSource(nextsrc)%kine_file = trim(fromcstr(ext_src%kine_file))
+            Tdomain%sExtendSource(nextsrc)%slip_file = trim(fromcstr(ext_src%slip_file))
+            call h5fopen_f(Tdomain%sExtendSource(nextsrc)%kine_file, H5F_ACC_RDONLY_F, fid, hdferr)
+            call read_attr_int (fid, "Ns",    Tdomain%sExtendSource(nextsrc)%Ns)
+            call read_attr_int (fid, "Nd",    Tdomain%sExtendSource(nextsrc)%Nd)
+            call read_attr_real(fid, "dt",    Tdomain%sExtendSource(nextsrc)%Dt)
+            call read_attr_real(fid, "dip",   Tdomain%sExtendSource(nextsrc)%dip)
+            call read_attr_real(fid, "rake",  Tdomain%sExtendSource(nextsrc)%rake)
+            call read_attr_real(fid, "strike",Tdomain%sExtendSource(nextsrc)%strike)
+            Tdomain%sExtendSource(nextsrc)%Npt = Tdomain%sExtendSource(nextsrc)%Ns * Tdomain%sExtendSource(nextsrc)%Nd
+            ntotal = ntotal + Tdomain%sExtendSource(nextsrc)%Npt
+            call h5fclose_f(fid, hdferr)
+            call c_f_pointer(ext_src%next, ext_src)
+            nextsrc = nextsrc+1
+        end do
+
+        ! Allocation du tableau de sources
+        Tdomain%n_source = ntotal
+        allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
+        if (ntotal>0)  Tdomain%logicD%any_source = .true.
+
+        ! Creation en premier des sources individuelles
+        call create_sem_sources(Tdomain, config)
+
+        ! Nouvelle boucle pour creation des sources etendues
+        nextsrc = 0
+        call c_f_pointer(config%extended_source, ext_src)
+        do while(associated(ext_src))
+            call h5fopen_f(trim(fromcstr(ext_src%kine_file)), H5F_ACC_RDONLY_F, fid, hdferr)
+            call create_point_sources_from_fault(Tdomain,Tdomain%sExtendSource(nextsrc),fid,nsrc)
+            call h5fclose_f(fid, hdferr)
+            call c_f_pointer(ext_src%next, ext_src)
+            nextsrc = nextsrc+1
+        end do
+
+    end subroutine create_sem_extended_sources
+
+
+    subroutine create_point_sources_from_fault(Tdomain, extsrc, fid, nsrc)
+        use sdomain
+        use constants
+        use sem_hdf5
+        use shape_geom_3d
+        implicit none
+        type(domain), intent(inout)       :: Tdomain
+        type(Extended_source), intent(in) :: extsrc
+        integer(HID_T), intent(in)        :: fid
+        integer, intent(inout)            :: nsrc
+        real, dimension(0:2)              :: normal, U
+        real, dimension(0:2,0:2)          :: Moment
+        real, allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
+        integer :: i, j
+        real    :: aS, aD, aR
+
+        ! angles de faille en radians :
+        aS = M_PI*extsrc%Strike/180.
+        aD = M_PI*extsrc%Dip/180.
+        aR = M_PI*extsrc%Rake/180.
+
+        ! Construction de la normale au plan de faille
+        normal(0) = -sin(aD) * sin(aS)
+        normal(1) =  sin(aD) * cos(aS)
+        normal(2) = -cos(aD)
+        write(*,*) "Normale : calcul from angles : ", normal(:)
+
+        ! Construction du vecteur de Slip unitaire :
+        U(0) = cos(aR)*cos(aS) - sin(aR)*cos(aD)*sin(aS)
+        U(1) = cos(aR)*sin(aS) + sin(aR)*cos(aD)*cos(aS)
+        U(2) = sin(Ar)*sin(Ad)
+        write(*,*) "Slip Direction : ", U(:)
+
+        ! Construction du moment correspondant au slip
+        do i=0,2
+            do j=0,2
+                Moment(i,j) = normal(i)*U(j) + normal(j)*U(i)
+            enddo
+        enddo
+
+        ! Lecture des datasets, avec (x,y,z) repere direct.
+        ! Allocation des tableaux de coordonnes
+        allocate (Xtemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
+        allocate (Ytemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
+        allocate (Ztemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
+        allocate(MUtemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
+
+        call read_dataset(fid, "x", tmp)
+        do i=0,extsrc%Ns-1
+            Ytemp(i,:) = tmp(:,i+1)
+        enddo
+        deallocate(tmp)
+        call read_dataset(fid, "y", tmp)
+        do i=0,extsrc%Ns-1
+            Xtemp(i,:) = tmp(:,i+1)
+        enddo
+        deallocate(tmp)
+        call read_dataset(fid, "z", tmp)
+        do i=0,extsrc%Ns-1
+            Ztemp(i,:) = tmp(:,i+1)
+        enddo
+        deallocate(tmp)
+        call read_dataset(fid, "mu", tmp)
+        do i=0,extsrc%Ns-1
+            MUtemp(i,:) = tmp(:,i+1)
+        enddo
+        ! Construction de la normale au plan de faille
+        !v1(0) = Xtemp(extsrc%Ns-1,0) - Xtemp(0,0)
+        !v1(1) = Ytemp(extsrc%Ns-1,0) - Ytemp(0,0)
+        !v1(2) = Ztemp(extsrc%Ns-1,0) - Ztemp(0,0)
+        !v2(0) = Xtemp(0,extsrc%Nd-1) - Xtemp(0,0)
+        !v2(1) = Ytemp(0,extsrc%Nd-1) - Ytemp(0,0)
+        !v2(2) = Ztemp(0,extsrc%Nd-1) - Ztemp(0,0)
+        !call cross_prod(v1, v2, normal)
+        !aux = sqrt(normal(0)*normal(0) + normal(1)*normal(1) + normal(2)*normal(2))
+        !normal(:) = 1./aux * normal(:)
+        !write(*,*) "Normale : 1er calcul : ", normal(:)
+
+        do i=0,extsrc%Ns-1
+            do j=0,extsrc%Nd-1
+                Tdomain%Ssource(nsrc)%Xsource = 1000. * Xtemp(i,j)
+                Tdomain%Ssource(nsrc)%Ysource = 1000. * Ytemp(i,j)
+                Tdomain%Ssource(nsrc)%Zsource = 1000. * Ztemp(i,j)
+
+                ! Moment-type source for all the points
+                Tdomain%Ssource(nsrc)%i_type_source = 2
+                Tdomain%Ssource(nsrc)%amplitude_factor = 1.
+
+                ! File of slip-rate history
+                Tdomain%Ssource(nsrc)%time_file = extsrc%slip_file
+
+                ! Comportement temporel
+                Tdomain%Ssource(nsrc)%i_time_function = 2 ! A SUPPRIMER (trouver un nouveau flag pour source file hdf5)
+                Tdomain%Ssource(nsrc)%cutoff_freq = 3. ! func=2,4 ! A SUPPRIMER
+                Tdomain%Ssource(nsrc)%tau_b = 0.4 ! func=1,2,3,4,5 ! A SUPPRIMER
+
+                ! Assignation du moment
+                Tdomain%Ssource(nsrc)%moment(:,:) = MUtemp(i,j) * Moment(:,:)
+
+                nsrc = nsrc+1
+            enddo
+        enddo
+
+        deallocate(Xtemp, Ytemp, Ztemp, MUtemp, tmp)
+
+    end subroutine create_point_sources_from_fault
+
+
+
     function is_in_box(pos, box)
         real, dimension(3), intent(in) :: pos
         real, dimension(6), intent(in) :: box
@@ -287,7 +450,6 @@ contains
         real, dimension(4), intent(in) :: plane
         logical :: is_in_plane
         !
-        integer :: i
         real :: w
 
         is_in_plane = .false.
@@ -357,7 +519,6 @@ contains
         integer, intent(out)         :: code
         character(Len=MAX_FILE_SIZE) :: fnamef
         logical                      :: logic_scheme
-        integer                      :: imat
         integer                      :: rg
         integer i
 
@@ -446,8 +607,18 @@ contains
            call read_surface_input(Tdomain, Tdomain%config)
         endif
 
-        ! Create sources from C structures
-        call create_sem_sources(Tdomain, Tdomain%config)
+        ! Gestion des Sources
+        if (Tdomain%config%nextended_sources==0) then
+            ! Only a few ponctual sources
+            Tdomain%n_source = Tdomain%config%nsources
+            allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
+            ! Create point sources from C structures
+            call create_sem_sources(Tdomain, Tdomain%config)
+        else
+            ! Create extended sources from data files
+            write(*,*) "EXTENDED SOURCES : Number of extended sources (faults) :", Tdomain%config%nextended_sources
+            call create_sem_extended_sources(Tdomain, Tdomain%config)
+        endif
 
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
@@ -462,7 +633,7 @@ contains
         call compute_material_boundaries(Tdomain)
 
         ! Material Earthchunk
-        
+
         Tdomain%earthchunk_isInit=0
         if( Tdomain%config%material_type == MATERIAL_EARTHCHUNK) then
             Tdomain%earthchunk_isInit=1

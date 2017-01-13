@@ -31,6 +31,16 @@ typedef struct source {
     double a;
 } source_t;
 
+// Structure decrivant les sources etendues (failles)
+typedef struct extended_source {
+    struct extended_source* next;
+    char* kine_file;
+    char* slip_file;
+    double dip;
+    double strike;
+    double rake;
+} extended_source_t;
+
 // Structure decrivant les condition de selection des elements a inclure
 // dans les snapshots
 typedef struct snapshot_cond {
@@ -136,6 +146,8 @@ typedef struct {
     char* mat_file;
     int nsources;
     source_t *source;
+    int nextended_sources;
+    extended_source_t *extended_source;
     int is_lamb_test;
 
     // Capteurs
