@@ -139,6 +139,23 @@ contains
                 enddo
             enddo
         enddo
+
+        if (out_variables(OUT_PRESSION) == 1) then
+            if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,bnum,ee)
+#ifdef CPML
+                        fieldP(i,j,k) = -dom%champs(0)%ForcesFl(ind)
+#else
+                        fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
+#endif
+                    enddo
+                enddo
+            enddo
+        end if
+
         if (out_variables(OUT_DEPLA) == 1) then
             if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
 #ifdef CPML
@@ -163,27 +180,12 @@ contains
         if (out_variables(OUT_ACCEL) == 1) then
             if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
 #ifdef CPML
-            fieldA(:,:,:,:) = 0.
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                 dom%IDensity_(:,:,:,bnum,ee),-fieldP,fieldA)
 #else
             call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                  dom%IDensity_(:,:,:,bnum,ee),vphi,fieldA)
 #endif
-        end if
-
-        if (out_variables(OUT_PRESSION) == 1) then
-            if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-            do k=0,ngll-1
-                do j=0,ngll-1
-                    do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,bnum,ee)
-#ifdef CPML
-                        fieldP(i,j,k) = -dom%champs(0)%ForcesFl(ind)
-#else
-                        fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
-#endif
-                    enddo
-                enddo
-            enddo
         end if
 
         if (out_variables(OUT_EPS_VOL) == 1) then
