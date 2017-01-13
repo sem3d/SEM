@@ -93,7 +93,11 @@ contains
             CompSource = Source_tanh(time, Sour)
         case (10)
             ! Square. Param : ts, gamma
+#ifdef CPML
+            CompSource = Ricker(time, Sour%tau_b, Sour%cutoff_freq)
+#else
             CompSource = Ricker_fl(time, Sour%tau_b, Sour%cutoff_freq)
+#endif
         case (11)
             ! fonction de triangle
             CompSource = Triangle(time, Sour%tau_b)
