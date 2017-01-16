@@ -138,6 +138,63 @@ contains
         dom%DUDVold(ee,:,i,j,k,bnum) = DUDVnew
     end subroutine compute_convolution_terms
 
+    subroutine get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1, e0)
+        use champs_solidpml
+        implicit none
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: ee, bnum, i, j, k
+        real(fpp), dimension(0:5), intent (OUT) :: b0, b1
+        real(fpp), dimension(0:8), intent (OUT) :: e0
+        !
+        real(fpp) :: a0, k0, d0
+        integer :: dim0
+
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+        if (k0<0) then
+            write(*,*) "Erreur:", bnum, ee, i,j,k, k0
+            stop 1
+        endif
+
+        e0(:) = a0
+        dim0 = dom%D0(ee,bnum)
+        select case(dim0)
+        case(0)
+            b0(kB0) = k0
+            b0(kB1) = 1.
+            b0(kB2) = 1.
+            b1(kB0) = d0*k0
+            b1(kB1) = 0.
+            b1(kB2) = 0.
+            e0(DXX) = a0+d0
+            e0(DYX) = a0+d0
+            e0(DZX) = a0+d0
+        case(1)
+            b0(kB0) = 1.
+            b0(kB1) = k0
+            b0(kB2) = 1.
+            b1(kB0) = 0.
+            b1(kB1) = d0*k0
+            b1(kB2) = 0.
+            e0(DXY) = a0+d0
+            e0(DYY) = a0+d0
+            e0(DZY) = a0+d0
+        case(2)
+            b0(kB0) = 1.
+            b0(kB1) = 1.
+            b0(kB2) = k0
+            b1(kB0) = 0.
+            b1(kB1) = 0.
+            b1(kB2) = d0*k0
+            e0(DXZ) = a0+d0
+            e0(DYZ) = a0+d0
+            e0(DZZ) = a0+d0
+        case default
+            stop 1
+        end select
+    end subroutine get_coefs_Li
+
     subroutine compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DUDVn, DUDV, LC)
         use champs_solidpml
         implicit none
@@ -151,7 +208,7 @@ contains
         real(fpp), dimension(0:5) :: b0, b1
         real(fpp), dimension(0:8) :: cf
 
-        dt = dom%dt
+        ! Initialize
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
@@ -160,64 +217,41 @@ contains
             stop 1
         endif
         b0(:) = 1d0
-        dim0 = dom%D0(ee,bnum)
         cf(:) = a0
-        ! Watch out here: b1(kB012) is one of b1 b2 b3 depending on which one is not zero
-        !
+
+        ! Li
+        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1, cf)
+
+        ! Lijk: Watch out here, b1(kB012) is one of b1 b2 b3 depending on which one is not zero
+        dim0 = dom%D0(ee,bnum)
         select case(dim0)
         case(0)
             b0(kB012) = k0
             b0(kB021) = k0
             b0(kB120) = 1./k0
-            b0(kB0) = k0
-            b0(kB1) = 1.
-            b0(kB2) = 1.
             b1(kB012) = k0*d0  !b1
             b1(kB021) = k0*d0  !b1
             b1(kB120) = -d0/k0 !b3
-            b1(kB0) = d0*k0
-            b1(kB1) = 0.
-            b1(kB2) = 0.
-            cf(DXX) = a0+d0
-            cf(DYX) = a0+d0
-            cf(DZX) = a0+d0
         case(1)
             b0(kB012) = k0
             b0(kB021) = 1./k0
             b0(kB120) = k0
-            b0(kB0) = 1.
-            b0(kB1) = k0
-            b0(kB2) = 1.
             b1(kB012) = k0*d0
             b1(kB021) = -d0/k0
             b1(kB120) = k0*d0
-            b1(kB0) = 0.
-            b1(kB1) = d0*k0
-            b1(kB2) = 0.
-            cf(DXY) = a0+d0
-            cf(DYY) = a0+d0
-            cf(DZY) = a0+d0
         case(2)
             b0(kB012) = 1./k0
             b0(kB021) = k0
             b0(kB120) = k0
-            b0(kB0) = 1.
-            b0(kB1) = 1.
-            b0(kB2) = k0
             b1(kB012) = -d0/k0
             b1(kB021) = k0*d0
             b1(kB120) = k0*d0
-            b1(kB0) = 0.
-            b1(kB1) = 0.
-            b1(kB2) = d0*k0
-            cf(DXZ) = a0+d0
-            cf(DYZ) = a0+d0
-            cf(DZZ) = a0+d0
         case default
             stop 1
         end select
 
         ! update convolution terms
+        dt = dom%dt
         do r=0,8
             ! This loop relies on the fact that r=DXX or r=L120_DXX coincide for the right equations
             call cpml_compute_coefs(dom%cpml_integ, cf(r), dt, cf0, cf1, cf2)
@@ -246,7 +280,6 @@ contains
         LC(L1_DXX  ) = b0(kB1  )*DUDVn(DXX) + b1(kB1  )*dom%R2_0(ee,DXX,i,j,k,bnum)
         LC(L0_DYY  ) = b0(kB0  )*DUDVn(DYY) + b1(kB0  )*dom%R2_0(ee,DYY,i,j,k,bnum)
         LC(L012_DZZ) = b0(kB012)*DUDVn(DZZ) + b1(kB012)*dom%R2_0(ee,DZZ,i,j,k,bnum)
-
     end subroutine compute_convolution_terms_1d
 
     ! Compute convolution terms with atn in 2 directions
