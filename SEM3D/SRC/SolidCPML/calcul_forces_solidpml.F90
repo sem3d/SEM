@@ -291,29 +291,62 @@ contains
         real(fpp), intent(in), dimension(0:8) :: DUDV, DUDVn
         real(fpp), intent(out), dimension(0:20) :: LC
         !
-        ! First we add the terms in Dirac
-        LC(L120_DXX) = DUDV(DXX)
-        LC(L2_DYY  ) = DUDV(DYY)
-        LC(L1_DZZ  ) = DUDV(DZZ)
-        LC(L120_DYX) = DUDV(DYX)
-        LC(L2_DYX  ) = DUDV(DYX)
-        LC(L120_DZX) = DUDV(DZX)
-        LC(L1_DZX  ) = DUDV(DZX)
-        LC(L021_DXY) = DUDV(DXY)
-        LC(L2_DXY  ) = DUDV(DXY)
-        LC(L2_DXX  ) = DUDV(DXX)
-        LC(L021_DYY) = DUDV(DYY)
-        LC(L0_DZZ  ) = DUDV(DZZ)
-        LC(L021_DZY) = DUDV(DZY)
-        LC(L0_DZY  ) = DUDV(DYZ)
-        LC(L012_DXZ) = DUDV(DXZ)
-        LC(L1_DXZ  ) = DUDV(DXZ)
-        LC(L012_DYZ) = DUDV(DYZ)
-        LC(L0_DYZ  ) = DUDV(DYZ)
-        LC(L1_DXX  ) = DUDV(DXX)
-        LC(L0_DYY  ) = DUDV(DYY)
-        LC(L012_DZZ) = DUDV(DZZ)
-        stop 1
+        integer :: i1, r
+        real(fpp), dimension(0:5) :: b0, b1, b2
+        real(fpp), dimension(0:8) :: e0, e1
+        real(fpp) :: dt, cf0, cf1, cf2, R0
+
+        ! Initialize
+        b0 = 1.
+        b1 = 0.
+        b2 = 0.
+        e0 = 0.
+        e1 = 0.
+
+        ! Li
+        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1, e0)
+
+        ! Lijk
+        call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, e0, e1)
+
+        ! Convolution term update
+        i1 = dom%I1(ee,bnum)
+        dt = dom%dt
+        do r=0,8
+            call cpml_compute_coefs(dom%cpml_integ, e0(r), dt, cf0, cf1, cf2)
+            dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DUDVn(r)+cf2*DUDV(r)
+
+            call cpml_compute_coefs(dom%cpml_integ, e1(r), dt, cf0, cf1, cf2)
+            if (.not. isclose(e0(r),e1(r))) then
+                dom%R2_1(r,i,j,k,i1) = cf0*dom%R2_1(r,i,j,k,i1)+cf1*DUDVn(r)+cf2*DUDV(r)
+            else
+                R0 = dom%R2_0(ee,r,i,j,k,bnum)
+                dom%R2_1(r,i,j,k,i1) = cf0*dom%R2_1(r,i,j,k,i1)+cf1*(R0)+cf2*(R0)
+            end if
+        end do
+
+        ! Convolve
+        LC(L120_DXX) = b0(kB120)*DUDVn(DXX) + b1(kB120)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DXX,i,j,k,i1)
+        LC(L2_DYY  ) = b0(kB2  )*DUDVn(DYY) + b1(kB2  )*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DYY,i,j,k,i1)
+        LC(L1_DZZ  ) = b0(kB1  )*DUDVn(DZZ) + b1(kB1  )*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DZZ,i,j,k,i1)
+        LC(L120_DYX) = b0(kB120)*DUDVn(DYX) + b1(kB120)*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DYX,i,j,k,i1)
+        LC(L2_DYX  ) = b0(kB2  )*DUDVn(DYX) + b1(kB2  )*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DYX,i,j,k,i1)
+        LC(L120_DZX) = b0(kB120)*DUDVn(DZX) + b1(kB120)*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DZX,i,j,k,i1)
+        LC(L1_DZX  ) = b0(kB1  )*DUDVn(DZX) + b1(kB1  )*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DZX,i,j,k,i1)
+        LC(L021_DXY) = b0(kB021)*DUDVn(DXY) + b1(kB021)*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DXY,i,j,k,i1)
+        LC(L2_DXY  ) = b0(kB2  )*DUDVn(DXY) + b1(kB2  )*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DXY,i,j,k,i1)
+        LC(L2_DXX  ) = b0(kB2  )*DUDVn(DXX) + b1(kB2  )*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DXX,i,j,k,i1)
+        LC(L021_DYY) = b0(kB021)*DUDVn(DYY) + b1(kB021)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DYY,i,j,k,i1)
+        LC(L0_DZZ  ) = b0(kB0  )*DUDVn(DZZ) + b1(kB0  )*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DZZ,i,j,k,i1)
+        LC(L021_DZY) = b0(kB021)*DUDVn(DZY) + b1(kB021)*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DZY,i,j,k,i1)
+        LC(L0_DZY  ) = b0(kB0  )*DUDVn(DZY) + b1(kB0  )*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DZY,i,j,k,i1)
+        LC(L012_DXZ) = b0(kB012)*DUDVn(DXZ) + b1(kB012)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DXZ,i,j,k,i1)
+        LC(L1_DXZ  ) = b0(kB1  )*DUDVn(DXZ) + b1(kB1  )*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DXZ,i,j,k,i1)
+        LC(L012_DYZ) = b0(kB012)*DUDVn(DYZ) + b1(kB012)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DYZ,i,j,k,i1)
+        LC(L0_DYZ  ) = b0(kB0  )*DUDVn(DYZ) + b1(kB0  )*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DYZ,i,j,k,i1)
+        LC(L1_DXX  ) = b0(kB1  )*DUDVn(DXX) + b1(kB1  )*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DXX,i,j,k,i1)
+        LC(L0_DYY  ) = b0(kB0  )*DUDVn(DYY) + b1(kB0  )*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DYY,i,j,k,i1)
+        LC(L012_DZZ) = b0(kB012)*DUDVn(DZZ) + b1(kB012)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DZZ,i,j,k,i1)
     end subroutine compute_convolution_terms_2d
 
     ! Compute convolution terms with atn in 3 directions
