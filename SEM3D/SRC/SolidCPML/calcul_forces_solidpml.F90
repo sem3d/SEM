@@ -217,6 +217,7 @@ contains
             stop 1
         endif
         b0(:) = 1d0
+        b1(:) = 0d0
         cf(:) = a0
 
         ! Li
