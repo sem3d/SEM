@@ -372,6 +372,91 @@ contains
         end if
     end function compare_roots
 
+    subroutine get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, e0, e1)
+        class(dombase_cpml), intent (INOUT) :: dom
+        integer, intent(in) :: ee, bnum, i, j, k, kB120, kB021, kB012
+        real(fpp), dimension(:), intent (OUT) :: b0, b1, b2, e0, e1 ! CAUTION : dimension is 0:2 for FluidCPML, and, 0:8 for SolidCPML
+        !
+        real(fpp) :: k0, d0, a0
+        real(fpp) :: k1, d1, a1
+        integer   :: i1, dim0, dim1, Is0xs1, Is0os1, Is1os0
+        real(fpp) :: AA, BB, CC, DD ! common subexpressions
+
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+        i1 = dom%I1(ee,bnum)
+        k1 = dom%Kappa_1(i,j,k,i1)
+        a1 = dom%Alpha_1(i,j,k,i1)
+        d1 = dom%dxi_k_1(i,j,k,i1)
+        if (k0<0.or.k1<0) then
+            write(*,*) "Erreur:", bnum, ee, i,j,k, k0
+            stop 1
+        endif
+
+        dim0 = dom%D0(ee,bnum)
+        dim1 = dom%D1(ee,bnum)
+        ! The 3 terms L120, L021, L012 are one of
+        ! F-1(s0.s1) F-1(s0/s1) and F-1(s1/s0) depending
+        ! on which coordinates are in slot 0/1
+        if (dim0==0.and.dim1==1) then
+            ! For X=0,Y=1
+            Is1os0 = kB120
+            Is0os1 = kB021
+            Is0xs1 = kB012
+        else if (dim0==0.and.dim1==2) then
+            ! For X=0,Z=1
+            Is1os0 = kB120
+            Is0xs1 = kB021
+            Is0os1 = kB012
+        else if (dim0==1.and.dim1==2) then
+            ! For Y=0,Z=1
+            Is0xs1 = kB120
+            Is1os0 = kB021
+            Is0os1 = kB012
+        else
+            stop 1
+        end if
+
+        b0(Is1os0) = k1/k0
+        b0(Is0os1) = k0/k1
+        b0(Is0xs1) = k0*k1
+
+        AA = (a0+d0 - (a1+d1))
+        BB = (a0+d0 -  a1)
+        CC = (a0-a1)
+        DD = (a0 - (a1+d1))
+
+        e0(Is1os0) = a0+d0
+        e1(Is1os0) = a1
+        if (.not. isclose(e0(Is1os0),e1(Is1os0))) then
+            b1(Is1os0) = -b0(Is1os0)*d0*AA/BB !b3_120
+            b2(Is1os0) =  b0(Is1os0)*d1*CC/BB !b1_120
+        else
+            b1(Is1os0) = b0(Is1os0)*(d1+a0-a1)
+            b2(Is1os0) = b0(Is1os0)*(a0-a1)*d1
+        end if
+
+        e0(Is0os1) = a0
+        e1(Is0os1) = a1+d1
+        if (.not. isclose(e0(Is0os1),e1(Is0os1))) then
+            b1(Is0os1) = b0(Is0os1)*d0*CC/DD  !b1_021
+            b2(Is0os1) =-b0(Is0os1)*d1*AA/DD  !b3_021
+        else
+            b1(Is0os1) = b0(Is0os1)*(d0+a1-a0)
+            b2(Is0os1) = b0(Is0os1)*(a1-a0)*d0
+        end if
+        e0(Is0xs1) = a0
+        e1(Is0xs1) = a1
+        if (.not. isclose(e0(Is0xs1),e1(Is0xs1))) then
+            b1(Is0xs1) = b0(Is0xs1)*d0*DD/CC  !b1_012
+            b2(Is0xs1) = b0(Is0xs1)*d1*BB/CC  !b2_012
+        else
+            b1(Is0xs1) = b0(Is0xs1)*(d0+d1)   !b1_012
+            b2(Is0xs1) = b0(Is0xs1)*d1*d0     !b2_012
+        end if
+    end subroutine get_coefs_Lijk_2d
+
     subroutine get_coefs_Lijk_3d(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3, sel)
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
