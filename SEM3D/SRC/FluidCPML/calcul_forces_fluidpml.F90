@@ -382,9 +382,9 @@ contains
         e(0:2,kB012) = (/ a0, a1, a2+d2 /)
         e(0:2,kB120) = (/ a1, a2, a0+d0 /)
         e(0:2,kB021) = (/ a0, a2, a1+d1 /)
-        call get_coefs_Lijk(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel(0))
-        call get_coefs_Lijk(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel(1))
-        call get_coefs_Lijk(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel(2))
+        call get_coefs_Lijk_3d(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel(0))
+        call get_coefs_Lijk_3d(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel(1))
+        call get_coefs_Lijk_3d(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel(2))
 
         do r=0,2  ! ie 120, 021, 012
             R0 = dom%R2_0(ee,r,i,j,k,bnum)

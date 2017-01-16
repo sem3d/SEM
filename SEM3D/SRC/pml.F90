@@ -372,7 +372,7 @@ contains
         end if
     end function compare_roots
 
-    subroutine get_coefs_Lijk(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3, sel)
+    subroutine get_coefs_Lijk_3d(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3, sel)
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
         integer  , intent(out) :: sel
@@ -395,7 +395,7 @@ contains
         case default
             stop 1
         end select
-    end subroutine get_coefs_Lijk
+    end subroutine get_coefs_Lijk_3d
 
     subroutine get_coefs_Lijk_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
