@@ -572,28 +572,35 @@ contains
 
         ! Compute alpha, beta, kappa
         if (dom%sSubDomain(mi)%pml_width(0)/=0) then
+            ! DIR X
             call compute_dxi_alpha_kappa_dir0(dom, 0, i, j, k, bnum, ee, mi)
             if (dom%sSubDomain(mi)%pml_width(1)/=0) then
+                ! DIR X+Y
                 call compute_dxi_alpha_kappa_dir1(dom, 1, i, j, k, bnum, ee, mi)
                 if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                    ! DIR X+Y+Z
                     call compute_dxi_alpha_kappa_dir2(dom, 2, i, j, k, bnum, ee, mi)
                     ndir = 3
                 else
                     ndir = 2
                 endif
             else if (dom%sSubDomain(mi)%pml_width(1)/=0) then
+                ! DIR X+Z
                 call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
                 ndir = 2
             endif
         else if (dom%sSubDomain(mi)%pml_width(1)/=0) then
+            ! DIR Y
             call compute_dxi_alpha_kappa_dir0(dom, 1, i, j, k, bnum, ee, mi)
             if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+                ! DIR Y+Z
                 call compute_dxi_alpha_kappa_dir1(dom, 2, i, j, k, bnum, ee, mi)
                 ndir = 2
             else
                 ndir = 1
             endif
         else if (dom%sSubDomain(mi)%pml_width(2)/=0) then
+            ! DIR Z
             call compute_dxi_alpha_kappa_dir0(dom, 2, i, j, k, bnum, ee, mi)
             ndir = 1
         else
