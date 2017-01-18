@@ -372,10 +372,11 @@ contains
         end if
     end function compare_roots
 
-    subroutine get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, e0, e1)
+    subroutine get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, dimB, dimE, kB120, kB021, kB012, b0, b1, b2, e0, e1)
         class(dombase_cpml), intent (INOUT) :: dom
-        integer, intent(in) :: ee, bnum, i, j, k, kB120, kB021, kB012
-        real(fpp), dimension(:), intent (OUT) :: b0, b1, b2, e0, e1 ! CAUTION : dimension is 0:2 for FluidCPML, and, 0:8 for SolidCPML
+        integer, intent(in) :: ee, bnum, i, j, k, dimB, dimE, kB120, kB021, kB012
+        real(fpp), dimension(0:dimB), intent (OUT) :: b0, b1, b2 ! CAUTION : dimension is 0:2 for FluidCPML, and, 0:5 for SolidCPML
+        real(fpp), dimension(0:dimE), intent (OUT) :: e0, e1 ! CAUTION : dimension is 0:2 for FluidCPML, and, 0:8 for SolidCPML
         !
         real(fpp) :: k0, d0, a0
         real(fpp) :: k1, d1, a1

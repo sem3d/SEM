@@ -308,7 +308,7 @@ contains
         call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1, e0)
 
         ! Lijk
-        call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, e0, e1)
+        call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, 5, 8, kB120, kB021, kB012, b0, b1, b2, e0, e1)
 
         ! Convolution term update
         i1 = dom%I1(ee,bnum)
