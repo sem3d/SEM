@@ -292,6 +292,8 @@ contains
             call read_attr_real(fid, "dip",   Tdomain%sExtendSource(nextsrc)%dip)
             call read_attr_real(fid, "rake",  Tdomain%sExtendSource(nextsrc)%rake)
             call read_attr_real(fid, "strike",Tdomain%sExtendSource(nextsrc)%strike)
+            call read_attr_real_vec(fid, "Vnormal",Tdomain%sExtendSource(nextsrc)%Normal(:))
+            call read_attr_real_vec(fid, "Vslip",  Tdomain%sExtendSource(nextsrc)%Uslip(:))
             Tdomain%sExtendSource(nextsrc)%Npt = Tdomain%sExtendSource(nextsrc)%Ns * Tdomain%sExtendSource(nextsrc)%Nd
             ntotal = ntotal + Tdomain%sExtendSource(nextsrc)%Npt
             call h5fclose_f(fid, hdferr)
@@ -335,23 +337,11 @@ contains
         real, dimension(0:2,0:2)          :: Moment
         real, allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
         integer :: i, j
-        real    :: aS, aD, aR
 
-        ! angles de faille en radians :
-        aS = M_PI*extsrc%Strike/180.
-        aD = M_PI*extsrc%Dip/180.
-        aR = M_PI*extsrc%Rake/180.
-
-        ! Construction de la normale au plan de faille
-        normal(0) = -sin(aD) * sin(aS)
-        normal(1) =  sin(aD) * cos(aS)
-        normal(2) = -cos(aD)
-        write(*,*) "Normale : calcul from angles : ", normal(:)
-
-        ! Construction du vecteur de Slip unitaire :
-        U(0) = cos(aR)*cos(aS) - sin(aR)*cos(aD)*sin(aS)
-        U(1) = cos(aR)*sin(aS) + sin(aR)*cos(aD)*cos(aS)
-        U(2) = sin(Ar)*sin(Ad)
+        ! Recuperation du vecteur normal et du vecteur de glissement
+        normal = extsrc%Normal
+        U      = extsrc%Uslip
+        write(*,*) "Vecteur Normal : ", normal(:)
         write(*,*) "Slip Direction : ", U(:)
 
         ! Construction du moment correspondant au slip
@@ -370,12 +360,12 @@ contains
 
         call read_dataset(fid, "x", tmp)
         do i=0,extsrc%Ns-1
-            Ytemp(i,:) = tmp(:,i+1)
+            Xtemp(i,:) = tmp(:,i+1)
         enddo
         deallocate(tmp)
         call read_dataset(fid, "y", tmp)
         do i=0,extsrc%Ns-1
-            Xtemp(i,:) = tmp(:,i+1)
+            Ytemp(i,:) = tmp(:,i+1)
         enddo
         deallocate(tmp)
         call read_dataset(fid, "z", tmp)
@@ -387,23 +377,12 @@ contains
         do i=0,extsrc%Ns-1
             MUtemp(i,:) = tmp(:,i+1)
         enddo
-        ! Construction de la normale au plan de faille
-        !v1(0) = Xtemp(extsrc%Ns-1,0) - Xtemp(0,0)
-        !v1(1) = Ytemp(extsrc%Ns-1,0) - Ytemp(0,0)
-        !v1(2) = Ztemp(extsrc%Ns-1,0) - Ztemp(0,0)
-        !v2(0) = Xtemp(0,extsrc%Nd-1) - Xtemp(0,0)
-        !v2(1) = Ytemp(0,extsrc%Nd-1) - Ytemp(0,0)
-        !v2(2) = Ztemp(0,extsrc%Nd-1) - Ztemp(0,0)
-        !call cross_prod(v1, v2, normal)
-        !aux = sqrt(normal(0)*normal(0) + normal(1)*normal(1) + normal(2)*normal(2))
-        !normal(:) = 1./aux * normal(:)
-        !write(*,*) "Normale : 1er calcul : ", normal(:)
 
         do i=0,extsrc%Ns-1
             do j=0,extsrc%Nd-1
-                Tdomain%Ssource(nsrc)%Xsource = 1000. * Xtemp(i,j)
-                Tdomain%Ssource(nsrc)%Ysource = 1000. * Ytemp(i,j)
-                Tdomain%Ssource(nsrc)%Zsource = 1000. * Ztemp(i,j)
+                Tdomain%Ssource(nsrc)%Xsource = Xtemp(i,j)
+                Tdomain%Ssource(nsrc)%Ysource = Ytemp(i,j)
+                Tdomain%Ssource(nsrc)%Zsource = Ztemp(i,j)
 
                 ! Moment-type source for all the points
                 Tdomain%Ssource(nsrc)%i_type_source = 2
@@ -413,9 +392,9 @@ contains
                 Tdomain%Ssource(nsrc)%time_file = extsrc%slip_file
 
                 ! Comportement temporel
-                Tdomain%Ssource(nsrc)%i_time_function = 2 ! A SUPPRIMER (trouver un nouveau flag pour source file hdf5)
-                Tdomain%Ssource(nsrc)%cutoff_freq = 3. ! func=2,4 ! A SUPPRIMER
-                Tdomain%Ssource(nsrc)%tau_b = 0.4 ! func=1,2,3,4,5 ! A SUPPRIMER
+                Tdomain%Ssource(nsrc)%i_time_function = 5 ! flag pour source file...
+                Tdomain%Ssource(nsrc)%cutoff_freq = 1. ! func=2,4 ! A SUPPRIMER
+                Tdomain%Ssource(nsrc)%tau_b = 1.2 ! func=1,2,3,4,5 ! A SUPPRIMER
 
                 ! Assignation du moment
                 Tdomain%Ssource(nsrc)%moment(:,:) = MUtemp(i,j) * Moment(:,:)

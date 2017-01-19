@@ -13,6 +13,7 @@
 
 subroutine SourcePosition (Tdomain)
     use sdomain
+    use ssources
     use mpi
     use mshape8
     use mshape27
@@ -26,16 +27,21 @@ subroutine SourcePosition (Tdomain)
     double precision, dimension(0:2,0:2) :: LocInvGrad
     double precision, dimension(:,:), allocatable :: coord
     double precision :: R
-    integer :: src_proc, nmax, n_el
+    integer :: src_proc, nmax, n_el, nb_src_inproc
     integer, parameter :: NMAXEL=20
     integer, dimension(NMAXEL) :: elems
     double precision, dimension(0:2,NMAXEL) :: coordloc
     double precision, parameter :: EPS = 1D-13
+    type(source), dimension(:), allocatable :: ssource_temp
+    logical, dimension(:), allocatable :: src_inproc
     logical :: inside
 
     rg = Tdomain%rank
+    nb_src_inproc = 0
     nnodes = Tdomain%n_nodes
     allocate(coord(0:2, 0:nnodes-1))
+    allocate(src_inproc(0:Tdomain%n_source-1))
+    src_inproc = .false.
 
     do n_src = 0, Tdomain%n_source-1
         xs = Tdomain%Ssource(n_src)%Xsource
@@ -101,8 +107,26 @@ subroutine SourcePosition (Tdomain)
             !write(*,*) "From position", xs, ys, zs
             call invert_3d (LocInvGrad, R)
             Tdomain%sSource(n_src)%InvGrad(0:2,0:2) = LocInvGrad(0:2,0:2)
+            src_inproc(n_src) = .true.
+            nb_src_inproc = nb_src_inproc +1
         endif
     enddo
+
+    ! Reallocation des vecteurs de sources ne comprenant que les sources
+    ! reellement presentes dans le domaine traitee par le processeur
+    i = 0
+    allocate(ssource_temp(0:nb_src_inproc-1))
+    do n_src = 0, Tdomain%n_source-1
+        if (src_inproc(n_src)) then
+            ssource_temp(i) = Tdomain%sSource(n_src)
+            i = i+1
+        endif
+    enddo
+    deallocate(Tdomain%sSource)
+    allocate(Tdomain%sSource(0:nb_src_inproc-1))
+    Tdomain%sSource = ssource_temp
+    deallocate(ssource_temp)
+
 end subroutine SourcePosition
 
 !! Local Variables:
