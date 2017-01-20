@@ -241,7 +241,7 @@ contains
         real(fpp), dimension(0:2) :: b0, b1, b2
         real(fpp), dimension(0:2) :: e0, e1
 
-        call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, 2, 2, kB120, kB021, kB012, b0, b1, b2, e0, e1)
+        call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, e0, e1)
 
         ! update convolution terms
         i1 = dom%I1(ee,bnum)
