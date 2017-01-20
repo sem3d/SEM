@@ -40,7 +40,10 @@ module m_calcul_forces_solidpml
     integer, parameter :: L2_DYX   = 18
     integer, parameter :: L2_DXY   = 19
     integer, parameter :: L2_DXX   = 20
-    integer, parameter :: kB012=0, kB021=1, kB120=2, kB0=3, kB1=4, kB2=5
+    integer, parameter :: kB120=0, kB021=1, kB012=2, kB0=3, kB1=4, kB2=5
+    integer, parameter :: kB0_Y=3, kB0_Z=4
+    integer, parameter :: kB1_X=5, kB1_Z=6
+    integer, parameter :: kB2_X=7, kB2_Y=8
 contains
 
     subroutine calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
@@ -138,51 +141,86 @@ contains
         dom%DUDVold(ee,:,i,j,k,bnum) = DUDVnew
     end subroutine compute_convolution_terms
 
-    subroutine get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1)
+    subroutine get_coefs_Li_1d(dom, ee, bnum, i, j, k, b0, b1)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: ee, bnum, i, j, k
         real(fpp), dimension(0:5), intent (OUT) :: b0, b1
         !
-        real(fpp) :: a0, k0, d0
+        real(fpp) :: k0, d0
         integer :: dim0
 
-        a0 = dom%Alpha_0(ee,i,j,k,bnum)
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
-        if (k0<0) then
-            write(*,*) "Erreur:", bnum, ee, i,j,k, k0
-            stop 1
-        endif
+
+        b0(kB0:kB0+2) = 1.
+        b1(kB0:kB0+2) = 0.
 
         dim0 = dom%D0(ee,bnum)
-        select case(dim0)
-        case(0)
-            b0(kB0) = k0
-            b0(kB1) = 1.
-            b0(kB2) = 1.
-            b1(kB0) = d0*k0
-            b1(kB1) = 0.
-            b1(kB2) = 0.
-        case(1)
-            b0(kB0) = 1.
-            b0(kB1) = k0
-            b0(kB2) = 1.
-            b1(kB0) = 0.
-            b1(kB1) = d0*k0
-            b1(kB2) = 0.
-        case(2)
-            b0(kB0) = 1.
-            b0(kB1) = 1.
-            b0(kB2) = k0
-            b1(kB0) = 0.
-            b1(kB1) = 0.
-            b1(kB2) = d0*k0
-        case default
-            stop 1
-        end select
-    end subroutine get_coefs_Li
+        ! assumes kB1 = kB0+1 and kB2 = kB0+2
+        b0(kB0+dim0) = k0
+        b1(kB0+dim0) = d0*k0
+    end subroutine get_coefs_Li_1d
+
+    subroutine get_coefs_Li_2d(dom, ee, bnum, i, j, k, b0, b1, b2)
+        use champs_solidpml
+        implicit none
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: ee, bnum, i, j, k
+        real(fpp), dimension(0:2), intent (OUT) :: b0, b1, b2
+        !
+        real(fpp) :: k0, d0, k1, d1
+        integer :: dim0, dim1, i1
+
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+
+        i1 = dom%I1(ee,bnum)
+        k1 = dom%Kappa_1(i,j,k,i1)
+        d1 = dom%dxi_k_1(i,j,k,i1)
+
+        b0 = 1.
+        b1 = 0.
+        b2 = 0.
+
+        dim0 = dom%D0(ee,bnum)
+        ! assumes kB1 = kB0+1 and kB2 = kB0+2
+        b0(dim0) = k0
+        b1(dim0) = d0*k0
+
+        dim1 = dom%D1(ee,bnum)
+        ! assumes kB1 = kB0+1 and kB2 = kB0+2
+        b0(dim1) = k1
+        b2(dim1) = d1*k1
+    end subroutine get_coefs_Li_2d
+
+    subroutine get_coefs_Li_3d(dom, ee, bnum, i, j, k, b0, b1, b2, b3)
+        use champs_solidpml
+        implicit none
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: ee, bnum, i, j, k
+        real(fpp), dimension(0:2), intent (OUT) :: b0, b1, b2, b3
+        !
+        real(fpp) :: k0, d0, k1, d1, k2, d2
+        integer :: i1, i2
+
+        k0 = dom%Kappa_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+
+        i1 = dom%I1(ee,bnum)
+        k1 = dom%Kappa_1(i,j,k,i1)
+        d1 = dom%dxi_k_1(i,j,k,i1)
+
+        i2 = dom%I2(ee,bnum)
+        k2 = dom%Kappa_2(i,j,k,i2)
+        d2 = dom%dxi_k_2(i,j,k,i2)
+
+        b0 = (/ k0,    k1,    k2    /)
+        b1 = (/ d0*k0, 0d0,   0d0   /)
+        b2 = (/ 0d0,   d1*k1, 0d0   /)
+        b3 = (/ 0d0,   0d0,   d2*k2 /)
+    end subroutine get_coefs_Li_3d
 
     subroutine compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DUDVn, DUDV, LC)
         use champs_solidpml
@@ -210,7 +248,7 @@ contains
         cf(:) = a0
 
         ! Li
-        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1)
+        call get_coefs_Li_1d(dom, ee, bnum, i, j, k, b0, b1)
 
         ! Lijk: Watch out here, b1(kB012) is one of b1 b2 b3 depending on which one is not zero
         dim0 = dom%D0(ee,bnum)
@@ -291,7 +329,8 @@ contains
         real(fpp), intent(out), dimension(0:20) :: LC
         !
         integer :: i1, r
-        real(fpp), dimension(0:5) :: b0, b1, b2
+        real(fpp), dimension(0:8) :: b0, b1, b2
+        real(fpp), dimension(0:2) :: c0, c1, c2, rr0, rr1
         real(fpp), dimension(0:8) :: e0, e1
         real(fpp) :: dt, cf0, cf1, cf2, R0
 
@@ -304,10 +343,45 @@ contains
         e1 = dom%Alpha_1(i,j,k,i1)
 
         ! Lijk
-        call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, e0, e1)
+        call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, rr0, rr1)
+        e0(DXX) = rr0(kB120); e1(DXX) = rr1(kB120)
+        e0(DYX) = rr0(kB120); e1(DYX) = rr1(kB120)
+        e0(DZX) = rr0(kB120); e1(DZX) = rr1(kB120)
+        e0(DXY) = rr0(kB021); e1(DXY) = rr1(kB021)
+        e0(DYY) = rr0(kB021); e1(DYY) = rr1(kB021)
+        e0(DZY) = rr0(kB021); e1(DZY) = rr1(kB021)
+        e0(DXZ) = rr0(kB012); e1(DXZ) = rr1(kB012)
+        e0(DYZ) = rr0(kB012); e1(DYZ) = rr1(kB012)
+        e0(DZZ) = rr0(kB012); e1(DZZ) = rr1(kB012)
 
         ! Li
-        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1)
+        call get_coefs_Li_2d(dom, ee, bnum, i, j, k, c0, c1, c2)
+        b0(kB0_Y) = c0(0)
+        b0(kB0_Z) = c0(0)
+        b0(kB1_X) = c0(1)
+        b0(kB1_Z) = c0(1)
+        b0(kB2_X) = c0(2)
+        b0(kB2_Y) = c0(2)
+        b1(kB0_Y) = c1(0)
+        b1(kB0_Z) = c1(0)
+        b1(kB1_X) = c1(1)
+        b1(kB1_Z) = c1(1)
+        b1(kB2_X) = c1(2)
+        b1(kB2_Y) = c1(2)
+        b2(kB0_Y) = c2(0)
+        b2(kB0_Z) = c2(0)
+        b2(kB1_X) = c2(1)
+        b2(kB1_Z) = c2(1)
+        b2(kB2_X) = c2(2)
+        b2(kB2_Y) = c2(2)
+        do r=3,8
+            ! TODO : handle cases correctly when you have double roots
+            ! If double root, need to convole exp(-alpha*t) stored in R2_0 (instead of R2_1 which contains t*exp(-alpha*t))
+            !if (b2(r)/=0.) then
+            !    b1(r) = b2(r)
+            !    b2(r) = 0.
+            !end if
+        end do
 
         ! Convolution term update
         dt = dom%dt
@@ -326,26 +400,26 @@ contains
 
         ! Convolve
         LC(L120_DXX) = b0(kB120)*DUDVn(DXX) + b1(kB120)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DXX,i,j,k,i1)
-        LC(L2_DYY  ) = b0(kB2  )*DUDVn(DYY) + b1(kB2  )*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DYY,i,j,k,i1)
-        LC(L1_DZZ  ) = b0(kB1  )*DUDVn(DZZ) + b1(kB1  )*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DZZ,i,j,k,i1)
         LC(L120_DYX) = b0(kB120)*DUDVn(DYX) + b1(kB120)*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DYX,i,j,k,i1)
-        LC(L2_DYX  ) = b0(kB2  )*DUDVn(DYX) + b1(kB2  )*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DYX,i,j,k,i1)
         LC(L120_DZX) = b0(kB120)*DUDVn(DZX) + b1(kB120)*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DZX,i,j,k,i1)
-        LC(L1_DZX  ) = b0(kB1  )*DUDVn(DZX) + b1(kB1  )*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DZX,i,j,k,i1)
         LC(L021_DXY) = b0(kB021)*DUDVn(DXY) + b1(kB021)*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DXY,i,j,k,i1)
-        LC(L2_DXY  ) = b0(kB2  )*DUDVn(DXY) + b1(kB2  )*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DXY,i,j,k,i1)
-        LC(L2_DXX  ) = b0(kB2  )*DUDVn(DXX) + b1(kB2  )*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DXX,i,j,k,i1)
         LC(L021_DYY) = b0(kB021)*DUDVn(DYY) + b1(kB021)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DYY,i,j,k,i1)
-        LC(L0_DZZ  ) = b0(kB0  )*DUDVn(DZZ) + b1(kB0  )*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DZZ,i,j,k,i1)
         LC(L021_DZY) = b0(kB021)*DUDVn(DZY) + b1(kB021)*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DZY,i,j,k,i1)
-        LC(L0_DZY  ) = b0(kB0  )*DUDVn(DZY) + b1(kB0  )*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DZY,i,j,k,i1)
         LC(L012_DXZ) = b0(kB012)*DUDVn(DXZ) + b1(kB012)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DXZ,i,j,k,i1)
-        LC(L1_DXZ  ) = b0(kB1  )*DUDVn(DXZ) + b1(kB1  )*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DXZ,i,j,k,i1)
         LC(L012_DYZ) = b0(kB012)*DUDVn(DYZ) + b1(kB012)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DYZ,i,j,k,i1)
-        LC(L0_DYZ  ) = b0(kB0  )*DUDVn(DYZ) + b1(kB0  )*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DYZ,i,j,k,i1)
-        LC(L1_DXX  ) = b0(kB1  )*DUDVn(DXX) + b1(kB1  )*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DXX,i,j,k,i1)
-        LC(L0_DYY  ) = b0(kB0  )*DUDVn(DYY) + b1(kB0  )*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DYY,i,j,k,i1)
         LC(L012_DZZ) = b0(kB012)*DUDVn(DZZ) + b1(kB012)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DZZ,i,j,k,i1)
+        LC(L0_DYY  ) = b0(kB0_Y)*DUDVn(DYY) + b1(kB0_Y)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB0_Y)*dom%R2_1(DYY,i,j,k,i1)
+        LC(L0_DYZ  ) = b0(kB0_Z)*DUDVn(DYZ) + b1(kB0_Z)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB0_Z)*dom%R2_1(DYZ,i,j,k,i1)
+        LC(L0_DZY  ) = b0(kB0_Y)*DUDVn(DZY) + b1(kB0_Y)*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB0_Y)*dom%R2_1(DZY,i,j,k,i1)
+        LC(L0_DZZ  ) = b0(kB0_Z)*DUDVn(DZZ) + b1(kB0_Z)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB0_Z)*dom%R2_1(DZZ,i,j,k,i1)
+        LC(L1_DXX  ) = b0(kB1_X)*DUDVn(DXX) + b1(kB1_X)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB1_X)*dom%R2_1(DXX,i,j,k,i1)
+        LC(L1_DXZ  ) = b0(kB1_Z)*DUDVn(DXZ) + b1(kB1_Z)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB1_Z)*dom%R2_1(DXZ,i,j,k,i1)
+        LC(L1_DZX  ) = b0(kB1_X)*DUDVn(DZX) + b1(kB1_X)*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB1_X)*dom%R2_1(DZX,i,j,k,i1)
+        LC(L1_DZZ  ) = b0(kB1_Z)*DUDVn(DZZ) + b1(kB1_Z)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB1_Z)*dom%R2_1(DZZ,i,j,k,i1)
+        LC(L2_DXX  ) = b0(kB2_X)*DUDVn(DXX) + b1(kB2_X)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB2_X)*dom%R2_1(DXX,i,j,k,i1)
+        LC(L2_DXY  ) = b0(kB2_Y)*DUDVn(DXY) + b1(kB2_Y)*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB2_Y)*dom%R2_1(DXY,i,j,k,i1)
+        LC(L2_DYX  ) = b0(kB2_X)*DUDVn(DYX) + b1(kB2_X)*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB2_X)*dom%R2_1(DYX,i,j,k,i1)
+        LC(L2_DYY  ) = b0(kB2_Y)*DUDVn(DYY) + b1(kB2_Y)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB2_Y)*dom%R2_1(DYY,i,j,k,i1)
     end subroutine compute_convolution_terms_2d
 
     ! Compute convolution terms with atn in 3 directions
@@ -365,6 +439,7 @@ contains
         real(fpp) :: cf00, cf01, cf02, cf10, cf11, cf12, cf20, cf21, cf22
         real(fpp) :: R0, R1, R2
         real(fpp), dimension(0:5) :: b0, b1, b2, b3
+        real(fpp), dimension(0:2) :: c0, c1, c2, c3
         real(fpp), dimension(0:2, 0:8) :: e
         integer, dimension(0:8) :: sel
 
@@ -389,18 +464,18 @@ contains
         b2 = 0.
         b3 = 0.
         e = 0.
+        sel = CMP_ABC
 
         ! Lijk
         e(0:2,kB012) = (/ a0, a1, a2+d2 /)
         e(0:2,kB120) = (/ a1, a2, a0+d0 /)
         e(0:2,kB021) = (/ a0, a2, a1+d1 /)
-        sel = CMP_ABC
         call get_coefs_Lijk_3d(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel(kB120))
         call get_coefs_Lijk_3d(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel(kB021))
         call get_coefs_Lijk_3d(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel(kB012))
 
         ! Li
-        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1)
+        call get_coefs_Li_3d(dom, ee, bnum, i, j, k, c0, c1, c2, c3)
 
         ! Convolution term update
         dt = dom%dt
