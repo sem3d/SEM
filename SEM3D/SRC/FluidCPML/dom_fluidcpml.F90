@@ -456,7 +456,7 @@ contains
 
     ! Compute parameters for the second direction of attenuation
     subroutine compute_dxi_alpha_kappa_dir1(dom, xyz, i, j, k, bnum, ee, mi)
-        use pml, only : isclose
+!        use pml, only : isclose
         type(domain_fluidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
@@ -464,7 +464,7 @@ contains
         integer :: mi
         !
         real(fpp) :: alpha, kappa, dxi
-        real(fpp) :: a0, a1, d0, d1
+!        real(fpp) :: a0, a1, d0, d1
         integer :: nd
 
         nd = get_dir1_index(dom, ee, bnum)
