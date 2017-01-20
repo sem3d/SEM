@@ -138,13 +138,12 @@ contains
         dom%DUDVold(ee,:,i,j,k,bnum) = DUDVnew
     end subroutine compute_convolution_terms
 
-    subroutine get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1, e0)
+    subroutine get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: ee, bnum, i, j, k
         real(fpp), dimension(0:5), intent (OUT) :: b0, b1
-        real(fpp), dimension(0:8), intent (OUT) :: e0
         !
         real(fpp) :: a0, k0, d0
         integer :: dim0
@@ -157,7 +156,6 @@ contains
             stop 1
         endif
 
-        e0(:) = a0
         dim0 = dom%D0(ee,bnum)
         select case(dim0)
         case(0)
@@ -167,9 +165,6 @@ contains
             b1(kB0) = d0*k0
             b1(kB1) = 0.
             b1(kB2) = 0.
-            e0(DXX) = a0+d0
-            e0(DYX) = a0+d0
-            e0(DZX) = a0+d0
         case(1)
             b0(kB0) = 1.
             b0(kB1) = k0
@@ -177,9 +172,6 @@ contains
             b1(kB0) = 0.
             b1(kB1) = d0*k0
             b1(kB2) = 0.
-            e0(DXY) = a0+d0
-            e0(DYY) = a0+d0
-            e0(DZY) = a0+d0
         case(2)
             b0(kB0) = 1.
             b0(kB1) = 1.
@@ -187,9 +179,6 @@ contains
             b1(kB0) = 0.
             b1(kB1) = 0.
             b1(kB2) = d0*k0
-            e0(DXZ) = a0+d0
-            e0(DYZ) = a0+d0
-            e0(DZZ) = a0+d0
         case default
             stop 1
         end select
@@ -221,7 +210,7 @@ contains
         cf(:) = a0
 
         ! Li
-        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1, cf)
+        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1)
 
         ! Lijk: Watch out here, b1(kB012) is one of b1 b2 b3 depending on which one is not zero
         dim0 = dom%D0(ee,bnum)
@@ -233,6 +222,9 @@ contains
             b1(kB012) = k0*d0  !b1
             b1(kB021) = k0*d0  !b1
             b1(kB120) = -d0/k0 !b3
+            cf(DXX) = a0+d0
+            cf(DYX) = a0+d0
+            cf(DZX) = a0+d0
         case(1)
             b0(kB012) = k0
             b0(kB021) = 1./k0
@@ -240,6 +232,9 @@ contains
             b1(kB012) = k0*d0
             b1(kB021) = -d0/k0
             b1(kB120) = k0*d0
+            cf(DXY) = a0+d0
+            cf(DYY) = a0+d0
+            cf(DZY) = a0+d0
         case(2)
             b0(kB012) = 1./k0
             b0(kB021) = k0
@@ -247,6 +242,9 @@ contains
             b1(kB012) = -d0/k0
             b1(kB021) = k0*d0
             b1(kB120) = k0*d0
+            cf(DXZ) = a0+d0
+            cf(DYZ) = a0+d0
+            cf(DZZ) = a0+d0
         case default
             stop 1
         end select
@@ -301,17 +299,17 @@ contains
         b0 = 1.
         b1 = 0.
         b2 = 0.
-        e0 = 0.
-        e1 = 0.
-
-        ! Li
-        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1, e0)
+        e0 = dom%Alpha_0(ee,i,j,k,bnum)
+        i1 = dom%I1(ee,bnum)
+        e1 = dom%Alpha_1(i,j,k,i1)
 
         ! Lijk
         call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, e0, e1)
 
+        ! Li
+        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1)
+
         ! Convolution term update
-        i1 = dom%I1(ee,bnum)
         dt = dom%dt
         do r=0,8
             call cpml_compute_coefs(dom%cpml_integ, e0(r), dt, cf0, cf1, cf2)
@@ -392,9 +390,6 @@ contains
         b3 = 0.
         e = 0.
 
-        ! Li
-        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1, e)
-
         ! Lijk
         e(0:2,kB012) = (/ a0, a1, a2+d2 /)
         e(0:2,kB120) = (/ a1, a2, a0+d0 /)
@@ -403,6 +398,9 @@ contains
         call get_coefs_Lijk_3d(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel(kB120))
         call get_coefs_Lijk_3d(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel(kB021))
         call get_coefs_Lijk_3d(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel(kB012))
+
+        ! Li
+        call get_coefs_Li(dom, ee, bnum, i, j, k, b0, b1)
 
         ! Convolution term update
         dt = dom%dt
