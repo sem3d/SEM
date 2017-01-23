@@ -41,9 +41,9 @@ module m_calcul_forces_solidpml
     integer, parameter :: L2_DXY   = 19
     integer, parameter :: L2_DXX   = 20
     integer, parameter :: kB120=0, kB021=1, kB012=2, kB0=3, kB1=4, kB2=5
-    integer, parameter :: kB0_Y=3, kB0_Z=4
-    integer, parameter :: kB1_X=5, kB1_Z=6
-    integer, parameter :: kB2_X=7, kB2_Y=8
+    integer, parameter :: kB0YY=3,  kB0YZ=4,  kB0ZY=5,  kB0ZZ=6
+    integer, parameter :: kB1XX=7,  kB1XZ=8,  kB1ZX=9,  kB1ZZ=10
+    integer, parameter :: kB2XX=11, kB2XY=12, kB2YX=13, kB2YY=14
 contains
 
     subroutine calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
@@ -329,7 +329,7 @@ contains
         real(fpp), intent(out), dimension(0:20) :: LC
         !
         integer :: i1, r
-        real(fpp), dimension(0:8) :: b0, b1, b2
+        real(fpp), dimension(0:14) :: b0, b1, b2
         real(fpp), dimension(0:2) :: c0, c1, c2, rr0, rr1
         real(fpp), dimension(0:8) :: e0, e1
         real(fpp) :: dt, cf0, cf1, cf2, R0
@@ -356,32 +356,42 @@ contains
 
         ! Li
         call get_coefs_Li_2d(dom, ee, bnum, i, j, k, c0, c1, c2)
-        b0(kB0_Y) = c0(0)
-        b0(kB0_Z) = c0(0)
-        b0(kB1_X) = c0(1)
-        b0(kB1_Z) = c0(1)
-        b0(kB2_X) = c0(2)
-        b0(kB2_Y) = c0(2)
-        b1(kB0_Y) = c1(0)
-        b1(kB0_Z) = c1(0)
-        b1(kB1_X) = c1(1)
-        b1(kB1_Z) = c1(1)
-        b1(kB2_X) = c1(2)
-        b1(kB2_Y) = c1(2)
-        b2(kB0_Y) = c2(0)
-        b2(kB0_Z) = c2(0)
-        b2(kB1_X) = c2(1)
-        b2(kB1_Z) = c2(1)
-        b2(kB2_X) = c2(2)
-        b2(kB2_Y) = c2(2)
-        do r=3,8
-            ! TODO : handle cases correctly when you have double roots
-            ! If double root, need to convole exp(-alpha*t) stored in R2_0 (instead of R2_1 which contains t*exp(-alpha*t))
-            !if (b2(r)/=0.) then
-            !    b1(r) = b2(r)
-            !    b2(r) = 0.
-            !end if
-        end do
+        b0(kB0YY) = c0(0); b0(kB0YZ) = c0(0); b0(kB0ZY) = c0(0); b0(kB0ZZ) = c0(0)
+        b0(kB1XX) = c0(1); b0(kB1XZ) = c0(1); b0(kB1ZX) = c0(1); b0(kB1ZZ) = c0(1)
+        b0(kB2XX) = c0(2); b0(kB2XY) = c0(2); b0(kB2YX) = c0(2); b0(kB2YY) = c0(2)
+        b1(kB0YY) = c1(0); b1(kB0YZ) = c1(0); b1(kB0ZY) = c1(0); b1(kB0ZZ) = c1(0)
+        b1(kB1XX) = c1(1); b1(kB1XZ) = c1(1); b1(kB1ZX) = c1(1); b1(kB1ZZ) = c1(1)
+        b1(kB2XX) = c1(2); b1(kB2XY) = c1(2); b1(kB2YX) = c1(2); b1(kB2YY) = c1(2)
+        b2(kB0YY) = c2(0); b2(kB0YZ) = c2(0); b2(kB0ZY) = c2(0); b2(kB0ZZ) = c2(0)
+        b2(kB1XX) = c2(1); b2(kB1XZ) = c2(1); b2(kB1ZX) = c2(1); b2(kB1ZZ) = c2(1)
+        b2(kB2XX) = c2(2); b2(kB2XY) = c2(2); b2(kB2YX) = c2(2); b2(kB2YY) = c2(2)
+        ! If double root, need to convole exp(-alpha*t) stored in R2_0 (instead of R2_1 which contains t*exp(-alpha*t))
+        ! L1 : handle cases when you have double roots
+        if (isclose(e0(L120_DXX), e1(L120_DXX))) then
+            b1(kB1XX) = b2(kB1XX); b2(kB1XX) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e0(L012_DXZ), e1(L012_DXZ))) then
+            b1(kB1XZ) = b2(kB1XZ); b2(kB1XZ) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e0(L120_DZX), e1(L120_DZX))) then
+            b1(kB1ZX) = b2(kB1ZX); b2(kB1ZX) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e0(L012_DZZ), e1(L012_DZZ))) then
+            b1(kB1ZZ) = b2(kB1ZZ); b2(kB1ZZ) = 0. ! R2_1 -> R2_0
+        end if
+        ! L2 : handle cases when you have double roots
+        if (isclose(e0(L120_DXX), e1(L120_DXX))) then
+            b1(kB2XX) = b2(kB2XX); b2(kB2XX) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e0(L021_DXY), e1(L021_DXY))) then
+            b1(kB2XY) = b2(kB2XY); b2(kB2XY) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e0(L120_DYX), e1(L120_DYX))) then
+            b1(kB2YX) = b2(kB2YX); b2(kB2YX) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e0(L021_DYY), e1(L021_DYY))) then
+            b1(kB2YY) = b2(kB2YY); b2(kB2YY) = 0. ! R2_1 -> R2_0
+        end if
 
         ! Convolution term update
         dt = dom%dt
@@ -408,18 +418,18 @@ contains
         LC(L012_DXZ) = b0(kB012)*DUDVn(DXZ) + b1(kB012)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DXZ,i,j,k,i1)
         LC(L012_DYZ) = b0(kB012)*DUDVn(DYZ) + b1(kB012)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DYZ,i,j,k,i1)
         LC(L012_DZZ) = b0(kB012)*DUDVn(DZZ) + b1(kB012)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DZZ,i,j,k,i1)
-        LC(L0_DYY  ) = b0(kB0_Y)*DUDVn(DYY) + b1(kB0_Y)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB0_Y)*dom%R2_1(DYY,i,j,k,i1)
-        LC(L0_DYZ  ) = b0(kB0_Z)*DUDVn(DYZ) + b1(kB0_Z)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB0_Z)*dom%R2_1(DYZ,i,j,k,i1)
-        LC(L0_DZY  ) = b0(kB0_Y)*DUDVn(DZY) + b1(kB0_Y)*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB0_Y)*dom%R2_1(DZY,i,j,k,i1)
-        LC(L0_DZZ  ) = b0(kB0_Z)*DUDVn(DZZ) + b1(kB0_Z)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB0_Z)*dom%R2_1(DZZ,i,j,k,i1)
-        LC(L1_DXX  ) = b0(kB1_X)*DUDVn(DXX) + b1(kB1_X)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB1_X)*dom%R2_1(DXX,i,j,k,i1)
-        LC(L1_DXZ  ) = b0(kB1_Z)*DUDVn(DXZ) + b1(kB1_Z)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB1_Z)*dom%R2_1(DXZ,i,j,k,i1)
-        LC(L1_DZX  ) = b0(kB1_X)*DUDVn(DZX) + b1(kB1_X)*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB1_X)*dom%R2_1(DZX,i,j,k,i1)
-        LC(L1_DZZ  ) = b0(kB1_Z)*DUDVn(DZZ) + b1(kB1_Z)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB1_Z)*dom%R2_1(DZZ,i,j,k,i1)
-        LC(L2_DXX  ) = b0(kB2_X)*DUDVn(DXX) + b1(kB2_X)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB2_X)*dom%R2_1(DXX,i,j,k,i1)
-        LC(L2_DXY  ) = b0(kB2_Y)*DUDVn(DXY) + b1(kB2_Y)*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB2_Y)*dom%R2_1(DXY,i,j,k,i1)
-        LC(L2_DYX  ) = b0(kB2_X)*DUDVn(DYX) + b1(kB2_X)*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB2_X)*dom%R2_1(DYX,i,j,k,i1)
-        LC(L2_DYY  ) = b0(kB2_Y)*DUDVn(DYY) + b1(kB2_Y)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB2_Y)*dom%R2_1(DYY,i,j,k,i1)
+        LC(L0_DYY  ) = b0(kB0YY)*DUDVn(DYY) + b1(kB0YY)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB0YY)*dom%R2_1(DYY,i,j,k,i1)
+        LC(L0_DYZ  ) = b0(kB0YZ)*DUDVn(DYZ) + b1(kB0YZ)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB0YZ)*dom%R2_1(DYZ,i,j,k,i1)
+        LC(L0_DZY  ) = b0(kB0ZY)*DUDVn(DZY) + b1(kB0ZY)*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB0ZY)*dom%R2_1(DZY,i,j,k,i1)
+        LC(L0_DZZ  ) = b0(kB0ZZ)*DUDVn(DZZ) + b1(kB0ZZ)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB0ZZ)*dom%R2_1(DZZ,i,j,k,i1)
+        LC(L1_DXX  ) = b0(kB1XX)*DUDVn(DXX) + b1(kB1XX)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB1XX)*dom%R2_1(DXX,i,j,k,i1)
+        LC(L1_DXZ  ) = b0(kB1XZ)*DUDVn(DXZ) + b1(kB1XZ)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB1XZ)*dom%R2_1(DXZ,i,j,k,i1)
+        LC(L1_DZX  ) = b0(kB1ZX)*DUDVn(DZX) + b1(kB1ZX)*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB1ZX)*dom%R2_1(DZX,i,j,k,i1)
+        LC(L1_DZZ  ) = b0(kB1ZZ)*DUDVn(DZZ) + b1(kB1ZZ)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB1ZZ)*dom%R2_1(DZZ,i,j,k,i1)
+        LC(L2_DXX  ) = b0(kB2XX)*DUDVn(DXX) + b1(kB2XX)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB2XX)*dom%R2_1(DXX,i,j,k,i1)
+        LC(L2_DXY  ) = b0(kB2XY)*DUDVn(DXY) + b1(kB2XY)*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB2XY)*dom%R2_1(DXY,i,j,k,i1)
+        LC(L2_DYX  ) = b0(kB2YX)*DUDVn(DYX) + b1(kB2YX)*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB2YX)*dom%R2_1(DYX,i,j,k,i1)
+        LC(L2_DYY  ) = b0(kB2YY)*DUDVn(DYY) + b1(kB2YY)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB2YY)*dom%R2_1(DYY,i,j,k,i1)
     end subroutine compute_convolution_terms_2d
 
     ! Compute convolution terms with atn in 3 directions
