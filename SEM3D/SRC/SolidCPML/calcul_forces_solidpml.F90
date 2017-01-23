@@ -448,7 +448,7 @@ contains
         real(fpp) :: dt
         real(fpp) :: cf00, cf01, cf02, cf10, cf11, cf12, cf20, cf21, cf22
         real(fpp) :: R0, R1, R2
-        real(fpp), dimension(0:5) :: b0, b1, b2, b3
+        real(fpp), dimension(0:14) :: b0, b1, b2, b3
         real(fpp), dimension(0:2) :: c0, c1, c2, c3
         real(fpp), dimension(0:2, 0:8) :: e
         integer, dimension(0:8) :: sel
@@ -486,6 +486,56 @@ contains
 
         ! Li
         call get_coefs_Li_3d(dom, ee, bnum, i, j, k, c0, c1, c2, c3)
+        b0(kB0YY) = c0(0); b0(kB0YZ) = c0(0); b0(kB0ZY) = c0(0); b0(kB0ZZ) = c0(0)
+        b0(kB1XX) = c0(1); b0(kB1XZ) = c0(1); b0(kB1ZX) = c0(1); b0(kB1ZZ) = c0(1)
+        b0(kB2XX) = c0(2); b0(kB2XY) = c0(2); b0(kB2YX) = c0(2); b0(kB2YY) = c0(2)
+        b1(kB0YY) = c1(0); b1(kB0YZ) = c1(0); b1(kB0ZY) = c1(0); b1(kB0ZZ) = c1(0)
+        b1(kB1XX) = c1(1); b1(kB1XZ) = c1(1); b1(kB1ZX) = c1(1); b1(kB1ZZ) = c1(1)
+        b1(kB2XX) = c1(2); b1(kB2XY) = c1(2); b1(kB2YX) = c1(2); b1(kB2YY) = c1(2)
+        b2(kB0YY) = c2(0); b2(kB0YZ) = c2(0); b2(kB0ZY) = c2(0); b2(kB0ZZ) = c2(0)
+        b2(kB1XX) = c2(1); b2(kB1XZ) = c2(1); b2(kB1ZX) = c2(1); b2(kB1ZZ) = c2(1)
+        b2(kB2XX) = c2(2); b2(kB2XY) = c2(2); b2(kB2YX) = c2(2); b2(kB2YY) = c2(2)
+        b3(kB0YY) = c3(0); b3(kB0YZ) = c3(0); b3(kB0ZY) = c3(0); b3(kB0ZZ) = c3(0)
+        b3(kB1XX) = c3(1); b3(kB1XZ) = c3(1); b3(kB1ZX) = c3(1); b3(kB1ZZ) = c3(1)
+        b3(kB2XX) = c3(2); b3(kB2XY) = c3(2); b3(kB2YX) = c3(2); b3(kB2YY) = c3(2)
+        ! L1 : handle cases when you have multiple roots
+        if (isclose(e(0, L120_DXX), e(1, L120_DXX))) then
+            b1(kB1XX) = b2(kB1XX); b2(kB1XX) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e(0, L012_DXZ), e(1, L012_DXZ))) then
+            b1(kB1XZ) = b2(kB1XZ); b2(kB1XZ) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e(0, L120_DZX), e(1, L120_DZX))) then
+            b1(kB1ZX) = b2(kB1ZX); b2(kB1ZX) = 0. ! R2_1 -> R2_0
+        end if
+        if (isclose(e(0, L012_DZZ), e(1, L012_DZZ))) then
+            b1(kB1ZZ) = b2(kB1ZZ); b2(kB1ZZ) = 0. ! R2_1 -> R2_0
+        end if
+        ! L2 : handle cases when you have multiple roots
+        if (isclose(e(2, L120_DXX), e(1, L120_DXX))) then
+            b2(kB2XX) = b3(kB2XX); b3(kB2XX) = 0. ! R2_2 -> R2_1
+            if (isclose(e(2, L120_DXX), e(0, L120_DXX)) .or. isclose(e(1, L120_DXX), e(0, L120_DXX))) then
+                b1(kB2XX) = b2(kB2XX); b2(kB2XX) = 0. ! R2_1 -> R2_0
+            end if
+        end if
+        if (isclose(e(2, L021_DXY), e(1, L021_DXY))) then
+            b2(kB2XY) = b3(kB2XY); b3(kB2XY) = 0. ! R2_2 -> R2_1
+            if (isclose(e(2, L021_DXY), e(0, L021_DXY)) .or. isclose(e(1, L021_DXY), e(0, L021_DXY))) then
+                b1(kB2XY) = b2(kB2XY); b2(kB2XY) = 0. ! R2_1 -> R2_0
+            end if
+        end if
+        if (isclose(e(2, L120_DYX), e(1, L120_DYX))) then
+            b2(kB2YX) = b3(kB2YX); b3(kB2YX) = 0. ! R2_2 -> R2_1
+            if (isclose(e(2, L120_DYX), e(0, L120_DYX)) .or. isclose(e(1, L120_DYX), e(0, L120_DYX))) then
+                b1(kB2YX) = b2(kB2YX); b2(kB2YX) = 0. ! R2_1 -> R2_0
+            end if
+        end if
+        if (isclose(e(2, L021_DYY), e(1, L021_DYY))) then
+            b2(kB2YY) = b3(kB2YY); b3(kB2YY) = 0. ! R2_2 -> R2_1
+            if (isclose(e(2, L021_DYY), e(0, L021_DYY)) .or. isclose(e(1, L021_DYY), e(0, L021_DYY))) then
+                b1(kB2YY) = b2(kB2YY); b2(kB2YY) = 0. ! R2_1 -> R2_0
+            end if
+        end if
 
         ! Convolution term update
         dt = dom%dt
@@ -526,27 +576,27 @@ contains
         end do
 
         ! Convolve
-        LC(L120_DXX) = b0(kB120)*DUDV(DXX) + b1(kB120)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DXX,i,j,k,i1) + b3(kB120)*dom%R2_2(DXX,i,j,k,i2)
-        LC(L2_DYY  ) = b0(kB2  )*DUDV(DYY) + b1(kB2  )*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DYY,i,j,k,i1) + b3(kB2  )*dom%R2_2(DYY,i,j,k,i2)
-        LC(L1_DZZ  ) = b0(kB1  )*DUDV(DZZ) + b1(kB1  )*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DZZ,i,j,k,i1) + b3(kB1  )*dom%R2_2(DZZ,i,j,k,i2)
-        LC(L120_DYX) = b0(kB120)*DUDV(DYX) + b1(kB120)*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DYX,i,j,k,i1) + b3(kB120)*dom%R2_2(DYX,i,j,k,i2)
-        LC(L2_DYX  ) = b0(kB2  )*DUDV(DYX) + b1(kB2  )*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DYX,i,j,k,i1) + b3(kB2  )*dom%R2_2(DYX,i,j,k,i2)
-        LC(L120_DZX) = b0(kB120)*DUDV(DZX) + b1(kB120)*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DZX,i,j,k,i1) + b3(kB120)*dom%R2_2(DZX,i,j,k,i2)
-        LC(L1_DZX  ) = b0(kB1  )*DUDV(DZX) + b1(kB1  )*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DZX,i,j,k,i1) + b3(kB1  )*dom%R2_2(DZX,i,j,k,i2)
-        LC(L021_DXY) = b0(kB021)*DUDV(DXY) + b1(kB021)*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DXY,i,j,k,i1) + b3(kB021)*dom%R2_2(DXY,i,j,k,i2)
-        LC(L2_DXY  ) = b0(kB2  )*DUDV(DXY) + b1(kB2  )*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DXY,i,j,k,i1) + b3(kB2  )*dom%R2_2(DXY,i,j,k,i2)
-        LC(L2_DXX  ) = b0(kB2  )*DUDV(DXX) + b1(kB2  )*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB2  )*dom%R2_1(DXX,i,j,k,i1) + b3(kB2  )*dom%R2_2(DXX,i,j,k,i2)
-        LC(L021_DYY) = b0(kB021)*DUDV(DYY) + b1(kB021)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DYY,i,j,k,i1) + b3(kB021)*dom%R2_2(DYY,i,j,k,i2)
-        LC(L0_DZZ  ) = b0(kB0  )*DUDV(DZZ) + b1(kB0  )*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DZZ,i,j,k,i1) + b3(kB0  )*dom%R2_2(DZZ,i,j,k,i2)
-        LC(L021_DZY) = b0(kB021)*DUDV(DZY) + b1(kB021)*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DZY,i,j,k,i1) + b3(kB021)*dom%R2_2(DZY,i,j,k,i2)
-        LC(L0_DZY  ) = b0(kB0  )*DUDV(DYZ) + b1(kB0  )*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DYZ,i,j,k,i1) + b3(kB0  )*dom%R2_2(DYZ,i,j,k,i2)
-        LC(L012_DXZ) = b0(kB012)*DUDV(DXZ) + b1(kB012)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DXZ,i,j,k,i1) + b3(kB012)*dom%R2_2(DXZ,i,j,k,i2)
-        LC(L1_DXZ  ) = b0(kB1  )*DUDV(DXZ) + b1(kB1  )*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DXZ,i,j,k,i1) + b3(kB1  )*dom%R2_2(DXZ,i,j,k,i2)
-        LC(L012_DYZ) = b0(kB012)*DUDV(DYZ) + b1(kB012)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DYZ,i,j,k,i1) + b3(kB012)*dom%R2_2(DYZ,i,j,k,i2)
-        LC(L0_DYZ  ) = b0(kB0  )*DUDV(DYZ) + b1(kB0  )*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DYZ,i,j,k,i1) + b3(kB0  )*dom%R2_2(DYZ,i,j,k,i2)
-        LC(L1_DXX  ) = b0(kB1  )*DUDV(DXX) + b1(kB1  )*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB1  )*dom%R2_1(DXX,i,j,k,i1) + b3(kB1  )*dom%R2_2(DXX,i,j,k,i2)
-        LC(L0_DYY  ) = b0(kB0  )*DUDV(DYY) + b1(kB0  )*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB0  )*dom%R2_1(DYY,i,j,k,i1) + b3(kB0  )*dom%R2_2(DYY,i,j,k,i2)
-        LC(L012_DZZ) = b0(kB012)*DUDV(DZZ) + b1(kB012)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DZZ,i,j,k,i1) + b3(kB012)*dom%R2_2(DZZ,i,j,k,i2)
+        LC(L120_DXX) = b0(kB120)*DUDVn(DXX) + b1(kB120)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DXX,i,j,k,i1) + b3(kB120)*dom%R2_2(DXX,i,j,k,i2)
+        LC(L120_DYX) = b0(kB120)*DUDVn(DYX) + b1(kB120)*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DYX,i,j,k,i1) + b3(kB120)*dom%R2_2(DYX,i,j,k,i2)
+        LC(L120_DZX) = b0(kB120)*DUDVn(DZX) + b1(kB120)*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB120)*dom%R2_1(DZX,i,j,k,i1) + b3(kB120)*dom%R2_2(DZX,i,j,k,i2)
+        LC(L021_DXY) = b0(kB021)*DUDVn(DXY) + b1(kB021)*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DXY,i,j,k,i1) + b3(kB021)*dom%R2_2(DXY,i,j,k,i2)
+        LC(L021_DYY) = b0(kB021)*DUDVn(DYY) + b1(kB021)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DYY,i,j,k,i1) + b3(kB021)*dom%R2_2(DYY,i,j,k,i2)
+        LC(L021_DZY) = b0(kB021)*DUDVn(DZY) + b1(kB021)*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB021)*dom%R2_1(DZY,i,j,k,i1) + b3(kB021)*dom%R2_2(DZY,i,j,k,i2)
+        LC(L012_DXZ) = b0(kB012)*DUDVn(DXZ) + b1(kB012)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DXZ,i,j,k,i1) + b3(kB012)*dom%R2_2(DXZ,i,j,k,i2)
+        LC(L012_DYZ) = b0(kB012)*DUDVn(DYZ) + b1(kB012)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DYZ,i,j,k,i1) + b3(kB012)*dom%R2_2(DYZ,i,j,k,i2)
+        LC(L012_DZZ) = b0(kB012)*DUDVn(DZZ) + b1(kB012)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB012)*dom%R2_1(DZZ,i,j,k,i1) + b3(kB012)*dom%R2_2(DZZ,i,j,k,i2)
+        LC(L0_DYY  ) = b0(kB0YY)*DUDVn(DYY) + b1(kB0YY)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB0YY)*dom%R2_1(DYY,i,j,k,i1) + b3(kB0YY)*dom%R2_2(DYY,i,j,k,i2)
+        LC(L0_DYZ  ) = b0(kB0YZ)*DUDVn(DYZ) + b1(kB0YZ)*dom%R2_0(ee,DYZ,i,j,k,bnum) + b2(kB0YZ)*dom%R2_1(DYZ,i,j,k,i1) + b3(kB0YZ)*dom%R2_2(DYZ,i,j,k,i2)
+        LC(L0_DZY  ) = b0(kB0ZY)*DUDVn(DZY) + b1(kB0ZY)*dom%R2_0(ee,DZY,i,j,k,bnum) + b2(kB0ZY)*dom%R2_1(DZY,i,j,k,i1) + b3(kB0ZY)*dom%R2_2(DZY,i,j,k,i2)
+        LC(L0_DZZ  ) = b0(kB0ZZ)*DUDVn(DZZ) + b1(kB0ZZ)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB0ZZ)*dom%R2_1(DZZ,i,j,k,i1) + b3(kB0ZZ)*dom%R2_2(DZZ,i,j,k,i2)
+        LC(L1_DXX  ) = b0(kB1XX)*DUDVn(DXX) + b1(kB1XX)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB1XX)*dom%R2_1(DXX,i,j,k,i1) + b3(kB1XX)*dom%R2_2(DXX,i,j,k,i2)
+        LC(L1_DXZ  ) = b0(kB1XZ)*DUDVn(DXZ) + b1(kB1XZ)*dom%R2_0(ee,DXZ,i,j,k,bnum) + b2(kB1XZ)*dom%R2_1(DXZ,i,j,k,i1) + b3(kB1XZ)*dom%R2_2(DXZ,i,j,k,i2)
+        LC(L1_DZX  ) = b0(kB1ZX)*DUDVn(DZX) + b1(kB1ZX)*dom%R2_0(ee,DZX,i,j,k,bnum) + b2(kB1ZX)*dom%R2_1(DZX,i,j,k,i1) + b3(kB1ZX)*dom%R2_2(DZX,i,j,k,i2)
+        LC(L1_DZZ  ) = b0(kB1ZZ)*DUDVn(DZZ) + b1(kB1ZZ)*dom%R2_0(ee,DZZ,i,j,k,bnum) + b2(kB1ZZ)*dom%R2_1(DZZ,i,j,k,i1) + b3(kB1ZZ)*dom%R2_2(DZZ,i,j,k,i2)
+        LC(L2_DXX  ) = b0(kB2XX)*DUDVn(DXX) + b1(kB2XX)*dom%R2_0(ee,DXX,i,j,k,bnum) + b2(kB2XX)*dom%R2_1(DXX,i,j,k,i1) + b3(kB2XX)*dom%R2_2(DXX,i,j,k,i2)
+        LC(L2_DXY  ) = b0(kB2XY)*DUDVn(DXY) + b1(kB2XY)*dom%R2_0(ee,DXY,i,j,k,bnum) + b2(kB2XY)*dom%R2_1(DXY,i,j,k,i1) + b3(kB2XY)*dom%R2_2(DXY,i,j,k,i2)
+        LC(L2_DYX  ) = b0(kB2YX)*DUDVn(DYX) + b1(kB2YX)*dom%R2_0(ee,DYX,i,j,k,bnum) + b2(kB2YX)*dom%R2_1(DYX,i,j,k,i1) + b3(kB2YX)*dom%R2_2(DYX,i,j,k,i2)
+        LC(L2_DYY  ) = b0(kB2YY)*DUDVn(DYY) + b1(kB2YY)*dom%R2_0(ee,DYY,i,j,k,bnum) + b2(kB2YY)*dom%R2_1(DYY,i,j,k,i1) + b3(kB2YY)*dom%R2_2(DYY,i,j,k,i2)
     end subroutine compute_convolution_terms_3d
 
 #define NGLLVAL 4
