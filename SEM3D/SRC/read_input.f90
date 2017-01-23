@@ -164,7 +164,7 @@ contains
                 NGLL,                                       &
                 Tdomain%sSubDomain(i)%Qpression,            &
                 Tdomain%sSubDomain(i)%Qmu
-            
+
             Tdomain%sSubDomain(i)%NGLL = NGLL
             Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)
             Tdomain%sSubdomain(i)%material_definition = MATERIAL_CONSTANT
@@ -288,6 +288,7 @@ contains
             call h5fopen_f(Tdomain%sExtendSource(nextsrc)%kine_file, H5F_ACC_RDONLY_F, fid, hdferr)
             call read_attr_int (fid, "Ns",    Tdomain%sExtendSource(nextsrc)%Ns)
             call read_attr_int (fid, "Nd",    Tdomain%sExtendSource(nextsrc)%Nd)
+            call read_attr_int (fid, "Nt",    Tdomain%sExtendSource(nextsrc)%Nt)
             call read_attr_real(fid, "dt",    Tdomain%sExtendSource(nextsrc)%Dt)
             call read_attr_real(fid, "dip",   Tdomain%sExtendSource(nextsrc)%dip)
             call read_attr_real(fid, "rake",  Tdomain%sExtendSource(nextsrc)%rake)
@@ -380,21 +381,24 @@ contains
 
         do i=0,extsrc%Ns-1
             do j=0,extsrc%Nd-1
+                ! Source position
                 Tdomain%Ssource(nsrc)%Xsource = Xtemp(i,j)
                 Tdomain%Ssource(nsrc)%Ysource = Ytemp(i,j)
                 Tdomain%Ssource(nsrc)%Zsource = Ztemp(i,j)
+
+                ! Position in the grid
+                Tdomain%Ssource(nsrc)%ind_i = i
+                Tdomain%Ssource(nsrc)%ind_j = j
 
                 ! Moment-type source for all the points
                 Tdomain%Ssource(nsrc)%i_type_source = 2
                 Tdomain%Ssource(nsrc)%amplitude_factor = 1.
 
-                ! File of slip-rate history
-                Tdomain%Ssource(nsrc)%time_file = extsrc%slip_file
-
                 ! Comportement temporel
+                Tdomain%Ssource(nsrc)%time_file = extsrc%slip_file ! Slip-rate history file
                 Tdomain%Ssource(nsrc)%i_time_function = 5 ! flag pour source file...
-                Tdomain%Ssource(nsrc)%cutoff_freq = 1. ! func=2,4 ! A SUPPRIMER
-                Tdomain%Ssource(nsrc)%tau_b = 1.2 ! func=1,2,3,4,5 ! A SUPPRIMER
+                Tdomain%Ssource(nsrc)%ts = extsrc%Dt
+                Tdomain%Ssource(nsrc)%Nt = extsrc%Nt
 
                 ! Assignation du moment
                 Tdomain%Ssource(nsrc)%moment(:,:) = MUtemp(i,j) * Moment(:,:)

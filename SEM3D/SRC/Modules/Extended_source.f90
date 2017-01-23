@@ -17,7 +17,7 @@ module sextended_sources
 
        ! TIME PARAMETERS
        real                                 :: Dt                      ! Time-step from data
-       real                                 :: Tfin                    ! Final time for slip history
+       integer                              :: Nt                      ! Number of time-steps
 
        ! EXTERNAL DATA FILES
        character(len = 30)                  :: kine_file               ! file name of the Kinetic File

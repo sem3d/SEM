@@ -28,10 +28,12 @@ module ssources
        real, dimension(0:2)                 :: dir                       ! source direction
        real                                 :: Xsource, YSource, Zsource ! source coordinates
        real                                 :: amplitude_factor          ! amplitude factor
+       integer                              :: ind_i, ind_j              ! position in extended source grid
 
        ! TIME PARAMETERS
-       real                                 :: ts                        ! time shift
+       real                                 :: ts                        ! time constant (shift or final time)
        integer                              :: i_time_function           ! source type (ricker, gabor, etc.)
+       integer                              :: Nt                        ! Nb of time samples (for a source file)
 
        ! MOMENT SOURCE
        real, dimension(0:2,0:2)             :: InvGrad                   ! Inverse Jacobian
@@ -43,13 +45,10 @@ module ssources
 
 
        real :: tau_b,cutoff_freq,Q,X,Y,L,v,d,a
-       real :: radius,realcolat,reallong,refcolat,reflong
 
        !   ajout de parametres pour definir Gabor signal source de type 4
        !   ajout de gamma et ts
        real ::  gamma
-
-
 
        real, dimension(0:3) :: fh
 
@@ -86,7 +85,8 @@ contains
             CompSource = Gabor (time,Sour%tau_b,Sour%cutoff_freq,Sour%gamma,Sour%ts)
         case (5)
             !   modif pour benchmark can2
-            CompSource = Source_File (time,Sour)
+            CompSource = Source_File2 (ntime,Sour)
+            !CompSource = Source_File (time,Sour)
             !   modif pour benchmark can2
         case (6)
             ! Source benchmark spice M0*(1-(1+(t/T)**gamma)exp(-(t/T)**gamma)) avec T=1/freq
@@ -189,7 +189,7 @@ contains
         return
     end function Source_sinewave
 
-    
+
     real function Source_File(tt,Sour)
         implicit none
         type(source), intent(in)  :: Sour
@@ -215,6 +215,21 @@ contains
         end do
 
     end function Source_File
+
+
+    real function Source_File2(ntime,Sour)
+        implicit none
+        type(source), intent(in) :: Sour
+        integer, intent(in)      :: ntime
+
+        if(ntime < Sour%Nt )then
+            Source_File2 = Sour%ampli(ntime)
+        else
+            Source_File2 = Sour%ampli(Sour%Nt-1)
+        endif
+
+    end function Source_File2
+
 
     subroutine read_source_file(Sour)
         implicit none
@@ -245,6 +260,38 @@ contains
 101     close(10)
 
     end subroutine read_source_file
+
+    subroutine read_source_file_h5(Sour)
+        use sem_hdf5
+        implicit none
+        !- lecture directe d'un fichier temps-amplitude pour la source
+        type(Source), intent(inout)      :: Sour
+        real,allocatable,dimension(:,:,:):: data
+        integer, dimension(0:2)          :: imin, imax
+        integer                          :: hdferr
+        integer(HID_T)                   :: fid
+
+        ! Creation des coordonnes du chunck a lire
+        imin(0) = 0 ;         imin(1) = Sour%ind_j ; imin(2) = Sour%ind_i
+        imax(0) = Sour%Nt-1 ; imax(1) = Sour%ind_j ; imax(2) = Sour%ind_i
+
+        ! Ouverture ficher slip history HDF5
+        call h5fopen_f(Sour%time_file, H5F_ACC_RDONLY_F, fid, hdferr)
+
+        ! Lecture du dataset
+        call read_subset_3d_real(fid, 'slip', imin, imax, data)
+
+        ! Historique de l'amplitude du Slip
+        allocate(Sour%ampli(0:Sour%Nt-1))
+        Sour%ampli(:) = data(:,imin(1),imin(2))
+
+        call h5fclose_f(fid, hdferr)
+
+        deallocate(data)
+
+    end subroutine read_source_file_h5
+
+
     !   modif pour benchmark can2
     !-------------------------------------------------
 
