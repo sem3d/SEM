@@ -115,17 +115,22 @@ subroutine SourcePosition (Tdomain)
     ! Reallocation des vecteurs de sources ne comprenant que les sources
     ! reellement presentes dans le domaine traitee par le processeur
     i = 0
-    allocate(ssource_temp(0:nb_src_inproc-1))
-    do n_src = 0, Tdomain%n_source-1
-        if (src_inproc(n_src)) then
-            ssource_temp(i) = Tdomain%sSource(n_src)
-            i = i+1
-        endif
-    enddo
-    deallocate(Tdomain%sSource)
-    allocate(Tdomain%sSource(0:nb_src_inproc-1))
-    Tdomain%sSource = ssource_temp
-    deallocate(ssource_temp)
+    if (nb_src_inproc>0) then
+        allocate(ssource_temp(0:nb_src_inproc-1))
+        do n_src = 0, Tdomain%n_source-1
+            if (src_inproc(n_src)) then
+                ssource_temp(i) = Tdomain%sSource(n_src)
+                i = i+1
+            endif
+        enddo
+        deallocate(Tdomain%sSource)
+        allocate(Tdomain%sSource(0:nb_src_inproc-1))
+        Tdomain%sSource = ssource_temp
+        deallocate(ssource_temp)
+    else ! No source in current proc
+        Tdomain%logicD%any_source = .false.
+        deallocate(Tdomain%sSource)
+    endif
 
 end subroutine SourcePosition
 
