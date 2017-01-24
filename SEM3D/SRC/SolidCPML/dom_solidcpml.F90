@@ -140,6 +140,7 @@ contains
         dom%cpml_kappa_0 = Tdomain%config%cpml_kappa0
         dom%cpml_kappa_1 = Tdomain%config%cpml_kappa1
         dom%cpml_integ = Tdomain%config%cpml_integ_type
+        dom%cpml_one_dir = Tdomain%config%cpml_one_dir
         dom%alphamax = 0.
         if(Tdomain%rank==0) then
             write(*,*) "INFO - solid cpml domain : kappa0 ", dom%cpml_kappa_0, " kappa1 ", dom%cpml_kappa_1
@@ -482,7 +483,7 @@ contains
 
     ! Compute parameters for the second direction of attenuation
     subroutine compute_dxi_alpha_kappa_dir1(dom, xyz, i, j, k, bnum, ee, mi)
-!        use pml, only : isclose
+        use pml, only : cpml_only_one_dir
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
@@ -490,7 +491,6 @@ contains
         integer :: mi
         !
         real(fpp) :: alpha, kappa, dxi
-!        real(fpp) :: a0, a1, d0, d1
         integer :: nd
 
         nd = get_dir1_index(dom, ee, bnum)
@@ -501,27 +501,12 @@ contains
         dom%Kappa_1(i,j,k,nd) = kappa
         dom%dxi_k_1(i,j,k,nd) = dxi
         dom%Alpha_1(i,j,k,nd) = alpha
-!        ! KEEP This FOR NOW, this is a way to avoid double/triple roots
-!        a0 = dom%Alpha_0(ee,i,j,k,bnum)
-!        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
-!        a1 = alpha
-!        d1 = dxi
-!        if (isclose(a0,a1)) then
-!            a1 =a0+0.1
-!            dom%Alpha_1(i,j,k,nd) = a1
-!        end if
-!        if (isclose(a1,a0+d0)) then
-!            a1 = a1+0.1
-!            dom%Alpha_1(i,j,k,nd) = a1
-!        end if
-!        if (isclose(a0,a1+d1)) then
-!            a1 = a1+0.1
-!            dom%Alpha_1(i,j,k,nd) = a1
-!        end if
+        call cpml_only_one_dir(dom, i, j, k, bnum, ee, nd, .true.)
     end subroutine compute_dxi_alpha_kappa_dir1
 
     ! Compute parameters for the third direction of attenuation
     subroutine compute_dxi_alpha_kappa_dir2(dom, xyz, i, j, k, bnum, ee, mi)
+        use pml, only : cpml_only_one_dir
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
@@ -539,6 +524,7 @@ contains
         dom%Kappa_2(i,j,k,nd) = kappa
         dom%dxi_k_2(i,j,k,nd) = dxi
         dom%Alpha_2(i,j,k,nd) = alpha
+        call cpml_only_one_dir(dom, i, j, k, bnum, ee, nd, .false.)
     end subroutine compute_dxi_alpha_kappa_dir2
 
     function get_dir1_index(dom, ee, bnum) result(nd)

@@ -550,6 +550,49 @@ contains
         cb2 = - cb0*(a0*d0 + a0*d1 - a2*d0 - a2*d1 - d0*d1)
     end subroutine get_coefs_Lijk_aaa
 
+    subroutine cpml_only_one_dir(dom, i, j, k, bnum, ee, nd, bidim)
+        class(dombase_cpml), intent (INOUT) :: dom
+        integer, intent(in) :: i, j, k, bnum, ee, nd
+        logical, intent(in) :: bidim ! 2d or 3d
+        !
+        real(fpp) :: a0, a1, a2, d0, d1, d2
+
+        if (dom%cpml_one_dir == 0) return
+
+        a1 = dom%Alpha_1(i,j,k,dom%I1(ee,bnum))
+        d1 = dom%dxi_k_1(i,j,k,dom%I1(ee,bnum))
+        if (bidim) then
+            a0 = dom%Alpha_0(ee,i,j,k,bnum)
+            d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+            if (isclose(a1,a0)) then ! s0s1/s2 + s2=1
+                a1 =a0+0.1
+                dom%Alpha_1(i,j,k,nd) = a1
+            end if
+            if (isclose(a1+d1,a0)) then ! s0s2/s1 + s2=1
+                a1 = a1+0.1
+                dom%Alpha_1(i,j,k,nd) = a1
+            end if
+            if (isclose(a1,a0+d0)) then ! s1s2/s0 + s2=1
+                a1 = a1+0.1
+                dom%Alpha_1(i,j,k,nd) = a1
+            end if
+        else
+            a2 = dom%Alpha_2(i,j,k,dom%I2(ee,bnum))
+            d2 = dom%dxi_k_2(i,j,k,dom%I2(ee,bnum))
+            if (isclose(a2+d2,a1)) then ! s0s1/s2
+                a2 =a1+0.1
+                dom%Alpha_2(i,j,k,nd) = a2
+            end if
+            if (isclose(a2,a1+d1)) then ! s0s2/s1
+                a2 =a1+0.1
+                dom%Alpha_2(i,j,k,nd) = a2
+            end if
+            if (isclose(a2,a1)) then ! s1s2/s0
+                a2 =a1+0.1
+                dom%Alpha_2(i,j,k,nd) = a2
+            end if
+        end if
+    end subroutine cpml_only_one_dir
 
 end module pml
 !! Local Variables:
