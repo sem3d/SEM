@@ -561,7 +561,7 @@ contains
 
         a1 = dom%Alpha_1(i,j,k,dom%I1(ee,bnum))
         d1 = dom%dxi_k_1(i,j,k,dom%I1(ee,bnum))
-        if (bidim) then
+        if (bidim) then ! Elimination des racines doubles : modification de alpha1 ou beta1
             a0 = dom%Alpha_0(ee,i,j,k,bnum)
             d0 = dom%dxi_k_0(ee,i,j,k,bnum)
             if (isclose(a1,a0)) then ! s0s1/s2 + s2=1
@@ -569,19 +569,23 @@ contains
                 dom%Alpha_1(i,j,k,nd) = a1
             end if
             if (isclose(a1+d1,a0)) then ! s0s2/s1 + s2=1
-                a1 = a1+0.1
+                a1 = a1+0.05
                 dom%Alpha_1(i,j,k,nd) = a1
+                d1 = d1+0.05
+                dom%dxi_k_1(i,j,k,nd) = d1
             end if
             if (isclose(a1,a0+d0)) then ! s1s2/s0 + s2=1
                 a1 = a1+0.1
                 dom%Alpha_1(i,j,k,nd) = a1
             end if
-        else
+        else ! Elimination des racines triples : modification de alpha2 ou beta2
             a2 = dom%Alpha_2(i,j,k,dom%I2(ee,bnum))
             d2 = dom%dxi_k_2(i,j,k,dom%I2(ee,bnum))
             if (isclose(a2+d2,a1)) then ! s0s1/s2
-                a2 =a1+0.1
+                a2 = a1+0.05
                 dom%Alpha_2(i,j,k,nd) = a2
+                d2 = d1+0.05
+                dom%dxi_k_2(i,j,k,nd) = d2
             end if
             if (isclose(a2,a1+d1)) then ! s0s2/s1
                 a2 =a1+0.1
