@@ -555,7 +555,7 @@ contains
         integer, intent(in) :: i, j, k, bnum, ee
         logical, intent(in) :: bidim ! 2d or 3d
         !
-        real(fpp) :: a0, a1, a2, d0, d1, d2
+        real(fpp) :: a0, a1, a2, d0, d1, d2, b0, b1, b2
         integer :: i1, i2
 
         if (dom%cpml_one_root == 0) return
@@ -563,40 +563,59 @@ contains
         i1 = dom%I1(ee,bnum)
         i2 = dom%I2(ee,bnum)
 
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         a1 = dom%Alpha_1(i,j,k,i1)
         d1 = dom%dxi_k_1(i,j,k,i1)
+        b0 = a0+d0
+        b1 = a1+d1
         if (bidim) then ! Elimination des racines doubles : modification de alpha1 ou beta1
-            a0 = dom%Alpha_0(ee,i,j,k,bnum)
-            d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+            ! On modifie a1/b1 (en fonction de a0/b0). On ne modifie pas a0/b0.
             if (isclose(a1,a0)) then ! s0s1/s2 + s2=1
                 a1 =a0+0.1
                 dom%Alpha_1(i,j,k,i1) = a1
             end if
-            if (isclose(a1+d1,a0)) then ! s0s2/s1 + s2=1
+            if (isclose(b1,a0)) then ! s0s2/s1 + s2=1
                 a1 = a1+0.05
                 dom%Alpha_1(i,j,k,i1) = a1
                 d1 = d1+0.05
                 dom%dxi_k_1(i,j,k,i1) = d1
             end if
-            if (isclose(a1,a0+d0)) then ! s1s2/s0 + s2=1
+            if (isclose(a1,b0)) then ! s1s2/s0 + s2=1
                 a1 = a1+0.1
                 dom%Alpha_1(i,j,k,i1) = a1
             end if
         else ! Elimination des racines triples : modification de alpha2 ou beta2
+            ! La premiere passe assure que a1/b1 > a0/b0
+            ! On modifie a2/b2 (en fonction de a0/b0 et a1/b1). On ne modifie pas ni a0/b0, ni a1/b1.
             a2 = dom%Alpha_2(i,j,k,i2)
             d2 = dom%dxi_k_2(i,j,k,i2)
-            if (isclose(a2+d2,a1)) then ! s0s1/s2
-                a2 = a1+0.05
+            b2 = a2+d2
+            if (isclose(b2,a0) .or. isclose(b2,a1)) then ! s0s1/s2
+                if(isclose(b2,a0)) then
+                    a2 = a2-0.05
+                    d2 = d2-0.05
+                else
+                    a2 = a2+0.05
+                    d2 = d2+0.05
+                end if
                 dom%Alpha_2(i,j,k,i2) = a2
-                d2 = d1+0.05
                 dom%dxi_k_2(i,j,k,i2) = d2
             end if
-            if (isclose(a2,a1+d1)) then ! s0s2/s1
-                a2 =a1+0.1
+            if (isclose(a2,a0) .or. isclose(a2,b1)) then ! s0s2/s1
+                if (isclose(a2,a0)) then
+                    a2 = a2-0.1
+                else
+                    a2 = a2+0.1
+                end if
                 dom%Alpha_2(i,j,k,i2) = a2
             end if
-            if (isclose(a2,a1)) then ! s1s2/s0
-                a2 =a1+0.1
+            if (isclose(a2,b0) .or. isclose(a2,a1)) then ! s1s2/s0
+                if (isclose(a2,b0)) then
+                    a2 = a2-0.1
+                else
+                    a2 = a2+0.1
+                end if
                 dom%Alpha_2(i,j,k,i2) = a2
             end if
         end if
