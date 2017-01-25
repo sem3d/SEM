@@ -550,50 +550,54 @@ contains
         cb2 = - cb0*(a0*d0 + a0*d1 - a2*d0 - a2*d1 - d0*d1)
     end subroutine get_coefs_Lijk_aaa
 
-    subroutine cpml_only_one_dir(dom, i, j, k, bnum, ee, nd, bidim)
+    subroutine cpml_only_one_dir(dom, i, j, k, bnum, ee, bidim)
         class(dombase_cpml), intent (INOUT) :: dom
-        integer, intent(in) :: i, j, k, bnum, ee, nd
+        integer, intent(in) :: i, j, k, bnum, ee
         logical, intent(in) :: bidim ! 2d or 3d
         !
         real(fpp) :: a0, a1, a2, d0, d1, d2
+        integer :: i1, i2
 
         if (dom%cpml_one_dir == 0) return
 
-        a1 = dom%Alpha_1(i,j,k,dom%I1(ee,bnum))
-        d1 = dom%dxi_k_1(i,j,k,dom%I1(ee,bnum))
+        i1 = dom%I1(ee,bnum)
+        i2 = dom%I2(ee,bnum)
+
+        a1 = dom%Alpha_1(i,j,k,i1)
+        d1 = dom%dxi_k_1(i,j,k,i1)
         if (bidim) then ! Elimination des racines doubles : modification de alpha1 ou beta1
             a0 = dom%Alpha_0(ee,i,j,k,bnum)
             d0 = dom%dxi_k_0(ee,i,j,k,bnum)
             if (isclose(a1,a0)) then ! s0s1/s2 + s2=1
                 a1 =a0+0.1
-                dom%Alpha_1(i,j,k,nd) = a1
+                dom%Alpha_1(i,j,k,i1) = a1
             end if
             if (isclose(a1+d1,a0)) then ! s0s2/s1 + s2=1
                 a1 = a1+0.05
-                dom%Alpha_1(i,j,k,nd) = a1
+                dom%Alpha_1(i,j,k,i1) = a1
                 d1 = d1+0.05
-                dom%dxi_k_1(i,j,k,nd) = d1
+                dom%dxi_k_1(i,j,k,i1) = d1
             end if
             if (isclose(a1,a0+d0)) then ! s1s2/s0 + s2=1
                 a1 = a1+0.1
-                dom%Alpha_1(i,j,k,nd) = a1
+                dom%Alpha_1(i,j,k,i1) = a1
             end if
         else ! Elimination des racines triples : modification de alpha2 ou beta2
-            a2 = dom%Alpha_2(i,j,k,dom%I2(ee,bnum))
-            d2 = dom%dxi_k_2(i,j,k,dom%I2(ee,bnum))
+            a2 = dom%Alpha_2(i,j,k,i2)
+            d2 = dom%dxi_k_2(i,j,k,i2)
             if (isclose(a2+d2,a1)) then ! s0s1/s2
                 a2 = a1+0.05
-                dom%Alpha_2(i,j,k,nd) = a2
+                dom%Alpha_2(i,j,k,i2) = a2
                 d2 = d1+0.05
-                dom%dxi_k_2(i,j,k,nd) = d2
+                dom%dxi_k_2(i,j,k,i2) = d2
             end if
             if (isclose(a2,a1+d1)) then ! s0s2/s1
                 a2 =a1+0.1
-                dom%Alpha_2(i,j,k,nd) = a2
+                dom%Alpha_2(i,j,k,i2) = a2
             end if
             if (isclose(a2,a1)) then ! s1s2/s0
                 a2 =a1+0.1
-                dom%Alpha_2(i,j,k,nd) = a2
+                dom%Alpha_2(i,j,k,i2) = a2
             end if
         end if
     end subroutine cpml_only_one_dir

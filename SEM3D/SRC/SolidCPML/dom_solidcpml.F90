@@ -501,7 +501,7 @@ contains
         dom%Kappa_1(i,j,k,nd) = kappa
         dom%dxi_k_1(i,j,k,nd) = dxi
         dom%Alpha_1(i,j,k,nd) = alpha
-        call cpml_only_one_dir(dom, i, j, k, bnum, ee, nd, .true.)
+        call cpml_only_one_dir(dom, i, j, k, bnum, ee, .true.)
     end subroutine compute_dxi_alpha_kappa_dir1
 
     ! Compute parameters for the third direction of attenuation
@@ -524,7 +524,7 @@ contains
         dom%Kappa_2(i,j,k,nd) = kappa
         dom%dxi_k_2(i,j,k,nd) = dxi
         dom%Alpha_2(i,j,k,nd) = alpha
-        call cpml_only_one_dir(dom, i, j, k, bnum, ee, nd, .false.)
+        call cpml_only_one_dir(dom, i, j, k, bnum, ee, .false.)
     end subroutine compute_dxi_alpha_kappa_dir2
 
     function get_dir1_index(dom, ee, bnum) result(nd)
