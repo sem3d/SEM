@@ -313,7 +313,7 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"cpml_kappa0")) err=expect_eq_float(scanner, &config->cpml_kappa0, 1);
         if (cmp(scanner,"cpml_kappa1")) err=expect_eq_float(scanner, &config->cpml_kappa1, 1);
 	if (cmp(scanner,"cpml_integration")) err=expect_eq_keyword(scanner, kw_cpml_integ_type, &config->cpml_integ_type);
-        if (cmp(scanner,"cpml_one_dir")) err=expect_eq_int(scanner, &config->cpml_one_dir, 1);
+        if (cmp(scanner,"cpml_one_root")) err=expect_eq_int(scanner, &config->cpml_one_root, 1);
 
         if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -906,7 +906,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->cpml_kappa1 = 0.;
     cfg->cpml_n = 2;
     cfg->cpml_rc = 0.001;
-    cfg->cpml_one_dir = 0;
+    cfg->cpml_one_root = 0;
 }
 
 

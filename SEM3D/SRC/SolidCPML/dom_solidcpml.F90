@@ -140,7 +140,7 @@ contains
         dom%cpml_kappa_0 = Tdomain%config%cpml_kappa0
         dom%cpml_kappa_1 = Tdomain%config%cpml_kappa1
         dom%cpml_integ = Tdomain%config%cpml_integ_type
-        dom%cpml_one_dir = Tdomain%config%cpml_one_dir
+        dom%cpml_one_root = Tdomain%config%cpml_one_root
         dom%alphamax = 0.
         if(Tdomain%rank==0) then
             write(*,*) "INFO - solid cpml domain : kappa0 ", dom%cpml_kappa_0, " kappa1 ", dom%cpml_kappa_1
@@ -483,7 +483,7 @@ contains
 
     ! Compute parameters for the second direction of attenuation
     subroutine compute_dxi_alpha_kappa_dir1(dom, xyz, i, j, k, bnum, ee, mi)
-        use pml, only : cpml_only_one_dir
+        use pml, only : cpml_only_one_root
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
@@ -501,12 +501,12 @@ contains
         dom%Kappa_1(i,j,k,nd) = kappa
         dom%dxi_k_1(i,j,k,nd) = dxi
         dom%Alpha_1(i,j,k,nd) = alpha
-        call cpml_only_one_dir(dom, i, j, k, bnum, ee, .true.)
+        call cpml_only_one_root(dom, i, j, k, bnum, ee, .true.)
     end subroutine compute_dxi_alpha_kappa_dir1
 
     ! Compute parameters for the third direction of attenuation
     subroutine compute_dxi_alpha_kappa_dir2(dom, xyz, i, j, k, bnum, ee, mi)
-        use pml, only : cpml_only_one_dir
+        use pml, only : cpml_only_one_root
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
@@ -524,7 +524,7 @@ contains
         dom%Kappa_2(i,j,k,nd) = kappa
         dom%dxi_k_2(i,j,k,nd) = dxi
         dom%Alpha_2(i,j,k,nd) = alpha
-        call cpml_only_one_dir(dom, i, j, k, bnum, ee, .false.)
+        call cpml_only_one_root(dom, i, j, k, bnum, ee, .false.)
     end subroutine compute_dxi_alpha_kappa_dir2
 
     function get_dir1_index(dom, ee, bnum) result(nd)

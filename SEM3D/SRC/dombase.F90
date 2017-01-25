@@ -75,7 +75,7 @@ module mdombase
         real(fpp) :: cpml_kappa_0, cpml_kappa_1
         real(fpp) :: alphamax
         integer   :: cpml_integ
-        integer   :: cpml_one_dir
+        integer   :: cpml_one_root
 
         ! Solid - Fluid coupling
         real(fpp), dimension(:,:), allocatable :: Kappa_SF, Alpha_SF, dxi_k_SF

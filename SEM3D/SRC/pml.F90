@@ -550,7 +550,7 @@ contains
         cb2 = - cb0*(a0*d0 + a0*d1 - a2*d0 - a2*d1 - d0*d1)
     end subroutine get_coefs_Lijk_aaa
 
-    subroutine cpml_only_one_dir(dom, i, j, k, bnum, ee, bidim)
+    subroutine cpml_only_one_root(dom, i, j, k, bnum, ee, bidim)
         class(dombase_cpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
         logical, intent(in) :: bidim ! 2d or 3d
@@ -558,7 +558,7 @@ contains
         real(fpp) :: a0, a1, a2, d0, d1, d2
         integer :: i1, i2
 
-        if (dom%cpml_one_dir == 0) return
+        if (dom%cpml_one_root == 0) return
 
         i1 = dom%I1(ee,bnum)
         i2 = dom%I2(ee,bnum)
@@ -600,7 +600,7 @@ contains
                 dom%Alpha_2(i,j,k,i2) = a2
             end if
         end if
-    end subroutine cpml_only_one_dir
+    end subroutine cpml_only_one_root
 
 end module pml
 !! Local Variables:

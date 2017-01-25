@@ -77,7 +77,7 @@ module sem_c_config
        integer(C_INT) :: cpml_n
        real(C_DOUBLE) :: cpml_rc
        integer(C_INT) :: cpml_integ_type
-       integer(C_INT) :: cpml_one_dir
+       integer(C_INT) :: cpml_one_root
 
        !! Type Elements (DG)
        integer(C_INT) :: type_elem
