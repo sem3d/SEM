@@ -131,6 +131,7 @@ subroutine SourcePosition (Tdomain)
         Tdomain%logicD%any_source = .false.
         deallocate(Tdomain%sSource)
     endif
+    Tdomain%n_source = nb_src_inproc
 
 end subroutine SourcePosition
 

@@ -599,7 +599,6 @@ contains
             call create_sem_sources(Tdomain, Tdomain%config)
         else
             ! Create extended sources from data files
-            write(*,*) "EXTENDED SOURCES : Number of extended sources (faults) :", Tdomain%config%nextended_sources
             call create_sem_extended_sources(Tdomain, Tdomain%config)
         endif
 
