@@ -313,7 +313,7 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"cpml_kappa0")) err=expect_eq_float(scanner, &config->cpml_kappa0, 1);
         if (cmp(scanner,"cpml_kappa1")) err=expect_eq_float(scanner, &config->cpml_kappa1, 1);
 	if (cmp(scanner,"cpml_integration")) err=expect_eq_keyword(scanner, kw_cpml_integ_type, &config->cpml_integ_type);
-        if (cmp(scanner,"cpml_one_root")) err=expect_eq_int(scanner, &config->cpml_one_root, 1);
+        if (cmp(scanner,"cpml_one_root")) err=expect_eq_int(scanner, &config->cpml_one_root, 3);
 
         if (!expect_eos(scanner)) { return 0; }
     } while(1);
