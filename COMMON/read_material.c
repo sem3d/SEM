@@ -96,15 +96,15 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
 	if (cmp(scanner,"kappa"))       err=expect_eq_float(scanner, &mat->kappa, 1);
         if (cmp(scanner,"mu"))          err=expect_eq_float(scanner, &mat->mu, 1);
         if (cmp(scanner,"nlkp"))        err=expect_eq_float(scanner, &mat->nlkp, 1);
-        //if (cmp(scanner,"syld"))        err=expect_eq_float(scanner, &mat->syld, 1);
-	//if (cmp(scanner,"ckin"))        err=expect_eq_float(scanner, &mat->ckin, 1);
-	//if (cmp(scanner,"kkin"))        err=expect_eq_float(scanner, &mat->kkin, 1);
-	//if (cmp(scanner,"rinf"))        err=expect_eq_float(scanner,&mat->rinf,1);
-	//if (cmp(scanner,"biso"))        err=expect_eq_float(scanner,&mat->biso,1);
 	
     if (cmp(scanner,"copy")) {
+            printf("Enter: copy material");
             err=expect_eq_int(scanner, &nmat, 1);
-            if (err<=0) return err;
+            if (err<=0) {
+                printf("COPY FAILED")
+                cout << *nmat
+                return err;
+            }
             sem_material_t *msrc = mats->head;
             while(msrc && msrc->num!=nmat) msrc = msrc->next;
             if (!msrc) { msg_err(scanner, "Material to copy is not (yet?) defined"); return 0; }

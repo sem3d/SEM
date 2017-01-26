@@ -677,10 +677,6 @@ contains
                 dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = 0.0D0 
                 dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = 0.0D0
             endif
-            write(*,*) "parameters"
-            write(*,*) "syld", dom%nl_param%LMC%syld_(0,0,0,bnum,ee)
-            write(*,*) "ckin", dom%nl_param%LMC%ckin_(0,0,0,bnum,ee)
-            write(*,*) "kkin", dom%nl_param%LMC%kkin_(0,0,0,bnum,ee)
         endif
 
         if (dom%n_sls>0)  then
@@ -747,6 +743,7 @@ contains
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
+        use m_calcul_forces_atn_nl
 
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(inout) :: champs1
@@ -805,7 +802,11 @@ contains
             end if
         else
             if (n_solid>0) then
-                call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+                if (nl_flag) then
+                    call calcul_forces_atn_nl(dom,bnum,Fox,Foy,Foz,Depla)
+                else
+                    call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+                endif
             else
                 if (nl_flag) then
                     call calcul_forces_nl(dom,bnum,Fox,Foy,Foz,Depla)
