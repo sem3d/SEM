@@ -846,7 +846,7 @@ contains
         integer :: domain_type
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
-        integer :: ngll
+        integer :: ngll, oldngll
         integer :: i, j, k, n, m, ind
         integer :: nnodes
         type(Element), pointer :: el
@@ -873,13 +873,35 @@ contains
         allocate(valence(0:nnodes-1))
 
         valence(:) = 0
-        ngll = 0
+        oldngll = 0
+
         cell_start = 0
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
             if (.not. el%OUTPUT ) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            if (ngll/=oldngll) then
+                ! Allocate everything here, it simpler and not that costly...
+                if (oldngll/=0) then
+                    deallocate(fieldP,fieldU,fieldV,fieldA)
+                    deallocate(eps_vol,eps_dev,sig_dev)
+                    deallocate(P_energy,S_energy)
+                endif
+                allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+                ! tot energy 5
+                allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
+                allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+                ! dudx 9
+                oldngll = ngll
+            endif
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
                 case (DM_SOLID)
@@ -974,16 +996,11 @@ contains
             if(allocated(GLLc)) deallocate(GLLc)
             !if(allocated(GLLw)) deallocate(GLLw)
         enddo
-        if(allocated(fieldU))       deallocate(fieldU)
-        if(allocated(fieldV))       deallocate(fieldV)
-        if(allocated(fieldA))       deallocate(fieldA)
-        if(allocated(fieldP))       deallocate(fieldP)
-        if(allocated(P_energy))     deallocate(P_energy)
-        if(allocated(S_energy))     deallocate(S_energy)
-        if(allocated(eps_vol))      deallocate(eps_vol)
-        if(allocated(eps_dev))      deallocate(eps_dev)
-        if(allocated(eps_dev_pl))   deallocate(eps_dev_pl)
-        if(allocated(sig_dev))      deallocate(sig_dev)
+        if (ngll/=0) then
+            deallocate(fieldP,fieldU,fieldV,fieldA)
+            deallocate(eps_vol,eps_dev,sig_dev)
+            deallocate(P_energy,S_energy)
+        endif
 
         if (outputs%rank==0) then
             call semname_snap_result_file(outputs%group, isort, fnamef)

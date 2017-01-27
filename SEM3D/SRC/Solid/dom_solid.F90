@@ -190,41 +190,22 @@ contains
 
         end subroutine deallocate_dom_solid
 
-
-        subroutine solid_check_alloc_2d(field, ngll, nd)
-            real(fpp), dimension(:,:,:,:), allocatable :: field
-            integer :: ngll, nd
-            if(allocated(field)) then
-                if(any(shape(field(:,:,:,0)) /= ngll)) deallocate(field)
-            end if
-            if(.not. allocated(field)) allocate(field(0:ngll-1,0:ngll-1,0:ngll-1,0:nd-1))
-        end subroutine solid_check_alloc_2d
-
-        subroutine solid_check_alloc_1d(field, ngll)
-            real(fpp), dimension(:,:,:), allocatable :: field
-            integer :: ngll
-            if(allocated(field)) then
-                if(any(shape(field(:,:,:)) /= ngll)) deallocate(field)
-            end if
-            if(.not. allocated(field)) allocate(field(0:ngll-1,0:ngll-1,0:ngll-1))
-        end subroutine solid_check_alloc_1d
-
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy,&
         eps_vol, eps_dev, sig_dev, nl_flag, eps_dev_pl)
         use deriv3d
         implicit none
         !
-        type(domain_solid), intent(inout)          :: dom
-        integer, intent(in), dimension(0:)         :: out_variables
-        integer, intent(in)                        :: lnum
-        logical, intent(in)                        :: nl_flag
-        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
-        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
+        type(domain_solid), intent(inout)     :: dom
+        integer, intent(in), dimension(0:)    :: out_variables
+        integer, intent(in)                   :: lnum
+        logical, intent(in)                   :: nl_flag
+        real(fpp), dimension(:,:,:,:)         :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:)           :: fieldP
+        real(fpp), dimension(:,:,:)           :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:)         :: eps_dev
+        real(fpp), dimension(:,:,:,:)         :: sig_dev
+        real(fpp), dimension(:,:,:,:)         :: eps_dev_pl
         !
         logical                  :: flag_gradU
         integer                  :: ngll, i, j, k, ind
@@ -259,17 +240,6 @@ contains
 
         flag_gradU = flag_gradUint /= 0
         ngll = dom%ngll
-
-        if (out_variables(OUT_VITESSE) == 1)    call solid_check_alloc_2d(fieldV, ngll, 3)
-        if (out_variables(OUT_ACCEL) == 1)      call solid_check_alloc_2d(fieldA, ngll, 3)
-        if (out_variables(OUT_DEPLA) == 1)      call solid_check_alloc_2d(fieldU, ngll, 3)
-        if (out_variables(OUT_PRESSION) == 1)   call solid_check_alloc_1d(fieldP, ngll)
-        if (out_variables(OUT_EPS_VOL) == 1)    call solid_check_alloc_1d(eps_vol, ngll)
-        if (out_variables(OUT_ENERGYP) == 1)    call solid_check_alloc_1d(P_energy, ngll)
-        if (out_variables(OUT_ENERGYS) == 1)    call solid_check_alloc_1d(S_energy, ngll)
-        if (out_variables(OUT_EPS_DEV) == 1)    call solid_check_alloc_2d(eps_dev, ngll, OUT_VAR_DIMS_3D(OUT_EPS_DEV))
-        if (out_variables(OUT_EPS_DEV_PL) == 1) call solid_check_alloc_2d(eps_dev_pl, ngll, OUT_VAR_DIMS_3D(OUT_EPS_DEV_PL))
-        if (out_variables(OUT_STRESS_DEV) == 1) call solid_check_alloc_2d(sig_dev, ngll, OUT_VAR_DIMS_3D(OUT_STRESS_DEV))
 
         do k=0,ngll-1
             do j=0,ngll-1

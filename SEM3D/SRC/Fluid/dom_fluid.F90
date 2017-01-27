@@ -100,11 +100,11 @@ contains
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable   :: phi
         real(fpp), dimension(:,:,:), allocatable   :: vphi
-        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
-        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real(fpp), dimension(:,:,:,:)              :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:)                :: fieldP
+        real(fpp), dimension(:,:,:)                :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:)              :: eps_dev
+        real(fpp), dimension(:,:,:,:)              :: sig_dev
         !
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
@@ -120,8 +120,9 @@ contains
             out_variables(OUT_STRESS_DEV)) /= 0
 
         ngll = dom%ngll
+        allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
 
-        if(.not. allocated(phi))    allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
@@ -130,7 +131,6 @@ contains
                 enddo
             enddo
         enddo
-        if(.not. allocated(vphi))   allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
@@ -141,7 +141,6 @@ contains
         enddo
 
         if (out_variables(OUT_PRESSION) == 1) then
-            if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
@@ -157,7 +156,6 @@ contains
         end if
 
         if (out_variables(OUT_DEPLA) == 1) then
-            if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
 #ifdef CPML
             call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                  dom%IDensity_(:,:,:,bnum,ee),phi,fieldU)
@@ -167,7 +165,6 @@ contains
         end if
 
         if (out_variables(OUT_VITESSE) == 1) then
-            if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
 #ifdef CPML
             call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                  dom%IDensity_(:,:,:,bnum,ee),vphi,fieldV)
@@ -178,7 +175,6 @@ contains
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
-            if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
 #ifdef CPML
             call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                  dom%IDensity_(:,:,:,bnum,ee),-fieldP,fieldA)
@@ -189,31 +185,26 @@ contains
         end if
 
         if (out_variables(OUT_EPS_VOL) == 1) then
-            if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
             eps_vol(:,:,:) = 0.
         end if
 
         if (out_variables(OUT_ENERGYP) == 1) then
-            if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
             P_energy(:,:,:) = 0. !TODO
         end if
 
         if (out_variables(OUT_ENERGYS) == 1) then
-            if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
             S_energy(:,:,:) = 0.
         end if
 
         if (out_variables(OUT_EPS_DEV) == 1) then
-            if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
             eps_dev(:,:,:,:) = 0.
         end if
 
         if (out_variables(OUT_STRESS_DEV) == 1) then
-            if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
             sig_dev(:,:,:,:) = 0.
         end if
-        if(allocated(phi))  deallocate(phi)
-        if(allocated(vphi)) deallocate(vphi)
+        deallocate(phi)
+        deallocate(vphi)
     end subroutine get_fluid_dom_var
 
 

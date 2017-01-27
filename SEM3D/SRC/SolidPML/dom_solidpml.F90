@@ -130,11 +130,11 @@ contains
         type(domain_solidpml)                      :: dom
         integer, dimension(0:), intent(in)         :: out_variables
         integer                                    :: lnum
-        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
-        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real(fpp), dimension(:,:,:,:)              :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:)                :: fieldP
+        real(fpp), dimension(:,:,:)                :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:)              :: eps_dev
+        real(fpp), dimension(:,:,:,:)              :: sig_dev
         !
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
@@ -157,19 +157,16 @@ contains
                     ind = dom%Idom_(i,j,k,bnum,ee)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                        if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldU(i,j,k,:) = 0d0
                     end if
 
                     if (out_variables(OUT_VITESSE) == 1) then
-                        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldV(i,j,k,:) = dom%champs(0)%VelocPml(ind,:,0) + &
                                           dom%champs(0)%VelocPml(ind,:,1) + &
                                           dom%champs(0)%VelocPml(ind,:,2)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
-                        if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldA(i,j,k,:) = dom%Massmat(ind) * (&
                             dom%champs(1)%ForcesPml(ind,:,0) + &
                             dom%champs(1)%ForcesPml(ind,:,1) + &
@@ -177,32 +174,26 @@ contains
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
-                        if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                         fieldP(i,j,k) = 0d0
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then
-                        if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                         eps_vol(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
-                        if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         P_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYS) == 1) then
-                        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         S_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
-                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         eps_dev(i,j,k,:) = 0.
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
-                        if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         sig_dev(i,j,k,:) = 0.
                     end if
                 enddo
