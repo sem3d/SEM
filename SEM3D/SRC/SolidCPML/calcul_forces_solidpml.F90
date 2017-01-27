@@ -333,7 +333,7 @@ contains
         real(fpp), dimension(0:2) :: c0, c1, c2, rr0, rr1
         real(fpp), dimension(0:8) :: e0, e1
         real(fpp) :: dt, cf0, cf1, cf2, R0
-
+        integer :: dim0, dim1, dimsel
         ! Initialize
         b0 = 1.
         b1 = 0.
@@ -341,6 +341,13 @@ contains
         e0 = dom%Alpha_0(ee,i,j,k,bnum)
         i1 = dom%I1(ee,bnum)
         e1 = dom%Alpha_1(i,j,k,i1)
+        dim0 = dom%D0(ee,bnum)
+        dim1 = dom%D1(ee,bnum)
+        ! A single flag for selection on the only 3 possible cases
+        ! for dim0/dim1 : (0,1) (0,2), (1,2)
+        dimsel=0
+        if (dim0==0.and.dim1==2) dimsel=1
+        if (dim0==1.and.dim1==2) dimsel=2
 
         ! Lijk
         call get_coefs_Lijk_2d(dom, ee, bnum, i, j, k, kB120, kB021, kB012, b0, b1, b2, rr0, rr1)
@@ -367,30 +374,39 @@ contains
         b2(kB2XX) = c2(2); b2(kB2XY) = c2(2); b2(kB2YX) = c2(2); b2(kB2YY) = c2(2)
         ! If double root, need to convole exp(-alpha*t) stored in R2_0 (instead of R2_1 which contains t*exp(-alpha*t))
         ! L1 : handle cases when you have double roots
-        if (isclose(e0(L120_DXX), e1(L120_DXX))) then
-            b1(kB1XX) = b2(kB1XX); b2(kB1XX) = 0. ! R2_1 -> R2_0
-        end if
-        if (isclose(e0(L012_DXZ), e1(L012_DXZ))) then
-            b1(kB1XZ) = b2(kB1XZ); b2(kB1XZ) = 0. ! R2_1 -> R2_0
-        end if
-        if (isclose(e0(L120_DZX), e1(L120_DZX))) then
-            b1(kB1ZX) = b2(kB1ZX); b2(kB1ZX) = 0. ! R2_1 -> R2_0
-        end if
-        if (isclose(e0(L012_DZZ), e1(L012_DZZ))) then
-            b1(kB1ZZ) = b2(kB1ZZ); b2(kB1ZZ) = 0. ! R2_1 -> R2_0
-        end if
-        ! L2 : handle cases when you have double roots
-        if (isclose(e0(L120_DXX), e1(L120_DXX))) then
+        if (isclose(e0(DXX), e1(DXX))) then
+            if (dimsel==0) then
+              b1(kB1XX) = b2(kB1XX); b2(kB1XX) = 0. ! R2_1 -> R2_0
+            endif
             b1(kB2XX) = b2(kB2XX); b2(kB2XX) = 0. ! R2_1 -> R2_0
         end if
-        if (isclose(e0(L021_DXY), e1(L021_DXY))) then
+        if (isclose(e0(DXY), e1(DXY))) then
             b1(kB2XY) = b2(kB2XY); b2(kB2XY) = 0. ! R2_1 -> R2_0
         end if
-        if (isclose(e0(L120_DYX), e1(L120_DYX))) then
+        if (isclose(e0(DXZ), e1(DXZ))) then
+            if (dimsel==0) then
+                b1(kB1XZ) = b2(kB1XZ); b2(kB1XZ) = 0. ! R2_1 -> R2_0
+            endif
+        end if
+        if (isclose(e0(DYX), e1(DYX))) then
             b1(kB2YX) = b2(kB2YX); b2(kB2YX) = 0. ! R2_1 -> R2_0
         end if
-        if (isclose(e0(L021_DYY), e1(L021_DYY))) then
+        if (isclose(e0(DYY), e1(DYY))) then
             b1(kB2YY) = b2(kB2YY); b2(kB2YY) = 0. ! R2_1 -> R2_0
+        end if
+        !if (isclose(e0(DYZ), e1(DYZ))) then
+        !end if
+        if (isclose(e0(DZX), e1(DZX))) then
+            if (dimsel==0) then
+                b1(kB1ZX) = b2(kB1ZX); b2(kB1ZX) = 0. ! R2_1 -> R2_0
+            endif
+        end if
+        !if (isclose(e0(DZY), e1(DZY))) then
+        !end if
+        if (isclose(e0(DZZ), e1(DZZ))) then
+            if (dimsel==0) then
+                b1(kB1ZZ) = b2(kB1ZZ); b2(kB1ZZ) = 0. ! R2_1 -> R2_0
+            endif
         end if
 
         ! Convolution term update
@@ -452,6 +468,7 @@ contains
         real(fpp), dimension(0:2) :: c0, c1, c2, c3
         real(fpp), dimension(0:2, 0:8) :: e
         integer, dimension(0:8) :: sel
+        integer :: sel120, sel021, sel012
 
         ! Initialize
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
@@ -478,64 +495,37 @@ contains
 
         ! Lijk
         e(0:2,kB012) = (/ a0, a1, a2+d2 /)
-        e(0:2,kB120) = (/ a1, a2, a0+d0 /)
-        e(0:2,kB021) = (/ a0, a2, a1+d1 /)
-        call get_coefs_Lijk_3d(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel(kB120))
-        call get_coefs_Lijk_3d(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel(kB021))
-        call get_coefs_Lijk_3d(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel(kB012))
+        e(0:2,kB120) = (/ a0+d0, a1, a2 /)
+        e(0:2,kB021) = (/ a0, a1+d1, a2 /)
+        call get_coefs_Lijk_3d(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel120)
+        call get_coefs_Lijk_3d(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel021)
+        call get_coefs_Lijk_3d(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel012)
+        sel(DXX) = sel120; sel(DXY) = sel021; sel(DXZ) = sel012;
+        sel(DYX) = sel120; sel(DYY) = sel021; sel(DYZ) = sel012;
+        sel(DZX) = sel120; sel(DZY) = sel021; sel(DZZ) = sel012;
 
         ! Li
         call get_coefs_Li_3d(dom, ee, bnum, i, j, k, c0, c1, c2, c3)
         b0(kB0YY) = c0(0); b0(kB0YZ) = c0(0); b0(kB0ZY) = c0(0); b0(kB0ZZ) = c0(0)
-        b0(kB1XX) = c0(1); b0(kB1XZ) = c0(1); b0(kB1ZX) = c0(1); b0(kB1ZZ) = c0(1)
-        b0(kB2XX) = c0(2); b0(kB2XY) = c0(2); b0(kB2YX) = c0(2); b0(kB2YY) = c0(2)
         b1(kB0YY) = c1(0); b1(kB0YZ) = c1(0); b1(kB0ZY) = c1(0); b1(kB0ZZ) = c1(0)
-        b1(kB1XX) = c1(1); b1(kB1XZ) = c1(1); b1(kB1ZX) = c1(1); b1(kB1ZZ) = c1(1)
-        b1(kB2XX) = c1(2); b1(kB2XY) = c1(2); b1(kB2YX) = c1(2); b1(kB2YY) = c1(2)
         b2(kB0YY) = c2(0); b2(kB0YZ) = c2(0); b2(kB0ZY) = c2(0); b2(kB0ZZ) = c2(0)
-        b2(kB1XX) = c2(1); b2(kB1XZ) = c2(1); b2(kB1ZX) = c2(1); b2(kB1ZZ) = c2(1)
-        b2(kB2XX) = c2(2); b2(kB2XY) = c2(2); b2(kB2YX) = c2(2); b2(kB2YY) = c2(2)
         b3(kB0YY) = c3(0); b3(kB0YZ) = c3(0); b3(kB0ZY) = c3(0); b3(kB0ZZ) = c3(0)
+        b0(kB1XX) = c0(1); b0(kB1XZ) = c0(1); b0(kB1ZX) = c0(1); b0(kB1ZZ) = c0(1)
+        b1(kB1XX) = c1(1); b1(kB1XZ) = c1(1); b1(kB1ZX) = c1(1); b1(kB1ZZ) = c1(1)
+        b2(kB1XX) = c2(1); b2(kB1XZ) = c2(1); b2(kB1ZX) = c2(1); b2(kB1ZZ) = c2(1)
         b3(kB1XX) = c3(1); b3(kB1XZ) = c3(1); b3(kB1ZX) = c3(1); b3(kB1ZZ) = c3(1)
+        b0(kB2XX) = c0(2); b0(kB2XY) = c0(2); b0(kB2YX) = c0(2); b0(kB2YY) = c0(2)
+        b1(kB2XX) = c1(2); b1(kB2XY) = c1(2); b1(kB2YX) = c1(2); b1(kB2YY) = c1(2)
+        b2(kB2XX) = c2(2); b2(kB2XY) = c2(2); b2(kB2YX) = c2(2); b2(kB2YY) = c2(2)
         b3(kB2XX) = c3(2); b3(kB2XY) = c3(2); b3(kB2YX) = c3(2); b3(kB2YY) = c3(2)
-        ! L1 : handle cases when you have multiple roots
-        if (isclose(e(0, L120_DXX), e(1, L120_DXX))) then
-            b1(kB1XX) = b2(kB1XX); b2(kB1XX) = 0. ! R2_1 -> R2_0
-        end if
-        if (isclose(e(0, L012_DXZ), e(1, L012_DXZ))) then
-            b1(kB1XZ) = b2(kB1XZ); b2(kB1XZ) = 0. ! R2_1 -> R2_0
-        end if
-        if (isclose(e(0, L120_DZX), e(1, L120_DZX))) then
-            b1(kB1ZX) = b2(kB1ZX); b2(kB1ZX) = 0. ! R2_1 -> R2_0
-        end if
-        if (isclose(e(0, L012_DZZ), e(1, L012_DZZ))) then
-            b1(kB1ZZ) = b2(kB1ZZ); b2(kB1ZZ) = 0. ! R2_1 -> R2_0
-        end if
-        ! L2 : handle cases when you have multiple roots
-        if (isclose(e(2, L120_DXX), e(1, L120_DXX))) then
-            b2(kB2XX) = b3(kB2XX); b3(kB2XX) = 0. ! R2_2 -> R2_1
-            if (isclose(e(2, L120_DXX), e(0, L120_DXX)) .or. isclose(e(1, L120_DXX), e(0, L120_DXX))) then
-                b1(kB2XX) = b2(kB2XX); b2(kB2XX) = 0. ! R2_1 -> R2_0
-            end if
-        end if
-        if (isclose(e(2, L021_DXY), e(1, L021_DXY))) then
-            b2(kB2XY) = b3(kB2XY); b3(kB2XY) = 0. ! R2_2 -> R2_1
-            if (isclose(e(2, L021_DXY), e(0, L021_DXY)) .or. isclose(e(1, L021_DXY), e(0, L021_DXY))) then
-                b1(kB2XY) = b2(kB2XY); b2(kB2XY) = 0. ! R2_1 -> R2_0
-            end if
-        end if
-        if (isclose(e(2, L120_DYX), e(1, L120_DYX))) then
-            b2(kB2YX) = b3(kB2YX); b3(kB2YX) = 0. ! R2_2 -> R2_1
-            if (isclose(e(2, L120_DYX), e(0, L120_DYX)) .or. isclose(e(1, L120_DYX), e(0, L120_DYX))) then
-                b1(kB2YX) = b2(kB2YX); b2(kB2YX) = 0. ! R2_1 -> R2_0
-            end if
-        end if
-        if (isclose(e(2, L021_DYY), e(1, L021_DYY))) then
-            b2(kB2YY) = b3(kB2YY); b3(kB2YY) = 0. ! R2_2 -> R2_1
-            if (isclose(e(2, L021_DYY), e(0, L021_DYY)) .or. isclose(e(1, L021_DYY), e(0, L021_DYY))) then
-                b1(kB2YY) = b2(kB2YY); b2(kB2YY) = 0. ! R2_1 -> R2_0
-            end if
-        end if
+        call update_roots_L1_3d(sel(DXX), kB1XX, b1, b2, b3)
+        call update_roots_L2_3d(sel(DXX), kB2XX, b1, b2, b3)
+        call update_roots_L2_3d(sel(DXY), kB2XY, b1, b2, b3)
+        call update_roots_L1_3d(sel(DXZ), kB1XZ, b1, b2, b3)
+        call update_roots_L2_3d(sel(DYX), kB2YX, b1, b2, b3)
+        call update_roots_L2_3d(sel(DYY), kB2YY, b1, b2, b3)
+        call update_roots_L1_3d(sel(DZX), kB1ZX, b1, b2, b3)
+        call update_roots_L1_3d(sel(DZZ), kB1ZZ, b1, b2, b3)
 
         ! Convolution term update
         dt = dom%dt

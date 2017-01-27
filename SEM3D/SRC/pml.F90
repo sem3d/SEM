@@ -350,6 +350,36 @@ contains
         a5b = k*a0**2*d0*d1*d2
     end subroutine get_coefs_L_aaa
 
+    subroutine update_roots_L1_3d(sel, c, b1, b2, b3)
+        integer, intent(in) :: sel, c
+        real(fpp), intent(inout), dimension(0:14) :: b1, b2, b3
+        !
+        select case (sel)
+        case(CMP_ABC)
+        case(CMP_AAC)
+            b1(c) = b2(c); b2(c) = 0.
+        case(CMP_ABA)
+        case(CMP_ABB)
+        case(CMP_AAA)
+            b1(c) = b2(c); b2(c) = 0.
+        end select
+    end subroutine update_roots_L1_3d
+
+    subroutine update_roots_L2_3d(sel, c, b1, b2, b3)
+        integer, intent(in) :: sel, c
+        real(fpp), intent(inout), dimension(0:14) :: b1, b2, b3
+        !
+        select case (sel)
+        case(CMP_ABC)
+        case(CMP_AAC)
+        case(CMP_ABA)
+            b1(c) = b3(c); b3(c) = 0.
+        case(CMP_ABB)
+            b2(c) = b3(c); b3(c) = 0.
+        case(CMP_AAA)
+            b1(c) = b3(c); b3(c) = 0.
+        end select
+    end subroutine update_roots_L2_3d
 
     function compare_roots(a,b,c) result(sel)
         real(fpp), intent(in) :: a,b,c
