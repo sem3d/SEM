@@ -27,20 +27,18 @@ module mCapteur
 
     public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs
     private ::  flushCapteur
-    ! start modifs
-    integer, parameter :: CAPT_DIM=32
-    ! end modifs
+
     type :: tCapteur
         type(tCapteur),pointer :: suivant ! pour passer au capteur suivant
         integer :: periode          ! frequence de captation des grandeur
-        real, dimension (3) :: Coord  ! localisation du capteur
+        real(fpp), dimension (3) :: Coord  ! localisation du capteur
         character(LEN=20) :: nom      ! nom du capteur
         integer :: n_el ! numero de la maille dans laquelle se trouve le capteur
         ! si le capteur est partage entre plusieurs mailles, une seule suffit (type_calcul=1)
-        real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
+        real(fpp) :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
         integer :: numproc               ! numero du proc localisant le capteur
         integer :: icache
-        real, dimension(:,:), allocatable :: valuecache
+        real(fpp), dimension(:,:), allocatable :: valuecache
         integer :: type
     end type tCapteur
 
@@ -62,10 +60,10 @@ contains
         type(C_PTR) :: station_next;
         type(sem_station), pointer :: station_ptr
         character(Len=MAX_FILE_SIZE) :: nom
-        double precision :: xc, yc, zc, xi, eta, zeta
+        real(fpp) :: xc, yc, zc, xi, eta, zeta
         character(len=MAX_FILE_SIZE) :: fnamef
         integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out
-        double precision, allocatable, dimension(:,:) :: coordl
+        real(fpp), allocatable, dimension(:,:) :: coordl
         integer :: periodeRef
 
 
@@ -278,6 +276,13 @@ contains
         dset_capteur_name = trim(adjustl(capteur%nom)) !//"_"//trim(adjustl(capteur%grandeur))
     end function dset_capteur_name
 
+    function dset_capteur_posname(capteur)
+        implicit none
+        type(tCapteur),pointer :: capteur
+        character(len=40) :: dset_capteur_posname
+        dset_capteur_posname = trim(adjustl(capteur%nom)) //"_pos"
+    end function dset_capteur_posname
+
     subroutine create_traces_h5_skel(Tdomain)
         use HDF5
         implicit none
@@ -286,22 +291,24 @@ contains
         character (len=MAX_FILE_SIZE) :: fnamef
         character (len=40) :: dname
         integer(HID_T) :: fid, dset_id
-        integer :: hdferr
+        integer :: hdferr, n_out
 
-        
         call init_hdf5()
 
         call semname_tracefile_h5(Tdomain%rank, fnamef)
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
         call create_capteur_descriptions(Tdomain, fid)
-        
+
+        n_out = Tdomain%nReqOut+1
 
         capteur=>listeCapteur
         do while (associated(capteur))
             dname = dset_capteur_name(capteur)
             call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
-                int(CAPT_DIM,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
+                int(n_out,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
             call h5dclose_f(dset_id, hdferr)
+            dname = dset_capteur_posname(capteur)
+            call write_dataset(fid, trim(adjustl(dname)), capteur%Coord)
             capteur=>capteur%suivant
         enddo
 
@@ -321,14 +328,14 @@ contains
         character(len=12) :: temp
         integer :: d,k,dim,dimtot
         integer(HSIZE_T), dimension(1) :: dims
-        
-        dimtot = sum(OUT_VAR_DIMS_3D)-OUT_VAR_DIMS_3D(OUT_TOTAL_ENERGY)
+
+        dimtot = Tdomain%nReqOut
         allocate(varnames(0:dimtot))
         varnames(0) = "Time"
         d = 1
         do k=0,dimtot-1
             if (Tdomain%out_variables(k)==1) then
-                if(k == OUT_TOTAL_ENERGY) cycle 
+                if(k == OUT_TOTAL_ENERGY) cycle
                 do dim=1,OUT_VAR_DIMS_3D(k)
                     write(temp,"(A,I2)") OUT_VAR_NAMES(k),dim
                     varnames(d) = temp
@@ -452,10 +459,13 @@ contains
         type(domain)   :: TDomain
         type(tCapteur) :: capteur
         !
-        integer                                    :: i, j, k, ioff
+        integer                                    :: i, j, k, ioff, d
         integer                                    :: n_el, ngll
-        real(fpp)                                  :: weight
+        real(fpp)                                  :: weight, dUkdX, dUkdY, dUkdZ
+        ! Evaluation of lagrange polynomial at xi/eta/zeta capteur
         real(fpp), dimension(:), allocatable       :: outx, outy, outz
+        ! Evaluation of derivative of lagrange polynomial d/dx at xi, d/dy at eta d/dz at zeta
+        real(fpp), dimension(:), allocatable       :: doutx, douty, doutz
         real(fpp), dimension(:), allocatable       :: grandeur
         integer, dimension(0:size(Tdomain%out_variables)-1):: out_variables, offset
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
@@ -464,7 +474,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real, dimension(:), allocatable :: GLLc
+        real(fpp), dimension(:), allocatable :: GLLc
         logical :: nl_flag
         integer :: nComp
 
@@ -480,20 +490,22 @@ contains
         allocate(outx(0:ngll-1))
         allocate(outy(0:ngll-1))
         allocate(outz(0:ngll-1))
+        allocate(doutx(0:ngll-1))
+        allocate(douty(0:ngll-1))
+        allocate(doutz(0:ngll-1))
         do i = 0,ngll - 1
             call  pol_lagrange(ngll,GLLc,i,capteur%xi,outx(i))
-        end do
-        do j = 0,ngll - 1
-            call  pol_lagrange(ngll,GLLc,j,capteur%eta,outy(j))
-        end do
-        do k = 0,ngll - 1
-            call  pol_lagrange(ngll,GLLc,k,capteur%zeta,outz(k))
+            call  pol_lagrange(ngll,GLLc,i,capteur%eta,outy(i))
+            call  pol_lagrange(ngll,GLLc,i,capteur%zeta,outz(i))
+            call  der_lagrange(ngll,GLLc,i,capteur%xi,doutx(i))
+            call  der_lagrange(ngll,GLLc,i,capteur%eta,douty(i))
+            call  der_lagrange(ngll,GLLc,i,capteur%zeta,doutz(i))
         end do
         deallocate(GLLc)
-        
+
         allocate(grandeur(0:Tdomain%nReqOut-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
-        
+
         out_variables(:) = Tdomain%out_variables(:)
         nl_flag = Tdomain%nl_flag
         offset = 0
@@ -577,7 +589,7 @@ contains
                         nComp = OUT_VAR_DIMS_3D(OUT_EPS_VOL)-1
                         grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*eps_vol(i,j,k)
                     end if
-                     
+
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         ioff = offset(OUT_EPS_DEV)
                         nComp = OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1
@@ -596,6 +608,17 @@ contains
                         grandeur (ioff:ioff+nComp) = grandeur (ioff:ioff+nComp) &
                         + (/weight*sig_dev(i,j,k,0), weight*sig_dev(i,j,k,1), weight*sig_dev(i,j,k,2), &
                             weight*sig_dev(i,j,k,3), weight*sig_dev(i,j,k,4), weight*sig_dev(i,j,k,5)/)
+                    end if
+                    if (out_variables(OUT_DUDX) == 1 .AND. allocated(fieldU)) then
+                        ioff = offset(OUT_DUDX)
+                        do d=0,2
+                            dUkdX = fieldU(i,j,k,d)*doutx(i)*outy(j)*outz(k)
+                            dUkdY = fieldU(i,j,k,d)*outx(i)*douty(j)*outz(k)
+                            dUkdZ = fieldU(i,j,k,d)*outx(i)*outy(j)*doutz(k)
+                            grandeur(ioff+d+0) = grandeur(ioff+d+0) + dUkdX
+                            grandeur(ioff+d+3) = grandeur(ioff+d+3) + dUkdY
+                            grandeur(ioff+d+6) = grandeur(ioff+d+6) + dUkdY
+                        end do
                     end if
                 enddo
             enddo
@@ -637,19 +660,13 @@ contains
         type(tCapteur) :: capteur
         !
         integer :: domain_type
-        integer                                    :: i, j, k, n, ioff
-        integer                                    :: n_el, ngll
-        real(fpp)                                  :: weight
-        real(fpp), dimension(:), allocatable       :: grandeur
+        integer                                    :: i, j, k, n
+        integer                                    :: ngll
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, R_energy, C_energy
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
-        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real, dimension(:), allocatable :: GLLc
         real(fpp) :: local_sum_P_energy, local_sum_S_energy, local_sum_R_energy, local_sum_C_energy
         real(fpp) :: global_sum_P_energy, global_sum_S_energy, global_sum_R_energy, global_sum_C_energy
-        real(fpp) :: Whei, mult
-        real, dimension(:), allocatable :: GLLw
+        real(fpp), dimension(:), allocatable :: GLLw
         integer :: bnum, ee
         real(fpp), dimension(:,:,:), allocatable :: jac
         real(fpp) :: elem_P_En, elem_S_En, elem_R_En, elem_C_En
@@ -787,17 +804,17 @@ contains
         use mlocations3d
         implicit none
         type (domain), INTENT(INOUT)  :: Tdomain
-        double precision, intent(in) :: xc, yc, zc
+        real(fpp), intent(in) :: xc, yc, zc
         integer, intent(out) :: n_el, n_eln
-        double precision, intent(out) :: xi, eta, zeta
+        real(fpp), intent(out) :: xi, eta, zeta
         !
         integer :: i
         logical :: inside
         integer :: nmax
         integer, parameter :: NMAXEL=20
         integer, dimension(NMAXEL) :: elems
-        double precision, dimension(0:2,NMAXEL) :: coordloc
-        double precision, parameter :: EPS = 1D-13, EPSN = 0.1D0
+        real(fpp), dimension(0:2,NMAXEL) :: coordloc
+        real(fpp), parameter :: EPS = 1D-13, EPSN = 0.1D0
 
         nmax = NMAXEL
         call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)

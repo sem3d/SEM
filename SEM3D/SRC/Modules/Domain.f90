@@ -22,7 +22,6 @@ module sdomain
     use splanew
     use sneu
     use ssurf
-    use sbassin
     use solid_fluid
     use semdatafiles
     use sem_c_config
@@ -32,6 +31,7 @@ module sdomain
     use champs_fluid
     use champs_fluidpml
     use constants
+    use msnapdata, only : output_var_t
     implicit none
 
 
@@ -42,19 +42,13 @@ module sdomain
        ! Without coupling : communicateur=communicateur_global
        ! With coupling    : communicateur : includes every processes
        integer :: communicateur_global
-       ! Communicator used for output grouping. Only rank 0 of this comm produces outputs
-       integer :: comm_output
-       ! Nombre de processeur dans le groupe de communication associe a comm_output
-       integer :: nb_output_procs
-       integer :: output_rank
-       integer, dimension(:), allocatable :: output_nodes, output_nodes_offset, output_elems
-       ! Nombre de process par sorties pour le reassemblage
-       integer :: ngroup
        ! Nombre de processeur avec qui on communique (size(sComm))
        integer :: tot_comm_proc
        ! En mode couplage : Rg du superviseur dans le communicateur global
        integer :: master_superviseur
-
+       !
+       integer :: ngroup
+       type(output_var_t)  :: SnapData
        type(time)          :: TimeD
        type(logical_array) :: logicD
        type(planew)        :: sPlaneW
@@ -92,7 +86,7 @@ module sdomain
            Super_object_file,neumann_file,neumann_dat,check_mesh_file
        character (len=1)  :: Super_object_type
 
-       integer, dimension(0:10) :: out_variables
+       integer, dimension(0:OUT_LAST) :: out_variables
        integer                 :: nReqOut ! number of required outputs
        integer :: earthchunk_isInit
        character (len=MAX_FILE_SIZE) :: earthchunk_file
@@ -299,6 +293,55 @@ contains
         end do
     end subroutine check_interface_orient
 
+    subroutine map_surface_faces_to_elem(Tdomain, ngll, surf, renum, map)
+        use mindex, only : ind_elem_face, face_def
+        type(domain), intent(in) :: Tdomain
+        type(surf_num), intent(in) :: surf
+        integer, intent(in) :: ngll
+        integer, intent(in), dimension(:) :: renum
+        integer, intent(out), allocatable, dimension(:,:,:,:) :: map
+        !
+        integer :: idxf, idxi, idxj, idxk
+        integer :: nf, nnf, i, j, k
+        integer, dimension(0:2) :: i0, di, dj
+        integer, dimension(0:3) :: elface
+        integer :: nel
+
+        ! Use like that :
+        !call get_surface_numbering(Tdomain, Tdomain%SF%intSolFluPml%surf0, DM_FLUID_PML, renum)
+        !call map_surface_faces_to_elem(Tdomain, dom%ngll, Tdomain%SF%intSolFluPml%surf0, renum, dom%sf_map)
+
+         allocate(map(0:surf%n_faces-1, 0:ngll-1,0:ngll-1, 6)) ! 6=lnum,i,j,k,idom,imap
+         map = -1 ! init to -1, need to identify and skip orphan faces
+         do idxf = 0, surf%n_faces-1
+             nnf = surf%if_faces(idxf)
+             if (Tdomain%sFace(nnf)%orphan) cycle
+             ! Since it's an interface face, there's only one element can be associated
+             nel = Tdomain%sFace(nnf)%elem
+             ! We have a face, need to know which face we are
+             do nf=0,5
+                 if (nnf == Tdomain%specel(nel)%Near_Faces(nf)) exit
+             end do
+             do k=0,3
+                 elface(k) = Tdomain%specel(nel)%Control_nodes(face_def(k,nf))
+             end do
+             call ind_elem_face(ngll, nf, Tdomain%sFace(nnf)%inodes, elface, i0, di, dj)
+
+             do i=0,ngll-1
+                 do j=0,ngll-1
+                     idxi = i0(0)+i*di(0)+j*dj(0)
+                     idxj = i0(1)+i*di(1)+j*dj(1)
+                     idxk = i0(2)+i*di(2)+j*dj(2)
+                     map(idxf, i, j, 0) = Tdomain%specel(nel)%lnum
+                     map(idxf, i, j, 1) = idxi
+                     map(idxf, i, j, 2) = idxj
+                     map(idxf, i, j, 3) = idxk
+                     map(idxf, i, j, 4) = Tdomain%specel(nel)%Idom(i,j,k)
+                     map(idxf, i, j, 5) = renum(Tdomain%specel(nel)%Idom(i,j,k))
+                 end do
+             end do
+         end do
+    end subroutine map_surface_faces_to_elem
 end module sdomain
 
 !! Local Variables:

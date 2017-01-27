@@ -35,6 +35,37 @@ Note : après la ligne qui définit le nombre de couches, il doit y avoir autant
 - Choix de 8 noeuds par maille : 1 (Les mailles quadratiques à 27
   noeuds sont en développement)
 
+Ce format à été étendu pour rendre plus flexible la définition des PMLs :
+
+- Le premier indicateur (PML on X/Y), indique maintenant le nombre de couches PML : donc une valeur
+  de 0 ou 1 reste compatible (présence ou non d'une couche PML), une valeur de 3 indiquera qu'on souhaite
+  3 couches de PML.
+
+- Le sens des deux indicateurs suivants (PML on top PML at the bottom)
+  est modifié si on indique un 2 pour le premier indicateur. Dans ce
+  cas il faut fournir non pas 1 mais 6 valeurs à la suite du 2, une pour chaque direction
+  de PML dans l'ordre Up  (Z+), Down (Z-), Nord (Y+) Sud (Y-) Est (X+) West (X-)
+
+Voici un second exemple de fichier mat.dat qui spécifie 3 couches de PML dans les directions X+, X- et Z+ ::
+
+  -100.    # xmin
+  500.     # xmax
+  50.      # xstep
+  -100.    # ymin
+  500.     # ymax
+  50.      # ystep
+  500.     # zmax
+  2        # nb. of layers : i-th layer associated to i-th material (defined in mater.in)
+  600. 12  # upper layer: thickness and nb of steps       ...
+             ... from zmax, 12 elements are created backwards over 600. m => zmin = -100
+  100. 1   # lower layer: thickness and nb of steps       ...
+             ... from upper layer, 1 element is created backwards over 100. m => zmin = -200
+  3        # Number of extra PML layers (0=no pmls)
+  2 1 0 0 0 1 1   # PMLs on U/D/N/S/E/W
+  5        # nb of GLL nodes in the PML
+  1        # 8 or 27 control points for elements (1 or 2)
+  
+
 Format de mater.in
 ==================
 

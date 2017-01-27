@@ -3,6 +3,7 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module scomm
+    use constants, only : fpp
     implicit none
     interface comm_give_data
         module procedure comm_give_data_1, comm_give_data_2, comm_give_data_3
@@ -13,7 +14,11 @@ module scomm
     end interface comm_take_data
 
 contains
-
+#ifdef SINGLEPRECISION
+#define MPI_REAL_FPP MPI_FLOAT
+#else
+#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
+#endif
     subroutine exchange_sem_var(Tdomain, tag, vector)
         use sdomain
         use mpi
@@ -38,11 +43,11 @@ contains
             src = vector%Data(i)%src
             if (vector%Data(i)%ndata>0) then
                 call MPI_Isend(vector%Data(i)%Give, vector%Data(i)%ndata, &
-                    MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
+                    MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
                     vector%send_reqs(i), ierr)
 
                 call MPI_Irecv(vector%Data(i)%Take, vector%Data(i)%ndata, &
-                    MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
+                    MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
                     vector%recv_reqs(i), ierr)
             end if
         enddo
@@ -54,8 +59,8 @@ contains
     end subroutine exchange_sem_var
 
     subroutine comm_give_data_1(give, igive, data, pos)
-        real, dimension(0:), intent(inout) :: give
-        real, dimension(0:), intent(in)  :: data
+        real(fpp), dimension(0:), intent(inout) :: give
+        real(fpp), dimension(0:), intent(in)  :: data
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
@@ -67,8 +72,8 @@ contains
     end subroutine comm_give_data_1
 
     subroutine comm_give_data_2(give, igive, data, pos)
-        real, dimension(0:), intent(inout) :: give
-        real, dimension(0:,0:), intent(in)  :: data
+        real(fpp), dimension(0:), intent(inout) :: give
+        real(fpp), dimension(0:,0:), intent(in)  :: data
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
@@ -82,8 +87,8 @@ contains
     end subroutine comm_give_data_2
 
     subroutine comm_give_data_3(give, igive, data, pos)
-        real, dimension(0:), intent(inout) :: give
-        real, dimension(0:,0:,0:), intent(in)  :: data
+        real(fpp), dimension(0:), intent(inout) :: give
+        real(fpp), dimension(0:,0:,0:), intent(in)  :: data
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
@@ -99,9 +104,9 @@ contains
     end subroutine comm_give_data_3
 
     subroutine comm_take_data_1(take, itake, data, pos)
-        real, dimension(0:), intent(in) :: take
+        real(fpp), dimension(0:), intent(in) :: take
         integer, dimension(0:), intent(in) :: itake
-        real, dimension(0:), intent(inout)  :: data
+        real(fpp), dimension(0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
         integer :: i, idx
@@ -113,9 +118,9 @@ contains
     end subroutine comm_take_data_1
 
     subroutine comm_take_data_2(take, itake, data, pos)
-        real, dimension(0:), intent(in) :: take
+        real(fpp), dimension(0:), intent(in) :: take
         integer, dimension(0:), intent(in) :: itake
-        real, dimension(0:,0:), intent(inout)  :: data
+        real(fpp), dimension(0:,0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
         integer :: i, j, idx
@@ -129,9 +134,9 @@ contains
     end subroutine comm_take_data_2
 
     subroutine comm_take_data_3(take, itake, data, pos)
-        real, dimension(0:), intent(in) :: take
+        real(fpp), dimension(0:), intent(in) :: take
         integer, dimension(0:), intent(in) :: itake
-        real, dimension(0:,0:,0:), intent(inout)  :: data
+        real(fpp), dimension(0:,0:,0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
         integer :: i, j, k, idx

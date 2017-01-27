@@ -867,7 +867,7 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
     ngll = domain_ngll(Tdomain, dom)
     do n = 0,Tdomain%Comm_data%ncomm-1
         dst = Tdomain%Comm_data%Data(n)%dest
-
+        count = 0
         n2 = surface%nbtot
         select case(dom)
         case (DM_FLUID)

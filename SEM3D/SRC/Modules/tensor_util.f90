@@ -3,10 +3,10 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module tensor_util
-
+    use constants, only : fpp
     implicit none
-    real, parameter :: s2=1.4142135623730950488
-    real, parameter :: os2=0.70710678118654
+    real(fpp), parameter :: s2=1.4142135623730950488d0
+    real(fpp), parameter :: os2=0.70710678118654d0
 
 contains
     ! #########################################################
@@ -14,21 +14,21 @@ contains
     ! transformation de spherique a cartesien
         implicit none
 
-        real, dimension(1:6,1:6), intent(inout) :: CIJ
-        real, intent(in) :: theta,phi
+        real(fpp), dimension(1:6,1:6), intent(inout) :: CIJ
+        real(fpp), intent(in) :: theta,phi
 
         integer :: i,j,k,l,a,b,c,d
-        real :: ct,st,cp,sp
-        real, dimension(3,3) :: CCS
-        real, dimension(3,3,3,3) :: cijkl,T
+        real(fpp) :: ct,st,cp,sp
+        real(fpp), dimension(3,3) :: CCS
+        real(fpp), dimension(3,3,3,3) :: cijkl,T
 
         call kelvin2ijkl(CIJ,T)
 
         ! passage de cartersien a spherique
-        ct=dcos(theta)
-        st=dsin(theta)
-        cp=dcos(phi  )
-        sp=dsin(phi  )
+        ct=cos(theta)
+        st=sin(theta)
+        cp=cos(phi  )
+        sp=sin(phi  )
         Ccs(1,1)= st*cp; Ccs(1,2)=st*sp; Ccs(1,3)=  ct
         Ccs(2,1)= ct*cp; Ccs(2,2)=ct*sp; Ccs(2,3)= -st
         Ccs(3,1)=-sp   ; Ccs(3,2)=cp   ; Ccs(3,3)= 0.d0
@@ -64,11 +64,11 @@ contains
 
         implicit none
 
-        real, dimension(1:6,1:6), intent(inout) :: CIJ
-        real, dimension(1:3,1:3), intent(in) :: rot
+        real(fpp), dimension(1:6,1:6), intent(inout) :: CIJ
+        real(fpp), dimension(1:3,1:3), intent(in) :: rot
 
         integer :: i,j,k,l,a,b,c,d
-        real, dimension(3,3,3,3) :: cijkl,T
+        real(fpp), dimension(3,3,3,3) :: cijkl,T
 
         call kelvin2ijkl(CIJ,T)
 
@@ -99,8 +99,8 @@ contains
 
         implicit none
 
-        real, dimension(1:6,1:6), intent(out) :: CIJ
-        real, dimension(1:3,1:3,1:3,1:3), intent(in) :: cijkl
+        real(fpp), dimension(1:6,1:6), intent(out) :: CIJ
+        real(fpp), dimension(1:3,1:3,1:3,1:3), intent(in) :: cijkl
 
         integer :: i,j
 
@@ -141,8 +141,8 @@ contains
 
         implicit none
 
-        real, dimension(1:6,1:6), intent(in) :: CIJ
-        real, dimension(1:3,1:3,1:3,1:3), intent(out) :: cijkl
+        real(fpp), dimension(1:6,1:6), intent(in) :: CIJ
+        real(fpp), dimension(1:3,1:3,1:3,1:3), intent(out) :: cijkl
 
         integer :: i,j,k,l,ii
         integer, dimension(4,21) :: ijkltab
@@ -226,9 +226,9 @@ contains
     end subroutine kelvin2ijkl
 
 ! ###############################################
-    real function lambda_from_Cij (C)
+    real(fpp) function lambda_from_Cij (C)
 
-        real, dimension(1:6,1:6), intent(IN) :: C
+        real(fpp), dimension(1:6,1:6), intent(IN) :: C
 
         lambda_from_Cij = ( C(1,1) + C(2,2) + C(3,3) &
                             + 4.d0*C(1,2) + 4.d0*C(2,3) + 4.d0*C(1,3) &
@@ -238,9 +238,9 @@ contains
     end function
 
     ! ###############################################
-    real function mu_from_Cij (C)
+    real(fpp) function mu_from_Cij (C)
 
-        real, dimension(1:6,1:6), intent(IN) :: C
+        real(fpp), dimension(1:6,1:6), intent(IN) :: C
 
         mu_from_Cij = ( C(1,1) + C(2,2) + C(3,3) &
                       - C(1,2) - C(2,3) - C(1,3) &

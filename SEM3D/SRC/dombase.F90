@@ -27,6 +27,9 @@ module mdombase
         ! Nombre d'elements alloues dans le domaine (>=nbelem)
         integer :: nblocks ! nbelem_alloc == nblocks*VCHUNK
 
+        ! Pas de temps d'integration (normalement le meme pour tout domaine)
+        real(fpp) :: dt
+
         ! Points, poids de gauss et derivees
         real(fpp), dimension (:), allocatable :: GLLc
         real(fpp), dimension (:), allocatable :: GLLw
@@ -46,6 +49,38 @@ module mdombase
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
     end type dombase
+
+    type, extends(dombase) :: dombase_cpml
+        ! Copy of node global coords : mandatory to compute distances in the PML
+        real(fpp), allocatable, dimension(:,:) :: GlobCoord
+
+        ! We keep separate variables for the cases where we have 1, 2 or 3 attenuation directions
+        ! since we always have at least one, xxx_0 are indexed by ee,bnum
+        real(fpp), allocatable, dimension(:,:,:,:,:) :: Alpha_0, dxi_k_0, Kappa_0 ! dxi_k = dxi/kappa
+        ! for the other two cases we have much less elements (12*N and 8 in case of cube NxNxN)
+        ! so we maintain two separate indirection indices I1/I2
+        ! I1 = -1 means we have only one dir, I1>=0 and I2==-1 we have two directions, 3 otherwise
+        ! D0 : index of first direction with pml!=0
+        ! D1 : index of second direction with pml!=0
+        ! There is no D2 because with 3 dirs!=0 we have D0=0 D1=1 D2=2
+        integer,   allocatable, dimension(:,:) :: I1, I2, D0, D1 ! ee, bnum
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_1, Kappa_1, dxi_k_1
+        real(fpp), allocatable, dimension(:,:,:,:) :: Alpha_2, Kappa_2, dxi_k_2
+        ! the number of elements with 2 (resp. 3) attenuation direction
+        integer :: dir1_count, dir2_count
+        ! CPML parameters
+        real(fpp) :: cpml_c
+        real(fpp) :: cpml_n
+        real(fpp) :: cpml_rc
+        real(fpp) :: cpml_kappa_0, cpml_kappa_1
+        real(fpp) :: alphamax
+        integer   :: cpml_integ
+        integer   :: cpml_one_root
+
+        ! Solid - Fluid coupling
+        real(fpp), dimension(:,:), allocatable :: Kappa_SF, Alpha_SF, dxi_k_SF
+        integer, dimension(:), allocatable :: D0_SF, D1_SF, I1_SF
+    end type dombase_cpml
 contains
 
     subroutine init_dombase(bz)
@@ -69,12 +104,17 @@ contains
             allocate (bz%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate (bz%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate (bz%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            bz%m_Idom = 0
+            ! Initialize to point after the last gll
+            ! Since we allocate nblock*VCHUNK elements we could have up to VCHUNK-1 extra (fake)
+            ! elements those will point to this extra gll so we can ignore them in most
+            ! vectorized loops
+            bz%m_Idom = bz%nglltot
         end if
         if (bz%nglltot /= 0) then
             ! Allocation de MassMat
-            allocate(bz%MassMat(0:bz%nglltot-1))
+            allocate(bz%MassMat(0:bz%nglltot))
             bz%MassMat = 0d0
+            bz%MassMat(bz%nglltot) = 1d0
         end if
     end subroutine init_dombase
 
@@ -90,6 +130,75 @@ contains
         if(allocated(bz%htprime)) deallocate(bz%htprime)
         if(allocated(bz%MassMat)) deallocate(bz%MassMat)
     end subroutine deallocate_dombase
+
+    subroutine allocate_dombase_cpml(dom, nbtot_SF)
+        implicit none
+        class(dombase_cpml) :: dom
+        integer :: nbtot_SF
+        !
+        ! Note: nbtot_SF << nbelems (or ngll) as the SF coupling surface is small compared to the full mesh.
+        ! This is why the allocations are sized with nbtot_SF (not ngll, not nbelems). Otherwise, we allocate
+        ! huge amount of data that will not be used !
+        if (nbtot_SF <= 0) return
+        allocate(dom%D0_SF   (     0:nbtot_SF-1))
+        allocate(dom%I1_SF   (     0:nbtot_SF-1))
+        allocate(dom%D1_SF   (     0:nbtot_SF-1))
+        allocate(dom%Kappa_SF(0:1, 0:nbtot_SF-1))
+        allocate(dom%Alpha_SF(0:1, 0:nbtot_SF-1))
+        allocate(dom%dxi_k_SF(0:1, 0:nbtot_SF-1))
+        dom%D0_SF =  0
+        dom%I1_SF = -1
+        dom%D1_SF =  0
+        dom%Kappa_SF = 0.
+        dom%Alpha_SF = 0.
+        dom%dxi_k_SF = 0.
+    end subroutine allocate_dombase_cpml
+
+    subroutine deallocate_dombase_cpml(bz)
+        class(dombase_cpml), intent(inout) :: bz
+        !
+        if(allocated(bz%Alpha_0)) deallocate(bz%Alpha_0)
+        if(allocated(bz%dxi_k_0)) deallocate(bz%dxi_k_0)
+        if(allocated(bz%Kappa_0)) deallocate(bz%Kappa_0)
+
+        if(allocated(bz%Alpha_1)) deallocate(bz%Alpha_1)
+        if(allocated(bz%dxi_k_1)) deallocate(bz%dxi_k_1)
+        if(allocated(bz%Kappa_1)) deallocate(bz%Kappa_1)
+
+        if(allocated(bz%Alpha_2)) deallocate(bz%Alpha_2)
+        if(allocated(bz%dxi_k_2)) deallocate(bz%dxi_k_2)
+        if(allocated(bz%Kappa_2)) deallocate(bz%Kappa_2)
+
+        if(allocated(bz%I1)) deallocate(bz%I1)
+        if(allocated(bz%I2)) deallocate(bz%I2)
+        if(allocated(bz%D0)) deallocate(bz%D0)
+        if(allocated(bz%D1)) deallocate(bz%D1)
+
+        if(allocated(bz%GlobCoord)) deallocate(bz%GlobCoord)
+
+        if(allocated(bz%D0_SF   )) deallocate(bz%D0_SF   )
+        if(allocated(bz%I1_SF   )) deallocate(bz%I1_SF   )
+        if(allocated(bz%D1_SF   )) deallocate(bz%D1_SF   )
+        if(allocated(bz%Kappa_SF)) deallocate(bz%Kappa_SF)
+        if(allocated(bz%Alpha_SF)) deallocate(bz%Alpha_SF)
+        if(allocated(bz%dxi_k_SF)) deallocate(bz%dxi_k_SF)
+    end subroutine deallocate_dombase_cpml
+
+    subroutine setup_dombase_cpml(dom, idxsf, i, j, k, ee, bnum)
+        implicit none
+        class(dombase_cpml) :: dom
+        integer :: idxsf, i, j, k, ee, bnum
+        !
+                                    dom%Kappa_SF(0, idxsf) = dom%Kappa_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%Kappa_SF(1, idxsf) = dom%Kappa_1(   i,j,k,dom%I1(ee,bnum))
+                                    dom%Alpha_SF(0, idxsf) = dom%Alpha_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%Alpha_SF(1, idxsf) = dom%Alpha_1(   i,j,k,dom%I1(ee,bnum))
+                                    dom%dxi_k_SF(0, idxsf) = dom%dxi_k_0(ee,i,j,k,          bnum)
+        if(dom%I1(ee,bnum) .ne. -1) dom%dxi_k_SF(1, idxsf) = dom%dxi_k_1(   i,j,k,dom%I1(ee,bnum))
+        dom%D0_SF(idxsf) = dom%D0(ee,bnum)
+        dom%D1_SF(idxsf) = dom%D1(ee,bnum)
+        dom%I1_SF(idxsf) = dom%I1(ee,bnum)
+    end subroutine setup_dombase_cpml
 end module mdombase
 
 !! Local Variables:

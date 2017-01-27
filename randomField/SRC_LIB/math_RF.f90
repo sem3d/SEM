@@ -40,7 +40,7 @@ contains
             write(*,*) "ERROR, inside set Grid shape(xPoints) and xNStep are different"
             write(*,*) "shape(xPoints) = ", shape(xPoints)
             write(*,*) "xNStep         = ", xNStep
-            stop(" ")
+            stop (" ")
         end if
 
         effec_Inverse = .false.
@@ -185,7 +185,7 @@ contains
                 !write(get_fileId(),*) " xMinExt = ", xMinExt
                 !write(get_fileId(),*) " xStep = ", xStep
                 !write(get_fileId(),*) " xNStep = ", xNStep
-                stop(" ")
+                stop (" ")
             end if
         end do
 
@@ -258,7 +258,7 @@ contains
             seedStep = product(nStep(1:j-1));
             if (j == 1) seedStep = 1;
             i = posVec(j);
-            stop("find_Position NOT IMPLEMENTED")
+            stop ("find_Position NOT IMPLEMENTED")
 !            pos = pos + posVec(j)*seedStep*nStep(j)
 !            posVec(j) = cyclicMod(int((pos-0.9)/seedStep)+1, nStep(j))
 !            pos = cyclicMod(posVec(j)*seedStep, nStep(j)) - 1

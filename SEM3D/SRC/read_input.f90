@@ -210,7 +210,7 @@ contains
         type(sem_config), intent(in) :: config
         type(sem_source), pointer :: src
         integer :: nsrc
-        real :: ndir
+        real(fpp) :: ndir
 
         call c_f_pointer(config%source, src)
         nsrc = 0
@@ -334,9 +334,9 @@ contains
         type(Extended_source), intent(in) :: extsrc
         integer(HID_T), intent(in)        :: fid
         integer, intent(inout)            :: nsrc
-        real, dimension(0:2)              :: normal, U
-        real, dimension(0:2,0:2)          :: Moment
-        real, allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
+        real(fpp), dimension(0:2)              :: normal, U
+        real(fpp), dimension(0:2,0:2)          :: Moment
+        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
         integer :: i, j
 
         ! Recuperation du vecteur normal et du vecteur de glissement
@@ -414,8 +414,8 @@ contains
 
 
     function is_in_box(pos, box)
-        real, dimension(3), intent(in) :: pos
-        real, dimension(6), intent(in) :: box
+        real(fpp), dimension(3), intent(in) :: pos
+        double precision, dimension(6), intent(in) :: box
         logical :: is_in_box
         !
         integer :: i
@@ -429,11 +429,11 @@ contains
     !
     ! Renvoie true si le point est a une distance <1 du plane
     function is_in_plane(pos, plane)
-        real, dimension(3), intent(in) :: pos
-        real, dimension(4), intent(in) :: plane
+        real(fpp), dimension(3), intent(in) :: pos
+        double precision, dimension(4), intent(in) :: plane
         logical :: is_in_plane
         !
-        real :: w
+        real(fpp) :: w
 
         is_in_plane = .false.
         w = plane(1)*pos(1)+plane(2)*pos(2)+plane(3)*pos(3)+plane(4)
@@ -450,7 +450,7 @@ contains
 
         type(sem_snapshot_cond), pointer :: selection
         integer :: n, i, ipoint
-        real, dimension(3) :: pos
+        real(fpp), dimension(3) :: pos
         logical :: sel
 
         do n = 0, Tdomain%n_elem-1
@@ -524,6 +524,7 @@ contains
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
         Tdomain%TimeD%fmax                = Tdomain%config%fmax
+        Tdomain%TimeD%type_timeinteg      = Tdomain%config%type_timeinteg
         Tdomain%nl_flag = .false.
         if(Tdomain%config%nl_flag == 1) Tdomain%nl_flag = .true.
         if (rg==0) then
@@ -622,30 +623,6 @@ contains
 
         endif
 
-
-!        if( Tdomain%config%material_present == 1) then
-!
-!            select case (Tdomain%config%material_type)
-!
-!            case (MATERIAL_PREM)
-!                Tdomain%aniso=.true.
-!            case (MATERIAL_EARTHCHUNK)
-!                Tdomain%earthchunk_isInit=1
-!                Tdomain%aniso=.true.
-!                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
-!                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
-!                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
-!
-!            end select
-!
-!            do imat=0,Tdomain%n_mat-1
-!                Tdomain%sSubDomain(imat)%material_definition = Tdomain%config%material_type
-!            enddo
-!        else
-!            do imat=0,Tdomain%n_mat-1
-!                Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
-!            enddo
-!        endif
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input
     

@@ -2,478 +2,481 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-subroutine normal_face_weighting(dir,ngll,ngll1,ngll2,normal,   &
-    GLLw,BtN)
-    !- determination of the weighted normal term for a given (inter)face
-    implicit none
+module mboundarycond
+    use constants, only : fpp
+contains
+    subroutine normal_face_weighting(dir,ngll,ngll1,ngll2,normal,   &
+        GLLw,BtN)
+        !- determination of the weighted normal term for a given (inter)face
+        implicit none
 
-    integer, intent(in)  :: dir,ngll1,ngll2,ngll
-    real, dimension(0:ngll-1), intent(in)  :: GLLw
-    real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: normal
-    real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(out) :: BtN
-    integer :: i,j
+        integer, intent(in)  :: dir,ngll1,ngll2,ngll
+        real(fpp), dimension(0:ngll-1), intent(in)  :: GLLw
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: normal
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(out) :: BtN
+        integer :: i,j
 
-    if(dir == 0 .or. dir == 5)then
-        do j = 0,ngll2-1
-            do i = 0,ngll1-1
-                Btn(i,j,0:2) = GLLw(i)*GLLw(j)*normal(i,j,0:2)
+        if(dir == 0 .or. dir == 5)then
+            do j = 0,ngll2-1
+                do i = 0,ngll1-1
+                    Btn(i,j,0:2) = GLLw(i)*GLLw(j)*normal(i,j,0:2)
+                enddo
             enddo
-        enddo
-    else if(dir == 1 .or. dir == 3)then
-        do j = 0,ngll2-1
-            do i = 0,ngll1-1
-                Btn(i,j,0:2) = GLLw(i)*GLLw(j)*normal(i,j,0:2)
+        else if(dir == 1 .or. dir == 3)then
+            do j = 0,ngll2-1
+                do i = 0,ngll1-1
+                    Btn(i,j,0:2) = GLLw(i)*GLLw(j)*normal(i,j,0:2)
+                enddo
             enddo
-        enddo
-    else
-        do j = 0,ngll2-1
-            do i = 0,ngll1-1
-                Btn(i,j,0:2) = GLLw(i)*GLLw(j)*normal(i,j,0:2)
+        else
+            do j = 0,ngll2-1
+                do i = 0,ngll1-1
+                    Btn(i,j,0:2) = GLLw(i)*GLLw(j)*normal(i,j,0:2)
+                enddo
             enddo
-        enddo
-    endif
+        endif
 
-    return
+        return
 
-end subroutine normal_face_weighting
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Vector_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
-    !- distributes vector values BtN, from face to edges.
-    implicit none
+    end subroutine normal_face_weighting
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Vector_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
+        !- distributes vector values BtN, from face to edges.
+        implicit none
 
-    integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
-    real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: BtNf
-    real, dimension(1:ngll-2,0:2), intent(inout)  :: BtNe
-    integer  :: j
+        integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: BtNf
+        real(fpp), dimension(1:ngll-2,0:2), intent(inout)  :: BtNe
+        integer  :: j
 
-    if(orient_e == 0)then
-        select case(ne)
+        if(orient_e == 0)then
+            select case(ne)
+            case(0)
+                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,0,0:2)
+            case(1)
+                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(ngll1-1,1:ngll2-2,0:2)
+            case(2)
+                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,ngll2-1,0:2)
+            case(3)
+                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(0,1:ngll2-2,0:2)
+            end select
+        else
+            select case(ne)
+            case(0)
+                do j=1,ngll-2
+                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,0,0:2)
+                enddo
+            case(1)
+                do j=1,ngll-2
+                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1,ngll2-1-j,0:2)
+                enddo
+            case(2)
+                do j=1,ngll-2
+                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,ngll2-1,0:2)
+                enddo
+            case(3)
+                do j=1,ngll-2
+                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(0,ngll2-1-j,0:2)
+                enddo
+            end select
+        endif
+
+    end subroutine Vector_Face2Edge
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Vector_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
+        !- distributes vector values (BtN), from face to vertices.
+        implicit none
+
+        integer, intent(in)   :: nv,ngll1,ngll2
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: BtNf
+        real(fpp), dimension(0:2), intent(inout)  :: BtNv
+
+        select case(nv)
         case(0)
-            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,0,0:2)
+            BtNv(0:2) = BtNv(0:2)+BtNf(0,0,0:2)
         case(1)
-            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(ngll1-1,1:ngll2-2,0:2)
+            BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,0,0:2)
         case(2)
-            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,ngll2-1,0:2)
+            BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,ngll2-1,0:2)
         case(3)
-            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(0,1:ngll2-2,0:2)
+            BtNv(0:2) = BtNv(0:2)+BtNf(0,ngll2-1,0:2)
         end select
-    else
-        select case(ne)
+
+
+    end subroutine Vector_Face2Vertex
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Vector_Edge2Face(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
+        !- assemblage vector values BtN, from edge to face.
+        implicit none
+
+        integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(inout)  :: BtNf
+        real(fpp), dimension(1:ngll-2,0:2), intent(in)  :: BtNe
+        integer  :: j
+
+        if(orient_e == 0)then
+            select case(ne)
+            case(0)
+                BtNf(1:ngll1-2,0,0:2) = BtNe(1:ngll-2,0:2)
+            case(1)
+                BtNf(ngll1-1,1:ngll2-2,0:2) = BtNe(1:ngll-2,0:2)
+            case(2)
+                BtNf(1:ngll1-2,ngll2-1,0:2) = BtNe(1:ngll-2,0:2)
+            case(3)
+                BtNf(0,1:ngll2-2,0:2) = BtNe(1:ngll-2,0:2)
+            end select
+        else
+            select case(ne)
+            case(0)
+                do j=1,ngll-2
+                    BtNf(ngll1-1-j,0,0:2) = BtNe(j,0:2)
+                enddo
+            case(1)
+                do j=1,ngll-2
+                    BtNf(ngll1-1,ngll2-1-j,0:2) = BtNe(j,0:2)
+                enddo
+            case(2)
+                do j=1,ngll-2
+                    BtNf(ngll1-1-j,ngll2-1,0:2) = BtNe(j,0:2)
+                enddo
+            case(3)
+                do j=1,ngll-2
+                    BtNf(0,ngll2-1-j,0:2) = BtNe(j,0:2)
+                enddo
+            end select
+        endif
+
+    end subroutine Vector_Edge2Face
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Vector_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
+        !- assemblage of vector values (BtN), from vertex to face.
+        implicit none
+
+        integer, intent(in)   :: nv,ngll1,ngll2
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(inout)  :: BtNf
+        real(fpp), dimension(0:2), intent(in)  :: BtNv
+
+        select case(nv)
         case(0)
-            do j=1,ngll-2
-                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,0,0:2)
-            enddo
+            BtNf(0,0,0:2) = BtNv(0:2)
         case(1)
-            do j=1,ngll-2
-                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1,ngll2-1-j,0:2)
-            enddo
+            BtNf(ngll1-1,0,0:2) = BtNv(0:2)
         case(2)
-            do j=1,ngll-2
-                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,ngll2-1,0:2)
-            enddo
+            BtNf(ngll1-1,ngll2-1,0:2) = BtNv(0:2)
         case(3)
-            do j=1,ngll-2
-                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(0,ngll2-1-j,0:2)
-            enddo
+            BtNf(0,ngll2-1,0:2) = BtNv(0:2)
         end select
-    endif
-
-end subroutine Vector_Face2Edge
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Vector_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
-    !- distributes vector values (BtN), from face to vertices.
-    implicit none
-
-    integer, intent(in)   :: nv,ngll1,ngll2
-    real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: BtNf
-    real, dimension(0:2), intent(inout)  :: BtNv
-
-    select case(nv)
-    case(0)
-        BtNv(0:2) = BtNv(0:2)+BtNf(0,0,0:2)
-    case(1)
-        BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,0,0:2)
-    case(2)
-        BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,ngll2-1,0:2)
-    case(3)
-        BtNv(0:2) = BtNv(0:2)+BtNf(0,ngll2-1,0:2)
-    end select
 
 
-end subroutine Vector_Face2Vertex
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Vector_Edge2Face(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
-    !- assemblage vector values BtN, from edge to face.
-    implicit none
+    end subroutine Vector_Vertex2Face
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Scalar_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
+        !- distributes scalar values BtN, from face to edges.
+        implicit none
 
-    integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
-    real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(inout)  :: BtNf
-    real, dimension(1:ngll-2,0:2), intent(in)  :: BtNe
-    integer  :: j
+        integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1), intent(in)  :: BtNf
+        real(fpp), dimension(1:ngll-2), intent(inout)  :: BtNe
+        integer  :: j
 
-    if(orient_e == 0)then
-        select case(ne)
+        if(orient_e == 0)then
+            select case(ne)
+            case(0)
+                BtNe(1:ngll-2) = BtNe(1:ngll-2)+BtNf(1:ngll1-2,0)
+            case(1)
+                BtNe(1:ngll-2) = BtNe(1:ngll-2)+BtNf(ngll1-1,1:ngll2-2)
+            case(2)
+                BtNe(1:ngll-2) = BtNe(1:ngll-2)+BtNf(1:ngll1-2,ngll2-1)
+            case(3)
+                BtNe(1:ngll-2) = BtNe(1:ngll-2)+BtNf(0,1:ngll2-2)
+            end select
+        else
+            select case(ne)
+            case(0)
+                do j=1,ngll-2
+                    BtNe(j) = BtNe(j)+BtNf(ngll1-1-j,0)
+                enddo
+            case(1)
+                do j=1,ngll-2
+                    BtNe(j) = BtNe(j)+BtNf(ngll1-1,ngll2-1-j)
+                enddo
+            case(2)
+                do j=1,ngll-2
+                    BtNe(j) = BtNe(j)+BtNf(ngll1-1-j,ngll2-1)
+                enddo
+            case(3)
+                do j=1,ngll-2
+                    BtNe(j) = BtNe(j)+BtNf(0,ngll2-1-j)
+                enddo
+            end select
+        endif
+
+    end subroutine Scalar_Face2Edge
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Scalar_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
+        !- distributes scalar values (BtN), from face to vertices.
+        implicit none
+
+        integer, intent(in)   :: nv,ngll1,ngll2
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1), intent(in)  :: BtNf
+        real(fpp), intent(inout)  :: BtNv
+
+        select case(nv)
         case(0)
-            BtNf(1:ngll1-2,0,0:2) = BtNe(1:ngll-2,0:2)
+            BtNv = BtNv+BtNf(0,0)
         case(1)
-            BtNf(ngll1-1,1:ngll2-2,0:2) = BtNe(1:ngll-2,0:2)
+            BtNv = BtNv+BtNf(ngll1-1,0)
         case(2)
-            BtNf(1:ngll1-2,ngll2-1,0:2) = BtNe(1:ngll-2,0:2)
+            BtNv = BtNv+BtNf(ngll1-1,ngll2-1)
         case(3)
-            BtNf(0,1:ngll2-2,0:2) = BtNe(1:ngll-2,0:2)
+            BtNv = BtNv+BtNf(0,ngll2-1)
         end select
-    else
-        select case(ne)
+
+
+    end subroutine Scalar_Face2Vertex
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Scalar_Edge2Face(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
+        !- assemblage scalar values BtN, from edge to face.
+        implicit none
+
+        integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
+        real(fpp), dimension(1:ngll-2), intent(in)  :: BtNe
+        integer  :: j
+
+        if(orient_e == 0)then
+            select case(ne)
+            case(0)
+                BtNf(1:ngll1-2,0) = BtNe(1:ngll-2)
+            case(1)
+                BtNf(ngll1-1,1:ngll2-2) = BtNe(1:ngll-2)
+            case(2)
+                BtNf(1:ngll1-2,ngll2-1) = BtNe(1:ngll-2)
+            case(3)
+                BtNf(0,1:ngll2-2) = BtNe(1:ngll-2)
+            end select
+        else
+            select case(ne)
+            case(0)
+                do j=1,ngll-2
+                    BtNf(ngll1-1-j,0) = BtNe(j)
+                enddo
+            case(1)
+                do j=1,ngll-2
+                    BtNf(ngll1-1,ngll2-1-j) = BtNe(j)
+                enddo
+            case(2)
+                do j=1,ngll-2
+                    BtNf(ngll1-1-j,ngll2-1) = BtNe(j)
+                enddo
+            case(3)
+                do j=1,ngll-2
+                    BtNf(0,ngll2-1-j) = BtNe(j)
+                enddo
+            end select
+        endif
+
+    end subroutine Scalar_Edge2Face
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Number_Edge2Face(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
+        !- assemblage scalar values BtN, from edge to face.
+        implicit none
+
+        integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
+        integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
+        integer, dimension(1:ngll-2), intent(in)  :: BtNe
+        integer  :: j
+
+        if(orient_e == 0)then
+            select case(ne)
+            case(0)
+                BtNf(1:ngll1-2,0) = BtNe(1:ngll-2)
+            case(1)
+                BtNf(ngll1-1,1:ngll2-2) = BtNe(1:ngll-2)
+            case(2)
+                BtNf(1:ngll1-2,ngll2-1) = BtNe(1:ngll-2)
+            case(3)
+                BtNf(0,1:ngll2-2) = BtNe(1:ngll-2)
+            end select
+        else
+            select case(ne)
+            case(0)
+                do j=1,ngll-2
+                    BtNf(ngll1-1-j,0) = BtNe(j)
+                enddo
+            case(1)
+                do j=1,ngll-2
+                    BtNf(ngll1-1,ngll2-1-j) = BtNe(j)
+                enddo
+            case(2)
+                do j=1,ngll-2
+                    BtNf(ngll1-1-j,ngll2-1) = BtNe(j)
+                enddo
+            case(3)
+                do j=1,ngll-2
+                    BtNf(0,ngll2-1-j) = BtNe(j)
+                enddo
+            end select
+        endif
+
+    end subroutine Number_Edge2Face
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Scalar_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
+        !- assemblage of scalar values (BtN), from vertex to face.
+        implicit none
+
+        integer, intent(in)   :: nv,ngll1,ngll2
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
+        real(fpp), intent(in)  :: BtNv
+
+        select case(nv)
         case(0)
-            do j=1,ngll-2
-                BtNf(ngll1-1-j,0,0:2) = BtNe(j,0:2)
-            enddo
+            BtNf(0,0) = BtNv
         case(1)
-            do j=1,ngll-2
-                BtNf(ngll1-1,ngll2-1-j,0:2) = BtNe(j,0:2)
-            enddo
+            BtNf(ngll1-1,0) = BtNv
         case(2)
-            do j=1,ngll-2
-                BtNf(ngll1-1-j,ngll2-1,0:2) = BtNe(j,0:2)
-            enddo
+            BtNf(ngll1-1,ngll2-1) = BtNv
         case(3)
-            do j=1,ngll-2
-                BtNf(0,ngll2-1-j,0:2) = BtNe(j,0:2)
-            enddo
+            BtNf(0,ngll2-1) = BtNv
         end select
-    endif
-
-end subroutine Vector_Edge2Face
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Vector_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
-    !- assemblage of vector values (BtN), from vertex to face.
-    implicit none
-
-    integer, intent(in)   :: nv,ngll1,ngll2
-    real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(inout)  :: BtNf
-    real, dimension(0:2), intent(in)  :: BtNv
-
-    select case(nv)
-    case(0)
-        BtNf(0,0,0:2) = BtNv(0:2)
-    case(1)
-        BtNf(ngll1-1,0,0:2) = BtNv(0:2)
-    case(2)
-        BtNf(ngll1-1,ngll2-1,0:2) = BtNv(0:2)
-    case(3)
-        BtNf(0,ngll2-1,0:2) = BtNv(0:2)
-    end select
 
 
-end subroutine Vector_Vertex2Face
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Scalar_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
-    !- distributes scalar values BtN, from face to edges.
-    implicit none
+    end subroutine Scalar_Vertex2Face
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Number_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
+        !- assemblage of scalar values (BtN), from vertex to face.
+        implicit none
 
-    integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
-    real, dimension(0:ngll1-1,0:ngll2-1), intent(in)  :: BtNf
-    real, dimension(1:ngll-2), intent(inout)  :: BtNe
-    integer  :: j
+        integer, intent(in)   :: nv,ngll1,ngll2
+        integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
+        integer, intent(in)  :: BtNv
 
-    if(orient_e == 0)then
-        select case(ne)
+        select case(nv)
         case(0)
-            BtNe(1:ngll-2) = BtNe(1:ngll-2)+BtNf(1:ngll1-2,0)
+            BtNf(0,0) = BtNv
         case(1)
-            BtNe(1:ngll-2) = BtNe(1:ngll-2)+BtNf(ngll1-1,1:ngll2-2)
+            BtNf(ngll1-1,0) = BtNv
         case(2)
-            BtNe(1:ngll-2) = BtNe(1:ngll-2)+BtNf(1:ngll1-2,ngll2-1)
+            BtNf(ngll1-1,ngll2-1) = BtNv
         case(3)
-            BtNe(1:ngll-2) = BtNe(1:ngll-2)+BtNf(0,1:ngll2-2)
+            BtNf(0,ngll2-1) = BtNv
         end select
-    else
-        select case(ne)
+
+
+    end subroutine Number_Vertex2Face
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine BtN_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
+        !- distributes BtN (ponderated normal) values, from face to edges.
+        implicit none
+
+        integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: BtNf
+        real(fpp), dimension(1:ngll-2,0:2), intent(inout)  :: BtNe
+        integer  :: j
+
+        if(orient_e == 0)then
+            select case(ne)
+            case(0)
+                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,0,0:2)
+            case(1)
+                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(ngll1-1,1:ngll2-2,0:2)
+            case(2)
+                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,ngll2-1,0:2)
+            case(3)
+                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(0,1:ngll2-2,0:2)
+            end select
+        else
+            select case(ne)
+            case(0)
+                do j=1,ngll-2
+                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,0,0:2)
+                enddo
+            case(1)
+                do j=1,ngll-2
+                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1,ngll2-1-j,0:2)
+                enddo
+            case(2)
+                do j=1,ngll-2
+                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,ngll2-1,0:2)
+                enddo
+            case(3)
+                do j=1,ngll-2
+                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(0,ngll2-1-j,0:2)
+                enddo
+            end select
+        endif
+
+    end subroutine BtN_Face2Edge
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine BtN_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
+        !- distributes BtN (ponderated normal) values, from face to vertices.
+        implicit none
+
+        integer, intent(in)   :: nv,ngll1,ngll2
+        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: BtNf
+        real(fpp), dimension(0:2), intent(inout)  :: BtNv
+
+        select case(nv)
         case(0)
-            do j=1,ngll-2
-                BtNe(j) = BtNe(j)+BtNf(ngll1-1-j,0)
-            enddo
+            BtNv(0:2) = BtNv(0:2)+BtNf(0,0,0:2)
         case(1)
-            do j=1,ngll-2
-                BtNe(j) = BtNe(j)+BtNf(ngll1-1,ngll2-1-j)
-            enddo
+            BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,0,0:2)
         case(2)
-            do j=1,ngll-2
-                BtNe(j) = BtNe(j)+BtNf(ngll1-1-j,ngll2-1)
-            enddo
+            BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,ngll2-1,0:2)
         case(3)
-            do j=1,ngll-2
-                BtNe(j) = BtNe(j)+BtNf(0,ngll2-1-j)
-            enddo
+            BtNv(0:2) = BtNv(0:2)+BtNf(0,ngll2-1,0:2)
         end select
-    endif
-
-end subroutine Scalar_Face2Edge
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Scalar_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
-    !- distributes scalar values (BtN), from face to vertices.
-    implicit none
-
-    integer, intent(in)   :: nv,ngll1,ngll2
-    real, dimension(0:ngll1-1,0:ngll2-1), intent(in)  :: BtNf
-    real, intent(inout)  :: BtNv
-
-    select case(nv)
-    case(0)
-        BtNv = BtNv+BtNf(0,0)
-    case(1)
-        BtNv = BtNv+BtNf(ngll1-1,0)
-    case(2)
-        BtNv = BtNv+BtNf(ngll1-1,ngll2-1)
-    case(3)
-        BtNv = BtNv+BtNf(0,ngll2-1)
-    end select
 
 
-end subroutine Scalar_Face2Vertex
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Scalar_Edge2Face(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
-    !- assemblage scalar values BtN, from edge to face.
-    implicit none
-
-    integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
-    real, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
-    real, dimension(1:ngll-2), intent(in)  :: BtNe
-    integer  :: j
-
-    if(orient_e == 0)then
-        select case(ne)
-        case(0)
-            BtNf(1:ngll1-2,0) = BtNe(1:ngll-2)
-        case(1)
-            BtNf(ngll1-1,1:ngll2-2) = BtNe(1:ngll-2)
-        case(2)
-            BtNf(1:ngll1-2,ngll2-1) = BtNe(1:ngll-2)
-        case(3)
-            BtNf(0,1:ngll2-2) = BtNe(1:ngll-2)
-        end select
-    else
-        select case(ne)
-        case(0)
-            do j=1,ngll-2
-                BtNf(ngll1-1-j,0) = BtNe(j)
-            enddo
-        case(1)
-            do j=1,ngll-2
-                BtNf(ngll1-1,ngll2-1-j) = BtNe(j)
-            enddo
-        case(2)
-            do j=1,ngll-2
-                BtNf(ngll1-1-j,ngll2-1) = BtNe(j)
-            enddo
-        case(3)
-            do j=1,ngll-2
-                BtNf(0,ngll2-1-j) = BtNe(j)
-            enddo
-        end select
-    endif
-
-end subroutine Scalar_Edge2Face
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Number_Edge2Face(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
-    !- assemblage scalar values BtN, from edge to face.
-    implicit none
-
-    integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
-    integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
-    integer, dimension(1:ngll-2), intent(in)  :: BtNe
-    integer  :: j
-
-    if(orient_e == 0)then
-        select case(ne)
-        case(0)
-            BtNf(1:ngll1-2,0) = BtNe(1:ngll-2)
-        case(1)
-            BtNf(ngll1-1,1:ngll2-2) = BtNe(1:ngll-2)
-        case(2)
-            BtNf(1:ngll1-2,ngll2-1) = BtNe(1:ngll-2)
-        case(3)
-            BtNf(0,1:ngll2-2) = BtNe(1:ngll-2)
-        end select
-    else
-        select case(ne)
-        case(0)
-            do j=1,ngll-2
-                BtNf(ngll1-1-j,0) = BtNe(j)
-            enddo
-        case(1)
-            do j=1,ngll-2
-                BtNf(ngll1-1,ngll2-1-j) = BtNe(j)
-            enddo
-        case(2)
-            do j=1,ngll-2
-                BtNf(ngll1-1-j,ngll2-1) = BtNe(j)
-            enddo
-        case(3)
-            do j=1,ngll-2
-                BtNf(0,ngll2-1-j) = BtNe(j)
-            enddo
-        end select
-    endif
-
-end subroutine Number_Edge2Face
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Scalar_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
-    !- assemblage of scalar values (BtN), from vertex to face.
-    implicit none
-
-    integer, intent(in)   :: nv,ngll1,ngll2
-    real, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
-    real, intent(in)  :: BtNv
-
-    select case(nv)
-    case(0)
-        BtNf(0,0) = BtNv
-    case(1)
-        BtNf(ngll1-1,0) = BtNv
-    case(2)
-        BtNf(ngll1-1,ngll2-1) = BtNv
-    case(3)
-        BtNf(0,ngll2-1) = BtNv
-    end select
-
-
-end subroutine Scalar_Vertex2Face
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Number_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
-    !- assemblage of scalar values (BtN), from vertex to face.
-    implicit none
-
-    integer, intent(in)   :: nv,ngll1,ngll2
-    integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
-    integer, intent(in)  :: BtNv
-
-    select case(nv)
-    case(0)
-        BtNf(0,0) = BtNv
-    case(1)
-        BtNf(ngll1-1,0) = BtNv
-    case(2)
-        BtNf(ngll1-1,ngll2-1) = BtNv
-    case(3)
-        BtNf(0,ngll2-1) = BtNv
-    end select
-
-
-end subroutine Number_Vertex2Face
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine BtN_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
-    !- distributes BtN (ponderated normal) values, from face to edges.
-    implicit none
-
-    integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
-    real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: BtNf
-    real, dimension(1:ngll-2,0:2), intent(inout)  :: BtNe
-    integer  :: j
-
-    if(orient_e == 0)then
-        select case(ne)
-        case(0)
-            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,0,0:2)
-        case(1)
-            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(ngll1-1,1:ngll2-2,0:2)
-        case(2)
-            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,ngll2-1,0:2)
-        case(3)
-            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(0,1:ngll2-2,0:2)
-        end select
-    else
-        select case(ne)
-        case(0)
-            do j=1,ngll-2
-                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,0,0:2)
-            enddo
-        case(1)
-            do j=1,ngll-2
-                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1,ngll2-1-j,0:2)
-            enddo
-        case(2)
-            do j=1,ngll-2
-                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,ngll2-1,0:2)
-            enddo
-        case(3)
-            do j=1,ngll-2
-                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(0,ngll2-1-j,0:2)
-            enddo
-        end select
-    endif
-
-end subroutine BtN_Face2Edge
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine BtN_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
-    !- distributes BtN (ponderated normal) values, from face to vertices.
-    implicit none
-
-    integer, intent(in)   :: nv,ngll1,ngll2
-    real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: BtNf
-    real, dimension(0:2), intent(inout)  :: BtNv
-
-    select case(nv)
-    case(0)
-        BtNv(0:2) = BtNv(0:2)+BtNf(0,0,0:2)
-    case(1)
-        BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,0,0:2)
-    case(2)
-        BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,ngll2-1,0:2)
-    case(3)
-        BtNv(0:2) = BtNv(0:2)+BtNf(0,ngll2-1,0:2)
-    end select
-
-
-end subroutine BtN_Face2Vertex
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
+    end subroutine BtN_Face2Vertex
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
 #if 1
-subroutine define_FEV_Neumann(Tdomain)
-    use sdomain
-    implicit none
+    subroutine define_FEV_Neumann(Tdomain)
+        use sdomain
+        implicit none
 
-    type(domain), intent(inout)         :: Tdomain
-    integer                             :: nf,ne,nv,ngll,ngll1,ngll2,mat,i,orient_e
-    integer                             :: i_neu
-    real, dimension(:,:,:), allocatable :: Store_Btn
-    real(fpp), dimension(:), allocatable:: GLLw
-    
-    do i_neu=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
-        do nf = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_faces-1
+        type(domain), intent(inout)         :: Tdomain
+        integer                             :: nf,ne,nv,ngll,ngll1,ngll2,mat,i,orient_e
+        integer                             :: i_neu
+        real(fpp), dimension(:,:,:), allocatable :: Store_Btn
+        real(fpp), dimension(:), allocatable:: GLLw
+
+        do i_neu=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+            do nf = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_faces-1
                 ngll1 = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll1 ; 
                 ngll2 = Tdomain%Neumann%NeuSurface(i_neu)%neu_Face(nf)%ngll2
                 mat = Tdomain%Neumann%Neu_Param%mat_index
                 ngll = Tdomain%sSubdomain(mat)%ngll
                 call domain_gllw(Tdomain, Tdomain%sSubdomain(mat)%dom, GLLw)
                 call normal_face_weighting(Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%dir,ngll, &
-                                           ngll1,ngll2,Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%normal, GLLw, &
-                                           Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn)
+                    ngll1,ngll2,Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%normal, GLLw, &
+                    Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn)
                 !- internal communication of Btn: from Neumann faces to Neu edges and vertices
                 do i = 0,3
-                       ne = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Near_Edges(i)
-                       ngll = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%ngll
-                       orient_e = Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%Near_Edges_Orient(i)
-                       call BtN_Face2Edge(i,ngll1,ngll2,ngll,orient_e,         &
-                                          Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%BtN, &
-                                          Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%BtN)
-                       
-                       nv = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Near_Vertices(i)
-                       call BtN_Face2Vertex(i,ngll1,ngll2,    &
-                                            Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%BtN,&
-                                            Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%BtN)
+                    ne = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Near_Edges(i)
+                    ngll = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%ngll
+                    orient_e = Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%Near_Edges_Orient(i)
+                    call BtN_Face2Edge(i,ngll1,ngll2,ngll,orient_e,         &
+                        Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%BtN, &
+                        Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%BtN)
+
+                    nv = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Near_Vertices(i)
+                    call BtN_Face2Vertex(i,ngll1,ngll2,    &
+                        Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%BtN,&
+                        Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%BtN)
                 end do
 
                 !- changing size of face arrays.
@@ -486,63 +489,63 @@ subroutine define_FEV_Neumann(Tdomain)
                 deallocate(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%normal)
 
                 !- end on the loop on a Neumann face
+            enddo
         enddo
-    enddo
-end subroutine define_FEV_Neumann
+    end subroutine define_FEV_Neumann
 #endif
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-!subroutine define_Face_SF(Tdomain)
-!    use sdomain
-!    implicit none
-!
-!    type(domain), intent(inout)  :: Tdomain
-!    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,w_elem,dir
-!
-!    integer :: i, j, kb
-!    Tdomain%SF%SF_BtN(:,:) = 0.
-!
-!    kb = 0
-!    do nf = 0,Tdomain%SF%SF_n_faces-1
-!        ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
-!        if(Tdomain%SF%SF_face(nf)%Face(0) > 0)then
-!            w_elem = Tdomain%sFace(Tdomain%SF%SF_face(nf)%Face(0))%which_elem
-!        else
-!            w_elem = Tdomain%sFace(Tdomain%SF%SF_face(nf)%Face(1))%which_elem
-!        end if
-!        mat = Tdomain%specel(w_elem)%mat_index
-!        ngllx = Tdomain%sSubdomain(mat)%ngllx
-!        nglly = Tdomain%sSubdomain(mat)%nglly
-!        ngllz = Tdomain%sSubdomain(mat)%ngllz
-!        dir = Tdomain%SF%SF_face(nf)%dir
-!        call normal_face_weighting(dir,ngllx,nglly,ngllz,     &
-!            ngll1,ngll2,Tdomain%SF%SF_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
-!            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,             &
-!            Tdomain%SF%SF_Face(nf)%Btn)
-!
-!
-!        ! On calcul le tableau de BtN global
-!        do j = 0,ngll2-1
-!           do i = 0,ngll1-1
-!               kb = Tdomain%SF%SF_Face(nf)%I_sf(i,j)
-!               Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%SF%SF_BtN(kb,0:2) + Tdomain%SF%SF_Face(nf)%Btn(i,j,0:2)
-!           enddo
-!        enddo
-!    enddo
-!
-!end subroutine define_Face_SF
-!--------------------------------------------------------------------------
-!--------------------------------------------------------------------------
-subroutine Number_Face2Face(ngll1,ngll2,orient_e,BtNf,BtNe)
-    !- assemblage scalar values BtN, from edge to face.
-    implicit none
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    !subroutine define_Face_SF(Tdomain)
+    !    use sdomain
+    !    implicit none
+    !
+    !    type(domain), intent(inout)  :: Tdomain
+    !    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,w_elem,dir
+    !
+    !    integer :: i, j, kb
+    !    Tdomain%SF%SF_BtN(:,:) = 0.
+    !
+    !    kb = 0
+    !    do nf = 0,Tdomain%SF%SF_n_faces-1
+    !        ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
+    !        if(Tdomain%SF%SF_face(nf)%Face(0) > 0)then
+    !            w_elem = Tdomain%sFace(Tdomain%SF%SF_face(nf)%Face(0))%which_elem
+    !        else
+    !            w_elem = Tdomain%sFace(Tdomain%SF%SF_face(nf)%Face(1))%which_elem
+    !        end if
+    !        mat = Tdomain%specel(w_elem)%mat_index
+    !        ngllx = Tdomain%sSubdomain(mat)%ngllx
+    !        nglly = Tdomain%sSubdomain(mat)%nglly
+    !        ngllz = Tdomain%sSubdomain(mat)%ngllz
+    !        dir = Tdomain%SF%SF_face(nf)%dir
+    !        call normal_face_weighting(dir,ngllx,nglly,ngllz,     &
+    !            ngll1,ngll2,Tdomain%SF%SF_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
+    !            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,             &
+    !            Tdomain%SF%SF_Face(nf)%Btn)
+    !
+    !
+    !        ! On calcul le tableau de BtN global
+    !        do j = 0,ngll2-1
+    !           do i = 0,ngll1-1
+    !               kb = Tdomain%SF%SF_Face(nf)%I_sf(i,j)
+    !               Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%SF%SF_BtN(kb,0:2) + Tdomain%SF%SF_Face(nf)%Btn(i,j,0:2)
+    !           enddo
+    !        enddo
+    !    enddo
+    !
+    !end subroutine define_Face_SF
+    !--------------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    subroutine Number_Face2Face(ngll1,ngll2,orient_e,BtNf,BtNe)
+        !- assemblage scalar values BtN, from edge to face.
+        implicit none
 
-    integer, intent(in)   :: ngll1,ngll2,orient_e
-    integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
-    integer, dimension(1:ngll1-2,1:ngll2-2), intent(in)  :: BtNe
+        integer, intent(in)   :: ngll1,ngll2,orient_e
+        integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
+        integer, dimension(1:ngll1-2,1:ngll2-2), intent(in)  :: BtNe
 
 
-    select case(orient_e)
+        select case(orient_e)
         case(0)
             BtNf(1:ngll1-2,1:ngll2-2) = BtNe
         case(1) ! TODO
@@ -559,10 +562,10 @@ subroutine Number_Face2Face(ngll1,ngll2,orient_e,BtNf,BtNe)
             BtNf(1:ngll1-2,1:ngll2-2) = BtNe
         case(7) ! TODO
             BtNf(1:ngll1-2,1:ngll2-2) = BtNe
-    end select
+        end select
 
-end subroutine Number_Face2Face
-
+    end subroutine Number_Face2Face
+end module mboundarycond
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

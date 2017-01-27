@@ -19,9 +19,9 @@ contains
         implicit none
         type (Domain), intent (INOUT) :: Tdomain
         integer, intent(in) :: idef0, idef1
-        real, intent(inout) :: dxmin, dxmax
+        real(fpp), intent(inout) :: dxmin, dxmax
         !
-        real :: dx
+        real(fpp) :: dx
 
         if (idef0==idef1) then
             write(*,*) "Numbering problem"
@@ -91,6 +91,7 @@ contains
             do k = 0, ngll-1
                 do j = 0, ngll-1
                     do i = 0, ngll-1
+                        Pspeed = 0d0
                         select case(Tdomain%specel(n)%domain)
                         case (DM_SOLID)
                             Pspeed = solid_pspeed(Tdomain%sdom, lnum, i, j, k)

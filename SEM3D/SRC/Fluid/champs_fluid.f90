@@ -28,8 +28,7 @@ module champs_fluid
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champsfluid) :: champs0
-        type(champsfluid) :: champs1
+        type(champsfluid), dimension(0:1) :: champs
     end type domain_fluid
 
     contains

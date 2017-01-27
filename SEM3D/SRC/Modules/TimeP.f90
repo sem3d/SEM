@@ -16,6 +16,7 @@ module stimeparam
        integer :: ntimeMax, NtimeMin, nSnap, ntrace, ncheck
        real(fpp) :: alpha, beta, gamma, duration, Time_snapshots, dtmin, rtime
        integer :: iter_reprise
+       integer :: type_timeinteg
        integer :: prot_m0, prot_m1, prot_m2
        real(fpp) :: courant, fmax
     end type time

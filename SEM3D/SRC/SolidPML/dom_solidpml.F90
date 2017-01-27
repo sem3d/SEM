@@ -16,6 +16,16 @@ module dom_solidpml
 
 contains
 
+    subroutine allocate_champs_solidpml(dom, f)
+        type(domain_solidpml), intent (INOUT) :: dom
+        integer, intent(in) :: f
+        !
+        allocate(dom%champs(f)%ForcesPML(0:dom%nglltot,0:2,0:2))
+        allocate(dom%champs(f)%VelocPML (0:dom%nglltot,0:2,0:2))
+        dom%champs(f)%ForcesPML = 0d0
+        dom%champs(f)%VelocPML = 0d0
+    end subroutine allocate_champs_solidpml
+
     subroutine allocate_dom_solidpml (Tdomain, dom)
         use gll3d
         implicit none
@@ -69,16 +79,14 @@ contains
         end if
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs1%ForcesPML(0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs0%VelocPML (0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs1%VelocPML (0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs0%DumpV    (0:dom%nglltot-1,0:1,0:2))
-            dom%champs1%ForcesPML = 0d0
-            dom%champs0%VelocPML = 0d0
-            dom%champs0%DumpV = 0d0
-
-            allocate(dom%DumpMass(0:dom%nglltot-1,0:2))
+            call allocate_champs_solidpml(dom, 0)
+            call allocate_champs_solidpml(dom, 1)
+            allocate(dom%DumpV(0:dom%nglltot,0:1,0:2))
+            allocate(dom%DumpMass(0:dom%nglltot,0:2))
+            dom%DumpV = 0d0
             dom%DumpMass = 0d0
+            dom%DumpV(dom%nglltot,1,:) = 1d0
+            dom%DumpMass(dom%nglltot,:) = 1d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid pml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solidpml
@@ -86,6 +94,7 @@ contains
     subroutine deallocate_dom_solidpml (dom)
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
+        integer :: f
 
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
@@ -103,10 +112,11 @@ contains
         if(allocated(dom%m_PMLDumpSy  ))      deallocate(dom%m_PMLDumpSy  )
         if(allocated(dom%m_PMLDumpSz  ))      deallocate(dom%m_PMLDumpSz  )
 
-        if(allocated(dom%champs1%ForcesPML)) deallocate(dom%champs1%ForcesPML)
-        if(allocated(dom%champs0%VelocPML )) deallocate(dom%champs0%VelocPML )
-        if(allocated(dom%champs1%VelocPML )) deallocate(dom%champs1%VelocPML )
-        if(allocated(dom%champs0%DumpV    )) deallocate(dom%champs0%DumpV    )
+        do f=0,1
+            if(allocated(dom%champs(f)%ForcesPML)) deallocate(dom%champs(f)%ForcesPML)
+            if(allocated(dom%champs(f)%VelocPML )) deallocate(dom%champs(f)%VelocPML )
+        end do
+        if(allocated(dom%DumpV    )) deallocate(dom%DumpV    )
 
         if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
 
@@ -120,11 +130,11 @@ contains
         type(domain_solidpml)                      :: dom
         integer, dimension(0:), intent(in)         :: out_variables
         integer                                    :: lnum
-        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
-        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real(fpp), dimension(:,:,:,:)              :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:)                :: fieldP
+        real(fpp), dimension(:,:,:)                :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:)              :: eps_dev
+        real(fpp), dimension(:,:,:,:)              :: sig_dev
         !
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
@@ -147,52 +157,43 @@ contains
                     ind = dom%Idom_(i,j,k,bnum,ee)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                        if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldU(i,j,k,:) = 0d0
                     end if
 
                     if (out_variables(OUT_VITESSE) == 1) then
-                        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldV(i,j,k,:) = dom%champs0%VelocPml(ind,:,0) + &
-                                          dom%champs0%VelocPml(ind,:,1) + &
-                                          dom%champs0%VelocPml(ind,:,2)
+                        fieldV(i,j,k,:) = dom%champs(0)%VelocPml(ind,:,0) + &
+                                          dom%champs(0)%VelocPml(ind,:,1) + &
+                                          dom%champs(0)%VelocPml(ind,:,2)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
-                        if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldA(i,j,k,:) = dom%Massmat(ind) * &
-                            ( dom%champs1%ForcesPml(ind,:,0) + &
-                            dom%champs1%ForcesPml(ind,:,1) + &
-                            dom%champs1%ForcesPml(ind,:,2) )
+                        fieldA(i,j,k,:) = dom%Massmat(ind) * (&
+                            dom%champs(1)%ForcesPml(ind,:,0) + &
+                            dom%champs(1)%ForcesPml(ind,:,1) + &
+                            dom%champs(1)%ForcesPml(ind,:,2) )
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
-                        if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                         fieldP(i,j,k) = 0d0
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then
-                        if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                         eps_vol(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
-                        if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         P_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYS) == 1) then
-                        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         S_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
-                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         eps_dev(i,j,k,:) = 0.
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
-                        if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         sig_dev(i,j,k,:) = 0.
                     end if
                 enddo
@@ -228,7 +229,7 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
-        real Whei
+        real(fpp) Whei
         !
         integer :: bnum, ee
         bnum = specel%lnum/VCHUNK
@@ -248,8 +249,8 @@ contains
         !
         integer :: ngll
         integer :: i, j, k, l, ind, e, ee
-        real :: sum_vx, sum_vy, sum_vz, acoeff
-        real, dimension(0:VCHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
+        real(fpp) :: sum_vx, sum_vy, sum_vz, acoeff
+        real(fpp), dimension(0:VCHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
 
         ngll = dom%ngll
 
@@ -343,7 +344,6 @@ contains
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    if (e>=dom%nbelem) exit
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(ee,:,i,j,k)
                     champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(ee,:,i,j,k)
@@ -561,46 +561,48 @@ contains
       type (domain), intent (INOUT), target :: Tdomain
       type (domain_solidpml), intent (INOUT), target :: dom
       !
-      call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%DumpV)
+      call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%DumpV)
     end subroutine finalize_solidpml_properties
 
-    subroutine newmark_predictor_solidpml(dom, Tdomain)
+    subroutine newmark_predictor_solidpml(dom, Tdomain, f0, f1)
         type(domain_solidpml), intent (INOUT) :: dom
         type (domain), intent (INOUT) :: Tdomain
+        integer, intent(in) :: f0, f1
         !
         integer :: n, indsol, indpml
-        real :: bega, dt
+        real(fpp) :: bega, dt
 
         bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
         dt = Tdomain%TimeD%dtmin
 
-        dom%champs1%ForcesPML = 0.
+        dom%champs(f1)%ForcesPML = 0.
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             ! Couplage à l'interface solide / PML
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            dom%champs0%VelocPML(indpml,:,0) = Tdomain%sdom%champs0%Veloc(indsol,:)
-            dom%champs0%VelocPML(indpml,:,1) = 0.
-            dom%champs0%VelocPML(indpml,:,2) = 0.
+            dom%champs(f0)%VelocPML(indpml,:,0) = Tdomain%sdom%champs(f0)%Veloc(indsol,:)
+            dom%champs(f0)%VelocPML(indpml,:,1) = 0.
+            dom%champs(f0)%VelocPML(indpml,:,2) = 0.
         enddo
         ! Prediction
-        dom%champs1%VelocPML = dom%champs0%VelocPML + dt*(0.5-bega)*dom%champs1%ForcesPML
+        dom%champs(f1)%VelocPML = dom%champs(f0)%VelocPML + dt*(0.5-bega)*dom%champs(f1)%ForcesPML
     end subroutine newmark_predictor_solidpml
 
-    subroutine newmark_corrector_solidpml(dom, dt, t)
+    subroutine newmark_corrector_solidpml(dom, dt, t, f0, f1)
         type(domain_solidpml), intent (INOUT) :: dom
-        double precision :: dt, t
+        real(fpp), intent(in) :: dt, t
+        integer, intent(in) :: f0, f1
         !
         integer  :: n, i_dir, indpml
 
         do i_dir = 0,2
-            dom%champs0%VelocPML(:,i_dir,:) = dom%champs0%DumpV(:,0,:) * dom%champs0%VelocPML(:,i_dir,:) + &
-                                              dt * dom%champs0%DumpV(:,1,:) * dom%champs1%ForcesPML(:,i_dir,:)
+            dom%champs(f0)%VelocPML(:,i_dir,:) = dom%DumpV(:,0,:) * dom%champs(f0)%VelocPML(:,i_dir,:) + &
+                                              dt * dom%DumpV(:,1,:) * dom%champs(f1)%ForcesPML(:,i_dir,:)
         enddo
         !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%VelocPML(indpml,:,:) = 0.
+            dom%champs(f0)%VelocPML(indpml,:,:) = 0.
         enddo
     end subroutine newmark_corrector_solidpml
 

@@ -3,20 +3,21 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module model_earthchunk
+    use constants, only : fpp
     implicit none
 
-    real, parameter ::  mille=1000.0
+    real(fpp), parameter ::  mille=1000d0
 !Earth_radius=6371000.d0
 
 
     type :: OneModel
-        real, dimension(:,:), allocatable :: param
+        real(fpp), dimension(:,:), allocatable :: param
     end type
 
 
     integer :: n_lat, n_lon
-    real :: lon_min=360, lon_max=0, lat_min=90, lat_max=-90, lat_delta, lon_delta, max_depth, lat_center=0, lon_center=0
-    real :: Earth_radius=6371000.d0
+    real(fpp) :: lon_min=360, lon_max=0, lat_min=90, lat_max=-90, lat_delta, lon_delta, max_depth, lat_center=0, lon_center=0
+    real(fpp) :: Earth_radius=6371000.d0
     type(OneModel), allocatable, dimension(:) :: value_pt
     logical :: is_modelOpenQ=.false.
 
@@ -28,7 +29,7 @@ contains
 
 ! #######################################################
     integer function getIndiceFromLonLat(lon, lat)
-       real, intent(in) :: lon, lat
+       real(fpp), intent(in) :: lon, lat
 
         getIndiceFromLonLat = nint((lat-lat_min)/lat_delta * n_lon + (lon-lon_min)/lon_delta)
 
@@ -37,7 +38,7 @@ contains
 
     ! #######################################################
     subroutine checkRangeLonLat(lon, lat)
-        real, intent(inout) :: lon, lat
+        real(fpp), intent(inout) :: lon, lat
 
 
         if( lon < lon_min) then
@@ -63,8 +64,8 @@ contains
     ! #######################################################
     subroutine getPtNearDepth(ilon, ilat, depth, pt_up, pt_down)
         integer, intent(in) :: ilon, ilat
-        real, intent(in) :: depth
-        real, dimension(1:9), intent(out) :: pt_up, pt_down
+        real(fpp), intent(in) :: depth
+        real(fpp), dimension(1:9), intent(out) :: pt_up, pt_down
         integer :: ilon_final, ilat_final, indice, i
         logical :: findQ 
 
@@ -117,12 +118,12 @@ contains
 
         implicit none
 
-        real, intent(in) :: r, lon, lat
-        real, intent(out) :: rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu
-        real :: vpv,vph,vsv,vsh,eta_aniso,depth, depth_interp, wlon, wlat, wrad
-        real, dimension(1:9) :: pt_up, pt_down, pt
-        real, dimension(1:8, 1:9) :: pts_cube
-        real :: f_lon, f_lat
+        real(fpp), intent(in) :: r, lon, lat
+        real(fpp), intent(out) :: rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu
+        real(fpp) :: vpv,vph,vsv,vsh,eta_aniso,depth, depth_interp, wlon, wlat, wrad
+        real(fpp), dimension(1:9) :: pt_up, pt_down, pt
+        real(fpp), dimension(1:8, 1:9) :: pts_cube
+        real(fpp) :: f_lon, f_lat
         integer :: i_lon, i_lat
 
         depth_interp = 1.2*max_depth
@@ -225,10 +226,10 @@ contains
     subroutine load_earthchunk(filename, delta_lon, delta_lat)
         implicit none
         character(len=*), intent(in) :: filename
-        real, intent(in) :: delta_lon, delta_lat
+        real(fpp), intent(in) :: delta_lon, delta_lat
         integer :: ios, ilayer, n_lonlatPt, ipt, indice, npts, n
-        real ::  lon, lat, rtmp
-        real, dimension(1:9) :: tmp_param
+        real(fpp) ::  lon, lat, rtmp
+        real(fpp), dimension(1:9) :: tmp_param
         character(len=*), parameter :: file_transform='earthchunk_transform.txt'
         character(len=20) :: buffer
 
@@ -358,11 +359,11 @@ contains
 ! #######################################################
     subroutine prem_aniso(x0,rho,vpv,vph,vsv,vsh,eta,Qmu)
 
-        real  :: x0,rho,vpv,vph,vsv,vsh,eta,Qmu
+        real(fpp)  :: x0,rho,vpv,vph,vsv,vsh,eta,Qmu
         integer :: i
-        real    :: x
-        real, dimension(14)    :: r,q
-        real, dimension(13,4)  :: d,pv,ph,sv,sh,et
+        real(fpp)    :: x
+        real(fpp), dimension(14)    :: r,q
+        real(fpp), dimension(13,4)  :: d,pv,ph,sv,sh,et
         logical :: pastrouve
 
 

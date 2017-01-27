@@ -152,7 +152,7 @@ contains
         if(present(nCharacters)) then
             !write(*,*) "nmbString = ", nmbString
             n = len(trim(nmbString))
-            if(n > nCharacters) stop("Inside numb2String the number of characters is to little to represent tis number")
+            if(n > nCharacters) stop ("Inside numb2String the number of characters is to little to represent tis number")
 
             do i = 1, len(stringTot)
                 if(i<=nCharacters) then

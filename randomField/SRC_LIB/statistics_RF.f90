@@ -359,7 +359,7 @@ contains
         else if (nDim == 3) then
             Sk_3D = Sk_3D * conjg(Sk_3D)
         else
-            stop("ERROR!!! Inside rebuild_Sk_FFT nDim not accepted")
+            stop ("ERROR!!! Inside rebuild_Sk_FFT nDim not accepted")
         end if
 
         !write(*,*) "After conj multiplication = ", real(SkVec(1:10))
@@ -384,7 +384,7 @@ contains
                 SkVec(1:xNStep(dir)) = sum((sum(Sk_3D, 1)/size(Sk_3D,1)), 1)/size(Sk_3D,2)
             end if
         else
-            stop("ERROR!!! Inside rebuild_Sk_FFT nDim not accepted")
+            stop ("ERROR!!! Inside rebuild_Sk_FFT nDim not accepted")
         end if
 
         !write(*,*) "After average = ", real(SkVec(1:10))

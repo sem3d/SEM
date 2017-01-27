@@ -19,7 +19,7 @@
 !-------------------------------------------------------------------
 module attenuation
     use sdomain
-    use constants, only : M_PI, DM_SOLID
+    use constants, only : M_PI, DM_SOLID, fpp
     implicit none
 #include "index.h"
 
@@ -39,11 +39,11 @@ contains
     subroutine set_attenuation_param_solid_nopml (Tdomain)
         type(domain),target, intent (INOUT) :: Tdomain
         integer    :: n_solid,n_freq_q
-        real       :: f_c_source,f_ref,dt
-        real, dimension(:), allocatable   :: omega_tau_s,omega_Q
-        real, dimension(:), allocatable   :: agamma_mu,agamma_kappa
+        real(fpp)       :: f_c_source,f_ref,dt
+        real(fpp), dimension(:), allocatable   :: omega_tau_s,omega_Q
+        real(fpp), dimension(:), allocatable   :: agamma_mu,agamma_kappa
         integer :: n,i,j,k,ngll,mat,lnum,bnum,ee
-        real :: Q_mu, Q_kappa, Q_mu_old, Q_kappa_old
+        real(fpp) :: Q_mu, Q_kappa, Q_mu_old, Q_kappa_old
 
         !- last values of Q factors (allows to save time if same Qs)
         Q_mu_old = -1.d8
@@ -136,9 +136,9 @@ contains
         implicit none
         type(domain), intent(in)  :: Tdomain
         integer, intent(out)  :: n_solid, n_freq_q
-        real, intent(out)     :: f_ref,f_source
-        real, dimension(:), allocatable, intent(out) :: omega_tau_s,omega_Q
-        real  :: f_min,f_max, f_tmp
+        real(fpp), intent(out)     :: f_ref,f_source
+        real(fpp), dimension(:), allocatable, intent(out) :: omega_tau_s,omega_Q
+        real(fpp)  :: f_min,f_max, f_tmp
 
         !- number of standard linear solids
         n_solid = Tdomain%n_sls
@@ -178,12 +178,12 @@ contains
         ! returns the values of frequencies on range [fmin,fmax], logarithmic sampling
         implicit none
         integer, intent(in) :: nval
-        real, intent(in) :: fmin,fmax
-        real, dimension(0:nval-1), intent(out) :: omega
+        real(fpp), intent(in) :: fmin,fmax
+        real(fpp), dimension(0:nval-1), intent(out) :: omega
         integer   :: i
 
         if(nval == 1)then
-            omega(0) = dsqrt(fmin*fmax)
+            omega(0) = sqrt(fmin*fmax)
         else
             do i = 0,nval-1
                 omega(i) = 2d0*M_PI*fmin*(fmax/fmin)**(i/(nval-1d0))
@@ -201,12 +201,12 @@ contains
         use mleastsq, only : cg_inv
         implicit none
         integer, intent(in)  :: n_solid,n_freq_q
-        real, intent(in)     :: Qref
-        real, dimension(0:n_freq_q-1), intent(in) :: omega_q
-        real, dimension(0:n_solid-1), intent(in) :: omega_tau_s
-        real, dimension(0:n_solid-1), intent(out) :: agamma
-        real, dimension(0:n_freq_q-1) :: data_vec
-        real, dimension(0:n_freq_q-1,0:n_solid-1) :: Amat
+        real(fpp), intent(in)     :: Qref
+        real(fpp), dimension(0:n_freq_q-1), intent(in) :: omega_q
+        real(fpp), dimension(0:n_solid-1), intent(in) :: omega_tau_s
+        real(fpp), dimension(0:n_solid-1), intent(out) :: agamma
+        real(fpp), dimension(0:n_freq_q-1) :: data_vec
+        real(fpp), dimension(0:n_freq_q-1,0:n_solid-1) :: Amat
         integer  :: nf,ns
 
         !- coefficients of the forward problem matrix
@@ -246,10 +246,10 @@ contains
         ! coefficients of the forward problem (omega_tau -> Q)
         implicit none
         integer, intent(in)  :: nsol
-        real, intent(in)     :: Q,omega_q
-        real, dimension(0:nsol-1),intent(in) :: omega_tau
-        real, dimension(0:nsol-1),intent(out) :: Amat
-        real    :: xx,yy
+        real(fpp), intent(in)     :: Q,omega_q
+        real(fpp), dimension(0:nsol-1),intent(in) :: omega_tau
+        real(fpp), dimension(0:nsol-1),intent(out) :: Amat
+        real(fpp)    :: xx,yy
         integer :: i
 
         do i = 0,nsol-1
@@ -266,10 +266,10 @@ contains
         !   of tau_s and tau_e for each SLS)
         implicit none
         integer, intent(in)  :: nsol
-        real, intent(in)     :: omega_sampl
-        real, dimension(0:nsol-1), intent(in) :: omega_tau,agamma
-        real, intent(out) :: qinv
-        real    :: xx,yy
+        real(fpp), intent(in)     :: omega_sampl
+        real(fpp), dimension(0:nsol-1), intent(in) :: omega_tau,agamma
+        real(fpp), intent(out) :: qinv
+        real(fpp)    :: xx,yy
         integer :: i
 
         xx = 0d0 ; yy = 1d0
@@ -284,13 +284,13 @@ contains
     end subroutine Q_direct
     !----------------------------------------------------------------------
     !----------------------------------------------------------------------
-    real function get_relaxed_modulus(n_sol,Qref,f_ref,f_source,omega_s,agamma)
+    real(fpp) function get_relaxed_modulus(n_sol,Qref,f_ref,f_source,omega_s,agamma)
         implicit none
         integer, intent(in)  :: n_sol
-        real, intent(in)  :: f_ref,f_source,Qref
-        real, dimension(0:n_sol-1), intent(in) :: omega_s,agamma
+        real(fpp), intent(in)  :: f_ref,f_source,Qref
+        real(fpp), dimension(0:n_sol-1), intent(in) :: omega_s,agamma
         integer  :: ns
-        real :: theta_1,theta_2,R,ws,r_m_part,omega_r
+        real(fpp) :: theta_1,theta_2,R,ws,r_m_part,omega_r
 
         ws = 2d0*M_PI*f_source
 
@@ -313,7 +313,7 @@ contains
             theta_2 = theta_2 + (omega_r*agamma(ns))/(1d0+omega_r*omega_r)
         end do
 
-        R = dsqrt(theta_1*theta_1 + theta_2*theta_2)
+        R = sqrt(theta_1*theta_1 + theta_2*theta_2)
 
         get_relaxed_modulus = r_m_part*(theta_1+R)/(2d0*R*R)
         if(get_relaxed_modulus > 1d0)   &
@@ -322,13 +322,13 @@ contains
     end function get_relaxed_modulus
     !----------------------------------------------------------------------
     !----------------------------------------------------------------------
-    real function get_modulus_defect(n_solid, agamma)
+    real(fpp) function get_modulus_defect(n_solid, agamma)
         implicit none
         !- this function returns the value of the modulus defect, relative to the
         !    relaxed modulus:
         !    delta_M/M_relaxed = (M_unrelaxed - M_relaxed)/M_relaxed = sum_i gamma_i
         integer, intent(in) :: n_solid
-        real, dimension(0:n_solid-1), intent(in) :: agamma
+        real(fpp), dimension(0:n_solid-1), intent(in) :: agamma
 
         get_modulus_defect = SUM(agamma)
 
@@ -340,10 +340,10 @@ contains
         !- routine returns the coefficients for the time integration of the
         !  relaxation function M(t)
         integer, intent(in)  :: n_solid
-        real, intent(in)  :: dt
-        real, dimension(0:n_solid-1), intent(in) :: omega_tau_s,agamma
-        real, dimension(0:n_solid-1), intent(out) :: factor_common,alphaval,betaval,gammaval
-        real, dimension(0:n_solid-1) :: invtau
+        real(fpp), intent(in)  :: dt
+        real(fpp), dimension(0:n_solid-1), intent(in) :: omega_tau_s,agamma
+        real(fpp), dimension(0:n_solid-1), intent(out) :: factor_common,alphaval,betaval,gammaval
+        real(fpp), dimension(0:n_solid-1) :: invtau
 
         invtau(:) = -1d0*omega_tau_s(:)
         factor_common = 2d0 * agamma(:) * omega_tau_s(:)
@@ -362,13 +362,13 @@ contains
 
         implicit none
         integer, intent(in)  :: n_solid
-        real, dimension(0:n_solid-1), intent(in) :: omega_tau_s
-        real, dimension(0:n_solid-1), intent(in) :: agamma
-        real, intent(in)  :: fmin,fmax
-        real  :: qinv
+        real(fpp), dimension(0:n_solid-1), intent(in) :: omega_tau_s
+        real(fpp), dimension(0:n_solid-1), intent(in) :: agamma
+        real(fpp), intent(in)  :: fmin,fmax
+        real(fpp)  :: qinv
         integer  :: i
         integer, parameter  :: n_sampl = 5000
-        real, dimension(:), allocatable :: omega_sampl
+        real(fpp), dimension(:), allocatable :: omega_sampl
 
         allocate(omega_sampl(0:n_sampl-1))
         open(10,file="Q_verif",action="write",status="replace")

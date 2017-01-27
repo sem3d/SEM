@@ -11,32 +11,39 @@
 MODULE constants
     IMPLICIT none
     ! Precision
+#ifdef SINGLEPRECISION
+    integer, parameter :: FPP=kind(0E0)
+    real(fpp), parameter :: MAX_DOUBLE = 1E15
+    real(fpp), parameter :: SMALLFPP=1e-5
+#else
     integer, parameter :: FPP=kind(0D0)
+    real(fpp), parameter :: MAX_DOUBLE = 1.79769313486231570d+307
+    real(fpp), parameter :: SMALLFPP=1e-12
+#endif
     ! Constantes mathematique
     ! Les valeurs suivantes et leurs noms sont tirees de math.h
-    real(KIND=8), parameter :: M_E = 2.7182818284590452354D0         ! e
-    real(KIND=8), parameter :: M_LOG2E = 1.4426950408889634074D0     ! log_2 e
-    real(KIND=8), parameter :: M_LOG10E = 0.43429448190325182765D0   ! log_10 e
-    real(KIND=8), parameter :: M_LN2 = 0.69314718055994530942D0      ! log_e 2
-    real(KIND=8), parameter :: M_LN10 = 2.30258509299404568402D0     ! log_e 10
-    real(KIND=8), parameter :: M_PI = 3.14159265358979323846D0       ! pi
-    real(KIND=8), parameter :: M_PI_2 = 1.57079632679489661923D0     ! pi/2
-    real(KIND=8), parameter :: M_PI_4 = 0.78539816339744830962D0     ! pi/4
-    real(KIND=8), parameter :: M_1_PI = 0.31830988618379067154D0     ! 1/pi
-    real(KIND=8), parameter :: M_2_PI = 0.63661977236758134308D0     ! 2/pi
-    real(KIND=8), parameter :: M_2_SQRTPI = 1.12837916709551257390D0 ! 2/sqrt(pi)
-    real(KIND=8), parameter :: M_SQRT2 = 1.41421356237309504880D0    ! sqrt(2)
-    real(KIND=8), parameter :: M_SQRT1_2 = 0.70710678118654752440D0  ! 1/sqrt(2)
-    real(KIND=8), parameter :: M_1_3 =     0.33333333333333333333D0 ! 1/3
-    real(KIND=8), parameter :: zero=0.d0,one=1.0d0
-    real(KIND=8), parameter :: half=0.5d0,two=2.0d0,three=3.0d0
-    real(KIND=8), parameter :: deps=1.d-12
+    real(fpp), parameter :: M_E        = 2.7182818284590452354_fpp  ! e
+    real(fpp), parameter :: M_LOG2E    = 1.4426950408889634074_fpp  ! log_2 e
+    real(fpp), parameter :: M_LOG10E   = 0.43429448190325182765_fpp ! log_10 e
+    real(fpp), parameter :: M_LN2      = 0.69314718055994530942_fpp ! log_e 2
+    real(fpp), parameter :: M_LN10     = 2.30258509299404568402_fpp ! log_e 10
+    real(fpp), parameter :: M_PI       = 3.14159265358979323846_fpp ! pi
+    real(fpp), parameter :: M_PI_2     = 1.57079632679489661923_fpp ! pi/2
+    real(fpp), parameter :: M_PI_4     = 0.78539816339744830962_fpp ! pi/4
+    real(fpp), parameter :: M_1_PI     = 0.31830988618379067154_fpp ! 1/pi
+    real(fpp), parameter :: M_2_PI     = 0.63661977236758134308_fpp ! 2/pi
+    real(fpp), parameter :: M_2_SQRTPI = 1.12837916709551257390_fpp ! 2/sqrt(pi)
+    real(fpp), parameter :: M_SQRT2    = 1.41421356237309504880_fpp ! sqrt(2)
+    real(fpp), parameter :: M_SQRT1_2  = 0.70710678118654752440_fpp ! 1/sqrt(2)
+    real(fpp), parameter :: M_1_3      = 0.33333333333333333333_fpp ! 1/3
+    real(fpp), parameter :: zero=0._fpp,one=1.0_fpp
+    real(fpp), parameter :: half=0.5_fpp,two=2.0_fpp,three=3.0_fpp
+    real(fpp), parameter :: deps=1e-12_fpp
 
     ! Constantes physiques
 
     ! Parametres systemes
     integer     , parameter :: MAX_INT = 2147483647
-    real(KIND=8), parameter :: MAX_DOUBLE = 1.79769313486231570e+307
 
     ! Parametres algorithmes & code
     integer, parameter :: TIME_INTEG_NEWMARK=0
@@ -91,22 +98,20 @@ MODULE constants
     integer, parameter :: DM_FLUID_PML = 1
 
     ! VARIABLES DE SORTIES
-    integer, parameter :: OUT_ENERGYP    = 0
-    integer, parameter :: OUT_ENERGYS    = 1
-    integer, parameter :: OUT_EPS_VOL    = 2
-    integer, parameter :: OUT_DEPLA      = 3
-    integer, parameter :: OUT_VITESSE    = 4
-    integer, parameter :: OUT_ACCEL      = 5
-    integer, parameter :: OUT_PRESSION   = 6
-    integer, parameter :: OUT_EPS_DEV    = 7
-    integer, parameter :: OUT_STRESS_DEV = 8
+    integer, parameter :: OUT_ENERGYP      = 0
+    integer, parameter :: OUT_ENERGYS      = 1
+    integer, parameter :: OUT_EPS_VOL      = 2
+    integer, parameter :: OUT_DEPLA        = 3
+    integer, parameter :: OUT_VITESSE      = 4
+    integer, parameter :: OUT_ACCEL        = 5
+    integer, parameter :: OUT_PRESSION     = 6
+    integer, parameter :: OUT_EPS_DEV      = 7
+    integer, parameter :: OUT_STRESS_DEV   = 8
     integer, parameter :: OUT_TOTAL_ENERGY = 9
-    integer, parameter :: OUT_EPS_DEV_PL = 10
-
-    integer, parameter :: CPT_INTERP = 0
-    integer, parameter :: CPT_ENERGY = 1
-
-    character(len=10), dimension(0:10) :: OUT_VAR_NAMES = (/ &
+    integer, parameter :: OUT_EPS_DEV_PL   = 10
+    integer, parameter :: OUT_DUDX         = 11
+    integer, parameter :: OUT_LAST=11  ! Numero de la derniere variable
+    character(len=10), dimension(0:OUT_LAST) :: OUT_VAR_NAMES = (/ &
         "EnergyP   ", &
         "EnergyS   ", &
         "Eps Vol   ", &
@@ -117,9 +122,13 @@ MODULE constants
         "Eps Dev   ", &
         "Stress Dev", &
         "Tot_Energy", &
-        "Eps Dev Pl" /)
-    integer, parameter, dimension(0:10) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6/)
-    integer, parameter :: N_OUT_VARS=size(OUT_VAR_NAMES)
+        "Eps Dev Pl", &
+        "DUDX      " /)
+    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9/)
+
+    integer, parameter :: CPT_INTERP = 0
+    integer, parameter :: CPT_ENERGY = 1
+
     ! TYPE DE CONDITION pour les surfaces
     integer, parameter :: COND_NONE     = 0  ! not assigned/uninitialized
     integer, parameter :: COND_DIRICH   = 1
@@ -141,9 +150,25 @@ MODULE constants
 
     integer, parameter :: SCREEN=6
     integer, parameter :: buf_RF=1024 !Buffer for text
-
+    ! Constants for referencing arrays in CPML code
+    integer, parameter :: CPML_ORDER2    = 0
+    integer, parameter :: CPML_MIDPOINT1 = 1
+    integer, parameter :: CPML_MIDPOINT2 = 2
+    integer, parameter :: CPML_ORDER1    = 3
     integer, parameter :: k012 = 0, k021 = 1, k120 = 2
-    real(KIND=8), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
+    integer, parameter :: CPML_DIR_X  =0
+    integer, parameter :: CPML_DIR_Y  =1
+    integer, parameter :: CPML_DIR_Z  =2
+    integer, parameter :: CPML_DIR_XY =3
+    integer, parameter :: CPML_DIR_XZ =4
+    integer, parameter :: CPML_DIR_YZ =5
+    integer, parameter :: CPML_DIR_XYZ=6
+    integer, parameter :: CMP_ABC=0
+    integer, parameter :: CMP_AAC=1
+    integer, parameter :: CMP_ABA=2
+    integer, parameter :: CMP_ABB=3
+    integer, parameter :: CMP_AAA=4
+    real(fpp), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
 CONTAINS
 
 

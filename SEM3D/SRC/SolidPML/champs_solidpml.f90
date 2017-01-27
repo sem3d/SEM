@@ -15,7 +15,6 @@ module champs_solidpml
         !! Solide PML
         real(fpp), dimension(:,:,:), allocatable :: ForcesPML
         real(fpp), dimension(:,:,:), allocatable :: VelocPML
-        real(fpp), dimension(:,:,:), allocatable :: DumpV
 
     end type champssolidpml
 
@@ -23,14 +22,15 @@ module champs_solidpml
         ! D'abord, les données membres qui ne sont pas modifiées
 
         real(fpp), dimension(:,:), allocatable :: DumpMass
+        real(fpp), dimension(:,:,:), allocatable :: DumpV
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
 
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champssolidpml) :: champs0
-        type(champssolidpml) :: champs1
+        type(champssolidpml), dimension(0:1) :: champs
+
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress1
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress2
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress3

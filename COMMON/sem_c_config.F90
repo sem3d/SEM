@@ -8,6 +8,7 @@
 module sem_c_config
     use iso_c_binding
     use sem_c_bindings
+    use constants, only : OUT_LAST
 
     integer, parameter :: NAME_MAX=200
     ! Ce type doit correspondre au type sem_config_t du module read_input.c **a l'ordre pres**
@@ -56,7 +57,7 @@ module sem_c_config
        integer(C_INT) :: comp_energ
 
        !! Output Variables
-       integer(C_INT), dimension(11) :: out_variables
+       integer(C_INT), dimension(OUT_LAST+1) :: out_variables
        integer(C_INT) :: nl_flag
 
        !! Protection reprise
@@ -78,6 +79,8 @@ module sem_c_config
        real(C_DOUBLE) :: cpml_kappa1
        integer(C_INT) :: cpml_n
        real(C_DOUBLE) :: cpml_rc
+       integer(C_INT) :: cpml_integ_type
+       integer(C_INT) :: cpml_one_root
 
        !! Type Elements (DG)
        integer(C_INT) :: type_elem
@@ -165,17 +168,17 @@ module sem_c_config
        real(C_DOUBLE) :: surface_f0
        integer(C_INT) :: surface_dim
        real(C_DOUBLE) :: surface_paravalue(1:100)
-       type(C_PTR) :: surface_paramname
+       type(C_PTR)    :: surface_paramname
        integer(C_INT) :: surface_nparamvar
        integer(C_INT) :: surface_paramvar
-       type(C_PTR) :: surface_source
-       type(C_PTR) :: surface_funcx
-       type(C_PTR) :: surface_funcy
-       type(C_PTR) :: surface_funcz
-       type(C_PTR) :: surface_funcxy
-       type(C_PTR) :: surface_funcxz
-       type(C_PTR) :: surface_funcyz
-       type(C_PTR) :: surface_varia
+       type(C_PTR)    :: surface_source
+       type(C_PTR)    :: surface_funcx
+       type(C_PTR)    :: surface_funcy
+       type(C_PTR)    :: surface_funcz
+       type(C_PTR)    :: surface_funcxy
+       type(C_PTR)    :: surface_funcxz
+       type(C_PTR)    :: surface_funcyz
+       type(C_PTR)    :: surface_varia
        real(C_DOUBLE) :: amplitude
        real(C_DOUBLE) :: Rtau
        integer(C_INT) :: surface_space
@@ -187,10 +190,10 @@ module sem_c_config
     end type sem_surfaces
 
     type, bind(c) :: sem_material
-       integer(C_INT):: num
-       integer(C_INT):: domain
-       integer(C_INT):: deftype
-       integer(C_INT):: defspatial
+       integer(C_INT) :: num
+       integer(C_INT) :: domain
+       integer(C_INT) :: deftype
+       integer(C_INT) :: defspatial
        !
        real(C_DOUBLE) :: rho
        real(C_DOUBLE) :: Vp

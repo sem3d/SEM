@@ -8,15 +8,15 @@
 !!
 !<
 module shape_geom_3d
-
-
+    use constants, only : fpp
+    implicit none
 
 contains
-    real function f_p(t,xi,eta,zeta)
+    real(fpp) function f_p(t,xi,eta,zeta)
         !- gives the t-coordinate of a GLL node.
         implicit none
-        real, dimension(0:7), intent(in)  :: t
-        real, intent(in) :: xi,eta,zeta
+        real(fpp), dimension(0:7), intent(in)  :: t
+        real(fpp), intent(in) :: xi,eta,zeta
 
         f_p = 0.125 * (t(0)*(1-xi)*(1-eta)*(1-zeta) + t(1)*(1+xi)*(1-eta)*(1-zeta) + t(2)*(1+xi)*(1+eta)*(1-zeta) + &
             t(3)*(1-xi)*(1+eta)*(1-zeta) + t(4)*(1-xi)*(1-eta)*(1+zeta) + t(5)*(1+xi)*(1-eta)*(1+zeta) + &
@@ -26,10 +26,10 @@ contains
     !-------------------------------------------------------------------------
     !--   PARTIAL DERIVATIVES at GLL NODES   --
     !-------------------------------------------------------------------------
-    real function der_dx_dxi(x,eta,zeta)
+    real(fpp) function der_dx_dxi(x,eta,zeta)
         implicit none
-        real, dimension(0:7), intent(in)  :: x
-        real, intent(in)  :: eta,zeta
+        real(fpp), dimension(0:7), intent(in)  :: x
+        real(fpp), intent(in)  :: eta,zeta
 
         der_dx_dxi = 0.125 * ((x(1)-x(0))*(1-eta)*(1-zeta) + (x(2)-x(3))*(1+eta)*(1-zeta) +   &
             (x(5)-x(4))*(1-eta)*(1+zeta) + (x(6)-x(7))*(1+eta)*(1+zeta))
@@ -37,10 +37,10 @@ contains
     end function der_dx_dxi
     !-------------------------------------------------------------------------
     !-------------------------------------------------------------------------
-    real function der_dx_deta(x,xi,zeta)
+    real(fpp) function der_dx_deta(x,xi,zeta)
         implicit none
-        real, dimension(0:7), intent(in)  :: x
-        real, intent(in)  :: xi,zeta
+        real(fpp), dimension(0:7), intent(in)  :: x
+        real(fpp), intent(in)  :: xi,zeta
 
         der_dx_deta = 0.125 * ((x(3)-x(0))*(1-xi)*(1-zeta) + (x(2)-x(1))*(1+xi)*(1-zeta) +   &
             (x(7)-x(4))*(1-xi)*(1+zeta) + (x(6)-x(5))*(1+xi)*(1+zeta))
@@ -48,10 +48,10 @@ contains
     end function der_dx_deta
     !-------------------------------------------------------------------------
     !-------------------------------------------------------------------------
-    real function der_dx_dzeta(x,xi,eta)
+    real(fpp) function der_dx_dzeta(x,xi,eta)
         implicit none
-        real, dimension(0:7), intent(in)  :: x
-        real, intent(in)  :: xi,eta
+        real(fpp), dimension(0:7), intent(in)  :: x
+        real(fpp), intent(in)  :: xi,eta
 
         der_dx_dzeta = 0.125 * ((x(4)-x(0))*(1-xi)*(1-eta) + (x(5)-x(1))*(1+xi)*(1-eta) +   &
             (x(7)-x(3))*(1-xi)*(1+eta) + (x(6)-x(2))*(1+xi)*(1+eta))
@@ -59,10 +59,10 @@ contains
     end function der_dx_dzeta
     !-------------------------------------------------------------------------
     !-------------------------------------------------------------------------
-    real function der_dy_dxi(y,eta,zeta)
+    real(fpp) function der_dy_dxi(y,eta,zeta)
         implicit none
-        real, dimension(0:7), intent(in)  :: y
-        real, intent(in)  :: eta,zeta
+        real(fpp), dimension(0:7), intent(in)  :: y
+        real(fpp), intent(in)  :: eta,zeta
 
         der_dy_dxi = 0.125 * ((y(1)-y(0))*(1-eta)*(1-zeta) + (y(2)-y(3))*(1+eta)*(1-zeta) +  &
             (y(5)-y(4))*(1-eta)*(1+zeta) + (y(6)-y(7))*(1+eta)*(1+zeta))
@@ -70,10 +70,10 @@ contains
     end function der_dy_dxi
     !-------------------------------------------------------------------------
     !-------------------------------------------------------------------------
-    real function der_dy_deta(y,xi,zeta)
+    real(fpp) function der_dy_deta(y,xi,zeta)
         implicit none
-        real, dimension(0:7), intent(in)  :: y
-        real, intent(in)  :: xi,zeta
+        real(fpp), dimension(0:7), intent(in)  :: y
+        real(fpp), intent(in)  :: xi,zeta
 
         der_dy_deta = 0.125 * ((y(3)-y(0))*(1-xi)*(1-zeta) + (y(2)-y(1))*(1+xi)*(1-zeta) +  &
             (y(7)-y(4))*(1-xi)*(1+zeta) + (y(6)-y(5))*(1+xi)*(1+zeta))
@@ -81,10 +81,10 @@ contains
     end function der_dy_deta
     !-------------------------------------------------------------------------
     !-------------------------------------------------------------------------
-    real function der_dy_dzeta(y,xi,eta)
+    real(fpp) function der_dy_dzeta(y,xi,eta)
         implicit none
-        real, dimension(0:7), intent(in)  :: y
-        real, intent(in)  :: xi,eta
+        real(fpp), dimension(0:7), intent(in)  :: y
+        real(fpp), intent(in)  :: xi,eta
 
         der_dy_dzeta = 0.125 * ((y(4)-y(0))*(1-xi)*(1-eta) + (y(5)-y(1))*(1+xi)*(1-eta) +   &
             (y(7)-y(3))*(1-xi)*(1+eta) + (y(6)-y(2))*(1+xi)*(1+eta))
@@ -92,10 +92,10 @@ contains
     end function der_dy_dzeta
     !-------------------------------------------------------------------------
     !-------------------------------------------------------------------------
-    real function der_dz_dxi(z,eta,zeta)
+    real(fpp) function der_dz_dxi(z,eta,zeta)
         implicit none
-        real, dimension(0:7), intent(in)  :: z
-        real, intent(in)  :: eta,zeta
+        real(fpp), dimension(0:7), intent(in)  :: z
+        real(fpp), intent(in)  :: eta,zeta
 
         der_dz_dxi = 0.125 * ((z(1)-z(0))*(1-eta)*(1-zeta) + (z(2)-z(3))*(1+eta)*(1-zeta) +   &
             (z(5)-z(4))*(1-eta)*(1+zeta) + (z(6)-z(7))*(1+eta)*(1+zeta))
@@ -103,10 +103,10 @@ contains
     end function der_dz_dxi
     !-------------------------------------------------------------------------
     !-------------------------------------------------------------------------
-    real function der_dz_deta(z,xi,zeta)
+    real(fpp) function der_dz_deta(z,xi,zeta)
         implicit none
-        real, dimension(0:7), intent(in)  :: z
-        real, intent(in)  :: xi,zeta
+        real(fpp), dimension(0:7), intent(in)  :: z
+        real(fpp), intent(in)  :: xi,zeta
 
         der_dz_deta = 0.125 * ((z(3)-z(0))*(1-xi)*(1-zeta) + (z(2)-z(1))*(1+xi)*(1-zeta) +   &
             (z(7)-z(4))*(1-xi)*(1+zeta) + (z(6)-z(5))*(1+xi)*(1+zeta))
@@ -114,10 +114,10 @@ contains
     end function der_dz_deta
     !-------------------------------------------------------------------------
     !-------------------------------------------------------------------------
-    real function der_dz_dzeta(z,xi,eta)
+    real(fpp) function der_dz_dzeta(z,xi,eta)
         implicit none
-        real, dimension(0:7), intent(in)  :: z
-        real, intent(in)  :: xi,eta
+        real(fpp), dimension(0:7), intent(in)  :: z
+        real(fpp), intent(in)  :: xi,eta
 
         der_dz_dzeta = 0.125 * ((z(4)-z(0))*(1-xi)*(1-eta) + (z(5)-z(1))*(1+xi)*(1-eta) +   &
             (z(7)-z(3))*(1-xi)*(1+eta) + (z(6)-z(2))*(1+xi)*(1+eta))
@@ -129,14 +129,14 @@ contains
 !        ! determines the normal to a given face
 !        implicit none
 !        integer, intent(in)   :: dir,ngll1,ngll2,ngll
-!        real, dimension(0:2,0:7), intent(in)  :: coord
-!        real, dimension(0:ngll-1), intent(in)  :: GLLc
-!        real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(out)  :: normal
+!        real(fpp), dimension(0:2,0:7), intent(in)  :: coord
+!        real(fpp), dimension(0:ngll-1), intent(in)  :: GLLc
+!        real(fpp), dimension(0:ngll1-1,0:ngll2-1,0:2), intent(out)  :: normal
 !        !
 !        integer   :: i,j
-!        real      :: xi,eta,zeta
-!        real, dimension(0:2) :: n1,n2
-!        real, dimension(0:7) :: x,y,z
+!        real(fpp)      :: xi,eta,zeta
+!        real(fpp), dimension(0:2) :: n1,n2
+!        real(fpp), dimension(0:7) :: x,y,z
 !        x = coord(0,:)
 !        y = coord(1,:)
 !        z = coord(2,:)
@@ -172,9 +172,9 @@ contains
         ! determination of the 2 vectors defining a given face
         implicit none
         integer, intent(in)  :: dir
-        real, dimension(0:7), intent(in)  :: x,y,z
-        real, intent(in)  :: xi,eta,zeta
-        real, dimension(0:2), intent(out) :: n1,n2
+        real(fpp), dimension(0:7), intent(in)  :: x,y,z
+        real(fpp), intent(in)  :: xi,eta,zeta
+        real(fpp), dimension(0:2), intent(out) :: n1,n2
 
         ! X = position vector
         select case(dir)
@@ -197,8 +197,8 @@ contains
     subroutine cross_prod(x,y,z)
         ! z = cross product of vectors x and y
         implicit none
-        real, dimension(0:2), intent(in)  :: x,y
-        real, dimension(0:2), intent(out) :: z
+        real(fpp), dimension(0:2), intent(in)  :: x,y
+        real(fpp), dimension(0:2), intent(out) :: z
 
         z(0) = x(1)*y(2)-x(2)*y(1)
         z(1) = x(2)*y(0)-x(0)*y(2)

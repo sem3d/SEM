@@ -27,11 +27,11 @@ module champs_solid
     end type champssolid
 
     type :: lmc_param ! LAMAITRE & CHABOCHE NONLINEAR PARAMETERS
-        real, dimension (:,:,:,:,:), allocatable :: m_biso
-        real, dimension (:,:,:,:,:), allocatable :: m_rinf
-        real, dimension (:,:,:,:,:), allocatable :: m_ckin
-        real, dimension (:,:,:,:,:), allocatable :: m_kkin
-        real, dimension (:,:,:,:,:), allocatable :: m_syld
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_biso
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_rinf
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_ckin
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_kkin
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_syld
     end type lmc_param
 
     type :: nl_parameters  ! STRUCTURE CONTAINING NL PARAMETER SETS
@@ -49,11 +49,10 @@ module champs_solid
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champssolid) :: champs0
-        type(champssolid) :: champs1
+        type(champssolid), dimension(0:1) :: champs
         ! Attenuation
         integer :: n_sls
-        real(fpp) :: dt
+
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Q
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Qs
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Qp

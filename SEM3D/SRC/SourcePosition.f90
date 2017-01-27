@@ -23,15 +23,15 @@ subroutine SourcePosition (Tdomain)
     !
     integer :: rg, ierr, nnodes
     integer :: n_src, i,j
-    double precision :: xs,ys,zs,xi,eta,zeta
-    double precision, dimension(0:2,0:2) :: LocInvGrad
-    double precision, dimension(:,:), allocatable :: coord
-    double precision :: R
+    real(fpp) :: xs,ys,zs,xi,eta,zeta
+    real(fpp), dimension(0:2,0:2) :: LocInvGrad
+    real(fpp), dimension(:,:), allocatable :: coord
+    real(fpp) :: R
     integer :: src_proc, nmax, n_el, nb_src_inproc
     integer, parameter :: NMAXEL=20
     integer, dimension(NMAXEL) :: elems
-    double precision, dimension(0:2,NMAXEL) :: coordloc
-    double precision, parameter :: EPS = 1D-13
+    real(fpp), dimension(0:2,NMAXEL) :: coordloc
+    real(fpp), parameter :: EPS = 1D-13
     type(source), dimension(:), allocatable :: ssource_temp
     logical, dimension(:), allocatable :: src_inproc
     logical :: inside

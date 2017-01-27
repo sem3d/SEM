@@ -173,6 +173,9 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
+    use mdoublecouple
+    use msource_excit
+    use mondelette
     use surface_input
 #ifdef COUPLAGE
     use scouplage
@@ -181,7 +184,7 @@ subroutine RUN_PREPARED(Tdomain)
     implicit none
     type(domain), intent(inout) :: Tdomain
     integer :: rg
-    integer :: code, i, ierr, group, subgroup
+    integer :: code, i
 
     rg = Tdomain%rank
     if(rg == 0) print*
@@ -202,13 +205,6 @@ subroutine RUN_PREPARED(Tdomain)
  !- reading external data: run parameters (geometry, materials, time evolution,..)
     if(rg == 0) write(*,*) "--> READING INPUT PARAMETERS AND DATA"
     call read_input(Tdomain, code)
-
- !- Create subdomains communicators
-    group = rg/Tdomain%ngroup
-    subgroup = mod(rg,Tdomain%ngroup)
-    call MPI_Comm_split(Tdomain%communicateur, group, subgroup, Tdomain%comm_output, ierr)
-    call MPI_Comm_size(Tdomain%comm_output, Tdomain%nb_output_procs,  code)
-    call MPI_Comm_rank(Tdomain%comm_output, Tdomain%output_rank, code)
 
 
  !- eventual plane wave (transmission process: Bielak & Cristiano 1984)
@@ -235,7 +231,7 @@ subroutine RUN_PREPARED(Tdomain)
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
- 
+
  !- allocation of different fields' sizes
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
     call allocate_domain(Tdomain)
@@ -253,10 +249,10 @@ subroutine RUN_PREPARED(Tdomain)
         write (*,*) Tdomain%n_nodes, "control points not yet implemented in the code. Wait for an upgrade"
         stop
     endif
-    call check_interface_orient(Tdomain, Tdomain%intSolPml, 1e-10)
-    call check_interface_orient(Tdomain, Tdomain%intFluPml, 1e-10)
-    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1e-10)
-    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10)
+    call check_interface_orient(Tdomain, Tdomain%intSolPml, 1e-10_fpp)
+    call check_interface_orient(Tdomain, Tdomain%intFluPml, 1e-10_fpp)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1e-10_fpp)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10_fpp)
     call MPI_Barrier(Tdomain%communicateur,code)
 
     !- elementary properties (mass matrices, PML factors,..) geometry
@@ -303,6 +299,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
     use mCapteur
     use semdatafiles
     use mpi
+    use mloadcheckpoint
     use msnapshots
     use semconfig !< pour config C
     use sem_c_bindings
@@ -367,7 +364,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
 
 !- snapshots
     if (Tdomain%logicD%save_snapshots)  then
-        call write_snapshot_geom(Tdomain)
+        call write_snapshot_geom(Tdomain, Tdomain%SnapData)
         Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         Tdomain%timeD%nsnap = max(1, Tdomain%timeD%nsnap)
         if(rg == 0) write (*,*) "--> SNAPSHOTS RECORDED EVERY ", Tdomain%timeD%nsnap, " iterations"
@@ -428,6 +425,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use semdatafiles
     use mpi
     use msnapshots
+    use msavecheckpoint
+    use mtimestep
     use semconfig !< pour config C
     use sem_c_bindings
     use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO
@@ -494,8 +493,13 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- TIME STEPPER TO CHOSE
 !---------------------------------------------------------!
-      !- Newmark reduced to leap-frog
-        call NEWMARK(Tdomain, ntime)
+        !- Newmark reduced to leap-frog
+        select case(Tdomain%TimeD%type_timeinteg)
+        case (TIME_INTEG_NEWMARK)
+            call Newmark(Tdomain, ntime)
+        case (TIME_INTEG_RK4)
+            call Timestep_LDDRK(Tdomain, ntime)
+        end select
 
 !---------------------------------------------------------!
     !- logical end of run
@@ -547,15 +551,15 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
         call evalueSortieCapteur(ntime, sortie_capteur)
-        
+
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
-        
+
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!
         if(protection /= 0)then
-        
+
             call flushAllCapteurs(Tdomain)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)
         endif
@@ -648,21 +652,12 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
     integer, intent(inout)      :: isort
     !
     integer :: rg
-    character(Len=MAX_FILE_SIZE) :: fnamef
 
     rg = Tdomain%rank
     if(rg == 0)then
         write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
     endif
-    call save_field_h5(Tdomain, isort)
-    if(rg == 0)then
-        write(78,*) isort, Tdomain%TimeD%rtime
-        call semname_nb_proc(isort,fnamef)
-        open (79,file = fnamef,status="UNKNOWN")
-        write(79,*) Tdomain%nb_procs
-        close(79)
-    endif
-
+    call save_field_h5(Tdomain, isort, Tdomain%SnapData)
     isort = isort + 1  ! a faire avant le save_checkpoint
 
 end subroutine OUTPUT_SNAPSHOTS
@@ -702,7 +697,9 @@ subroutine END_SEM(Tdomain,ntime)
     close(50)
 #endif
 
-    call MPI_Comm_free(Tdomain%comm_output, ierr)
+    if (Tdomain%logicD%save_snapshots)  then
+        call MPI_Comm_free(Tdomain%SnapData%comm, ierr)
+    end if
 end subroutine END_SEM
 
 subroutine START_SEM(rg)

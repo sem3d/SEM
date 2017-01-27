@@ -906,7 +906,7 @@ contains
 !                                       unit_in=IPT%log_ID)
                 case default
                     write(*,*) "meshMod not accepted: ", IPT%meshMod
-                    stop(" ")
+                    stop (" ")
             end select
 
 
@@ -1081,7 +1081,7 @@ contains
                write(*,*) ""
                write(*,*) "ERROR - Number of events should be a positive integer"
                write(*,*) "IPT%Nmc = ", IPT%Nmc
-               stop(" ")
+               stop (" ")
             end if
 
             if((IPT%nDim_gen < 1) .or. (IPT%nDim_mesh < 1) .or. (IPT%nDim_gen /= IPT%nDim_mesh)) then
@@ -1089,27 +1089,27 @@ contains
                write(*,*) "ERROR - nDim should be a positive integer and should be the same in both mesh and generation files"
                write(*,*) "IPT%nDim_gen  = ", IPT%nDim_gen
                write(*,*) "IPT%nDim_mesh = ", IPT%nDim_mesh
-               stop(" ")
+               stop (" ")
             end if
 
             do i = 1, IPT%nDim_gen
                if(IPT%corrL_in(i) <= 0.0d0) then
                    write(*,*) ""
                    write(*,*) "ERROR - corrL_in should be a positive number greater than 0.0"
-                   stop(" ")
+                   stop (" ")
                end if
             end do
 
             if(any(IPT%nFields < 1)) then
                write(*,*) ""
                write(*,*) "ERROR - IPT%nFields should be a positive non-zero value vector"
-               stop(" ")
+               stop (" ")
             end if
 
             if(IPT%localizationLevel == 0 .and. any(IPT%nFields /=1)) then
                write(*,*) ""
                write(*,*) "ERROR - If locLevel = 0 IPT%nFields should have only ones"
-               stop(" ")
+               stop (" ")
             end if
 
         end subroutine validate_input
@@ -1285,7 +1285,7 @@ contains
 
                 if(unit <= 0) then
                     write(*,*) "ERROR!!! Inside show_MESHneigh unit = ", unit
-                    stop("")
+                    stop ("")
                 end if
 
                 nDim   = trim(numb2String(IPT%nDim))

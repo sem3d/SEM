@@ -13,6 +13,7 @@
 
 module sem_hdf5
     use HDF5
+    use constants, only : fpp
     implicit none
 
     logical :: h5_initialized = .false.
@@ -25,6 +26,11 @@ module sem_hdf5
 
     integer(HSIZE_T), DIMENSION(1:2) :: chunk = (/chunk0,chunk1/)
 
+#ifdef SINGLEPRECISION
+#define H5T_REAL  H5T_NATIVE_REAL
+#else
+#define H5T_REAL  H5T_NATIVE_DOUBLE
+#endif
     interface create_dset
        module procedure create_dset_i4, create_dset_i8
     end interface create_dset
@@ -228,7 +234,7 @@ contains
         use HDF5
         character(len=*), INTENT(IN) :: name
         integer(HID_T), INTENT(IN) :: parent
-        double precision, dimension(:), allocatable, intent(out) :: data
+        real(fpp), dimension(:), allocatable, intent(out) :: data
         integer, intent(in), optional :: ibase
         !
         integer(HID_T) :: dset_id, space_id
@@ -246,7 +252,7 @@ contains
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
         if (hdferr .ne. 1) stop "read_dset_1d_real : h5sgetdim KO"
         allocate(data(i0:dims(1)+i0-1))
-        call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dread_f(dset_id, H5T_REAL, data, dims, hdferr)
         if (hdferr .ne. 0) stop "read_dset_1d_real : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_1d_real : h5dclose KO"
@@ -310,7 +316,7 @@ contains
         use HDF5
         character(len=*), INTENT(IN) :: name
         integer(HID_T), INTENT(IN) :: parent
-        double precision, dimension(:,:), allocatable, intent(out) :: data
+        real(fpp), dimension(:,:), allocatable, intent(out) :: data
         integer, intent(in), optional :: ibase
         !
         integer(HID_T) :: dset_id, space_id
@@ -330,7 +336,7 @@ contains
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
         if (hdferr .ne. 2) stop "read_dset_2d_real : h5sgetdim KO "
         allocate(data(i0:dims(1)+i0-1, i1:dims(2)+i1-1))
-        call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dread_f(dset_id, H5T_REAL, data, dims, hdferr)
         if (hdferr .ne. 0) stop "read_dset_2d_real : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_2d_real : h5dclose KO"
@@ -342,7 +348,7 @@ contains
         use HDF5
         character(len=*), INTENT(IN) :: name
         integer(HID_T), INTENT(IN) :: parent
-        double precision, dimension(:,:,:), allocatable, intent(out) :: data
+        real(fpp), dimension(:,:,:), allocatable, intent(out) :: data
         integer, intent(in), optional :: ibase
         !
         integer(HID_T) :: dset_id, space_id
@@ -364,7 +370,7 @@ contains
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
         if (hdferr .ne. 3) stop "read_dset_3d_real : h5sgetdim KO "
         allocate(data(i0:dims(1)+i0-1, i1:dims(2)+i1-1, i2:dims(3)+i2-1))
-        call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dread_f(dset_id, H5T_REAL, data, dims, hdferr)
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5dclose KO"
@@ -377,11 +383,11 @@ contains
         character(len=*), INTENT(IN) :: name
         integer(HID_T), INTENT(IN) :: parent
         integer, intent(in), dimension(0:2) :: imin, imax
-        double precision, dimension(:,:,:), allocatable, intent(out) :: data
+        real(fpp), dimension(:,:,:), allocatable, intent(out) :: data
         !
         integer(HID_T) :: dset_id, space_id, memspace_id
         integer(HSIZE_T), dimension(3) :: start, count
-        integer :: hdferr, i0, i1,i2
+        integer :: hdferr
 
         start = imin
         count = imax-imin+[1,1,1]
@@ -393,7 +399,7 @@ contains
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5sgetdim KO "
         allocate(data(imin(0):imax(0), imin(1):imax(1), imin(2):imax(2)))
         call H5Screate_simple_f(3, count, memspace_id, hdferr)
-        call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, count, hdferr, memspace_id, space_id)
+        call h5dread_f(dset_id, H5T_REAL, data, count, hdferr, memspace_id, space_id)
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5dclose KO"
@@ -498,7 +504,7 @@ contains
         use HDF5
         integer(HID_T), intent(in) :: dset
         character(len=*), intent(in) :: attr
-        double precision, intent(in) :: value
+        real(fpp), intent(in) :: value
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
@@ -507,7 +513,7 @@ contains
         !write(*,*) "save_attr_real: ", attr, value
         call h5screate_f(H5S_SCALAR_F, space_id, hdferr)
         call h5acreate_f(dset, attr, H5T_NATIVE_DOUBLE, space_id, attr_id, hdferr, H5P_DEFAULT_F)
-        call h5awrite_f(attr_id, H5T_NATIVE_DOUBLE, value, dims, hdferr)
+        call h5awrite_f(attr_id, H5T_REAL, value, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
     end subroutine write_attr_real
@@ -580,7 +586,7 @@ contains
         use HDF5
         integer(HID_T), intent(in) :: dset
         character(len=*), intent(in) :: attr
-        double precision, intent(out) :: value
+        real(fpp), intent(out) :: value
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
@@ -588,7 +594,7 @@ contains
         call h5aopen_f(dset, attr, attr_id, hdferr)
         call h5aget_space_f(attr_id, space_id, hdferr)
         ! TODO: check h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
-        call h5aread_f(attr_id, H5T_NATIVE_DOUBLE, value, dims, hdferr)
+        call h5aread_f(attr_id, H5T_REAL, value, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
     end subroutine read_attr_real
@@ -598,14 +604,14 @@ contains
         implicit none
         integer(HID_T), intent(in) :: parent
         character(len=*), intent(in) :: name
-        double precision, dimension(:), intent(in) :: arr
+        real(fpp), dimension(:), intent(in) :: arr
         !
         integer(HSIZE_T), dimension(1) ::  dims
         integer(HID_T) :: dset_id
         integer :: hdferr
         dims(1) = size(arr,1)
         call create_dset(parent, name, H5T_IEEE_F64LE, dims(1), dset_id)
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, arr, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d1 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d1 : h5dclose KO"
@@ -616,7 +622,7 @@ contains
         implicit none
         integer(HID_T), intent(in) :: parent
         character(len=*), intent(in) :: name
-        double precision, dimension(:,:), intent(in) :: arr
+        real(fpp), dimension(:,:), intent(in) :: arr
         !
         integer(HSIZE_T), dimension(2) ::  dims
         integer(HID_T) :: dset_id
@@ -624,7 +630,7 @@ contains
         dims(1) = size(arr,1)
         dims(2) = size(arr,2)
         call create_dset_2d_i8(parent, name, H5T_IEEE_F64LE, dims(1), dims(2), dset_id)
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, arr, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d2 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d2 : h5dclose KO"
@@ -635,7 +641,7 @@ contains
         implicit none
         integer(HID_T), intent(in) :: parent
         character(len=*), intent(in) :: name
-        double precision, dimension(:,:,:), intent(in) :: arr
+        real(fpp), dimension(:,:,:), intent(in) :: arr
         !
         integer(HSIZE_T), dimension(3) ::  dims
         integer(HID_T) :: dset_id
@@ -644,7 +650,7 @@ contains
         dims(2) = size(arr,2)
         dims(3) = size(arr,3)
         call create_dset_3d_i8(parent, name, H5T_IEEE_F64LE, dims, dset_id)
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, arr, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d3 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d3 : h5dclose KO"
@@ -691,7 +697,7 @@ contains
         use HDF5
         implicit none
         integer(HID_T), intent(in) :: dset_id
-        double precision, dimension(:,:), intent(in) :: arr
+        real(fpp), dimension(:,:), intent(in) :: arr
         integer, intent(out) :: hdferr
         !
         integer(HSIZE_T), dimension(2) ::  dims, maxdims, offset, dsize
@@ -718,7 +724,7 @@ contains
         !write(*,*) "RW: dims:", dims
         call H5Sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, dims, hdferr)
 
-        call H5Dwrite_f(dset_id, H5T_NATIVE_DOUBLE, arr, dims, hdferr, memspace, filespace)
+        call H5Dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr, memspace, filespace)
         call H5Sclose_f(filespace, hdferr)
         call H5Sclose_f(memspace, hdferr)
     end subroutine append_dataset_2d_r
@@ -751,7 +757,7 @@ contains
         dims(2) = size(arr, 2)
         call H5Sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, dims, hdferr)
 
-        call H5Dwrite_f(dset_id, H5T_NATIVE_DOUBLE, arr, dims, hdferr, memspace, filespace)
+        call H5Dwrite_f(dset_id, H5T_NATIVE_INTEGER, arr, dims, hdferr, memspace, filespace)
         call H5Sclose_f(filespace, hdferr)
         call H5Sclose_f(memspace, hdferr)
     end subroutine append_dataset_2d_i
@@ -764,7 +770,7 @@ contains
         use HDF5
         integer(HID_T), intent(in) :: file_id
         character(len=*), intent(in) :: attr_name
-        double precision, dimension(:), intent(out) :: data
+        real(fpp), dimension(:), intent(out) :: data
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims, max_dims
@@ -773,7 +779,7 @@ contains
         call h5aopen_f(file_id, attr_name, attr_id, hdferr)
         call h5aget_space_f(attr_id, space_id, hdferr)
         call h5sget_simple_extent_dims_f(space_id, dims, max_dims, hdferr) !Get the size of the attribute
-        call h5aread_f(attr_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5aread_f(attr_id, H5T_REAL, data, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
 

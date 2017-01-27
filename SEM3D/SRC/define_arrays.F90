@@ -23,7 +23,6 @@ module mdefinitions
 #include "index.h"
 
     public :: define_arrays
-    private :: define_PML_DumpEnd
 
 contains
 
@@ -66,11 +65,11 @@ contains
         endif
 
 
-        call init_domains(Tdomain)
         call init_materials(Tdomain)
         ! We need the timestep to continue with PML defs...
         call Compute_Courant(Tdomain,rg)
 !
+        call init_domains(Tdomain)
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
             ! Compute MassMat
@@ -99,7 +98,7 @@ contains
         call assemble_mass_matrices(Tdomain)
         call finalize_pml_properties(Tdomain)
         call inverse_mass_mat(Tdomain)
-        
+
         ! Copy Idom from element to domain_XXX
 
         if ((Tdomain%n_DIRIC /= 0).and.(Tdomain%logicD%surfBC)) then
@@ -112,7 +111,7 @@ contains
                 end if
              enddo
         endif
-        
+
         do n = 0,Tdomain%n_elem-1
             if(allocated(Tdomain%specel(n)%Idom)) &
                 deallocate(Tdomain%specel(n)%Idom) ! TODO : delete when non-CPML domains use dom%Idom_ instead of specel%Idom
@@ -132,7 +131,7 @@ contains
                write(char,*) Tdomain%nsurfsource(ns)%index(s)
                block: &
                do n = 0,size(Tdomain%sSurfaces)-1
-                  if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(1:len_trim(char)))) then   
+                  if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(1:len_trim(char)))) then
                       call init_dirichlet_surface_MT(Tdomain, Tdomain%sSurfaces(n))
                       exit block
                   endif
@@ -143,9 +142,9 @@ contains
     end subroutine init_dirichlet_unstructuredMesh
 
     subroutine dirichlet_gll_map(dirichlet, dirichlet_out)
-    
+
         implicit none
-        integer, dimension(:), intent( in  )              :: dirichlet 
+        integer, dimension(:), intent( in  )              :: dirichlet
         integer, dimension(:), allocatable, intent(out)   :: dirichlet_out
         integer, dimension(:), allocatable                :: dummy
         integer                                           :: pp, n, m
@@ -167,9 +166,9 @@ contains
         deallocate(dummy)
 
     end subroutine dirichlet_gll_map
-     
+
     subroutine init_dirichlet_surface_MT(Tdomain, surf)
-        
+
         implicit none
         type (domain), intent (INOUT)      :: Tdomain
         type (SurfaceT), intent(INOUT)     :: surf
@@ -180,7 +179,7 @@ contains
             if (allocated(Tdomain%sdom%dirich)) then
                 allocate(dummy(0:size(Tdomain%sdom%dirich)-1))
                 dummy=Tdomain%sdom%dirich
-                deallocate(Tdomain%sdom%dirich) 
+                deallocate(Tdomain%sdom%dirich)
                 call dirichlet_gll_map((/dummy, surf%surf_sl%map/),Tdomain%sdom%dirich)
                 Tdomain%sdom%n_dirich = size(Tdomain%sdom%dirich)
             else
@@ -228,7 +227,7 @@ contains
             endif
         end if
         if (allocated(dummy)) deallocate(dummy)
-    
+
     end subroutine init_dirichlet_surface_MT
 
 
@@ -265,7 +264,7 @@ contains
 
         integer :: n, indsol, indflu, indpml
         integer :: k
-        real :: Mass
+        real(fpp) :: Mass
 
         ! Couplage à l'interface solide / PML
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
@@ -305,6 +304,11 @@ contains
 #ifndef CPML
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
+#else
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMat, k)
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MasUMat, k)
 #endif
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
@@ -316,8 +320,15 @@ contains
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
+#ifndef CPML
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMass, k)
+#else
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMat, k)
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MasUMat, k)
+#endif
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MassMat, k)
                 end if
@@ -340,6 +351,11 @@ contains
 #ifndef CPML
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
+#else
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMat, k)
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MasUMat, k)
 #endif
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
@@ -351,8 +367,15 @@ contains
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
+#ifndef CPML
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMass, k)
+#else
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMat, k)
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MasUMat, k)
+#endif
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MassMat, k)
                 end if
@@ -377,7 +400,10 @@ contains
     subroutine init_domains(Tdomain)
         type (domain), intent (INOUT), target :: Tdomain
         !
-        call init_domain_solidpml(Tdomain, Tdomain%spmldom)
+        if (Tdomain%sdom%nglltot /= 0) call init_domain_solid(Tdomain, Tdomain%sdom)
+        if (Tdomain%fdom%nglltot /= 0) call init_domain_fluid(Tdomain, Tdomain%fdom)
+        if (Tdomain%spmldom%nglltot /= 0) call init_domain_solidpml(Tdomain, Tdomain%spmldom)
+        if (Tdomain%fpmldom%nglltot /= 0) call init_domain_fluidpml(Tdomain, Tdomain%fpmldom)
     end subroutine init_domains
 
     subroutine init_materials(Tdomain)
@@ -392,7 +418,7 @@ contains
             !write(*,*) "Init mat ", mat
             !write(*,*) "Tdomain%sSubdomain(mat)%material_definition = ", Tdomain%sSubdomain(mat)%material_definition
             !write(*,*) "MATERIAL_FILE = ", MATERIAL_FILE
-            
+
             isfile = Tdomain%sSubdomain(mat)%material_definition == MATERIAL_FILE
             if (isfile) then
                 call init_prop_file(Tdomain%sSubdomain(mat))
@@ -418,7 +444,6 @@ contains
         type(subdomain), intent(in) :: mat
         !
         real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu
-        real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
         logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
         aniso = .false.
@@ -472,7 +497,7 @@ contains
             ! XXX TODO
         case(MATDEF_MU_SYLD_RHO)
             mu = v0
-            lambda = 2.0*nu*v0/(1.0-2.0*nu)                     
+            lambda = 2.0*nu*v0/(1.0-2.0*nu)
         end select
 
         select case (specel%domain)
@@ -502,7 +527,7 @@ contains
         !
         integer :: i, j, k, ind
         real(fpp) :: Whei
-        real, dimension(:), allocatable :: GLLw
+        real(fpp), dimension(:), allocatable :: GLLw
 
         integer ngll
 

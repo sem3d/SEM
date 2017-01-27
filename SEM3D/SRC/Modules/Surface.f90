@@ -12,21 +12,21 @@
 !<
 
 module ssurf
-
+    use constants, only : fpp
     use sinterface
     
     type elastic_
-       real(kind=8)                       :: Mu, Lambda
-       real(kind=8)                       :: Sspeed, Pspeed
-       real(kind=8)                       :: PWspeed, density
-       integer                            :: mat_index
+       real(fpp)                       :: Mu, Lambda
+       real(fpp)                       :: Sspeed, Pspeed
+       real(fpp)                       :: PWspeed, density
+       integer                         :: mat_index
     end type elastic_
 
     type SurfaceParam
-        real(kind=8)                       :: f0, amplitude, Rickertau, size, Speed
-        real(kind=8)                       :: dir(0:2)
-        real(kind=8)                       :: Kdir(0:2)
-        real(kind=8)                       :: scoord(0:2)
+        real(fpp)                          :: f0, amplitude, Rickertau, size, Speed
+        real(fpp)                          :: dir(0:2)
+        real(fpp)                          :: Kdir(0:2)
+        real(fpp)                          :: scoord(0:2)
         character                          :: wtype
         character(len=2)                   :: what_bc
         character(len=1500)                :: funcx, funcy, funcz
@@ -35,7 +35,7 @@ module ssurf
         character                          :: source
         integer                            :: dim, mat_index, shape, wave_type
         integer, allocatable               :: index(:), indexes(:)
-        real(kind=8), allocatable          :: paravalue(:)
+        real(fpp), allocatable             :: paravalue(:)
         character(len=2), dimension(1:100) :: paramname
         integer                            :: nparamvar, paramvar
     end type SurfaceParam
@@ -49,35 +49,12 @@ module ssurf
         character(len=100) :: name
         integer            :: domain
         integer :: cond_type ! from constants.F90 COND_*
-        real(kind=8), dimension(:,:), allocatable :: Surf_BtN
-        real(kind=8), dimension(:,:), allocatable :: coord
-        real(kind=8), dimension(:)  , allocatable :: source
+        real(fpp), dimension(:,:), allocatable :: Surf_BtN
+        real(fpp), dimension(:,:), allocatable :: coord
+        real(fpp), dimension(:)  , allocatable :: source
     end type SurfaceT
 
 end module ssurf
-
-module sbassin
-    implicit none
-
-    type :: Bassin
-       !       real     :: ymin,ymax
-       !     n_layer nombre de couches
-       !     n_colonne nombre de colonnes en x ici uniquement
-       !     x_type == 0 on remet des materiaux  homogenes dans chaque bloc
-       !     x_type == 1 on met des gradients pour chaque colonne en interpolant suivant z
-       !     x_type == 2 on met des gradients pour chaque colonne en interpolant suivant z
-       !      uniquement dans les couches entre zmin et zmax
-       integer  :: n_colonne, n_layer, x_type
-       real     :: zmin,zmax
-       !    x_coord correspond aux abscisses des colonnes
-       real, pointer, dimension(:) :: x_coord
-       !      z_layer profondeur de  linterface pour chaque x de colonne
-       !      on definit egalement le materiaux par rho, Cp , Cs
-       real, pointer, dimension(:,:) :: z_layer, z_rho, z_Cp, z_Cs
-    end type Bassin
-
-
-end module sbassin
 
 !! Local Variables:
 !! mode: f90

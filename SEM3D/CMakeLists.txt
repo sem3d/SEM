@@ -8,9 +8,9 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/dombase.F90
+    ${PRJ}/SRC/snapdata.F90
     ${PRJ}/SRC/Solid/champs_solid.f90
     ${PRJ}/SRC/Fluid/champs_fluid.f90
-    ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
     ${PRJ}/SRC/Modules/Element.f90
     ${PRJ}/SRC/Modules/Face.f90
     ${PRJ}/SRC/Modules/Vertex.f90
@@ -24,6 +24,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
     ${PRJ}/SRC/Modules/Nonlinear.f90
+    ${PRJ}/SRC/indexation.f90
+    ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/partial_deriv.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/Capteur.f90
@@ -43,15 +45,12 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Solid/dom_solid.F90
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90
-    ${PRJ}/SRC/pml.F90
-    ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/define_arrays.F90
     ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
-    ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/mesh3d.f90
     ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/read_restart.f90
@@ -63,10 +62,9 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/find_location.f90
     ${PRJ}/SRC/charFunctions.f90
 
-    ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90
     ${PRJ}/SRC/source_excit.F90
-    ${PRJ}/SRC/boundary_conditions_init.f90
+#    ${PRJ}/SRC/boundary_conditions_init.f90
 
     ${PRJ}/SRC/snapshots.F90
 
@@ -95,12 +93,19 @@ set(SEM3D_SOURCES_F
 
 if (OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
+      ${PRJ}/SRC/FluidCPML/champs_fluidcpml.f90
       ${PRJ}/SRC/SolidCPML/champs_solidcpml.f90
+      ${PRJ}/SRC/pml.F90
+      ${PRJ}/SRC/FluidCPML/calcul_forces_fluidpml.F90
+      ${PRJ}/SRC/FluidCPML/dom_fluidcpml.F90
       ${PRJ}/SRC/SolidCPML/calcul_forces_solidpml.F90
       ${PRJ}/SRC/SolidCPML/dom_solidcpml.F90)
 else(OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
+      ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
       ${PRJ}/SRC/SolidPML/champs_solidpml.f90
+      ${PRJ}/SRC/pml.F90
+      ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
       ${PRJ}/SRC/SolidPML/dom_solidpml.F90)
 endif(OPT_CPML)
 

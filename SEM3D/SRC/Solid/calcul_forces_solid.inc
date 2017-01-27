@@ -146,6 +146,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
 #ifdef ATTENUATION
 #ifdef ANISO
+                ! ATTENUATION ISOTROPE
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
@@ -158,6 +159,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
 #undef CC
 #else
+                ! ATTENUATION ISOTROPE
                 xmu = dom%Mu_(i,j,k,bnum,ee) * dom%onemSbeta_(i,j,k,bnum,ee)
                 x2mu = 2. * xmu
                 sxx = x2mu * DXX
@@ -184,6 +186,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 syy = syy - stt + xpression
                 szz = szz - stt + xpression
 #else
+                ! SANS ATTENUATION
                 xmu = dom%Mu_    (i,j,k,bnum,ee)
                 xla = dom%Lambda_(i,j,k,bnum,ee)
                 xla2mu = xla + 2. * xmu
@@ -232,6 +235,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dom%radius_(i,j,k,bnum,ee)       = zero !radius
 
 #else
+                ! LINEAR ELASTIC ISOTROPE
                 sxx = xla2mu * DXX + xla * ( DYY + DZZ )
                 sxy = xmu * ( DXY + DYX )
                 sxz = xmu * ( DXZ + DZX )
@@ -438,7 +442,7 @@ subroutine PROCNAME_ATN(dom,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX + DYY + DZZ)
+                epsilon_trace_over_3 = M_1_3 * (DXX + DYY + DZZ)
                 epsilonvol_loc = DXX + DYY + DZZ
                 epsilondev_xx_loc = DXX - epsilon_trace_over_3
                 epsilondev_yy_loc = DYY - epsilon_trace_over_3
@@ -452,7 +456,7 @@ subroutine PROCNAME_ATN(dom,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
                     gamma_mu = dom%agamma_mu_(i_sls,i,j,k,bnum,ee)
 #ifndef ANISO
                     ! get coefficients for that standard linear solid
-                    factor_common_P = 2d0*gamma_kappa*omega_tau_s
+                    factor_common_P = 2_fpp*gamma_kappa*omega_tau_s
                     factorP_loc   = dom%Kappa_(i,j,k,bnum,ee) * factor_common_P
                     RK4_attenu_coefs(dom%dt,omega_tau_s,alphaval, betaval, gammaval)
 

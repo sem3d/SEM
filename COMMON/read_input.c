@@ -52,6 +52,15 @@ const keyword_t kw_pml_type[] = {
     { 5, NULL },
 };
 
+// Integration mode for cpml
+const keyword_t kw_cpml_integ_type[] = {
+    { 0, "Order2"},
+    { 1, "Midpoint1"},
+    { 2, "Midpoint2"},
+    { 3, "Order1"},
+    { 4, NULL },
+};
+
 const keyword_t kw_file_format[] = {
     { 1, "text" },
     { 2, "hdf5" },
@@ -68,23 +77,13 @@ const keyword_t kw_source_dir[] = {
     { 3, NULL },
 };
 
-int expect_type_integration(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"Newmark"))         { *type = 0; return 1; }
-    if (cmp(scanner,"RK4"))             { *type = 1; return 1; }
-    if (cmp(scanner,"Midpoint"))        { *type = 2; return 1; }
-    if (cmp(scanner,"Midpoint_iter"))   { *type = 3; return 1; }
-error:
-    msg_err(scanner, "Expected Newmark|RK4|Midpoint|Midpoint_iter");
-    return 0;
-}
-
+const keyword_t kw_type_integration[] = {
+    { 0, "Newmark" },
+    { 1, "RK4" },
+    { 2, "Midpoint" },
+    { 3, "Midpoint_iter" },
+    { 4, NULL },
+};
 
 int expect_type_implicitness(yyscan_t scanner, int* type)
 {
@@ -239,7 +238,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err, k;
 
-    for(k=0;k<10;++k) {
+    for(k=0;k<12;++k) {
         config->out_variables[k] = 0;
     }
     tok = skip_blank(scanner);
@@ -260,6 +259,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
         else if (cmp(scanner,"eTotal")) err=expect_eq_int(scanner, &(config->out_variables[9]),1);
         else if (cmp(scanner,"edevpl")) err=expect_eq_int(scanner, &(config->out_variables[10]),1);
+        else if (cmp(scanner,"dudx")) err=expect_eq_int(scanner, &(config->out_variables[11]),1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -286,8 +286,7 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
 	else if (cmp(scanner,"courant")) err=expect_eq_float(scanner, &config->courant,1);
 	else if (cmp(scanner,"implicitness")) err=expect_type_implicitness(scanner, &config->implicitness);
-	else if (cmp(scanner,"type_time_integration")) err=expect_type_integration(scanner, &config->type_timeinteg);
-
+	else if (cmp(scanner,"type_time_integration")) err=expect_eq_keyword(scanner, kw_type_integration, &config->type_timeinteg);
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
@@ -354,6 +353,8 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"cpml_rc")) err=expect_eq_float(scanner, &config->cpml_rc, 1);
         if (cmp(scanner,"cpml_kappa0")) err=expect_eq_float(scanner, &config->cpml_kappa0, 1);
         if (cmp(scanner,"cpml_kappa1")) err=expect_eq_float(scanner, &config->cpml_kappa1, 1);
+	if (cmp(scanner,"cpml_integration")) err=expect_eq_keyword(scanner, kw_cpml_integ_type, &config->cpml_integ_type);
+        if (cmp(scanner,"cpml_one_root")) err=expect_eq_int(scanner, &config->cpml_one_root, 3);
 
         if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -949,6 +950,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->cpml_kappa1 = 0.;
     cfg->cpml_n = 2;
     cfg->cpml_rc = 0.001;
+    cfg->cpml_one_root = 0;
 }
 
 

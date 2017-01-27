@@ -15,7 +15,6 @@ void RectMesh::read_params_old(FILE* fparam)
 {
     char* buffer=NULL;
     size_t n=0;
-    int pml_top, pml_bottom;
 
     //getline(&buffer, &n, fparam);
     getData_line(&buffer, &n, fparam);
@@ -69,34 +68,35 @@ void RectMesh::read_params_old(FILE* fparam)
         printf("Using %d layers of PML\n", has_pml);
     }
     npml = has_pml;
-    if (has_pml) {
-        pmls.N = true;
-        pmls.S = true;
-        pmls.E = true;
-        pmls.W = true;
-    } else {
-        pmls.N = false;
-        pmls.S = false;
-        pmls.E = false;
-        pmls.W = false;
-    }
-    //getline(&buffer, &n, fparam);
+    int pml_top, pml_bottom, pml_N, pml_S, pml_E, pml_W, flag;
+
+    pmls.N = false;
+    pmls.S = false;
+    pmls.E = false;
+    pmls.W = false;
+    pmls.U = false;
+    pmls.D = false;
+
     getData_line(&buffer, &n, fparam);
-    sscanf(buffer, "%d %d", &pml_top, &pml_bottom);
-    if (has_pml && pml_top) {
-        pmls.U = true;
+    sscanf(buffer, "%d", &pml_top);
+    if (pml_top==2) {
+        sscanf(buffer, "%d %d %d %d %d %d %d", &flag,
+               &pml_top, &pml_bottom, &pml_N, &pml_S, &pml_E, &pml_W);
     } else {
-        pmls.U = false;
+        sscanf(buffer, "%d %d", &pml_top, &pml_bottom);
+        pml_N = pml_S = pml_E = pml_W = 1;
     }
-    if (has_pml && pml_bottom) {
-        pmls.D = true;
-    } else {
-        pmls.D = false;
+
+    if (has_pml) {
+        if (pml_top)    pmls.U = true;
+        if (pml_bottom) pmls.D = true;
+        if (pml_N)      pmls.N = true;
+        if (pml_S)      pmls.S = true;
+        if (pml_E)      pmls.E = true;
+        if (pml_W)      pmls.W = true;
     }
-    //getline(&buffer, &n, fparam);
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &ngll_pml);
-    //getline(&buffer, &n, fparam);
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &elem_shape);
     switch(elem_shape) {
@@ -359,13 +359,10 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                     mesh.add_elem(mat, elem);
                     // Check for free fluid surface and free pml surface
                     int dom = mesh.m_materials[mat].domain();
-                    if (dom==DM_FLUID) {
-                        if (U) emit_free_face(dirich, dom, elem, 5);
+                    if (dom==DM_FLUID || dom==DM_FLUID_PML) {
+                        if (LU) emit_free_face(dirich, dom, elem, 5);
                     }
-                    if (dom==DM_FLUID_PML) {
-                        emit_free_face(dirich, dom, elem, W,E,S,N,U,D);
-                    }
-                    if (dom==DM_SOLID_PML) {
+                    if (dom==DM_SOLID_PML || dom==DM_FLUID_PML) {
                         double x_dir = mesh.m_materials[mat].xwidth;
                         double y_dir = mesh.m_materials[mat].ywidth;
                         double z_dir = mesh.m_materials[mat].zwidth;

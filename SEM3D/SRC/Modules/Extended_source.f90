@@ -11,12 +11,12 @@ module sextended_sources
        integer                              :: Npt                     ! Total number of points source
 
        ! ORIENTATION PARAMETERS
-       real                                 :: dip, strike, rake       ! Fault slip orientation
-       real, dimension(0:2)                 :: Normal                  ! Normal vector of the fault plane
-       real, dimension(0:2)                 :: Uslip                   ! Unitary vector of slip
+       real(fpp)                            :: dip, strike, rake       ! Fault slip orientation
+       real(fpp), dimension(0:2)            :: Normal                  ! Normal vector of the fault plane
+       real(fpp), dimension(0:2)            :: Uslip                   ! Unitary vector of slip
 
        ! TIME PARAMETERS
-       real                                 :: Dt                      ! Time-step from data
+       real(fpp)                            :: Dt                      ! Time-step from data
        integer                              :: Nt                      ! Number of time-steps
 
        ! EXTERNAL DATA FILES

@@ -19,17 +19,17 @@
 !! 1. Cijkl are convoluted at each time iteration.
 !! 2. Cijkl has 15 terms (upper part).
 !!
-!!      sigij               C0ijkl                 epskl                       Conv = FT^-1(si*sj/sk)
+!!      sigij                  C0ijkl                   epskl                     Conv = FT^-1(si*sj/sk)
 !!
-!!    | sig11 |   | l+2m l    l                   |   | eps11 |     | L231 L3   L2                                 |
-!!    | sig22 |   | l    l+2m l                   |   | eps22 |     | L3   L132 L1                                 |
-!!    | sig33 | = | l    l    l+2m                |   | eps33 |     | L2   L1   L123                               |
-!!    | sig23 |   |                 m  m          |   | eps23 |     |                L132 L1                       |
-!!    | sig32 |   |                 m  m          | * | eps32 | and |                L1   L123                     |
-!!    | sig13 |   |                      m m      |   | eps13 |     |                          L231 L2             |
-!!    | sig31 |   |                      m m      |   | eps31 |     |                          L2   L123           |
-!!    | sig12 |   |                           m m |   | eps12 |     |                                    L231 L3   |
-!!    | sig21 |   |                           m m |   | eps21 |     |                                    L3   L132 |
+!!    | sig00 |   | l+2m l    l                   |   | eps00 |     | L120 L2   L1                                 |
+!!    | sig11 |   | l    l+2m l                   |   | eps11 |     | L2   L021 L0                                 |
+!!    | sig22 | = | l    l    l+2m                |   | eps22 |     | L1   L0   L012                               |
+!!    | sig12 |   |                 m  m          |   | eps12 |     |                L021 L0                       |
+!!    | sig21 |   |                 m  m          | * | eps21 | and |                L0   L012                     |
+!!    | sig02 |   |                      m m      |   | eps02 |     |                          L120 L1             |
+!!    | sig20 |   |                      m m      |   | eps20 |     |                          L1   L012           |
+!!    | sig01 |   |                           m m |   | eps01 |     |                                    L120 L2   |
+!!    | sig10 |   |                           m m |   | eps10 |     |                                    L2   L021 |
 !!
 !!    Li and Lijk (from Conv) are defined in (A.4) from Ref1.
 !!
@@ -64,7 +64,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     integer :: i,j,k,l,e,ee
     real(fpp), dimension(0:8) :: DUDV ! derivatives dUx/dx, ... dUz/dz
     real(fpp), dimension(0:20) :: LC
-    real(fpp), dimension(0:2) :: Li, Lijk, B0ijk
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp) :: t4
@@ -165,18 +164,18 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 l2mu = lbd+2*mu
 
                 sxx = l2mu*LC(L120_DXX)+lbd*LC(L2_DYY)+lbd*LC(L1_DZZ)
-                sxy = mu*(LC(L120_DXY)+LC(L2_DYX))
-                sxz = mu*(LC(L120_DXZ)+LC(L1_DZX))
-                syx = mu*(LC(L021_DYX)+LC(L2_DXY))
+                sxy = mu*(LC(L021_DXY)+LC(L2_DYX))
+                sxz = mu*(LC(L012_DXZ)+LC(L1_DZX))
+                syx = mu*(LC(L120_DYX)+LC(L2_DXY))
                 syy = lbd*LC(L2_DXX) + l2mu*LC(L021_DYY) + lbd*LC(L0_DZZ)
-                syz = mu*(LC(L021_DYZ)+LC(L0_DZY))
-                szx = mu*(LC(L012_DZX)+LC(L1_DXZ))
-                szy = mu*(LC(L012_DZY)+LC(L0_DYZ))
+                syz = mu*(LC(L012_DYZ)+LC(L0_DZY))
+                szx = mu*(LC(L120_DZX)+LC(L1_DXZ))
+                szy = mu*(LC(L021_DZY)+LC(L0_DYZ))
                 szz = lbd*LC(L1_DXX) + lbd*LC(L0_DYY) + l2mu*LC(L012_DZZ)
 
                 !
                 !=====================
-                !       FX
+                !         FX
                 !=====================
                 !
                 xt1 = sxx*JXX+sxy*JYX+sxz*JZX

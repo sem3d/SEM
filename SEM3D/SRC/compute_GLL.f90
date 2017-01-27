@@ -21,10 +21,12 @@ contains
         real(fpp), dimension(:), allocatable, intent(out) :: gllc, gllw
         real(fpp), dimension(:,:), allocatable, intent(out) :: hprime, htprime
         !
-        real(fpp), dimension(:), allocatable :: gllpol
+        ! Need double precision here
+        double precision, dimension(0:ngll-1) :: dgllc, dgllw
+        double precision, dimension(0:ngll-1,0:ngll-1) :: dhtprime
+        double precision, dimension(0:ngll-1) :: gllpol
 
         allocate(GLLc(0:ngll-1))
-        allocate(GLLpol(0:ngll-1))
         allocate(GLLw(0:ngll-1))
         allocate(hprime(0:ngll-1,0:ngll-1))
         allocate(hTprime(0:ngll-1,0:ngll-1))
@@ -34,11 +36,14 @@ contains
         ! WELEGL computes the respective weights
         ! DMLEGL compute the matrix of the first derivatives in GLL points
 
-        call zelegl (ngll-1, GLLc, GLLpol)
-        call welegl (ngll-1, GLLc, GLLpol, GLLw)
-        call dmlegl (ngll-1, ngll-1, GLLc, GLLpol, hTprime)
+        call zelegl (ngll-1, dGLLc, GLLpol)
+        call welegl (ngll-1, dGLLc, GLLpol, dGLLw)
+        call dmlegl (ngll-1, ngll-1, dGLLc, GLLpol, dhTprime)
+        hTprime = dhTprime
+        gllc = dgllc
+        gllw = dgllw
         hprime = TRANSPOSE(hTprime)
-        deallocate (GLLpol)
+
     end subroutine compute_gll_data
 end module gll3d
 !! Local Variables:

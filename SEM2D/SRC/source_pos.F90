@@ -185,10 +185,10 @@ subroutine source_excit_moment(Tdomain, src)
         allocate(src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
         do j = 0,ngllz-1
             call pol_lagrange (ngllz, mat%GLLcz, j, eta,weta)
-            call DERIVLAG (mat%GLLcz, ngllz, j, eta, dwdeta)
+            call der_lagrange (ngllz, mat%GLLcz, j, eta, dwdeta)
             do i = 0,ngllx-1
                 call pol_lagrange (ngllx, mat%GLLcx, i, xi, wxi )
-                call DERIVLAG ( mat%GLLcx, ngllx, i, xi, dwdxi)
+                call der_lagrange (ngllx, mat%GLLcx, i, xi, dwdxi)
                 src%Elem(n)%ExtForce (i,j,0) = &
                     (InvGrad(0,0)*dwdxi*weta + InvGrad(0,1)*dwdeta*wxi)*M(0,0) + &
                     (InvGrad(1,0)*dwdxi*weta + InvGrad(1,1)*dwdeta*wxi)*M(0,1)

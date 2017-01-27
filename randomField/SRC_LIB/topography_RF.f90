@@ -201,7 +201,7 @@ contains
 
             call wLog("FFT Local Division")
 
-            if(xNStepGlob(MSH%nDim) < MSH%nb_procs) stop("ERROR!! When using parallel FFT the last dimension should have at least 1 slice by proc")
+            if(xNStepGlob(MSH%nDim) < MSH%nb_procs) stop ("ERROR!! When using parallel FFT the last dimension should have at least 1 slice by proc")
 
             if(MSH%nDim == 2) then
                 L = xNStepGlob(1)
@@ -215,7 +215,7 @@ contains
                 alloc_local = fftw_mpi_local_size_3d(N, M, L, MSH%comm, &
                                                      local_LastDim, local_LD_offset) !FOR MPI
             else
-                stop("Inside set_local_extremes no mesh division for FFT in this dimension")
+                stop ("Inside set_local_extremes no mesh division for FFT in this dimension")
             end if
 
             call wLog("local_LastDim = ")
@@ -226,7 +226,7 @@ contains
             if(local_LastDim == 0) then
                 !validProc = .false.
                 write(*,*) "ERROR!! Validated processor ignored in FFTW"
-                stop(" ")
+                stop (" ")
             end if
 
             !xMinBound = MSH%xMinGlob
@@ -366,7 +366,7 @@ contains
                 call wLog(xMinNeigh(:,neighPos))
                 call wLog("xMaxNeigh(:,neighPos) = ")
                 call wLog(xMaxNeigh(:,neighPos))
-                stop(" ")
+                stop (" ")
             end if
 
             nOvlpPoints_Neigh = product(find_xNStep(xMinNeigh(:,neighPos), xMaxNeigh(:,neighPos), MSH%xStep))
@@ -502,7 +502,7 @@ contains
                 alloc_local = fftw_mpi_local_size_3d(N, M, L, fieldComm, &
                                                      local_LastDim, local_LD_offset) !FOR MPI
             else
-                stop("Inside set_local_extremes no mesh division for FFT in this dimension")
+                stop ("Inside set_local_extremes no mesh division for FFT in this dimension")
             end if
 
             call wLog("local_LastDim = ")
@@ -1252,7 +1252,7 @@ contains
             write(*,*) "Error inside 'set_procPerDim', dimensions are not compatible"
             write(*,*) "size(procPerDim) = ", size(procPerDim)
             write(*,*) "MSH%nDim         = ", MSH%nDim
-            stop(" ")
+            stop (" ")
         end if
 
         if(MSH%method == FFT) then

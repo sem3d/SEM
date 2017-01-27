@@ -19,12 +19,8 @@ subroutine define_planew_properties (Tdomain)
     implicit none
 
     type(Domain), intent (INOUT) :: Tdomain
-    integer                      :: ngll,ngll1,ngll2, nf,ne,nv, i, mat_index,rg
-    character(Len=MAX_FILE_SIZE) :: fnamef
-    character(len=800)           :: parametric_var
-    character(len=100)           :: surfname
-    character                    :: getwtype
-    
+    integer                      :: ngll,ngll1,ngll2, nf,ne,nv,mat_index,rg
+
     rg = Tdomain%rank
 
     do nf = 0, Tdomain%sPlaneW%n_faces-1

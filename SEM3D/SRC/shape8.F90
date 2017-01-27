@@ -8,6 +8,7 @@
 !!
 !<
 module mshape8
+    use constants, only : fpp
     use sdomain
     implicit none
 #include "index.h"
@@ -22,15 +23,15 @@ contains
 
         type(domain), intent(inout)          :: Tdomain
         integer                              :: n,ngll,i,j,k,ipoint
-        real(FPP)                            :: Jac, xi, eta, zeta
-        real(FPP), dimension(0:2,0:2)        :: LocInvGrad
-        real(FPP), dimension(0:2,0:7)        :: coord  ! coordinates of nodes
-        real(FPP), dimension(:), allocatable :: GLLc
-        real(FPP)                            :: xp, yp, zp
-        real(FPP), parameter                 :: XEPS=1e-10
-        real(FPP)                            :: dxp, dyp, dzp
+        real(fpp)                            :: Jac, xi, eta, zeta
+        real(fpp), dimension(0:2,0:2)        :: LocInvGrad
+        real(fpp), dimension(0:2,0:7)        :: coord  ! coordinates of nodes
+        real(fpp), dimension(:), allocatable :: GLLc
+        real(fpp)                            :: xp, yp, zp
+        real(fpp), parameter                 :: XEPS=1e-10
+        real(fpp)                            :: dxp, dyp, dzp
         integer                              :: bnum, ee
-        integer                              :: ve, i_surf
+        integer                              :: i_surf
 
         ! Tdomain%n_glob_points is the number of degrees of fredom
         allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
@@ -99,7 +100,7 @@ contains
 
         ! Surface Conditions : normal vectors
         if (Tdomain%logicD%surfBC) then
-            do i_surf=0,size(Tdomain%sSurfaces)-1                     
+            do i_surf=0,size(Tdomain%sSurfaces)-1
                select case (Tdomain%sSurfaces(i_surf)%domain)
                   case (DM_SOLID)
                      call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sl, DM_SOLID, Tdomain%sSurfaces(i_surf)%Surf_BtN)
@@ -119,7 +120,7 @@ contains
                      call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_fpml%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
                 end select
               enddo
-         endif 
+         endif
 
         ! Solid-Fluid interfaces : normal vectors
         if(Tdomain%logicD%SF_local_present)then
@@ -177,17 +178,17 @@ contains
         type(domain), intent(inout) :: Tdomain
         type(surf_num), intent(inout) :: surf
         integer, intent(in) :: dom
-        real(kind=FPP), allocatable, dimension(:,:), intent(out) :: BtN
+        real(fpp), allocatable, dimension(:,:), intent(out) :: BtN
         !
         integer, allocatable, dimension(:) :: renum
         integer :: nf, nfs
         integer :: ngll
         integer :: i, j, idx
-        real(kind=FPP), allocatable, dimension(:) :: gllc
-        real(kind=FPP), allocatable, dimension(:) :: gllw
-        real(kind=FPP), dimension(0:2, 0:3) :: nodes
-        real(kind=FPP), dimension(0:2) :: normal
-        real(kind=FPP) :: orient
+        real(fpp), allocatable, dimension(:) :: gllc
+        real(fpp), allocatable, dimension(:) :: gllw
+        real(fpp), dimension(0:2, 0:3) :: nodes
+        real(fpp), dimension(0:2) :: normal
+        real(fpp) :: orient
 
         if (surf%nbtot==0) return
         allocate(BtN(0:2, 0:surf%nbtot-1))
@@ -233,12 +234,12 @@ contains
     !---------------------------------------------------------------------------
     subroutine normal_face(nodes, xi, eta, normal)
         use shape_geom_3d
-        real(kind=FPP), dimension(0:2, 0:3), intent(in) :: nodes
-        real(kind=FPP), intent(in) :: xi, eta
-        real(kind=FPP), dimension(0:2), intent(out) :: normal
+        real(fpp), dimension(0:2, 0:3), intent(in) :: nodes
+        real(fpp), intent(in) :: xi, eta
+        real(fpp), dimension(0:2), intent(out) :: normal
         !
-        real(kind=FPP), dimension(0:2) :: d_xi
-        real(kind=FPP), dimension(0:2) :: d_eta
+        real(fpp), dimension(0:2) :: d_xi
+        real(fpp), dimension(0:2) :: d_eta
         integer :: i
         do i=0,2
             d_xi(i) = 0.25*( &
@@ -261,8 +262,8 @@ contains
         implicit none
         integer, dimension(0:7), intent(in)   :: Control_Nodes
         integer, intent(in)  :: n_glob_nodes
-        real, dimension(0:2,0:n_glob_nodes-1), intent(in)  :: coord_nodes
-        real, dimension(0:2,0:7), intent(out)  :: coord
+        real(fpp), dimension(0:2,0:n_glob_nodes-1), intent(in)  :: coord_nodes
+        real(fpp), dimension(0:2,0:7), intent(out)  :: coord
         integer   :: n,i_n
 
         do n = 0,7
@@ -275,9 +276,9 @@ contains
     end subroutine nodes_coord_8
     !---------------------------------------------------------------------------
     subroutine shape8_local2global(coord, xi, eta, zeta, xa, ya, za)
-        real, dimension(0:2,0:7), intent(in)  :: coord
-        real, intent(in) :: xi, eta, zeta
-        real, intent(out) :: xa, ya, za
+        real(fpp), dimension(0:2,0:7), intent(in)  :: coord
+        real(fpp), intent(in) :: xi, eta, zeta
+        real(fpp), intent(out) :: xa, ya, za
         xa = 0.125 * (coord(0,0)*(1-xi)*(1-eta)*(1-zeta) + coord(0,1)*(1+xi)*(1-eta)*(1-zeta) + &
             coord(0,2)*(1+xi)*(1+eta)*(1-zeta) + coord(0,3)*(1-xi)*(1+eta)*(1-zeta) + &
             coord(0,4)*(1-xi)*(1-eta)*(1+zeta) + coord(0,5)*(1+xi)*(1-eta)*(1+zeta) + &
@@ -293,9 +294,9 @@ contains
     end subroutine shape8_local2global
     !---------------------------------------------------------------------------
     subroutine shape8_local2jacob(coord, xi, eta, zeta, jac)
-        double precision, dimension(0:2,0:7), intent(in)  :: coord
-        double precision, intent(in) :: xi, eta, zeta
-        double precision, dimension(0:2,0:2), intent(out) :: jac
+        real(fpp), dimension(0:2,0:7), intent(in)  :: coord
+        real(fpp), intent(in) :: xi, eta, zeta
+        real(fpp), dimension(0:2,0:2), intent(out) :: jac
         !- computation of the derivative matrix, dx_(jj)/dxi_(ii)
         ! dx/dxi
         jac(0,0) = 0.125 * ((coord(0,1)-coord(0,0))*(1-eta)*(1-zeta) + &
@@ -344,22 +345,22 @@ contains
             (coord(2,6)-coord(2,2))*(1+xi)*(1+eta))
     end subroutine shape8_local2jacob
     !---------------------------------------------------------------------------
-    double precision function shape8_min(dim, nn, x, nodes, xref)
+    real(fpp) function shape8_min(dim, nn, x, nodes, xref)
         integer, intent(in) :: dim, nn
-        double precision, dimension(0:dim-1), intent(in) :: x, xref
-        double precision, dimension(0:dim-1,0:nn-1), intent(in) :: nodes
-        double precision :: xa, ya, za
+        real(fpp), dimension(0:dim-1), intent(in) :: x, xref
+        real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: nodes
+        real(fpp) :: xa, ya, za
         call shape8_local2global(nodes, x(0), x(1), x(2), xa, ya, za)
         shape8_min = (xa-xref(0))**2 + (ya-xref(1))**2 + (za-xref(2))**2
     end function shape8_min
     !---------------------------------------------------------------------------
     subroutine shape8_mingrad(dim, nn, x, nodes, xref, grad)
         integer, intent(in) :: dim, nn
-        double precision, dimension(0:dim-1), intent(in) :: x, xref
-        double precision, dimension(0:dim-1,0:nn-1), intent(in) :: nodes
-        double precision, dimension(0:dim-1), intent(out) :: grad
-        double precision, dimension(0:dim-1,0:dim-1) :: jac
-        double precision :: xa, ya, za
+        real(fpp), dimension(0:dim-1), intent(in) :: x, xref
+        real(fpp), dimension(0:dim-1,0:nn-1), intent(in) :: nodes
+        real(fpp), dimension(0:dim-1), intent(out) :: grad
+        real(fpp), dimension(0:dim-1,0:dim-1) :: jac
+        real(fpp) :: xa, ya, za
         call shape8_local2global(nodes, x(0), x(1), x(2), xa, ya, za)
         call shape8_local2jacob(nodes, x(0), x(1), x(2), jac)
         grad(0) = 2*(jac(0,0)*(xa-xref(0))+jac(0,1)*(ya-xref(1))+jac(0,2)*(za-xref(2)))
@@ -368,13 +369,13 @@ contains
     end subroutine shape8_mingrad
     !---------------------------------------------------------------------------
     subroutine simple_newton_8(nodes, xref, xin, xout, nit)
-        double precision, dimension(0:2), intent(in) :: xref, xin
-        double precision, dimension(0:2), intent(out) :: xout
+        real(fpp), dimension(0:2), intent(in) :: xref, xin
+        real(fpp), dimension(0:2), intent(out) :: xout
         integer, intent(out) :: nit
-        double precision, dimension(0:2,0:7), intent(in) :: nodes
-        double precision, dimension(0:2,0:2) :: jac
-        double precision, dimension(0:2) :: x
-        double precision :: xa, ya, za, err, Det
+        real(fpp), dimension(0:2,0:7), intent(in) :: nodes
+        real(fpp), dimension(0:2,0:2) :: jac
+        real(fpp), dimension(0:2) :: x
+        real(fpp) :: xa, ya, za, err, Det
         integer, parameter :: niter=1000
         integer :: i
         xout = xin
@@ -397,13 +398,13 @@ contains
     !---------------------------------------------------------------------------
     subroutine shape8_global2local(coord, xa, ya, za, xi, eta, zeta, ok)
         use mleastsq
-        double precision, dimension(0:2,0:7), intent(in)  :: coord
-        double precision, intent(in) :: xa, ya, za
-        double precision, intent(out) :: xi, eta, zeta
+        real(fpp), dimension(0:2,0:7), intent(in)  :: coord
+        real(fpp), intent(in) :: xa, ya, za
+        real(fpp), intent(out) :: xi, eta, zeta
         logical, intent(out) :: ok
         !
         integer :: niter
-        double precision, dimension(0:2) :: xin, xout, xref
+        real(fpp), dimension(0:2) :: xin, xout, xref
         ok = .true.
         xin(0) = 0.
         xin(1) = 0.

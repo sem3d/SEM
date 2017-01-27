@@ -1,0 +1,13 @@
+-30050  # xmin
+10050   # xmax
+100     # xstep
+-150    # ymin
+150     # ymax
+100     # ystep
+150     # zmax
+1       # nb. of layers
+300 3   # Layer 0
+1       # PMLs? 0: no, 1: yes
+2 0 0 0 0 1 0  # PMLs on top? at the bottom? (0: no, 1: yes)
+5       # nb of GLL nodes in the PML
+1       # 8 or 27 control points for elements (1 or 2)

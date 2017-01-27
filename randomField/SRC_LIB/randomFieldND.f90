@@ -591,7 +591,7 @@ contains
                        , "local_LastDim=", local_LastDim
 
         else
-            stop("Inside gen_Std_Gauss_FFT dimension not yet implemented for this generation method")
+            stop ("Inside gen_Std_Gauss_FFT dimension not yet implemented for this generation method")
 
         end if
 

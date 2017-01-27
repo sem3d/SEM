@@ -1,5 +1,82 @@
 .. -*- coding: utf-8; mode:rst -*-
 
+Version 2016.11.0
+-----------------
+
+- Loi materiau non-linéaire
+
+- Les PML peuvent être définies sur plusieurs couches.
+
+- Mise en données :
+
+  - On peut maintenant spécifier des grilles cartésiennes de
+    propriétés matériaux qui seront interpolées sur le maillage
+    SEM. (uniformisation des champs aléatoires, modèles EarthChunk,
+    PREM, etc...)
+
+  - On peut définir des Ondes Planes, conditions de Neumann et de Dirichlet sur les surfaces
+    du maillage
+
+- Sorties :
+
+  - (snapshots et capteurs) : ajout de l'energie d'onde P et S, et des
+    tenseurs de contraintes. Possibilité de sortir les dérivées spatiales du
+    déplacement pour les capteurs.
+
+  - Sélection des types de sorties depuis le fichier ``input.spec``
+
+  - On distingue des champs aux noeuds et aux mailles
+
+- Optimisation du code :
+
+  - restructuration du stockage interne des données pour permettre la vectorisation
+    sur les architectures modernes
+
+  - Compilation avec gfortran 6.2 / Intel 17
+
+- Partitionneur :
+
+  - optimisations, réécriture.
+
+  - équilibrage de charge : prise en compte de coût différent selon le type de maille
+    (solide, fluide, solide PML, fluide PML)
+
+  - le mailleur automatique (cube) peu définir des PMLs sur plusieurs couches
+
+  - lecture de maillage au format Abaqus, UNV, HDF5, GMSH
+
+- Génération de champs aléatoire :
+
+  - la génération est maintenant indépendante du lancement de SEM.
+
+  - La mise en données s'appuie sur la lecture de champ cartésiens avec interpolation
+
+  - La génération des champs est parallélisée
+
+- SEM2D : partitionneur, introduction d'éléments de type DG, PML convolutionnelles.
+
+- Documentation : mise à jour et compléments
+
+Travaux en cours:
+
+- Optimisation : parallélisation hybride OpenMP
+
+- Compilation en mode simple précision
+
+- PML Convolutionnelles (3D)
+
+Statistiques :
+
+539 fichiers modifiés,
+104879 insertions de lignes,
+26981 suppressions,
+10 contributeurs.
+
+Version 2015.02.1
+-----------------
+
+- Correction de bugs
+
 Version 2015.02.0
 -----------------
 
@@ -58,7 +135,6 @@ depuis la dernière version :
   - Optimisation mailleur 3D pour les gros cas (LG).
 
   - Optimisation routine de calcul de l'atténuation.
-
 
 Version 2013.12
 ---------------
