@@ -83,10 +83,10 @@ contains
         real(fpp) :: a3b
         real(fpp), dimension(0:2) :: Uold
         real(fpp) :: k0, d0, a0, dt, cf0,cf1,cf2
-        integer :: n1, n2
+        integer :: i1, i2
 
-        n1 = dom%I1(ee,bnum)
-        n2 = dom%I2(ee,bnum)
+        i1 = dom%I1(ee,bnum)
+        i2 = dom%I2(ee,bnum)
 
         Uold = dom%Uold(ee,:,i,j,k,bnum)
         ! XXX valable pour ndir=1
@@ -99,7 +99,7 @@ contains
         dom%R1_0(ee,1,i,j,k,bnum) = cf0*dom%R1_0(ee,1,i,j,k,bnum) + cf1*Unew(1) + cf2*Uold(1)
         dom%R1_0(ee,2,i,j,k,bnum) = cf0*dom%R1_0(ee,2,i,j,k,bnum) + cf1*Unew(2) + cf2*Uold(2)
 
-        if (n1==-1 .and. n2==-1) then
+        if (i1==-1 .and. i2==-1) then
             a3b = k0*a0*a0*d0
             Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
             Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
@@ -123,13 +123,13 @@ contains
         real(fpp), intent(out), dimension(0:20) :: LC
         !
         real(fpp), dimension(0:8) :: DUDV
-        integer :: n1, n2
-        n1 = dom%I1(ee,bnum)
-        n2 = dom%I2(ee,bnum)
+        integer :: i1, i2
+        i1 = dom%I1(ee,bnum)
+        i2 = dom%I2(ee,bnum)
 
         DUDV = dom%DUDVold(ee,:,i,j,k,bnum) !0.5d0*DUDVnew+0.5d0*dom%DUDVold(ee,:,i,j,k,bnum)
-        if (n2==-1) then
-            if (n1==-1) then
+        if (i2==-1) then
+            if (i1==-1) then
                 call compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DUDVnew, DUDV, LC)
             else
                 call compute_convolution_terms_2d(dom, i, j, k, bnum, ee, DUDVnew, DUDV, LC)
