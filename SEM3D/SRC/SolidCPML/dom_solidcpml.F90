@@ -679,7 +679,8 @@ contains
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
-        real(fpp) :: Rx, Ry, Rz, wk, wjk, wijk, kijk
+        real(fpp) :: wk, wjk, wijk, kijk
+        real(fpp), dimension(0:2) :: R
 
         ngll = dom%ngll
 
@@ -712,15 +713,10 @@ contains
                         if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         kijk = wijk*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
-                        call compute_L_convolution_terms(dom, i, j, k, bnum, ee, Depla(ee,i,j,k,0:2), &
-                            Rx, Ry, Rz)
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)-kijk*Rx
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)-kijk*Ry
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)-kijk*Rz
-                        !R(idx,0) += wijk*(R1+R2+R3)
-!                        if (i==1.and.j==0.and.k==0.and.bnum==1.and.ee==0) then
-!                            write(*,*) kijk, Rx, Ry, Rz, Fox(ee,i,j,k), Foy(ee,i,j,k), Foz(ee,i,j,k)
-!                        end if
+                        call compute_L_convolution_terms(dom, i, j, k, bnum, ee, Depla(ee,i,j,k,0:2), R)
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)-kijk*R(0)
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)-kijk*R(1)
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)-kijk*R(2)
                     enddo
                 enddo
             enddo

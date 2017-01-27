@@ -72,18 +72,21 @@ contains
         end select
     end subroutine calcul_forces_solidpml
     !
-    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, Unew, Rx, Ry, Rz)
+    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, Unew, R)
         use champs_solidpml
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
         real(fpp), intent(in), dimension(0:2) :: Unew
         integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent(out) :: Rx, Ry, Rz
+        real(fpp), dimension(0:2), intent(out) :: R
         !
-        real(fpp) :: a3b
-        real(fpp), dimension(0:2) :: Uold
-        real(fpp) :: k0, d0, a0, dt, cf0,cf1,cf2
-        integer :: i1, i2
+        real(fpp) :: a3b, a4b, a5b
+        real(fpp), dimension(0:2) :: Uold, R0, R1
+        real(fpp) :: k0, d0, a0
+        real(fpp) :: k1, d1, a1
+        real(fpp) :: k2, d2, a2
+        real(fpp) :: dt, cf0,cf1,cf2
+        integer :: i1, i2, sel
 
         i1 = dom%I1(ee,bnum)
         i2 = dom%I2(ee,bnum)
@@ -95,19 +98,59 @@ contains
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         call cpml_compute_coefs(dom%cpml_integ, a0, dt, cf0, cf1, cf2)
-        dom%R1_0(ee,0,i,j,k,bnum) = cf0*dom%R1_0(ee,0,i,j,k,bnum) + cf1*Unew(0) + cf2*Uold(0)
-        dom%R1_0(ee,1,i,j,k,bnum) = cf0*dom%R1_0(ee,1,i,j,k,bnum) + cf1*Unew(1) + cf2*Uold(1)
-        dom%R1_0(ee,2,i,j,k,bnum) = cf0*dom%R1_0(ee,2,i,j,k,bnum) + cf1*Unew(2) + cf2*Uold(2)
+        R0 = cf0*dom%R1_0(ee,:,i,j,k,bnum) + cf1*Unew(:) + cf2*Uold(:)
+        dom%R1_0(ee,:,i,j,k,bnum) = R0
 
         if (i1==-1 .and. i2==-1) then
             a3b = k0*a0*a0*d0
-            Rx = a3b*dom%R1_0(ee,0,i,j,k,bnum)
-            Ry = a3b*dom%R1_0(ee,1,i,j,k,bnum)
-            Rz = a3b*dom%R1_0(ee,2,i,j,k,bnum)
+            R = a3b*R0
         else
-            Rx = 0d0
-            Ry = 0d0
-            Rz = 0d0
+            k1 = dom%Kappa_1(i,j,k,i1)
+            a1 = dom%Alpha_1(i,j,k,i1)
+            d1 = dom%dxi_k_1(i,j,k,i1)
+            call cpml_compute_coefs(dom%cpml_integ, a1, dt, cf0, cf1, cf2)
+            if (.not. isclose(a0,a1)) then
+                R1 = cf0*dom%R1_1(:,i,j,k,i1) + cf1*UNew + cf2*UOld
+            else
+                R1 = cf0*dom%R1_1(:,i,j,k,i1) + (cf1+cf2)*R0
+            end if
+            dom%R1_1(:,i,j,k,i1) = R1
+            if (i2==-1) then
+                if (.not. isclose(a0,a1)) then
+                    a3b = k0*k1*a0*a0*d0*(d1+a1-a0)/(a1-a0)
+                    a4b = k0*k1*a1*a1*d1*(d0+a0-a1)/(a0-a1)
+                else
+                    a3b = k0*k1*a0*(a0*d0+a0*d1-2*d0*d1)
+                    a4b = k0*k1*a0*a0*d0*(a1-a0+d1)
+                end if
+                R = a3b*R0 + a4b*R1
+            else
+                k2 = dom%Kappa_2(i,j,k,i2)
+                a2 = dom%Alpha_2(i,j,k,i2)
+                d2 = dom%dxi_k_2(i,j,k,i2)
+                call cpml_compute_coefs(dom%cpml_integ, a2, dt, cf0, cf1, cf2)
+                sel = compare_roots(a0,a1,a2)
+                select case(sel)
+                case (CMP_ABC)
+                    dom%R1_2(:,i,j,k,i2) = cf0*dom%R1_2(:,i,j,k,i2) + cf1*UNew + cf2*UOld
+                    call get_coefs_L_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case (CMP_ABA)
+                    dom%R1_2(:,i,j,k,i2) = cf0*dom%R1_2(:,i,j,k,i2) + (cf1+cf2)*R0
+                    call get_coefs_L_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case (CMP_AAC)
+                    dom%R1_2(:,i,j,k,i2) = cf0*dom%R1_2(:,i,j,k,i2) + cf1*UNew + cf2*UOld
+                    call get_coefs_L_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case (CMP_ABB)
+                    dom%R1_2(:,i,j,k,i2) = cf0*dom%R1_2(:,i,j,k,i2) + (cf1+cf2)*R1
+                    call get_coefs_L_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case (CMP_AAA)
+                    dom%R1_2(:,i,j,k,i2) = cf0*dom%R1_2(:,i,j,k,i2) + 2*(cf1+cf2)*R1
+                    call get_coefs_L_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
+                case default
+                    stop 1
+                end select
+                R = a3b*R0 + a4b*R1 + a5b*dom%R1_2(:,i,j,k,i2)
+            end if
         end if
 
         ! Save Uold
