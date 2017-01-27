@@ -130,11 +130,13 @@ contains
         type(domain_solidpml)                      :: dom
         integer, dimension(0:), intent(in)         :: out_variables
         integer                                    :: lnum
-        real(fpp), dimension(:,:,:,:)              :: fieldU, fieldV, fieldA
-        real(fpp), dimension(:,:,:)                :: fieldP
-        real(fpp), dimension(:,:,:)                :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(:,:,:,:)              :: eps_dev
-        real(fpp), dimension(:,:,:,:)              :: sig_dev
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldU, fieldV, fieldA
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: S_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
         !
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
