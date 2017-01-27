@@ -58,6 +58,7 @@ contains
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            dom%m_Kappa = 0. ! May not be initialized if run without attenuation
 
             if (nl_flag) then
                 write(*,*) "nonlinear activated!",allocated(dom%nl_param)
