@@ -126,7 +126,7 @@ contains
                 case default
                     stop 1
                 end select
-                R = a3b*dom%R1_0(ee,i,j,k,bnum) + a4b*dom%R1_1(i,j,k,i1) + a5b*dom%R1_2(i,j,k,i2)
+                R = a3b*R0 + a4b*R1 + a5b*dom%R1_2(i,j,k,i2)
             end if
         end if
         ! Save PhiOld
