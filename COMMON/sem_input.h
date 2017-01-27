@@ -220,8 +220,6 @@ int skip_blank(yyscan_t scanner);
 int expect_eq(yyscan_t scanner);
 int expect_eq_bool(yyscan_t scanner, int* bools, int nexpected);
 int expect_eq_float(yyscan_t scanner, double* vals, int nexpected);
-int expect_int_list(yyscan_t scanner, int* vals);
-int expect_eq_int_list(yyscan_t scanner, int* vals);
 int expect_int(yyscan_t scanner, int* vals, int nexpected);
 int expect_eq_int(yyscan_t scanner, int* vals, int nexpected);
 int expect_string(yyscan_t scanner, char** str, int nexpected);
