@@ -487,6 +487,19 @@ contains
         ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
         call domain_gllc(Tdomain, Tdomain%specel(n_el)%domain, GLLc)
 
+        allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+        ! tot energy 5
+        allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
+        allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+        ! dudx 9
+
         allocate(outx(0:ngll-1))
         allocate(outy(0:ngll-1))
         allocate(outz(0:ngll-1))
@@ -544,28 +557,28 @@ contains
                 do k = 0,ngll - 1
                     weight = outx(i)*outy(j)*outz(k)
 
-                    if (out_variables(OUT_DEPLA) == 1 .AND. allocated(fieldU)) then
+                    if (out_variables(OUT_DEPLA) == 1) then
                         ioff = offset(OUT_DEPLA)
                         nComp = OUT_VAR_DIMS_3D(OUT_DEPLA)-1
                         grandeur(ioff:ioff+nComp) &
                             = grandeur(ioff:ioff+nComp) + weight*fieldU(i,j,k,:)
                     end if
 
-                    if (out_variables(OUT_VITESSE) == 1 .AND. allocated(fieldV)) then
+                    if (out_variables(OUT_VITESSE) == 1) then
                         ioff = offset(OUT_VITESSE)
                         nComp = OUT_VAR_DIMS_3D(OUT_VITESSE)-1
                         grandeur(ioff:ioff+nComp) &
                             = grandeur(ioff:ioff+nComp) + weight*fieldV(i,j,k,:)
                     end if
 
-                    if (out_variables(OUT_ACCEL) == 1 .AND. allocated(fieldA)) then
+                    if (out_variables(OUT_ACCEL) == 1) then
                         ioff = offset(OUT_ACCEL)
                         nComp = OUT_VAR_DIMS_3D(OUT_ACCEL)-1
                         grandeur(ioff:ioff+nComp) &
                             = grandeur(ioff:ioff+nComp) + weight*fieldA(i,j,k,:)
                     end if
 
-                    if (out_variables(OUT_PRESSION) == 1 .AND. allocated(fieldP)) then
+                    if (out_variables(OUT_PRESSION) == 1) then
                         ioff = offset(OUT_PRESSION)
                         nComp = OUT_VAR_DIMS_3D(OUT_PRESSION)-1
                         grandeur(ioff+nComp) &
@@ -609,7 +622,7 @@ contains
                         + (/weight*sig_dev(i,j,k,0), weight*sig_dev(i,j,k,1), weight*sig_dev(i,j,k,2), &
                             weight*sig_dev(i,j,k,3), weight*sig_dev(i,j,k,4), weight*sig_dev(i,j,k,5)/)
                     end if
-                    if (out_variables(OUT_DUDX) == 1 .AND. allocated(fieldU)) then
+                    if (out_variables(OUT_DUDX) == 1) then
                         ioff = offset(OUT_DUDX)
                         do d=0,2
                             dUkdX = fieldU(i,j,k,d)*doutx(i)*outy(j)*outz(k)
@@ -632,17 +645,17 @@ contains
 
         ! Deallocation.
 
-        if(allocated(fieldU))   deallocate(fieldU)
-        if(allocated(fieldV))   deallocate(fieldV)
-        if(allocated(fieldA))   deallocate(fieldA)
-        if(allocated(fieldP))   deallocate(fieldP)
-        if(allocated(P_energy)) deallocate(P_energy)
-        if(allocated(S_energy)) deallocate(S_energy)
-        if(allocated(eps_vol))  deallocate(eps_vol)
-        if(allocated(eps_dev))  deallocate(eps_dev)
-        if(allocated(eps_dev_pl))  deallocate(eps_dev_pl)
-        if(allocated(sig_dev))  deallocate(sig_dev)
-        if(allocated(grandeur)) deallocate(grandeur)
+        deallocate(fieldU)
+        deallocate(fieldV)
+        deallocate(fieldA)
+        deallocate(fieldP)
+        deallocate(P_energy)
+        deallocate(S_energy)
+        deallocate(eps_vol)
+        deallocate(eps_dev)
+        deallocate(eps_dev_pl)
+        deallocate(sig_dev)
+        deallocate(grandeur)
         deallocate(outx)
         deallocate(outy)
         deallocate(outz)

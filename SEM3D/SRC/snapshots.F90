@@ -996,7 +996,7 @@ contains
             if(allocated(GLLc)) deallocate(GLLc)
             !if(allocated(GLLw)) deallocate(GLLw)
         enddo
-        if (ngll/=0) then
+        if (oldngll/=0) then
             deallocate(fieldP,fieldU,fieldV,fieldA)
             deallocate(eps_vol,eps_dev,sig_dev)
             deallocate(P_energy,S_energy)
