@@ -314,7 +314,7 @@ contains
         type(output_var_t), intent(inout) :: outputs
         integer, intent(in) :: lnum, n
         !
-        integer :: bnum, ee
+        integer :: bnum, ee, i1, i2
         integer :: i, j, k, idx, ind
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
@@ -323,68 +323,52 @@ contains
             do j=0,dom%ngll-1
                 do i=0,dom%ngll-1
                     idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                    outputs%R2_L120_uxx(idx) = dom%R2_0(ee, dxx, i, j, k, bnum)
-                    outputs%R2_L120_uxy(idx) = dom%R2_0(ee, dxy, i, j, k, bnum)
-                    outputs%R2_L120_uxz(idx) = dom%R2_0(ee, dxz, i, j, k, bnum)
-                    outputs%R2_L021_uyx(idx) = dom%R2_0(ee, dyx, i, j, k, bnum)
-                    outputs%R2_L021_uyy(idx) = dom%R2_0(ee, dyy, i, j, k, bnum)
-                    outputs%R2_L021_uyz(idx) = dom%R2_0(ee, dyz, i, j, k, bnum)
-                    outputs%R2_L012_uzx(idx) = dom%R2_0(ee, dzx, i, j, k, bnum)
-                    outputs%R2_L012_uzy(idx) = dom%R2_0(ee, dzy, i, j, k, bnum)
-                    outputs%R2_L012_uzz(idx) = dom%R2_0(ee, dzz, i, j, k, bnum)
-                    select case(dom%D0(ee, bnum))
-                    case(0)
-                        outputs%R1_x(0,idx) = dom%R1_0(ee, 0, i, j, k, bnum)
-                        outputs%R1_x(1,idx) = dom%R1_0(ee, 1, i, j, k, bnum)
-                        outputs%R1_x(2,idx) = dom%R1_0(ee, 2, i, j, k, bnum)
-
-                        outputs%R2_L0_uyy(idx) = dom%R2_0(ee, dyy, i, j, k, bnum)
-                        outputs%R2_L0_uyz(idx) = dom%R2_0(ee, dyz, i, j, k, bnum)
-                        outputs%R2_L0_uzy(idx) = dom%R2_0(ee, dzy, i, j, k, bnum)
-                        outputs%R2_L0_uzz(idx) = dom%R2_0(ee, dzz, i, j, k, bnum)
-                        outputs%R2_L1_uxx(idx) = 0.
-                        outputs%R2_L1_uxz(idx) = 0.
-                        outputs%R2_L1_uzx(idx) = 0.
-                        outputs%R2_L1_uzz(idx) = 0.
-                        outputs%R2_L2_uxx(idx) = 0.
-                        outputs%R2_L2_uxy(idx) = 0.
-                        outputs%R2_L2_uyx(idx) = 0.
-                        outputs%R2_L2_uyy(idx) = 0.
-                    case(1)
-                        outputs%R1_y(0,idx) = dom%R1_0(ee, 0, i, j, k, bnum)
-                        outputs%R1_y(1,idx) = dom%R1_0(ee, 1, i, j, k, bnum)
-                        outputs%R1_y(2,idx) = dom%R1_0(ee, 2, i, j, k, bnum)
-
-                        outputs%R2_L0_uyy(idx) = 0.
-                        outputs%R2_L0_uyz(idx) = 0.
-                        outputs%R2_L0_uzy(idx) = 0.
-                        outputs%R2_L0_uzz(idx) = 0.
-                        outputs%R2_L1_uxx(idx) = dom%R2_0(ee, dxx, i, j, k, bnum)
-                        outputs%R2_L1_uxz(idx) = dom%R2_0(ee, dxz, i, j, k, bnum)
-                        outputs%R2_L1_uzx(idx) = dom%R2_0(ee, dzx, i, j, k, bnum)
-                        outputs%R2_L1_uzz(idx) = dom%R2_0(ee, dzz, i, j, k, bnum)
-                        outputs%R2_L2_uxx(idx) = 0.
-                        outputs%R2_L2_uxy(idx) = 0.
-                        outputs%R2_L2_uyx(idx) = 0.
-                        outputs%R2_L2_uyy(idx) = 0.
-                    case(2)
-                        outputs%R1_z(0,idx) = dom%R1_0(ee, 0, i, j, k, bnum)
-                        outputs%R1_z(1,idx) = dom%R1_0(ee, 1, i, j, k, bnum)
-                        outputs%R1_z(2,idx) = dom%R1_0(ee, 2, i, j, k, bnum)
-
-                        outputs%R2_L0_uyy(idx) = 0.
-                        outputs%R2_L0_uyz(idx) = 0.
-                        outputs%R2_L0_uzy(idx) = 0.
-                        outputs%R2_L0_uzz(idx) = 0.
-                        outputs%R2_L1_uxx(idx) = 0.
-                        outputs%R2_L1_uxz(idx) = 0.
-                        outputs%R2_L1_uzx(idx) = 0.
-                        outputs%R2_L1_uzz(idx) = 0.
-                        outputs%R2_L2_uxx(idx) = dom%R2_0(ee, dxx, i, j, k, bnum)
-                        outputs%R2_L2_uxy(idx) = dom%R2_0(ee, dxy, i, j, k, bnum)
-                        outputs%R2_L2_uyx(idx) = dom%R2_0(ee, dyx, i, j, k, bnum)
-                        outputs%R2_L2_uyy(idx) = dom%R2_0(ee, dyy, i, j, k, bnum)
-                    end select
+                    outputs%R1_0(:,idx) = dom%R1_0(ee, :, i, j, k, bnum)
+                    outputs%R2_0_dX(0,idx) = dom%R2_0(ee, dxx, i, j, k, bnum)
+                    outputs%R2_0_dX(1,idx) = dom%R2_0(ee, dyx, i, j, k, bnum)
+                    outputs%R2_0_dX(2,idx) = dom%R2_0(ee, dzx, i, j, k, bnum)
+                    outputs%R2_0_dY(0,idx) = dom%R2_0(ee, dxy, i, j, k, bnum)
+                    outputs%R2_0_dY(1,idx) = dom%R2_0(ee, dyy, i, j, k, bnum)
+                    outputs%R2_0_dY(2,idx) = dom%R2_0(ee, dzy, i, j, k, bnum)
+                    outputs%R2_0_dZ(0,idx) = dom%R2_0(ee, dxz, i, j, k, bnum)
+                    outputs%R2_0_dZ(1,idx) = dom%R2_0(ee, dyz, i, j, k, bnum)
+                    outputs%R2_0_dZ(2,idx) = dom%R2_0(ee, dzz, i, j, k, bnum)
+                    i1 = dom%I1(ee,bnum)
+                    i2 = dom%I2(ee,bnum)
+                    if (i1/=-1) then
+                        outputs%R1_1(:,idx)    = dom%R1_1(  :, i, j, k, i1)
+                        outputs%R2_1_dX(0,idx) = dom%R2_1(dxx, i, j, k, i1)
+                        outputs%R2_1_dX(1,idx) = dom%R2_1(dyx, i, j, k, i1)
+                        outputs%R2_1_dX(2,idx) = dom%R2_1(dzx, i, j, k, i1)
+                        outputs%R2_1_dY(0,idx) = dom%R2_1(dxy, i, j, k, i1)
+                        outputs%R2_1_dY(1,idx) = dom%R2_1(dyy, i, j, k, i1)
+                        outputs%R2_1_dY(2,idx) = dom%R2_1(dzy, i, j, k, i1)
+                        outputs%R2_1_dZ(0,idx) = dom%R2_1(dxz, i, j, k, i1)
+                        outputs%R2_1_dZ(1,idx) = dom%R2_1(dyz, i, j, k, i1)
+                        outputs%R2_1_dZ(2,idx) = dom%R2_1(dzz, i, j, k, i1)
+                    else
+                        outputs%R1_1(:,idx)    = 0.
+                        outputs%R2_1_dX(:,idx) = 0.
+                        outputs%R2_1_dY(:,idx) = 0.
+                        outputs%R2_1_dZ(:,idx) = 0.
+                    end if
+                    if (i2/=-1) then
+                        outputs%R1_2(:,idx)    = dom%R1_2(  :, i, j, k, i2)
+                        outputs%R2_2_dX(0,idx) = dom%R2_2(dxx, i, j, k, i2)
+                        outputs%R2_2_dX(1,idx) = dom%R2_2(dyx, i, j, k, i2)
+                        outputs%R2_2_dX(2,idx) = dom%R2_2(dzx, i, j, k, i2)
+                        outputs%R2_2_dY(0,idx) = dom%R2_2(dxy, i, j, k, i2)
+                        outputs%R2_2_dY(1,idx) = dom%R2_2(dyy, i, j, k, i2)
+                        outputs%R2_2_dY(2,idx) = dom%R2_2(dzy, i, j, k, i2)
+                        outputs%R2_2_dZ(0,idx) = dom%R2_2(dxz, i, j, k, i2)
+                        outputs%R2_2_dZ(1,idx) = dom%R2_2(dyz, i, j, k, i2)
+                        outputs%R2_2_dZ(2,idx) = dom%R2_2(dzz, i, j, k, i2)
+                    else
+                        outputs%R1_2(:,idx)    = 0.
+                        outputs%R2_2_dX(:,idx) = 0.
+                        outputs%R2_2_dY(:,idx) = 0.
+                        outputs%R2_2_dZ(:,idx) = 0.
+                    end if
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     if(allocated(dom%FDump)) outputs%FDump(0:2, idx) = dom%FDump(ind, 0:2)
                     if(allocated(dom%FMasU)) outputs%FMasU(0:2, idx) = dom%FMasU(ind, 0:2)

@@ -197,31 +197,19 @@ contains
 
 #ifdef CPML
 !        write(*,*) "R1X:", maxval(outputs%R1_x), shape(outputs%R1_x), outputs%nnodes
-        call write_2d_var_vecn(outputs, parent_id, "R1_x", outputs%R1_x)
-        call write_2d_var_vecn(outputs, parent_id, "R1_y", outputs%R1_y)
-        call write_2d_var_vecn(outputs, parent_id, "R1_z", outputs%R1_z)
+        call write_2d_var_vecn(outputs, parent_id, "R1_0", outputs%R1_0)
+        call write_2d_var_vecn(outputs, parent_id, "R1_1", outputs%R1_1)
+        call write_2d_var_vecn(outputs, parent_id, "R1_2", outputs%R1_2)
 
-        call write_1d_var_n(outputs, parent_id, "R2_L120_uxx", outputs%R2_L120_uxx)
-        call write_1d_var_n(outputs, parent_id, "R2_L120_uxy", outputs%R2_L120_uxy)
-        call write_1d_var_n(outputs, parent_id, "R2_L120_uxz", outputs%R2_L120_uxz)
-        call write_1d_var_n(outputs, parent_id, "R2_L021_uyx", outputs%R2_L021_uyx)
-        call write_1d_var_n(outputs, parent_id, "R2_L021_uyy", outputs%R2_L021_uyy)
-        call write_1d_var_n(outputs, parent_id, "R2_L021_uyz", outputs%R2_L021_uyz)
-        call write_1d_var_n(outputs, parent_id, "R2_L012_uzx", outputs%R2_L012_uzx)
-        call write_1d_var_n(outputs, parent_id, "R2_L012_uzy", outputs%R2_L012_uzy)
-        call write_1d_var_n(outputs, parent_id, "R2_L012_uzz", outputs%R2_L012_uzz)
-        call write_1d_var_n(outputs, parent_id, "R2_L0_uyy"  , outputs%R2_L0_uyy  )
-        call write_1d_var_n(outputs, parent_id, "R2_L0_uyz"  , outputs%R2_L0_uyz  )
-        call write_1d_var_n(outputs, parent_id, "R2_L0_uzy"  , outputs%R2_L0_uzy  )
-        call write_1d_var_n(outputs, parent_id, "R2_L0_uzz"  , outputs%R2_L0_uzz  )
-        call write_1d_var_n(outputs, parent_id, "R2_L1_uxx"  , outputs%R2_L1_uxx  )
-        call write_1d_var_n(outputs, parent_id, "R2_L1_uxz"  , outputs%R2_L1_uxz  )
-        call write_1d_var_n(outputs, parent_id, "R2_L1_uzx"  , outputs%R2_L1_uzx  )
-        call write_1d_var_n(outputs, parent_id, "R2_L1_uzz"  , outputs%R2_L1_uzz  )
-        call write_1d_var_n(outputs, parent_id, "R2_L2_uxx"  , outputs%R2_L2_uxx  )
-        call write_1d_var_n(outputs, parent_id, "R2_L2_uxy"  , outputs%R2_L2_uxy  )
-        call write_1d_var_n(outputs, parent_id, "R2_L2_uyx"  , outputs%R2_L2_uyx  )
-        call write_1d_var_n(outputs, parent_id, "R2_L2_uyy"  , outputs%R2_L2_uyy  )
+        call write_2d_var_vecn(outputs, parent_id, "R2_0_dX", outputs%R2_0_dX)
+        call write_2d_var_vecn(outputs, parent_id, "R2_0_dY", outputs%R2_0_dY)
+        call write_2d_var_vecn(outputs, parent_id, "R2_0_dZ", outputs%R2_0_dZ)
+        call write_2d_var_vecn(outputs, parent_id, "R2_1_dX", outputs%R2_1_dX)
+        call write_2d_var_vecn(outputs, parent_id, "R2_1_dY", outputs%R2_1_dY)
+        call write_2d_var_vecn(outputs, parent_id, "R2_1_dZ", outputs%R2_1_dZ)
+        call write_2d_var_vecn(outputs, parent_id, "R2_2_dX", outputs%R2_2_dX)
+        call write_2d_var_vecn(outputs, parent_id, "R2_2_dY", outputs%R2_2_dY)
+        call write_2d_var_vecn(outputs, parent_id, "R2_2_dZ", outputs%R2_2_dZ)
 
         call write_2d_var_vecn(outputs, parent_id, "FDump", outputs%FDump)
         call write_2d_var_vecn(outputs, parent_id, "FMasU", outputs%FMasU)
@@ -676,54 +664,30 @@ contains
         if (out_flags(OUT_EPS_DEV_PL) == 1) outputs%eps_dev_pl = 0.
         !
 #ifdef CPML
-        allocate(outputs%R1_x(0:2,0:(nnodes-1)))
-        allocate(outputs%R1_y(0:2,0:(nnodes-1)))
-        allocate(outputs%R1_z(0:2,0:(nnodes-1)))
-        allocate(outputs%R2_L120_uxx(0:nnodes-1))
-        allocate(outputs%R2_L120_uxy(0:nnodes-1))
-        allocate(outputs%R2_L120_uxz(0:nnodes-1))
-        allocate(outputs%R2_L021_uyx(0:nnodes-1))
-        allocate(outputs%R2_L021_uyy(0:nnodes-1))
-        allocate(outputs%R2_L021_uyz(0:nnodes-1))
-        allocate(outputs%R2_L012_uzx(0:nnodes-1))
-        allocate(outputs%R2_L012_uzy(0:nnodes-1))
-        allocate(outputs%R2_L012_uzz(0:nnodes-1))
-        allocate(outputs%R2_L0_uyy  (0:nnodes-1))
-        allocate(outputs%R2_L0_uyz  (0:nnodes-1))
-        allocate(outputs%R2_L0_uzy  (0:nnodes-1))
-        allocate(outputs%R2_L0_uzz  (0:nnodes-1))
-        allocate(outputs%R2_L1_uxx  (0:nnodes-1))
-        allocate(outputs%R2_L1_uxz  (0:nnodes-1))
-        allocate(outputs%R2_L1_uzx  (0:nnodes-1))
-        allocate(outputs%R2_L1_uzz  (0:nnodes-1))
-        allocate(outputs%R2_L2_uxx  (0:nnodes-1))
-        allocate(outputs%R2_L2_uxy  (0:nnodes-1))
-        allocate(outputs%R2_L2_uyx  (0:nnodes-1))
-        allocate(outputs%R2_L2_uyy  (0:nnodes-1))
-        outputs%R1_x = 0.0
-        outputs%R1_y = 0.0
-        outputs%R1_z = 0.0
-        outputs%R2_L120_uxx = 0.
-        outputs%R2_L120_uxy = 0.
-        outputs%R2_L120_uxz = 0.
-        outputs%R2_L021_uyx = 0.
-        outputs%R2_L021_uyy = 0.
-        outputs%R2_L021_uyz = 0.
-        outputs%R2_L012_uzx = 0.
-        outputs%R2_L012_uzy = 0.
-        outputs%R2_L012_uzz = 0.
-        outputs%R2_L0_uyy   = 0.
-        outputs%R2_L0_uyz   = 0.
-        outputs%R2_L0_uzy   = 0.
-        outputs%R2_L0_uzz   = 0.
-        outputs%R2_L1_uxx   = 0.
-        outputs%R2_L1_uxz   = 0.
-        outputs%R2_L1_uzx   = 0.
-        outputs%R2_L1_uzz   = 0.
-        outputs%R2_L2_uxx   = 0.
-        outputs%R2_L2_uxy   = 0.
-        outputs%R2_L2_uyx   = 0.
-        outputs%R2_L2_uyy   = 0.
+        allocate(outputs%R1_0   (0:2,0:(nnodes-1)))
+        allocate(outputs%R1_1   (0:2,0:(nnodes-1)))
+        allocate(outputs%R1_2   (0:2,0:(nnodes-1)))
+        allocate(outputs%R2_0_dX(0:2,0:(nnodes-1)))
+        allocate(outputs%R2_0_dY(0:2,0:(nnodes-1)))
+        allocate(outputs%R2_0_dZ(0:2,0:(nnodes-1)))
+        allocate(outputs%R2_1_dX(0:2,0:(nnodes-1)))
+        allocate(outputs%R2_1_dY(0:2,0:(nnodes-1)))
+        allocate(outputs%R2_1_dZ(0:2,0:(nnodes-1)))
+        allocate(outputs%R2_2_dX(0:2,0:(nnodes-1)))
+        allocate(outputs%R2_2_dY(0:2,0:(nnodes-1)))
+        allocate(outputs%R2_2_dZ(0:2,0:(nnodes-1)))
+        outputs%R1_0 = 0.0
+        outputs%R1_1 = 0.0
+        outputs%R1_2 = 0.0
+        outputs%R2_0_dX = 0.0
+        outputs%R2_0_dY = 0.0
+        outputs%R2_0_dZ = 0.0
+        outputs%R2_1_dX = 0.0
+        outputs%R2_1_dY = 0.0
+        outputs%R2_1_dZ = 0.0
+        outputs%R2_2_dX = 0.0
+        outputs%R2_2_dY = 0.0
+        outputs%R2_2_dZ = 0.0
         allocate(outputs%FDump(0:2,0:(nnodes-1)))
         allocate(outputs%FMasU(0:2,0:(nnodes-1)))
         allocate(outputs%Fint (0:2,0:(nnodes-1)))
@@ -752,30 +716,18 @@ contains
         if (out_flags(OUT_EPS_DEV_PL) == 1) deallocate(fields%eps_dev_pl)
         !
 #ifdef CPML
-        deallocate(fields%R1_x)
-        deallocate(fields%R1_y)
-        deallocate(fields%R1_z)
-        deallocate(fields%R2_L120_uxx)
-        deallocate(fields%R2_L120_uxy)
-        deallocate(fields%R2_L120_uxz)
-        deallocate(fields%R2_L021_uyx)
-        deallocate(fields%R2_L021_uyy)
-        deallocate(fields%R2_L021_uyz)
-        deallocate(fields%R2_L012_uzx)
-        deallocate(fields%R2_L012_uzy)
-        deallocate(fields%R2_L012_uzz)
-        deallocate(fields%R2_L0_uyy  )
-        deallocate(fields%R2_L0_uyz  )
-        deallocate(fields%R2_L0_uzy  )
-        deallocate(fields%R2_L0_uzz  )
-        deallocate(fields%R2_L1_uxx  )
-        deallocate(fields%R2_L1_uxz  )
-        deallocate(fields%R2_L1_uzx  )
-        deallocate(fields%R2_L1_uzz  )
-        deallocate(fields%R2_L2_uxx  )
-        deallocate(fields%R2_L2_uxy  )
-        deallocate(fields%R2_L2_uyx  )
-        deallocate(fields%R2_L2_uyy  )
+        deallocate(fields%R1_0)
+        deallocate(fields%R1_1)
+        deallocate(fields%R1_2)
+        deallocate(fields%R2_0_dX)
+        deallocate(fields%R2_0_dY)
+        deallocate(fields%R2_0_dZ)
+        deallocate(fields%R2_1_dX)
+        deallocate(fields%R2_1_dY)
+        deallocate(fields%R2_1_dZ)
+        deallocate(fields%R2_2_dX)
+        deallocate(fields%R2_2_dY)
+        deallocate(fields%R2_2_dZ)
         deallocate(fields%FDump)
         deallocate(fields%FMasU)
         deallocate(fields%Fint )
@@ -1123,7 +1075,7 @@ contains
         character (len=MAX_FILE_SIZE) :: fnamef
         integer :: i, nn, ne, group
         real(fpp) :: time
-        character(len=11) :: R2label(0:20)
+        character(len=11) :: R2label(0:8)
 #ifdef CPML
         integer :: j
 #endif
@@ -1133,27 +1085,15 @@ contains
         group = outputs%group
         call semname_xdmf(group, fnamef)
 
-        R2label( 0) = "R2_L120_uxx"
-        R2label( 1) = "R2_L120_uxy"
-        R2label( 2) = "R2_L120_uxz"
-        R2label( 3) = "R2_L021_uyx"
-        R2label( 4) = "R2_L021_uyy"
-        R2label( 5) = "R2_L021_uyz"
-        R2label( 6) = "R2_L012_uzx"
-        R2label( 7) = "R2_L012_uzy"
-        R2label( 8) = "R2_L012_uzz"
-        R2label( 9) = "R2_L0_uyy"
-        R2label(10) = "R2_L0_uyz"
-        R2label(11) = "R2_L0_uzy"
-        R2label(12) = "R2_L0_uzz"
-        R2label(13) = "R2_L1_uxx"
-        R2label(14) = "R2_L1_uxz"
-        R2label(15) = "R2_L1_uzx"
-        R2label(16) = "R2_L1_uzz"
-        R2label(17) = "R2_L2_uxx"
-        R2label(18) = "R2_L2_uxy"
-        R2label(19) = "R2_L2_uyx"
-        R2label(20) = "R2_L2_uyy"
+        R2label( 0) = "R2_0_dX"
+        R2label( 1) = "R2_0_dY"
+        R2label( 2) = "R2_0_dZ"
+        R2label( 3) = "R2_1_dX"
+        R2label( 4) = "R2_1_dY"
+        R2label( 5) = "R2_1_dZ"
+        R2label( 6) = "R2_2_dX"
+        R2label( 7) = "R2_2_dY"
+        R2label( 8) = "R2_2_dZ"
 
         if (ne==0) then
             return
@@ -1248,12 +1188,12 @@ contains
                 '">geometry',group,'.h5:/Dxi_K_PML</DataItem>'
             write(61,"(a)") '</Attribute>'
 
-            call write_xdmf_attr_vector_nodes("R1_x", nn, i, group, "R1_x")
-            call write_xdmf_attr_vector_nodes("R1_y", nn, i, group, "R1_y")
-            call write_xdmf_attr_vector_nodes("R1_z", nn, i, group, "R1_z")
+            call write_xdmf_attr_vector_nodes("R1_0", nn, i, group, "R1_0")
+            call write_xdmf_attr_vector_nodes("R1_1", nn, i, group, "R1_1")
+            call write_xdmf_attr_vector_nodes("R1_2", nn, i, group, "R1_2")
 
-            do j = 0, 20
-                call write_xdmf_attr_scalar_nodes(trim(R2label(j)), nn, i, group, trim(R2label(j)))
+            do j = 0, 8
+                call write_xdmf_attr_vector_nodes(trim(R2label(j)), nn, i, group, trim(R2label(j)))
             end do
 
             call write_xdmf_attr_vector_nodes("FDump", nn, i, group, "FDump")
