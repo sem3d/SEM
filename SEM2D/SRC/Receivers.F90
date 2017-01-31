@@ -9,18 +9,21 @@
 !<
 
 module sreceivers
+
+    use constants
+
     type :: receiver
 
        logical :: located_here
        integer :: Nr, Nv, lwork
-       real :: xRec, zRec,xi,eta
-       real, dimension(:,:), pointer :: Interp_coeff
+       real(fpp) :: xRec, zRec,xi,eta
+       real(fpp), dimension(:,:), pointer :: Interp_coeff
        character(Len=100) :: name
        ! FOR HDG POST-PROCESSING
-       real, dimension(:,:,:,:), pointer :: InvGrad
-       real, dimension(:,:), pointer :: JacobWheiN1, JacobWheiN2, ReinterpX, ReinterpZ, ReinterpNX, ReinterpNZ, hprimex, hprimez
-       real, dimension(:,:), pointer :: MatPostProc
-       real, dimension(:),   pointer :: tau
+       real(fpp), dimension(:,:,:,:), pointer :: InvGrad
+       real(fpp), dimension(:,:), pointer :: JacobWheiN1, JacobWheiN2, ReinterpX, ReinterpZ, ReinterpNX, ReinterpNZ, hprimex, hprimez
+       real(fpp), dimension(:,:), pointer :: MatPostProc
+       real(fpp), dimension(:),   pointer :: tau
     end type receiver
 
 end module sreceivers

@@ -17,22 +17,24 @@
 !! \param integer, intent (IN) n1
 !! \param integer, intent (IN) n2
 !! \param integer, intent (IN) n_point1
-!! \param real, intent (IN) sigma
-!! \param real, dimension (0:n1,0:n2), intent (INOUT) smooth
+!! \param real(fpp), intent (IN) sigma
+!! \param real(fpp), dimension (0:n1,0:n2), intent (INOUT) smooth
 !<
 
 
 subroutine smoothing_exp (smooth, n1, n2, n_point1,sigma)
     ! Modified by Gaetano Festa 19/05/2005
 
+    use constants
+
     implicit none
     integer, intent (IN) :: n1, n2, n_point1
-    real, intent (IN) :: sigma
-    real, dimension (0:n1,0:n2), intent (INOUT) :: smooth
+    real(fpp), intent (IN) :: sigma
+    real(fpp), dimension (0:n1,0:n2), intent (INOUT) :: smooth
 
-    integer :: i,j
-    real :: weight, value_m, distance0, value0, dis
-    real, dimension (0:n1,0:1) :: store
+    integer   :: i,j
+    real(fpp) :: weight, value_m, distance0, value0, dis
+    real(fpp), dimension (0:n1,0:1) :: store
 
     Store(0:n1,0:1)  = Smooth(0:n1,0:1)
     do i = 0, n_point1-2

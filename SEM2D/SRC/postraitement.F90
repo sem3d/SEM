@@ -4,7 +4,7 @@
 !!
 !>
 !!\file postraitement.F90
-!!\brief Assure le post traitement des données.
+!!\brief Assure le post traitement des donnees.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -34,7 +34,7 @@ module Postraitement
     integer :: POST_IdFichierGeo,POST_IdFichierCase
 
 
-    ! format d'écriture des fichiers ensight (ascii:0 ou binaire:1)
+    ! format d'ecriture des fichiers ensight (ascii:0 ou binaire:1)
     integer, parameter :: ENS_Binaire=1, ENS_Ascii=0
     integer :: ENS_format
 
@@ -50,7 +50,7 @@ module Postraitement
        character(GLO_MAXSTRING) :: Titre
        character(GLO_MAXSTRING) :: TypeElem
 
-       real, dimension(:,:) , pointer :: Coord
+       real(fpp), dimension(:,:) , pointer :: Coord
 
        integer, dimension(:,:), pointer :: Connec
 
@@ -114,14 +114,14 @@ contains
         fs=0
         write(Cfs,*) fs
 
-        ! incrément de fichier
+        ! increment de fichier
         fi=1
         write(Cfi,*) fi
 
         ! Id du fichier case
         idF=POST_IdFichierCase
 
-        ! Ouverture du fichier case à constituer
+        ! Ouverture du fichier case a constituer
         open(UNIT=idF,FILE=POST_NomFichierCase,FORM='formatted',STATUS='replace',ACTION='write')
 
 
@@ -133,7 +133,7 @@ contains
         write(idF,'(A)') 'model: 1 '//trim(POST_NomFichierGeo)
         write(idF,'(A)') ''
         !write(idF,'(A)') 'VARIABLE'
-        !write(idF,'(A)') 'vector per node:  1    Déplacement        deplacement-****.depla'
+        !write(idF,'(A)') 'vector per node:  1    Deplacement        deplacement-****.depla'
         !write(idF,'(A)') 'vector per element:  1    Vitesse         vitesse-****.vitesse'
         !write(idF,'(A)') 'scalar per element:  1    AltMaxEau       hauteurMaxEau-****.milieu'
         !write(idF,'(A)') 'scalar per element:  1    Nature          nature-****.milieu'
@@ -175,7 +175,7 @@ contains
 
         integer,dimension(:),allocatable   :: indexNoeud,indexElem
         integer,dimension(:,:),allocatable :: connec
-        real   ,dimension(:),allocatable   :: coordX,coordY,coordZ
+        real(fpp),dimension(:),allocatable :: coordX,coordY,coordZ
 
 
         ! ouverture du fichier geo du proc0
@@ -313,22 +313,22 @@ contains
         Part%NbNodeId = Tdomain%n_glob_nodes ! nombre de noeud constituant le maillage
         Part%NbElemId = Tdomain%n_elem       ! nombre d'element constituant le maillage
 
-        Part%PremNodeId = 1 ! + petit numéro de noeud
+        Part%PremNodeId = 1 ! + petit numero de noeud
 
-        Part%PremElemId = 1 ! ! + petit numéro d'element
+        Part%PremElemId = 1 ! ! + petit numero d'element
 
-        Part%Number = 1 ! numéro de la part
+        Part%Number = 1 ! numero de la part
 
         Part%Titre  = 'part' ! titre de la part
 
 
 
-        ! Constitution du tableau des coordonnées pour écriture dans le fichier geo
-        ! allocation du tableau des coordonnées
+        ! Constitution du tableau des coordonnees pour ecriture dans le fichier geo
+        ! allocation du tableau des coordonnees
         allocate (Part%Coord(3,Part%NbNodeId), STAT=CodeErreur)
 
         if (CodeErreur.ne.0) then
-            write(*,*) 'Problème allocation tableau Part%Coord'
+            write(*,*) 'Probleme allocation tableau Part%Coord'
             stop
         endif
 
@@ -339,12 +339,12 @@ contains
         enddo
         Part%Coord(3,1:Part%NbNodeId)=0.   ! on est en 2D, les z sont mis a zero
 
-        ! Constitution du tableau des connectivités pour écriture dans le fichier geo
-        ! allocation du tableau des connectivités
+        ! Constitution du tableau des connectivites pour ecriture dans le fichier geo
+        ! allocation du tableau des connectivites
         allocate (Part%Connec(Part%NbElemId,Part%NbConnec), STAT=CodeErreur)
 
         if (CodeErreur.ne.0) then
-            write(*,*) 'Problème allocation tableau Part%Connec'
+            write(*,*) 'Probleme allocation tableau Part%Connec'
             stop
         endif
 
@@ -356,7 +356,7 @@ contains
         enddo
 
 
-        ! Ouverture du fichier de géométrie ensight à constituer
+        ! Ouverture du fichier de geometrie ensight a constituer
         if (ENS_Format .eq. ENS_Ascii) then
             open(UNIT=POST_IdFichierGeo,FILE=POST_NomFichierGeo,FORM='formatted',STATUS='replace',ACTION='write')
         else
@@ -434,19 +434,19 @@ contains
         write(id_Fichier,'(A)') 'part'
         write(id_Fichier,'(I10)') Part%Number
 
-        ! Ecriture du libellé de la PART
+        ! Ecriture du libelle de la PART
         write(id_Fichier,'(A)') Part%Titre
         write(id_Fichier,'(A)') 'coordinates'
 
         ! Ecriture du nombre d'id de la PART
         write(id_Fichier,'(I10)') Part%NbNodeId
 
-        ! Ecriture des id (=numéros) des noeuds
+        ! Ecriture des id (=numeros) des noeuds
         do inum=Part%PremNodeId,Part%PremNodeId+Part%NbNodeId-1
             write(id_Fichier,'(I10)') inum
         enddo
 
-        ! Ecriture des coordonnées
+        ! Ecriture des coordonnees
         do inum=Part%PremNodeId,Part%PremNodeId+Part%NbNodeId-1
             write(id_Fichier,'(E12.5)') Part%Coord(1,inum)
         enddo
@@ -461,15 +461,15 @@ contains
         ! Ecriture du type d'element
         write(id_Fichier,'(A)') Part%TypeElem
 
-        ! Ecriture du nombre d'éléments
+        ! Ecriture du nombre d'elements
         write(id_Fichier,'(I10)') Part%NbElemId
 
-        ! Ecriture des id (=numéros) des éléments
+        ! Ecriture des id (=numeros) des elements
         do inum=Part%PremElemId,Part%PremElemId+Part%NbElemId-1
             write(id_Fichier,'(I10)') inum
         enddo
 
-        ! Ecriture des connectivités pour chaque élément
+        ! Ecriture des connectivites pour chaque element
         do inum=1,Part%NbElemId
             do jnum=1,Part%NbConnec -1
                 write(UNIT=id_Fichier,ADVANCE='no',FMT='(I10)') Part%Connec(inum,jnum)
@@ -505,7 +505,7 @@ contains
         write(id_Fichier) ligne
         write(id_Fichier) Part%Number
 
-        ! Ecriture du libellé de la PART
+        ! Ecriture du libelle de la PART
         ligne = trim(Part%Titre)
         write(id_Fichier) ligne
         ligne = 'coordinates'
@@ -514,7 +514,7 @@ contains
         ! Ecriture du nombre d'id de la PART
         write(id_Fichier) Part%NbNodeId
 
-        ! Ecriture des id (=numéros) des noeuds
+        ! Ecriture des id (=numeros) des noeuds
         write(id_Fichier) (inum,inum=Part%PremNodeId,Part%PremNodeId+Part%NbNodeId-1)
 
 
@@ -522,7 +522,7 @@ contains
         allocate (TabR4(2,Part%NbNodeId))
         TabR4 = Part%Coord
 
-        ! Ecriture des coordonnées
+        ! Ecriture des coordonnees
         write(UNIT=id_Fichier) (TabR4(1,inum),inum=Part%PremNodeId,Part%PremNodeId+Part%NbNodeId-1)
         write(UNIT=id_Fichier) (TabR4(2,inum),inum=Part%PremNodeId,Part%PremNodeId+Part%NbNodeId-1)
         write(UNIT=id_Fichier) (TabR4(3,inum),inum=Part%PremNodeId,Part%PremNodeId+Part%NbNodeId-1)
@@ -532,13 +532,13 @@ contains
         ligne = trim(Part%TypeElem)
         write(id_Fichier) ligne
 
-        ! Ecriture du nombre d'éléments
+        ! Ecriture du nombre d'elements
         write(id_Fichier) Part%NbElemId
 
-        ! Ecriture des id (=numéros) des éléments
+        ! Ecriture des id (=numeros) des elements
         write(id_Fichier) (inum,inum=Part%PremElemId,Part%PremElemId+Part%NbElemId-1)
 
-        ! Ecriture des connectivités pour tous les éléments
+        ! Ecriture des connectivites pour tous les elements
         write(id_Fichier) ((Part%Connec(inum,jnum),jnum=1,Part%NbConnec),inum=1,Part%NbElemId)
 
 

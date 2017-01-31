@@ -12,7 +12,7 @@
 !<
 
 !>
-!! \brief Assure la sauvegarde des quantités sFault du type domain.
+!! \brief Assure la sauvegarde des quantites sFault du type domain.
 !!
 !! \param type (domain), intent (IN) Tdomain
 !! \param integer, intent (IN) it
@@ -29,8 +29,8 @@ subroutine save_fault_trace (Tdomain, it)
     type (domain), intent (IN) :: Tdomain
     integer, intent (IN) :: it
 
-    integer :: i, j, nv, n
-    real :: dum0, dum1
+    integer   :: i, j, nv, n
+    real(fpp) :: dum0, dum1
     character (len=MAX_FILE_SIZE) :: fnamef
 
     ! local variables

@@ -13,13 +13,15 @@
 
 module communication_object
 
+    use constants
+
     type :: Communicating_wall
 
        logical, dimension (:), pointer :: Face_Coherency , FacePML_Coherency
        integer :: n_faces, n_vertices, n_points, n_pml_faces, n_points_pml, n_vertex_superobject
-       integer, dimension (:), pointer :: Face_list, Vertex_list, FacePML_List, Vertex_SuperObject_List
-       real, dimension (:), pointer :: Send_data_1, Receive_data_1
-       real, dimension (:,:), pointer ::Send_data_2, Receive_data_2
+       integer, dimension (:), pointer  :: Face_list, Vertex_list, FacePML_List, Vertex_SuperObject_List
+       real(fpp), dimension(:), pointer :: Send_data_1, Receive_data_1
+       real(fpp), dimension(:,:),pointer:: Send_data_2, Receive_data_2
 
     end type Communicating_wall
 

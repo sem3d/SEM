@@ -19,8 +19,8 @@ subroutine create_sem2d_sources(Tdomain, config)
     type(domain), intent(inout)  :: Tdomain
     type(sem_config), intent(in) :: config
     type(sem_source), pointer :: src
-    integer :: nsrc
-    real :: ndir
+    integer   :: nsrc
+    real(fpp) :: ndir
 
     Tdomain%n_source = config%nsources
     allocate (Tdomain%Ssource(0:Tdomain%n_source-1))

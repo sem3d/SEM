@@ -12,8 +12,8 @@ contains
         integer, intent(in)  :: ngllx    ! ngllx de l'element cible
         integer, intent(in)  :: ngllz    ! ngllz de l'element cible
         integer, intent(in)  :: ngll     ! ngll de la face
-        real, dimension(0:ngllx-1,0:ngllz-1,0:1), intent(inout) :: Dfield ! Valeur E/S du champ de l'elem
-        real, dimension(1:ngll-2,0:1), intent(in) :: Sfield ! Valeur E du champ de la face
+        real(fpp), dimension(0:ngllx-1,0:ngllz-1,0:1), intent(inout) :: Dfield ! Valeur E/S du champ de l'elem
+        real(fpp), dimension(1:ngll-2,0:1), intent(in) :: Sfield ! Valeur E du champ de la face
         select case(nf)
         case (0)
             if (orient) then
@@ -48,8 +48,8 @@ contains
         integer, intent(in)  :: ngllx    ! ngllx de l'element cible
         integer, intent(in)  :: ngllz    ! ngllz de l'element cible
         integer, intent(in)  :: ngll     ! ngll de la face
-        real, dimension(0:ngllx-1,0:ngllz-1,0:1), intent(inout) :: Dfield ! Valeur E/S du champ de l'elem
-        real, dimension(0:ngll-1,0:1), intent(in) :: Sfield ! Valeur E du champ de la face
+        real(fpp), dimension(0:ngllx-1,0:ngllz-1,0:1), intent(inout) :: Dfield ! Valeur E/S du champ de l'elem
+        real(fpp), dimension(0:ngll-1,0:1), intent(in) :: Sfield ! Valeur E du champ de la face
         select case(nf)
         case (0)
             if (orient) then
@@ -84,8 +84,8 @@ contains
         integer, intent(in)  :: ngllx    ! ngllx de l'element cible
         integer, intent(in)  :: ngllz    ! ngllz de l'element cible
         integer, intent(in)  :: ngll     ! ngll de la face
-        real, dimension(0:ngllx-1,0:ngllz-1), intent(inout) :: Dfield ! Valeur E/S du champ de l'elem
-        real, dimension(1:ngll-2), intent(in) :: Sfield ! Valeur E du champ de la face
+        real(fpp), dimension(0:ngllx-1,0:ngllz-1), intent(inout) :: Dfield ! Valeur E/S du champ de l'elem
+        real(fpp), dimension(1:ngll-2), intent(in) :: Sfield ! Valeur E du champ de la face
         select case(nf)
         case (0)
             if (orient) then
@@ -120,7 +120,7 @@ contains
         implicit none
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
-        real, dimension(0:,0:,0:), intent(out) :: field
+        real(fpp), dimension(0:,0:,0:), intent(out) :: field
         type(element), pointer :: el
         type(face), pointer :: fc
         type(vertex), pointer :: vx
@@ -154,7 +154,7 @@ contains
         implicit none
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
-        real, dimension(0:,0:,0:), intent(out) :: field
+        real(fpp), dimension(0:,0:,0:), intent(out) :: field
         logical, intent(in) :: is_snapshot
         type(element), pointer :: el
         type(face), pointer :: fc
@@ -226,7 +226,7 @@ contains
         implicit none
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
-        real, dimension(0:,0:,0:), intent(out) :: field
+        real(fpp), dimension(0:,0:,0:), intent(out) :: field
         type(element), pointer :: el
         type(face), pointer :: fc
         type(vertex), pointer :: vx
@@ -267,7 +267,7 @@ contains
         implicit none
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
-        real, dimension(0:,0:), intent(out) :: field
+        real(fpp), dimension(0:,0:), intent(out) :: field
         type(element), pointer :: el
         type(face), pointer :: fc
         type(vertex), pointer :: vx

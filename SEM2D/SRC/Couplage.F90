@@ -31,8 +31,8 @@ module scouplage
        integer,dimension(:),pointer  :: m_numFace         ! numeros des faces de couplage
        integer,dimension(:),pointer  :: m_numMaille       ! numeros des mailles sem contenant les faces de couplage
        integer,dimension(:),pointer  :: m_tabFaceCouplage ! liste des faces de couplage
-       real,dimension(:),pointer     :: m_pos_proj        ! abscisse curviligne sur la face de couplage du projete de la particule de couplage
-       real,dimension(:), pointer    :: m_surf_part       ! surface des particules Mka de couplage
+       real(fpp),dimension(:),pointer     :: m_pos_proj        ! abscisse curviligne sur la face de couplage du projete de la particule de couplage
+       real(fpp),dimension(:), pointer    :: m_surf_part       ! surface des particules Mka de couplage
 
     end type type_comm_couplage
 
@@ -44,8 +44,8 @@ module scouplage
        integer :: ngll   ! nbre de point de gauss sur la face
        integer :: noeud0 ! numero du premier noeud de la face
        integer :: noeud1 ! numero du 2ieme noeud de la face
-       real,dimension(2) :: coord0 ! coordonnees noeud0
-       real,dimension(2) :: coord1 ! coordonnees noeud1
+       real(fpp),dimension(2) :: coord0 ! coordonnees noeud0
+       real(fpp),dimension(2) :: coord1 ! coordonnees noeud1
        integer :: nbPk   ! nombre de points du peigne
 
     end type type_face_couplage
@@ -58,19 +58,19 @@ module scouplage
     type(type_comm_couplage) :: comm_couplage
 
     type :: sommet_gll
-       real, dimension(0:2) :: coord
+       real(fpp), dimension(0:2) :: coord
        integer nbface
        integer, dimension(8) :: numface !au plus un noeud est connecte a 8 faces
        integer num, numglobal
     end type sommet_gll
 
-    real,dimension(:), pointer :: Xpdc, Zpdc
+    real(fpp),dimension(:), pointer :: Xpdc, Zpdc
 
 contains
 
 
     !>
-    !! \brief Alloue les tableaux utilisés lors du couplage.
+    !! \brief Alloue les tableaux utilises lors du couplage.
     !!
     !! \param integer,intent(IN) dim
     !<
@@ -91,7 +91,7 @@ contains
 
 
     !>
-    !! \brief Desalloue les tableaux utilisés lors du couplage
+    !! \brief Desalloue les tableaux utilises lors du couplage
     !!
     !<
     subroutine desalloue_couplage()
@@ -103,10 +103,10 @@ contains
 
     end subroutine desalloue_couplage
     !>
-    !! \brief Initialise les données propres au couplage.
+    !! \brief Initialise les donnees propres au couplage.
     !! Effectue notamment des communications avec le superviseur
     !! afin d'envoyer le pas de temps et de recevoir des informations sur le
-    !! nombre de particules de couplage, les mailles couplées,...
+    !! nombre de particules de couplage, les mailles couplees,...
     !! \param type (domain), intent(INOUT) Tdomain
     !<
     subroutine initialisation_couplage(Tdomain)
@@ -122,9 +122,9 @@ contains
         integer, dimension(:),pointer:: tabNbFace
         integer,dimension(:),pointer :: displs,count
         integer,dimension(5)  :: ibuf
-        real, dimension (:),pointer :: buf
-        real,dimension (:), pointer :: dmin_couplage
-        real,dimension(4) :: coord
+        real(fpp), dimension (:),pointer :: buf
+        real(fpp),dimension (:), pointer :: dmin_couplage
+        real(fpp),dimension(4) :: coord
 
 
         allocate(displs(Tdomain%Mpi_var%n_proc),count(Tdomain%Mpi_var%n_proc))
@@ -399,20 +399,20 @@ contains
     !! \param type (domain), intent(INOUT) Tdomain
     !! \param integer, intent(IN) numFace
     !! \param integer, intent(IN) numElem
-    !! \param real, intent(IN) pos_proj
-    !! \param real, intent(INOUT) Xpdc
-    !! \param real, intent(INOUT) Zpdc
+    !! \param real(fpp), intent(IN) pos_proj
+    !! \param real(fpp), intent(INOUT) Xpdc
+    !! \param real(fpp), intent(INOUT) Zpdc
     !<
     subroutine calcule_coord(Tdomain,numFace,numElem,pos_proj,Xpdc,Zpdc)
 
         type (domain), intent(IN)  :: Tdomain
 
         integer, intent(IN) :: numFace,numElem
-        real, intent(IN)    :: pos_proj
-        real, intent(INOUT)   :: Xpdc,Zpdc
+        real(fpp), intent(IN)    :: pos_proj
+        real(fpp), intent(INOUT)   :: Xpdc,Zpdc
 
-        integer :: ipoint1,ipoint2
-        real :: x1,y1,x2,y2
+        integer   :: ipoint1,ipoint2
+        real(fpp) :: x1,y1,x2,y2
 
 
         if (Tdomain%specel(numElem)%near_face(0)==numFace) then
@@ -446,10 +446,10 @@ contains
 
 
     !>
-    !! \brief Evalue les forces sur les particules couplées.
-    !! -Recoit les forces MKA3d appliquées aux particules de couplage,
-    !! -calcul le second membre du système couplé à résoudre,
-    !! -recoit la solution du système et applique les forces en conséquence.
+    !! \brief Evalue les forces sur les particules couplees.
+    !! -Recoit les forces MKA3d appliquees aux particules de couplage,
+    !! -calcul le second membre du systeme couple a resoudre,
+    !! -recoit la solution du systeme et applique les forces en consequence.
     !!
     !!
     !! \param type (domain), intent(INOUT) Tdomain
@@ -468,10 +468,10 @@ contains
         integer :: tag,ierr
         integer, dimension (MPI_STATUS_SIZE) :: status
 
-        real :: out,dist
-        real :: forcex,forcey
-        real,dimension(0:3) :: x,z
-        real, dimension(comm_couplage%m_dim, comm_couplage%m_gl_Ngauss) :: force_impose
+        real(fpp) :: out,dist
+        real(fpp) :: forcex,forcey
+        real(fpp),dimension(0:3) :: x,z
+        real(fpp), dimension(comm_couplage%m_dim, comm_couplage%m_gl_Ngauss) :: force_impose
 
         ! RECEPTION DES FORCES DU SUPERVISEUR
 
@@ -629,9 +629,9 @@ contains
     subroutine dist_min_point_de_couplage(n, Xpdc, Zpdc, dmin)
 
         integer, intent(in) :: n
-        real, intent(in) :: Xpdc(n), Zpdc(n)
-        integer :: iface, np1, np2
-        real :: dist, dmin(Nbface)
+        real(fpp), intent(in) :: Xpdc(n), Zpdc(n)
+        integer   :: iface, np1, np2
+        real(fpp) :: dist, dmin(Nbface)
 
         if(Nbface .EQ. 0) return
         dmin(:) = huge(1.)
@@ -672,11 +672,11 @@ contains
     subroutine definit_nb_pts_Pk(Tdomain, dmin_couplage)
 
         type (domain), intent(IN)  :: Tdomain
-        real, intent(in) :: dmin_couplage(Nbface)
+        real(fpp), intent(in) :: dmin_couplage(Nbface)
         integer ngll, numFace
         integer iface
-        real Lface
-        real hk
+        real(fpp) Lface
+        real(fpp) hk
 
         do iface=1,Nbface
             numFace = comm_couplage%m_tabFaceCouplage(iface)
@@ -741,8 +741,8 @@ contains
         integer iface
         integer idim
         integer :: numElem, wf
-        real :: tsurf
-        real,dimension(:,:),pointer :: vecu, vecu_tmp
+        real(fpp) :: tsurf
+        real(fpp),dimension(:,:),pointer :: vecu, vecu_tmp
 
         allocate(vecu(comm_couplage%m_MaxNgParFace,comm_couplage%m_dim))
         allocate(vecu_tmp(comm_couplage%m_MaxNgParFace,comm_couplage%m_dim))
@@ -805,9 +805,9 @@ contains
         type (domain), intent(IN)  :: Tdomain
         integer, intent(IN) ::  numElem
         integer, intent(IN) :: i, wf
-        real out, dist
-        real surface_gll
-        real,dimension(0:3) :: x,z
+        real(fpp) out, dist
+        real(fpp) surface_gll
+        real(fpp),dimension(0:3) :: x,z
         integer ipoint, inod, mat
 
         mat = Tdomain%specel(numElem)%mat_index
@@ -847,7 +847,7 @@ contains
 
         type (Domain), intent (INOUT) :: Tdomain
         integer :: n, mat
-        real dtsem
+        real(fpp) dtsem
         integer :: tag,ierr
         integer, dimension (MPI_STATUS_SIZE) :: status
 

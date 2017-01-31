@@ -13,21 +13,21 @@
 
 module ssources
 
-    ! Modified by Gaetano 13/9/04
+    use constants
 
     type :: elem_source
        integer :: nr
-       real :: eta,xi
-       real :: invE,nu
-       real, dimension (0:1,0:1) :: Scoeff
-       real, dimension (:,:,:), pointer :: ExtForce
+       real(fpp) :: eta,xi
+       real(fpp) :: invE,nu
+       real(fpp), dimension (0:1,0:1) :: Scoeff
+       real(fpp), dimension (:,:,:), pointer :: ExtForce
     end type elem_source
 
     type :: Source
        integer :: i_type_source, i_time_function,ine
-       real, dimension(2) :: dir
-       real, dimension (0:1,0:1) :: moment
-       real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude,sigma
+       real(fpp), dimension(2) :: dir
+       real(fpp), dimension (0:1,0:1) :: moment
+       real(fpp) :: Xsource,Zsource, tau_b,cutoff_freq,amplitude,sigma
        type(elem_source), dimension(:), pointer :: Elem
        logical :: located_here
     end type Source
@@ -42,10 +42,10 @@ contains
     !! \param integer np
     !! \param real time
     !<
-    real function CompSource (Sour,time)
+    real(fpp) function CompSource (Sour,time)
 
         type (source) :: Sour
-        real :: time
+        real(fpp) :: time
 
         CompSource = 0.
         select case (Sour%i_time_function)
@@ -69,10 +69,10 @@ contains
     !! \param real tau
     !! \param real f0
     !<
-    real function Gaussian (time, tau, f0)
+    real(fpp) function Gaussian (time, tau, f0)
 
-        real :: tau,time,f0
-        real :: sigma,pi
+        real(fpp) :: tau,time,f0
+        real(fpp) :: sigma,pi
 
         pi = Acos(-1.)
         sigma = pi * f0 * (time - tau )
@@ -91,10 +91,10 @@ contains
     !! \param real tau
     !! \param real f0
     !<
-    real function Ricker (time,tau,f0)
+    real(fpp) function Ricker (time,tau,f0)
 
-        real :: time, tau, f0
-        real :: sigma,pi
+        real(fpp) :: time, tau, f0
+        real(fpp) :: sigma,pi
 
         pi = Acos(-1.)
         sigma = pi * f0 * (time - tau )

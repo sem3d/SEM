@@ -12,7 +12,7 @@
 !<
 
 !>
-!! \brief Inverse une matrice 2X2 en utilisant la méthode de Sarrus.
+!! \brief Inverse une matrice 2X2 en utilisant la methode de Sarrus.
 !!
 !! \param real, dimension (0:1,0:1), intent (INOUT) A
 !! \param real, intent (OUT) det
@@ -27,12 +27,13 @@ subroutine invert2 (A, det)
     !
     ! Modified Gaetano Festa 01/06/2005
     ! -------------------------------------------------------------------------------
+    use constants
     implicit none
 
-    real, dimension (0:1,0:1), intent (INOUT) :: A
-    real, intent (OUT) :: det
+    real(fpp), dimension (0:1,0:1), intent (INOUT) :: A
+    real(fpp), intent (OUT) :: det
 
-    real :: aus
+    real(fpp) :: aus
 
     ! compute determinant of A using Sarrus law
 

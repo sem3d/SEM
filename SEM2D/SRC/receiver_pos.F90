@@ -33,10 +33,10 @@ subroutine ReceiverPosition(Tdomain)
 
     integer, parameter :: NMAXEL=20
     integer, dimension(NMAXEL) :: elems
-    double precision, dimension(0:1,NMAXEL) :: coordloc
-    double precision, parameter :: EPS = 1D-13
+    real(fpp), dimension(0:1,NMAXEL) :: coordloc
+    real(fpp), parameter :: EPS = 1D-13
     integer :: nrec, nmax, i, j, n_el, ngllx, ngllz, mat
-    double precision :: xc, zc, xi, eta, outx, outz
+    real(fpp) :: xc, zc, xi, eta, outx, outz
     logical :: inside
 
     ! Find the nearest point to the real location of the receivers in GLL scheme
@@ -123,9 +123,9 @@ subroutine save_trace (Tdomain, it)
     type (domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: it
 
-    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache, ind, mat
-    real :: dum0, dum1
-    real, dimension (:,:,:), allocatable :: Field
+    integer   :: ir, nr, i,j, ngllx, ngllz, nsta, ncache, ind, mat
+    real(fpp) :: dum0, dum1
+    real(fpp), dimension (:,:,:), allocatable :: Field
 
     ncache = mod(it, NCAPT_CACHE)
     nsta = Tdomain%n_receivers
@@ -198,7 +198,7 @@ subroutine dump_trace (Tdomain)
 
     integer :: i, it, it0, it1, ind, ncache, i_err
     character(Len=MAX_FILE_SIZE) :: fnamef
-    real :: rtime
+    real(fpp) :: rtime
 
     !dumping the traces
     it0 = NCAPT_CACHE*(Tdomain%TimeD%ntime/NCAPT_CACHE)
@@ -238,7 +238,7 @@ subroutine read_receiver_file(Tdomain)
     use sdomain
     use semdatafiles
     type(domain), intent(inout) :: Tdomain
-    real :: xrec, zrec
+    real(fpp) :: xrec, zrec
     character(Len=100) :: recname
     character(Len=MAX_FILE_SIZE) :: fnamef
     integer :: i
@@ -277,13 +277,13 @@ subroutine postprocess_HDG(Tdomain,nelem,nrec,field)
     type(domain), intent (in) :: Tdomain
     integer, intent(in)       :: nelem
     integer, intent(in)       :: nrec
-    real, dimension (:,:,:), allocatable, intent(inout) :: field
-    real, dimension (:),     allocatable :: smbr, WORK
+    real(fpp), dimension (:,:,:), allocatable, intent(inout) :: field
+    real(fpp), dimension (:),     allocatable :: smbr, WORK
     type(element),  pointer   :: Elem
     type(receiver), pointer   :: rec
-    integer :: ngx, ngz, nlin, nddl, nddleq, info, mat
-    integer :: i, j
-    real    :: outx, outz
+    integer   :: ngx, ngz, nlin, nddl, nddleq, info, mat
+    integer   :: i, j
+    real(fpp) :: outx, outz
 
     Elem => Tdomain%specel(nelem)
     rec  => Tdomain%sReceiver(nrec)
@@ -363,12 +363,12 @@ subroutine compute_postproc_smbr_acou(rec, Elem, smbr)
 
     type(receiver), pointer, intent(in) :: rec
     type(element),  pointer, intent(in) :: Elem
-    real, dimension (:), allocatable, intent(inout) :: smbr
-    real, dimension (:,:,:), allocatable :: q
-    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
+    real(fpp), dimension (:), allocatable, intent(inout) :: smbr
+    real(fpp), dimension (:,:,:), allocatable :: q
+    real(fpp), dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
     integer :: i, j, k, l, r, s
     integer :: ngx, ngz, nlin, nddl
-    real    :: aux1, aux2, res
+    real(fpp):: aux1, aux2, res
 
     ngx = Elem%ngllx ; ngz = Elem%ngllz ; nddl = (ngx+1)*(ngz+1)
 
@@ -434,12 +434,12 @@ subroutine compute_postproc_smbr_elas(Tdomain, rec, Elem, smbr)
     type(domain), intent (in) :: Tdomain
     type(receiver), pointer, intent(in) :: rec
     type(element),  pointer, intent(in) :: Elem
-    real, dimension (:), allocatable, intent(inout) :: smbr
-    real, dimension (:,:,:), allocatable :: p
-    real, dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
+    real(fpp), dimension (:), allocatable, intent(inout) :: smbr
+    real(fpp), dimension (:,:,:), allocatable :: p
+    real(fpp), dimension (:,:),   allocatable :: xix, xiz, etax, etaz, jac
     integer :: i, j, k, l, r, s
     integer :: ngx, ngz, nlin, nddl, mat
-    real    :: aux1, aux2, res
+    real(fpp):: aux1, aux2, res
 
 
     ngx = Elem%ngllx ; ngz = Elem%ngllz ; nddl = 2*(ngx+1)*(ngz+1)
@@ -558,14 +558,14 @@ subroutine prepare_HDG_postprocess(Tdomain)
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    real, dimension (:),   allocatable :: GLLcxN2, GLLwxN2, GLLpolxN2, GLLczN2, GLLwzN2, GLLpolzN2
-    real, dimension (:),   allocatable :: GLLcxN1, GLLwxN1, GLLpolxN1, GLLczN1, GLLwzN1, GLLpolzN1
-    real, dimension (:),   allocatable :: work
-    real, dimension (:,:), allocatable :: coord, hprimex_aux, hprimez_aux
-    real, dimension (0:1,0:1) :: LocInvGrad
+    real(fpp), dimension (:),   allocatable :: GLLcxN2, GLLwxN2, GLLpolxN2, GLLczN2, GLLwzN2, GLLpolzN2
+    real(fpp), dimension (:),   allocatable :: GLLcxN1, GLLwxN1, GLLpolxN1, GLLczN1, GLLwzN1, GLLpolzN1
+    real(fpp), dimension (:),   allocatable :: work
+    real(fpp), dimension (:,:), allocatable :: coord, hprimex_aux, hprimez_aux
+    real(fpp), dimension (0:1,0:1) :: LocInvGrad
     type(receiver), pointer   :: rec
-    real    :: xi, eta, Jac, res, outx, outz
-    integer :: nrec, ngx, ngz, nr, nddl, nddleq, i_aus, mat, i, j, info
+    real(fpp):: xi, eta, Jac, res, outx, outz
+    integer  :: nrec, ngx, ngz, nr, nddl, nddleq, i_aus, mat, i, j, info
 
     do nrec = 0, Tdomain%n_receivers-1
         ! Matrices Allocation used for Post-Process
@@ -769,9 +769,9 @@ subroutine build_MatPostProc_acou(Tdomain,nrec,ngx,ngz)
     type(Domain), intent(inout) :: Tdomain
     integer, intent(in)         :: nrec, ngx, ngz
     type(receiver), pointer     :: rec
-    real, dimension(:,:), allocatable :: xix, etax, xiz, etaz
-    real    :: ps
-    integer :: i, j, k, l, r, s, nlin, ncol
+    real(fpp), dimension(:,:), allocatable :: xix, etax, xiz, etaz
+    real(fpp):: ps
+    integer  :: i, j, k, l, r, s, nlin, ncol
 
     rec => Tdomain%sReceiver(nrec)
 
@@ -845,9 +845,9 @@ subroutine build_MatPostProc_elas(Tdomain,nrec,ngx,ngz)
     type(Domain), intent(inout) :: Tdomain
     integer, intent(in)         :: nrec, ngx, ngz
     type(receiver), pointer     :: rec
-    real, dimension(:,:), allocatable :: xix, etax, xiz, etaz
-    real    :: vx, vz
-    integer :: i, j, k, l, r, s, nlin, ncol
+    real(fpp), dimension(:,:), allocatable :: xix, etax, xiz, etaz
+    real(fpp):: vx, vz
+    integer  :: i, j, k, l, r, s, nlin, ncol
 
     rec => Tdomain%sReceiver(nrec)
 

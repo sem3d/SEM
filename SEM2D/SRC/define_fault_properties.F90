@@ -33,9 +33,9 @@ subroutine define_fault_properties (Tdomain)
     integer :: i_send, tag_send, tag_receive, ierr
     integer, dimension (MPI_STATUS_SIZE) :: status
 
-    real :: sigma1, sigma3, angle, mus, mud, Dc, pig, tau0_percentage
-    real :: w,b,Ct, Deltau_res,c1,s1, sxx, sxy, syy
-    real, dimension (:), allocatable :: Send_data, Receive_data
+    real(fpp) :: sigma1, sigma3, angle, mus, mud, Dc, pig, tau0_percentage
+    real(fpp) :: w,b,Ct, Deltau_res,c1,s1, sxx, sxy, syy
+    real(fpp), dimension (:), allocatable :: Send_data, Receive_data
 
     character (len=MAX_FILE_SIZE) :: fnamef
 

@@ -15,16 +15,16 @@
 !<
 
 
-real function pow (x,vp,npm,dx,A,np)
+double precision function pow (x,vp,npm,dx,A,np)
 
     implicit none
 
-    real :: x,vp,dx,A
+    double precision :: x,vp,dx,A
     integer :: npm,np
 
     ! Local variables
 
-    real :: rnpm,pp1
+    double precision :: rnpm,pp1
 
     rnpm = float (npm)
 

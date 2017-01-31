@@ -91,10 +91,10 @@ subroutine build_mortar_interpol_matrices(Mor)
     type (Mortar), intent (INOUT) :: Mor
 
     ! Local declarations
-    integer :: i, j, ngmin, ngmax
-    real    :: xpos, res
-    real, dimension (0:Mor%ngllmin-1) :: Xi_ngmin, PolMin
-    real, dimension (0:Mor%ngllmax-1) :: Xi_ngmax, PolMax
+    integer  :: i, j, ngmin, ngmax
+    real(fpp):: xpos, res
+    real(fpp), dimension (0:Mor%ngllmin-1) :: Xi_ngmin, PolMin
+    real(fpp), dimension (0:Mor%ngllmax-1) :: Xi_ngmax, PolMax
 
     ngmin = Mor%ngllmin
     ngmax = Mor%ngllmax

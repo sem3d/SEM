@@ -13,6 +13,8 @@
 
 module shape_lin
 
+    use constants
+
 contains
 
     ! #########################################
@@ -26,7 +28,7 @@ contains
         integer, intent (IN) :: nf
 
         ! local variables
-        real, dimension(0:1) :: normal_aux
+        real(fpp), dimension(0:1) :: normal_aux
         integer :: i, n_elem, ngll, nv0, nv1
 
         n_elem = Tdomain%sFace(nf)%Near_Element(0)
@@ -67,7 +69,7 @@ contains
 
         ! local variables
         integer              :: i, j, k, ngllx, ngllz, ngll, nglltot, nv0, nv1
-        real, dimension(0:1) :: normal_aux
+        real(fpp), dimension(0:1) :: normal_aux
 
         ngllx  = Tdomain%specel(nelem)%ngllx
         ngllz  = Tdomain%specel(nelem)%ngllz
@@ -110,10 +112,10 @@ contains
         implicit none
 
         type (domain),target, intent (IN)    :: Tdomain
-        real, dimension(0:1), intent (INOUT) :: n_vec
+        real(fpp), dimension(0:1), intent (INOUT) :: n_vec
         integer, intent(IN)        :: nv0, nv1
         integer                    :: n0, n1
-        real                       :: dx, dy, nx, ny, norm
+        real(fpp)                  :: dx, dy, nx, ny, norm
 
         n0 = Tdomain%sVertex(nv0)%Glob_numbering
         n1 = Tdomain%sVertex(nv1)%Glob_numbering
@@ -147,7 +149,7 @@ contains
 
         type(domain), intent (IN) :: Tdomain
         integer, intent (IN) :: nf
-        real, intent (INOUT) :: Jac1D
+        real(fpp), intent (INOUT) :: Jac1D
 
         ! local variables
         integer :: nv0, nv1, n0, n1
@@ -176,11 +178,11 @@ contains
         ! local variables
 
         integer :: i_aus, n, mat, ngllx, ngllz, i, j, ipoint, imin, imax
-        real, dimension(0:1,0:3) :: coord
-        real :: xi, eta, xp, zp, Jac
-        real, dimension (0:1,0:1) :: LocInvGrad
-        integer :: nf
-        real :: Jac1D
+        real(fpp), dimension(0:1,0:3) :: coord
+        real(fpp) :: xi, eta, xp, zp, Jac
+        real(fpp), dimension (0:1,0:1) :: LocInvGrad
+        integer   :: nf
+        real(fpp) :: Jac1D
 
         ! Modified by Gaetano Festa, 26/05/05
         !---------------------------------------------------------------------------------------------------------------
@@ -297,10 +299,10 @@ contains
         type(domain),target, intent (INOUT) :: Tdomain
         integer, intent(IN) :: n
         integer :: i, j, i_aus
-        real, dimension (:), pointer :: GLLc_face
-        real, dimension (:,:), allocatable :: Store_normal
-        real :: ds_local, normal_0, normal_1, normalization
-        real :: x0, x1, z0, z1
+        real(fpp), dimension (:), pointer :: GLLc_face
+        real(fpp), dimension (:,:), allocatable :: Store_normal
+        real(fpp) :: ds_local, normal_0, normal_1, normalization
+        real(fpp) :: x0, x1, z0, z1
         integer :: Face_up, mat, ngll, nv, nv2
 
         do  j = 0, Tdomain%sFault(n)%n_face-1
@@ -417,13 +419,13 @@ contains
     end subroutine shape4_manage_super_object
 
     subroutine shape4_global2local(coord, xa, za, xi, eta, ok)
-        double precision, dimension(0:1,0:3), intent(in)  :: coord
-        double precision, intent(in) :: xa, za
-        double precision, intent(out) :: xi, eta
+        real(fpp), dimension(0:1,0:3), intent(in)  :: coord
+        real(fpp), intent(in) :: xa, za
+        real(fpp), intent(out) :: xi, eta
         logical, intent(out) :: ok
         !
         integer :: niter
-        double precision, dimension(0:1) :: xin, xout, xref
+        real(fpp), dimension(0:1) :: xin, xout, xref
         ok = .true.
         xin(0) = 0.
         xin(1) = 0.
@@ -436,14 +438,14 @@ contains
     end subroutine shape4_global2local
 
     subroutine shape4_simple_newton(nodes, xref, xin, xout, nit)
-        double precision, dimension(0:1,0:3), intent(in) :: nodes
-        double precision, dimension(0:1), intent(in) :: xref, xin
-        double precision, dimension(0:1), intent(out) :: xout
+        real(fpp), dimension(0:1,0:3), intent(in) :: nodes
+        real(fpp), dimension(0:1), intent(in) :: xref, xin
+        real(fpp), dimension(0:1), intent(out) :: xout
         integer, intent(out) :: nit
         !
-        double precision, dimension(0:1,0:1) :: jac
-        double precision, dimension(0:1) :: x
-        double precision :: xa, za, err, Det
+        real(fpp), dimension(0:1,0:1) :: jac
+        real(fpp), dimension(0:1) :: x
+        real(fpp) :: xa, za, err, Det
         integer, parameter :: niter=1000
         integer :: i
         xout = xin
@@ -463,11 +465,11 @@ contains
     end subroutine shape4_simple_newton
 
     subroutine shape4_local2global(coord, xi, eta, xa, za)
-        double precision, dimension(0:1,0:3), intent(in) :: coord
-        double precision, intent(in) :: xi, eta
-        double precision, intent(out) :: xa, za
+        real(fpp), dimension(0:1,0:3), intent(in) :: coord
+        real(fpp), intent(in) :: xi, eta
+        real(fpp), intent(out) :: xa, za
         !
-        double precision x0, x1, x2, x3, z0, z1, z2, z3 ! Used for clarity (-O2 should be able to optimize this)
+        real(fpp) x0, x1, x2, x3, z0, z1, z2, z3 ! Used for clarity (-O2 should be able to optimize this)
         x0 = coord(0,0); x1 = coord (0,1); x2 = coord (0,2); x3 = coord (0,3);
         z0 = coord(1,0); z1 = coord (1,1); z2 = coord (1,2); z3 = coord (1,3);
         !- computation of the global coordinates from the local coordinates
@@ -476,11 +478,11 @@ contains
     end subroutine shape4_local2global
 
     subroutine shape4_local2jacob(coord, xi, eta, jac)
-        double precision, dimension(0:1,0:3), intent(in)  :: coord
-        double precision, intent(in) :: xi, eta
-        double precision, dimension(0:1,0:1), intent(out) :: jac
+        real(fpp), dimension(0:1,0:3), intent(in)  :: coord
+        real(fpp), intent(in) :: xi, eta
+        real(fpp), dimension(0:1,0:1), intent(out) :: jac
         !
-        double precision x0, x1, x2, x3, z0, z1, z2, z3 ! Used for clarity (-O2 should be able to optimize this)
+        real(fpp) x0, x1, x2, x3, z0, z1, z2, z3 ! Used for clarity (-O2 should be able to optimize this)
         x0 = coord(0,0); x1 = coord (0,1); x2 = coord (0,2); x3 = coord (0,3);
         z0 = coord(1,0); z1 = coord (1,1); z2 = coord (1,2); z3 = coord (1,3);
         !- computation of the derivative matrix, dx_(jj)/dxi_(ii)

@@ -30,8 +30,8 @@ contains
         type (Domain), intent (INOUT) :: Tdomain
         integer,       intent (IN)    :: nelem
         type(element), pointer :: Elem
-        real, dimension (0:Tdomain%specel(nelem)%ngllx-1) :: Zp_x, Zs_x
-        real, dimension (0:Tdomain%specel(nelem)%ngllz-1) :: Zp_z, Zs_z
+        real(fpp), dimension (0:Tdomain%specel(nelem)%ngllx-1) :: Zp_x, Zs_x
+        real(fpp), dimension (0:Tdomain%specel(nelem)%ngllz-1) :: Zp_z, Zs_z
         integer    :: imin, imax, ngllx, ngllz, nf
 
         Elem => Tdomain%specel(nelem)
@@ -152,7 +152,7 @@ contains
         implicit none
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
-        real, dimension (:,:), allocatable :: G
+        real(fpp), dimension (:,:), allocatable :: G
         type(element), pointer :: Elem
         integer :: nf, nface, i, imin, imax
         logical :: coherency
@@ -293,10 +293,10 @@ contains
     subroutine  compute_EDinv (Elem, Dt)
 
         type (Element), intent (INOUT)   :: Elem
-        real, intent(IN) :: Dt
+        real(fpp), intent(IN) :: Dt
         integer :: imin, imax, ngx, ngz, nc, n1, n2
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: matD
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: det, tmp
+        real(fpp), dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: matD
+        real(fpp), dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: det, tmp
 
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
@@ -372,11 +372,11 @@ contains
     subroutine compute_EJ (Elem,Dt)
 
         type (Element), intent (INOUT)   :: Elem
-        real, intent(IN) :: Dt
+        real(fpp), intent(IN) :: Dt
         integer :: i, ngx, ngz, nc, n1, n2
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:2) :: CAinv_tmp
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: Dinv_tmp
-        real, dimension(0:1,0:2) :: EJ
+        real(fpp), dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:2) :: CAinv_tmp
+        real(fpp), dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: Dinv_tmp
+        real(fpp), dimension(0:1,0:2) :: EJ
 
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
@@ -424,9 +424,9 @@ contains
         implicit none
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
-        real,    intent(IN) :: Dt
-        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE
-        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
+        real(fpp),    intent(IN) :: Dt
+        real(fpp), dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE
+        real(fpp), dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
         type(element), pointer :: Elem
         integer :: nf, nface, i, imin, imax, n1, n2, nv, pos1, pos2
         logical :: coherency
@@ -511,9 +511,9 @@ contains
         implicit none
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
-        real,    intent(IN) :: Dt
-        real, dimension(0:2,0:1) :: C1, C2
-        real, dimension(0:1,0:1) :: E1, E2, K12, K21
+        real(fpp),    intent(IN) :: Dt
+        real(fpp), dimension(0:2,0:1) :: C1, C2
+        real(fpp), dimension(0:1,0:1) :: E1, E2, K12, K21
         type(element), pointer :: Elem
         integer :: i, nv, n1, n2, pos1, pos2
 
@@ -563,8 +563,8 @@ contains
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
         type(element), pointer :: Elem
-        real    :: rho0, rho, kappa, zp, z0, zmax, cp, c0, cmax
-        integer :: i, j, ipoint
+        real(fpp):: rho0, rho, kappa, zp, z0, zmax, cp, c0, cmax
+        integer  :: i, j, ipoint
 
         Elem => Tdomain%specel(nelem)
         rho0  = Elem%Density(0,0)
@@ -603,8 +603,8 @@ contains
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
         type(element), pointer :: Elem
-        real    :: zp, zmin, zmax, Vp, Vs, Vpmin, Vpmax, rho, lambda, mu
-        integer :: i, j, ipoint, mat
+        real(fpp):: zp, zmin, zmax, Vp, Vs, Vpmin, Vpmax, rho, lambda, mu
+        integer  :: i, j, ipoint, mat
 
         Elem => Tdomain%specel(nelem)
         mat = Elem%mat_index

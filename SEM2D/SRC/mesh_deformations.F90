@@ -15,8 +15,8 @@ subroutine rotate_mesh(Tdomain)
     type (Domain), intent (INOUT) :: Tdomain
 
     ! Local declarations
-    integer :: i
-    real    :: xc, yc, theta, x, y, xnew, ynew, PI
+    integer  :: i
+    real(fpp):: xc, yc, theta, x, y, xnew, ynew, PI
 
     ! Parameters for the rotation (center coordinates and angle)
     xc = 1250.
@@ -45,8 +45,8 @@ subroutine random_mesh_deformation(Tdomain)
     type (Domain), intent (INOUT) :: Tdomain
 
     ! Local declarations
-    integer :: i, n1, n2
-    real    :: Lc, d, x, y, xnew, ynew, harv1, harv2
+    integer  :: i, n1, n2
+    real(fpp):: Lc, d, x, y, xnew, ynew, harv1, harv2
 
     ! Computes caracteristical length from the first element of the domain
     n1 = Tdomain%specel(0)%Control_Nodes(0)

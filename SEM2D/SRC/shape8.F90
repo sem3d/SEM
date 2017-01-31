@@ -35,9 +35,9 @@ contains
         ! local variables
 
         integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint
-        real, dimension(0:1,0:7) :: coord
-        real :: xi,eta,xp,zp, Jac
-        real, dimension (0:1,0:1) :: LocInvGrad
+        real(fpp), dimension(0:1,0:7) :: coord
+        real(fpp) :: xi,eta,xp,zp, Jac
+        real(fpp), dimension (0:1,0:1) :: LocInvGrad
 
 
         ! Modified by Gaetano Festa, 27/05/05
@@ -99,12 +99,12 @@ contains
         type(domain),target, intent (INOUT) :: Tdomain
         integer, intent(IN) :: n
         integer :: i, j, i_aus
-        real, dimension (:), pointer :: GLLc_face
-        real, dimension (:,:), allocatable :: Store_normal
-        real :: ds_local, normal_0, normal_1, normalization
-        real :: x0, x1, x2, z0, z1, z2, xp, zp
+        real(fpp), dimension (:), pointer :: GLLc_face
+        real(fpp), dimension (:,:), allocatable :: Store_normal
+        real(fpp) :: ds_local, normal_0, normal_1, normalization
+        real(fpp) :: x0, x1, x2, z0, z1, z2, xp, zp
         integer :: Face_up, mat, ngll, nv, nv2
-        real :: zin,xin,loc_distance
+        real(fpp) :: zin,xin,loc_distance
 
 
         do  j = 0, Tdomain%sFault(n)%n_face-1
@@ -241,10 +241,10 @@ contains
         integer, intent (IN) :: n_elem
 
         ! local variables
-        real, dimension (0:1,0:1) :: LocInvGrad
-        real, dimension(0:1,0:7) :: coord
-        integer :: i, j, i_aus, ngllx, ngllz, npg, k, mat, nf
-        real    :: eta, xi, tx, tz, nx, nz, n_norm, w
+        real(fpp), dimension (0:1,0:1) :: LocInvGrad
+        real(fpp), dimension(0:1,0:7) :: coord
+        integer  :: i, j, i_aus, ngllx, ngllz, npg, k, mat, nf
+        real(fpp):: eta, xi, tx, tz, nx, nz, n_norm, w
 
         ! allocate space to store normals of each gauss point of each face of the element
         if (n_elem .lt. 0 .or. n_elem .ge. Tdomain%n_elem) stop "shape8 - buildNormal : invalid element"
@@ -370,13 +370,13 @@ contains
 
 
     subroutine shape8_global2local(coord, xa, za, xi, eta, ok)
-        double precision, dimension(0:1,0:7), intent(in)  :: coord
-        double precision, intent(in) :: xa, za
-        double precision, intent(out) :: xi, eta
+        real(fpp), dimension(0:1,0:7), intent(in)  :: coord
+        real(fpp), intent(in) :: xa, za
+        real(fpp), intent(out) :: xi, eta
         logical, intent(out) :: ok
         !
         integer :: niter
-        double precision, dimension(0:1) :: xin, xout, xref
+        real(fpp), dimension(0:1) :: xin, xout, xref
         ok = .true.
         xin(0) = 0.
         xin(1) = 0.
@@ -389,14 +389,14 @@ contains
     end subroutine shape8_global2local
 
     subroutine shape8_simple_newton(nodes, xref, xin, xout, nit)
-        double precision, dimension(0:1,0:7), intent(in) :: nodes
-        double precision, dimension(0:1), intent(in) :: xref, xin
-        double precision, dimension(0:1), intent(out) :: xout
+        real(fpp), dimension(0:1,0:7), intent(in) :: nodes
+        real(fpp), dimension(0:1), intent(in) :: xref, xin
+        real(fpp), dimension(0:1), intent(out) :: xout
         integer, intent(out) :: nit
         !
-        double precision, dimension(0:1,0:1) :: jac
-        double precision, dimension(0:1) :: x
-        double precision :: xa, za, err, Det
+        real(fpp), dimension(0:1,0:1) :: jac
+        real(fpp), dimension(0:1) :: x
+        real(fpp) :: xa, za, err, Det
         integer, parameter :: niter=1000
         integer :: i
         xout = xin
@@ -416,11 +416,11 @@ contains
     end subroutine shape8_simple_newton
 
     subroutine shape8_local2global(coord, xi, eta, xa, za)
-        double precision, dimension(0:1,0:7), intent(in) :: coord
-        double precision, intent(in) :: xi, eta
-        double precision, intent(out) :: xa, za
+        real(fpp), dimension(0:1,0:7), intent(in) :: coord
+        real(fpp), intent(in) :: xi, eta
+        real(fpp), intent(out) :: xa, za
         !
-        real, dimension(0:7) :: xc, zc ! Used for clarity (-O2 should be able to optimize this)
+        real(fpp), dimension(0:7) :: xc, zc ! Used for clarity (-O2 should be able to optimize this)
         xc = coord(0,:)
         zc = coord(1,:)
         !- computation of the global coordinates from the local coordinates
@@ -443,11 +443,11 @@ contains
     end subroutine shape8_local2global
 
     subroutine shape8_local2jacob(coord, xi, eta, jac)
-        double precision, dimension(0:1,0:7), intent(in) :: coord
-        double precision, intent(in) :: xi, eta
-        double precision, dimension(0:1,0:1), intent(out) :: jac
+        real(fpp), dimension(0:1,0:7), intent(in) :: coord
+        real(fpp), intent(in) :: xi, eta
+        real(fpp), dimension(0:1,0:1), intent(out) :: jac
         !
-        real, dimension(0:7) :: xc, zc ! Used for clarity (-O2 should be able to optimize this)
+        real(fpp), dimension(0:7) :: xc, zc ! Used for clarity (-O2 should be able to optimize this)
         xc = coord(0,:)
         zc = coord(1,:)
         !- computation of the derivative matrix, dx_(jj)/dxi_(ii)

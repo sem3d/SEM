@@ -38,7 +38,7 @@ subroutine read_mesh_h5(tDomain)
     !
     integer, allocatable, dimension(:,:) :: itemp2
     integer, allocatable, dimension(:) :: itemp1
-    real,    allocatable, dimension(:,:) :: rtemp2
+    real(fpp), allocatable, dimension(:,:) :: rtemp2
     integer(HID_T) :: fid, commid
     integer :: hdferr, n_proc_mesh
     ! Read Mesh properties

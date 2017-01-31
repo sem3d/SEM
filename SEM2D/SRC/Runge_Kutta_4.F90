@@ -22,15 +22,15 @@ contains
 subroutine Runge_Kutta4 (Tdomain, dt)
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real,    intent(in)   :: dt
+    real(fpp),    intent(in)   :: dt
 
     ! local variables
     integer :: i, n, mat
     integer :: tag_send, tag_receive, i_send, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     integer               :: nface,  type_DG
-    real                  :: timelocal
-    real, dimension(3)    :: coeffs
+    real(fpp)             :: timelocal
+    real(fpp), dimension(3) :: coeffs
 
 
     do i = 1,5
@@ -156,7 +156,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     function Coeffs_LSERK(i)
 
       integer :: i
-      real, dimension(3) :: Coeffs_LSERK
+      real(fpp), dimension(3) :: Coeffs_LSERK
 
       select case (i)
       case (1)
@@ -197,9 +197,9 @@ subroutine Runge_Kutta4 (Tdomain, dt)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real, intent(IN) :: coeff1
-    real, intent(IN) :: coeff2
-    real, intent(IN) :: Dt
+    real(fpp), intent(IN) :: coeff1
+    real(fpp), intent(IN) :: coeff2
+    real(fpp), intent(IN) :: Dt
     ! local variables
     integer :: n, type_DG, ngll
 

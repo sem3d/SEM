@@ -12,16 +12,19 @@
 !<
 
 module ssubdomains
+
+    use constants
+
     type Subdomain
 
        integer :: NGLLx, NGLLz,  n_loc_dim, wpml, npow, pml_type
        integer :: type_DG,type_Flux
 
-       real :: Pspeed, Sspeed, Ddensity, DT, DLambda, DMu, Apow, freq, k
-       real, dimension (:), pointer :: GLLcx, GLLpolx, GLLwx
-       real, dimension (:,:), pointer :: hprimex, hTprimex
-       real, dimension (:), pointer :: GLLcz, GLLpolz, GLLwz
-       real, dimension (:,:), pointer :: hprimez, hTprimez
+       real(fpp) :: Pspeed, Sspeed, Ddensity, DT, DLambda, DMu, Apow, freq, k
+       real(fpp), dimension (:), pointer :: GLLcx, GLLpolx, GLLwx
+       real(fpp), dimension (:,:), pointer :: hprimex, hTprimex
+       real(fpp), dimension (:), pointer :: GLLcz, GLLpolz, GLLwz
+       real(fpp), dimension (:,:), pointer :: hprimez, hTprimez
 
        logical :: Filtering, Px, Pz, Left, Down
 

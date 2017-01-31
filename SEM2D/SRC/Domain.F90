@@ -44,13 +44,13 @@ module sdomain
 
        integer, dimension (:), pointer :: Line_index, Communication_list
        integer :: n_quad ! Total number of quad elements to output (including subelements)
-       real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
-       real, dimension(:,:,:), pointer :: Store_Trace
+       real(fpp), dimension (:,:), pointer :: Coord_nodes, GlobCoord
+       real(fpp), dimension(:,:,:), pointer :: Store_Trace
 
 
-       real, dimension(:,:), pointer :: GrandeurVitesse     ! tableau conservatoire des grandeurs
-       real, dimension(:,:), pointer :: GrandeurDepla     ! tableau conservatoire des grandeurs
-       real, dimension(:), pointer :: GrandeurDeformation ! pour tous les points de gauss a une iteration donnee (utilise pour les sorties capteurs)
+       real(fpp), dimension(:,:), pointer :: GrandeurVitesse     ! tableau conservatoire des grandeurs
+       real(fpp), dimension(:,:), pointer :: GrandeurDepla     ! tableau conservatoire des grandeurs
+       real(fpp), dimension(:), pointer :: GrandeurDeformation ! pour tous les points de gauss a une iteration donnee (utilise pour les sorties capteurs)
        ! Additions S. Terrana Janv 2014
        integer :: nCapt
        integer, dimension (:,:), pointer :: elems_capteurs, faces_capteurs
@@ -87,8 +87,8 @@ contains
         type (Domain), intent (INOUT) :: Tdomain
         integer ipoint, jpoint
         integer n
-        real coor_i(0:1), coor_j(0:1)
-        !!real dist_max
+        real(fpp) :: coor_i(0:1), coor_j(0:1)
+        real(fpp) :: dist_max
 
 
         do n = 0,Tdomain%n_elem-1
@@ -117,10 +117,10 @@ subroutine read_material_file(Tdomain)
     type(domain), intent(inout) :: Tdomain
     character(Len=MAX_FILE_SIZE) :: fnamef
     !
-    real :: dtmin
-    integer :: i, j, mat, mat2, npml, nmortar, ngll1, ngll2
-    integer :: w_face, w_face2, n_aus, k_aus
-    real :: Qp, Qs
+    real(fpp) :: dtmin
+    integer   :: i, j, mat, mat2, npml, nmortar, ngll1, ngll2
+    integer   :: w_face, w_face2, n_aus, k_aus
+    real(fpp) :: Qp, Qs
 
     ! Read material properties
     npml = 0

@@ -13,8 +13,8 @@ subroutine Compute_external_forces (Tdomain,timelocal)
     use constants
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real, intent (INOUT)          :: timelocal
-    real, dimension(0:1)          :: Fext
+    real(fpp), intent (INOUT)          :: timelocal
+    real(fpp), dimension(0:1)          :: Fext
     integer  :: n, ns, ncc, ngllx, ngllz, i, j, np, nDG
 
     do n = 0, Tdomain%n_source-1

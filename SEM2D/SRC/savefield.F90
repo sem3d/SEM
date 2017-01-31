@@ -32,12 +32,12 @@ subroutine savefield (Tdomain,it,sortie_capteur,i_snap,nom_grandeur,nom_dir_sort
 
     ! local variables
     integer :: ngll, ngllx,ngllz,ipoint, i,j,n_face,n, n_vertex
-    real, dimension (0:1,0:Tdomain%n_glob_points-1) :: Field
+    real(fpp), dimension (0:1,0:Tdomain%n_glob_points-1) :: Field
     character (len=MAX_FILE_SIZE) :: fnamef
     character(len=24), intent(IN) :: nom_dir_sorties
-    real, dimension(:,:,:,:), pointer :: buf_specel
-    real, dimension (:,:,:), pointer :: buf_face
-    real, dimension (:,:), pointer :: buf_vertex
+    real(fpp), dimension(:,:,:,:), pointer :: buf_specel
+    real(fpp), dimension (:,:,:), pointer :: buf_face
+    real(fpp), dimension (:,:), pointer :: buf_vertex
     integer ngllmax
 
     ngllmax = 1

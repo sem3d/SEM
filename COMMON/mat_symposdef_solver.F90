@@ -28,7 +28,7 @@ contains
       INTEGER            INFO, LDB, N, NRHS
 !     ..
 !     .. Array Arguments ..
-      REAL               AP( * ), B( LDB, * )
+      DOUBLE PRECISION               AP( * ), B( LDB, * )
 !     ..
 !
 !  Purpose
@@ -61,7 +61,7 @@ contains
 !          The number of right hand sides, i.e., the number of columns
 !          of the matrix B.  NRHS >= 0.
 !
-!  AP      (input/output) REAL array, dimension (N*(N+1)/2)
+!  AP      (input/output) DOUBLE PRECISION array, dimension (N*(N+1)/2)
 !          On entry, the upper or lower triangle of the symmetric matrix
 !          A, packed columnwise in a linear array.  The j-th column of A
 !          is stored in the array AP as follows:
@@ -73,7 +73,7 @@ contains
 !          factorization A = U**T*U or A = L*L**T, in the same storage
 !          format as A.
 !
-!  B       (input/output) REAL array, dimension (LDB,NRHS)
+!  B       (input/output) DOUBLE PRECISION array, dimension (LDB,NRHS)
 !          On entry, the N-by-NRHS right hand side matrix B.
 !          On exit, if INFO = 0, the N-by-NRHS solution matrix X.
 !
@@ -171,7 +171,7 @@ contains
       INTEGER            INFO, N
 !     ..
 !     .. Array Arguments ..
-      REAL               AP( * )
+      DOUBLE PRECISION               AP( * )
 !     ..
 !
 !  Purpose
@@ -195,7 +195,7 @@ contains
 !  N       (input) INTEGER
 !          The order of the matrix A.  N >= 0.
 !
-!  AP      (input/output) REAL array, dimension (N*(N+1)/2)
+!  AP      (input/output) DOUBLE PRECISION array, dimension (N*(N+1)/2)
 !          On entry, the upper or lower triangle of the symmetric matrix
 !          A, packed columnwise in a linear array.  The j-th column of A
 !          is stored in the array AP as follows:
@@ -234,17 +234,17 @@ contains
 !  =====================================================================
 !
 !     .. Parameters ..
-      REAL               ONE, ZERO
+      DOUBLE PRECISION               ONE, ZERO
       PARAMETER          ( ONE = 1.0E+0, ZERO = 0.0E+0 )
 !     ..
 !     .. Local Scalars ..
       LOGICAL            UPPER
       INTEGER            J, JC, JJ
-      REAL               AJJ
+      DOUBLE PRECISION               AJJ
 !     ..
 !     .. External Functions ..
       LOGICAL            LSAME_LAPACK
-      REAL               SDOT
+      DOUBLE PRECISION               SDOT
       EXTERNAL           LSAME_LAPACK, SDOT
 !     ..
 !     .. External Subroutines ..
@@ -354,7 +354,7 @@ contains
       INTEGER            INFO, LDB, N, NRHS
 !     ..
 !     .. Array Arguments ..
-      REAL               AP( * ), B( LDB, * )
+      DOUBLE PRECISION               AP( * ), B( LDB, * )
 !     ..
 !
 !  Purpose
@@ -378,7 +378,7 @@ contains
 !          The number of right hand sides, i.e., the number of columns
 !          of the matrix B.  NRHS >= 0.
 !
-!  AP      (input) REAL array, dimension (N*(N+1)/2)
+!  AP      (input) DOUBLE PRECISION array, dimension (N*(N+1)/2)
 !          The triangular factor U or L from the Cholesky factorization
 !          A = U**T*U or A = L*L**T, packed columnwise in a linear
 !          array.  The j-th column of U or L is stored in the array AP
@@ -386,7 +386,7 @@ contains
 !          if UPLO = 'U', AP(i + (j-1)*j/2) = U(i,j) for 1<=i<=j;
 !          if UPLO = 'L', AP(i + (j-1)*(2n-j)/2) = L(i,j) for j<=i<=n.
 !
-!  B       (input/output) REAL array, dimension (LDB,NRHS)
+!  B       (input/output) DOUBLE PRECISION array, dimension (LDB,NRHS)
 !          On entry, the right hand side matrix B.
 !          On exit, the solution matrix X.
 !
@@ -485,7 +485,7 @@ contains
       CHARACTER DIAG,TRANS,UPLO
 !     ..
 !     .. Array Arguments ..
-      REAL AP(*),X(*)
+      DOUBLE PRECISION AP(*),X(*)
 !     ..
 !
 !  Purpose
@@ -542,7 +542,7 @@ contains
 !           N must be at least zero.
 !           Unchanged on exit.
 !
-!  AP     - REAL             array of DIMENSION at least
+!  AP     - DOUBLE PRECISION             array of DIMENSION at least
 !           ( ( n*( n + 1 ) )/2 ).
 !           Before entry with  UPLO = 'U' or 'u', the array AP must
 !           contain the upper triangular matrix packed sequentially,
@@ -558,7 +558,7 @@ contains
 !           A are not referenced, but are assumed to be unity.
 !           Unchanged on exit.
 !
-!  X      - REAL             array of dimension at least
+!  X      - DOUBLE PRECISION             array of dimension at least
 !           ( 1 + ( n - 1 )*abs( INCX ) ).
 !           Before entry, the incremented array X must contain the n
 !           element right-hand side vector b. On exit, X is overwritten
@@ -583,11 +583,11 @@ contains
 !  =====================================================================
 !
 !     .. Parameters ..
-      REAL ZERO
+      DOUBLE PRECISION ZERO
       PARAMETER (ZERO=0.0E+0)
 !     ..
 !     .. Local Scalars ..
-      REAL TEMP
+      DOUBLE PRECISION TEMP
       INTEGER I,INFO,IX,J,JX,K,KK,KX
       LOGICAL NOUNIT
 !     ..
@@ -1023,12 +1023,12 @@ end module smat_solver
 ! #################################################################
 ! #################################################################
 
-      REAL FUNCTION SDOT(N,SX,INCX,SY,INCY)
+      DOUBLE PRECISION FUNCTION SDOT(N,SX,INCX,SY,INCY)
 !     .. Scalar Arguments ..
       INTEGER INCX,INCY,N
 !     ..
 !     .. Array Arguments ..
-      REAL SX(*),SY(*)
+      DOUBLE PRECISION SX(*),SY(*)
 !     ..
 !
 !  Purpose
@@ -1042,7 +1042,7 @@ end module smat_solver
 !
 
 !     .. Local Scalars ..
-      REAL STEMP
+      DOUBLE PRECISION STEMP
       INTEGER I,IX,IY,M,MP1
 !     ..
 !     .. Intrinsic Functions ..

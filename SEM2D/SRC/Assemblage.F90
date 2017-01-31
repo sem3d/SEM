@@ -152,7 +152,7 @@ subroutine Get_flux_f2el (Tdomain, nelem)
   integer, intent(in)   :: nelem
 
   ! local variables
-  real, dimension (:,:), allocatable :: Flux
+  real(fpp), dimension (:,:), allocatable :: Flux
   integer :: ngll, ngllx, ngllz, i, imin, imax, nface, nf
   type(element), pointer :: Elem
   logical :: coherency
@@ -238,7 +238,7 @@ subroutine Get_flux_f2el_DGstrong (Tdomain, nelem)
   integer, intent(in)   :: nelem
 
   ! local variables
-  real, dimension (:,:), allocatable :: Flux
+  real(fpp), dimension (:,:), allocatable :: Flux
   integer :: ngll, ngllx, ngllz, i, imin, imax, nface, nf
   type(element), pointer :: Elem
   logical :: coherency

@@ -4,7 +4,7 @@
 !!
 !>
 !!\file plot_grid.F90
-!!\brief Assure la sortie des coordonnées des noeuds.
+!!\brief Assure la sortie des coordonnees des noeuds.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -24,8 +24,8 @@ subroutine plot_grid (Tdomain)
 
     implicit none
     type(domain), target, intent (IN) :: Tdomain
-    integer :: n,i,i_aus,j, i_proc
-    real :: x0,z0
+    integer   :: n,i,i_aus,j, i_proc
+    real(fpp) :: x0,z0
     character (len=MAX_FILE_SIZE) :: fnamef
 
     ! Plotting the grid

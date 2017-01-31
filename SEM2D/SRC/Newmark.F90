@@ -27,12 +27,12 @@ subroutine Newmark (Tdomain)
     integer :: ns, ncc, i, j, n, ngllx, ngllz, mat, nelem, nf, w_face, nv_aus, nf_aus, nv
     integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
-    real :: bega, gam1, alpha, dt, timelocal
+    real(fpp) :: bega, gam1, alpha, dt, timelocal
 
 
-    real, dimension (0:1) :: V_free_vertex
-    real, dimension (:,:), allocatable :: Vxloc, Vzloc, V_free
-    real, dimension (:,:), allocatable :: Smooth
+    real(fpp), dimension (0:1) :: V_free_vertex
+    real(fpp), dimension (:,:), allocatable :: Vxloc, Vzloc, V_free
+    real(fpp), dimension (:,:), allocatable :: Smooth
 
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a

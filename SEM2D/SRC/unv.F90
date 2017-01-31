@@ -8,7 +8,7 @@
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
-!! Assure la gestion des données rattachées au maillage universel.
+!! Assure la gestion des donnees rattachees au maillage universel.
 !<
 
 module unv
@@ -39,7 +39,7 @@ module unv
 
        integer, dimension (:,:), pointer :: elemConnec
        integer, dimension (:,:), pointer :: face
-       real   , dimension (:,:), pointer :: noeudCoord
+       real(fpp),dimension(:,:), pointer :: noeudCoord
 
 
        character (len=110) :: fichier
@@ -438,7 +438,7 @@ contains
 
         integer :: i ! numero de la maille a orienter
         integer :: s1, s2, s3,s4,s5,s6,s7,s8 ! numero des sommets de la maille
-        real :: z
+        real(fpp) :: z
 
         ! calcul de la composante z du produit vectoriel s1s2^s1s4
         s1=sunv%elemConnec(1,sunv%elemIndice(i))

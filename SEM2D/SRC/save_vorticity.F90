@@ -33,19 +33,19 @@ subroutine save_vorticity (Tdomain,it)
     integer, intent (IN) :: it
 
     ! local variables
-    integer :: ngllx,ngllz,ipoint, i,j,n, mat,nf
-    real :: zzero
-    real, dimension(:,:) ,allocatable  :: Grad_u
-    real, dimension (:), allocatable  :: Wheight
-    real, dimension (:,:), allocatable :: Disp
-    real, dimension (:,:,:), allocatable :: Loc_grad_U , Grad_x, Displ
-    real, dimension (:,:), pointer :: hTprime, hprime
+    integer   :: ngllx,ngllz,ipoint, i,j,n, mat,nf
+    real(fpp) :: zzero
+    real(fpp), dimension(:,:) ,allocatable  :: Grad_u
+    real(fpp), dimension (:), allocatable  :: Wheight
+    real(fpp), dimension (:,:), allocatable :: Disp
+    real(fpp), dimension (:,:,:), allocatable :: Loc_grad_U , Grad_x, Displ
+    real(fpp), dimension (:,:), pointer :: hTprime, hprime
 
     ! Variable from MPI
     integer :: i_proc, n_face_pointed, ne , wf, i_send, i_stock, tag_send, tag_receive, ierr
     integer , dimension  (MPI_STATUS_SIZE) :: status
-    real, dimension (0:4, 0:10000) :: Aus
-    real, dimension (:,:), allocatable :: Send_data, Receive_data
+    real(fpp), dimension (0:4, 0:10000) :: Aus
+    real(fpp), dimension (:,:), allocatable :: Send_data, Receive_data
 
 
     character(len=MAX_FILE_SIZE) :: fnamef

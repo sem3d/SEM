@@ -18,11 +18,11 @@
 !! \param integer, intent (IN) n
 !! \param integer, intent (IN) ngllx
 !! \param integer, intent (IN) ngllz
-!! \param real, intent(IN) dt
-!! \param real, intent(IN) bega
-!! \param real, intent(IN) alpha
-!! \param real, dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) Vxloc
-!! \param real, dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) Vzloc
+!! \param real(fpp), intent(IN) dt
+!! \param real(fpp), intent(IN) bega
+!! \param real(fpp), intent(IN) alpha
+!! \param real(fpp), dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) Vxloc
+!! \param real(fpp), dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) Vzloc
 !<
 
 
@@ -33,8 +33,8 @@ subroutine get_PMLprediction_fv2el (Tdomain,n,Vxloc,Vzloc,ngllx,ngllz,alpha, beg
     implicit none
     type (Domain), intent (IN) :: Tdomain
     integer, intent (IN) :: n, ngllx,ngllz
-    real, intent(IN) :: dt, bega, alpha
-    real, dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) :: Vxloc,Vzloc
+    real(fpp), intent(IN) :: dt, bega, alpha
+    real(fpp), dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) :: Vxloc,Vzloc
 
     integer :: nf,i
 
@@ -159,7 +159,7 @@ subroutine get_Veloc_fv2el (Tdomain,nelem,Vxloc,Vzloc,ngllx,ngllz)
     implicit none
     type (Domain), intent (IN) :: Tdomain
     integer, intent (IN) :: nelem, ngllx,ngllz
-    real, dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) :: Vxloc,Vzloc
+    real(fpp), dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) :: Vxloc,Vzloc
     logical :: coherency
     integer :: nface, nv, i
 

@@ -33,12 +33,12 @@ subroutine define_arrays(Tdomain)
     integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow,powOmc,nface
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
-    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI,Omega_c,dxdxi,dzdeta, Dt
-    real, external :: pow
-    real, dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
-    real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
-    real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z
-    real, dimension (:,:), allocatable :: duux,duuz,wx_prime,wz_prime
+    real(fpp) :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI,Omega_c,dxdxi,dzdeta, Dt
+    real(fpp), external :: pow
+    real(fpp), dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
+    real(fpp), dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
+    real(fpp), dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z
+    real(fpp), dimension (:,:), allocatable :: duux,duuz,wx_prime,wz_prime
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005

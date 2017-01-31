@@ -14,6 +14,7 @@
 subroutine SourcePosition(Tdomain)
 
     use sdomain
+    use constants
     use mlocations2d
     implicit none
     type (domain), intent (INOUT) :: Tdomain
@@ -22,10 +23,10 @@ subroutine SourcePosition(Tdomain)
 
     integer, parameter :: NMAXEL=20
     integer, dimension(NMAXEL) :: elems
-    double precision, dimension(0:1,NMAXEL) :: coordloc
-    double precision, parameter :: EPS = 1D-13
-    integer :: nsour, nmax, i, n_el
-    double precision :: xc, zc, xi, eta
+    real(fpp), dimension(0:1,NMAXEL) :: coordloc
+    real(fpp), parameter :: EPS = 1D-13
+    integer   :: nsour, nmax, i, n_el
+    real(fpp) :: xc, zc, xi, eta
     logical :: inside
 
     ! Find the nearest point to the real location of the sources in GLL scheme
@@ -83,6 +84,7 @@ end subroutine SourcePosition
 
 subroutine source_excit_pulse(Tdomain, src)
     use sdomain
+    use constants
     use ssources
     use ssubdomains
     implicit none
@@ -90,7 +92,7 @@ subroutine source_excit_pulse(Tdomain, src)
     type(Subdomain), pointer :: mat
     type(Source), intent(inout) :: src
     integer :: n, i, j, ngllx, ngllz, nmat, nnelem
-    real :: weta, wxi
+    real(fpp) :: weta, wxi
 
     do n = 0, src%ine-1
         nnelem = src%Elem(n)%nr
@@ -116,15 +118,16 @@ end subroutine source_excit_pulse
 ! Following subroutine added for testing JP proposition
 subroutine source_excit_strain(Tdomain, src)
     use sdomain
+    use constants
     use ssources
     use ssubdomains
     implicit none
     type(Domain), intent(inout) :: Tdomain
     type(Subdomain), pointer :: mat
     type(Source), intent(inout) :: src
-    real, dimension(0:1, 0:1)   :: M
+    real(fpp), dimension(0:1, 0:1)   :: M
     integer :: n, i, j, ngllx, ngllz, nmat, nnelem
-    real :: weta, wxi, invE, nu
+    real(fpp) :: weta, wxi, invE, nu
 
     do n = 0, src%ine-1
         nnelem = src%Elem(n)%nr
@@ -157,6 +160,7 @@ end subroutine source_excit_strain
 
 subroutine source_excit_moment(Tdomain, src)
     use sdomain
+    use constants
     use ssources
     use ssubdomains
     use selement
@@ -166,8 +170,8 @@ subroutine source_excit_moment(Tdomain, src)
     type(element), pointer :: elem
     type(Source), intent(inout) :: src
     integer :: n, i, j, ngllx, ngllz, nmat, nnelem
-    real, dimension(0:1, 0:1) :: InvGrad, M
-    real :: xi, eta, wxi, weta, dwdxi, dwdeta
+    real(fpp), dimension(0:1, 0:1) :: InvGrad, M
+    real(fpp) :: xi, eta, wxi, weta, dwdxi, dwdeta
 
     M = src%moment
     do n = 0, src%ine-1
@@ -210,6 +214,7 @@ end subroutine source_excit_moment
 !<
 subroutine source_dirac_projected(Tdomain, src)
     use sdomain
+    use constants
     use ssources
     use ssubdomains
     use selement
@@ -218,11 +223,11 @@ subroutine source_dirac_projected(Tdomain, src)
     type(Source), intent(inout) :: src
     type(Subdomain), pointer :: mat
     type(element), pointer :: elem
-    real, dimension(0:1, 0:1) :: M
-    real, dimension(:,:), allocatable :: Dirac_projected, whei, xix, xiz, etax, etaz, aux1, aux2
-    real, dimension(:),   allocatable :: Fsurf1, Fsurf2
-    integer :: n, i, j, ngllx, ngllz, nelem, nmat, imin, imax
-    real    :: xi, eta
+    real(fpp), dimension(0:1, 0:1) :: M
+    real(fpp), dimension(:,:), allocatable :: Dirac_projected, whei, xix, xiz, etax, etaz, aux1, aux2
+    real(fpp), dimension(:),   allocatable :: Fsurf1, Fsurf2
+    integer  :: n, i, j, ngllx, ngllz, nelem, nmat, imin, imax
+    real(fpp):: xi, eta
 
     M = src%moment
     do n = 0, src%ine-1 ! loop on all elements
@@ -310,17 +315,18 @@ end subroutine source_dirac_projected
 !<
 subroutine project_dirac_on_Legendre(Dirac_projected,GLLcx,GLLcz,xi,eta,ngllx,ngllz)
 
+    use constants
     use splib, only : valepo
 
-    real, dimension (0:ngllx-1, 0:ngllz-1), intent(INOUT) :: Dirac_projected
-    real, dimension (0:ngllx-1), intent(IN) :: GLLcx
-    real, dimension (0:ngllz-1), intent(IN) :: GLLcz
-    real,    intent(IN) :: xi, eta
+    real(fpp), dimension (0:ngllx-1, 0:ngllz-1), intent(INOUT) :: Dirac_projected
+    real(fpp), dimension (0:ngllx-1), intent(IN) :: GLLcx
+    real(fpp), dimension (0:ngllz-1), intent(IN) :: GLLcz
+    real(fpp),    intent(IN) :: xi, eta
     integer, intent(IN) :: ngllx, ngllz
     integer  :: i, j, n, m
-    real     :: interp_at_gll, d1, d2, resx, resy, xi_i, eta_j
-    real, dimension (0:ngllx-1) :: Pn_xs
-    real, dimension (0:ngllz-1) :: Pm_ys
+    real(fpp):: interp_at_gll, d1, d2, resx, resy, xi_i, eta_j
+    real(fpp), dimension (0:ngllx-1) :: Pn_xs
+    real(fpp), dimension (0:ngllz-1) :: Pm_ys
 
     ! Compute values of the Legendre polynomials Pn on the sources coords (eta,xi)
     do n=0,ngllx-1
@@ -364,6 +370,7 @@ end subroutine project_dirac_on_Legendre
 !<
 subroutine source_space_gaussian(Tdomain, src)
     use sdomain
+    use constants
     use ssources
     use ssubdomains
     use selement
@@ -371,8 +378,8 @@ subroutine source_space_gaussian(Tdomain, src)
     type(Domain), intent(inout) :: Tdomain
     type(Source), intent(inout) :: src
     type(Subdomain), pointer    :: mat
-    real, dimension(0:1, 0:1)   :: M
-    real      :: Tol, Dx, Dz, Dist, res, dGauss_dx, dGauss_dz, WheiJac
+    real(fpp), dimension(0:1, 0:1)   :: M
+    real(fpp) :: Tol, Dx, Dz, Dist, res, dGauss_dx, dGauss_dz, WheiJac
     integer   :: n, ng, ns, nel, nmat, mind, ngllx, ngllz, i, j
 
     M = src%moment
@@ -437,6 +444,7 @@ end subroutine source_space_gaussian
 
 subroutine calc_shape4_coeffs(Tdomain, src)
     use sdomain
+    use constants
     use ssources
     use ssubdomains
     use selement
@@ -444,11 +452,11 @@ subroutine calc_shape4_coeffs(Tdomain, src)
     type(Domain), intent(inout) :: Tdomain
     type(element), pointer :: elem
     type(Source), intent(inout) :: src
-    real, dimension(0:1, 0:1) :: InvGrad
+    real(fpp), dimension(0:1, 0:1) :: InvGrad
     integer :: n, ipoint, nnelem
-    real :: xi, eta, jac
-    real :: x0, x1, x2, x3
-    real :: z0, z1, z2, z3
+    real(fpp) :: xi, eta, jac
+    real(fpp) :: x0, x1, x2, x3
+    real(fpp) :: z0, z1, z2, z3
 
     do n = 0, src%ine-1
         nnelem = src%Elem(n)%nr
@@ -473,6 +481,7 @@ end subroutine calc_shape4_coeffs
 
 subroutine calc_shape8_coeffs(Tdomain, src)
     use sdomain
+    use constants
     use ssources
     use ssubdomains
     use selement
@@ -480,11 +489,11 @@ subroutine calc_shape8_coeffs(Tdomain, src)
     type(Domain), intent(inout) :: Tdomain
     type(element), pointer :: elem
     type(Source), intent(inout) :: src
-    real, dimension(0:1, 0:1) :: InvGrad
+    real(fpp), dimension(0:1, 0:1) :: InvGrad
     integer :: n, ipoint, nnelem
-    real :: xi, eta, jac
-    real :: x0, x1, x2, x3, x4, x5, x6, x7
-    real :: z0, z1, z2, z3, z4, z5, z6, z7
+    real(fpp) :: xi, eta, jac
+    real(fpp) :: x0, x1, x2, x3, x4, x5, x6, x7
+    real(fpp) :: z0, z1, z2, z3, z4, z5, z6, z7
 
     do n = 0, src%ine-1
         nnelem = src%Elem(n)%nr
@@ -528,10 +537,12 @@ end subroutine calc_shape8_coeffs
 
 subroutine  Gaussian2d(Dist,sigma,res)
 
+  use constants
   implicit none
-  real, intent(in)  :: Dist, sigma
-  real, intent(out) :: res
-  real              :: PI
+
+  real(fpp), intent(in)  :: Dist, sigma
+  real(fpp), intent(out) :: res
+  real(fpp)              :: PI
 
   PI = Acos(-1.)
   res = 1./(sigma * sqrt(2.*PI)) * exp(-Dist/(2.*sigma**2))

@@ -32,12 +32,12 @@ subroutine Midpoint_impl_expl (Tdomain,Dt,n_it_max)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real,    intent(in)   :: dt
+    real(fpp),    intent(in)   :: dt
     integer, intent(in)   :: n_it_max
 
     ! local variables
-    integer :: n, iter
-    real :: timelocal
+    integer   :: n, iter
+    real(fpp) :: timelocal
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
@@ -82,12 +82,12 @@ subroutine Midpoint_impl_semi_impl (Tdomain,Dt,n_it_max)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real,    intent(in)   :: dt
+    real(fpp),    intent(in)   :: dt
     integer, intent(in)   :: n_it_max
 
     ! local variables
-    integer :: n, iter
-    real    :: timelocal
+    integer  :: n, iter
+    real(fpp):: timelocal
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
@@ -140,12 +140,12 @@ subroutine Midpoint_Test(Tdomain,Dt,n_it_max)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real,    intent(in)   :: dt
+    real(fpp),    intent(in)   :: dt
     integer, intent(in)   :: n_it_max
 
     ! local variables
     integer :: n, iter
-    real :: timelocal
+    real(fpp) :: timelocal
 
 
     ! Initialization Phase
@@ -202,7 +202,7 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real,    intent(in)   :: timelocal,dt
+    real(fpp),    intent(in)   :: timelocal,dt
 
     ! local variables
     integer :: n, mat
@@ -235,7 +235,7 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
 
     ! Solve linear systems on the vertices
     do n=0,Tdomain%n_vertex-1
-        call solve_lambda_vertex(Tdomain%sVertex(n),n)
+        call solve_lambda_vertex(Tdomain%sVertex(n))
     enddo
 
     ! Constructing the Lambda (= velocities vhat) on the faces
@@ -276,7 +276,7 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt,computeVhat)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real,    intent(in)   :: timelocal,dt
+    real(fpp),    intent(in)   :: timelocal,dt
     logical, intent(in)   :: computeVhat
 
     ! local variables
@@ -337,7 +337,7 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real,    intent(in)   :: timelocal,dt
+    real(fpp),    intent(in)   :: timelocal,dt
 
     ! local variables
     integer :: n, mat
@@ -370,7 +370,7 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt)
 
     ! Solve linear systems on the vertices
     do n=0,Tdomain%n_vertex-1
-        call solve_lambda_vertex(Tdomain%sVertex(n),n)
+        call solve_lambda_vertex(Tdomain%sVertex(n))
     enddo
 
     ! Constructing the Lambda (= velocities vhat) on the faces
@@ -412,12 +412,12 @@ subroutine Midpoint_SEM(Tdomain,Dt)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    real,    intent(in)   :: dt
+    real(fpp),    intent(in)   :: dt
     !integer, intent(in)   :: n_it_max
 
     ! local variables
-    integer :: n, iter, mat, ngx, ngz, n_it_max
-    real :: timelocal, demi
+    integer   :: n, iter, mat, ngx, ngz, n_it_max
+    real(fpp) :: timelocal, demi
 
     n_it_max = 1
 

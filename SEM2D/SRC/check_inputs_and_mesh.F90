@@ -104,10 +104,10 @@ subroutine check_mesh(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    real, dimension(0:1)         :: vect1, vect2, vect3
+    real(fpp), dimension(0:1)    :: vect1, vect2, vect3
     integer, dimension (0:3)     :: Vertices
-    integer :: n, nv0, nv1, nv2, nv3
-    real    :: crossp1, crossp2
+    integer  :: n, nv0, nv1, nv2, nv3
+    real(fpp):: crossp1, crossp2
 
     do n=0,Tdomain%n_elem-1
         Vertices = Tdomain%specel(n)%Near_Vertex

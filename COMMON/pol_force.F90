@@ -12,7 +12,7 @@
 !<
 
 !>
-!! \brief Assure l'évaluation de la valeur recherchée en x pour la fonction au point de gauss k.
+!! \brief Assure l'evaluation de la valeur recherchee en x pour la fonction au point de gauss k.
 !!
 !! \param integer, intent (IN) n
 !! \param integer, intent (IN) k
@@ -28,11 +28,12 @@ subroutine pol_force (n,GLLc,k,x,y)
     !  k indice de la fonction
     !  x  abscisse
     !  y  valeur recherche en x pour la fonction au point de gauss k
+    use constants
     implicit none
     integer, intent (IN) :: n,k
-    real, dimension  (0:n-1), intent (IN) :: GLLc
-    real,intent (IN) :: x
-    real, intent (OUT) :: y
+    real(fpp), dimension  (0:n-1), intent (IN) :: GLLc
+    real(fpp),intent (IN) :: x
+    real(fpp), intent (OUT) :: y
 
     y = 1
     if (n ==0 ) then

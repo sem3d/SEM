@@ -12,7 +12,7 @@
 !<
 
 !>
-!! \brief Vérifie que le pas de temps est adapté
+!! \brief Verifie que le pas de temps est adapte
 !!
 !! Calcul du nombre de Courant
 !! \param type (Domain), intent (IN) Tdomain
@@ -26,9 +26,9 @@ subroutine Compute_Courant (Tdomain)
 
     type (Domain), intent (INOUT) :: Tdomain
 
-    integer :: i, j, ki, kj, n,ngllx, ngllz, idef0, idef1,mat, ierr
-    real :: dx,dxmin, courant, courant_max
-    real :: dt_min, dt, dt_loc
+    integer   :: i, j, ki, kj, n,ngllx, ngllz, idef0, idef1,mat, ierr
+    real(fpp) :: dx,dxmin, courant, courant_max
+    real(fpp) :: dt_min, dt, dt_loc
 
     courant = Tdomain%TimeD%courant
 

@@ -102,7 +102,7 @@ contains
         integer, intent(in) :: nnodes
         integer, dimension(:), intent(in), allocatable :: irenum
         !
-        real, dimension(:,:), allocatable :: nodes
+        real(fpp), dimension(:,:), allocatable :: nodes
         integer(HSIZE_T), dimension(2) :: dims
         integer :: n
         integer(HID_T) :: nodes_id
@@ -228,9 +228,9 @@ contains
         integer(HID_T) :: fid, displ_id, veloc_id, press_id, accel_id, rotat_id
         integer(HSIZE_T), dimension(2) :: dims
         integer(HSIZE_T), dimension(1) :: dimr
-        real, dimension(:,:),allocatable :: displ, veloc, accel, field_rotat
-        real, dimension(:), allocatable :: press, rotat
-        real, dimension(:,:,:),allocatable :: field_displ, field_veloc, field_accel
+        real(fpp), dimension(:,:),allocatable :: displ, veloc, accel, field_rotat
+        real(fpp), dimension(:), allocatable :: press, rotat
+        real(fpp), dimension(:,:,:),allocatable :: field_displ, field_veloc, field_accel
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
         integer :: ngllx, ngllz, idx
@@ -367,8 +367,8 @@ contains
         integer, intent(in) :: rg, isort, nnodes
         !
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, nn, ne
-        real :: time
+        integer   :: i, nn, ne
+        real(fpp) :: time
         call semname_xdmf(rg, fnamef)
 
         nn = nnodes
@@ -467,8 +467,8 @@ contains
         !
         integer(HID_T) :: mass_id, jac_id
         integer(HSIZE_T), dimension(1) :: dims
-        real, dimension(:),allocatable :: mass, jac
-        real, dimension(:,:), allocatable :: locmass
+        real(fpp), dimension(:),allocatable :: mass, jac
+        real(fpp), dimension(:,:), allocatable :: locmass
         integer :: hdferr
         integer :: ngllx, ngllz, idx
         integer :: i, k, n
@@ -537,8 +537,8 @@ contains
         implicit none
         type (domain), intent (IN) :: Tdomain
         integer, intent (IN) :: nel, ngllx, ngllz
-        real, dimension(0:ngllx-1,0:ngllz-1,0:1), intent (IN):: field_veloc
-        real, dimension(0:ngllx-1,0:ngllz-1), intent (INOUT) :: field_rotat
+        real(fpp), dimension(0:ngllx-1,0:ngllz-1,0:1), intent (IN):: field_veloc
+        real(fpp), dimension(0:ngllx-1,0:ngllz-1), intent (INOUT) :: field_rotat
         integer :: mat
 
         mat = Tdomain%specel(nel)%mat_index

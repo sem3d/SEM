@@ -21,22 +21,22 @@ module svertices
 
        logical :: PML, Abs, reflex, CPML, ADEPML, is_computed
        integer :: Glob_Numbering, mat_index, Type_DG
-       real :: MassMat, CoeffAssem
-       real, dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
-       real, dimension (:), allocatable :: Displ, Veloc, Forces, Accel, V0
-       real, dimension (:), allocatable :: Double_Value
+       real(fpp) :: MassMat, CoeffAssem
+       real(fpp), dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
+       real(fpp), dimension (:), allocatable :: Displ, Veloc, Forces, Accel, V0
+       real(fpp), dimension (:), allocatable :: Double_Value
        integer :: Iglobnum_Vertex
 
 #ifdef MKA3D
-       real, dimension (:), allocatable :: ForcesMka
+       real(fpp), dimension (:), allocatable :: ForcesMka
 #endif
        ! DG
        integer :: valence
-       real,   dimension (:), allocatable :: Vect_RK
+       real(fpp),   dimension (:), allocatable :: Vect_RK
        integer,dimension (:), allocatable :: Near_Face
-       real, dimension (:,:), allocatable :: Kmat
-       real,   dimension (:), allocatable :: SmbrLambda
-       real,   dimension (:), allocatable :: Lambda, K_up
+       real(fpp), dimension (:,:), allocatable :: Kmat
+       real(fpp),   dimension (:), allocatable :: SmbrLambda
+       real(fpp),   dimension (:), allocatable :: Lambda, K_up
 
     end type vertex
 
@@ -47,9 +47,9 @@ contains
     !! \brief
     !!
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) alpha
     !<
     !  subroutine Prediction_Vertex_Veloc (V,alpha,bega, dt)
     subroutine Prediction_Vertex_Veloc (V)
@@ -68,16 +68,16 @@ contains
     !! \brief
     !!
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
-    !! \param real, intent (IN) dt
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) gam1
+    !! \param real(fpp), intent (IN) dt
     !<
     subroutine Correction_Vertex_Veloc (V, dt)
         implicit none
 
         type (Vertex), intent (INOUT) :: V
-        !real, intent (IN) :: bega, gam1
-        real, intent (IN) :: dt
+        !real(fpp), intent (IN) :: bega, gam1
+        real(fpp), intent (IN) :: dt
 
         integer :: i
 
@@ -97,7 +97,7 @@ contains
     !! \brief
     !!
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (IN) dt
+    !! \param real(fpp), intent (IN) dt
     !<
 
 
@@ -105,7 +105,7 @@ contains
         implicit none
 
         type (Vertex), intent (INOUT) :: V
-        real, intent (IN) ::  dt
+        real(fpp), intent (IN) ::  dt
 
         integer :: i
 
@@ -128,16 +128,16 @@ contains
     !! \brief
     !!
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
-    !! \param real, intent (IN) dt
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) gam1
+    !! \param real(fpp), intent (IN) dt
     !<
 
     subroutine Correction_Vertex_CPML_Veloc (V, dt)
         implicit none
 
         type (Vertex), intent (INOUT) :: V
-        real, intent (IN) :: dt
+        real(fpp), intent (IN) :: dt
 
         integer :: i
 
@@ -161,7 +161,7 @@ contains
     !! \brief
     !!
     !! \param type (Vertex), intent (IN) V
-    !! \param real, dimension (0:1), intent (INOUT) Vfree
+    !! \param real(fpp), dimension (0:1), intent (INOUT) Vfree
     !! \param logical, intent (IN) logic
     !<
 
@@ -169,7 +169,7 @@ contains
         implicit none
 
         type (Vertex), intent (IN) :: V
-        real, dimension (0:1), intent (INOUT) :: Vfree
+        real(fpp), dimension (0:1), intent (INOUT) :: Vfree
         logical, intent (IN) :: logic
 
         if (logic) then
@@ -186,16 +186,16 @@ contains
     !>
     !! \brief This subroutine computes the kinetic energy on the vertex
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (INOUT) E_kin
+    !! \param real(fpp), intent (INOUT) E_kin
     !<
 
     subroutine  compute_Kinetic_Energy_V (V, Dt, E_kin)
         implicit none
 
         type (Vertex), intent (IN) :: V
-        real, intent (IN)    :: Dt
-        real, intent (INOUT) :: E_kin
-        real, dimension (0:1)  :: Vel_half
+        real(fpp), intent (IN)    :: Dt
+        real(fpp), intent (INOUT) :: E_kin
+        real(fpp), dimension (0:1)  :: Vel_half
 
         Vel_half(:) = V%Veloc(:) + 0.5 * dt * V%Forces(:)
         E_kin       = 0.5 /V%MassMat * ( Vel_half(0)*Vel_half(0) &
@@ -209,7 +209,7 @@ contains
     !! \brief This subroutine performs the cholesky factorisation of the
     !! matrix K defined at the vertex. So it is not really an inversion!
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (INOUT) E_kin
+    !! \param real(fpp), intent (INOUT) E_kin
     !<
     subroutine  invert_K_vertex(V,nv)
         implicit none
@@ -243,14 +243,13 @@ contains
     !! using a previously done cholesky factorisation K into U**T*U.
     !! The upper triangular matrix U is stored colomnwise into the vector K_up.
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (INOUT) E_kin
+    !! \param real(fpp), intent (INOUT) E_kin
     !<
-    subroutine  solve_lambda_vertex(V, nv)
+    subroutine  solve_lambda_vertex(V)
         implicit none
 
         type (Vertex), intent (INOUT)  :: V
-        integer,       intent (IN)     :: nv
-        real, dimension(1:2*V%Valence) :: rhs
+        real(fpp), dimension(1:2*V%Valence) :: rhs
         integer                        :: n, INFO
         n = 2 * V%Valence
 
@@ -278,16 +277,16 @@ contains
     !! \brief This subroutine checks the inversion of linear system :
     !! K * Lambda = smbrLambda
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (INOUT) E_kin
+    !! \param real(fpp), intent (INOUT) E_kin
     !<
     subroutine  check_system_inversion (V, Mat, nv)
         implicit none
 
         type (Vertex), intent (INOUT)  :: V
         integer,       intent (IN)     :: nv
-        real, dimension(0:2*V%Valence-1,0:2*V%Valence-1), intent (IN) :: Mat
+        real(fpp), dimension(0:2*V%Valence-1,0:2*V%Valence-1), intent (IN) :: Mat
         integer                        :: n, i, j
-        real                           :: tol, res, ratio
+        real(fpp)                      :: tol, res, ratio
 
         n = 2 * V%Valence
         tol = 1.E-10

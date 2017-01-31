@@ -24,37 +24,37 @@ module selement
        integer, dimension (0:3) :: Near_Vertex !
        integer, dimension (:,:), allocatable :: Iglobnum
 
-       real, dimension (:,:), allocatable :: Jacob,Density, Lambda, Mu,MassMat
-       real, dimension(:,:,:), allocatable :: Forces,Stress,Veloc,Displ,Accel,V0
-       real, dimension(:,:,:), allocatable :: ACoeff
-       real, dimension(:,:,:,:), allocatable :: InvGrad
+       real(fpp), dimension (:,:), allocatable :: Jacob,Density, Lambda, Mu,MassMat
+       real(fpp), dimension(:,:,:), allocatable :: Forces,Stress,Veloc,Displ,Accel,V0
+       real(fpp), dimension(:,:,:), allocatable :: ACoeff
+       real(fpp), dimension(:,:,:,:), allocatable :: InvGrad
        logical :: OUTPUT, is_source
 
        ! PML allocation
        logical :: PML
-       real, dimension (:,:,:), allocatable :: Stress1,Stress2
-       real, dimension (:,:,:), allocatable :: Veloc1, Veloc2,Forces1,Forces2
-       real, dimension (:,:,:), allocatable :: DumpMass
-       real, dimension (:,:,:), allocatable :: DumpSx,DumpSz,DumpVx,DumpVz
+       real(fpp), dimension (:,:,:), allocatable :: Stress1,Stress2
+       real(fpp), dimension (:,:,:), allocatable :: Veloc1, Veloc2,Forces1,Forces2
+       real(fpp), dimension (:,:,:), allocatable :: DumpMass
+       real(fpp), dimension (:,:,:), allocatable :: DumpSx,DumpSz,DumpVx,DumpVz
 
        ! CPML/ADEPML allocation
        logical :: CPML, ADEPML
-       real, dimension (:,:), allocatable :: Ax, Bx, Az, Bz
-       real, dimension (:,:), allocatable :: PsiVxx, PsiVxz, PsiVzx, PsiVzz
-       real, dimension (:,:), allocatable :: PsiSxxx, PsiSzzz, PsiSxzx, PsiSxzz
+       real(fpp), dimension (:,:), allocatable :: Ax, Bx, Az, Bz
+       real(fpp), dimension (:,:), allocatable :: PsiVxx, PsiVxz, PsiVzx, PsiVzz
+       real(fpp), dimension (:,:), allocatable :: PsiSxxx, PsiSzzz, PsiSxzx, PsiSxzz
 
-       real dist_max !!Ajout Gsa 03/10 - taille caracteristique de l'element
+       real(fpp) :: dist_max !!Ajout Gsa 03/10 - taille caracteristique de l'element
 
        ! DG
        integer :: type_DG
        logical :: acoustic
-       real, dimension (:),    allocatable :: Coeff_Integr_Faces
-       real, dimension(:,:,:), allocatable :: Strain, Strain0
-       real, dimension(:,:,:), allocatable :: Vect_RK, Psi_store
+       real(fpp), dimension (:),    allocatable :: Coeff_Integr_Faces
+       real(fpp), dimension(:,:,:), allocatable :: Strain, Strain0
+       real(fpp), dimension(:,:,:), allocatable :: Vect_RK, Psi_store
        ! HDG
-       real, dimension(:,:), allocatable :: Normal_nodes
-       real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat, Dinv
-       real, dimension(:,:,:), allocatable :: CAinv, EDinv, Jmat
+       real(fpp), dimension(:,:), allocatable :: Normal_nodes
+       real(fpp), dimension(:,:), allocatable :: MatPen, TracFace, Vhat, Dinv
+       real(fpp), dimension(:,:,:), allocatable :: CAinv, EDinv, Jmat
        integer, dimension (0:3,0:1) :: pos_corner_in_VertMat
 
     end type element
@@ -81,17 +81,17 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) gam1
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) alpha
     !<
     !subroutine Prediction_Elem_Veloc (Elem,alpha,bega, dt)
     subroutine Prediction_Elem_Veloc (Elem)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        !real, intent (IN) :: bega, alpha, dt
+        !real(fpp), intent (IN) :: bega, alpha, dt
 
         integer :: ngllx, ngllz
 
@@ -109,17 +109,17 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
-    !! \param real, intent (IN) dt
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) gam1
+    !! \param real(fpp), intent (IN) dt
     !<
     !  subroutine Correction_Elem_Veloc (Elem, bega, gam1,dt)
     subroutine Correction_Elem_Veloc (Elem, dt)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        !real, intent (IN) :: bega, gam1
-        real, intent (IN) :: dt
+        !real(fpp), intent (IN) :: bega, gam1
+        real(fpp), intent (IN) :: dt
         integer :: ngllx, ngllz,i
 
         ngllx = Elem%ngllx ; ngllz = Elem%ngllz
@@ -139,7 +139,7 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) dt
+    !! \param real(fpp), intent (IN) dt
     !<
 
 
@@ -147,7 +147,7 @@ contains
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, intent (IN) ::  dt
+        real(fpp), intent (IN) ::  dt
         integer :: ngllx, ngllz,i
 
         ngllx = Elem%ngllx; ngllz=Elem%ngllz
@@ -170,24 +170,24 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTmat
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hmatz
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTmat
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hmatz
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) alpha
     !<
     subroutine Prediction_Elem_PML_Veloc (Elem,alpha, bega, dt,Vxloc,Vzloc,Hmatz, HTmat)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT)  ::Vxloc, Vzloc
-        real, intent (IN) :: bega, dt, alpha
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT)  ::Vxloc, Vzloc
+        real(fpp), intent (IN) :: bega, dt, alpha
 
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3
 
         integer :: ngllx, ngllz
 
@@ -231,25 +231,25 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTmat
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hmatz
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
-    !! \param real, intent (IN) fil
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTmat
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hmatz
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) alpha
+    !! \param real(fpp), intent (IN) fil
     !<
     subroutine Prediction_Elem_CPML_Veloc (Elem, alpha, bega, dt, Vxloc, Vzloc, Hmatz, HTmat)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) ::Vxloc, Vzloc
-        real, intent (IN) :: bega, dt, alpha
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) ::Vxloc, Vzloc
+        real(fpp), intent (IN) :: bega, dt, alpha
 
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3,s4
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3,s4
 
         integer :: ngllx, ngllz
 
@@ -295,10 +295,10 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
 
 
@@ -306,9 +306,9 @@ contains
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1) :: Uxloc, Uzloc, dUx_dxi, dUx_deta, dUz_dxi, dUz_deta, s0
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+        real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1) :: Uxloc, Uzloc, dUx_dxi, dUx_deta, dUz_dxi, dUz_deta, s0
 
         Uxloc =Elem%Forces (:,:,0)
         Uzloc = Elem%Forces (:,:,1)
@@ -345,8 +345,8 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
 
 
@@ -354,9 +354,9 @@ contains
       implicit none
 
       type (Element), intent (INOUT) :: Elem
-      real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
-      real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
-      real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
+      real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
+      real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
+      real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
 
       aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0)
       aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,0)
@@ -395,17 +395,17 @@ contains
     !! vitesse - deformation scalaire.
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
 
     subroutine  compute_InternalForces_HDG_Weak (Elem,hprime,hTprimez)
       implicit none
 
       type (Element), intent (INOUT) :: Elem
-      real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
-      real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
-      real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
+      real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
+      real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
+      real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
 
 
       if (Elem%acoustic) then ! ACOUSTIC CASE
@@ -455,17 +455,17 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
     !<
 
     subroutine  compute_InternalForces_DG_Strong (Elem,hTprime,hprimez)
       implicit none
 
       type (Element), intent (INOUT) :: Elem
-      real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-      real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-      real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
+      real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+      real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+      real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
 
       aux1 = MATMUL(hTprime,Elem%Veloc(:,:,0))
       aux2 = MATMUL(Elem%Veloc(:,:,0),hprimez)
@@ -508,18 +508,18 @@ contains
     !! and used in a framework of semi-implicit time scheme.
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
     subroutine  compute_InternalForces_HDG (Elem,hprime,hTprime,hprimez,hTprimez)
       implicit none
 
       type (Element), intent (INOUT) :: Elem
-      real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime , hTprime
-      real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
-      real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
+      real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime , hTprime
+      real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+      real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
 
       aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0)
       aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,0)
@@ -559,17 +559,17 @@ contains
     !! For continuous Galerkin elements, velocities and displacements are updated ;
     !! For discontinuous Galerkin elements, velocities and strains are updated.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) coeff1
-    !! \param real, intent (IN) coeff2
-    !! \param real, intent (IN) Dt
+    !! \param real(fpp), intent (IN) coeff1
+    !! \param real(fpp), intent (IN) coeff2
+    !! \param real(fpp), intent (IN) Dt
     !<
     subroutine  update_Elem_RK4 (Elem,coeff1,coeff2,Dt)
         implicit none
 
         type(Element), intent (INOUT) :: Elem
-        real, intent(IN) :: coeff1
-        real, intent(IN) :: coeff2
-        real, intent(IN) :: Dt
+        real(fpp), intent(IN) :: coeff1
+        real(fpp), intent(IN) :: coeff2
+        real(fpp), intent(IN) :: Dt
         integer          :: ngx, ngz
 
         if (Elem%type_DG==GALERKIN_CONT) then
@@ -655,22 +655,22 @@ contains
     !! In a RK4 framework, the ADE for the Psi variables is solved using RK4,
     !! like the others variables.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-    !! \param real, intent (IN) coeff1
-    !! \param real, intent (IN) coeff2
-    !! \param real, intent (IN) Dt
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+    !! \param real(fpp), intent (IN) coeff1
+    !! \param real(fpp), intent (IN) coeff2
+    !! \param real(fpp), intent (IN) Dt
     !<
     subroutine  update_Psi_ADEPML_RK4 (Elem,hTprime,hprimez,coeff1,coeff2,Dt)
         implicit none
 
         type(Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        real, intent(IN) :: coeff1
-        real, intent(IN) :: coeff2
-        real, intent(IN) :: Dt
-        real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real(fpp), intent(IN) :: coeff1
+        real(fpp), intent(IN) :: coeff2
+        real(fpp), intent(IN) :: Dt
+        real(fpp), dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
 
         if (Elem%Acoustic) then
             ! Compute second member of memory variables evolution equation
@@ -707,18 +707,18 @@ contains
     !! In a RK4 framework, the ADE for the Psi variables is solved using RK4,
     !! like the others variables.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-    !! \param real, intent (IN) Dt
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+    !! \param real(fpp), intent (IN) Dt
     !<
     subroutine  update_Psi_ADEPML (Elem,hTprime,hprimez,Dt)
         implicit none
 
         type(Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        real, intent(IN) :: Dt
-        real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real(fpp), intent(IN) :: Dt
+        real(fpp), dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
 
         if (Elem%ADEPML) then
             if (Elem%acoustic) then
@@ -766,18 +766,18 @@ contains
     !! \brief Thus subroutine is used in a ADE-PML framework : it computes the second member
     !!  of memory variables evolution equation for an ACOUSTIC element.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1, 0:7), intent (IN) :: smbr
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1, 0:7), intent (IN) :: smbr
     !<
     subroutine  compute_smbr_acou_ADEPML (Elem,hTprime,hprimez,smbr)
         implicit none
 
         type(Element), intent (IN) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        real, dimension (0:Elem%ngllx-1,0:Elem%ngllz-1,0:7), intent (INOUT) :: smbr
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: aux
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real(fpp), dimension (0:Elem%ngllx-1,0:Elem%ngllz-1,0:7), intent (INOUT) :: smbr
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: aux
 
         ! Defining Second Member of time evolution equation for the Psi
         ! Second member for Pressure memory variables
@@ -805,17 +805,17 @@ contains
     !! \brief Thus subroutine is used in a ADE-PML framework :
     !! It computes the second member of memory variables evolution equation.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1, 0:7), intent (IN) :: smbr
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1, 0:7), intent (IN) :: smbr
     !<
     subroutine  compute_smbr_ADEPML (Elem,hTprime,hprimez,smbr)
         implicit none
 
         type(Element), intent (IN) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        real, dimension (0:Elem%ngllx-1,0:Elem%ngllz-1,0:7), intent (INOUT) :: smbr
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real(fpp), dimension (0:Elem%ngllx-1,0:Elem%ngllz-1,0:7), intent (INOUT) :: smbr
 
         ! Defining Second Member of time evolution equation for the Psi
         ! Second member for Stresses memory variables
@@ -857,16 +857,16 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
     subroutine  compute_InternalForces_PML_Elem (Elem,hprime, hTprimez)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0,s1
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
+        real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0,s1
 
         s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,2)
         s1= MATMUL (hprime,s0)
@@ -894,10 +894,10 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
 
     subroutine  compute_InternalForces_CPML_Elem (Elem, hprime, hTprime, hprimez, hTprimez)
@@ -905,9 +905,9 @@ contains
 
         type (Element), intent (INOUT) :: Elem
 
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: dAxdx,dAzdz,s0,s1
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+        real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: dAxdx,dAzdz,s0,s1
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
         logical :: withIntegrationByPart  = .false.
 
         dAxdx = Elem%Acoeff(:,:,12)*MATMUL(hTprime,Elem%Ax) &
@@ -996,20 +996,20 @@ contains
     !! \brief This subroutine computes the energy of the elastic deformation of the element
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
-    !! \param real, intent (INOUT) E_elas
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real(fpp), intent (INOUT) E_elas
     !<
 
     subroutine  compute_Elastic_Energy (Elem, hTprime, hprimez, E_elas)
         implicit none
 
         type (Element), intent (IN) :: Elem
-        real, intent (INOUT) :: E_elas
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-        real, dimension ( 0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0, EMat, Uxloc, Uzloc
+        real(fpp), intent (INOUT) :: E_elas
+        real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real(fpp), dimension ( 0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta
+        real(fpp), dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0, EMat, Uxloc, Uzloc
 
         ! This subroutine is called outside the Newmark scheme, so the local
         ! displacements are store in Forces
@@ -1047,15 +1047,15 @@ contains
     !! \brief This subroutine computes the energy of the elastic deformation of the element.
     !!  Suitable for DG elements only.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (INOUT) E_elas
+    !! \param real(fpp), intent (INOUT) E_elas
     !<
 
     subroutine  compute_Elastic_Energy_DG (Elem, E_elas)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, intent (INOUT) :: E_elas
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: sigma11, sigma22, sigma12, EMat
+        real(fpp), intent (INOUT) :: E_elas
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: sigma11, sigma22, sigma12, EMat
 
         if (Elem%Acoustic) then
             Emat = Elem%Lambda * Elem%Strain(:,:,0) * Elem%Strain(:,:,0)
@@ -1080,17 +1080,17 @@ contains
     !! \brief This subroutine computes the kinetic energy of the inner nodes
     !!  of an element
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (INOUT) E_kin
+    !! \param real(fpp), intent (INOUT) E_kin
     !<
 
     subroutine  compute_Kinetic_Energy (Elem, Dt, E_kin)
         implicit none
 
         type (Element), intent (IN) :: Elem
-        real, intent (IN)    :: Dt
-        real, intent (INOUT) :: E_kin
-        real, dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2)      :: Ener_Mat
-        real, dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2, 0:1) :: Vel_half
+        real(fpp), intent (IN)    :: Dt
+        real(fpp), intent (INOUT) :: E_kin
+        real(fpp), dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2)      :: Ener_Mat
+        real(fpp), dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2, 0:1) :: Vel_half
         integer :: ngllx, ngllz
 
         ngllx = Elem%ngllx ; ngllz = Elem%ngllz
@@ -1108,15 +1108,15 @@ contains
     !! \brief This subroutine computes the kinetic energy using all the nodes
     !!  of an element. It suitable for Discontinuous Galerkin elements only.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (INOUT) E_kin
+    !! \param real(fpp), intent (INOUT) E_kin
     !<
 
     subroutine  compute_Kinetic_Energy_DG (Elem, E_kin)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, intent (INOUT) :: E_kin
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: Ener_Mat
+        real(fpp), intent (INOUT) :: E_kin
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: Ener_Mat
 
         Ener_Mat = 1./Elem%MassMat(:,:) * ( Elem%Veloc(:,:,0)*Elem%Veloc(:,:,0) &
                                            +Elem%Veloc(:,:,1)*Elem%Veloc(:,:,1))
@@ -1315,7 +1315,7 @@ contains
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatn
+        real(fpp), dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatn
         integer    :: imin, imax, ngx, ngz
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
@@ -1370,7 +1370,7 @@ contains
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatx,Vhatz,Vhatxz
+        real(fpp), dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatx,Vhatz,Vhatxz
         integer    :: imin, imax, ngx, ngz
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
@@ -1520,14 +1520,14 @@ contains
     !! \brief This subroutine adds to the second member (i.e the forces) of the
     !!  system we solve, the terms comming from the previous time-step.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) Dt
+    !! \param real(fpp), intent (IN) Dt
     !!
     !<
     subroutine  add_previous_state2forces (Elem,Dt)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        real, intent (IN)                :: Dt
+        real(fpp), intent (IN)                :: Dt
 
         if (Elem%acoustic) then
             Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,4) * Elem%Strain0(:,:,0)
@@ -1548,14 +1548,14 @@ contains
     !! \brief This subroutine updates Strains and velocities from forces in an
     !! explicit forward Euler time scheme.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) Dt
+    !! \param real(fpp), intent (IN) Dt
     !!
     !<
     subroutine  update_Elem_Forward_Euler (Elem,Dt)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        real, intent (IN)                :: Dt
+        real(fpp), intent (IN)                :: Dt
 
         if (Elem%acoustic) then
             Elem%Strain(:,:,0) = Dt * Elem%Forces(:,:,0)
@@ -1576,15 +1576,15 @@ contains
     !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
     !! only, and only in a framework of semi-implicit time-scheme.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) Dt
+    !! \param real(fpp), intent (IN) Dt
     !!
     !<
     subroutine  compute_smbr_R (Elem,Dt)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        real, intent (IN) :: Dt
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:4) :: smbr
+        real(fpp), intent (IN) :: Dt
+        real(fpp), dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:4) :: smbr
         integer    :: imin, imax, ngx, ngz
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
@@ -1617,16 +1617,16 @@ contains
     !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
     !! only, and only in a framework of semi-implicit time-scheme.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) Dt
+    !! \param real(fpp), intent (IN) Dt
     !!
     !<
     subroutine  inversion_local_solver (Elem,Dt)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real,           intent (IN)    :: Dt
-        real, dimension(0:1)           :: aux
-        !real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1) :: smbr, res
+        real(fpp),           intent (IN)    :: Dt
+        real(fpp), dimension(0:1)           :: aux
+        !real(fpp), dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1) :: smbr, res
         integer                        :: ngx, ngz, imin, imax, i
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
@@ -1699,14 +1699,14 @@ contains
     !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
     !! only, and only in a framework of semi-implicit time-scheme.
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) Dt
+    !! \param real(fpp), intent (IN) Dt
     !!
     !<
     subroutine  local_solver (Elem, Dt)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real,           intent (IN)    :: Dt
+        real(fpp),      intent (IN)    :: Dt
 
         ! First step : traces terms are computed using the subroutine compute_traces
         ! and setting the former tractions TracFace to 0

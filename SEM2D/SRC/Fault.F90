@@ -23,34 +23,36 @@ module sfaults
     !                          The slope and DeltaTau are constant on the fault
     ! #####################################################################################
 
+    use constants
+
     type Face_Fault
 
        logical :: Coherency
        logical, dimension (:), pointer :: log_face
        integer :: Face_UP, Face_DOWN, ngll, mat_index, mat_dir
        integer, dimension (0:1) :: Face_to_Vertex
-       real, dimension (0:1) :: X_Vertex, Z_Vertex
-       real, dimension (:), pointer :: ds, tau0, sigma0, mus, mud, Dc, Bt, Cgamma
-       real, dimension (:), pointer :: Ct, b, w , beta_p, AbsDeltau0, distance
-       real, dimension (:,:), pointer :: DeltaV, Traction, Deltau,normal
+       real(fpp), dimension (0:1) :: X_Vertex, Z_Vertex
+       real(fpp), dimension (:), pointer :: ds, tau0, sigma0, mus, mud, Dc, Bt, Cgamma
+       real(fpp), dimension (:), pointer :: Ct, b, w , beta_p, AbsDeltau0, distance
+       real(fpp), dimension (:,:), pointer :: DeltaV, Traction, Deltau,normal
 
     end type Face_Fault
 
     type Vertex_Fault
 
-       logical :: Termination, log_vertex
-       integer :: Vertex_UP, Vertex_DOWN, mat_index
-       real :: tau0, sigma0, mus, mud, Dc, Bt, CGamma, MassMat_UP, MassMat_Down
-       real :: Ct, b, w, beta_p, Absdeltau0, distance
-       real, dimension (0:1) :: DeltaV, Traction, Deltau,normal
+       logical   :: Termination, log_vertex
+       integer   :: Vertex_UP, Vertex_DOWN, mat_index
+       real(fpp) :: tau0, sigma0, mus, mud, Dc, Bt, CGamma, MassMat_UP, MassMat_Down
+       real(fpp) :: Ct, b, w, beta_p, Absdeltau0, distance
+       real(fpp), dimension (0:1) :: DeltaV, Traction, Deltau,normal
 
     end type Vertex_Fault
 
     type Fault
 
-       logical :: smoothing
-       integer :: n_face, n_vertex,  Problem_type
-       real :: imposed_Tolerance, dx_smoothing
+       logical   :: smoothing
+       integer   :: n_face, n_vertex,  Problem_type
+       real(fpp) :: imposed_Tolerance, dx_smoothing
        type(Face_Fault), dimension (:), pointer :: fFace
        type(Vertex_Fault), dimension (:), pointer :: fVertex
 
@@ -63,9 +65,9 @@ contains
     !! \brief
     !!
     !! \param type (Face_Fault), intent (INOUT) Face
-    !! \param real, dimension (1:Face%ngll-2,0:1), intent (IN) Vfree
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) tolerance_imposed
+    !! \param real(fpp), dimension (1:Face%ngll-2,0:1), intent (IN) Vfree
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) tolerance_imposed
     !<
 
 
@@ -73,12 +75,12 @@ contains
         implicit none
 
         type (Face_Fault), intent (INOUT) :: Face
-        real, dimension (1:Face%ngll-2,0:1), intent (IN) :: Vfree
-        real, intent (IN) :: dt, tolerance_imposed
+        real(fpp), dimension (1:Face%ngll-2,0:1), intent (IN) :: Vfree
+        real(fpp), intent (IN) :: dt, tolerance_imposed
 
-        integer :: i, ngll
-        real :: tolerance, Tract_aus, Tracn_aus, delta_disp, Treshold_SW_UP, Treshold_SW_DOWN
-        real, dimension (1:Face%ngll-2,0:1) :: Vfree_aus, Vfree_aus2
+        integer   :: i, ngll
+        real(fpp) :: tolerance, Tract_aus, Tracn_aus, delta_disp, Treshold_SW_UP, Treshold_SW_DOWN
+        real(fpp), dimension (1:Face%ngll-2,0:1) :: Vfree_aus, Vfree_aus2
 
         Vfree_aus2 = dt *Vfree
         ngll = Face%ngll
@@ -157,7 +159,7 @@ contains
         type (Face_Fault), intent (INOUT) :: Face
 
         integer :: ngll
-        real, dimension (1:Face%ngll-2,0:1) :: Vfree_aus
+        real(fpp), dimension (1:Face%ngll-2,0:1) :: Vfree_aus
 
         ! Rotate traction
         ngll = Face%ngll
@@ -172,9 +174,9 @@ contains
     !! \brief
     !!
     !! \param type (Vertex_Fault), intent (INOUT) Vertex
-    !! \param real, dimension (0:1), intent (IN) Vfree
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) tolerance_imposed
+    !! \param real(fpp), dimension (0:1), intent (IN) Vfree
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) tolerance_imposed
     !<
 
 
@@ -182,11 +184,11 @@ contains
         implicit none
 
         type (Vertex_Fault), intent (INOUT) :: Vertex
-        real, dimension (0:1), intent (IN) :: Vfree
-        real, intent (IN) :: dt, tolerance_imposed
+        real(fpp), dimension (0:1), intent (IN) :: Vfree
+        real(fpp), intent (IN) :: dt, tolerance_imposed
 
-        real :: tolerance, Tract_aus, Tracn_aus, delta_disp, Treshold_SW_UP, Treshold_SW_DOWN
-        real, dimension (0:1) :: Vfree_aus, Vfree_aus2
+        real(fpp) :: tolerance, Tract_aus, Tracn_aus, delta_disp, Treshold_SW_UP, Treshold_SW_DOWN
+        real(fpp), dimension (0:1) :: Vfree_aus, Vfree_aus2
 
         Vfree_aus2(0:1) = dt *Vfree(0:1)
 
@@ -262,7 +264,7 @@ contains
 
         type (Vertex_Fault), intent (INOUT) :: Vertex
 
-        real, dimension (0:1) :: Vfree_aus
+        real(fpp), dimension (0:1) :: Vfree_aus
 
 
         ! Rotate traction
@@ -278,9 +280,9 @@ contains
     !! \brief
     !!
     !! \param type (Face_Fault), intent (INOUT) Face
-    !! \param real, dimension (1:Face%ngll-2,0:1), intent (IN) Vfree
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) tolerance_imposed
+    !! \param real(fpp), dimension (1:Face%ngll-2,0:1), intent (IN) Vfree
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) tolerance_imposed
     !<
 
 
@@ -288,12 +290,12 @@ contains
         implicit none
 
         type (Face_Fault), intent (INOUT) :: Face
-        real, dimension (1:Face%ngll-2,0:1), intent (IN) :: Vfree
-        real, intent (IN) :: dt, tolerance_imposed
+        real(fpp), dimension (1:Face%ngll-2,0:1), intent (IN) :: Vfree
+        real(fpp), intent (IN) :: dt, tolerance_imposed
 
-        integer :: i, ngll
-        real :: tolerance, Tract_aus, Tracn_aus, delta_disp, Treshold_AD
-        real, dimension (1:Face%ngll-2,0:1) :: Vfree_aus, Vfree_aus2
+        integer  :: i, ngll
+        real(fpp):: tolerance, Tract_aus, Tracn_aus, delta_disp, Treshold_AD
+        real(fpp), dimension (1:Face%ngll-2,0:1) :: Vfree_aus, Vfree_aus2
 
         Vfree_aus = Face%Deltav + dt *Vfree
         ngll = Face%ngll
@@ -358,9 +360,9 @@ contains
     !! \brief
     !!
     !! \param type (Vertex_Fault), intent (INOUT) Vertex
-    !! \param real, dimension (0:1), intent (IN) Vfree
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) tolerance_imposed
+    !! \param real(fpp), dimension (0:1), intent (IN) Vfree
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) tolerance_imposed
     !<
 
 
@@ -368,12 +370,12 @@ contains
         implicit none
 
         type (Vertex_Fault), intent (INOUT) ::Vertex
-        real, dimension (0:1), intent (IN) :: Vfree
-        real, intent (IN) :: dt, tolerance_imposed
+        real(fpp), dimension (0:1), intent (IN) :: Vfree
+        real(fpp), intent (IN) :: dt, tolerance_imposed
 
-        integer :: i
-        real :: tolerance, Tract_aus, Tracn_aus, delta_disp, Treshold_AD
-        real, dimension (0:1) :: Vfree_aus, Vfree_aus2
+        integer   :: i
+        real(fpp) :: tolerance, Tract_aus, Tracn_aus, delta_disp, Treshold_AD
+        real(fpp), dimension (0:1) :: Vfree_aus, Vfree_aus2
 
         Vfree_aus = Vertex%Deltav + dt *Vfree
 

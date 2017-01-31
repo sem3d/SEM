@@ -22,29 +22,29 @@ module sfaces
        integer :: ngll, mat_index, type_Flux, Type_DG, mortarID
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
-       real, dimension (:), allocatable :: massMat
-       real, dimension (:,:), allocatable :: Veloc, Displ, Accel, V0, Forces
-       real, dimension (:,:), allocatable :: Veloc1, Veloc2, Forces1, Forces2
-       real, dimension (:,:), allocatable :: DumpMass, DumpVx, DumpVz
+       real(fpp), dimension (:), allocatable :: massMat
+       real(fpp), dimension (:,:), allocatable :: Veloc, Displ, Accel, V0, Forces
+       real(fpp), dimension (:,:), allocatable :: Veloc1, Veloc2, Forces1, Forces2
+       real(fpp), dimension (:,:), allocatable :: DumpMass, DumpVx, DumpVz
        integer, dimension (:), allocatable :: Iglobnum_Face
 
 #ifdef MKA3D
-       real, dimension (:,:), allocatable :: ForcesMka
+       real(fpp), dimension (:,:), allocatable :: ForcesMka
 #endif
 
        logical :: coherency, PML, Abs, CPML, ADEPML, freesurf, reflex
 
        ! DG
-       real, dimension (:), allocatable :: Normal
-       real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
-       real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m, Rho_m, Rho_p
-       real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m, Flux_p
-       real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
-       real, dimension (:,:), allocatable :: Vect_RK
+       real(fpp), dimension (:), allocatable :: Normal
+       real(fpp), dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
+       real(fpp), dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m, Rho_m, Rho_p
+       real(fpp), dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m, Flux_p
+       real(fpp), dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
+       real(fpp), dimension (:,:), allocatable :: Vect_RK
        ! HDG
-       real, dimension (:,:), allocatable :: Normal_Nodes
-       real, dimension (:,:), allocatable :: Kinv, KinvExpl, SmbrTrac
-       real, dimension (0:1)    :: Coeff_integr_ends
+       real(fpp), dimension (:,:), allocatable :: Normal_Nodes
+       real(fpp), dimension (:,:), allocatable :: Kinv, KinvExpl, SmbrTrac
+       real(fpp), dimension (0:1)    :: Coeff_integr_ends
        integer, dimension (0:1) :: pos_in_VertMat
        logical :: is_computed, changing_media, acoustic, mortar
 
@@ -70,10 +70,10 @@ contains
 
     ! local variables
     integer                          :: i
-    real, dimension (0:F%ngll-1,0:1) :: Stress_jump
-    real, dimension (0:F%ngll-1,0:1) :: Veloc_jump
-    real, dimension (0:F%ngll-1,0:4) :: F_minus
-    real, dimension (0:F%ngll-1)     :: coeff_p
+    real(fpp), dimension (0:F%ngll-1,0:1) :: Stress_jump
+    real(fpp), dimension (0:F%ngll-1,0:1) :: Veloc_jump
+    real(fpp), dimension (0:F%ngll-1,0:4) :: F_minus
+    real(fpp), dimension (0:F%ngll-1)     :: coeff_p
 
     ! --------- CENTERED FLUX -----------
     !          (partie a revoir)          !
@@ -154,10 +154,10 @@ end subroutine Compute_Flux_DGstrong
 
     ! local variables
     integer                          :: i
-    real, dimension (0:F%ngll-1,0:1) :: Stress_jump
-    real, dimension (0:F%ngll-1,0:1) :: Veloc_jump
-    real, dimension (0:F%ngll-1,0:4) :: F_minus
-    real, dimension (0:F%ngll-1)     :: coeff_p
+    real(fpp), dimension (0:F%ngll-1,0:1) :: Stress_jump
+    real(fpp), dimension (0:F%ngll-1,0:1) :: Veloc_jump
+    real(fpp), dimension (0:F%ngll-1,0:4) :: F_minus
+    real(fpp), dimension (0:F%ngll-1)     :: coeff_p
 
     ! --------- CENTERED FLUX -----------
     if (F%Type_Flux == FLUX_CENTERED) then
@@ -262,17 +262,17 @@ end subroutine Compute_Flux_DGstrong
     !! \brief
     !!
     !! \param type (Face), intent (INOUT) F
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) gam1
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) alpha
     !<
     !  subroutine Prediction_Face_Veloc (F,alpha,bega, dt)
     subroutine Prediction_Face_Veloc (F)
         implicit none
 
         type (Face), intent (INOUT) :: F
-        !real, intent (IN) :: bega,  alpha ,dt
+        !real(fpp), intent (IN) :: bega,  alpha ,dt
 
         F%Forces = F%Displ
         F%V0 = F%Veloc
@@ -287,9 +287,9 @@ end subroutine Compute_Flux_DGstrong
     !!
     !! \param integer, intent (IN) ngll
     !! \param type (Face), intent (INOUT) F
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
-    !! \param real, intent (IN) dt
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) gam1
+    !! \param real(fpp), intent (IN) dt
     !<
     !  subroutine Correction_Face_Veloc (F, ngll, bega, gam1,dt)
     subroutine Correction_Face_Veloc (F, ngll, dt)
@@ -297,9 +297,9 @@ end subroutine Compute_Flux_DGstrong
 
         integer, intent (IN) :: ngll
         type (Face), intent (INOUT) :: F
-        !real, intent (IN) :: bega, gam1
-        real, intent (IN) :: dt
-        real, dimension (1:ngll-2) :: masse
+        !real(fpp), intent (IN) :: bega, gam1
+        real(fpp), intent (IN) :: dt
+        real(fpp), dimension (1:ngll-2) :: masse
 
         integer :: i
 
@@ -325,13 +325,13 @@ end subroutine Compute_Flux_DGstrong
     !! \brief
     !!
     !! \param type (Face), intent (INOUT) F
-    !! \param real, intent (IN) dt
+    !! \param real(fpp), intent (IN) dt
     !<
     subroutine Correction_Face_PML_Veloc (F, dt)
         implicit none
 
         type (Face), intent (INOUT) :: F
-        real, intent (IN) ::  dt
+        real(fpp), intent (IN) ::  dt
 
         integer :: i
 
@@ -356,13 +356,13 @@ end subroutine Compute_Flux_DGstrong
     !! \brief
     !!
     !! \param type (Face), intent (INOUT) F
-    !! \param real, intent (IN) dt
+    !! \param real(fpp), intent (IN) dt
     !<
     subroutine Correction_Face_CPML_Veloc (F, dt)
         implicit none
 
         type (Face), intent (INOUT) :: F
-        real, intent (IN) ::  dt
+        real(fpp), intent (IN) ::  dt
         integer :: i,ngll
 
         ngll = F%ngll
@@ -389,7 +389,7 @@ end subroutine Compute_Flux_DGstrong
     !!
     !! \param integer, intent (IN) ngll
     !! \param type (Face), intent (IN) F
-    !! \param real, dimension (1:ngll-2,0:1), intent (INOUT) Vfree
+    !! \param real(fpp), dimension (1:ngll-2,0:1), intent (INOUT) Vfree
     !! \param logical, intent (IN) logic
     !! \param logical, intent (IN) logic2
     !<
@@ -398,9 +398,9 @@ end subroutine Compute_Flux_DGstrong
 
         integer, intent (IN) :: ngll
         type (Face), intent (IN) :: F
-        real, dimension (1:ngll-2,0:1), intent (INOUT) :: Vfree
+        real(fpp), dimension (1:ngll-2,0:1), intent (INOUT) :: Vfree
         logical, intent (IN) :: logic , logic2
-        real, dimension (1:ngll-2) :: masse
+        real(fpp), dimension (1:ngll-2) :: masse
         integer :: i,j
 
         do i=1,ngll-2
@@ -459,10 +459,10 @@ end subroutine Compute_Flux_DGstrong
     function compute_r(F,jump,bool_side)
 
       type (Face), intent (INOUT)                 :: F
-      real, dimension(0:F%ngll-1,0:1), intent(IN) :: jump
+      real(fpp), dimension(0:F%ngll-1,0:1), intent(IN) :: jump
       logical, intent(IN)             :: bool_side
-      real, dimension(0:F%ngll-1,0:4) :: compute_r
-      real, dimension(0:F%ngll-1,0:2) :: aux
+      real(fpp), dimension(0:F%ngll-1,0:4) :: compute_r
+      real(fpp), dimension(0:F%ngll-1,0:2) :: aux
 
       ! Computation of n x (n x jump)
       aux(:,2) = F%Normal(0)*jump(:,1) - F%Normal(1)*jump(:,0)
@@ -490,8 +490,8 @@ end subroutine Compute_Flux_DGstrong
     function compute_stress_jump(F)
 
       type (Face), intent (INOUT)     :: F
-      real, dimension(0:F%ngll-1,0:1) :: compute_stress_jump
-      real, dimension(0:F%ngll-1,0:2) :: sigma
+      real(fpp), dimension(0:F%ngll-1,0:1) :: compute_stress_jump
+      real(fpp), dimension(0:F%ngll-1,0:2) :: sigma
 
       ! For the "minus" side
       sigma = compute_stress(F,.true.)
@@ -511,8 +511,8 @@ end subroutine Compute_Flux_DGstrong
 
       type (Face), intent (INOUT)     :: F
       logical, intent(IN)             :: bool_side
-      real, dimension(0:F%ngll-1,0:2) :: compute_stress
-      real, dimension(0:F%ngll-1)     :: trace
+      real(fpp), dimension(0:F%ngll-1,0:2) :: compute_stress
+      real(fpp), dimension(0:F%ngll-1)     :: trace
 
       if(bool_side) then ! Current element on the "minus side"
          trace(:) = F%Lambda_m(:)*(F%Strain_m(:,0)+F%Strain_m(:,1))
@@ -533,8 +533,8 @@ end subroutine Compute_Flux_DGstrong
 
       type (Face), intent (INOUT)      :: F
       logical, intent(IN)              :: bool_side
-      real, dimension(0:F%ngll-1,0:4)  :: compute_trace_F
-      real, dimension(0:F%ngll-1,0:2)  :: sigma
+      real(fpp), dimension(0:F%ngll-1,0:4)  :: compute_trace_F
+      real(fpp), dimension(0:F%ngll-1,0:2)  :: sigma
 
       if (bool_side) then ! Case the current element is "minus"
          sigma = compute_stress(F,bool_side)
@@ -560,9 +560,9 @@ end subroutine Compute_Flux_DGstrong
 
         type (Face), intent (INOUT)      :: F
         logical, intent(IN)              :: bool_side
-        real, dimension(0:F%ngll-1,0:4)  :: Flux_Laurent
-        real, dimension(0:F%ngll-1,0:2)  :: sigma, sigma_m, sigma_p
-        real, dimension(0:F%ngll-1,0:1)  :: veloc
+        real(fpp), dimension(0:F%ngll-1,0:4)  :: Flux_Laurent
+        real(fpp), dimension(0:F%ngll-1,0:2)  :: sigma, sigma_m, sigma_p
+        real(fpp), dimension(0:F%ngll-1,0:1)  :: veloc
 
         veloc = 0.5 * (F%Veloc_m + F%Veloc_p)
         sigma_m = compute_stress(F,.true.)
@@ -588,17 +588,17 @@ end subroutine Compute_Flux_DGstrong
     !! \brief This subroutine computes the kinetic energy of the interior nodes
     !!  of an face (all the nodes except the verices)
     !! \param type (Face), intent (INOUT) F
-    !! \param real, intent (INOUT) E_kin
+    !! \param real(fpp), intent (INOUT) E_kin
     !<
 
     subroutine  compute_Kinetic_Energy_F (F, Dt, E_kin)
         implicit none
 
         type (Face), intent (IN) :: F
-        real, intent (IN)    :: Dt
-        real, intent (INOUT) :: E_kin
-        real, dimension (1:F%ngll-2)      :: Ener_Mat
-        real, dimension (1:F%ngll-2, 0:1) :: Vel_half
+        real(fpp), intent (IN)    :: Dt
+        real(fpp), intent (INOUT) :: E_kin
+        real(fpp), dimension (1:F%ngll-2)      :: Ener_Mat
+        real(fpp), dimension (1:F%ngll-2, 0:1) :: Vel_half
         integer :: ngll
 
         ngll = F%ngll
@@ -623,7 +623,7 @@ end subroutine Compute_Flux_DGstrong
         implicit none
 
         type (Face), intent (INOUT) :: F
-        real, dimension(0:F%ngll-1) :: Det, tmp
+        real(fpp), dimension(0:F%ngll-1) :: Det, tmp
         integer                     :: i
 
         Det(:) = F%Kinv(:,0) * F%Kinv(:,1) - (F%Kinv(:,2)*F%Kinv(:,2))
@@ -655,7 +655,7 @@ end subroutine Compute_Flux_DGstrong
         implicit none
 
         type (Face), intent (INOUT) :: F
-        real, dimension(0:F%ngll-1) :: Det, tmp
+        real(fpp), dimension(0:F%ngll-1) :: Det, tmp
         integer                     :: i
 
         if (F%Type_DG==COUPLE_CG_HDG) then

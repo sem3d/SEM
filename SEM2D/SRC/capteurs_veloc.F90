@@ -12,8 +12,8 @@ subroutine capteurs_veloc (Tdomain,timelocal)
 
   implicit none
   type (domain), intent (INOUT) :: Tdomain
-  real, intent (IN)          :: timelocal
-  integer                    :: nCaptElem, nCaptFace, ngx, ngz, i, nelem, nface
+  real(fpp), intent (IN)        :: timelocal
+  integer                       :: nCaptElem, nCaptFace, ngx, ngz, i, nelem, nface
   
   nCaptElem = 0
   nCaptFace = 0
@@ -56,13 +56,13 @@ subroutine init_capteurs_veloc (Tdomain)
   use sdomain
   implicit none
   
-  type (domain), intent (INOUT)        :: Tdomain
-  real, dimension(:,:), allocatable    :: positions
-  integer, dimension(:),   allocatable :: tmp_capt_elem, tmp_capt_face
-  character(len=50)                    :: fnamef,n2string
-  real    :: tol, typical_size
-  integer :: n, nv1, nv2, ncaptElem, ncaptFace, nelem, nface, i, ngx, ngz
-  logical :: is_inside, is_onface
+  type (domain), intent (INOUT)         :: Tdomain
+  real(fpp), dimension(:,:), allocatable:: positions
+  integer, dimension(:),   allocatable  :: tmp_capt_elem, tmp_capt_face
+  character(len=50)                     :: fnamef,n2string
+  real(fpp):: tol, typical_size
+  integer  :: n, nv1, nv2, ncaptElem, ncaptFace, nelem, nface, i, ngx, ngz
+  logical  :: is_inside, is_onface
 
   ncaptElem = 0 
   ncaptFace = 0
@@ -180,12 +180,12 @@ subroutine IsCrossProductOk(Tdomain, Xcapt, Zcapt, tol, nv1, nv2, is_inside, is_
   implicit none
 
   type(Domain), Intent(IN) :: Tdomain
-  real, Intent(IN)          :: Xcapt, Zcapt, tol
-  integer, Intent(IN)       :: nv1, nv2
-  logical, Intent(INOUT)    :: is_inside, is_onface
+  real(fpp), Intent(IN)    :: Xcapt, Zcapt, tol
+  integer, Intent(IN)      :: nv1, nv2
+  logical, Intent(INOUT)   :: is_inside, is_onface
 
-  real, dimension(0:1)      :: vect1, vect2
-  real                      :: crossprod
+  real(fpp), dimension(0:1) :: vect1, vect2
+  real(fpp)                 :: crossprod
   integer                   :: n1, n2
 
   n1 = Tdomain%sVertex(nv1)%Glob_Numbering

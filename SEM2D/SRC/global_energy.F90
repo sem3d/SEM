@@ -24,8 +24,8 @@ contains
         type (domain), intent (INOUT) :: Tdomain
 
         ! local variables
-        integer :: n, mat, type_DG
-        real    :: E_tot, E_k, E_el, E_el_tot, Dt
+        integer  :: n, mat, type_DG
+        real(fpp):: E_tot, E_k, E_el, E_el_tot, Dt
 
         E_tot = 0.
         E_el_tot = 0.
@@ -73,8 +73,8 @@ contains
         type (domain), intent (INOUT) :: Tdomain
 
         ! local variables
-        integer :: n, mat
-        real    :: E_tot, E_k, E_el, Dt
+        integer  :: n, mat
+        real(fpp):: E_tot, E_k, E_el, Dt
 
         E_tot = 0.
         E_k  = 0.

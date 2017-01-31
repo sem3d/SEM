@@ -65,12 +65,11 @@ subroutine  sem(couplage)
     integer :: n
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 #else
-    real(kind=8), parameter :: max_time_left=900
-    real(kind=8) :: remaining_time
+    real(fpp), parameter :: max_time_left=900
+    real(fpp) :: remaining_time
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
-    real(kind=4), dimension(2) :: tarray
-    real(kind=4) :: tref, t_fin, t_ini
+    real(kind=4) :: t_fin, t_ini
     integer :: interrupt, rg, code, protection, n_it_max
 
     pid = getpid()
@@ -211,7 +210,6 @@ subroutine  sem(couplage)
     ! BOUCLE DE CALCUL EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     call CPU_TIME( t_ini )
-    call dtime(tarray, tref)
     protection = 0
     interrupt = 0
     do ntime= Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1

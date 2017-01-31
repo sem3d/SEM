@@ -5,7 +5,7 @@
 !! (Frequency-Dependant PML).
 !!\version 1.0
 !!\date 20/03/2015
-!! This module is neither implemented, neither called. Here is some 
+!! This module is neither implemented, neither called. Here is some
 !! dead code that should be used in case FPML should be re-implemented.
 !! Before each subroutine, a comment states in which file the subroutine
 !! should be re-introduced.
@@ -66,8 +66,8 @@ contains
 !###########################################################!
        ! FPML allocation
        logical :: FPML
-       real, dimension (:,:), allocatable ::  Isx, Isz, Ivx, Ivz
-       real, dimension (:,:,:), allocatable :: Istress1, IStress2, Iveloc1, Iveloc2
+       real(fpp), dimension (:,:), allocatable ::  Isx, Isz, Ivx, Ivz
+       real(fpp), dimension (:,:,:), allocatable :: Istress1, IStress2, Iveloc1, Iveloc2
 
 
     ! ###########################################################
@@ -75,18 +75,18 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) fil
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) fil
     !<
     subroutine Correction_Elem_FPML_Veloc (Elem, dt, fil)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, intent (IN) ::  dt, fil
+        real(fpp), intent (IN) ::  dt, fil
 
-        integer :: ngllx, ngllz,i
-        real :: fil2
-        real, dimension (1:Elem%ngllx-2,1:Elem%ngllz-2) :: Ausiliar_Velocity
+        integer   :: ngllx, ngllz,i
+        real(fpp) :: fil2
+        real(fpp), dimension (1:Elem%ngllx-2,1:Elem%ngllz-2) :: Ausiliar_Velocity
 
         ngllx = Elem%ngllx; ngllz=Elem%ngllz
         fil2 = fil**2
@@ -117,26 +117,26 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTmat
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hmatz
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
-    !! \param real, intent (IN) fil
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTmat
+    !! \param real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hmatz
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
+    !! \param real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
+    !! \param real(fpp), intent (IN) bega
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) alpha
+    !! \param real(fpp), intent (IN) fil
     !<
     subroutine Prediction_Elem_FPML_Veloc (Elem,alpha, bega, dt,Vxloc,Vzloc,Hmatz, HTmat,fil)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT)  ::Vxloc, Vzloc
-        real, intent (IN) :: bega, dt, alpha, fil
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT)  ::Vxloc, Vzloc
+        real(fpp), intent (IN) :: bega, dt, alpha, fil
 
-        real :: fil2
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3, Stress_ausiliar
+        real(fpp) :: fil2
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3, Stress_ausiliar
 
         integer :: ngllx, ngllz
 
@@ -192,16 +192,16 @@ contains
 !! Morceaux de code a rajouter dans Face.F90 :
 !###########################################################!
 
-       real, dimension (:), allocatable :: Ivx, Ivz
-       real, dimension (:,:), allocatable :: Iveloc1, Iveloc2
+       real(fpp), dimension (:), allocatable :: Ivx, Ivz
+       real(fpp), dimension (:,:), allocatable :: Iveloc1, Iveloc2
 
     ! ###########################################################
     !>
     !! \brief
     !!
     !! \param type (Face toto), intent (INOUT) F
-    !! \param real, intent (IN toto) dt
-    !! \param real, intent (IN toto) fil
+    !! \param real(fpp), intent (IN toto) dt
+    !! \param real(fpp), intent (IN toto) fil
     !<
 
 
@@ -209,11 +209,11 @@ contains
         implicit none
 
         type (Face), intent (INOUT) :: F
-        real, intent (IN) ::  dt, fil
+        real(fpp), intent (IN) ::  dt, fil
 
-        integer :: i
-        real :: fil2
-        real, dimension (1:F%ngll-2) :: Ausiliar_Velocity
+        integer   :: i
+        real(fpp) :: fil2
+        real(fpp), dimension (1:F%ngll-2) :: Ausiliar_Velocity
 
 
         fil2 = fil**2
@@ -249,25 +249,25 @@ contains
 !! Morceaux de code a rajouter dans Vertex.F90 :
 !###########################################################!
 
-    real, dimension (:), allocatable :: Ivx, Ivz,Iveloc1, Iveloc2
+    real(fpp), dimension (:), allocatable :: Ivx, Ivz,Iveloc1, Iveloc2
 
     ! ###########################################################
     !>
     !! \brief
     !!
     !! \param type (Vertex), intent (INOUT) V
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) fil
+    !! \param real(fpp), intent (IN) dt
+    !! \param real(fpp), intent (IN) fil
     !<
     subroutine Correction_Vertex_FPML_Veloc (V, dt, fil)
         implicit none
 
         type (Vertex), intent (INOUT) :: V
-        real, intent (IN) ::  dt, fil
+        real(fpp), intent (IN) ::  dt, fil
 
-        integer :: i
-        real :: fil2
-        real :: Ausiliar_Velocity
+        integer   :: i
+        real(fpp) :: fil2
+        real(fpp) :: Ausiliar_Velocity
 
         fil2 = fil**2
         V%V0 = V%Veloc

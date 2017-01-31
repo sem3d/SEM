@@ -22,8 +22,8 @@ module smortars
        integer, dimension (0:1) :: Near_Face
        integer, dimension (0:1) :: Near_Element
 
-       real, dimension (:), allocatable   :: Coeff_Integr
-       real, dimension (:,:), allocatable :: MatReinterp, MatProj
+       real(fpp), dimension (:), allocatable   :: Coeff_Integr
+       real(fpp), dimension (:,:), allocatable :: MatReinterp, MatProj
 
 
 

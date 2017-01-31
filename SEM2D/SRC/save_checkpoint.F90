@@ -19,8 +19,8 @@
 !! \param type (domain), intent (INOUT) Tdomain
 !! \param integer, intent (IN) it
 !! \param integer, intent (IN) isort
-!! \param real, intent (IN) rtime
-!! \param real, intent (IN) dtmin
+!! \param real(fpp), intent (IN) rtime
+!! \param real(fpp), intent (IN) dtmin
 !<
 subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     ! rtime : checkpoint time
@@ -32,7 +32,7 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer, intent (IN) :: it,isort
-    real, intent (IN) :: rtime,dtmin
+    real(fpp), intent (IN) :: rtime,dtmin
 
     ! local variables
     integer :: ierr
@@ -95,7 +95,7 @@ subroutine read_write_prot(Tdomain,readprot,rtime,dtmin,it,isort)
 
     type(domain), intent(inout)  :: Tdomain
     logical,      intent(in)     :: readprot
-    real                         :: rtime,dtmin
+    real(fpp)                    :: rtime,dtmin
     integer                      :: it,isort
 
     character(len=MAX_FILE_SIZE) :: prot_file
