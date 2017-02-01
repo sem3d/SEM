@@ -149,8 +149,9 @@ contains
                 capteur%icache = 0
                 capteur%suivant => listeCapteur
                 listeCapteur => capteur
-                write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capteur%nom), &
-                    " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
+                write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4,A,I1)") "Capteur:", trim(capteur%nom), &
+                    " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta, &
+                    " in domain ", Tdomain%specel(n_el)%domain
 
                 ! si c'est un nouveau run, suppression de l'eventuel fichier de sortie des capteurs
                 if (Tdomain%traces_format == 1) then
