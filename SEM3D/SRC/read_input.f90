@@ -334,7 +334,8 @@ contains
         type(Extended_source), intent(in) :: extsrc
         integer(HID_T), intent(in)        :: fid
         integer, intent(inout)            :: nsrc
-        real(fpp), dimension(0:2)              :: normal, U
+        real(fpp)                         :: dS
+        real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn
         real(fpp), dimension(0:2,0:2)          :: Moment
         real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
         integer :: i, j
@@ -379,6 +380,14 @@ contains
             MUtemp(i,:) = tmp(:,i+1)
         enddo
 
+        ! Surface elementaire
+        v1(0) = Xtemp(1,0)-Xtemp(0,0) ; v2(0) = Xtemp(0,1)-Xtemp(0,0)
+        v1(1) = Ytemp(1,0)-Ytemp(0,0) ; v2(1) = Ytemp(0,1)-Ytemp(0,0)
+        v1(2) = Ztemp(1,0)-Ztemp(0,0) ; v2(2) = Ztemp(0,1)-Ztemp(0,0)
+        call cross_prod(v1,v2,dSn)
+        dS = sqrt(dSn(0)**2 + dSn(1)**2 + dSn(2)**2)
+        write(*,*) "Surface Elementaire : ", dS
+
         do i=0,extsrc%Ns-1
             do j=0,extsrc%Nd-1
                 ! Source position
@@ -401,7 +410,7 @@ contains
                 Tdomain%Ssource(nsrc)%Nt = extsrc%Nt
 
                 ! Assignation du moment
-                Tdomain%Ssource(nsrc)%moment(:,:) = MUtemp(i,j) * Moment(:,:)
+                Tdomain%Ssource(nsrc)%moment(:,:) = dS * MUtemp(i,j) * Moment(:,:)
 
                 nsrc = nsrc+1
             enddo
