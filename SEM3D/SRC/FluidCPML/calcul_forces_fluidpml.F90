@@ -339,7 +339,7 @@ contains
             case (CMP_AAA)
                 R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
                 R1 = cf10*R1 + cf11*R0         + cf12*R0
-                R2 = cf20*R2 + cf21*R1         + cf22*R1
+                R2 = cf20*R2 + 2*(cf21*R1      + cf22*R1)
             case default
                 stop 1
             end select

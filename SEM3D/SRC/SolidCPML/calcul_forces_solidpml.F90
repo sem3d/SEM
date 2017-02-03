@@ -586,20 +586,20 @@ contains
                 R2 = cf20*R2 + cf21*DUDVn(r) + cf22*DUDV(r)
             case (CMP_AAC)
                 R0 = cf00*R0 + cf01*DUDVn(r) + cf02*DUDV(r)
-                R1 = cf10*R1 + cf11*R0         + cf12*R0
+                R1 = cf10*R1 + cf11*R0       + cf12*R0
                 R2 = cf20*R2 + cf21*DUDVn(r) + cf22*DUDV(r)
             case (CMP_ABA)
                 R0 = cf00*R0 + cf01*DUDVn(r) + cf02*DUDV(r)
                 R1 = cf10*R1 + cf11*DUDVn(r) + cf12*DUDV(r)
-                R2 = cf20*R2 + cf21*R0         + cf22*R0
+                R2 = cf20*R2 + cf21*R0       + cf22*R0
             case (CMP_ABB)
                 R0 = cf00*R0 + cf01*DUDVn(r) + cf02*DUDV(r)
                 R1 = cf10*R1 + cf11*DUDVn(r) + cf12*DUDV(r)
-                R2 = cf20*R2 + cf21*R1         + cf22*R1
+                R2 = cf20*R2 + cf21*R1       + cf22*R1
             case (CMP_AAA)
                 R0 = cf00*R0 + cf01*DUDVn(r) + cf02*DUDV(r)
-                R1 = cf10*R1 + cf11*R0         + cf12*R0
-                R2 = cf20*R2 + cf21*R1         + cf22*R1
+                R1 = cf10*R1 + cf11*R0       + cf12*R0
+                R2 = cf20*R2 + 2*(cf21*R1    + cf22*R1)
             case default
                 stop 1
             end select
