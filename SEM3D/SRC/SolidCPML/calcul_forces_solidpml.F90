@@ -121,7 +121,7 @@ contains
                     a4b = k0*k1*a1*a1*d1*(d0+a0-a1)/(a0-a1)
                 else
                     a3b = k0*k1*a0*(a0*d0+a0*d1-2*d0*d1)
-                    a4b = k0*k1*a0*a0*d0*(a1-a0+d1)
+                    a4b = k0*k1*a0*a0*d0*d1
                 end if
                 R = a3b*R0 + a4b*R1
             else
