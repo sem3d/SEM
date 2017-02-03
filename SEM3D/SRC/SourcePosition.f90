@@ -102,9 +102,11 @@ subroutine SourcePosition (Tdomain)
             Tdomain%sSource(n_src)%refcoord(0) = xi
             Tdomain%sSource(n_src)%refcoord(1) = eta
             Tdomain%sSource(n_src)%refcoord(2) = zeta
-            !write(*,*) "Found source", n_src, "on proc", src_proc
-            !write(*,*) "Source local coordinates:", Tdomain%sSource(n_src)%refcoord
-            !write(*,*) "From position", xs, ys, zs
+            if (Tdomain%config%verbose_level .gt. 1) then
+                write(*,*) "Found source", n_src, "on proc", src_proc
+                write(*,*) "Source local coordinates:", Tdomain%sSource(n_src)%refcoord
+                write(*,*) "From position", xs, ys, zs
+            end if
             call invert_3d (LocInvGrad, R)
             Tdomain%sSource(n_src)%InvGrad(0:2,0:2) = LocInvGrad(0:2,0:2)
             src_inproc(n_src) = .true.
