@@ -460,7 +460,6 @@ contains
 
     ! Compute parameters for the second direction of attenuation
     subroutine compute_dxi_alpha_kappa_dir1(dom, xyz, i, j, k, bnum, ee, mi)
-        use pml, only : cpml_only_one_root
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
@@ -478,12 +477,10 @@ contains
         dom%Kappa_1(i,j,k,nd) = kappa
         dom%dxi_k_1(i,j,k,nd) = dxi
         dom%Alpha_1(i,j,k,nd) = alpha
-        call cpml_only_one_root(dom, i, j, k, bnum, ee, .true.)
     end subroutine compute_dxi_alpha_kappa_dir1
 
     ! Compute parameters for the third direction of attenuation
     subroutine compute_dxi_alpha_kappa_dir2(dom, xyz, i, j, k, bnum, ee, mi)
-        use pml, only : cpml_only_one_root
         type(domain_solidpml), intent(inout) :: dom
         integer :: xyz
         integer :: i, j, k
@@ -501,7 +498,6 @@ contains
         dom%Kappa_2(i,j,k,nd) = kappa
         dom%dxi_k_2(i,j,k,nd) = dxi
         dom%Alpha_2(i,j,k,nd) = alpha
-        call cpml_only_one_root(dom, i, j, k, bnum, ee, .false.)
     end subroutine compute_dxi_alpha_kappa_dir2
 
     function get_dir1_index(dom, ee, bnum) result(nd)
@@ -532,6 +528,7 @@ contains
     ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
     !        attention, ceci impacte le build (compatibilité avec SolidPML)
     subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei)
+        use pml, only : cpml_only_one_root
         type(domain_solidpml), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
@@ -588,6 +585,7 @@ contains
         else
             stop 1
         endif
+        call cpml_only_one_root(dom, i, j, k, bnum, ee, ndir)
 
         ! gamma_ab  defined after (12c) in Ref1
         ! gamma_abc defined after (12c) in Ref1

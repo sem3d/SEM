@@ -580,13 +580,37 @@ contains
         cb2 = - cb0*(a0*d0 + a0*d1 - a2*d0 - a2*d1 - d0*d1)
     end subroutine get_coefs_Lijk_aaa
 
-    subroutine cpml_only_one_root(dom, i, j, k, bnum, ee, bidim)
+    subroutine cpml_only_one_root(dom, i, j, k, bnum, ee, ndir)
+        class(dombase_cpml), intent (INOUT) :: dom
+        integer, intent(in) :: i, j, k, bnum, ee, ndir
+        integer :: idx
+
+        select case(ndir)
+        case(2)
+            call cpml_only_one_root_2d(dom, i, j, k, bnum, ee)
+        case(3)
+            call cpml_only_one_root_3d(dom, i, j, k, bnum, ee)
+        end select
+        if (ndir>=1) then
+            if (dom%Alpha_0(ee,i,j,k,bnum)<0.) dom%Alpha_0(ee,i,j,k,bnum) = 0.
+        endif
+        if (ndir>=2) then
+            idx = dom%I1(ee,bnum)
+            if (dom%Alpha_1(i,j,k,idx)<0.) dom%Alpha_1(i,j,k,idx) = 0.
+        endif
+        if (ndir>=3) then
+            idx = dom%I2(ee,bnum)
+            write(*,*) ee,bnum,i,j,k, dom%Alpha_2(i,j,k,idx)
+            if (dom%Alpha_2(i,j,k,idx)<0.) dom%Alpha_2(i,j,k,idx) = 0.
+        endif
+    end subroutine cpml_only_one_root
+
+    subroutine cpml_only_one_root_2d(dom, i, j, k, bnum, ee)
         class(dombase_cpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
-        logical, intent(in) :: bidim ! 2d or 3d
         !
-        real(fpp) :: a0, a1, a2, d0, d1, d2, b0, b1, b2, cfp, cfm
-        integer :: i1, i2
+        real(fpp) :: a0, a1, d0, d1, cfp
+        integer :: i1, i2, sel
 
         if (dom%cpml_one_root == 0) return
 
@@ -594,61 +618,147 @@ contains
         i2 = dom%I2(ee,bnum)
 
         cfp = 1. + dom%cpml_one_root/100.
-        cfm = 1. - dom%cpml_one_root/100.
 
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         a1 = dom%Alpha_1(i,j,k,i1)
         d1 = dom%dxi_k_1(i,j,k,i1)
-        b0 = a0+d0
-        b1 = a1+d1
-        if (bidim) then ! Elimination des racines doubles : modification de alpha1 ou beta1
-            ! On modifie a1/b1 (en fonction de a0/b0). On ne modifie pas a0/b0.
-            if (isclose(a1,a0)) then ! s0s1/s2 + s2=1
-                dom%Alpha_1(i,j,k,i1) = a1*cfp
-            end if
-            if (isclose(b1,a0)) then ! s0s2/s1 + s2=1
-                dom%Alpha_1(i,j,k,i1) = a1*cfp
-                dom%dxi_k_1(i,j,k,i1) = d1*cfp
-            end if
-            if (isclose(a1,b0)) then ! s1s2/s0 + s2=1
-                dom%Alpha_1(i,j,k,i1) = a1*cfp
-            end if
-        else ! Elimination des racines triples : modification de alpha2 ou beta2
-            ! La premiere passe assure que a1/b1 > a0/b0
-            ! On modifie a2/b2 (en fonction de a0/b0 et a1/b1). On ne modifie pas ni a0/b0, ni a1/b1.
-            a2 = dom%Alpha_2(i,j,k,i2)
-            d2 = dom%dxi_k_2(i,j,k,i2)
-            b2 = a2+d2
-            if (isclose(b2,a0) .or. isclose(b2,a1)) then ! s0s1/s2
-                if(isclose(b2,a0)) then
-                    a2 = a2*cfm
-                    d2 = d2*cfm
-                else
-                    a2 = a2*cfp
-                    d2 = d2*cfp
-                end if
-                dom%Alpha_2(i,j,k,i2) = a2
-                dom%dxi_k_2(i,j,k,i2) = d2
-            end if
-            if (isclose(a2,a0) .or. isclose(a2,b1)) then ! s0s2/s1
-                if (isclose(a2,a0)) then
-                    a2 = a2*cfm
-                else
-                    a2 = a2*cfp
-                end if
-                dom%Alpha_2(i,j,k,i2) = a2
-            end if
-            if (isclose(a2,b0) .or. isclose(a2,a1)) then ! s1s2/s0
-                if (isclose(a2,b0)) then
-                    a2 = a2*cfm
-                else
-                    a2 = a2*cfp
-                end if
-                dom%Alpha_2(i,j,k,i2) = a2
-            end if
+
+        ! On modifie a1/b1 (en fonction de a0/b0). On ne modifie pas a0/b0.
+        if (isclose(a1,a0)) then ! s0s1/s2 + s2=1
+            a1 = a1*cfp
         end if
-    end subroutine cpml_only_one_root
+        if (isclose(a1+d1,a0)) then ! s0s2/s1 + s2=1
+            d1 = d1*cfp
+        end if
+        if (isclose(a1,a0+d0)) then ! s1s2/s0 + s2=1
+            d0 = d0*cfp
+        end if
+        dom%dxi_k_0(ee,i,j,k,bnum) = d0
+        dom%Alpha_1(i,j,k,i1) = a1
+        dom%dxi_k_1(i,j,k,i1) = d1
+    end subroutine cpml_only_one_root_2d
+
+    subroutine cpml_only_one_root_3d(dom, i, j, k, bnum, ee)
+        class(dombase_cpml), intent (INOUT) :: dom
+        integer, intent(in) :: i, j, k, bnum, ee
+        !
+        real(fpp) :: a0, a1, a2, d0, d1, d2, cfp
+        integer :: i1, i2, sel
+
+        if (dom%cpml_one_root == 0) return
+
+        i1 = dom%I1(ee,bnum)
+        i2 = dom%I2(ee,bnum)
+
+        cfp = real(dom%cpml_one_root,fpp)/100.
+
+        a0 = dom%Alpha_0(ee,i,j,k,bnum)
+        d0 = dom%dxi_k_0(ee,i,j,k,bnum)
+        a1 = dom%Alpha_1(i,j,k,i1)
+        d1 = dom%dxi_k_1(i,j,k,i1)
+        ! La premiere passe assure que a1/b1 > a0/b0
+        ! On modifie a2/b2 (en fonction de a0/b0 et a1/b1). On ne modifie pas ni a0/b0, ni a1/b1.
+        a2 = dom%Alpha_2(i,j,k,i2)
+        d2 = dom%dxi_k_2(i,j,k,i2)
+
+        sel = compare_roots(a0,a1,a2)
+        select case(sel)
+        case (CMP_ABC)
+        case (CMP_ABA)
+            write(*,*) "Case L ABA",a0,a2
+            a2 = a0 + cfp*abs(a1-a0)
+        case (CMP_AAC)
+            write(*,*) "Case L AAC",a0,a1
+            a1 = a0 + cfp*abs(a2-a1)
+        case (CMP_ABB)
+            write(*,*) "Case L ABB",a0,a1
+            a2 = a1 + cfp*abs(a1-a0)
+        case (CMP_AAA)
+            write(*,*) "Case L AAA",a0,a1
+            if (a0/=0) then
+                a1 = a0*(1+cfp)
+                a2 = a1*(1+cfp)
+            else
+                a1 = 1e-6
+                a2 = 2e-6
+            end if
+        case default
+            stop 1
+        end select
+
+        sel = compare_roots(a0,a1,a2+d2)
+        select case(sel)
+        case (CMP_ABC)
+        case (CMP_ABA)
+            write(*,*) "Case L012 ABA",a0,a2+d2
+            d2 = d2*(1 + cfp)
+        case (CMP_AAC)
+            write(*,*) "Can't happen AAC:A0A1B2 ", a0, a1
+            stop 1
+        case (CMP_ABB)
+            write(*,*) "Case L012 ABB",a1,a2+d2
+            d2 = d1*(1 + cfp)
+        case (CMP_AAA)
+            write(*,*) "Can't happen AAA:A0A1B2"
+            stop 1
+        case default
+            stop 1
+        end select
+        sel = compare_roots(a0,a1+d1,a2)
+        select case(sel)
+        case (CMP_ABC)
+        case (CMP_ABA)
+            write(*,*) "Can't happen ABA:A0B1A2"
+            stop 1
+        case (CMP_AAC)
+            write(*,*) "Case L021 AAC",a0,a1+d1
+            d1 = d1*(1 + cfp)
+        case (CMP_ABB)
+            write(*,*) "Case L021 ABB",a1+d1,a2
+            d1 = d1*(1 + cfp)
+        case (CMP_AAA)
+            write(*,*) "Can't happen AAA:A0B1A2"
+            stop 1
+        case default
+            stop 1
+        end select
+        sel = compare_roots(a0+d0,a1,a2)
+        select case(sel)
+        case (CMP_ABC)
+        case (CMP_ABA)
+            write(*,*) "Case L120 ABA",a0+d0,a2
+            d0 = d0*(1 + cfp)
+        case (CMP_AAC)
+            write(*,*) "Case L120 AAC",a0+d0,a1
+            d0 = d0*(1 + cfp)
+        case (CMP_ABB)
+            write(*,*) "Can't happen ABB:B0A1A2"
+            stop 1
+        case (CMP_AAA)
+            write(*,*) "Can't happen"
+            stop 1
+        case default
+            stop 1
+        end select
+
+        dom%Alpha_0(ee,i,j,k,bnum) = a0
+        dom%dxi_k_0(ee,i,j,k,bnum) = d0
+        dom%Alpha_1(i,j,k,i1)      = a1
+        dom%dxi_k_1(i,j,k,i1)      = d1
+        dom%Alpha_2(i,j,k,i2)      = a2
+        dom%dxi_k_2(i,j,k,i2)      = d2
+
+        sel = compare_roots(a0,a1,a2)
+        if (sel/=CMP_ABC) stop 1
+        sel = compare_roots(a0,a1,a2+d2)
+        if (sel/=CMP_ABC) stop 1
+        sel = compare_roots(a0,a1+d1,a2)
+        if (sel/=CMP_ABC) stop 1
+        sel = compare_roots(a0+d0,a1,a2)
+        if (sel/=CMP_ABC) stop 1
+
+    end subroutine cpml_only_one_root_3d
 
 end module pml
 !! Local Variables:
