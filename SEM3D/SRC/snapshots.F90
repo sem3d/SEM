@@ -876,6 +876,20 @@ contains
         oldngll = 0
 
         cell_start = 0
+#ifdef CPML
+        outputs%R1_0 = 0.
+        outputs%R1_1 = 0.
+        outputs%R1_2 = 0.
+        outputs%R2_0_dX = 0.
+        outputs%R2_1_dX = 0.
+        outputs%R2_2_dX = 0.
+        outputs%R2_0_dY = 0.
+        outputs%R2_1_dY = 0.
+        outputs%R2_2_dY = 0.
+        outputs%R2_0_dZ = 0.
+        outputs%R2_1_dZ = 0.
+        outputs%R2_2_dZ = 0.
+#endif
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)

@@ -301,7 +301,7 @@ contains
         integer, intent(in) :: lnum, n
         !
         integer :: bnum, ee
-        integer :: i, j, k, idx, i1, i2
+        integer :: i, j, k, idx, i1, i2, dir0, dir1
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
         !
@@ -311,30 +311,40 @@ contains
             do j=0,dom%ngll-1
                 do i=0,dom%ngll-1
                     idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                    outputs%R1_0(:,idx)    = 0.
-                    outputs%R2_0_dX(:,idx) = 0.
-                    outputs%R2_0_dY(:,idx) = 0.
-                    outputs%R2_0_dZ(:,idx) = 0.
-                    outputs%R1_1(:,idx)    = 0.
-                    outputs%R2_1_dX(:,idx) = 0.
-                    outputs%R2_1_dY(:,idx) = 0.
-                    outputs%R2_1_dZ(:,idx) = 0.
-                    outputs%R1_2(:,idx)    = 0.
-                    outputs%R2_2_dX(:,idx) = 0.
-                    outputs%R2_2_dY(:,idx) = 0.
-                    outputs%R2_2_dZ(:,idx) = 0.
-
-                    outputs%R1_0(0,idx) = dom%R1_0(ee, i, j, k, bnum)
-                    outputs%R2_0_dX(0,idx) = dom%R2_0(ee, 0, i, j, k, bnum)
-                    outputs%R2_0_dY(0,idx) = dom%R2_0(ee, 1, i, j, k, bnum)
-                    outputs%R2_0_dZ(0,idx) = dom%R2_0(ee, 2, i, j, k, bnum)
+                    dir0 = dom%D0(ee,bnum)
+                    dir1 = dom%D1(ee,bnum)
+                    select case(dir0)
+                    case (0)
+                        outputs%R1_0(0,idx) = dom%R1_0(ee, i, j, k, bnum)
+                        outputs%R2_0_dX(0,idx) = dom%R2_0(ee, 0, i, j, k, bnum)
+                        outputs%R2_0_dY(0,idx) = dom%R2_0(ee, 1, i, j, k, bnum)
+                        outputs%R2_0_dZ(0,idx) = dom%R2_0(ee, 2, i, j, k, bnum)
+                    case (1)
+                        outputs%R1_1(0,idx) = dom%R1_0(ee, i, j, k, bnum)
+                        outputs%R2_1_dX(0,idx) = dom%R2_0(ee, 0, i, j, k, bnum)
+                        outputs%R2_1_dY(0,idx) = dom%R2_0(ee, 1, i, j, k, bnum)
+                        outputs%R2_1_dZ(0,idx) = dom%R2_0(ee, 2, i, j, k, bnum)
+                    case (2)
+                        outputs%R1_2(0,idx) = dom%R1_0(ee, i, j, k, bnum)
+                        outputs%R2_2_dX(0,idx) = dom%R2_0(ee, 0, i, j, k, bnum)
+                        outputs%R2_2_dY(0,idx) = dom%R2_0(ee, 1, i, j, k, bnum)
+                        outputs%R2_2_dZ(0,idx) = dom%R2_0(ee, 2, i, j, k, bnum)
+                    end select
                     i1 = dom%I1(ee,bnum)
                     i2 = dom%I2(ee,bnum)
                     if (i1/=-1) then
-                        outputs%R1_1(0,idx)    = dom%R1_1(i, j, k, i1)
-                        outputs%R2_1_dX(0,idx) = dom%R2_1(0, i, j, k, i1)
-                        outputs%R2_1_dY(0,idx) = dom%R2_1(1, i, j, k, i1)
-                        outputs%R2_1_dZ(0,idx) = dom%R2_1(2, i, j, k, i1)
+                        select case(dir1)
+                        case (1)
+                            outputs%R1_1(0,idx)    = dom%R1_1(i, j, k, i1)
+                            outputs%R2_1_dX(0,idx) = dom%R2_1(0, i, j, k, i1)
+                            outputs%R2_1_dY(0,idx) = dom%R2_1(1, i, j, k, i1)
+                            outputs%R2_1_dZ(0,idx) = dom%R2_1(2, i, j, k, i1)
+                        case (2)
+                            outputs%R1_2(0,idx)    = dom%R1_1(i, j, k, i1)
+                            outputs%R2_2_dX(0,idx) = dom%R2_1(0, i, j, k, i1)
+                            outputs%R2_2_dY(0,idx) = dom%R2_1(1, i, j, k, i1)
+                            outputs%R2_2_dZ(0,idx) = dom%R2_1(2, i, j, k, i1)
+                        end select
                     end if
                     if (i2/=-1) then
                         outputs%R1_2(0,idx)    = dom%R1_2(i, j, k, i2)
