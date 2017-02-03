@@ -43,7 +43,7 @@ def write_as_terms(f,e,w):
         else:
             cst.append(t)
     cterm = Add(*cst)
-    f.write(" &=" + latex(cterm))
+    f.write(" =&" + latex(cterm))
     # Trick to sort terms in w
     if len(d)>1:
         keys = Add(*d.keys()).args
