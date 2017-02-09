@@ -187,6 +187,7 @@ void Mesh3D::define_associated_materials()
         }
     }
     
+    /*
     if( access( "assocMat.spec", F_OK ) != -1 ) {
         printf("\n WARNING! assocMat.spec exists \n");
         FILE* f = fopen("assocMat.spec", "r");
@@ -207,6 +208,7 @@ void Mesh3D::define_associated_materials()
     else {
         printf("\n WARNING! assocMat.spec doesn't exist \n");
     }
+    */
 
 }
 void Mesh3D::write_materials_v2(const std::string& str)
@@ -471,18 +473,23 @@ void Mesh3D::get_neighbour_elements(int nn, const int* n, std::set<int>& elemset
 void Mesh3D::save_bbox()
 {
     FILE* fbbox;
+    double tol_x, tol_y, tol_z;
     fbbox = fopen("domains.txt", "w");
     map<int,AABB>::const_iterator bbox;
     for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
         //fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        tol_x = (bbox->second.max[0] - bbox->second.min[0])/100.0
+        tol_y = (bbox->second.max[1] - bbox->second.min[1])/100.0
+        tol_z = (bbox->second.max[2] - bbox->second.min[2])/100.0
         fprintf(fbbox, "%6d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f %6d\n", bbox->first,
-                bbox->second.min[0],
-                bbox->second.min[1],
-                bbox->second.min[2],
-                bbox->second.max[0],
-                bbox->second.max[1],
-                bbox->second.max[2],
-                bbox->second.assocMat);
+                bbox->second.min[0]-tol_x,
+                bbox->second.min[1]-tol_y,
+                bbox->second.min[2]-tol_z,
+                bbox->second.max[0]+tol_x,
+                bbox->second.max[1]+tol_y,
+                bbox->second.max[2]+tol_z,
+                bbox->first);
+                //bbox->second.assocMat);
     }
 }
 
