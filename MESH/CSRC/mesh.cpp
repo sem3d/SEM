@@ -478,9 +478,9 @@ void Mesh3D::save_bbox()
     map<int,AABB>::const_iterator bbox;
     for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
         //fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
-        tol_x = (bbox->second.max[0] - bbox->second.min[0])/100.0
-        tol_y = (bbox->second.max[1] - bbox->second.min[1])/100.0
-        tol_z = (bbox->second.max[2] - bbox->second.min[2])/100.0
+        tol_x = (bbox->second.max[0] - bbox->second.min[0])/100.0;
+        tol_y = (bbox->second.max[1] - bbox->second.min[1])/100.0;
+        tol_z = (bbox->second.max[2] - bbox->second.min[2])/100.0;
         fprintf(fbbox, "%6d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f %6d\n", bbox->first,
                 bbox->second.min[0]-tol_x,
                 bbox->second.min[1]-tol_y,
