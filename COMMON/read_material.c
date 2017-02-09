@@ -102,7 +102,7 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
             err=expect_eq_int(scanner, &nmat, 1);
             if (err<=0) {
                 printf("COPY FAILED");
-                //cout << *nmat;
+                printf("Material number %i\n",nmat);
                 return err;
             }
             sem_material_t *msrc = mats->head;
