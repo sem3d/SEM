@@ -78,10 +78,8 @@ contains
             !   developpement de la source du benchmark can1
             CompSource = Gabor (time,Sour%tau_b,Sour%cutoff_freq,Sour%gamma,Sour%ts)
         case (5)
-            !   modif pour benchmark can2
-            CompSource = Source_File2 (ntime,Sour)
-            !CompSource = Source_File (time,Sour)
-            !   modif pour benchmark can2
+            CompSource = Source_File (time,Sour)
+            !CompSource = Source_File2 (ntime,Sour)
         case (6)
             ! Source benchmark spice M0*(1-(1+(t/T)**gamma)exp(-(t/T)**gamma)) avec T=1/freq
             CompSource = Source_Spice_Bench(time, Sour)
@@ -191,26 +189,21 @@ contains
     real(fpp) function Source_File(tt,Sour)
         implicit none
         type(source), intent(in)  :: Sour
-        real(fpp), intent(in)          :: tt
-        integer :: iflag, i
+        real(fpp), intent(in)     :: tt
+        integer :: i
 
-        if(tt < Sour%time(0) .or. tt > Sour%time(size(Sour%time)-1))then
-            Source_File = 0d0
-            return
-        end if
-        i = 0
-        iflag = 0
-
-        do  while( iflag == 0 )
-            if(tt >= Sour%time(i) .and. tt < Sour%time(i+1) )then
-                Source_File = Sour%ampli(i) +            &
-                    (tt-Sour%time(i))*(Sour%ampli(i+1)-Sour%ampli(i))/(Sour%time(i+1)-Sour%time(i))
-                iflag = 1
-                return
-            else
+        if(tt < Sour%time(0)) then
+            Source_File = 0.
+        else if(tt >= Sour%time(Sour%Nt-1)) then
+            Source_File = Sour%ampli(Sour%Nt-1)
+        else
+            i = 1
+            do while(tt > Sour%time(i))
                 i = i + 1
-            end if
-        end do
+            end do
+            Source_File = Sour%ampli(i-1) + (tt-Sour%time(i-1))*(Sour%ampli(i)-Sour%ampli(i-1))/(Sour%time(i)-Sour%time(i-1))
+        endif
+        return
 
     end function Source_File
 
@@ -250,9 +243,10 @@ contains
         nb_time_step = i
 
         allocate(Sour%time(0:nb_time_step-1),Sour%ampli(0:nb_time_step-1))
+        Sour%Nt = nb_time_step
 
         open(10,file=Sour%time_file,action="read",status="old")
-        do i=0, nb_time_step-1
+        do i=0, Sour%Nt-1
             read(10,*,end=101) Sour%time(i),Sour%ampli(i)
         end do
 101     close(10)
@@ -264,7 +258,8 @@ contains
         implicit none
         !- lecture directe d'un fichier temps-amplitude pour la source
         type(Source), intent(inout)      :: Sour
-        real(fpp), allocatable, dimension(:,:,:):: data
+        real(fpp), allocatable, dimension(:,:,:) :: data
+        real(fpp), allocatable, dimension(:)     :: dataT
         integer, dimension(0:2)          :: imin, imax
         integer                          :: hdferr
         integer(HID_T)                   :: fid
@@ -278,14 +273,17 @@ contains
 
         ! Lecture du dataset
         call read_subset_3d_real(fid, 'slip', imin, imax, data)
+        call read_dset_1d_real(fid, 'time', dataT)
 
         ! Historique de l'amplitude du Slip
         allocate(Sour%ampli(0:Sour%Nt-1))
+        allocate(Sour%time(0:Sour%Nt-1))
         Sour%ampli(:) = data(:,imin(1),imin(2))
+        Sour%time(:)  = dataT(:)
 
         call h5fclose_f(fid, hdferr)
 
-        deallocate(data)
+        deallocate(data, dataT)
 
     end subroutine read_source_file_h5
 
