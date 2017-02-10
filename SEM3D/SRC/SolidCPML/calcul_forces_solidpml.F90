@@ -537,15 +537,21 @@ contains
         sel = CMP_ABC
 
         ! Lijk
-        e(0:2,kB012) = (/ a0, a1, a2+d2 /)
-        e(0:2,kB120) = (/ a0+d0, a1, a2 /)
-        e(0:2,kB021) = (/ a0, a1+d1, a2 /)
-        call get_coefs_Lijk_3d(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b1(kB120),b2(kB120),b3(kB120),sel120)
-        call get_coefs_Lijk_3d(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b2(kB021),b3(kB021),sel021)
+        e(0:2,L120_DXX) = (/ a0+d0, a1, a2 /)
+        e(0:2,L120_DYX) = (/ a0+d0, a1, a2 /)
+        e(0:2,L120_DZX) = (/ a0+d0, a1, a2 /)
+        e(0:2,L021_DXY) = (/ a0, a1+d1, a2 /)
+        e(0:2,L021_DYY) = (/ a0, a1+d1, a2 /)
+        e(0:2,L021_DZY) = (/ a0, a1+d1, a2 /)
+        e(0:2,L012_DXZ) = (/ a0, a1, a2+d2 /)
+        e(0:2,L012_DYZ) = (/ a0, a1, a2+d2 /)
+        e(0:2,L012_DZZ) = (/ a0, a1, a2+d2 /)
+        call get_coefs_Lijk_3d(k1,k2,k0,a1,a2,a0,d1,d2,d0,b0(kB120),b2(kB120),b3(kB120),b1(kB120),sel120)
+        call get_coefs_Lijk_3d(k0,k2,k1,a0,a2,a1,d0,d2,d1,b0(kB021),b1(kB021),b3(kB021),b2(kB021),sel021)
         call get_coefs_Lijk_3d(k0,k1,k2,a0,a1,a2,d0,d1,d2,b0(kB012),b1(kB012),b2(kB012),b3(kB012),sel012)
-        sel(DXX) = sel120; sel(DXY) = sel021; sel(DXZ) = sel012;
-        sel(DYX) = sel120; sel(DYY) = sel021; sel(DYZ) = sel012;
-        sel(DZX) = sel120; sel(DZY) = sel021; sel(DZZ) = sel012;
+        do r=0,8
+            sel(r) = compare_roots(e(0,r), e(1,r), e(2,r))
+        enddo
 
         ! Li
         call get_coefs_Li_3d(dom, ee, bnum, i, j, k, c0, c1, c2, c3)
