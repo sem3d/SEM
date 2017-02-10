@@ -600,7 +600,6 @@ contains
         endif
         if (ndir>=3) then
             idx = dom%I2(ee,bnum)
-            write(*,*) ee,bnum,i,j,k, dom%Alpha_2(i,j,k,idx)
             if (dom%Alpha_2(i,j,k,idx)<0.) dom%Alpha_2(i,j,k,idx) = 0.
         endif
     end subroutine cpml_only_one_root
