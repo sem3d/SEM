@@ -1106,7 +1106,7 @@ contains
         character (len=MAX_FILE_SIZE) :: fnamef
         integer :: i, nn, ne, group
         real(fpp) :: time
-        character(len=11) :: R2label(0:8)
+        character(len=11), dimension(0:8) :: R2label, R2data
 #ifdef CPML
         integer :: j
 #endif
@@ -1116,15 +1116,15 @@ contains
         group = outputs%group
         call semname_xdmf(group, fnamef)
 
-        R2label( 0) = "R2_0_dX"
-        R2label( 1) = "R2_0_dY"
-        R2label( 2) = "R2_0_dZ"
-        R2label( 3) = "R2_1_dX"
-        R2label( 4) = "R2_1_dY"
-        R2label( 5) = "R2_1_dZ"
-        R2label( 6) = "R2_2_dX"
-        R2label( 7) = "R2_2_dY"
-        R2label( 8) = "R2_2_dZ"
+        R2label( 0) = "R2o0odX"; R2data( 0) = "R2_0_dX"
+        R2label( 1) = "R2o0odY"; R2data( 1) = "R2_0_dY"
+        R2label( 2) = "R2o0odZ"; R2data( 2) = "R2_0_dZ"
+        R2label( 3) = "R2o1odX"; R2data( 3) = "R2_1_dX"
+        R2label( 4) = "R2o1odY"; R2data( 4) = "R2_1_dY"
+        R2label( 5) = "R2o1odZ"; R2data( 5) = "R2_1_dZ"
+        R2label( 6) = "R2o2odX"; R2data( 6) = "R2_2_dX"
+        R2label( 7) = "R2o2odY"; R2data( 7) = "R2_2_dY"
+        R2label( 8) = "R2o2odZ"; R2data( 8) = "R2_2_dZ"
 
         if (ne==0) then
             return
@@ -1219,12 +1219,12 @@ contains
                 '">geometry',group,'.h5:/Dxi_K_PML</DataItem>'
             write(61,"(a)") '</Attribute>'
 
-            call write_xdmf_attr_vector_nodes("R1_0", nn, i, group, "R1_0")
-            call write_xdmf_attr_vector_nodes("R1_1", nn, i, group, "R1_1")
-            call write_xdmf_attr_vector_nodes("R1_2", nn, i, group, "R1_2")
+            call write_xdmf_attr_vector_nodes("R1o0", nn, i, group, "R1_0")
+            call write_xdmf_attr_vector_nodes("R1o1", nn, i, group, "R1_1")
+            call write_xdmf_attr_vector_nodes("R1o2", nn, i, group, "R1_2")
 
             do j = 0, 8
-                call write_xdmf_attr_vector_nodes(trim(R2label(j)), nn, i, group, trim(R2label(j)))
+                call write_xdmf_attr_vector_nodes(trim(R2label(j)), nn, i, group, trim(R2data(j)))
             end do
 
             call write_xdmf_attr_vector_nodes("FDump", nn, i, group, "FDump")
