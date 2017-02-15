@@ -21,7 +21,8 @@ const keyword_t str_mat_descrs[] = {
     {2, "Lambda_Mu" },
     {3, "Kappa_Mu_Rho" },
     {4, "Hooke" },
-    {5, "Mu_Syld_Rho" },
+    {5, "Nlkp_Vs_Rho" },
+    {6, "Nu_Vs_Rho" },
 };
 
 const keyword_t str_mat_spatial[] = {
@@ -44,9 +45,10 @@ void matcpy(sem_material_t* dst, sem_material_t* src)
     dst->lambda = src->lambda;
     dst->kappa = src->kappa;
     dst->mu = src->mu;
-    dst->syld = src->syld;
-    dst->ckin = src->ckin;
-    dst->kkin = src->kkin;
+    //dst->syld = src->syld;
+    //dst->ckin = src->ckin;
+    //dst->kkin = src->kkin;
+    dst->nlkp = src->nlkp;
     dst->rinf = src->rinf;
     dst->biso = src->biso;
     dst->filename0 = strdup(src->filename0);
@@ -93,15 +95,16 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
 	if (cmp(scanner,"lambda"))      err=expect_eq_float(scanner, &mat->lambda, 1);
 	if (cmp(scanner,"kappa"))       err=expect_eq_float(scanner, &mat->kappa, 1);
         if (cmp(scanner,"mu"))          err=expect_eq_float(scanner, &mat->mu, 1);
-        if (cmp(scanner,"syld"))        err=expect_eq_float(scanner, &mat->syld, 1);
-	if (cmp(scanner,"ckin"))        err=expect_eq_float(scanner, &mat->ckin, 1);
-	if (cmp(scanner,"kkin"))        err=expect_eq_float(scanner, &mat->kkin, 1);
-	if (cmp(scanner,"rinf"))        err=expect_eq_float(scanner,&mat->rinf,1);
-	if (cmp(scanner,"biso"))        err=expect_eq_float(scanner,&mat->biso,1);
+        if (cmp(scanner,"nlkp"))        err=expect_eq_float(scanner, &mat->nlkp, 1);
 	
     if (cmp(scanner,"copy")) {
+            printf("Enter: copy material");
             err=expect_eq_int(scanner, &nmat, 1);
-            if (err<=0) return err;
+            if (err<=0) {
+                printf("COPY FAILED");
+                printf("Material number %i\n",nmat);
+                return err;
+            }
             sem_material_t *msrc = mats->head;
             while(msrc && msrc->num!=nmat) msrc = msrc->next;
             if (!msrc) { msg_err(scanner, "Material to copy is not (yet?) defined"); return 0; }

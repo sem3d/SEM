@@ -151,6 +151,7 @@ int main(int argc, char**argv)
     };
 
     //mesh.write_materials("material.input");
+    mesh.define_associated_materials();
 
     mesh.generate_output(NPROCS);
     return 0;

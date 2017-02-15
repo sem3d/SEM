@@ -106,11 +106,12 @@ contains
             Tdomain%sSubdomain(num)%DLambda  = matdesc%lambda
             Tdomain%sSubdomain(num)%DMu      = matdesc%mu
             Tdomain%sSubdomain(num)%DKappa   = matdesc%kappa
-            Tdomain%sSubdomain(num)%DSyld    = matdesc%syld
-            Tdomain%sSubdomain(num)%DCkin    = matdesc%ckin
-            Tdomain%sSubdomain(num)%DKkin    = matdesc%kkin
+!            Tdomain%sSubdomain(num)%DSyld    = matdesc%syld
+!            Tdomain%sSubdomain(num)%DCkin    = matdesc%ckin
+!            Tdomain%sSubdomain(num)%DKkin    = matdesc%kkin
             Tdomain%sSubdomain(num)%DRinf    = matdesc%rinf
             Tdomain%sSubdomain(num)%DBiso    = matdesc%biso
+            Tdomain%sSubdomain(num)%DNlkp    = matdesc%nlkp
 
             !!! TODO Add Qp/Qmu, PML
             call c_f_pointer(matdesc%next, matdesc)

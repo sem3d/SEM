@@ -138,6 +138,7 @@ module type_MESH
             MESH_a%considerNeighbour = .true.
             MESH_a%init = .true.
             MESH_a%validProc = .true.
+            MESH_a%procStart(:) = 0d0
 
         end subroutine init_MESH
 

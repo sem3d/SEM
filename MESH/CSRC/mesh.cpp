@@ -14,6 +14,7 @@
 #include "mesh_h5_output.h"
 #include "meshpart.h"
 #include "mesh_common.h"
+#include <unistd.h>
 
 using std::map;
 using std::multimap;
@@ -153,31 +154,6 @@ int Mesh3D::read_materials_v2(const std::string& str)
     int         ngllx;
     double    Qp, Qmu;
 
-    int    lambdaSwitch;
-
-    int    corrMod_0;
-    double corrL_x_0;
-    double corrL_y_0;
-    double corrL_z_0;
-    int     margiF_0;
-    double      CV_0;
-    int  seedStart_0;
-
-    int    corrMod_1;
-    double corrL_x_1;
-    double corrL_y_1;
-    double corrL_z_1;
-    int     margiF_1;
-    double      CV_1;
-    int  seedStart_1;
-
-    int    corrMod_2;
-    double corrL_x_2;
-    double corrL_y_2;
-    double corrL_z_2;
-    int     margiF_2;
-    double      CV_2;
-    int  seedStart_2;
 
     FILE* f = fopen(str.c_str(), "r");
     getData_line(&buffer, &linesize, f);
@@ -188,45 +164,8 @@ int Mesh3D::read_materials_v2(const std::string& str)
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
 
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
-        //printf("     strcmp(&type,R) = %d\n", strcmp(&type,"R"));
-        //printf("     type == 'R' %d\n", type == 'R');
 
-        if(type == 'R'){
-
-            getData_line(&buffer, &linesize, f);
-            sscanf(buffer,"%d", &lambdaSwitch);
-
-            getData_line(&buffer, &linesize, f);
-            sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
-                   &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
-                   &margiF_0, &CV_0, &seedStart_0);
-
-            getData_line(&buffer, &linesize, f);
-            sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
-                   &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
-                   &margiF_1, &CV_1, &seedStart_1);
-
-            getData_line(&buffer, &linesize, f);
-            sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
-                   &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
-                   &margiF_2, &CV_2, &seedStart_2);
-
-            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx,
-                                           lambdaSwitch,
-                                           corrMod_0, corrL_x_0, corrL_y_0, corrL_z_0,
-                                           margiF_0, CV_0, seedStart_0,
-                                           corrMod_1, corrL_x_1, corrL_y_1, corrL_z_1,
-                                           margiF_1, CV_1, seedStart_1,
-                                           corrMod_2, corrL_x_2, corrL_y_2, corrL_z_2,
-                                           margiF_2, CV_2, seedStart_2));
-
-            //printf("     lambdaSwitch = %d\n", lambdaSwitch);
-            //cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
-            //		corrMod, corrL_x, corrL_y, corrL_z, seedStart);
-        }
-        else{
-            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
-        }
+        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
     }
     free(buffer);
     return nmats;
@@ -234,7 +173,44 @@ int Mesh3D::read_materials_v2(const std::string& str)
 
 #define TF(e)  (e ? 'T' : 'F')
 
+void Mesh3D::define_associated_materials()
+{
+    int nmats = m_materials.size();
+    
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+    
+        m_bbox[k].set_assocMat(k);
+        
+        if (mat.is_pml()) {
+        	m_bbox[k].set_assocMat(mat.associated_material);
+        }
+    }
+    
+    /*
+    if( access( "assocMat.spec", F_OK ) != -1 ) {
+        printf("\n WARNING! assocMat.spec exists \n");
+        FILE* f = fopen("assocMat.spec", "r");
+        int k;
+        int assocMat;
 
+        while (!feof (f))
+        {  
+            fscanf (f, "%d", &k);
+            fscanf (f, "%d", &assocMat);
+            
+            printf (" -Material %d associated to Material %d \n", k, assocMat);
+
+            m_bbox[k].set_assocMat(assocMat);      
+        }
+        fclose (f);    
+    }
+    else {
+        printf("\n WARNING! assocMat.spec doesn't exist \n");
+    }
+    */
+
+}
 void Mesh3D::write_materials_v2(const std::string& str)
 {
     FILE* f = fopen(str.c_str(), "w");
@@ -248,13 +224,6 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.Pspeed, mat.Sspeed, mat.rho,
                 mat.m_ngll,
                 mat.Qpression, mat.Qmu);
-
-        if (mat.is_pml()) {
-        	m_bbox[k].set_assocMat(mat.associated_material);
-        }
-        else {
-        	m_bbox[k].set_assocMat(k);
-        }
     }
 
     fprintf(f, "# PML properties\n");
@@ -504,18 +473,23 @@ void Mesh3D::get_neighbour_elements(int nn, const int* n, std::set<int>& elemset
 void Mesh3D::save_bbox()
 {
     FILE* fbbox;
+    double tol_x, tol_y, tol_z;
     fbbox = fopen("domains.txt", "w");
     map<int,AABB>::const_iterator bbox;
     for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
         //fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        tol_x = (bbox->second.max[0] - bbox->second.min[0])/100.0;
+        tol_y = (bbox->second.max[1] - bbox->second.min[1])/100.0;
+        tol_z = (bbox->second.max[2] - bbox->second.min[2])/100.0;
         fprintf(fbbox, "%6d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f %6d\n", bbox->first,
-                bbox->second.min[0],
-                bbox->second.min[1],
-                bbox->second.min[2],
-                bbox->second.max[0],
-                bbox->second.max[1],
-                bbox->second.max[2],
-                bbox->second.assocMat);
+                bbox->second.min[0]-tol_x,
+                bbox->second.min[1]-tol_y,
+                bbox->second.min[2]-tol_z,
+                bbox->second.max[0]+tol_x,
+                bbox->second.max[1]+tol_y,
+                bbox->second.max[2]+tol_z,
+                bbox->first);
+                //bbox->second.assocMat);
     }
 }
 
