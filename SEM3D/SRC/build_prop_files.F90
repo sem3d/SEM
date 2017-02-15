@@ -119,7 +119,9 @@ contains
             pf%imax(k) = gindex(mat%MaxBound_Loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))+1
             pf%step(k) = (pf%MaxBound(k)-pf%MinBound(k))/(pf%NN(k)-1)
             if (pf%imin(k)<0) pf%imin(k) = 0
+            if (pf%imax(k)<pf%imin(k)) pf%imax(k) = pf%imin(k)
             if (pf%imax(k)>=pf%NN(k)) pf%imax(k) = pf%NN(k)-1
+            if (pf%imin(k)>pf%imax(k)) pf%imin(k) = pf%imax(k)
         end do
         
         call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
