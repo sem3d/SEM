@@ -371,7 +371,10 @@ contains
         if (hdferr .ne. 3) stop "read_dset_3d_real : h5sgetdim KO "
         allocate(data(i0:dims(1)+i0-1, i1:dims(2)+i1-1, i2:dims(3)+i2-1))
         call h5dread_f(dset_id, H5T_REAL, data, dims, hdferr)
-        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dread KO"
+        if (hdferr .ne. 0) then
+            write(*,*) "read_dset_3d_real : h5dread KO", dims
+            stop 1
+        endif
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5dclose KO"
         call h5sclose_f(space_id, hdferr)
@@ -392,21 +395,24 @@ contains
         start = imin
         count = imax-imin+[1,1,1]
         call h5dopen_f(parent, name, dset_id, hdferr)
-        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dopen KO"
+        if (hdferr .ne. 0) stop "read_subset_3d_real : h5dopen KO"
         call h5dget_space_f(dset_id, space_id, hdferr)
-        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dgetspace KO"
+        if (hdferr .ne. 0) stop "read_subset_3d_real : h5dgetspace KO"
         call H5Sselect_hyperslab_f(space_id, H5S_SELECT_SET_F, start, count, hdferr)
-        if (hdferr .ne. 0) stop "read_dset_3d_real : h5sgetdim KO "
+        if (hdferr .ne. 0) stop "read_subset_3d_real : h5sgetdim KO "
         allocate(data(imin(0):imax(0), imin(1):imax(1), imin(2):imax(2)))
         call H5Screate_simple_f(3, count, memspace_id, hdferr)
         call h5dread_f(dset_id, H5T_REAL, data, count, hdferr, memspace_id, space_id)
-        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dread KO"
+        if (hdferr .ne. 0) then
+            write(*,*) "read_subset_3d_real : h5dread KO", imin, imax
+            stop 1
+        end if
         call h5dclose_f(dset_id, hdferr)
-        if (hdferr .ne. 0) stop "read_dset_3d_real : h5dclose KO"
+        if (hdferr .ne. 0) stop "read_subset_3d_real : h5dclose KO"
         call h5sclose_f(space_id, hdferr)
-        if (hdferr .ne. 0) stop "read_dset_3d_real : h5sclose KO"
+        if (hdferr .ne. 0) stop "read_subset_3d_real : h5sclose KO"
         call h5sclose_f(memspace_id, hdferr)
-        if (hdferr .ne. 0) stop "read_dset_3d_real : h5sclose KO"
+        if (hdferr .ne. 0) stop "read_subset_3d_real : h5sclose KO"
     end subroutine read_subset_3d_real
 
     subroutine read_dset_2d_int(parent, name, data, ibase)
