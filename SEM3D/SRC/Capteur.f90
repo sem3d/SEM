@@ -119,7 +119,8 @@ contains
             ! Cas ou le capteur est completement en dehors du maillage
             if (numproc_max==-1) then
                 if (Tdomain%rank==0) then
-                    write(*,*) "One of the station doesn't appear to be on any processor"
+                    nom = fromcstr(station_ptr%name)
+                    write(*,*) "The station ", trim(nom), " doesn't appear to be on any processor"
                     write(*,*) "Please verify that the station location is within the computation domain"
                 end if
                 stop 1
