@@ -154,7 +154,7 @@ contains
         ! Handle on node global coords : mandatory to compute
         ! distances in the PML (compute_dxi_alpha_kappa)
         ! TODO precompute usefull coeffs instead of copying coords...
-        allocate(dom%GlobCoord(0:2,0:dom%nglltot-1))
+        allocate(dom%GlobCoord(0:2,0:dom%nglltot))
         do n=0,Tdomain%n_elem-1
             if (Tdomain%specel(n)%domain/=dmtype) cycle
             do k = 0,dom%ngll-1
