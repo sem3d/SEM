@@ -17,9 +17,9 @@ contains
     subroutine allocate_champs_fluid(dom, i)
         type(domain_fluid), intent (INOUT) :: dom
         integer, intent(in) :: i
-        allocate(dom%champs(i)%ForcesFl(0:dom%nglltot-1))
-        allocate(dom%champs(i)%Phi     (0:dom%nglltot-1))
-        allocate(dom%champs(i)%VelPhi  (0:dom%nglltot-1))
+        allocate(dom%champs(i)%ForcesFl(0:dom%nglltot))
+        allocate(dom%champs(i)%Phi     (0:dom%nglltot))
+        allocate(dom%champs(i)%VelPhi  (0:dom%nglltot))
 
         dom%champs(i)%ForcesFl = 0d0
         dom%champs(i)%Phi = 0d0

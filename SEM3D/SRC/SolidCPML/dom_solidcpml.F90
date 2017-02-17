@@ -27,9 +27,9 @@ contains
 
         ! Allocate ONE more gll than necessary to use as a dummy target for
         ! indirections for fake elements.
-        allocate(dom%champs(i)%Forces(0:dom%nglltot-1,0:2))
-        allocate(dom%champs(i)%Depla (0:dom%nglltot-1,0:2))
-        allocate(dom%champs(i)%Veloc (0:dom%nglltot-1,0:2))
+        allocate(dom%champs(i)%Forces(0:dom%nglltot,0:2))
+        allocate(dom%champs(i)%Depla (0:dom%nglltot,0:2))
+        allocate(dom%champs(i)%Veloc (0:dom%nglltot,0:2))
         dom%champs(i)%Depla  = 0d0
         dom%champs(i)%Veloc  = 0d0
         dom%champs(i)%Forces = 0d0
@@ -113,20 +113,20 @@ contains
             call allocate_champs_solidcpml(dom, 1)
 
             ! Allocation de DumpMat pour les PML solides
-            allocate(dom%DumpMat(0:dom%nglltot-1))
+            allocate(dom%DumpMat(0:dom%nglltot))
             dom%DumpMat = 0d0
 
             ! Allocation de MasUMat pour les PML solides
-            allocate(dom%MasUMat(0:dom%nglltot-1))
+            allocate(dom%MasUMat(0:dom%nglltot))
             dom%MasUMat = 0d0
 
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
         if (Tdomain%logicD%save_snapshots) then
-            allocate(dom%FDump(0:dom%nglltot-1, 0:2))
-            allocate(dom%FMasU(0:dom%nglltot-1, 0:2))
-            allocate(dom%Fint (0:dom%nglltot-1, 0:2))
+            allocate(dom%FDump(0:dom%nglltot, 0:2))
+            allocate(dom%FMasU(0:dom%nglltot, 0:2))
+            allocate(dom%Fint (0:dom%nglltot, 0:2))
             dom%FDump = 0.
             dom%FMasU = 0.
             dom%Fint  = 0.
