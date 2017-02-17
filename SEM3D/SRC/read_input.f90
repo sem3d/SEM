@@ -504,7 +504,7 @@ contains
         use constants
         use mcapteur
         use surface_input !, only : read_surface_input,
-         
+
         implicit none
 
         type(domain), intent(inout)  :: Tdomain
@@ -518,7 +518,7 @@ contains
 
         call semname_file_input_spec(fnamef)
 
-        call read_sem_config(Tdomain%config, trim(fnamef)//C_NULL_CHAR, code)
+        call read_sem_config(Tdomain%config, Tdomain%rank, 3, trim(fnamef)//C_NULL_CHAR, code)
 
         if (code/=1) then
             stop 1

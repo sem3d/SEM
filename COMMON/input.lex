@@ -29,7 +29,9 @@ typedef enum {
 
 #define NMAX 8
 struct scan_info {
-	const char *msgerr;
+    int rank;
+    int dim; // used to specialize the parser between 2d/3d
+    const char *msgerr;
 };
 }
 

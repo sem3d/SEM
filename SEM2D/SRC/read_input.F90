@@ -92,7 +92,7 @@ subroutine read_input (Tdomain)
     call semname_file_input_spec(fnamef)
 
     write(*,*) "Opening:", trim(fnamef)
-    call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
+    call read_sem_config(config, Tdomain%Mpi_var%my_rank, 2, trim(fnamef)//C_NULL_CHAR, code)
 
     Tdomain%Title_simulation = fromcstr(config%run_name)
     Tdomain%Type_TimeInteg = config%type_timeinteg

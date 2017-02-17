@@ -223,10 +223,11 @@ module sem_c_config
     end type sem_material_list
 
     interface
-       subroutine read_sem_config(config, spec, err) bind(c)
+       subroutine read_sem_config(config, rank, dim, spec, err) bind(c)
            use iso_c_binding
            import :: sem_config
            type(sem_config), intent(in) :: config
+           integer(C_INT), intent(in), value :: rank, dim
            character(C_CHAR), dimension(*) :: spec
            integer(C_INT), intent(out) :: err
        end subroutine read_sem_config

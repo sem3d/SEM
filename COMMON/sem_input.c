@@ -12,6 +12,7 @@
 void clear_scan( struct scan_info *info)
 {
     info->msgerr = "";
+    info->rank = 0;
 }
 
 int eval_bool(yyscan_t scanner, int* val)
@@ -42,7 +43,9 @@ void msg_err(yyscan_t scanner, const char* msgerr, ...)
 	    break;
     }
     info->msgerr = p;
-    printf("Err: %s\n", p);
+    if (info->rank==0) {
+        printf("Err: %s\n", p);
+    }
 }
 
 int skip_blank(yyscan_t scanner)
@@ -145,7 +148,7 @@ int expect_string(yyscan_t scanner, char** str, int nexpected)
     while(k<nexpected) {
 	tok = skip_blank(scanner);
 	if (tok!=K_STRING) {
-	    printf("Got: %d '%s'\n", tok, yyget_text(scanner));
+	    //printf("Got: %d '%s'\n", tok, yyget_text(scanner));
 	    msg_err(scanner, "Expected string");
 	    return 0;
 	}
@@ -195,7 +198,7 @@ int expect_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval)
         k++;
     }
 error:
-    bufmax = 200+k+size;
+    bufmax = 200+2*k+size;
     msg = (char*)malloc(bufmax);
     *msg = 0;
     strcat(msg, "Expected keyword from:");

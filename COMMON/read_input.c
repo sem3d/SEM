@@ -85,38 +85,13 @@ const keyword_t kw_type_integration[] = {
     { 4, NULL },
 };
 
-int expect_type_implicitness(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
+const keyword_t kw_type_implicitness[] = {
+    { 0, "explicit" },
+    { 1, "semi_implicit"},
+    { 2, "implicit" },
+    { 3, NULL },
+};
 
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"explicit"))         { *type = 0; return 1; }
-    if (cmp(scanner,"semi_implicit"))    { *type = 1; return 1; }
-    if (cmp(scanner,"implicit"))         { *type = 2; return 1; }
-error:
-    msg_err(scanner, "Expected explicit|semi_implicit|implicit");
-    return 0;
-}
-
-
-int expect_source_dir(yyscan_t scanner, int* dir)
-{
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"x")||cmp(scanner,"X")) { *dir = 0; return 1; }
-    if (cmp(scanner,"y")||cmp(scanner,"Y")) { *dir = 1; return 1; }
-    if (cmp(scanner,"z")||cmp(scanner,"Z")) { *dir = 2; return 1; }
-error:
-    msg_err(scanner, "Expected x|y|z|X|Y|Z");
-    return 0;
-}
 
 const keyword_t kw_source_func[] = {
     {  1, "gaussian" },
@@ -184,7 +159,6 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"v")) err=expect_eq_float(scanner, &source->v, 1);
 	else if (cmp(scanner,"d")) err=expect_eq_float(scanner, &source->d, 1);
 	else if (cmp(scanner,"a")) err=expect_eq_float(scanner, &source->a, 1);
-
 
 	if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
@@ -285,36 +259,16 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"beta")) err=expect_eq_float(scanner, &config->beta,1);
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
 	else if (cmp(scanner,"courant")) err=expect_eq_float(scanner, &config->courant,1);
-	else if (cmp(scanner,"implicitness")) err=expect_type_implicitness(scanner, &config->implicitness);
+	else if (cmp(scanner,"implicitness")) err=expect_eq_keyword(scanner, kw_type_implicitness, &config->implicitness);
 	else if (cmp(scanner,"type_time_integration")) err=expect_eq_keyword(scanner, kw_type_integration, &config->type_timeinteg);
+
+        if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
     return 1;
 }
 
-int expect_gradient_desc(yyscan_t scanner, sem_config_t* config)
-{
-    int tok, err;
-
-    tok = skip_blank(scanner);
-    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
-    do {
-	tok = skip_blank(scanner);
-	if (tok!=K_ID) break;
-
-	// TODO
-	//if (cmp(scanner,"materials")) err=expect_eq_int(scanner, &config->accel_scheme, 1);
-	//if (cmp(scanner,"xx")) err=expect_eq_bool(scanner, &config->veloc_scheme, 1);
-	//if (cmp(scanner,"yy")) err=expect_eq_float(scanner, &config->alpha,1);
-	//if (cmp(scanner,"zz")) err=expect_eq_float(scanner, &config->beta,1);
-	//if (cmp(scanner,"ww")) err=expect_eq_float(scanner, &config->gamma,1);
-
-	if (!expect_eos(scanner)) { return 0; }
-    } while(1);
-    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
-    return 1;
-}
 
 int expect_amortissement(yyscan_t scanner, sem_config_t* config)
 {
@@ -331,6 +285,7 @@ int expect_amortissement(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"atn_band")) err=expect_eq_float(scanner, &config->atn_band[0], 2);
 	if (cmp(scanner,"atn_period")) err=expect_eq_float(scanner, &config->atn_period,1);
 
+        if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
@@ -356,6 +311,7 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"cpml_integration")) err=expect_eq_keyword(scanner, kw_cpml_integ_type, &config->cpml_integ_type);
         if (cmp(scanner,"cpml_one_root")) err=expect_eq_int(scanner, &config->cpml_one_root, 1);
 
+        if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
@@ -374,23 +330,6 @@ keyword_t kw_material_type[] = {
     { 5, "random" },
     { 6, NULL },
 };
-
-int expect_material_type(yyscan_t scanner, int* type) {
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"constant"))  { *type = 1; return 1; }
-    if (cmp(scanner,"gradient"))  { *type = 2; return 1; }
-    if (cmp(scanner,"earthchunk")){ *type = 3; return 1; }
-    if (cmp(scanner,"prem"))      { *type = 4; return 1; }
-    if (cmp(scanner,"random"))    { *type = 5; return 1; }
-error:
-    msg_err(scanner, "Expected constant|gradient|earthchunk|prem|random");
-    return 0;
-}
 
 const keyword_t kw_station_type[] = {
     { 1, "points" },
@@ -417,6 +356,7 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"delta_lon")) err=expect_eq_float(scanner, &config->delta_lon, 1);
 	if (cmp(scanner,"delta_lat")) err=expect_eq_float(scanner, &config->delta_lat, 1);
 
+        if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
@@ -432,98 +372,93 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 
 void init_surface(surface_t *surface)
 {
-  memset(surface, 0, sizeof(surface_t));
-// Initialisation de tous les champs surfaciques
-  surface->surface_list[40] = -1;
-  surface->surface_present=0;
-  surface->surface_type=0;
-  surface->surface_mat=-1;
-  surface->surface_K[3]=0;
-  surface->surface_C[3]=0;
-  surface->surface_f0=0;
-  surface->surface_whatbc=0;
-  surface->surface_dim=0;
-  surface->surface_Paravalue[100]=0;
-  surface->surface_Paramname=NULL;
-  surface->surface_nparamvar=0;
-  surface->surface_paramvar=0;
-  surface->surface_source=NULL;
-  surface->surface_funcx=NULL;
-  surface->surface_funcy=NULL;
-  surface->surface_funcz=NULL;
-  surface->surface_funcxy=NULL;
-  surface->surface_funcxz=NULL;
-  surface->surface_funcyz=NULL;
-  surface->surface_varia=NULL;
-  surface->amplitude=1;
-  surface->Rtau = 0;
-  surface->surface_space=0;
-  surface->surface_size=0;
-  surface->surface_name=NULL;
-  surface->surface_wave = 0;
-  surface->surface_Speed =0;
+    memset(surface, 0, sizeof(surface_t));
+    // Initialisation de tous les champs surfaciques
+    surface->surface_list[40] = -1;
+    surface->surface_present=0;
+    surface->surface_type=0;
+    surface->surface_mat=-1;
+    surface->surface_K[3]=0;
+    surface->surface_C[3]=0;
+    surface->surface_f0=0;
+    surface->surface_whatbc=0;
+    surface->surface_dim=0;
+    surface->surface_Paravalue[100]=0;
+    surface->surface_Paramname=NULL;
+    surface->surface_nparamvar=0;
+    surface->surface_paramvar=0;
+    surface->surface_source=NULL;
+    surface->surface_funcx=NULL;
+    surface->surface_funcy=NULL;
+    surface->surface_funcz=NULL;
+    surface->surface_funcxy=NULL;
+    surface->surface_funcxz=NULL;
+    surface->surface_funcyz=NULL;
+    surface->surface_varia=NULL;
+    surface->amplitude=1;
+    surface->Rtau = 0;
+    surface->surface_space=0;
+    surface->surface_size=0;
+    surface->surface_name=NULL;
+    surface->surface_wave = 0;
+    surface->surface_Speed =0;
 }
+
+
+const keyword_t kw_source_shape[] = {
+    { 1, "gaussian"  },
+    { 2, "paraboloid"},
+    { 3, "square"    },
+    { 4, "cylinder"  },
+    { 5, "uniform"   },
+    { 6, NULL },
+};
+
+const keyword_t kw_surf_type[] = {
+    {1, "neumann"},
+    {2, "planewave"},
+    {3, "fault"},
+    {4, "dirichlet"},
+    {5, NULL},
+};
+
+const keyword_t kw_wave_type[] = {
+    {1, "P"},
+    {2, "S"},
+    {3, "SH"},
+    {4, "SV"},
+    {5, "NO"},
+    {6, NULL},
+};
 
 int expect_source_shape(yyscan_t* scanner, int* type, char** name)
 {
-     int tok;
-     int len;
- 
-     if (!expect_eq(scanner)) return 0;
-     tok = skip_blank(scanner);
-     if (tok!=K_ID) goto error;
-     if (cmp(scanner,"gaussian"))         { *type = 1; *name = "gaussian"  ; return 1; }
-     if (cmp(scanner,"paraboloid"))       { *type = 2; *name = "paraboloid"; return 1; }
-     if (cmp(scanner,"square"))           { *type = 3; *name = "square"    ; return 1; }
-     if (cmp(scanner,"cylinder"))         { *type = 4; *name = "cylinder"  ; return 1; }
-     if (cmp(scanner,"uniform"))          { *type = 5; *name = "uniform"   ; return 1; }
-  error:
-     msg_err(scanner, "Expected gaussian|Paraboloid|square|cylinder|uniform");
-     return 0;
-}
+    int tok;
+    int len;
 
-int expect_surf_type(yyscan_t scanner, int* type)
-{
-     int tok;
-     int len;
-
-     if (!expect_eq(scanner)) return 0;
-     tok = skip_blank(scanner);
-     if (tok!=K_ID) goto error;
-     if (cmp(scanner,"neumann"))          { *type = 1; return 1; }
-     if (cmp(scanner,"planewave"))        { *type = 2; return 1; }
-     if (cmp(scanner,"fault"))            { *type = 3; return 1; }
-     if (cmp(scanner,"dirichlet"))        { *type = 4; return 1; }
-   error:
-     msg_err(scanner, "Expected neumann|planewave|fault|dirichlet");
-     return 0;
-}
-
-int expect_wave_type(yyscan_t scanner, int* type)
-{
-   int tok;
-   if (!expect_eq(scanner)) return 0;
-   tok = skip_blank(scanner);
-   if (cmp(scanner,"P"))         { *type = 1; return 1; }
-   if (cmp(scanner,"S"))         { *type = 2; return 1; }
-   if (cmp(scanner,"SH"))        { *type = 3; return 1; }
-   if (cmp(scanner,"SV"))        { *type = 4; return 1; }
-   if (cmp(scanner,"NO"))        { *type = 5; return 1; }
- error:
-   msg_err(scanner, "Expected wave P|S|SH|SV|NO");
-   return 0;   
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"gaussian"))         { *type = 1; *name = "gaussian"  ; return 1; }
+    if (cmp(scanner,"paraboloid"))       { *type = 2; *name = "paraboloid"; return 1; }
+    if (cmp(scanner,"square"))           { *type = 3; *name = "square"    ; return 1; }
+    if (cmp(scanner,"cylinder"))         { *type = 4; *name = "cylinder"  ; return 1; }
+    if (cmp(scanner,"uniform"))          { *type = 5; *name = "uniform"   ; return 1; }
+error:
+    msg_err(scanner, "Expected gaussian|Paraboloid|square|cylinder|uniform");
+    return 0;
 }
 
 int expect_surfaces(yyscan_t scanner, sem_config_t* config)
 {
     surface_t *surface;
-    int tok, err; 
+    int tok, err;
     int use=-1;
     config->surface_find = 1;
     surface = (surface_t*)malloc(sizeof(surface_t));
     init_surface(surface);
     surface->next = config->surface;
-    
+
     config->surface=surface;
     config->nsurface++;
     surface->surface_name = "Unknown";
@@ -533,9 +468,9 @@ int expect_surfaces(yyscan_t scanner, sem_config_t* config)
     do {
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
-         
+
         if (cmp(scanner,"use")) err=expect_eq_int(scanner, &surface->surface_present,1);
-        if (cmp(scanner,"type")) err=expect_surf_type(scanner, &surface->surface_whatbc);
+        if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_surf_type, &surface->surface_whatbc);
 	if (cmp(scanner,"dir")) err=expect_eq_float(scanner, surface->surface_K,3);
         if (cmp(scanner,"time")) err=expect_eq_keyword(scanner, kw_source_func, &surface->surface_type);
         if (cmp(scanner,"ampli")) err=expect_eq_float(scanner, &surface->amplitude,1);
@@ -546,34 +481,35 @@ int expect_surfaces(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"size")) err=expect_eq_float(scanner, &surface->surface_size,1);
         if (cmp(scanner,"nsurf")) err=expect_eq_int(scanner, &use,1);
         if (cmp(scanner,"mat_i")) err=expect_eq_int(scanner, &surface->surface_mat,1);
-        if (cmp(scanner,"wave")) err=expect_wave_type(scanner, &surface->surface_wave);
+        if (cmp(scanner,"wave")) err=expect_eq_keyword(scanner, kw_wave_type, &surface->surface_wave);
         if (cmp(scanner,"speed")) err=expect_eq_float(scanner, &surface->surface_Speed,1);
         if (cmp(scanner,"dirU")) err=expect_eq_float(scanner, surface->surface_dirU,3);
-        if (cmp(scanner,"index")) 
-           if (use!=-1)  err=expect_eq_int(scanner, surface->surface_list,use); 
+        if (cmp(scanner,"index")) {
+            if (use!=-1) err=expect_eq_int(scanner, surface->surface_list,use);
+        }
         if (cmp(scanner,"var")) err=expect_eq_string(scanner, &surface->surface_varia,1);
         if (cmp(scanner,"fxx")) {err=expect_eq_string(scanner, &surface->surface_funcx,1);
-                                surface->surface_source= "F"; surface->surface_dim=1;}
+            surface->surface_source= "F"; surface->surface_dim=1;}
         if (cmp(scanner,"fyy")) {err=expect_eq_string(scanner, &surface->surface_funcy,1);
-                                 surface->surface_source="F"; surface->surface_dim=2;}
+            surface->surface_source="F"; surface->surface_dim=2;}
         if (cmp(scanner,"fzz")) {err=expect_eq_string(scanner, &surface->surface_funcz,1);
-                                 surface->surface_source="F"; surface->surface_dim=3;}
+            surface->surface_source="F"; surface->surface_dim=3;}
         if (cmp(scanner,"fxz")||cmp(scanner,"fzx")) {err=expect_eq_string(scanner, &surface->surface_funcxz,1);
-                                                     surface->surface_source="M";}
+            surface->surface_source="M";}
         if (cmp(scanner,"fyz")||cmp(scanner,"fzy")) {err=expect_eq_string(scanner, &surface->surface_funcyz,1);
-                                                    surface->surface_source="M";}
+            surface->surface_source="M";}
         if (cmp(scanner,"fxy")||cmp(scanner,"fyx")) {err=expect_eq_string(scanner, &surface->surface_funcxy,1);
-                                                     surface->surface_source="M";}
+            surface->surface_source="M";}
         if (cmp(scanner,"paramvar")) err=expect_eq_int(scanner, &surface->surface_paramvar,1);
         if (cmp(scanner,"npara")) err=expect_eq_int(scanner, &surface->surface_nparamvar,1);
         if (cmp(scanner,"param")) err=expect_eq_string(scanner, &surface->surface_Paramname,1);
         if (cmp(scanner,"value")) err=expect_eq_float(scanner,surface->surface_Paravalue, surface->surface_nparamvar);
-        
-        if (err==0) { printf("\n\n\n Error in expect_surfaces \n\n\n"); return 0;} 
+
+        if (err<=0) { return 0; }
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
-    
+
     return 1;
 }
 
@@ -770,6 +706,7 @@ int expect_capteurs(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"point2")) err=expect_eq_float(scanner, &stations.p2[0], dim);
 	if (cmp(scanner,"file")) err=expect_eq_string(scanner, &stations.point_file, 1);
 
+        if (err<=0) return err;
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
@@ -791,56 +728,28 @@ int expect_capteurs(yyscan_t scanner, sem_config_t* config)
 
 /// type_elements SECTION -----------------------------------------------------
 
-int expect_type_galerkin(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
+const keyword_t kw_type_galerkin[] = {
+    {0, "continuous"},
+    {1, "dg_strong"},
+    {2, "dg_weak"},
+    {3, "hdg_rp"},
+    {4, NULL},
+};
+const keyword_t kw_type_dg_flux[] = {
+    {0, "none"},
+    {1, "centered"},
+    {2, "godunov"},
+    {3, "laurent"},
+    {4, "hdg_rp"},
+    {5, NULL},
+};
 
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"continuous"))   { *type = 0; return 1; }
-    if (cmp(scanner,"dg_strong"))       { *type = 1; return 1; }
-    if (cmp(scanner,"dg_weak"))       { *type = 2; return 1; }
-    if (cmp(scanner,"hdg_rp"))       { *type = 3; return 1; }
-error:
-    msg_err(scanner, "Expected continuous|dg_strong|dg_weak|hdg");
-    return 0;
-}
-
-int expect_type_dg_flux(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"none"))   { *type = 0; return 1; }
-    if (cmp(scanner,"centered"))   { *type = 1; return 1; }
-    if (cmp(scanner,"godunov"))       { *type = 2; return 1; }
-    if (cmp(scanner,"laurent"))       { *type = 3; return 1; }
-    if (cmp(scanner,"hdg_rp"))       { *type = 4; return 1; }
-error:
-    msg_err(scanner, "Expected none|centered|godunov|hdg_rp");
-    return 0;
-}
-
-int expect_type_dg_boundary_condition(yyscan_t scanner, int* type)
-{
-    int tok;
-    int len;
-
-    if (!expect_eq(scanner)) return 0;
-    tok = skip_blank(scanner);
-    if (tok!=K_ID) goto error;
-    if (cmp(scanner,"free"))   { *type = 0; return 1; }
-    if (cmp(scanner,"absorbing"))       { *type = 1; return 1; }
-    if (cmp(scanner,"reflecting"))       { *type = 2; return 1; }
-error:
-    msg_err(scanner, "Expected free|absorbing|reflecting");
-    return 0;
-}
+const keyword_t kw_type_dg_boundary_condition[] = {
+    {0, "free"},
+    {1, "absorbing"},
+    {2, "reflecting"},
+    {3, NULL},
+};
 
 int expect_type_elements(yyscan_t scanner, sem_config_t* config)
 {
@@ -852,17 +761,16 @@ int expect_type_elements(yyscan_t scanner, sem_config_t* config)
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
 
-	if (cmp(scanner,"dg_type")) err=expect_type_galerkin(scanner, &config->type_elem);
-	if (cmp(scanner,"flux_type")) err=expect_type_dg_flux(scanner, &config->type_flux);
-	if (cmp(scanner,"bc_type")) err=expect_type_dg_boundary_condition(scanner, &config->type_bc);
+	if (cmp(scanner,"dg_type")) err=expect_eq_keyword(scanner, kw_type_galerkin, &config->type_elem);
+	if (cmp(scanner,"flux_type")) err=expect_eq_keyword(scanner, kw_type_dg_flux, &config->type_flux);
+	if (cmp(scanner,"bc_type")) err=expect_eq_keyword(scanner, kw_type_dg_boundary_condition, &config->type_bc);
+        if (err<=0) return err;
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
     return 1;
 }
-
-
 
 int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 {
@@ -886,7 +794,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
 	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
 	else if (cmp(scanner,"nonlinear")) err=expect_eq_int(scanner, &config->nl_flag,1);
-    else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
+        else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
 	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
 	else if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
@@ -907,14 +815,13 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"capteurs")) err=expect_capteurs(scanner, config);
 	// useless (yet or ever)
 	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
-	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
 	else if (cmp(scanner,"model")) err=expect_eq_keyword(scanner, kw_models, &config->model);
 	else if (cmp(scanner,"surface")) err=expect_surfaces(scanner, config);
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
 
-	if (err==0) { printf("ERR01\n"); return 0;}
+	if (err==0) { return 0;}
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     return 1;
@@ -980,15 +887,15 @@ void dump_config(sem_config_t* cfg)
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
     printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
-  	cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
-        cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
-    	cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
-        cfg->out_variables[9], cfg->out_variables[10]);
+           cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
+           cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
+           cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
+           cfg->out_variables[9], cfg->out_variables[10]);
     printf("Nonlinear analysis : %d\n",cfg->nl_flag);
 }
 
 
-void read_sem_config(sem_config_t* config, const char* input_spec, int* err)
+void read_sem_config(sem_config_t* config, int rank, int dim, const char* input_spec, int* err)
 {
     struct scan_info info;
     FILE* input;
@@ -1001,19 +908,25 @@ void read_sem_config(sem_config_t* config, const char* input_spec, int* err)
     input = fopen(input_spec, "r");
 
     if (input==NULL) {
-      fprintf(stderr, "Error opening file : '%s'\n", input_spec);
-      fprintf(stderr, "error: %d - %s\n", errno, strerror(errno));
-      exit(1);
+        if (rank==0) {
+            fprintf(stderr, "Error opening file : '%s'\n", input_spec);
+            fprintf(stderr, "error: %d - %s\n", errno, strerror(errno));
+        }
+        exit(1);
     }
     clear_scan(&info);
+    info.rank = rank;
+    info.dim = dim;
 
     yylex_init_extra( &info, &scanner );
     yyset_in(input, scanner);
     *err = parse_input_spec(scanner, config);
     if (*err<=0) {
 	int lineno = yyget_lineno(scanner);
-	printf("Error: %s after '%s' while parsing file %s line %d\n",
-	       info.msgerr, yyget_text(scanner), input_spec, lineno);
+        if (rank==0) {
+            printf("Error: %d %d %s after '%s' while parsing file %s line %d\n", rank, dim,
+                   info.msgerr, yyget_text(scanner), input_spec, lineno);
+        }
 	fclose(input);
 	return ;
     }
@@ -1028,7 +941,7 @@ int main ( int argc, char * argv[] )
     sem_config_t config;
     int err;
 
-    read_sem_config(&config, argv[1], &err);
+    read_sem_config(&config, 0, 3, argv[1], &err);
 
     dump_config(&config);
     return 0;
