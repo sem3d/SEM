@@ -180,6 +180,10 @@ int Mesh3D::read_materials_v2(const std::string& str)
     int  seedStart_2;
 
     FILE* f = fopen(str.c_str(), "r");
+    if (!f) {
+        printf("Error: Could not open file: '%s'\n", str.c_str());
+        exit(1);
+    }
     getData_line(&buffer, &linesize, f);
     sscanf(buffer, "%d", &nmats);
     for(int k=0;k<nmats;++k)  {
