@@ -42,6 +42,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Solid/calcul_forces.F90
     ${PRJ}/SRC/Solid/calcul_forces_nl.f90   
     ${PRJ}/SRC/Solid/calcul_forces_atn.F90
+    ${PRJ}/SRC/Solid/calcul_forces_atn_nl.F90
     ${PRJ}/SRC/Solid/dom_solid.F90
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90

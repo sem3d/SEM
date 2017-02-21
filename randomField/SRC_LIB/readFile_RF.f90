@@ -550,7 +550,7 @@ contains
             nextLine = adjustL(nextLine)
             !print*, "nextLine = ", trim(nextLine)
             if(stat /= 0) then
-                nextLine = " "
+                nextLine = "eof_gl"
                 exit
             else if(nextLine(1:1) /= comment_Tag) then
                 !write(*,*) "nextLine = ", trim(nextLine)

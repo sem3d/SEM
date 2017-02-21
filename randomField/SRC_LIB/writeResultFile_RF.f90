@@ -1893,10 +1893,11 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine write_stat_input(filePath, h5_path)
+    subroutine write_stat_input(filePath, h5_path, calculateCorrL, deleteSampleAfterStatistics)
         implicit none
         !INPUT
-        character(len=*) :: filePath, h5_path
+        character(len=*), intent(in) :: filePath, h5_path
+        integer, intent (in) :: calculateCorrL, deleteSampleAfterStatistics
         !LOCAL
         integer :: fileId
 
@@ -1905,8 +1906,8 @@ contains
         open (unit = fileId , file = filePath, action = 'write')
 
         write(fileId,"(A)") '1 #Number of Samples'
-        write(fileId,"(A)") '1 #Calculate Correlation Legth'
-        write(fileId,"(A)") '1 #Delete Sample In The End'
+        write(fileId,"(I1,A)") calculateCorrL, ' #Calculate Correlation Legth'
+        write(fileId,"(I1,A)") deleteSampleAfterStatistics, ' #Delete Sample In The End'
         write(fileId,"(A)") '"'//trim(adjustL(h5_path))//'"'
 
         close(fileId)

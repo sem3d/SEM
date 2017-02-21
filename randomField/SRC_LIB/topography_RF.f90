@@ -179,12 +179,31 @@ contains
         deltaLD = MSH%procExtent(LD)/dble(MSH%nb_procs)
         xMinBound(LD) = MSH%rang*deltaLD
         xMaxBound(LD) = xMinBound(LD) + deltaLD
+        call wLog("xMaxBound = ")
+        call wLog(xMaxBound)
+        call wLog("xMinBound = ")
+        call wLog(xMinBound)
+        call wLog("MSH%xMinGlob = ")
+        call wLog(MSH%xMinGlob)
+        call wLog("MSH%procStart = ")
+        call wLog(MSH%procStart)
 
         xMinBound = MSH%xMinGlob + xMinBound + MSH%procStart
         xMaxBound = MSH%xMinGlob + xMaxBound + MSH%procStart
+        
+        call wLog("MSH%coords = ")
+        call wLog(MSH%coords)
+        call wLog("MSH%procPerDim = ")
+        call wLog(MSH%procPerDim)
+        call wLog("MSH%xStep = ")
+        call wLog(MSH%xStep)
 
         where(MSH%coords /= (MSH%procPerDim - 1)) xMaxBound = xMaxBound - MSH%xStep
 
+        call wLog("xMaxBound 2 = ")
+        call wLog(xMaxBound)
+        call wLog("xMinBound 2 = ")
+        call wLog(xMinBound)
         !FFT
         if(MSH%method == FFT) then
 
@@ -201,8 +220,8 @@ contains
 
             call wLog("FFT Local Division")
 
-            if(xNStepGlob(MSH%nDim) < MSH%nb_procs) stop ("ERROR!! When using parallel FFT the last dimension should have at least 1 slice by proc")
-
+            if(xNStepGlob(MSH%nDim) < MSH%nb_procs) stop("ERROR!! When using parallel FFT the last dimension should have at least 1 slice by proc")
+        
             if(MSH%nDim == 2) then
                 L = xNStepGlob(1)
                 M = xNStepGlob(2)
