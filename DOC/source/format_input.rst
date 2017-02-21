@@ -1015,3 +1015,31 @@ Example :
  #.  Les numéros des tags fournit par le mot clé ``index`` doivent être les mêmes que
      ceux attribués aux surfaces identifiées dans ``.msh``. En présence d'un tags non
      identifié, un message d'erreur est retourné entrainant l'arrêt de tous les calculs.
+
+Section ``pml_infos``
+=====================
+
+2 types de PML sont disponibles: splittées et convolutionnelles.
+
+PML splittées
+-------------
+
+Mettre OPT_CPML=OFF dans cmake.
+
+PML convolutionnelles
+---------------------
+
+Mettre OPT_CPML=ON dans cmake.
+
+Les paramètres par défaut à ajouter dans l'input.spec sont : ::
+
+    pml_infos {
+        pml_type = CPML;
+        cpml_kappa0 = 1.0;
+        cpml_kappa1 = 0.0;
+        cpml_rc = 0.001;
+    };
+
+``cpml_rc`` est l'impédance (taux d'absorption). ``cpml_kappa1`` permet de faire varier kappa dans la PML, en général il est mis à 0.0, mais, si le calcul est instable, jouer sur la valeur de ``cpml_kappa1`` peut améliorer la stabilité.
+
+Note: pour que les PMLs "matchent" le domaine adjacent, il faut avoir cpml_kappa0 = 1.0 (ne pas le modifer).
