@@ -536,7 +536,9 @@ contains
         Tdomain%TimeD%fmax                = Tdomain%config%fmax
         Tdomain%TimeD%type_timeinteg      = Tdomain%config%type_timeinteg
         Tdomain%nl_flag = .false.
+        Tdomain%use_avg = .false.
         if(Tdomain%config%nl_flag == 1) Tdomain%nl_flag = .true.
+        if(Tdomain%config%use_avg == 1) Tdomain%use_avg = .true.
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
