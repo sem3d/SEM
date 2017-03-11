@@ -280,8 +280,10 @@ subroutine RUN_PREPARED(Tdomain)
         !  valid only for one point source - to be generalized for each
         do i = 0,Tdomain%n_source-1
             if(Tdomain%sSource(i)%i_time_function == 5)then
-                !call read_source_file(Tdomain%sSource(i))
+                call read_source_file(Tdomain%sSource(i))
+            elseif (Tdomain%sSource(i)%i_time_function == 15) then
                 call read_source_file_h5(Tdomain%sSource(i))
+                write(*,*) "EXTENDED FAULT"
             endif
         end do
     endif

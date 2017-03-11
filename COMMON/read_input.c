@@ -108,7 +108,7 @@ const keyword_t kw_source_func[] = {
     { 12, "hsf" },
     { 13, "dm" },
     { 14, "analytic", },
-    { 15, NULL },
+    { 15, "fault_file" },
 };
 
 void init_source(source_t* source)

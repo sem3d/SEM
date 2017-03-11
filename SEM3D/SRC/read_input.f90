@@ -223,7 +223,11 @@ contains
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
             if (src%func .eq. 5) then
                 Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
+                write(*,*) "SOURCE TYPE",Tdomain%Ssource(nsrc)%i_type_source
             end if
+            if (src%func .eq. 15) then
+                Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
+            endif 
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
             Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
@@ -406,7 +410,7 @@ contains
 
                 ! Comportement temporel
                 Tdomain%Ssource(nsrc)%time_file = extsrc%slip_file ! Slip-rate history file
-                Tdomain%Ssource(nsrc)%i_time_function = 5 ! flag pour source file...
+                Tdomain%Ssource(nsrc)%i_time_function = 15 ! flag pour source file...
                 Tdomain%Ssource(nsrc)%ts = extsrc%Dt
                 Tdomain%Ssource(nsrc)%Nt = extsrc%Nt
 
