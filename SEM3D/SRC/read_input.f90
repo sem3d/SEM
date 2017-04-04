@@ -223,7 +223,7 @@ contains
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
             if (src%func .eq. 5) then
                 Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
-                write(*,*) "SOURCE TYPE",Tdomain%Ssource(nsrc)%i_type_source
+                !write(*,*) "SOURCE TYPE",Tdomain%Ssource(nsrc)%i_type_source
             end if
             if (src%func .eq. 15) then
                 Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
