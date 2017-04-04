@@ -66,7 +66,7 @@ contains
                             dyp = abs(yp-Tdomain%GlobCoord(1,ipoint))
                             dzp = abs(zp-Tdomain%GlobCoord(2,ipoint))
                             if (dxp>XEPS .or. dyp>XEPS .or. dzp>XEPS) then
-                                write(*,*) "DIFF", n, ipoint, Tdomain%GlobCoord(:,ipoint), ":", dxp, dyp, dzp
+                                !write(*,*) "DIFF", n, ipoint, Tdomain%GlobCoord(:,ipoint), ":", dxp, dyp, dzp
                             end if
                         end if
                         !

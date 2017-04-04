@@ -66,7 +66,7 @@ contains
         avgPspeed_mat = 0d0
         ngll_mat = 0
         use_average = Tdomain%use_avg
-        print*, "Tdomain%use_avg = ", Tdomain%use_avg
+        !print*, "Tdomain%use_avg = ", Tdomain%use_avg
 
         do n = 0, Tdomain%n_elem -1
             dxmin = 1e10
