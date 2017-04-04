@@ -536,7 +536,7 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: nlkp
         logical, intent(in) :: nl_flag
-        real(fpp),parameter :: gamma_el = 1.0d-5
+        real(fpp),parameter :: gamma_el = 5.0d-5
         real(fpp),parameter :: gamma_pl = 1.0d-4
         !
         integer :: bnum, ee
