@@ -401,7 +401,7 @@ contains
 
         dradius      = dPlast*dradius
         dcenter(0:5) = dPlast*dcenter(0:5)
-        dpstrain(0:5) = dPlast*A1vector(0:5)*gradF(0:5)
+        dpstrain(0:5) = dPlast*gradF(0:5)
         dstress = matmul(DEL,dstrain-dpstrain)
         !
         return
@@ -437,7 +437,7 @@ contains
         dPlastM = zero
         tempv(0:5) = zero
         !
-        tempv(0:5) = A1vector*gradFM
+        tempv(0:5) = gradFM
         tempv(0:5) = matmul(DEL,tempv)
         Ah = dot_product(tempv,gradFM)
         !
@@ -515,7 +515,7 @@ contains
             hard = hard - kkin*dot_product(gradF0,center)
             ! COMPUTE BETA FOR DRIFT CORRECTION
             beta = zero
-            tempv(0:5) = A1vector(0:5)*gradF0(0:5)
+            tempv(0:5) = gradF0(0:5)
             tempv(0:5) = matmul(DEL,gradF0)
             beta = dot_product(tempv,gradF0)
             beta=F0/(hard+beta)
@@ -539,7 +539,7 @@ contains
             stress = stresst
             center = centert
             radius = radiust
-            pstrain = pstrain+beta*A1vector*gradF0
+            pstrain = pstrain+beta*gradF0
             if (abs(F1).le.FTOL_DRIFT) then
                 exit
             endif
