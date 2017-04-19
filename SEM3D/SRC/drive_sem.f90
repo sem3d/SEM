@@ -542,8 +542,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
                         Tdomain%first_prot = .false.
                         if(Tdomain%rank == 0) then
                              print*," MAKING FIRST PROT_AT_TIME:", ntime
-                             print*, '(cd prot; rm -r *)'
-                             call system("(cd prot; rm -r *)")
+                             print*, '(rm -r prot/*)'
+                             call system("(rm -r prot/*)")
                         end if
                     end if
                 end if
