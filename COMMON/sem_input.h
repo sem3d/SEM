@@ -183,6 +183,12 @@ typedef struct {
     double atn_band[2];
     double atn_period;
 
+    // Mirror
+    int use_mirror;
+    int mirror_type;
+    double mirror_fmax;
+    int mirror_nspl;
+
     // PML informations
     int pml_type;
     double cpml_kappa0;
