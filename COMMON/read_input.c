@@ -111,6 +111,12 @@ const keyword_t kw_source_func[] = {
     { 15, NULL },
 };
 
+const keyword_t kw_mirror_type[] = {
+    { 0, "record" },
+    { 1, "forward" },
+    { 2, "backward" },
+};
+
 void init_source(source_t* source)
 {
     memset(source, 0, sizeof(source_t));
@@ -287,6 +293,28 @@ int expect_amortissement(yyscan_t scanner, sem_config_t* config)
 
         if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    return 1;
+}
+
+int expect_mirror(yyscan_t scanner, sem_config_t* config)
+{
+    int tok, err;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+        tok = skip_blank(scanner);
+        if (tok!=K_ID) break;
+
+        if (cmp(scanner,"use_mirror")) err=expect_eq_bool(scanner, &config->use_mirror, 1);
+        if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_mirror_type, &config->mirror_type);
+        if (cmp(scanner,"fmax")) err=expect_eq_float(scanner, &config->mirror_fmax,1);
+        if (cmp(scanner,"nspl")) err=expect_eq_int(scanner, &config->mirror_nspl,1);
+
+        if (err<=0) return 0;
+        if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
     return 1;
@@ -813,6 +841,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"type_elements")) err=expect_type_elements(scanner, config);
 	else if (cmp(scanner,"pml_infos")) err=expect_pml_infos(scanner, config);
 	else if (cmp(scanner,"capteurs")) err=expect_capteurs(scanner, config);
+        else if (cmp(scanner,"mirror")) err=expect_mirror(scanner, config);
 	// useless (yet or ever)
 	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
 	else if (cmp(scanner,"model")) err=expect_eq_keyword(scanner, kw_models, &config->model);
@@ -858,6 +887,12 @@ void init_sem_config(sem_config_t* cfg)
     cfg->cpml_n = 2;
     cfg->cpml_rc = 0.001;
     cfg->cpml_one_root = 0;
+
+    // MIRROR
+    cfg->use_mirror = 0;
+    cfg->mirror_type = 0;
+    cfg->mirror_fmax = 0.;
+    cfg->mirror_nspl = 5;
 }
 
 
