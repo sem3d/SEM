@@ -39,12 +39,12 @@ module champs_solid
     end type nl_parameters
 
     ! Mirror
-    type :: time_mirror
-        integer :: n_elem, n_glltot, n_gll, rank
+    type :: time_mirror_sl
+        integer :: n_glltot, n_gll
         integer, dimension(:,:,:,:), allocatable :: map
         real(fpp), dimension(:, :), allocatable :: displ
         real(fpp), dimension(:, :), allocatable :: force
-    end type
+    end type time_mirror_sl
     
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
     type, extends(dombase) :: domain_solid
@@ -55,7 +55,7 @@ module champs_solid
         ! Mirror
         logical :: use_mirror
         integer :: mirror_type
-        type(time_mirror) :: mirror
+        type(time_mirror_sl) :: mirror_sl
 
         ! Champs
         type(champssolid), dimension(0:1) :: champs
