@@ -43,6 +43,10 @@ contains
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
+        ! Mirror
+        dom%use_mirror = Tdomain%use_mirror
+        dom%mirror_type = Tdomain%mirror_type
+
         if(nbelem /= 0) then
             ! We can have glls without elements
             ! Do not allocate if not needed (save allocation/RAM)
