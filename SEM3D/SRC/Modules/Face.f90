@@ -14,7 +14,7 @@ module sfaces
         integer :: ngll
         integer :: domain
         !
-        integer :: elem
+        integer :: elem, elem_0, elem_1
         ! True if this face doesn't have an associated element on this cpu
         logical :: orphan
         ! Index dans Tdomain%GlobalCoord des coordonnees du pt de gauss
