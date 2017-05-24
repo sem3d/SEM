@@ -638,19 +638,18 @@ contains
         !
         logical,    intent(in) :: nl_flag
         !
-        integer :: ngll,ngll2,ngll3,i,j,k,i_dir,e,ee,idx
+        integer :: ngll,i,j,k,i_dir,e,ee,idx
         integer :: n_solid
         logical :: aniso
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
         !
-        integer :: lnum, ind
+        integer :: lnum, idx_m
 
         n_solid = dom%n_sls
-        aniso   = dom%aniso
-        ngll    = dom%ngll
-        ngll2   = ngll*ngll
-        ngll3   = ngll2*ngll
+        aniso = dom%aniso
+        ngll = dom%ngll
+        lnum = bnum*VCHUNK
 
         if (nl_flag) then
             ! PLASTIC CASE: VELOCITY PREDICTION
@@ -677,15 +676,12 @@ contains
                                 Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
                                 ! MIRROR INTERACTION
                                 if (dom%use_mirror.and.dom%mirror%n_glltot>0) then
-                                    lnum = bnum*VCHUNK+ee
-                                    if (dom%mirror%map(lnum)>=0) then
-                                        ind = i+(j*ngll)+(k*ngll2)+(dom%mirror%map(lnum)*ngll3)
-                                        if (dom%mirror_type==0) then
-                                            dom%mirror%displ(i_dir,ind) = Depla(ee,i,j,k,i_dir)
-                                        elseif (dom%mirror_type==1.or.dom%mirror_type==2) then
-                                            Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir)+&
-                                                dom%mirror%displ(i_dir,ind)*dom%mirror%winf(ind)
-                                        endif
+                                    idx_m = dom%mirror%map(lnum+ee,i,j,k)
+                                    if (idx_m>=0.and.dom%mirror_type==0) then
+                                        dom%mirror%displ(i_dir,idx_m) = Depla(ee,i,j,k,i_dir)
+                                    elseif (idx_m>=0.and.dom%mirror_type>0) then
+                                        Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir)+ &
+                                            dom%mirror%displ(i_dir,idx_m)
                                     endif
                                 endif
                                 !
@@ -726,22 +722,18 @@ contains
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
-                        e = bnum*VCHUNK+ee
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         ! MIRROR INTERACTION
                         if (dom%use_mirror.and.dom%mirror%n_glltot>0) then
-                            lnum = bnum*VCHUNK+ee
-                            if (dom%mirror%map(lnum)>=0) then
-                                ind = i+(j*ngll)+(k*ngll2)+(dom%mirror%map(lnum)*ngll3)
-                                if (dom%mirror_type==0) then
-                                    dom%mirror%force(0,ind) = Fox(ee,i,j,k)
-                                    dom%mirror%force(1,ind) = Foy(ee,i,j,k)
-                                    dom%mirror%force(2,ind) = Foz(ee,i,j,k)
-                                elseif (dom%mirror_type==1.or.dom%mirror_type==2) then
-                                    Fox(ee,i,j,k) = Fox(ee,i,j,k)-dom%mirror%force(0,ind)*dom%mirror%winf(ind)
-                                    Foy(ee,i,j,k) = Foy(ee,i,j,k)-dom%mirror%force(1,ind)*dom%mirror%winf(ind)
-                                    Foz(ee,i,j,k) = Foz(ee,i,j,k)-dom%mirror%force(2,ind)*dom%mirror%winf(ind)
-                                endif
+                            idx_m = dom%mirror%map(lnum+ee,i,j,k)
+                            if (idx_m>=0.and.dom%mirror_type==0) then
+                                dom%mirror%force(0,idx_m) = Fox(ee,i,j,k)
+                                dom%mirror%force(1,idx_m) = Foy(ee,i,j,k)
+                                dom%mirror%force(2,idx_m) = Foz(ee,i,j,k)
+                            elseif (idx_m>=0.and.dom%mirror_type>0) then
+                                Fox(ee,i,j,k) = Fox(ee,i,j,k)-dom%mirror%force(0,idx_m)
+                                Foy(ee,i,j,k) = Foy(ee,i,j,k)-dom%mirror%force(1,idx_m)
+                                Foz(ee,i,j,k) = Foz(ee,i,j,k)-dom%mirror%force(2,idx_m)
                             endif
                         endif
                         !
