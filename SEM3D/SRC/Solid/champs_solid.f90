@@ -41,8 +41,7 @@ module champs_solid
     ! Mirror
     type :: time_mirror
         integer :: n_elem, n_glltot, n_gll, rank
-        integer, dimension(:), allocatable :: map
-        real(fpp), dimension(:), allocatable :: winf
+        integer, dimension(:,:,:,:), allocatable :: map
         real(fpp), dimension(:, :), allocatable :: displ
         real(fpp), dimension(:, :), allocatable :: force
     end type
