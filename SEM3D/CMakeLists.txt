@@ -90,6 +90,9 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/SourceMT/compute_surface_BC.f90
     ${PRJ}/SRC/SourceMT/DimensionalShape.f90
     ${PRJ}/SRC/SourceMT/selectsurfload.f90 
+    ${PRJ}/SRC/Modules/Bspline.f90
+    ${PRJ}/SRC/Modules/Mirror.f90
+
 )
 
 if (OPT_CPML)
