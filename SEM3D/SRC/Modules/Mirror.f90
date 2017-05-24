@@ -5,13 +5,14 @@
 module smirror
   use constants, only : fpp
   implicit none
-  public :: init_mirror, create_mirror_files, dump_mirror_solid, load_mirror_solid, &
-        dump_mirror_fluid, load_mirror_fluid
+  public :: init_mirror, create_mirror_files, dump_mirror_sl, load_mirror_sl, dump_mirror_fl, &
+    load_mirror_fl
   private
 
   integer, dimension(:,:,:,:), allocatable :: map2glltot_sl, map2glltot_fl
   real(fpp), dimension(:), allocatable :: bspl_tmp
-  real(fpp), dimension(:,:,:), allocatable :: displ_tmp_sl, force_tmp_sl, displ_tmp_fl, force_tmp_fl
+  real(fpp), dimension(:,:,:), allocatable :: displ_sl, force_sl
+  real(fpp), dimension(:,:), allocatable :: displ_fl, force_fl
   integer :: rnk, n_spl, n_dcm, n_t, n_tdwn, n_gll, n_glltot_sl, n_glltot_fl
 
 contains
@@ -84,7 +85,7 @@ subroutine init_mirror_sl(Tdomain, surf)
       displ_sl = 0.
       force_sl = 0.
     else
-      Tdomain%sdom%mirror_sl%n_glltot_sl = n_glltot_sl
+      Tdomain%sdom%mirror_sl%n_glltot = n_glltot_sl
     endif
     deallocate(map2glltot_sl)
   endif
@@ -106,17 +107,17 @@ subroutine init_mirror_fl(Tdomain, surf)
     if (n_glltot_fl>0) then
       write(*,'("--> SEM : mirror nodes_fl : ",i3,i6)') rnk,n_glltot_fl
       allocate(Tdomain%fdom%mirror_fl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
-      allocate(Tdomain%fdom%mirror_fl%displ(0:2,0:n_glltot_fl-1))
-      allocate(Tdomain%fdom%mirror_fl%force(0:2,0:n_glltot_fl-1))
-      allocate(displ_fl(0:2,0:n_glltot_fl-1,n_spl+1))
-      allocate(force_fl(0:2,0:n_glltot_fl-1,n_spl+1))
+      allocate(Tdomain%fdom%mirror_fl%displ(0:n_glltot_fl-1))
+      allocate(Tdomain%fdom%mirror_fl%force(0:n_glltot_fl-1))
+      allocate(displ_fl(0:n_glltot_fl-1,n_spl+1))
+      allocate(force_fl(0:n_glltot_fl-1,n_spl+1))
       Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
       Tdomain%fdom%mirror_fl%n_gll = n_gll
       Tdomain%fdom%mirror_fl%map = map2glltot_fl
       displ_fl = 0.
       force_fl = 0.
     else
-      Tdomain%fdom%mirror_fl%n_glltot_fl = n_glltot_fl
+      Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
     endif
     deallocate(map2glltot_fl)
   endif
@@ -550,9 +551,9 @@ subroutine bchslv_sl(dom, w, nbands, nrow)
 end subroutine bchslv_sl
 
 subroutine bchslv_fl(dom, w, nbands, nrow)
-  use champs_solid
+  use champs_fluid
   implicit none
-  type(domain_solid), intent(inout) :: dom
+  type(domain_fluid), intent(inout) :: dom
   integer, intent(in) :: nrow,nbands
   real(fpp), intent(in) :: w(nbands,nrow)
   integer :: j,n
@@ -647,11 +648,11 @@ subroutine append_mirror_h5_sl(dom)
   call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
   dname = "Displ_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call append_dataset_2d(dset_id, dom%mirror%displ, hdferr)
+  call append_dataset_2d(dset_id, dom%mirror_sl%displ, hdferr)
   call h5dclose_f(dset_id, hdferr)
   dname = "Force_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call append_dataset_2d(dset_id, dom%mirror%force, hdferr)
+  call append_dataset_2d(dset_id, dom%mirror_sl%force, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -672,11 +673,11 @@ subroutine append_mirror_h5_fl(dom)
   call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
   dname = "Displ_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call append_dataset_1d(dset_id, dom%mirror%displ, hdferr)
+  call append_dataset_1d(dset_id, dom%mirror_fl%displ, hdferr)
   call h5dclose_f(dset_id, hdferr)
   dname = "Force_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call append_dataset_1d(dset_id, dom%mirror%force, hdferr)
+  call append_dataset_1d(dset_id, dom%mirror_fl%force, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -695,17 +696,17 @@ subroutine read_mirror_h5_sl(dom, n)
   integer :: hdferr
   integer(HSIZE_T), dimension(2) :: offset, dcount
 
-  offset = (/0,n*dom%mirror%n_glltot_sl/)
-  dcount = (/3,dom%mirror%n_glltot_sl/)
+  offset = (/0,n*dom%mirror_sl%n_glltot/)
+  dcount = (/3,dom%mirror_sl%n_glltot/)
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)
   dname = "Displ_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call read_datasubset_2d(dset_id, offset, dcount, dom%mirror%displ, hdferr)
+  call read_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%displ, hdferr)
   call h5dclose_f(dset_id, hdferr)
   dname = "Force_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call read_datasubset_2d(dset_id, offset, dcount, dom%mirror%force, hdferr)
+  call read_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%force, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -724,17 +725,17 @@ subroutine read_mirror_h5_fl(dom, n)
   integer :: hdferr
   integer(HSIZE_T), dimension(1) :: offset, dcount
 
-  offset = (/n*dom%mirror%n_glltot_fl/)
-  dcount = (/dom%mirror%n_glltot_fl/)
+  offset = (/n*dom%mirror_fl%n_glltot/)
+  dcount = (/dom%mirror_fl%n_glltot/)
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)
   dname = "Displ_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call read_datasubset_1d(dset_id, offset, dcount, dom%mirror%displ, hdferr)
+  call read_datasubset_1d(dset_id, offset, dcount, dom%mirror_fl%displ, hdferr)
   call h5dclose_f(dset_id, hdferr)
   dname = "Force_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call read_datasubset_1d(dset_id, offset, dcount, dom%mirror%force, hdferr)
+  call read_datasubset_1d(dset_id, offset, dcount, dom%mirror_fl%force, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -753,17 +754,17 @@ subroutine write_mirror_h5_sl(dom, n)
   integer :: hdferr
   integer(HSIZE_T), dimension(2) :: offset, dcount
 
-  offset = (/0,n*dom%mirror%n_glltot_sl/)
-  dcount = (/3,dom%mirror%n_glltot_sl/)
+  offset = (/0,n*dom%mirror_sl%n_glltot/)
+  dcount = (/3,dom%mirror_sl%n_glltot/)
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
   dname = "Displ_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call write_datasubset_2d(dset_id, offset, dcount, dom%mirror%displ, hdferr)
+  call write_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%displ, hdferr)
   call h5dclose_f(dset_id, hdferr)
   dname = "Force_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call write_datasubset_2d(dset_id, offset, dcount, dom%mirror%force, hdferr)
+  call write_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%force, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -782,17 +783,17 @@ subroutine write_mirror_h5_fl(dom, n)
   integer :: hdferr
   integer(HSIZE_T), dimension(1) :: offset, dcount
 
-  offset = (/n*dom%mirror%n_glltot_fl/)
-  dcount = (/dom%mirror%n_glltot_fl/)
+  offset = (/n*dom%mirror_fl%n_glltot/)
+  dcount = (/dom%mirror_fl%n_glltot/)
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
   dname = "Displ_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call write_datasubset_1d(dset_id, offset, dcount, dom%mirror%displ, hdferr)
+  call write_datasubset_1d(dset_id, offset, dcount, dom%mirror_fl%displ, hdferr)
   call h5dclose_f(dset_id, hdferr)
   dname = "Force_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call write_datasubset_1d(dset_id, offset, dcount, dom%mirror%force, hdferr)
+  call write_datasubset_1d(dset_id, offset, dcount, dom%mirror_fl%force, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
