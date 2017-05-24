@@ -49,9 +49,30 @@ module sem_hdf5
             read_dset_3d_real
     end interface read_dataset
 
+    interface read_datasubset_1d
+       module procedure read_datasubset_1d_r, read_datasubset_1d_i
+    end interface read_datasubset_1d
+
+    interface read_datasubset_2d
+       module procedure read_datasubset_2d_r, read_datasubset_2d_i
+    end interface read_datasubset_2d
+
+    interface write_datasubset_1d
+       module procedure write_datasubset_1d_r, write_datasubset_1d_i
+    end interface write_datasubset_1d
+
+    interface write_datasubset_2d
+       module procedure write_datasubset_2d_r, write_datasubset_2d_i
+    end interface write_datasubset_2d
+
+    interface append_dataset_1d
+       module procedure append_dataset_1d_r, append_dataset_1d_i
+    end interface append_dataset_1d
+
     interface append_dataset_2d
        module procedure append_dataset_2d_r, append_dataset_2d_i
     end interface append_dataset_2d
+
 contains
 
     !> Structure des fichiers HDF5 utilises :
@@ -343,6 +364,28 @@ contains
         call h5sclose_f(space_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_2d_real : h5sclose KO"
     end subroutine read_dset_2d_real
+
+!    subroutine read_datasubset_2d_r(dset_id, offset, count, arr, hdferr)
+!        use HDF5
+!        implicit none
+!        integer(HID_T), intent(in) :: dset_id
+!        integer(HSIZE_T), dimension(2), intent(in) ::  offset, count
+!        real(fpp), dimension(:,:), intent(out) :: arr
+!        integer, intent(out) :: hdferr
+!        integer(HSIZE_T), dimension(2) ::  stride, block, dims
+!        integer(HID_T) :: dataspace, memspace
+!
+!        stride = (/1, 1/)
+!        block = (/1, 1/)
+!        CALL h5dget_space_f(dset_id, dataspace, hdferr)
+!        CALL h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+!             offset, count, hdferr, stride, block)
+!        CALL h5screate_simple_f(2, count, memspace, hdferr)
+!        allocate(arr(0:count(1)-1, 0:count(2)-1))
+!        CALL h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, sdata, count, hdferr, &
+!        memspace, dataspace)
+!
+!    end subroutine read_dsubset_2d_real
 
     subroutine read_dset_3d_real(parent, name, data, ibase)
         use HDF5
@@ -699,6 +742,264 @@ contains
         if (hdferr .ne. 0) stop "write_dataset_i2 : h5dclose KO"
     end subroutine write_dataset_i2
 
+    subroutine read_datasubset_1d_r(dset_id, offset, count, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer(HSIZE_T), dimension(1), intent(in) ::  offset, count
+        real(fpp), dimension(:), allocatable, intent(out) :: arr
+        integer, intent(out) :: hdferr
+        integer(HSIZE_T), dimension(1) ::  stride, block, dimsm
+        integer(HID_T) :: dataspace, memspace
+
+        stride = (/1/)
+        block = (/1/)
+        dimsm = count
+        call h5dget_space_f(dset_id, dataspace, hdferr)
+        call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+             offset, count, hdferr, stride, block)
+        call h5screate_simple_f(1, dimsm, memspace, hdferr)
+        allocate(arr(0:dimsm(1)-1))
+        call h5dread_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
+             memspace, dataspace)
+        call h5sclose_f(dataspace, hdferr)
+        call h5sclose_f(memspace, hdferr)
+
+    end subroutine read_datasubset_1d_r
+
+    subroutine read_datasubset_1d_i(dset_id, offset, count, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer(HSIZE_T), dimension(1), intent(in) ::  offset, count
+        integer, dimension(:), allocatable, intent(out) :: arr
+        integer, intent(out) :: hdferr
+        integer(HSIZE_T), dimension(1) ::  stride, block, dimsm
+        integer(HID_T) :: dataspace, memspace
+
+        stride = (/1/)
+        block = (/1/)
+        dimsm = count
+        call h5dget_space_f(dset_id, dataspace, hdferr)
+        call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+             offset, count, hdferr, stride, block)
+        call h5screate_simple_f(1, dimsm, memspace, hdferr)
+        allocate(arr(0:dimsm(1)-1))
+        call h5dread_f(dset_id, H5T_NATIVE_INTEGER, arr, dimsm, hdferr, &
+             memspace, dataspace)
+        call h5sclose_f(dataspace, hdferr)
+        call h5sclose_f(memspace, hdferr)
+
+    end subroutine read_datasubset_1d_i
+
+    subroutine read_datasubset_2d_r(dset_id, offset, count, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer(HSIZE_T), dimension(2), intent(in) ::  offset, count
+        real(fpp), dimension(:,:), allocatable, intent(out) :: arr
+        integer, intent(out) :: hdferr
+        integer(HSIZE_T), dimension(2) ::  stride, block, dimsm
+        integer(HID_T) :: dataspace, memspace
+
+        stride = (/1, 1/)
+        block = (/1, 1/)
+        dimsm = count
+        call h5dget_space_f(dset_id, dataspace, hdferr)
+        call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+             offset, count, hdferr, stride, block)
+        call h5screate_simple_f(2, dimsm, memspace, hdferr)
+        allocate(arr(0:dimsm(1)-1, 0:dimsm(2)-1))
+        call h5dread_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
+             memspace, dataspace)
+        call h5sclose_f(dataspace, hdferr)
+        call h5sclose_f(memspace, hdferr)
+
+    end subroutine read_datasubset_2d_r
+
+    subroutine read_datasubset_2d_i(dset_id, offset, count, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer(HSIZE_T), dimension(2), intent(in) ::  offset, count
+        integer, dimension(:,:), allocatable, intent(out) :: arr
+        integer, intent(out) :: hdferr
+        integer(HSIZE_T), dimension(2) ::  stride, block, dimsm
+        integer(HID_T) :: dataspace, memspace
+
+        stride = (/1, 1/)
+        block = (/1, 1/)
+        dimsm = count
+        call h5dget_space_f(dset_id, dataspace, hdferr)
+        call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+             offset, count, hdferr, stride, block)
+        call h5screate_simple_f(2, dimsm, memspace, hdferr)
+        allocate(arr(0:dimsm(1)-1, 0:dimsm(2)-1))
+        call h5dread_f(dset_id, H5T_NATIVE_INTEGER, arr, dimsm, hdferr, &
+             memspace, dataspace)
+        call h5sclose_f(dataspace, hdferr)
+        call h5sclose_f(memspace, hdferr)
+
+    end subroutine read_datasubset_2d_i
+
+
+
+
+
+    subroutine write_datasubset_1d_r(dset_id, offset, count, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer(HSIZE_T), dimension(1), intent(in) ::  offset, count
+        real(fpp), dimension(:), intent(in) :: arr
+        integer, intent(out) :: hdferr
+        integer(HSIZE_T), dimension(1) ::  stride, block, dimsm
+        integer(HID_T) :: dataspace, memspace
+
+        stride = (/1/)
+        block = (/1/)
+        dimsm = count
+        call h5dget_space_f(dset_id, dataspace, hdferr)
+        call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+             offset, count, hdferr, stride, block)
+        call h5screate_simple_f(1, dimsm, memspace, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
+             memspace, dataspace)
+        call h5sclose_f(dataspace, hdferr)
+        call h5sclose_f(memspace, hdferr)
+
+    end subroutine write_datasubset_1d_r
+
+    subroutine write_datasubset_1d_i(dset_id, offset, count, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer(HSIZE_T), dimension(1), intent(in) ::  offset, count
+        integer, dimension(:), intent(in) :: arr
+        integer, intent(out) :: hdferr
+        integer(HSIZE_T), dimension(1) ::  stride, block, dimsm
+        integer(HID_T) :: dataspace, memspace
+
+        stride = (/1/)
+        block = (/1/)
+        dimsm = count
+        call h5dget_space_f(dset_id, dataspace, hdferr)
+        call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+             offset, count, hdferr, stride, block)
+        call h5screate_simple_f(1, dimsm, memspace, hdferr)
+        call h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, arr, dimsm, hdferr, &
+             memspace, dataspace)
+        call h5sclose_f(dataspace, hdferr)
+        call h5sclose_f(memspace, hdferr)
+
+    end subroutine write_datasubset_1d_i
+
+    subroutine write_datasubset_2d_r(dset_id, offset, count, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer(HSIZE_T), dimension(2), intent(in) ::  offset, count
+        real(fpp), dimension(:,:), intent(in) :: arr
+        integer, intent(out) :: hdferr
+        integer(HSIZE_T), dimension(2) ::  stride, block, dimsm
+        integer(HID_T) :: dataspace, memspace
+
+        stride = (/1, 1/)
+        block = (/1, 1/)
+        dimsm = count
+        call h5dget_space_f(dset_id, dataspace, hdferr)
+        call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+             offset, count, hdferr, stride, block)
+        call h5screate_simple_f(2, dimsm, memspace, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
+             memspace, dataspace)
+        call h5sclose_f(dataspace, hdferr)
+        call h5sclose_f(memspace, hdferr)
+
+    end subroutine write_datasubset_2d_r
+
+    subroutine write_datasubset_2d_i(dset_id, offset, count, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer(HSIZE_T), dimension(2), intent(in) ::  offset, count
+        integer, dimension(:,:), intent(in) :: arr
+        integer, intent(out) :: hdferr
+        integer(HSIZE_T), dimension(2) ::  stride, block, dimsm
+        integer(HID_T) :: dataspace, memspace
+
+        stride = (/1, 1/)
+        block = (/1, 1/)
+        dimsm = count
+        call h5dget_space_f(dset_id, dataspace, hdferr)
+        call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
+             offset, count, hdferr, stride, block)
+        call h5screate_simple_f(2, dimsm, memspace, hdferr)
+        call h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, arr, dimsm, hdferr, &
+             memspace, dataspace)
+        call h5sclose_f(dataspace, hdferr)
+        call h5sclose_f(memspace, hdferr)
+
+    end subroutine write_datasubset_2d_i
+
+    subroutine append_dataset_1d_r(dset_id, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        real(fpp), dimension(:), intent(in) :: arr
+        integer, intent(out) :: hdferr
+        !
+        integer(HSIZE_T), dimension(1) ::  dims, maxdims, offset, dsize
+        integer(HID_T) :: memspace, filespace
+        !
+        dims(1) = size(arr, 1)
+        call H5Screate_simple_f(2, dims, memspace, hdferr)
+        call H5Dget_space_f(dset_id, filespace, hdferr)
+        call H5Sget_simple_extent_dims_f(filespace, dims, maxdims, hdferr)
+        call H5Sclose_f(filespace, hdferr)
+
+        dsize(1) = dims(1)+size(arr, 1)
+        call H5Dextend_f(dset_id, dsize, hdferr)
+
+        call H5Dget_space_f(dset_id, filespace, hdferr)
+        offset(1) = dims(1)
+        dims(1) = size(arr, 1)
+        call H5Sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, dims, hdferr)
+        
+        call H5Dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr, memspace, filespace)
+        call H5Sclose_f(filespace, hdferr)
+        call H5Sclose_f(memspace, hdferr)
+    end subroutine append_dataset_1d_r
+
+    subroutine append_dataset_1d_i(dset_id, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer, dimension(:), intent(in) :: arr
+        integer, intent(out) :: hdferr
+        !
+        integer(HSIZE_T), dimension(1) ::  dims, maxdims, offset, dsize
+        integer(HID_T) :: memspace, filespace
+        !
+        dims(1) = size(arr, 1)
+        call H5Screate_simple_f(2, dims, memspace, hdferr)
+        call H5Dget_space_f(dset_id, filespace, hdferr)
+        call H5Sget_simple_extent_dims_f(filespace, dims, maxdims, hdferr)
+        call H5Sclose_f(filespace, hdferr)
+
+        dsize(1) = dims(1)+size(arr, 1)
+        call H5Dextend_f(dset_id, dsize, hdferr)
+
+        call H5Dget_space_f(dset_id, filespace, hdferr)
+        offset(1) = dims(1)
+        dims(1) = size(arr, 1)
+        call H5Sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, dims, hdferr)
+
+        call H5Dwrite_f(dset_id, H5T_NATIVE_INTEGER, arr, dims, hdferr, memspace, filespace)
+        call H5Sclose_f(filespace, hdferr)
+        call H5Sclose_f(memspace, hdferr)
+    end subroutine append_dataset_1d_i
+
     subroutine append_dataset_2d_r(dset_id, arr, hdferr)
         use HDF5
         implicit none
@@ -799,10 +1100,3 @@ end module sem_hdf5
 !! mode: f90
 !! show-trailing-whitespace: t
 !! coding: utf-8
-!! f90-do-indent: 4
-!! f90-if-indent: 4
-!! f90-type-indent: 4
-!! f90-program-indent: 4
-!! f90-continuation-indent: 4
-!! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :
