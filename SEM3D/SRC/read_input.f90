@@ -613,6 +613,17 @@ contains
             call create_sem_extended_sources(Tdomain, Tdomain%config)
         endif
 
+        ! Mirror
+        Tdomain%use_mirror = Tdomain%config%use_mirror .ne. 0
+        Tdomain%mirror_type = Tdomain%config%mirror_type
+        if (Tdomain%use_mirror.and.Tdomain%mirror_type>0) then
+            Tdomain%logicD%any_source = .false.
+        endif
+        if (rg==0) then
+            write(*, '("Mirror: present=",i1," type=",i1)') &
+                Tdomain%config%use_mirror, Tdomain%config%mirror_type
+        endif
+
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
 
