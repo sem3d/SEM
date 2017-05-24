@@ -206,7 +206,6 @@ subroutine RUN_PREPARED(Tdomain)
     if(rg == 0) write(*,*) "--> READING INPUT PARAMETERS AND DATA"
     call read_input(Tdomain, code)
 
-
  !- eventual plane wave (transmission process: Bielak & Cristiano 1984)
     if (Tdomain%logicD%super_object_local_present) then
         if (Tdomain%super_object_type == "P") then
@@ -259,6 +258,7 @@ subroutine RUN_PREPARED(Tdomain)
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
+
  !- anelastic properties
     if (Tdomain%n_sls>0) then
         if (Tdomain%aniso) then
@@ -303,6 +303,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
     use msnapshots
     use semconfig !< pour config C
     use sem_c_bindings
+    use smirror
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -375,6 +376,12 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
     if(Tdomain%logicD%save_trace) call create_capteurs(Tdomain)
 
     if(info_capteur /= 0) Tdomain%logicD%save_trace = .false.
+
+!- Mirror
+    if (Tdomain%use_mirror) then
+        call create_mirror_files(Tdomain)
+    endif
+    call MPI_Barrier(Tdomain%communicateur,code)
 
 end subroutine RUN_INIT_INTERACT
 !-----------------------------------------------------------------------------------
