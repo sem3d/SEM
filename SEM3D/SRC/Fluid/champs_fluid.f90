@@ -19,12 +19,22 @@ module champs_fluid
 
     end type champsfluid
 
+    ! Mirror
+    type :: time_mirror_fl
+        integer :: n_glltot, n_gll
+        integer, dimension(:,:,:,:), allocatable :: map
+        real(fpp), dimension(:), allocatable :: displ
+        real(fpp), dimension(:), allocatable :: force
+    end type time_mirror_fl
+
     type, extends(dombase) :: domain_fluid
         ! D'abord, les données membres qui ne sont pas modifiées
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_IDensity ! Inverse of density
-
-        ! A partir de là, les données membres sont modifiées en cours de calcul
+        ! Mirror
+        logical :: use_mirror
+        integer :: mirror_type
+        type(time_mirror_fl) :: mirror_fl
 
         ! Champs
         type(champsfluid), dimension(0:1) :: champs
