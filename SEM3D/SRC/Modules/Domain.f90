@@ -80,6 +80,9 @@ module sdomain
        real(fpp), dimension (0:2,0:2) :: rot
        real(fpp), dimension (:,:), allocatable:: Coord_nodes
        real(fpp), dimension (:,:), pointer:: GlobCoord ! No allocate, use pointer: enable pointing to coord (avoid allocate + copy)
+       ! Mirror
+       logical :: use_mirror
+       integer :: mirror_type
 
        integer :: traces_format
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &
