@@ -95,8 +95,10 @@ void RectMesh::read_params_old(FILE* fparam)
         if (pml_E)      pmls.E = true;
         if (pml_W)      pmls.W = true;
     }
+
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &ngll_pml);
+
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &elem_shape);
     switch(elem_shape) {
@@ -112,6 +114,33 @@ void RectMesh::read_params_old(FILE* fparam)
         printf("Please use 1 or 8 for linear elements, or 2 or 27 for quadratic elements\n");
         exit(1);
     }
+
+    has_mirrors=0;
+
+    getData_line(&buffer, &n, fparam);
+    sscanf(buffer, "%d", &has_mirrors);
+
+    if (has_mirrors<0 || has_mirrors>1) {
+        printf("Check your parameter file : we read has_mirros=%d instead of 0 or 1\n", has_mirrors);
+        exit(1);
+    }
+
+    int m_W, m_E, m_S, m_N, m_D, m_U;
+    if (has_mirrors) {
+        getData_line(&buffer, &n, fparam);
+        sscanf(buffer, "%d %d %d %d %d %d", &m_W, &m_E, &m_S, &m_N, &m_D, &m_U);
+        mrrs.W = mrrs.E = mrrs.S = mrrs.N = mrrs.D = mrrs.U = true;
+        mrrs.nW = m_W;
+        mrrs.nE = m_E;
+        mrrs.nS = m_S;
+        mrrs.nN = m_N;
+        mrrs.nD = m_D;
+        mrrs.nU = m_U;
+        if (pml_top<1) {
+            mrrs.U = false;
+        }
+    }
+
 }
 
 int RectMesh::pointidx(int i, int j, int k)
@@ -178,10 +207,10 @@ void RectMesh::apply_pml_borders()
     ymin0 = ymin;
     zmax0 = zmax;
     zmin0 = zmin;
-    if (pmls.E) { xmax+=npml*xstep; }
-    if (pmls.W) { xmin-=npml*xstep; }
-    if (pmls.N) { ymax+=npml*ystep; }
-    if (pmls.S) { ymin-=npml*ystep; }
+    if (pmls.E) { xmax+=npml*xstep;}
+    if (pmls.W) { xmin-=npml*xstep;}
+    if (pmls.N) { ymax+=npml*ystep;}
+    if (pmls.S) { ymin-=npml*ystep;}
     if (pmls.U) {
         double zstep = thickness[0]/nsteps[0];
         zmax += npml*zstep;
@@ -193,6 +222,15 @@ void RectMesh::apply_pml_borders()
         double zstep = thickness[ll]/nsteps[ll];
         thickness[ll] += npml*zstep;
         nsteps[ll] += npml;
+    }
+
+    if (has_mirrors) {
+        if (pmls.E) {mrrs.nE += npml;}
+        if (pmls.W) {mrrs.nW += npml;}
+        if (pmls.N) {mrrs.nN += npml;}
+        if (pmls.S) {mrrs.nS += npml;}
+        if (pmls.U) {mrrs.nU += npml;}
+        if (pmls.D) {mrrs.nD += npml;}
     }
 }
 
@@ -330,6 +368,7 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
     Elem elem(elem_shape);
     int k=0;
     Surface* dirich = mesh.get_surface("dirichlet");
+    Surface* smirror = mesh.get_surface("mirror");
     for(int nl=0;nl<nlayers;++nl) {
         for(int kl=0;kl<nsteps[nl];++kl) {
             for(int j=0;j<nelemy;++j) {
@@ -360,17 +399,33 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                     // Check for free fluid surface and free pml surface
                     int dom = mesh.m_materials[mat].domain();
                     if (dom==DM_FLUID || dom==DM_FLUID_PML) {
-                        if (LU) emit_free_face(dirich, dom, elem, 5);
+                        if (LU) emit_free_face(dirich, dom, elem, 5, false);
                     }
                     if (dom==DM_SOLID_PML || dom==DM_FLUID_PML) {
                         double x_dir = mesh.m_materials[mat].xwidth;
                         double y_dir = mesh.m_materials[mat].ywidth;
                         double z_dir = mesh.m_materials[mat].zwidth;
-
                         emit_free_face(dirich, dom, elem,
                                        LW&&(x_dir<0), LE&&(x_dir>0),
                                        LS&&(y_dir<0), LN&&(y_dir>0),
-                                       LU&&(z_dir>0), LD&&(z_dir<0));
+                                       LU&&(z_dir>0), LD&&(z_dir<0), false);
+                    }
+
+                    if (has_mirrors) {
+                        bool SHELL = (i<mrrs.nW || i>(nelemx-mrrs.nE-1) ||
+                                      j<mrrs.nS || j>(nelemy-mrrs.nN-1) ||
+                                      k<mrrs.nU || k>(nelemz-mrrs.nD-1));
+                        bool MW = (i==mrrs.nW && !SHELL);
+                        bool ME = (i==(nelemx-mrrs.nE-1) && !SHELL);
+                        bool MS = (j==mrrs.nS && !SHELL);
+                        bool MN = (j==(nelemy-mrrs.nN-1) && !SHELL);
+                        bool MU = (k==mrrs.nU && !SHELL);
+                        bool MD = (k==(nelemz-mrrs.nD-1) && !SHELL);
+                        if (dom==DM_SOLID || dom==DM_FLUID) {
+                            emit_free_face(smirror, dom, elem, MW&&mrrs.W, ME&&mrrs.E,
+                                                               MS&&mrrs.S, MN&&mrrs.N,
+                                                               MU&&mrrs.U, MD&&mrrs.D, true);
+                        }
                     }
                 }
             }
@@ -380,24 +435,28 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
 }
 
 void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem,
-                              bool W, bool E, bool S, bool N, bool U, bool D)
+                              bool W, bool E, bool S, bool N, bool U, bool D, bool flp)
 {
-    if (W) emit_free_face(surf, dom, elem, 4);
-    if (E) emit_free_face(surf, dom, elem, 2);
-    if (S) emit_free_face(surf, dom, elem, 1);
-    if (N) emit_free_face(surf, dom, elem, 3);
-    if (U) emit_free_face(surf, dom, elem, 5);
-    if (D) emit_free_face(surf, dom, elem, 0);
+    if (W&&flp) emit_free_face(surf, dom, elem, 4, true);
+    if (W&&!flp) emit_free_face(surf, dom, elem, 4, false);
+    if (E&&flp) emit_free_face(surf, dom, elem, 2, true);
+    if (E&&!flp) emit_free_face(surf, dom, elem, 2, false);
+    if (S) emit_free_face(surf, dom, elem, 1, false);
+    if (N) emit_free_face(surf, dom, elem, 3, false);
+    if (U) emit_free_face(surf, dom, elem, 5, false);
+    if (D) emit_free_face(surf, dom, elem, 0, false);
 }
 
-void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum)
+void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum, bool flp)
 {
     int n[4];
     for(int k=0;k<4;++k) {
         n[k] = elem.v[RefFace[facenum].v[k]];
     }
     PFace fc(n, dom);
+    if (flp) {fc.orient = -fc.orient;}
     surf->add_face(fc, 0);
+
 }
 
 /* Local Variables:                                                        */
