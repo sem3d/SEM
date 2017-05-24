@@ -73,6 +73,12 @@ module sem_c_config
        real(C_DOUBLE), dimension(2) :: atn_band
        real(C_DOUBLE) :: atn_period
 
+       !! Mirror
+       integer(C_INT) :: use_mirror
+       integer(C_INT) :: mirror_type
+       real(C_DOUBLE) :: mirror_fmax
+       integer(C_INT) :: mirror_nspl
+
        !! PML informations
        integer(C_INT) :: pml_type
        real(C_DOUBLE) :: cpml_kappa0
