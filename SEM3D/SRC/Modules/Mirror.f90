@@ -8,11 +8,10 @@ module smirror
   public :: init_mirror, create_mirror_files, dump_mirror_solid, load_mirror_solid
   private
 
-  integer :: n_elm
-  integer, dimension(:), allocatable :: map2elem
-  real(fpp), dimension(:), allocatable :: wfunc, bspl_tmp
+  integer, dimension(:,:,:,:), allocatable :: map2glltot
+  real(fpp), dimension(:), allocatable :: bspl_tmp
   real(fpp), dimension(:,:,:), allocatable :: displ_tmp, force_tmp
-  integer :: rnk, n_spl, n_dcm, n_t, n_tdwn
+  integer :: rnk, n_spl, n_dcm, n_t, n_tdwn, n_gll, n_glltot
 
 contains
 
@@ -22,123 +21,88 @@ subroutine init_mirror(Tdomain, surf)
   implicit none
   type(domain), intent(inout) :: Tdomain
   type(SurfaceT), intent(inout) :: surf
-  integer :: n_elmtot, n_glltot, n_gll1, n_gll3
+  integer :: n_elmtot
 
-  !! some local variables
   n_elmtot = Tdomain%sdom%nblocks
-  n_gll1 = Tdomain%sdom%ngll
-  n_gll3 = n_gll1*n_gll1*n_gll1
+  n_gll = Tdomain%sdom%ngll
   if (surf%surf_sl%nbtot/=0) then
-    !! find mirror elements
-    allocate(map2elem(0:n_elmtot-1))
-    call count_mirror_elem(Tdomain, surf)
-    n_glltot = n_elm*n_gll3
-    if (n_elm>0) then
+    allocate(map2glltot(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+    call map_mirror_gll(Tdomain, surf)
+    if (n_glltot>0) then
       write(*,'("--> SEM : mirror nodes : ",i3,i6)') Tdomain%rank,n_glltot
-      !! define window function
-      allocate(wfunc(0:n_elm*n_gll3-1))
-      call mirror_window_function(Tdomain, surf)
-      !! define decimation properties
-      n_spl = Tdomain%config%mirror_nspl
-      call find_decim_factor(Tdomain)
+      call decim_factor(Tdomain)
       allocate(bspl_tmp((n_spl+1)*n_dcm+1))
       call bmn(bspl_tmp, n_dcm, n_spl)
-      !! allocate mirror arrays
-      allocate(Tdomain%sdom%mirror%map(0:n_elmtot-1))
-      allocate(Tdomain%sdom%mirror%winf(0:n_glltot-1))
+      allocate(Tdomain%sdom%mirror%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
       allocate(Tdomain%sdom%mirror%displ(0:2,0:n_glltot-1))
       allocate(Tdomain%sdom%mirror%force(0:2,0:n_glltot-1))
       allocate(displ_tmp(0:2,0:n_glltot-1,n_spl+1))
       allocate(force_tmp(0:2,0:n_glltot-1,n_spl+1))
-      !! define mirror properties
-      Tdomain%sdom%mirror%n_elem = n_elm
       Tdomain%sdom%mirror%n_glltot = n_glltot
-      Tdomain%sdom%mirror%n_gll = n_gll1
-      Tdomain%sdom%mirror%map = map2elem
-      Tdomain%sdom%mirror%winf = wfunc
+      Tdomain%sdom%mirror%n_gll = n_gll
+      Tdomain%sdom%mirror%map = map2glltot
       displ_tmp = 0.
       force_tmp = 0.
-      deallocate(wfunc)
     else
-      Tdomain%sdom%mirror%n_glltot = 0
+      Tdomain%sdom%mirror%n_glltot = n_glltot
     endif
-    deallocate(map2elem)
+    deallocate(map2glltot)
   endif
 
 end subroutine init_mirror
 
-subroutine count_mirror_elem(Tdomain, surf)
+subroutine map_mirror_gll(Tdomain, surf)
   use sdomain
   implicit none
   type(domain), intent(in) :: Tdomain
   type(SurfaceT), intent(in) :: surf
-  integer :: i, ff, ee
-  logical, dimension(:), allocatable :: ltmp
-
-  allocate(ltmp(0:Tdomain%sdom%nblocks-1))
-  ltmp = .false.
-  do i = 0,surf%surf_sl%n_faces-1
-    ff = surf%surf_sl%if_faces(i)
-    ee = Tdomain%sFace(ff)%elem_0
-    if (surf%surf_sl%if_norm(i)<0) ee = Tdomain%sFace(ff)%elem_1
-    if (ee>=0) ltmp(Tdomain%specel(ee)%lnum) = .true.
-  enddo
-  map2elem = -1
-  n_elm = 0
-  do i = 0,Tdomain%sdom%nblocks-1
-    if (ltmp(i)) then
-      map2elem(i) = n_elm
-      n_elm = n_elm+1
-    endif
-  enddo
-  deallocate(ltmp)
-
-end subroutine count_mirror_elem
-
-subroutine mirror_window_function(Tdomain, surf)
-  use sdomain
-  implicit none
-  type(domain), intent(in) :: Tdomain
-  type(SurfaceT), intent(in) :: surf
-  integer :: ii, jj, i, j, k, ff, ee, nn
-  integer :: fnorm, lnum, ngll, ind
-  real(fpp) :: winx, winy, winz
+  integer :: i_surf,i_node,i_dir,f,n,m,e,i,j,k
+  logical, dimension(:,:,:,:), allocatable :: tmp
   real(fpp), dimension(0:2,0:4) :: fnodes
 
-  ngll = Tdomain%sdom%ngll
-  wfunc = 1.
-  do ii = 0,surf%surf_sl%n_faces-1
-    ff = surf%surf_sl%if_faces(ii)
-    ee = Tdomain%sFace(ff)%elem_0
-    nn = surf%surf_sl%if_norm(ii)
-    if (nn<0) ee = Tdomain%sFace(ff)%elem_1
-    if (ee==-1) cycle
-    lnum = Tdomain%specel(ee)%lnum
-    do jj = 0,3
-      fnodes(0:2,jj) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(ff)%inodes(jj))
+  allocate(tmp(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+  tmp = .false.
+  do i_surf = 0,surf%surf_sl%n_faces-1
+    f = surf%surf_sl%if_faces(i_surf)
+    n = surf%surf_sl%if_norm(i_surf)
+    if (n>0) then
+      m = 0
+      e = Tdomain%sFace(f)%elem_0
+    else
+      m = n_gll-1
+      e = Tdomain%sFace(f)%elem_1
+    endif
+    if (e==-1) cycle
+    do i_node = 0,3
+      fnodes(0:2,i_node) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(i_node))
     enddo
-    call mirror_face_normal(fnodes, fnorm) ! find direction for window function
-    winx = 1.
-    winy = 1.
-    winz = 1.
-    do k = 0,ngll-1
-      if (fnorm==2) winz = (0.5*cos(4.*atan(1.)*k*1./(ngll-1))+0.5)
-      do j = 0,ngll-1
-        if (fnorm==1) winy = (0.5*cos(4.*atan(1.)*j*1./(ngll-1))+0.5)
-        do i = 0,ngll-1
-          if (fnorm==0) winx = (0.5*cos(4.*atan(1.)*i*1./(ngll-1))+0.5)
-          ind = (map2elem(lnum)*ngll*ngll*ngll)+i+(j*ngll)+(k*ngll*ngll)
-          if (nn>0) then
-            wfunc(ind) = wfunc(ind)*(1.-winx*winy*winz)
-          else
-            wfunc(ind) = wfunc(ind)*winx*winy*winz
+    call mirror_face_normal(fnodes, i_dir)
+    select case (i_dir)
+      case(0)
+        tmp(Tdomain%specel(e)%lnum,m,:,:) = .true.
+      case(1)
+        tmp(Tdomain%specel(e)%lnum,:,m,:) = .true.
+      case(2)
+        tmp(Tdomain%specel(e)%lnum,:,:,m) = .true.
+    end select
+  enddo
+  map2glltot = -1
+  n_glltot = 0
+  do k = 0,n_gll-1
+    do j = 0,n_gll-1
+      do i = 0,n_gll-1
+        do e = 0,Tdomain%sdom%nblocks-1
+          if (tmp(e,i,j,k)) then
+            map2glltot(e,i,j,k) = n_glltot-1
+            n_glltot = n_glltot+1
           endif
         enddo
       enddo
     enddo
   enddo
+  deallocate(tmp)
 
-end subroutine mirror_window_function
+end subroutine map_mirror_gll
 
 subroutine mirror_face_normal(fnodes, fdir)
   use shape_geom_3d
@@ -159,13 +123,14 @@ subroutine mirror_face_normal(fnodes, fdir)
 
 end subroutine mirror_face_normal
 
-subroutine find_decim_factor(Tdomain)
+subroutine decim_factor(Tdomain)
   use sdomain
   implicit none
   type(domain), intent(inout) :: Tdomain
   integer :: i
   real(fpp) :: fmax,d_t
 
+  n_spl = Tdomain%config%mirror_nspl
   fmax = Tdomain%config%mirror_fmax
   d_t = Tdomain%TimeD%dtmin
   n_t = Tdomain%TimeD%ntimeMax
@@ -178,7 +143,7 @@ subroutine find_decim_factor(Tdomain)
     n_dcm = 1
   endif
 
-end subroutine find_decim_factor
+end subroutine decim_factor
 
 subroutine create_mirror_files(Tdomain)
   use sdomain
