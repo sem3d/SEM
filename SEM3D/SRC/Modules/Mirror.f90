@@ -34,7 +34,7 @@ subroutine init_mirror(Tdomain, surf)
     call count_mirror_elem(Tdomain, surf)
     n_glltot = n_elm*n_gll3
     if (n_elm>0) then
-      write(*,'("--> SEM : mirror elements : ",i3,i6)') Tdomain%rank,n_elm
+      write(*,'("--> SEM : mirror nodes : ",i3,i6)') Tdomain%rank,n_glltot
       !! define window function
       allocate(wfunc(0:n_elm*n_gll3-1))
       call mirror_window_function(Tdomain, surf)
