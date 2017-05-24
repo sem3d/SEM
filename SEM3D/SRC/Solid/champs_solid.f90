@@ -37,6 +37,15 @@ module champs_solid
     type :: nl_parameters  ! STRUCTURE CONTAINING NL PARAMETER SETS
         type(lmc_param), allocatable :: LMC
     end type nl_parameters
+
+    ! Mirror
+    type :: time_mirror
+        integer :: n_elem, n_glltot, n_gll, rank
+        integer, dimension(:), allocatable :: map
+        real(fpp), dimension(:), allocatable :: winf
+        real(fpp), dimension(:, :), allocatable :: displ
+        real(fpp), dimension(:, :), allocatable :: force
+    end type
     
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
     type, extends(dombase) :: domain_solid
@@ -44,9 +53,10 @@ module champs_solid
         logical :: aniso
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
-
-
-        ! A partir de là, les données membres sont modifiées en cours de calcul
+        ! Mirror
+        logical :: use_mirror
+        integer :: mirror_type
+        type(time_mirror) :: mirror
 
         ! Champs
         type(champssolid), dimension(0:1) :: champs
