@@ -163,6 +163,7 @@ protected:
     void output_xmf_faces();
     void output_xmf_edges();
     void output_xmf_vertices();
+    void output_xmf_mirror();
     void output_xmf_comms();
     void output_xmf_comms_faces();
     void output_xmf_comms_edges();
