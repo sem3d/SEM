@@ -110,11 +110,6 @@ contains
         !- Prediction Phase
         call Newmark_Predictor(Tdomain)
 
-        !- Mirror Interact
-        !if (Tdomain%use_mirror) then
-        !    call mirror_displ_interact(Tdomain, ntime)
-        !endif
-
         !- Solution phase
         call internal_forces(Tdomain, 0, 1, ntime)
 
@@ -124,11 +119,6 @@ contains
             call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime, 1)
             call stat_stoptick(STAT_FEXT)
         end if
-
-        !- Mirror Interact
-        !if (Tdomain%use_mirror) then
-        !    call mirror_force_interact(Tdomain, ntime)
-        !endif
 
 #ifdef COUPLAGE
 #if 0
@@ -410,9 +400,15 @@ contains
 
         if (Tdomain%fdom%nbelem>0) then
             call stat_starttick()
+            if (Tdomain%fdom%use_mirror.and.Tdomain%fdom%mirror_fl%n_glltot>0.and.Tdomain%fdom%mirror_type>0) then
+                call load_mirror_fl(Tdomain%fdom, ntime)
+            endif
             do n = 0,Tdomain%fdom%nblocks-1
                 call forces_int_fluid(Tdomain%fdom, Tdomain%fdom%champs(i1), n)
             end do
+            if (Tdomain%fdom%use_mirror.and.Tdomain%fdom%mirror_fl%n_glltot>0.and.Tdomain%fdom%mirror_type==0) then
+                call dump_mirror_fl(Tdomain%fdom, ntime)
+            endif
             call stat_stoptick(STAT_FFLU)
         end if
         if (Tdomain%fpmldom%nbelem>0) then
@@ -425,14 +421,14 @@ contains
         end if
         if (Tdomain%sdom%nbelem>0) then
             call stat_starttick()
-            if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror%n_glltot>0.and.Tdomain%sdom%mirror_type>0) then
-                call load_mirror_solid(Tdomain%sdom, ntime)
+            if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror_sl%n_glltot>0.and.Tdomain%sdom%mirror_type>0) then
+                call load_mirror_sl(Tdomain%sdom, ntime)
             endif
             do n = 0,Tdomain%sdom%nblocks-1
                 call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs(i1), n, Tdomain%nl_flag)
             end do
-            if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror%n_glltot>0.and.Tdomain%sdom%mirror_type==0) then
-                call dump_mirror_solid(Tdomain%sdom, ntime)
+            if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror_sl%n_glltot>0.and.Tdomain%sdom%mirror_type==0) then
+                call dump_mirror_sl(Tdomain%sdom, ntime)
             endif
             call stat_stoptick(STAT_FSOL)
         end if
