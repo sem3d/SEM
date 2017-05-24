@@ -14,11 +14,12 @@ program SEM3D
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
     character(Len=MAX_FILE_SIZE),parameter :: p_mat = "./mat"
+    character(Len=MAX_FILE_SIZE),parameter :: p_mirror = "./mirror"
 
     integer :: ierr, rg
 
     call stat_init()
-    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_mat)
+    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_mat, p_mirror)
 
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 
