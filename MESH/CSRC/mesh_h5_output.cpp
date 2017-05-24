@@ -40,6 +40,7 @@ void output_all_meshes_xmf(int nprocs)
     output_all_meshes_xmf_part(nprocs, "elems");
     output_all_meshes_xmf_part(nprocs, "faces");
     output_all_meshes_xmf_part(nprocs, "edges");
+    output_all_meshes_xmf_part(nprocs, "mirror");
     output_all_meshes_xmf_part(nprocs, "comms.edges");
     output_all_meshes_xmf_part(nprocs, "comms.faces");
 }
