@@ -15,6 +15,11 @@ struct Pml_dirs {
     bool N,S,E,W,U,D;
 };
 
+struct mirrors_dirs {
+    bool W, E, S, N, D, U;
+    int nW, nE, nS, nN, nD, nU;
+};
+
 class Mesh3D;
 
 struct RectMesh {
@@ -27,6 +32,9 @@ struct RectMesh {
     double xstep, ystep;
     int has_pml;
     Pml_dirs pmls;
+
+    int has_mirrors;
+    mirrors_dirs mrrs;
 
     int nlayers;
     int npml; // Number of layers of pmls
@@ -47,8 +55,8 @@ protected:
     int pointidx27(int i, int j, int k);
     int get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, bool U, bool D);
     void emit_free_face(Surface* surf, int dom, const Elem& elem,
-                        bool W, bool E, bool S, bool N, bool U, bool D);
-    void emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum);
+                        bool W, bool E, bool S, bool N, bool U, bool D, bool flp);
+    void emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum, bool flp);
 
     int create_linear_grid_nodes(Mesh3D& mesh);
     int create_quadratic_grid_nodes(Mesh3D& mesh);
