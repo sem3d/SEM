@@ -47,6 +47,9 @@ contains
         dom%n_sls   = n_solid
         dom%aniso   = Tdomain%aniso
         nl_flag     = Tdomain%nl_flag
+        ! Mirror
+        dom%use_mirror = Tdomain%use_mirror
+        dom%mirror_type = Tdomain%mirror_type
 
         ! Glls are initialized first, because we can have faces of a domain without elements
         if(nbelem /= 0) then
@@ -635,15 +638,19 @@ contains
         !
         logical,    intent(in) :: nl_flag
         !
-        integer :: ngll,i,j,k,i_dir,e,ee,idx
+        integer :: ngll,ngll2,ngll3,i,j,k,i_dir,e,ee,idx
         integer :: n_solid
         logical :: aniso
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+        !
+        integer :: lnum, ind
 
         n_solid = dom%n_sls
         aniso   = dom%aniso
         ngll    = dom%ngll
+        ngll2   = ngll*ngll
+        ngll3   = ngll2*ngll
 
         if (nl_flag) then
             ! PLASTIC CASE: VELOCITY PREDICTION
@@ -668,12 +675,27 @@ contains
                             do ee = 0, VCHUNK-1
                                 idx = dom%Idom_(i,j,k,bnum,ee)
                                 Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                                ! MIRROR INTERACTION
+                                if (dom%use_mirror.and.dom%mirror%n_glltot>0) then
+                                    lnum = bnum*VCHUNK+ee
+                                    if (dom%mirror%map(lnum)>=0) then
+                                        ind = i+(j*ngll)+(k*ngll2)+(dom%mirror%map(lnum)*ngll3)
+                                        if (dom%mirror_type==0) then
+                                            dom%mirror%displ(i_dir,ind) = Depla(ee,i,j,k,i_dir)
+                                        elseif (dom%mirror_type==1.or.dom%mirror_type==2) then
+                                            Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir)+&
+                                                dom%mirror%displ(i_dir,ind)*dom%mirror%winf(ind)
+                                        endif
+                                    endif
+                                endif
+                                !
                             enddo
                         enddo
                     enddo
                 enddo
             enddo
         endif
+
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0
@@ -706,11 +728,28 @@ contains
                     do ee = 0, VCHUNK-1
                         e = bnum*VCHUNK+ee
                         idx = dom%Idom_(i,j,k,bnum,ee)
+                        ! MIRROR INTERACTION
+                        if (dom%use_mirror.and.dom%mirror%n_glltot>0) then
+                            lnum = bnum*VCHUNK+ee
+                            if (dom%mirror%map(lnum)>=0) then
+                                ind = i+(j*ngll)+(k*ngll2)+(dom%mirror%map(lnum)*ngll3)
+                                if (dom%mirror_type==0) then
+                                    dom%mirror%force(0,ind) = Fox(ee,i,j,k)
+                                    dom%mirror%force(1,ind) = Foy(ee,i,j,k)
+                                    dom%mirror%force(2,ind) = Foz(ee,i,j,k)
+                                elseif (dom%mirror_type==1.or.dom%mirror_type==2) then
+                                    Fox(ee,i,j,k) = Fox(ee,i,j,k)-dom%mirror%force(0,ind)*dom%mirror%winf(ind)
+                                    Foy(ee,i,j,k) = Foy(ee,i,j,k)-dom%mirror%force(1,ind)*dom%mirror%winf(ind)
+                                    Foz(ee,i,j,k) = Foz(ee,i,j,k)-dom%mirror%force(2,ind)*dom%mirror%winf(ind)
+                                endif
+                            endif
+                        endif
+                        !
                         champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
                         champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
                         champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
                     enddo
-                enddo
+               enddo
             enddo
         enddo
     end subroutine forces_int_solid
