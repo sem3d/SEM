@@ -28,6 +28,7 @@ module semdatafiles
     character(Len=MAX_FILE_SIZE) :: path_prot
     character(Len=MAX_FILE_SIZE) :: path_logs
     character(Len=MAX_FILE_SIZE) :: path_mat
+    character(Len=MAX_FILE_SIZE) :: path_mirror
 contains
 
     function pjoin(s1, s2)
@@ -52,13 +53,14 @@ contains
         path_logs = "./listings"
     end subroutine init_mka3d_path
 
-    subroutine init_sem_path(param, traces, results, data, prorep, properties)
+    subroutine init_sem_path(param, traces, results, data, prorep, properties, dmirror)
         character(Len=MAX_FILE_SIZE), intent(in) :: param
         character(Len=MAX_FILE_SIZE), intent(in) :: traces
         character(Len=MAX_FILE_SIZE), intent(in) :: results
         character(Len=MAX_FILE_SIZE), intent(in) :: data
         character(Len=MAX_FILE_SIZE), intent(in) :: prorep
         character(Len=MAX_FILE_SIZE), intent(in) :: properties
+        character(Len=MAX_FILE_SIZE), intent(in) :: dmirror
 
         path_param   = param
         path_traces  = traces
@@ -66,7 +68,8 @@ contains
         path_data    = data
         path_prot    = prorep
         path_logs    = "."
-        path_mat    = properties
+        path_mat     = properties
+        path_mirror  = dmirror
 
     end subroutine init_sem_path
 
@@ -82,7 +85,18 @@ contains
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_logs))
         ierr = sem_mkdir(trim(adjustl(path_mat)))
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_mat))
+        ierr = sem_mkdir(trim(adjustl(path_mirror)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_mirror))
     end subroutine create_sem_output_directories
+
+    subroutine semname_mirrorfile_h5(rank, fname)
+        implicit none
+        integer, intent(in) :: rank
+        character(Len=MAX_FILE_SIZE), intent(out) :: fname
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,"(a7,I4.4,a3)") "mirror.",rank,".h5"
+        fname = pjoin(path_mirror,temp)
+    end subroutine semname_mirrorfile_h5
 
     subroutine semname_read_capteurs(file,fnamef)
         implicit none
