@@ -31,10 +31,12 @@ contains
         use model_earthchunk
         use model_prem
         use mCourant
+        use smirror
         implicit none
 
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg, bnum, ee
+        logical :: find
 
         ! Copy Idom from element to domain_XXX
         ! Note : this must be done first as CPLM domain needs dom%Idom_ to build M, K, ...
@@ -110,6 +112,19 @@ contains
                    exit
                 end if
              enddo
+        endif
+
+        ! Mirror
+        if (Tdomain%use_mirror) then
+            find = .false.
+            do n = 0,size(Tdomain%sSurfaces)-1
+                if (trim(Tdomain%sSurfaces(n)%name)=="mirror") then
+                    call init_mirror(Tdomain, Tdomain%sSurfaces(n))
+                    find = .true.
+                    exit
+                endif
+            enddo
+            if (.not.find) stop "no mirror in mesh"
         endif
 
         do n = 0,Tdomain%n_elem-1
@@ -526,7 +541,6 @@ contains
     subroutine finalize_pml_properties(Tdomain)
         type (domain), intent (INOUT), target :: Tdomain
         !
-        if (Tdomain%spmldom%nbelem>0) call finalize_solidpml_properties(Tdomain, Tdomain%spmldom)
         if (Tdomain%fpmldom%nbelem>0) call finalize_fluidpml_properties(Tdomain, Tdomain%fpmldom)
     end subroutine finalize_pml_properties
 
