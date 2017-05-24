@@ -40,6 +40,8 @@ contains
 
         do i = 0,Tdomain%n_face-1
             Tdomain%sFace(i)%orphan = .true.
+            Tdomain%sFace(i)%elem_0 = -1
+            Tdomain%sFace(i)%elem_1 = -1
         end do
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
@@ -54,6 +56,11 @@ contains
                     write(*,*) "Error: inconsistency detected in apply_mat_to_faces"
                     stop 1
                 end if
+                if (j==0.or.j==1.or.j==4) then
+                    Tdomain%sFace(nf)%elem_0 = i
+                else
+                    Tdomain%sFace(nf)%elem_1 = i
+                endif
                 Tdomain%sFace(nf)%elem = i
             end do
         end do
