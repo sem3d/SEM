@@ -21,7 +21,6 @@ module champs_fluid
 
     type, extends(dombase) :: domain_fluid
         ! D'abord, les données membres qui ne sont pas modifiées
-
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_IDensity ! Inverse of density
 
