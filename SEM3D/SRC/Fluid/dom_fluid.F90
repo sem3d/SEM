@@ -287,8 +287,11 @@ contains
         integer :: ngll,i,j,k,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
         real(fpp) :: val
+        !
+        integer :: lnum, idx_m
 
         ngll = dom%ngll
+        lnum = bnum*VCHUNK
 
         ! d(rho*Phi)_dX
         ! d(rho*Phi)_dY
@@ -300,6 +303,15 @@ contains
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         Phi(ee,i,j,k) = field%Phi(idx)
                         Fo_Fl(ee,i,j,k) = 0d0
+                        ! MIRROR INTERACTION
+                        if (dom%use_mirror.and.dom%mirror_fl%n_glltot>0) then
+                            idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+                            if (idx_m>=0.and.dom%mirror_type==0) then
+                                dom%mirror_fl%displ(idx_m) = Phi(ee,i,j,k)
+                            elseif (idx_m>=0.and.dom%mirror_type>0) then
+                                Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%displ(idx_m)
+                            endif
+                        endif
                     enddo
                 enddo
             enddo
@@ -307,12 +319,22 @@ contains
 
         ! internal forces
         call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
+
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         e = bnum*VCHUNK+ee
                         idx = dom%Idom_(i,j,k,bnum,ee)
+                        ! MIRROR INTERACTION
+                        if (dom%use_mirror.and.dom%mirror_fl%n_glltot>0) then
+                            idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+                            if (idx_m>=0.and.dom%mirror_type==0) then
+                                dom%mirror_fl%force(idx_m) = Fo_Fl(ee,i,j,k)
+                            elseif (idx_m>=0.and.dom%mirror_type>0) then
+                                Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%force(idx_m)
+                            endif
+                        endif
                         val = field%ForcesFl(idx)
                         val = val - Fo_Fl(ee,i,j,k)
                         field%ForcesFl(idx) = val
