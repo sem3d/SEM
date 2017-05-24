@@ -842,10 +842,6 @@ contains
 
     end subroutine read_datasubset_2d_i
 
-
-
-
-
     subroutine write_datasubset_1d_r(dset_id, offset, count, arr, hdferr)
         use HDF5
         implicit none
@@ -953,7 +949,7 @@ contains
         integer(HID_T) :: memspace, filespace
         !
         dims(1) = size(arr, 1)
-        call H5Screate_simple_f(2, dims, memspace, hdferr)
+        call H5Screate_simple_f(1, dims, memspace, hdferr)
         call H5Dget_space_f(dset_id, filespace, hdferr)
         call H5Sget_simple_extent_dims_f(filespace, dims, maxdims, hdferr)
         call H5Sclose_f(filespace, hdferr)
@@ -982,7 +978,7 @@ contains
         integer(HID_T) :: memspace, filespace
         !
         dims(1) = size(arr, 1)
-        call H5Screate_simple_f(2, dims, memspace, hdferr)
+        call H5Screate_simple_f(1, dims, memspace, hdferr)
         call H5Dget_space_f(dset_id, filespace, hdferr)
         call H5Sget_simple_extent_dims_f(filespace, dims, maxdims, hdferr)
         call H5Sclose_f(filespace, hdferr)
