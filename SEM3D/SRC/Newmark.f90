@@ -59,7 +59,7 @@ contains
             t = t0 + cc*dt
 
 
-            call internal_forces(Tdomain, i0, i1)
+            call internal_forces(Tdomain, i0, i1, ntime)
             call external_forces(Tdomain,t,ntime, i1)
             call comm_forces(Tdomain,i1)
 
@@ -110,8 +110,13 @@ contains
         !- Prediction Phase
         call Newmark_Predictor(Tdomain)
 
+        !- Mirror Interact
+        !if (Tdomain%use_mirror) then
+        !    call mirror_displ_interact(Tdomain, ntime)
+        !endif
+
         !- Solution phase
-        call internal_forces(Tdomain, 0, 1)
+        call internal_forces(Tdomain, 0, 1, ntime)
 
         ! External Forces
         if(Tdomain%logicD%any_source)then
@@ -119,6 +124,12 @@ contains
             call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime, 1)
             call stat_stoptick(STAT_FEXT)
         end if
+
+        !- Mirror Interact
+        !if (Tdomain%use_mirror) then
+        !    call mirror_force_interact(Tdomain, ntime)
+        !endif
+
 #ifdef COUPLAGE
 #if 0
         if (ntime>0) then
@@ -383,17 +394,18 @@ contains
     end subroutine Newmark_Corrector_S
     !-----------------------------------------------------------------------------
     !-----------------------------------------------------------------------------
-    subroutine internal_forces(Tdomain, i0, i1)
+    subroutine internal_forces(Tdomain, i0, i1, ntime)
         ! volume forces - depending on rheology
         use dom_solid
         use dom_solidpml
         use dom_fluid
         use dom_fluidpml
+        use smirror
         use stat, only : stat_starttick, stat_stoptick, STAT_FFLU, STAT_PFLU, STAT_FSOL, STAT_PSOL
         implicit none
 
         type(domain), intent(inout)  :: Tdomain
-        integer, intent(in) :: i0, i1
+        integer, intent(in) :: i0, i1, ntime
         integer  :: n, indsol, indflu, indpml
 
         if (Tdomain%fdom%nbelem>0) then
@@ -413,9 +425,15 @@ contains
         end if
         if (Tdomain%sdom%nbelem>0) then
             call stat_starttick()
+            if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror%n_glltot>0.and.Tdomain%sdom%mirror_type>0) then
+                call load_mirror_solid(Tdomain%sdom, ntime)
+            endif
             do n = 0,Tdomain%sdom%nblocks-1
                 call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs(i1), n, Tdomain%nl_flag)
             end do
+            if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror%n_glltot>0.and.Tdomain%sdom%mirror_type==0) then
+                call dump_mirror_solid(Tdomain%sdom, ntime)
+            endif
             call stat_stoptick(STAT_FSOL)
         end if
         if (Tdomain%spmldom%nbelem>0) then
