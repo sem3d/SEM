@@ -850,6 +850,7 @@ void Mesh3DPart::output_mesh_part_xmf()
     output_xmf_faces();
     output_xmf_edges();
     output_xmf_vertices();
+    output_xmf_mirror();
     output_xmf_comms();
 }
 
@@ -920,6 +921,46 @@ void Mesh3DPart::output_xmf_faces()
     output_xmf_footer(f);
     fclose(f);
 }
+
+
+void Mesh3DPart::output_xmf_mirror()
+{
+    char fname[2048];
+    FILE* f;
+
+    int n_faces_mirror = 0;
+    for(unsigned k=0;k<m_surfaces.size();++k) {
+        if (m_surfaces[k]->name()=="mirror") {
+            n_faces_mirror = m_surfaces[k]->m_faces.size();
+            break;
+        }
+    }
+
+    snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.xmf", m_proc);
+    f = fopen(fname,"w");
+    output_xmf_header(f);
+    fprintf(f, "    <Grid name=\"surface.%04d\" GridType=\"Subset\" Section=\"DataItem\">\n", m_proc);
+    fprintf(f, "      <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d\">\n", n_faces_mirror);
+    fprintf(f, "mesh4spec.%04d.h5:/Surfaces/mirror/sl_faces\n",m_proc);
+    fprintf(f, "      </DataItem>\n");
+    fprintf(f, "      <Grid name=\"faces.%04d\">\n", m_proc);
+    fprintf(f, "        <Topology Type=\"Quadrilateral\" NumberOfElements=\"%d\">\n", n_faces());
+    fprintf(f, "          <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d 4\">\n", n_faces());
+    fprintf(f, "mesh4spec.%04d.h5:/faces_def\n",m_proc);
+    fprintf(f, "          </DataItem>\n");
+    fprintf(f, "        </Topology>\n");
+    fprintf(f, "        <Geometry Type=\"XYZ\">\n");
+    fprintf(f, "          <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%d 3\">\n", n_nodes());
+    fprintf(f, "mesh4spec.%04d.h5:/local_nodes\n", m_proc);
+    fprintf(f, "          </DataItem>\n");
+    fprintf(f, "        </Geometry>\n");
+    output_int_scalar(f, 8, "FDom", "Cell", n_faces(), "/faces_dom");
+    fprintf(f, "      </Grid>\n");
+    fprintf(f, "    </Grid>\n");
+    output_xmf_footer(f);
+    fclose(f);
+}
+
 
 void Mesh3DPart::output_xmf_edges()
 {
