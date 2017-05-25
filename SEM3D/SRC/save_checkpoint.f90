@@ -37,20 +37,26 @@ contains
 
         call MPI_Barrier(Tdomain%communicateur, ierr)
 
+
         ! recherche et destruction au fur et a mesure des anciennes prots
         if (rg == 0) then
 
             call semname_protection_iter_dir(it,dir_prot)
+            
             ! creation du repertoire data/sem/Protection_<it> (par tous les procs)
             ierr = sem_mkdir(trim(adjustl(dir_prot)))
 
             Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
             Tdomain%TimeD%prot_m1 = Tdomain%TimeD%prot_m0
             Tdomain%TimeD%prot_m0 = it
+            print*, "Tdomain%TimeD%prot_m2=", Tdomain%TimeD%prot_m2
+            print*, "Tdomain%TimeD%prot_m1=", Tdomain%TimeD%prot_m1
+            print*, "Tdomain%TimeD%prot_m0=", Tdomain%TimeD%prot_m0
 
             if (Tdomain%TimeD%prot_m2>0) then
                 call semname_protection_iter_dir(Tdomain%TimeD%prot_m2, dir_prot_prev)
                 commande="rm -Rf "//trim(adjustl(dir_prot_prev))
+                print*, trim(commande)
                 call system(trim(commande))        ! suppression de l avant avant derniere protection
             endif
 
