@@ -60,6 +60,7 @@ module sem_c_config
        integer(C_INT), dimension(OUT_LAST+1) :: out_variables
        integer(C_INT) :: nl_flag
        integer(C_INT) :: use_avg
+       integer(C_INT) :: prot_at_time
 
        !! Protection reprise
        integer(C_INT) :: prorep
