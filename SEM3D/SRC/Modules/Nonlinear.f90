@@ -11,9 +11,9 @@ module nonlinear
     use constants
 
     implicit none
-    real(KIND=8), parameter :: FTOL = 0.00010000000000D0
-    real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
-    real(KIND=8), parameter :: STOL = 0.00010000000000D0
+    real(KIND=8), parameter :: FTOL = 0.000100000000D0
+    real(KIND=8), parameter :: LTOL = 0.000001000000D0
+    real(KIND=8), parameter :: STOL = 0.000010000000D0
     real(KIND=8), parameter :: PSI  = one!5.0D0
     real(KIND=8), parameter :: OMEGA= zero!1.0D6
     real, dimension(0:2),     parameter   :: veci = (/ one, zero, zero /)
@@ -670,10 +670,9 @@ contains
             call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
             call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
 
-            if ((F0.lt.-FTOL).and.(F1.gt.FTOL)) then
-            else
-                write(*,*) "LOAD REVERSAL FAILED"
-            endif
+!            if ((F0.lt.-FTOL).and.(F1.gt.FTOL)) then
+!            
+!            endif
         endif
 
         ! ORIGINAL PEGASUS ALGORITHM
@@ -695,9 +694,9 @@ contains
                 alpha0=alpha
             endif
         end do
-        if (FM.gt.FTOL) then
-            write(*,*) "WARNING: F>TOL!!!!!!!!!"
-        endif
+!        if (FM.gt.FTOL) then
+!            write(*,*) "WARNING: F>TOL!!!!!!!!!"
+!        endif
     end subroutine gotoFpegasus
 
 end module nonlinear
