@@ -39,6 +39,7 @@ typedef struct extended_source {
     double dip;
     double strike;
     double rake;
+    int  is_force;
 } extended_source_t;
 
 // Structure decrivant les condition de selection des elements a inclure

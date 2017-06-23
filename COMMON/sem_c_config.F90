@@ -137,6 +137,7 @@ module sem_c_config
        real(C_DOUBLE) :: dip
        real(C_DOUBLE) :: strike
        real(C_DOUBLE) :: rake
+       integer(C_INT) :: is_force
     end type sem_extended_source
 
     ! ce type doit correspondre au type station_def_t de sem_input.h **a l'ordre pres**

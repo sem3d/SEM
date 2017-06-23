@@ -174,6 +174,7 @@ void init_extended_source(extended_source_t* extended_source)
     extended_source->dip    = 0.;
     extended_source->strike = 0.;
     extended_source->rake   = 0.;
+    extended_source->is_force = 0; 
 }
 
 int expect_extended_source(yyscan_t scanner, sem_config_t* config)
@@ -196,10 +197,10 @@ int expect_extended_source(yyscan_t scanner, sem_config_t* config)
 	if (tok!=K_ID) break;
 	if      (cmp(scanner,"kine_file")) err=expect_eq_string(scanner, &extended_source->kine_file,1);
 	else if (cmp(scanner,"slip_file")) err=expect_eq_string(scanner, &extended_source->slip_file,1);
-	else if (cmp(scanner,"dip")) err=expect_eq_float(scanner, &extended_source->dip, 1);
-	else if (cmp(scanner,"strike")) err=expect_eq_float(scanner, &extended_source->strike, 1);
-	else if (cmp(scanner,"rake")) err=expect_eq_float(scanner, &extended_source->rake, 1);
-
+	//else if (cmp(scanner,"dip")) err=expect_eq_float(scanner, &extended_source->dip, 1);
+	//else if (cmp(scanner,"strike")) err=expect_eq_float(scanner, &extended_source->strike, 1);
+	//else if (cmp(scanner,"rake")) err=expect_eq_float(scanner, &extended_source->rake, 1);
+	else if (cmp(scanner,"is_force")) err=expect_eq_int(scanner, &extended_source->is_force, 1);
 	if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
