@@ -796,6 +796,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
 	else if (cmp(scanner,"nonlinear")) err=expect_eq_int(scanner, &config->nl_flag,1);
 	else if (cmp(scanner,"use_avg")) err=expect_eq_int(scanner, &config->use_avg,1);
+	else if (cmp(scanner,"prot_at_time")) err=expect_eq_int(scanner, &config->prot_at_time,1);
         else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
 	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);

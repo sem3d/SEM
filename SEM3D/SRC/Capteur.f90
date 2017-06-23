@@ -78,6 +78,7 @@ contains
             traces_h5_created = .true.
         endif
 
+        Tdomain%has_station = .false. !Stations other than Total Energy
 
 
         do while (C_ASSOCIATED(station_next))
@@ -124,6 +125,8 @@ contains
                     write(*,*) "Please verify that the station location is within the computation domain"
                 end if
                 stop 1
+            else
+                if(numproc_max==Tdomain%rank) Tdomain%has_station = .true.
             end if
 
 
@@ -327,13 +330,19 @@ contains
         integer(HID_T) :: tid, dsetid, spaceid
         integer :: hdferr
         character(len=12), dimension(:), allocatable :: varnames
+        character(len=12), dimension(6) :: energy_varnames = ["Time       1", &
+                                                              "Eng_P      1", &
+                                                              "Eng_S      1", &
+                                                              "Eng_Resid  1", &
+                                                              "Eng_Cine   1", &
+                                                              "Eng_Total  1"]
         character(len=12) :: temp
         integer :: d,k,dim,dimtot
         integer(HSIZE_T), dimension(1) :: dims
 
         dimtot = Tdomain%nReqOut
         allocate(varnames(0:dimtot))
-        varnames(0) = "Time"
+        varnames(0) = "Time       1"
         d = 1
         do k=0,dimtot-1
             if (Tdomain%out_variables(k)==1) then
@@ -345,16 +354,30 @@ contains
                 end do
             end if
         end do
-        dims(1) = d
-        call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
-        call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
-        call H5Screate_simple_f(1, dims, spaceid, hdferr)
-        call H5Dcreate_f(fid, "Variables", tid, spaceid, dsetid, hdferr)
-        call H5Dwrite_f(dsetid, tid, varnames, dims, hdferr, spaceid, spaceid)
-        call H5Dclose_f(dsetid, hdferr)
-        call H5Sclose_f(spaceid, hdferr)
-        call H5Tclose_f(tid, hdferr)
         !
+        if(Tdomain%has_station) then
+            dims(1) = d
+            call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
+            call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
+            call H5Screate_simple_f(1, dims, spaceid, hdferr)
+            call H5Dcreate_f(fid, "Variables", tid, spaceid, dsetid, hdferr)
+            call H5Dwrite_f(dsetid, tid, varnames, dims, hdferr, spaceid, spaceid)
+            call H5Dclose_f(dsetid, hdferr)
+            call H5Sclose_f(spaceid, hdferr)
+            call H5Tclose_f(tid, hdferr)
+        end if
+        !
+        if(Tdomain%out_variables(OUT_TOTAL_ENERGY) == 1) then
+            dims(1) = size(energy_varnames)
+            call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
+            call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
+            call H5Screate_simple_f(1, dims, spaceid, hdferr)
+            call H5Dcreate_f(fid, "En_PS_Variables", tid, spaceid, dsetid, hdferr)
+            call H5Dwrite_f(dsetid, tid, energy_varnames, dims, hdferr, spaceid, spaceid)
+            call H5Dclose_f(dsetid, hdferr)
+            call H5Sclose_f(spaceid, hdferr)
+            call H5Tclose_f(tid, hdferr)
+        end if
     end subroutine create_capteur_descriptions
     
     subroutine append_traces_h5(Tdomain)
@@ -778,15 +801,20 @@ contains
 
         enddo
 
-        !TOTO, take out this part and put only local values (total values on post-processing)
-        call MPI_ALLREDUCE(local_sum_S_energy, global_sum_S_energy, 1, MPI_DOUBLE_PRECISION, &
-                           MPI_SUM, Tdomain%communicateur_global, ierr)
-        call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
-                           MPI_SUM, Tdomain%communicateur_global, ierr)
-        call MPI_ALLREDUCE(local_sum_R_energy, global_sum_R_energy, 1, MPI_DOUBLE_PRECISION, &
-                           MPI_SUM, Tdomain%communicateur_global, ierr)
-        call MPI_ALLREDUCE(local_sum_C_energy, global_sum_C_energy, 1, MPI_DOUBLE_PRECISION, &
-                           MPI_SUM, Tdomain%communicateur_global, ierr)
+        ! !TOTO, take out this part and put only local values (total values on post-processing)
+        ! call MPI_ALLREDUCE(local_sum_S_energy, global_sum_S_energy, 1, MPI_DOUBLE_PRECISION, &
+        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+        ! call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
+        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+        ! call MPI_ALLREDUCE(local_sum_R_energy, global_sum_R_energy, 1, MPI_DOUBLE_PRECISION, &
+        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+        ! call MPI_ALLREDUCE(local_sum_C_energy, global_sum_C_energy, 1, MPI_DOUBLE_PRECISION, &
+        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+
+        global_sum_P_energy = local_sum_P_energy
+        global_sum_S_energy = local_sum_S_energy
+        global_sum_R_energy = local_sum_R_energy
+        global_sum_C_energy = local_sum_C_energy
 
         ! Sauvegarde des valeurs dans le capteur.
         i = capteur%icache+1

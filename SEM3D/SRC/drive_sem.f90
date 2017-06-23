@@ -52,6 +52,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     call stat_starttick()
     call MPI_Init (ierr)
+    Tdomain%time_0 = MPI_Wtime();
 
 !----------------------------------------------------------------------------------------------!
 !------------------------------------    COMMUNICATORS  ---------------------------------------!
@@ -451,6 +452,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     integer :: protection
     integer :: interrupt
     logical :: sortie_capteur
+    double precision :: time_now
+    integer :: time_now_s
 #ifdef COUPLAGE
 #else
     real(kind=8) :: remaining_time
@@ -528,6 +531,28 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
             if(mod(ntime,Tdomain%TimeD%ncheck) == 0) then
                 if (ntime/=0) protection = 1
             end if
+            if(Tdomain%prot_at_time >0 .and. (Tdomain%first_prot)) then
+                !if(Tdomain%rank == 0) print*," Tdomain%prot_at_time = ", Tdomain%prot_at_time
+                time_now = MPI_Wtime();
+                time_now_s = int(time_now-Tdomain%time_0) 
+                call MPI_ALLREDUCE(time_now_s, Tdomain%time_now_s, 1, MPI_INTEGER, MPI_MAX, Tdomain%communicateur_global, code)
+                !if(Tdomain%rank == 0) print*," >> Tdomain%time_now_s = ", Tdomain%time_now_s
+                if(Tdomain%time_now_s < Tdomain%prot_at_time) then
+                    protection = 0
+                else
+                    if(Tdomain%first_prot) then
+                        protection = 1
+                        !print*, "PWD_HERE"
+                        !call system("pwd")
+                        Tdomain%first_prot = .false.
+                        if(Tdomain%rank == 0) then
+                             print*," MAKING FIRST PROT_AT_TIME:", ntime
+                             print*, '(rm -r prot/*)'
+                             call system("(rm -r prot/*)")
+                        end if
+                    end if
+                end if
+            end if
         endif
         !- Time remaining
         if (mod(ntime,20)==0) then
@@ -564,6 +589,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!
         if(protection /= 0)then
+            if(Tdomain%rank == 0) print*," SAVING PROT"
 
             call flushAllCapteurs(Tdomain)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)

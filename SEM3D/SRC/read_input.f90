@@ -139,7 +139,7 @@ contains
         fid = 13
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
-        if(rg==0) write(*,*) "read material file : ", trim(fnamef)
+        if(rg==0) write(*,*) "read material file : ", trim(adjustL(fnamef))
         open (fid, file=fnamef, status="old", form="formatted")
 
         buffer = getLine (fid, "#")
@@ -659,6 +659,7 @@ contains
         Tdomain%TimeD%type_timeinteg      = Tdomain%config%type_timeinteg
         Tdomain%nl_flag = .false.
         Tdomain%use_avg = .false.
+        Tdomain%prot_at_time = Tdomain%config%prot_at_time
         if(Tdomain%config%nl_flag == 1) Tdomain%nl_flag = .true.
         if(Tdomain%config%use_avg == 1) Tdomain%use_avg = .true.
         if (rg==0) then
