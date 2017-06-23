@@ -279,6 +279,9 @@ subroutine RUN_PREPARED(Tdomain)
         !- source time dependence read in a file: Modules/Source.f90
         !  valid only for one point source - to be generalized for each
         do i = 0,Tdomain%n_source-1
+            
+            write(*,*) 'DRIVE_SEM source loop nsrc = ', i
+
             if(Tdomain%sSource(i)%i_time_function == 5)then
                 call read_source_file(Tdomain%sSource(i))
             elseif (Tdomain%sSource(i)%i_time_function == 15) then

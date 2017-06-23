@@ -477,6 +477,7 @@ contains
         real(kind=fpp) :: t, ft, val
 
         do ns = 0, Tdomain%n_source-1
+                
             if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
                 nel = Tdomain%Ssource(ns)%elem
                 lnum = Tdomain%specel(nel)%lnum
@@ -494,6 +495,7 @@ contains
                 t = timer+Tdomain%TimeD%dtmin/2_fpp
                 ! TAG_SOURCE
                 ft = CompSource(Tdomain%sSource(ns), t, ntime)
+
                 if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
                     ! collocated force in solid
                     !
@@ -504,6 +506,7 @@ contains
                                     idx = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
                                     val = Tdomain%sdom%champs(i1)%Forces(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
                                     Tdomain%sdom%champs(i1)%Forces(idx, i_dir) = val
+                
                                 enddo
                             enddo
                         enddo
