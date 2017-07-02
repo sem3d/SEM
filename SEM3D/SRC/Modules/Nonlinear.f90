@@ -11,9 +11,9 @@ module nonlinear
     use constants
 
     implicit none
-    real(KIND=8), parameter :: FTOL = 0.000100000000D0
-    real(KIND=8), parameter :: LTOL = 0.000001000000D0
-    real(KIND=8), parameter :: STOL = 0.000010000000D0
+    real(KIND=8), parameter :: FTOL = 0.001D0  ! 1e-6
+    real(KIND=8), parameter :: LTOL = 0.001D0  ! 1e-6
+    real(KIND=8), parameter :: STOL = 0.0001D0  ! 1e-9
     real(KIND=8), parameter :: PSI  = one!5.0D0
     real(KIND=8), parameter :: OMEGA= zero!1.0D6
     real, dimension(0:2),     parameter   :: veci = (/ one, zero, zero /)
@@ -100,7 +100,6 @@ contains
         DEL(0:5,0:5) = zero
         DEL(0:2,0:2) = DEL(0:2,0:2) + lambda*Mmatrix
         DEL(0:5,0:5) = DEL(0:5,0:5) + two*mu*A1matrix
-
         return
     end subroutine stiff_matrix
 
@@ -226,7 +225,7 @@ contains
         call mises_yld_locus(stress0,center,radius,syld,FS,gradFS)
         call mises_yld_locus(stress1,center,radius,syld,FT,gradFT)
 
-        alpha_epl = -one
+        alpha_epl = zero
         if (FT.le.FTOL) then
             alpha_epl = one
             st_epl = .false.
@@ -254,8 +253,8 @@ contains
         endif
 
         if (.not.flagxit)then
-            write(*,*) "ERROR IN FINDING INTERSECTION!!  F = ",FS
-            stop
+            write(*,*) "ERROR IN FINDING INTERSECTION!!  F = ",FS,FT
+            alpha_epl=zero
         endif
 
         ! ON-LOCUS STRESS STATE
@@ -290,7 +289,7 @@ contains
         call stiff_matrix(lambda,mu,DEL)
         deltaTk = one
         Ttot    = zero
-        deltaTmin = 0.001d0
+        deltaTmin = 0.001d0 ! 1e-4
         flag_fail = .false.
         counter = 1
         do while ((Ttot.lt.one).and.counter.le.10)
@@ -541,6 +540,7 @@ contains
             radius = radiust
             pstrain = pstrain+beta*gradF0
             if (abs(F1).le.FTOL_DRIFT) then
+                write(*,*) 'drift',F1
                 exit
             endif
         enddo
@@ -639,7 +639,7 @@ contains
         ! LOAD REVERSAL
         if (nsub.gt.1) then
             Fsave=F0
-            do counter0=0,3
+            do counter0=0,2
                 dalpha = (alpha1-alpha0)/nsub
                 flagxit=.false.
                 do counter1=0,nsub-1
