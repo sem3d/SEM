@@ -4,6 +4,7 @@ module spectra_RF
     use write_Log_File
     use constants_RF
     use type_RF
+    use special_functions
 
     implicit none
 contains
@@ -172,7 +173,7 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine set_SkVec(RDF, corrL_in,nu,H);
+    subroutine set_SkVec(RDF, corrL_in);
         implicit none
 
         !OBS: corrL is supposed = 1. The complete formula is RDF%SkVec = product(corrL) * exp(-dot_product(kVector**2, corrL_effec**2)/(4.0d0*pi))
@@ -183,10 +184,9 @@ contains
         !LOCAL
         integer :: i, freqK = 6
         double precision, dimension(RDF%nDim) :: corrL
-        double precision, optional, intent(in) :: H
-        integer, optional, intent(in) :: nu
+        double precision :: vm,bes_i,dbes_i,bes_k,dbes_k
+        integer :: nu
         double precision, dimension(:,:), allocatable :: kk2
-        double precision :: Kv0
         corrL(:) = 1.0D0
         if(present(corrL_in)) corrL = corrL_in
 
@@ -224,18 +224,22 @@ contains
                 end if
             case(cm_KARMAN)
                 allocate(kk2(0:1,size(RDF%kPoints,2)))
-                RDF%SkVec(:) = 1.0D0
                 call wLog("cm_KARMAN")
 
                 do i = 1, RDF%nDim
-                    kk2(0,:) = kk2(0,:)+RDF%kPoints(i,:)**2.0D0
+                    kk2(0,:) = kk2(0,:)+((RDF%kPoints(i,:)**2.0D0)*(corrL(i)**2.0D0))
                 enddo
-                Kv0=BESSK(0,0.0d0)
-                if(RDF%rang == 0) write(*,*) "VKarman Correlation Model",Kv0
 
-                do i = 1,RDF%nDim
-                    RDF%SkVec(:) = RDF%SkVec(:) + 4.0d0*pi*nu*(H**2)*(corrL(i)**2)/(Kv0*(1.0d0+kk2(0,:))**(nu+1.5d0)) 
-                end do
+                ! BESSEL FUNCTION
+                nu = 0.5
+                !Kv0=BESSK(nu,0.0d0)
+                call ikv(nu,0.0d0,vm,bes_i,dbes_i,bes_k,dbes_k)
+                ! GENERATE PSD
+                RDF%SkVec(:) = 0.0D0
+                do i = 1, RDF%nDim
+                    RDF%SkVec(:) = RDF%SkVec(:) + & 
+                        4.0d0*pi*nu*(corrL(i)**2.0d0)/(bes_k*(1.0d0+kk2(0,:))**(nu+1.5d0)) 
+                enddo
                 deallocate(kk2)
         end select
 
@@ -443,6 +447,7 @@ contains
 !     MATHEMATICAL TABLES, VOL.5, 1962.
 ! ------------------------------------------------------------------------
         IF (N.EQ.0) THEN
+            write(*,*) 'DEBUG OK'
             BESSK = BESSK0(X)
             RETURN
         ENDIF
@@ -490,7 +495,7 @@ contains
             BESSK0=AX+(P1+Y*(P2+Y*(P3+Y*(P4+Y*(P5+Y*(P6+Y*P7))))))
         ELSE
             Y=(2.D0/X)
-            AX=EXP(-X)/DSQRT(X)
+            AX=EXP(-X)/SQRT(X)
             BESSK0=AX*(Q1+Y*(Q2+Y*(Q3+Y*(Q4+Y*(Q5+Y*(Q6+Y*Q7))))))
         ENDIF
         RETURN
