@@ -184,8 +184,9 @@ contains
         !LOCAL
         integer :: i, freqK = 6
         double precision, dimension(RDF%nDim) :: corrL
-        double precision :: vm,bes_i,dbes_i,bes_k,dbes_k
-        integer :: nu
+        double precision,parameter :: nu=0.5d0 ! < 1.0!!
+        double precision :: vm
+        double precision, dimension(0:1) :: bes_i,dbes_i,bes_k,dbes_k
         double precision, dimension(:,:), allocatable :: kk2
         corrL(:) = 1.0D0
         if(present(corrL_in)) corrL = corrL_in
@@ -231,8 +232,6 @@ contains
                 enddo
 
                 ! BESSEL FUNCTION
-                nu = 0.5
-                !Kv0=BESSK(nu,0.0d0)
                 call ikv(nu,0.0d0,vm,bes_i,dbes_i,bes_k,dbes_k)
                 ! GENERATE PSD
                 RDF%SkVec(:) = 0.0D0

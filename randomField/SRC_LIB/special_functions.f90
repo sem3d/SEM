@@ -3883,8 +3883,8 @@ contains
       complex ( kind = 8 ) cs
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       complex ( kind = 8 ) z
     
@@ -4031,8 +4031,8 @@ contains
       integer ( kind = 4 ) k0
       integer ( kind = 4 ) l
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) pi
       real ( kind = 8 ) vt
@@ -4243,8 +4243,8 @@ contains
       integer ( kind = 4 ) k
       integer ( kind = 4 ) k0
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) n
       real ( kind = 8 ) pi
       real ( kind = 8 ) piv
@@ -4531,8 +4531,8 @@ contains
       integer ( kind = 4 ) k
       integer ( kind = 4 ) k0
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) n
       real ( kind = 8 ) pi
       real ( kind = 8 ) piv
@@ -5486,8 +5486,8 @@ contains
       integer ( kind = 4 ) lb
       integer ( kind = 4 ) lb0
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) pi
       real ( kind = 8 ) wa
@@ -5750,8 +5750,8 @@ contains
       real ( kind = 8 ) el
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) pi
       real ( kind = 8 ) r2p
@@ -5990,8 +5990,8 @@ contains
       integer ( kind = 4 ) lb
       integer ( kind = 4 ) lb0
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) n
       real ( kind = 8 ) pi
       real ( kind = 8 ) pv0
@@ -6418,8 +6418,8 @@ contains
       integer ( kind = 4 ) k
       integer ( kind = 4 ) k0
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) n
       real ( kind = 8 ) pi
       real ( kind = 8 ) pv0
@@ -7762,8 +7762,8 @@ contains
       complex ( kind = 8 ) csk(0:n)
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) pi
       complex ( kind = 8 ) z
@@ -7907,8 +7907,8 @@ contains
       complex ( kind = 8 ) csb
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       complex ( kind = 8 ) z
     
@@ -13261,8 +13261,8 @@ contains
       real ( kind = 8 ) h1
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) s0
       real ( kind = 8 ) x
@@ -13414,8 +13414,8 @@ contains
       integer ( kind = 4 ) k0
       integer ( kind = 4 ) l
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) pi
       real ( kind = 8 ) r
@@ -13583,8 +13583,8 @@ contains
       integer ( kind = 4 ) k
       integer ( kind = 4 ) k0
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) n
       real ( kind = 8 ) pi
       real ( kind = 8 ) piv
@@ -16454,8 +16454,8 @@ contains
       real ( kind = 8 ) f2
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) x
     
@@ -16623,8 +16623,8 @@ contains
       real ( kind = 8 ) f2
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) p0
       real ( kind = 8 ) p1
@@ -16944,8 +16944,8 @@ contains
       integer ( kind = 4 ) k0
       integer ( kind = 4 ) l
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) n
       real ( kind = 8 ) pi
       real ( kind = 8 ) pv0
@@ -18428,8 +18428,8 @@ contains
       integer ( kind = 4 ) i
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) r
       real ( kind = 8 ) r0
@@ -18592,8 +18592,8 @@ contains
       integer ( kind = 4 ) k
       integer ( kind = 4 ) k0
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) n
       real ( kind = 8 ) pi
       real ( kind = 8 ) px
@@ -20259,7 +20259,7 @@ contains
       implicit none
     
       real ( kind = 8 ) a0
-      real ( kind = 8 ) envj
+      !real ( kind = 8 ) envj
       real ( kind = 8 ) f
       real ( kind = 8 ) f0
       real ( kind = 8 ) f1
@@ -20341,7 +20341,7 @@ contains
     
       real ( kind = 8 ) a0
       real ( kind = 8 ) ejn
-      real ( kind = 8 ) envj
+      !real ( kind = 8 ) envj
       real ( kind = 8 ) f
       real ( kind = 8 ) f0
       real ( kind = 8 ) f1
@@ -21979,8 +21979,8 @@ contains
       real ( kind = 8 ) f1
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) rj(0:n)
       real ( kind = 8 ) rj0
@@ -24024,8 +24024,8 @@ contains
       real ( kind = 8 ) f1
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) si(0:n)
       real ( kind = 8 ) si0
@@ -24131,8 +24131,8 @@ contains
       real ( kind = 8 ) f1
       integer ( kind = 4 ) k
       integer ( kind = 4 ) m
-      integer ( kind = 4 ) msta1
-      integer ( kind = 4 ) msta2
+      !integer ( kind = 4 ) msta1
+      !integer ( kind = 4 ) msta2
       integer ( kind = 4 ) nm
       real ( kind = 8 ) sa
       real ( kind = 8 ) sb
@@ -25430,4 +25430,3 @@ end module special_functions
 !! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
-
