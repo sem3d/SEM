@@ -307,9 +307,9 @@ contains
                         if (dom%use_mirror.and.dom%mirror_fl%n_glltot>0) then
                             idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
                             if (idx_m>=0.and.dom%mirror_type==0) then
-                                dom%mirror_fl%displ(idx_m) = Phi(ee,i,j,k)
+                                dom%mirror_fl%fields(1,idx_m) = Phi(ee,i,j,k)
                             elseif (idx_m>=0.and.dom%mirror_type>0) then
-                                Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%displ(idx_m)
+                                Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m)
                             endif
                         endif
                     enddo
@@ -330,9 +330,9 @@ contains
                         if (dom%use_mirror.and.dom%mirror_fl%n_glltot>0) then
                             idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
                             if (idx_m>=0.and.dom%mirror_type==0) then
-                                dom%mirror_fl%force(idx_m) = Fo_Fl(ee,i,j,k)
+                                dom%mirror_fl%fields(2,idx_m) = Fo_Fl(ee,i,j,k)
                             elseif (idx_m>=0.and.dom%mirror_type>0) then
-                                Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%force(idx_m)
+                                Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m)
                             endif
                         endif
                         val = field%ForcesFl(idx)
