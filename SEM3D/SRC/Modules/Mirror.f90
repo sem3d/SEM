@@ -75,10 +75,9 @@ subroutine init_mirror_sl(Tdomain, surf)
     if (n_glltot_sl>0) then
       write(*,'("--> SEM : mirror nodes_sl : ",i3,i6)') rnk,n_glltot_sl
       allocate(Tdomain%sdom%mirror_sl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
-      allocate(Tdomain%sdom%mirror_sl%displ(0:2,0:n_glltot_sl-1))
-      allocate(Tdomain%sdom%mirror_sl%force(0:2,0:n_glltot_sl-1))
-      allocate(displ_sl(0:2,0:n_glltot_sl-1,n_spl+1))
-      allocate(force_sl(0:2,0:n_glltot_sl-1,n_spl+1))
+      allocate(Tdomain%sdom%mirror_sl%fields(6,n_glltot_sl))
+      allocate(displ_sl(3,n_glltot_sl,n_spl+1))
+      allocate(force_sl(3,n_glltot_sl,n_spl+1))
       Tdomain%sdom%mirror_sl%n_glltot = n_glltot_sl
       Tdomain%sdom%mirror_sl%n_gll = n_gll
       Tdomain%sdom%mirror_sl%map = map2glltot_sl
@@ -107,10 +106,9 @@ subroutine init_mirror_fl(Tdomain, surf)
     if (n_glltot_fl>0) then
       write(*,'("--> SEM : mirror nodes_fl : ",i3,i6)') rnk,n_glltot_fl
       allocate(Tdomain%fdom%mirror_fl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
-      allocate(Tdomain%fdom%mirror_fl%displ(0:n_glltot_fl-1))
-      allocate(Tdomain%fdom%mirror_fl%force(0:n_glltot_fl-1))
-      allocate(displ_fl(0:n_glltot_fl-1,n_spl+1))
-      allocate(force_fl(0:n_glltot_fl-1,n_spl+1))
+      allocate(Tdomain%fdom%mirror_fl%fields(2,n_glltot_fl))
+      allocate(displ_fl(n_glltot_fl,n_spl+1))
+      allocate(force_fl(n_glltot_fl,n_spl+1))
       Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
       Tdomain%fdom%mirror_fl%n_gll = n_gll
       Tdomain%fdom%mirror_fl%map = map2glltot_fl
@@ -166,8 +164,8 @@ subroutine map_mirror_sl(Tdomain, surf)
       do i = 0,n_gll-1
         do e = 0,Tdomain%sdom%nblocks-1
           if (tmp(e,i,j,k)) then
-            map2glltot_sl(e,i,j,k) = n_glltot_sl-1
             n_glltot_sl = n_glltot_sl+1
+            map2glltot_sl(e,i,j,k) = n_glltot_sl
           endif
         enddo
       enddo
@@ -219,8 +217,8 @@ subroutine map_mirror_fl(Tdomain, surf)
       do i = 0,n_gll-1
         do e = 0,Tdomain%fdom%nblocks-1
           if (tmp(e,i,j,k)) then
-            map2glltot_fl(e,i,j,k) = n_glltot_fl-1
             n_glltot_fl = n_glltot_fl+1
+            map2glltot_fl(e,i,j,k) = n_glltot_fl
           endif
         enddo
       enddo
@@ -273,25 +271,15 @@ subroutine create_mirror_h5()
   call init_hdf5()
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
-  !! Displacement field in solid
-  dname = "Displ_sl"
+  !! Displacement and force fields in solid
+  dname = "Fields_sl"
   call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
-    int(3,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
+    int(6,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
   call h5dclose_f(dset_id, hdferr)
-  !! Displacement field in fluid
-  dname = "Displ_fl"
-  call create_dset(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
-    int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
-  call h5dclose_f(dset_id, hdferr)
-  !! Force field in solid
-  dname = "Force_sl"
+  !! Displacement and force fields in fluid
+  dname = "Fields_fl"
   call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
-    int(3,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
-  call h5dclose_f(dset_id, hdferr)
-  !! Force field in fluid
-  dname = "Force_fl"
-  call create_dset(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
-    int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
+    int(2,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -312,13 +300,13 @@ subroutine dump_mirror_sl(dom, ntime)
   else
     do i = 1,n_spl+1
       j = mod(ntime,n_dcm)+(n_spl+1-i)*n_dcm+1
-      displ_sl(:,:,i) = displ_sl(:,:,i)+bspl_tmp(j)*dom%mirror_sl%displ(:,:)
-      force_sl(:,:,i) = force_sl(:,:,i)+bspl_tmp(j)*dom%mirror_sl%force(:,:)
+      displ_sl(:,:,i) = displ_sl(:,:,i)+bspl_tmp(j)*dom%mirror_sl%fields(1:3,:)
+      force_sl(:,:,i) = force_sl(:,:,i)+bspl_tmp(j)*dom%mirror_sl%fields(4:6,:)
     enddo
     if (mod(ntime,n_dcm)==n_dcm-1) then
       if (rnk==0) write(*,'("--> SEM : dump mirror_sl, iteration : ",i6.6)') ntime
-      dom%mirror_sl%displ(:,:) = displ_sl(:,:,1)
-      dom%mirror_sl%force(:,:) = force_sl(:,:,1)
+      dom%mirror_sl%fields(1:3,:) = displ_sl(:,:,1)
+      dom%mirror_sl%fields(4:6,:) = force_sl(:,:,1)
       call append_mirror_h5_sl(dom)
       do i = 1,n_spl
         displ_sl(:,:,i) = displ_sl(:,:,i+1)
@@ -330,8 +318,8 @@ subroutine dump_mirror_sl(dom, ntime)
     if (ntime==n_t-1) then
       if (rnk==0) write(*,'("--> SEM : dump mirror_sl, iteration : ",i6.6)') ntime
       do i = 1,n_spl+1
-        dom%mirror_sl%displ(:,:) = displ_sl(:,:,i)
-        dom%mirror_sl%force(:,:) = force_sl(:,:,i)
+        dom%mirror_sl%fields(1:3,:) = displ_sl(:,:,i)
+        dom%mirror_sl%fields(4:6,:) = force_sl(:,:,i)
         call append_mirror_h5_sl(dom)
       enddo
       allocate(diag(n_spl+1,n_tdwn),ddiag(n_tdwn))
@@ -359,13 +347,13 @@ subroutine dump_mirror_fl(dom, ntime)
   else
     do i = 1,n_spl+1
       j = mod(ntime,n_dcm)+(n_spl+1-i)*n_dcm+1
-      displ_fl(:,i) = displ_fl(:,i)+bspl_tmp(j)*dom%mirror_fl%displ(:)
-      force_fl(:,i) = force_fl(:,i)+bspl_tmp(j)*dom%mirror_fl%force(:)
+      displ_fl(:,i) = displ_fl(:,i)+bspl_tmp(j)*dom%mirror_fl%fields(1,:)
+      force_fl(:,i) = force_fl(:,i)+bspl_tmp(j)*dom%mirror_fl%fields(2,:)
     enddo
     if (mod(ntime,n_dcm)==n_dcm-1) then
       if (rnk==0) write(*,'("--> SEM : dump mirror_fl, iteration : ",i6.6)') ntime
-      dom%mirror_fl%displ(:) = displ_fl(:,1)
-      dom%mirror_fl%force(:) = force_fl(:,1)
+      dom%mirror_fl%fields(1,:) = displ_fl(:,1)
+      dom%mirror_fl%fields(2,:) = force_fl(:,1)
       call append_mirror_h5_fl(dom)
       do i = 1,n_spl
         displ_fl(:,i) = displ_fl(:,i+1)
@@ -377,8 +365,8 @@ subroutine dump_mirror_fl(dom, ntime)
     if (ntime==n_t-1) then
       if (rnk==0) write(*,'("--> SEM : dump mirror_fl, iteration : ",i6.6)') ntime
       do i = 1,n_spl+1
-        dom%mirror_fl%displ(:) = displ_fl(:,i)
-        dom%mirror_fl%force(:) = force_fl(:,i)
+        dom%mirror_fl%fields(1,:) = displ_fl(:,i)
+        dom%mirror_fl%fields(2,:) = force_fl(:,i)
         call append_mirror_h5_fl(dom)
       enddo
       allocate(diag(n_spl+1,n_tdwn),ddiag(n_tdwn))
@@ -414,16 +402,16 @@ subroutine load_mirror_sl(dom, ntime)
       do i = 1,n_spl+1
         j = int(ntime_tmp/n_dcm)+1
         call read_mirror_h5_sl(dom, j+i-1-1)
-        displ_sl(:,:,i) = dom%mirror_sl%displ(:,:)
-        force_sl(:,:,i) = dom%mirror_sl%force(:,:)
+        displ_sl(:,:,i) = dom%mirror_sl%fields(1:3,:)
+        force_sl(:,:,i) = dom%mirror_sl%fields(4:6,:)
       enddo
     endif
-    dom%mirror_sl%displ(:,:) = 0.
-    dom%mirror_sl%force(:,:) = 0.
+    dom%mirror_sl%fields(1:3,:) = 0.
+    dom%mirror_sl%fields(4:6,:) = 0.
     do i = 1,n_spl+1
       j = mod(ntime_tmp,n_dcm)+(n_spl+1-i)*n_dcm+1
-      dom%mirror_sl%displ(:,:) = dom%mirror_sl%displ(:,:)+bspl_tmp(j)*displ_sl(:,:,i)
-      dom%mirror_sl%force(:,:) = dom%mirror_sl%force(:,:)+bspl_tmp(j)*force_sl(:,:,i)
+      dom%mirror_sl%fields(1:3,:) = dom%mirror_sl%fields(1:3,:)+bspl_tmp(j)*displ_sl(:,:,i)
+      dom%mirror_sl%fields(4:6,:) = dom%mirror_sl%fields(4:6,:)+bspl_tmp(j)*force_sl(:,:,i)
     enddo
   endif
 
@@ -452,16 +440,16 @@ subroutine load_mirror_fl(dom, ntime)
       do i = 1,n_spl+1
         j = int(ntime_tmp/n_dcm)+1
         call read_mirror_h5_fl(dom, j+i-1-1)
-        displ_fl(:,i) = dom%mirror_fl%displ(:)
-        force_fl(:,i) = dom%mirror_fl%force(:)
+        displ_fl(:,i) = dom%mirror_fl%fields(1,:)
+        force_fl(:,i) = dom%mirror_fl%fields(2,:)
       enddo
     endif
-    dom%mirror_fl%displ(:) = 0.
-    dom%mirror_fl%force(:) = 0.
+    dom%mirror_fl%fields(1,:) = 0.
+    dom%mirror_fl%fields(2,:) = 0.
     do i = 1,n_spl+1
       j = mod(ntime_tmp,n_dcm)+(n_spl+1-i)*n_dcm+1
-      dom%mirror_fl%displ(:) = dom%mirror_fl%displ(:)+bspl_tmp(j)*displ_fl(:,i)
-      dom%mirror_fl%force(:) = dom%mirror_fl%force(:)+bspl_tmp(j)*force_fl(:,i)
+      dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+bspl_tmp(j)*displ_fl(:,i)
+      dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+bspl_tmp(j)*force_fl(:,i)
     enddo
   endif
 
@@ -480,8 +468,8 @@ subroutine bchslv_sl(dom, w, nbands, nrow)
     if (n==1) then
       do j = 0,nbands-1
         call read_mirror_h5_sl(dom, j+n-1)
-        displ_sl(:,:,j+1) = dom%mirror_sl%displ(:,:)
-        force_sl(:,:,j+1) = dom%mirror_sl%force(:,:)
+        displ_sl(:,:,j+1) = dom%mirror_sl%fields(1:3,:)
+        force_sl(:,:,j+1) = dom%mirror_sl%fields(4:6,:)
       enddo
     else
       do j = 0,nbands-2
@@ -489,15 +477,15 @@ subroutine bchslv_sl(dom, w, nbands, nrow)
         force_sl(:,:,j+1) = force_sl(:,:,j+2)
       enddo
       call read_mirror_h5_sl(dom, n+nbands-2)
-      displ_sl(:,:,nbands) = dom%mirror_sl%displ(:,:)
-      force_sl(:,:,nbands) = dom%mirror_sl%force(:,:)
+      displ_sl(:,:,nbands) = dom%mirror_sl%fields(1:3,:)
+      force_sl(:,:,nbands) = dom%mirror_sl%fields(4:6,:)
     endif
     do j = 1,nbands-1
       displ_sl(:,:,j+1) = displ_sl(:,:,j+1)-w(j+1,n)*displ_sl(:,:,1)
       force_sl(:,:,j+1) = force_sl(:,:,j+1)-w(j+1,n)*force_sl(:,:,1)
     enddo
-    dom%mirror_sl%displ(:,:) = displ_sl(:,:,1)
-    dom%mirror_sl%force(:,:) = force_sl(:,:,1)
+    dom%mirror_sl%fields(1:3,:) = displ_sl(:,:,1)
+    dom%mirror_sl%fields(4:6,:) = force_sl(:,:,1)
     call write_mirror_h5_sl(dom, n-1)
   enddo
   do n = nrow-nbands+2,nrow
@@ -509,8 +497,8 @@ subroutine bchslv_sl(dom, w, nbands, nrow)
       displ_sl(:,:,j+1) = displ_sl(:,:,j+1)-w(j+1,n)*displ_sl(:,:,1)
       force_sl(:,:,j+1) = force_sl(:,:,j+1)-w(j+1,n)*force_sl(:,:,1)
     enddo
-    dom%mirror_sl%displ(:,:) = displ_sl(:,:,1)
-    dom%mirror_sl%force(:,:) = force_sl(:,:,1)
+    dom%mirror_sl%fields(1:3,:) = displ_sl(:,:,1)
+    dom%mirror_sl%fields(4:6,:) = force_sl(:,:,1)
     call write_mirror_h5_sl(dom, n-1)
   enddo
   !! Back substitution, Solve L'*X = D**(-1)*Y.
@@ -520,14 +508,14 @@ subroutine bchslv_sl(dom, w, nbands, nrow)
       force_sl(:,:,j+1) = force_sl(:,:,j)
     enddo
     call read_mirror_h5_sl(dom, n-1)
-    displ_sl(:,:,1) = dom%mirror_sl%displ(:,:)*w(1,n)
-    force_sl(:,:,1) = dom%mirror_sl%force(:,:)*w(1,n)
+    displ_sl(:,:,1) = dom%mirror_sl%fields(1:3,:)*w(1,n)
+    force_sl(:,:,1) = dom%mirror_sl%fields(4:6,:)*w(1,n)
     do j = 1,nrow-n
       displ_sl(:,:,1) = displ_sl(:,:,1)-w(j+1,n)*displ_sl(:,:,j+1)
       force_sl(:,:,1) = force_sl(:,:,1)-w(j+1,n)*force_sl(:,:,j+1)
     enddo
-    dom%mirror_sl%displ(:,:) = displ_sl(:,:,1)
-    dom%mirror_sl%force(:,:) = force_sl(:,:,1)
+    dom%mirror_sl%fields(1:3,:) = displ_sl(:,:,1)
+    dom%mirror_sl%fields(4:6,:) = force_sl(:,:,1)
     call write_mirror_h5_sl(dom, n-1)
   enddo
   do n = nrow-nbands+1,1,-1
@@ -536,14 +524,14 @@ subroutine bchslv_sl(dom, w, nbands, nrow)
       force_sl(:,:,j+1) = force_sl(:,:,j)
     enddo
     call read_mirror_h5_sl(dom, n-1)
-    displ_sl(:,:,1) = dom%mirror_sl%displ(:,:)*w(1,n)
-    force_sl(:,:,1) = dom%mirror_sl%force(:,:)*w(1,n)
+    displ_sl(:,:,1) = dom%mirror_sl%fields(1:3,:)*w(1,n)
+    force_sl(:,:,1) = dom%mirror_sl%fields(4:6,:)*w(1,n)
     do j = 1,nbands-1
       displ_sl(:,:,1) = displ_sl(:,:,1)-w(j+1,n)*displ_sl(:,:,j+1)
       force_sl(:,:,1) = force_sl(:,:,1)-w(j+1,n)*force_sl(:,:,j+1)
     enddo
-    dom%mirror_sl%displ(:,:) = displ_sl(:,:,1)
-    dom%mirror_sl%force(:,:) = force_sl(:,:,1)
+    dom%mirror_sl%fields(1:3,:) = displ_sl(:,:,1)
+    dom%mirror_sl%fields(4:6,:) = force_sl(:,:,1)
     call write_mirror_h5_sl(dom, n-1)
   enddo
   return
@@ -563,8 +551,8 @@ subroutine bchslv_fl(dom, w, nbands, nrow)
     if (n==1) then
       do j = 0,nbands-1
         call read_mirror_h5_fl(dom, j+n-1)
-        displ_fl(:,j+1) = dom%mirror_fl%displ(:)
-        force_fl(:,j+1) = dom%mirror_fl%force(:)
+        displ_fl(:,j+1) = dom%mirror_fl%fields(1,:)
+        force_fl(:,j+1) = dom%mirror_fl%fields(2,:)
       enddo
     else
       do j = 0,nbands-2
@@ -572,15 +560,15 @@ subroutine bchslv_fl(dom, w, nbands, nrow)
         force_fl(:,j+1) = force_fl(:,j+2)
       enddo
       call read_mirror_h5_fl(dom, n+nbands-2)
-      displ_fl(:,nbands) = dom%mirror_fl%displ(:)
-      force_fl(:,nbands) = dom%mirror_fl%force(:)
+      displ_fl(:,nbands) = dom%mirror_fl%fields(1,:)
+      force_fl(:,nbands) = dom%mirror_fl%fields(2,:)
     endif
     do j = 1,nbands-1
       displ_fl(:,j+1) = displ_fl(:,j+1)-w(j+1,n)*displ_fl(:,1)
       force_fl(:,j+1) = force_fl(:,j+1)-w(j+1,n)*force_fl(:,1)
     enddo
-    dom%mirror_fl%displ(:) = displ_fl(:,1)
-    dom%mirror_fl%force(:) = force_fl(:,1)
+    dom%mirror_fl%fields(1,:) = displ_fl(:,1)
+    dom%mirror_fl%fields(2,:) = force_fl(:,1)
     call write_mirror_h5_fl(dom, n-1)
   enddo
   do n = nrow-nbands+2,nrow
@@ -592,8 +580,8 @@ subroutine bchslv_fl(dom, w, nbands, nrow)
       displ_fl(:,j+1) = displ_fl(:,j+1)-w(j+1,n)*displ_fl(:,1)
       force_fl(:,j+1) = force_fl(:,j+1)-w(j+1,n)*force_fl(:,1)
     enddo
-    dom%mirror_fl%displ(:) = displ_fl(:,1)
-    dom%mirror_fl%force(:) = force_fl(:,1)
+    dom%mirror_fl%fields(1,:) = displ_fl(:,1)
+    dom%mirror_fl%fields(2,:) = force_fl(:,1)
     call write_mirror_h5_fl(dom, n-1)
   enddo
   !! Back substitution, Solve L'*X = D**(-1)*Y.
@@ -603,14 +591,14 @@ subroutine bchslv_fl(dom, w, nbands, nrow)
       force_fl(:,j+1) = force_fl(:,j)
     enddo
     call read_mirror_h5_fl(dom, n-1)
-    displ_fl(:,1) = dom%mirror_fl%displ(:)*w(1,n)
-    force_fl(:,1) = dom%mirror_fl%force(:)*w(1,n)
+    displ_fl(:,1) = dom%mirror_fl%fields(1,:)*w(1,n)
+    force_fl(:,1) = dom%mirror_fl%fields(2,:)*w(1,n)
     do j = 1,nrow-n
       displ_fl(:,1) = displ_fl(:,1)-w(j+1,n)*displ_fl(:,j+1)
       force_fl(:,1) = force_fl(:,1)-w(j+1,n)*force_fl(:,j+1)
     enddo
-    dom%mirror_fl%displ(:) = displ_fl(:,1)
-    dom%mirror_fl%force(:) = force_fl(:,1)
+    dom%mirror_fl%fields(1,:) = displ_fl(:,1)
+    dom%mirror_fl%fields(2,:) = force_fl(:,1)
     call write_mirror_h5_fl(dom, n-1)
   enddo
   do n = nrow-nbands+1,1,-1
@@ -619,14 +607,14 @@ subroutine bchslv_fl(dom, w, nbands, nrow)
       force_fl(:,j+1) = force_fl(:,j)
     enddo
     call read_mirror_h5_fl(dom, n-1)
-    displ_fl(:,1) = dom%mirror_fl%displ(:)*w(1,n)
-    force_fl(:,1) = dom%mirror_fl%force(:)*w(1,n)
+    displ_fl(:,1) = dom%mirror_fl%fields(1,:)*w(1,n)
+    force_fl(:,1) = dom%mirror_fl%fields(2,:)*w(1,n)
     do j = 1,nbands-1
       displ_fl(:,1) = displ_fl(:,1)-w(j+1,n)*displ_fl(:,j+1)
       force_fl(:,1) = force_fl(:,1)-w(j+1,n)*force_fl(:,j+1)
     enddo
-    dom%mirror_fl%displ(:) = displ_fl(:,1)
-    dom%mirror_fl%force(:) = force_fl(:,1)
+    dom%mirror_fl%fields(1,:) = displ_fl(:,1)
+    dom%mirror_fl%fields(2,:) = force_fl(:,1)
     call write_mirror_h5_fl(dom, n-1)
   enddo
   return
@@ -646,13 +634,9 @@ subroutine append_mirror_h5_sl(dom)
 
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
-  dname = "Displ_sl"
+  dname = "Fields_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call append_dataset_2d(dset_id, dom%mirror_sl%displ, hdferr)
-  call h5dclose_f(dset_id, hdferr)
-  dname = "Force_sl"
-  call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call append_dataset_2d(dset_id, dom%mirror_sl%force, hdferr)
+  call append_dataset_2d(dset_id, dom%mirror_sl%fields, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -671,13 +655,9 @@ subroutine append_mirror_h5_fl(dom)
 
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
-  dname = "Displ_fl"
+  dname = "Fields_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call append_dataset_1d(dset_id, dom%mirror_fl%displ, hdferr)
-  call h5dclose_f(dset_id, hdferr)
-  dname = "Force_fl"
-  call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call append_dataset_1d(dset_id, dom%mirror_fl%force, hdferr)
+  call append_dataset_2d(dset_id, dom%mirror_fl%fields, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -697,16 +677,12 @@ subroutine read_mirror_h5_sl(dom, n)
   integer(HSIZE_T), dimension(2) :: offset, dcount
 
   offset = (/0,n*dom%mirror_sl%n_glltot/)
-  dcount = (/3,dom%mirror_sl%n_glltot/)
+  dcount = (/6,dom%mirror_sl%n_glltot/)
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)
-  dname = "Displ_sl"
+  dname = "Fields_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call read_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%displ, hdferr)
-  call h5dclose_f(dset_id, hdferr)
-  dname = "Force_sl"
-  call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call read_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%force, hdferr)
+  call read_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%fields, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -723,19 +699,15 @@ subroutine read_mirror_h5_fl(dom, n)
   character (len=MAX_FILE_SIZE) :: fnamef
   integer(HID_T) :: fid, dset_id
   integer :: hdferr
-  integer(HSIZE_T), dimension(1) :: offset, dcount
+  integer(HSIZE_T), dimension(2) :: offset, dcount
 
-  offset = (/n*dom%mirror_fl%n_glltot/)
-  dcount = (/dom%mirror_fl%n_glltot/)
+  offset = (/0,n*dom%mirror_fl%n_glltot/)
+  dcount = (/2,dom%mirror_fl%n_glltot/)
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)
-  dname = "Displ_fl"
+  dname = "Fields_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call read_datasubset_1d(dset_id, offset, dcount, dom%mirror_fl%displ, hdferr)
-  call h5dclose_f(dset_id, hdferr)
-  dname = "Force_fl"
-  call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call read_datasubset_1d(dset_id, offset, dcount, dom%mirror_fl%force, hdferr)
+  call read_datasubset_2d(dset_id, offset, dcount, dom%mirror_fl%fields, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -755,16 +727,12 @@ subroutine write_mirror_h5_sl(dom, n)
   integer(HSIZE_T), dimension(2) :: offset, dcount
 
   offset = (/0,n*dom%mirror_sl%n_glltot/)
-  dcount = (/3,dom%mirror_sl%n_glltot/)
+  dcount = (/6,dom%mirror_sl%n_glltot/)
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
-  dname = "Displ_sl"
+  dname = "Fields_sl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call write_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%displ, hdferr)
-  call h5dclose_f(dset_id, hdferr)
-  dname = "Force_sl"
-  call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call write_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%force, hdferr)
+  call write_datasubset_2d(dset_id, offset, dcount, dom%mirror_sl%fields, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
@@ -781,19 +749,15 @@ subroutine write_mirror_h5_fl(dom, n)
   character (len=MAX_FILE_SIZE) :: fnamef
   integer(HID_T) :: fid, dset_id
   integer :: hdferr
-  integer(HSIZE_T), dimension(1) :: offset, dcount
+  integer(HSIZE_T), dimension(2) :: offset, dcount
 
-  offset = (/n*dom%mirror_fl%n_glltot/)
-  dcount = (/dom%mirror_fl%n_glltot/)
+  offset = (/0,n*dom%mirror_fl%n_glltot/)
+  dcount = (/2,dom%mirror_fl%n_glltot/)
   call semname_mirrorfile_h5(rnk, fnamef)
   call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
-  dname = "Displ_fl"
+  dname = "Fields_fl"
   call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call write_datasubset_1d(dset_id, offset, dcount, dom%mirror_fl%displ, hdferr)
-  call h5dclose_f(dset_id, hdferr)
-  dname = "Force_fl"
-  call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-  call write_datasubset_1d(dset_id, offset, dcount, dom%mirror_fl%force, hdferr)
+  call write_datasubset_2d(dset_id, offset, dcount, dom%mirror_fl%fields, hdferr)
   call h5dclose_f(dset_id, hdferr)
   call h5fclose_f(fid, hdferr)
 
