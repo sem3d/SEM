@@ -225,15 +225,16 @@ contains
             case(cm_KARMAN)
                 allocate(kk2(0:1,size(RDF%kPoints,2)))
                 RDF%SkVec(:) = 1.0D0
-                if(RDF%rang == 0) write(*,*) "VKarman Correlation Model"
                 call wLog("cm_KARMAN")
 
                 do i = 1, RDF%nDim
                     kk2(0,:) = kk2(0,:)+RDF%kPoints(i,:)**2.0D0
                 enddo
-                Kv0=bessk(nu,0.0d0)
+                Kv0=BESSK(0,0.0d0)
+                if(RDF%rang == 0) write(*,*) "VKarman Correlation Model",Kv0
+
                 do i = 1,RDF%nDim
-                    RDF%SkVec(:) = RDF%SkVec(:) + 4.0d0*pi*nu*(H**2)*(corrL(i)**2)/(Kv0*(1.0d0+kk2(0,:))**(nu+1.5d0))  
+                    RDF%SkVec(:) = RDF%SkVec(:) + 4.0d0*pi*nu*(H**2)*(corrL(i)**2)/(Kv0*(1.0d0+kk2(0,:))**(nu+1.5d0)) 
                 end do
                 deallocate(kk2)
         end select
@@ -424,56 +425,7 @@ contains
 !* modified Bessel function of the third kind of order N   *
 !* for any real positive argument X.                       *
 !* ------------------------------------------------------- *
-!* SAMPLE RUN:                                             *
-!*                                                         *
-!*  X =  1.20970000000000                                  *
-!*                                                         *
-!*  N =          0                                         *
-!*  Y = 0.314324491956902                                  *
-!*                                                         *
-!*  N =          1                                         *
-!*  Y = 0.428050751380123                                  *
-!*                                                         *
-!*  N =          2                                         *
-!*  Y =  1.02202185722122                                  *
-!*                                                         *
-!*  N =          3                                         *
-!*  Y =  3.80747327670449                                  *
-!*                                                         *
-!*  N =          4                                         *
-!*  Y =  19.9067367949966                                  *
-!*                                                         *
-!* ------------------------------------------------------- *
-!* Reference:   From Numath Library By Tuan Dang Trong     *
-!* in Fortran 77 [BIBLI 18].                               *
-!*                                                         *
-!*                      F90 Version By J-P Moreau, Paris.  *
-!*                          (all variables declared)       *
-!*                              www.jpmoreau.fr            *
-!***********************************************************     
-!   PROGRAM TBESSK
-!   IMPLICIT NONE
-!   
-!   REAL*8 X, Y, BESSK
-!   INTEGER N, i
-!
-!   N=5           !number of integer orders
-!   X=1.2097d0    !real argument
-!
-!   print *,' '
-!   print *,' X =', X
-!   print *,' '
-!
-!   do i=0, N-1
-!     Y=BESSK(i,X)
-!     print *,' N =', i
-!     print *,' Y =', Y
-!     print *,' '
-!   end do
-!
-!   stop
-!   END
-    FUNCTION BESSK(N,X)
+    function BESSK(N,X)
         implicit none
         integer :: N,J
         double precision :: X,BESSK,TOX,BK,BKM,BKP
