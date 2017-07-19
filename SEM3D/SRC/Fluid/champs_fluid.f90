@@ -23,8 +23,7 @@ module champs_fluid
     type :: time_mirror_fl
         integer :: n_glltot, n_gll
         integer, dimension(:,:,:,:), allocatable :: map
-        real(fpp), dimension(:), allocatable :: displ
-        real(fpp), dimension(:), allocatable :: force
+        real(fpp), dimension(:,:), allocatable :: fields
     end type time_mirror_fl
 
     type, extends(dombase) :: domain_fluid
