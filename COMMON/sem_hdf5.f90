@@ -759,7 +759,7 @@ contains
         call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
              offset, count, hdferr, stride, block)
         call h5screate_simple_f(1, dimsm, memspace, hdferr)
-        allocate(arr(0:dimsm(1)-1))
+        allocate(arr(dimsm(1)))
         call h5dread_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
              memspace, dataspace)
         call h5sclose_f(dataspace, hdferr)
@@ -784,7 +784,7 @@ contains
         call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
              offset, count, hdferr, stride, block)
         call h5screate_simple_f(1, dimsm, memspace, hdferr)
-        allocate(arr(0:dimsm(1)-1))
+        allocate(arr(dimsm(1)))
         call h5dread_f(dset_id, H5T_NATIVE_INTEGER, arr, dimsm, hdferr, &
              memspace, dataspace)
         call h5sclose_f(dataspace, hdferr)
@@ -809,7 +809,7 @@ contains
         call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
              offset, count, hdferr, stride, block)
         call h5screate_simple_f(2, dimsm, memspace, hdferr)
-        allocate(arr(0:dimsm(1)-1, 0:dimsm(2)-1))
+        allocate(arr(dimsm(1),dimsm(2)))
         call h5dread_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
              memspace, dataspace)
         call h5sclose_f(dataspace, hdferr)
@@ -834,7 +834,7 @@ contains
         call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
              offset, count, hdferr, stride, block)
         call h5screate_simple_f(2, dimsm, memspace, hdferr)
-        allocate(arr(0:dimsm(1)-1, 0:dimsm(2)-1))
+        allocate(arr(dimsm(1),dimsm(2)))
         call h5dread_f(dset_id, H5T_NATIVE_INTEGER, arr, dimsm, hdferr, &
              memspace, dataspace)
         call h5sclose_f(dataspace, hdferr)
