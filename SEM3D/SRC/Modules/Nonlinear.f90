@@ -11,37 +11,6 @@ module nonlinear
     use constants
 
     implicit none
-    real(KIND=8), parameter :: FTOL = 0.001D0  ! 1e-6
-    real(KIND=8), parameter :: LTOL = 0.001D0  ! 1e-6
-    real(KIND=8), parameter :: STOL = 0.0001D0  ! 1e-9
-    real(KIND=8), parameter :: PSI  = one!5.0D0
-    real(KIND=8), parameter :: OMEGA= zero!1.0D6
-    real, dimension(0:2),     parameter   :: veci = (/ one, zero, zero /)
-    real, dimension(0:2),     parameter   :: vecj = (/ zero, one, zero /)
-    real, dimension(0:2),     parameter   :: veck = (/ zero, zero, one /)
-    real, dimension(0:2,0:2), parameter   :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
-    real, dimension(0:2,0:2), parameter   :: Mmatrix(0:2,0:2) = one
-    real, dimension(0:5),     parameter   :: Mvector  = (/one,one,one,zero,zero,zero/)    
-    real, dimension(0:5),     parameter   :: Avector  = (/one,one,one,two,two,two/)
-    real, dimension(0:5),     parameter   :: A1vector = (/one,one,one,half,half,half/)
-    real*8, parameter, dimension(0:5,0:5) :: &
-        Amatrix  = reshape((/ &
-        one , zero, zero, zero, zero, zero,&
-        zero, one , zero, zero, zero, zero, &
-        zero, zero, one , zero, zero, zero, &
-        zero, zero, zero, two , zero, zero, &
-        zero, zero, zero, zero, two , zero, &
-        zero, zero, zero, zero, zero, two   &
-        /), (/6,6/))
-    real(fpp), parameter, dimension(0:5,0:5) :: &
-        A1matrix = reshape((/ &
-        one , zero, zero, zero, zero, zero,&
-        zero, one , zero, zero, zero, zero, &
-        zero, zero, one , zero, zero, zero, &
-        zero, zero, zero, half, zero, zero, &
-        zero, zero, zero, zero, half, zero, &
-        zero, zero, zero, zero, zero, half  &
-        /), (/6,6/))
 
 contains
 
