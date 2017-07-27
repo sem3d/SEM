@@ -95,6 +95,7 @@ set(SEM_SRC
   ${SEMCOMMON}/blas.F90
   ${SEMCOMMON}/leastsq.f90
   ${SEMCOMMON}/intset.F90
+  ${SEMCOMMON}/invariants.f90
 )
 
 set(SEM_SRC_C
