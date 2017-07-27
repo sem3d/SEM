@@ -9,6 +9,7 @@ module nonlinear
     use sdomain
     use deriv3d
     use constants
+    use invariants
 
     implicit none
 
@@ -118,7 +119,7 @@ contains
         real(fpp), dimension(0:5)              :: dev
         real(fpp)                              :: tau_eq
         ! COMPUTE STRESS COMPONENTS
-        call tensor_components(stress,dev)
+        call tensor_deviator(stress,dev)
         ! COMPUTE MISES FUNCTION
         call tau_mises(dev-center,tau_eq)
         ! COMPUTE MISES FUNCTION GRADIENT
@@ -139,34 +140,18 @@ contains
         ! intent OUT
         real(fpp),                 intent(out):: J2M
         !
-        real(fpp), dimension(0:5)             :: temp
-        real(fpp)                             :: J2M2
+        ! real(fpp), dimension(0:5)             :: temp
+        ! real(fpp)                             :: J2M2
         !
-        temp = three*half*Avector*dev
-        J2M2 = dot_product(dev,temp)
-        J2M  = sqrt(J2M2)
+        ! temp = three*half*Avector*dev
+        ! J2M2 = dot_product(dev,temp)
+        ! J2M  = sqrt(J2M2)
+        call second_deviator_invariant(dev,J2M)
+        J2M = sqrt(three*J2M)
         !
         return
         !
     end subroutine
-
-    !****************************************************************************
-    ! TENSOR COMPONENTS (SPHERICAL & DEVIATORIC)
-    !****************************************************************************
-
-    subroutine tensor_components(stress,dev)
-        ! intent IN
-        real(fpp), dimension(0:5), intent(in)    :: stress
-        ! intent OUT
-        real(fpp), dimension(0:5), intent(inout) :: dev
-        real(fpp)                                :: press
-        !
-        press = dot_product(stress,Mvector)/three
-        dev   = stress-press*Mvector
-        !
-        return
-        !
-    end subroutine tensor_components
 
     !****************************************************************************
     ! CHECK PLASTIC CONSISTENCY (KKT CONDITIONS)
@@ -529,13 +514,13 @@ contains
         real(fpp), dimension(0:5)                :: start,gradF,dev,dev_temp,temp,dev0
         real(fpp)                                :: Fstart,err0,err1,beta
         integer                             :: counter
-        call tensor_components(start0,dev0)
+        call tensor_deviator(start0,dev0)
         alpha=F0/(F0-Ftrial)
         start(0:5)=start0(0:5)
         temp=start+alpha*dtrial0
         do counter=0,9
-            call tensor_components(temp, dev_temp)
-            call tensor_components(start,dev)
+            call tensor_deviator(temp, dev_temp)
+            call tensor_deviator(start,dev)
             call tau_mises(-dev+dev_temp,err0)
             call tau_mises(dev-dev0,err1)
             err0=err0/err1
@@ -558,15 +543,15 @@ contains
         real(fpp), dimension(0:5)                :: start,gradF,dev,dev_temp,temp,dev0
         real(fpp)                                :: alphanew,err0,err1,beta
         integer                             :: counter
-        call tensor_components(start0,dev0)
+        call tensor_deviator(start0,dev0)
         alpha=F0/(F0-Ftrial)
         beta=0d0
         alphanew=0d0
         start(0:5)=start0(0:5)
         temp(0:5)=start(0:5)+alpha*dtrial0(0:5)
         do counter=0,9
-            call tensor_components(temp, dev_temp)
-            call tensor_components(start,dev)
+            call tensor_deviator(temp, dev_temp)
+            call tensor_deviator(start,dev)
             call tau_mises(-dev+dev_temp,err0)
             call tau_mises(dev-dev0,err1)
             err0=err0/err1
