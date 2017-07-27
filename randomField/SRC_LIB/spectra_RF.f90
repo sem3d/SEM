@@ -184,13 +184,13 @@ contains
         !LOCAL
         integer :: i, freqK = 6
         double precision, dimension(RDF%nDim) :: corrL
-        double precision,parameter :: nu=0.5d0 ! < 1.0!!
+        double precision,parameter :: nu=0.1d0 ! < 1.0!!
         double precision :: vm
-        double precision, dimension(0:1) :: bes_i,dbes_i,bes_k,dbes_k
-        double precision, dimension(:,:), allocatable :: kk2
+        double precision, dimension(1) :: bes_i,dbes_i,bes_k,dbes_k
+        double precision, dimension(:), allocatable :: kk2
         corrL(:) = 1.0D0
         if(present(corrL_in)) corrL = corrL_in
-
+        write(*,*) 'correlation length',corrL
         write(*,*) "size(RDF%kPoints,2) = ", size(RDF%kPoints,2)
 
         if(allocated(RDF%SkVec)) deallocate(RDF%SkVec)
@@ -224,21 +224,22 @@ contains
                     stop ("When using the cosinus correlation Model you should have more than 'freqK' kPoints")
                 end if
             case(cm_KARMAN)
-                allocate(kk2(0:1,size(RDF%kPoints,2)))
                 call wLog("cm_KARMAN")
-
+                
+                allocate(kk2(size(RDF%SkVec,1)))
+                kk2(:) = 0.0d0
                 do i = 1, RDF%nDim
-                    kk2(0,:) = kk2(0,:)+((RDF%kPoints(i,:)**2.0D0)*(corrL(i)**2.0D0))
+                    kk2(:) = kk2(:)+(RDF%kPoints(i,:)*corrL(i))**2.0D0
                 enddo
 
                 ! BESSEL FUNCTION
-                call ikv(nu,0.0d0,vm,bes_i,dbes_i,bes_k,dbes_k)
+                call ikv(nu,1.0d-10,vm,bes_i,dbes_i,bes_k,dbes_k)
                 ! GENERATE PSD
-                RDF%SkVec(:) = 0.0D0
+                RDF%SkVec(:) = 0.0d0
                 do i = 1, RDF%nDim
-                    RDF%SkVec(:) = RDF%SkVec(:) + & 
-                        4.0d0*pi*nu*(corrL(i)**2.0d0)/(bes_k*(1.0d0+kk2(0,:))**(nu+1.5d0)) 
+                    RDF%SkVec(:) = RDF%SkVec(:) + corrL(i)**2 !& 
                 enddo
+                RDF%SkVec(:) = 4.0d0*pi*nu/(bes_k(1)*(1.0d0+kk2(:))**(nu+1.5d0))*RDF%SkVec(:) 
                 deallocate(kk2)
         end select
 
