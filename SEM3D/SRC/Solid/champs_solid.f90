@@ -40,7 +40,8 @@ module champs_solid
 
     ! Mirror
     type :: time_mirror_sl
-        integer :: n_glltot, n_gll
+        integer :: n_glltot, n_gll, n_t
+        real(fpp) :: d_t
         integer, dimension(:,:,:,:), allocatable :: map
         real(fpp), dimension(:, :), allocatable :: fields
     end type time_mirror_sl
