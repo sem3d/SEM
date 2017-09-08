@@ -22,22 +22,44 @@ subroutine bmn(b,m,n)
 
 end subroutine bmn
 
-real(fpp) recursive function bspln(i,k,x)
-  implicit none
-  real(fpp) :: x
-  integer :: k,i
+recursive function bspln(i,k,x) result(b)
+!========================================
 
-  bspln = 0.
-  if (k+1>0) then
-    if (k+1==1) then
-      if (x>=i.and.x<i+1) bspln = 1.
-    else
-      bspln = (x-i)*bspln(i,k-1,x)/(k+1-1)+(i+k+1-x)*bspln(i+1,k-1,x)/(k+1-1)
-      if (k==0) bspln = 0.
-    endif
-  endif
+implicit none
 
+real(fpp) :: x,b
+integer :: k,i
+
+b=0.d0
+if(k+1>0)then
+   if(k+1==1)then
+      if(x>=i.and.x<i+1)b=1.d0
+   else
+      b=(x-i)*bspln(i,k-1,x)/(k+1-1)+(i+k+1-x)*bspln(i+1,k-1,x)/(k+1-1)
+      if(k==0)b=0
+   endif
+endif
+
+!=================
 end function bspln
+!=================
+
+!real(fpp) recursive function bspln(i,k,x)
+!  implicit none
+!  real(fpp) :: x
+!  integer :: k,i
+!
+!  bspln = 0.
+!  if (k+1>0) then
+!    if (k+1==1) then
+!      if (x>=i.and.x<i+1) bspln = 1.
+!    else
+!      bspln = (x-i)*bspln(i,k-1,x)/(k+1-1)+(i+k+1-x)*bspln(i+1,k-1,x)/(k+1-1)
+!      if (k==0) bspln = 0.
+!    endif
+!  endif
+!
+!end function bspln
 
 subroutine bmdiag(m,n,nsp,nt,spmat)
   implicit none
