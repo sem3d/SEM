@@ -149,6 +149,7 @@ subroutine init_mirror_fl(Tdomain, surf)
       Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
       Tdomain%fdom%mirror_fl%n_gll = n_gll
       Tdomain%fdom%mirror_fl%map = map2glltot_fl
+      Tdomain%fdom%mirror_fl%winfunc = winf_fl
       displ_fl = 0.
       force_fl = 0.
       deallocate(winf_fl)
@@ -242,6 +243,7 @@ subroutine map_mirror_sl(Tdomain, surf)
   if (n_glltot_sl>0) then
     call dump_coupling_nodes_sl(n_glltot_sl,nodesinfos)
     allocate(winf_sl(n_glltot_sl))
+    n_glltot_sl = 0
     do k = 0,n_gll-1
       do j = 0,n_gll-1
         do i = 0,n_gll-1
@@ -342,6 +344,7 @@ subroutine map_mirror_fl(Tdomain, surf)
   if (n_glltot_fl>0) then
     call dump_coupling_nodes_fl(n_glltot_fl,nodesinfos)
     allocate(winf_fl(n_glltot_fl))
+    n_glltot_fl = 0
     do k = 0,n_gll-1
       do j = 0,n_gll-1
         do i = 0,n_gll-1
