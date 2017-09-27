@@ -377,10 +377,6 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
 
     if(info_capteur /= 0) Tdomain%logicD%save_trace = .false.
 
-!- Mirror
-    if (Tdomain%use_mirror) then
-        call create_mirror_files(Tdomain)
-    endif
     call MPI_Barrier(Tdomain%communicateur,code)
 
 end subroutine RUN_INIT_INTERACT
