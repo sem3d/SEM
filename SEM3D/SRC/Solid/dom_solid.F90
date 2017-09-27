@@ -681,7 +681,8 @@ contains
                                         dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
                                     elseif (idx_m>=0.and.dom%mirror_type>0) then
                                         Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir)+ &
-                                            dom%mirror_sl%fields(i_dir+1,idx_m)
+                                            dom%mirror_sl%fields(i_dir+1,idx_m)* &
+                                            dom%mirror_sl%winfunc(idx_m)
                                     endif
                                 endif
                                 !
@@ -731,9 +732,12 @@ contains
                                 dom%mirror_sl%fields(5,idx_m) = Foy(ee,i,j,k)
                                 dom%mirror_sl%fields(6,idx_m) = Foz(ee,i,j,k)
                             elseif (idx_m>=0.and.dom%mirror_type>0) then
-                                Fox(ee,i,j,k) = Fox(ee,i,j,k)-dom%mirror_sl%fields(4,idx_m)
-                                Foy(ee,i,j,k) = Foy(ee,i,j,k)-dom%mirror_sl%fields(5,idx_m)
-                                Foz(ee,i,j,k) = Foz(ee,i,j,k)-dom%mirror_sl%fields(6,idx_m)
+                                Fox(ee,i,j,k) = Fox(ee,i,j,k)- &
+                                    dom%mirror_sl%fields(4,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                                Foy(ee,i,j,k) = Foy(ee,i,j,k)- &
+                                    dom%mirror_sl%fields(5,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                                Foz(ee,i,j,k) = Foz(ee,i,j,k)- &
+                                    dom%mirror_sl%fields(6,idx_m)*dom%mirror_sl%winfunc(idx_m)
                             endif
                         endif
                         !
