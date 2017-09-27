@@ -43,7 +43,8 @@ module champs_solid
         integer :: n_glltot, n_gll, n_t
         real(fpp) :: d_t
         integer, dimension(:,:,:,:), allocatable :: map
-        real(fpp), dimension(:, :), allocatable :: fields
+        real(fpp), dimension(:,:), allocatable :: fields
+        real(fpp), dimension(:), allocatable :: winfunc
     end type time_mirror_sl
     
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_

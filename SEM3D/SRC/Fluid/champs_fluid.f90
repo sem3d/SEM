@@ -24,6 +24,7 @@ module champs_fluid
         integer :: n_glltot, n_gll
         integer, dimension(:,:,:,:), allocatable :: map
         real(fpp), dimension(:,:), allocatable :: fields
+        real(fpp), dimension(:), allocatable :: winfunc
     end type time_mirror_fl
 
     type, extends(dombase) :: domain_fluid
