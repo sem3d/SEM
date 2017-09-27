@@ -5,6 +5,7 @@
 module smirror
   use constants, only : fpp
   implicit none
+#include "index.h"
   public :: init_mirror, create_mirror_files, dump_mirror_sl, load_mirror_sl, dump_mirror_fl, &
     load_mirror_fl
   private
@@ -13,7 +14,8 @@ module smirror
   real(fpp), dimension(:), allocatable :: bspl_tmp
   real(fpp), dimension(:,:,:), allocatable :: displ_sl, force_sl
   real(fpp), dimension(:,:), allocatable :: displ_fl, force_fl
-  integer :: rnk, n_spl, n_dcm, n_t, n_tdwn, n_gll, n_glltot_sl, n_glltot_fl
+  real(fpp) :: d_t,d_tm
+  integer :: rnk, recp, n_spl, n_dcm, n_t, n_tm, n_gll, n_glltot_sl, n_glltot_fl
 
 contains
 
@@ -25,9 +27,18 @@ subroutine init_mirror(Tdomain, surf)
   type(SurfaceT), intent(inout) :: surf
 
   rnk = Tdomain%rank
-  call decim_factor(Tdomain)
-  allocate(bspl_tmp((n_spl+1)*n_dcm+1))
-  call bmn(bspl_tmp, n_dcm, n_spl)
+
+  if (Tdomain%mirror_type==0) then
+    call create_mirror_h5()
+    call dump_param_mirror(Tdomain)
+  else
+    call load_param_mirror(Tdomain)
+  endif
+
+  if (n_dcm>1) then
+    allocate(bspl_tmp((n_spl+1)*n_dcm+1))
+    call bmn(bspl_tmp, n_dcm, n_spl)
+  endif
 
   if (surf%surf_sl%nbtot/=0) then
     call init_mirror_sl(Tdomain, surf%surf_sl)
@@ -38,27 +49,49 @@ subroutine init_mirror(Tdomain, surf)
 
 end subroutine init_mirror
 
-subroutine decim_factor(Tdomain)
+subroutine dump_param_mirror(Tdomain)
   use sdomain
   implicit none
   type(domain), intent(inout) :: Tdomain
-  integer :: i
-  real(fpp) :: fmax,d_t
+  real(fpp) :: fmax
 
   n_spl = Tdomain%config%mirror_nspl
-  fmax = Tdomain%config%mirror_fmax
   d_t = Tdomain%TimeD%dtmin
   n_t = Tdomain%TimeD%ntimeMax
 
+  fmax = Tdomain%config%mirror_fmax
   if (fmax>0.) then
     n_dcm = int(0.25/(fmax*d_t))
-    n_tdwn = int(n_t/n_dcm)+(n_spl+1)
-    if (Tdomain%rank==25) write(*,'("--> SEM : mirror decimation : ",2i6)') n_dcm,n_tdwn
+    n_tm = int(n_t/n_dcm)+(n_spl+1)
+    if (Tdomain%rank==0) write(*,'("--> SEM : mirror decimation : ",2i6)') n_dcm,n_tm
   else
     n_dcm = 1
+    n_tm = n_t
   endif
 
-end subroutine decim_factor
+  d_tm = d_t*n_dcm
+
+  call write_mirror_h5_attr()
+
+end subroutine dump_param_mirror
+
+subroutine load_param_mirror(Tdomain)
+  use sdomain
+  implicit none
+  type(domain), intent(inout) :: Tdomain
+
+  n_spl = Tdomain%config%mirror_nspl
+  d_t = Tdomain%TimeD%dtmin
+  n_t = Tdomain%TimeD%ntimeMax
+
+  call read_mirror_h5_attr()
+
+  n_dcm = -1
+  if (modulo(d_tm,d_t)==0.d0) n_dcm = int(d_tm/d_t)
+
+  if (Tdomain%rank==0) write(*,'("--> SEM : mirror decimation : ",2i6)') n_dcm,n_tm
+
+end subroutine load_param_mirror
 
 subroutine init_mirror_sl(Tdomain, surf)
   use sdomain
@@ -127,12 +160,20 @@ subroutine map_mirror_sl(Tdomain, surf)
   implicit none
   type(domain), intent(in) :: Tdomain
   type(surf_num), intent(in) :: surf
+  character(len=80) :: fname
   integer :: i_surf,i_node,i_dir,f,n,m,e,i,j,k
+  real(fpp) :: weight
+  integer, dimension(:), allocatable :: ind
   logical, dimension(:,:,:,:), allocatable :: tmp
-  real(fpp), dimension(0:2,0:4) :: cnodes
+  real(fpp), dimension(:,:,:,:,:), allocatable :: tmp_n
+  real(fpp), dimension(:,:), allocatable :: nodesinfos
+  real(fpp), dimension(0:2,0:3) :: cnodes
 
   allocate(tmp(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+  allocate(tmp_n(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1,0:2))
+  allocate(ind(0:Tdomain%sdom%nblocks-1))
   tmp = .false.
+  tmp_n = 0.d0
   do i_surf = 0,surf%n_faces-1
     f = surf%if_faces(i_surf)
     n = surf%if_norm(i_surf)
@@ -144,21 +185,26 @@ subroutine map_mirror_sl(Tdomain, surf)
       e = Tdomain%sFace(f)%elem_1
     endif
     if (e==-1) cycle
+    ind(Tdomain%specel(e)%lnum) = e
     do i_node = 0,3
       cnodes(0:2,i_node) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(i_node))
     enddo
-    call mirror_face_normal(cnodes, i_dir)
+    call mirror_face_normal(cnodes,i_dir)
     select case (i_dir)
       case(0)
         tmp(Tdomain%specel(e)%lnum,m,:,:) = .true.
+        tmp_n(Tdomain%specel(e)%lnum,m,:,:,0) = m*2.d0/(n_gll-1)-1.d0
       case(1)
         tmp(Tdomain%specel(e)%lnum,:,m,:) = .true.
+        tmp_n(Tdomain%specel(e)%lnum,:,m,:,1) = m*2.d0/(n_gll-1)-1.d0
       case(2)
         tmp(Tdomain%specel(e)%lnum,:,:,m) = .true.
+        tmp_n(Tdomain%specel(e)%lnum,:,:,m,2) = m*2.d0/(n_gll-1)-1.d0
     end select
   enddo
   map2glltot_sl = -1
   n_glltot_sl = 0
+  allocate(nodesinfos(0:(Tdomain%sdom%nblocks*n_gll*n_gll*n_gll-1),0:6))
   do k = 0,n_gll-1
     do j = 0,n_gll-1
       do i = 0,n_gll-1
@@ -166,14 +212,40 @@ subroutine map_mirror_sl(Tdomain, surf)
           if (tmp(e,i,j,k)) then
             n_glltot_sl = n_glltot_sl+1
             map2glltot_sl(e,i,j,k) = n_glltot_sl
+            i_node = Tdomain%specel(ind(e))%Iglobnum(i,j,k)
+            nodesinfos(n_glltot_sl-1,0:2) = Tdomain%GlobCoord(0:2,i_node)
+            nodesinfos(n_glltot_sl-1,3:5) = tmp_n(e,i,j,k,1:3)
+            nodesinfos(n_glltot_sl-1,6) = Tdomain%sdom%GLLw(i)*Tdomain%sdom%GLLw(j)*Tdomain%sdom%GLLw(k)
           endif
         enddo
       enddo
     enddo
   enddo
+  if (n_glltot_sl>0) call dump_coupling_nodes_sl(n_glltot_sl,nodesinfos)
+  deallocate(nodesinfos)
+  deallocate(ind)
   deallocate(tmp)
+  deallocate(tmp_n)
 
 end subroutine map_mirror_sl
+
+subroutine dump_coupling_nodes_sl(n,nodesinfos)
+  use semdatafiles
+  implicit none
+  integer, intent(in) :: n
+  real(fpp), dimension(0:n-1,0:6), intent(in) :: nodesinfos
+  character(len=MAX_FILE_SIZE) :: fnamef
+  integer :: fu,i
+
+  call semname_mirrorfile_nodes(rnk,fnamef)
+  fu = 1111+rnk
+  open(fu,file=fnamef)
+  do i = 0,n-1
+    write(fu,'(3e16.8,f16.8,3f5.1)') nodesinfos(i,0:6)
+  enddo
+  close(fu)
+
+end subroutine dump_coupling_nodes_sl
 
 subroutine map_mirror_fl(Tdomain, surf)
   use sdomain
@@ -182,7 +254,7 @@ subroutine map_mirror_fl(Tdomain, surf)
   type(surf_num), intent(in) :: surf
   integer :: i_surf,i_node,i_dir,f,n,m,e,i,j,k
   logical, dimension(:,:,:,:), allocatable :: tmp
-  real(fpp), dimension(0:2,0:4) :: cnodes
+  real(fpp), dimension(0:2,0:3) :: cnodes
 
   allocate(tmp(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
   tmp = .false.
@@ -232,7 +304,7 @@ subroutine mirror_face_normal(cnodes, fdir)
   use shape_geom_3d
   implicit none
   real(fpp), dimension(0:2, 0:3), intent(in) :: cnodes
-  real(fpp), dimension(0:2) :: dfx, dfy, fnorm
+  real(fpp), dimension(0:2) :: dfx, dfy,fnorm
   integer, intent(out) :: fdir
   integer :: i
 
@@ -322,10 +394,10 @@ subroutine dump_mirror_sl(dom, ntime)
         dom%mirror_sl%fields(4:6,:) = force_sl(:,:,i)
         call append_mirror_h5_sl(dom)
       enddo
-      allocate(diag(n_spl+1,n_tdwn),ddiag(n_tdwn))
-      call bmdiag(n_dcm,n_spl,n_tdwn,n_t,diag)
-      call bchfac(diag,n_spl+1,n_tdwn,ddiag)
-      call bchslv_sl(dom,diag,n_spl+1,n_tdwn)
+      allocate(diag(n_spl+1,n_tm),ddiag(n_tm))
+      call bmdiag(n_dcm,n_spl,n_tm,n_t,diag)
+      call bchfac(diag,n_spl+1,n_tm,ddiag)
+      call bchslv_sl(dom,diag,n_spl+1,n_tm)
       deallocate(diag,ddiag)
     endif
   endif
@@ -369,10 +441,10 @@ subroutine dump_mirror_fl(dom, ntime)
         dom%mirror_fl%fields(2,:) = force_fl(:,i)
         call append_mirror_h5_fl(dom)
       enddo
-      allocate(diag(n_spl+1,n_tdwn),ddiag(n_tdwn))
-      call bmdiag(n_dcm,n_spl,n_tdwn,n_t,diag)
-      call bchfac(diag,n_spl+1,n_tdwn,ddiag)
-      call bchslv_fl(dom,diag,n_spl+1,n_tdwn)
+      allocate(diag(n_spl+1,n_tm),ddiag(n_tm))
+      call bmdiag(n_dcm,n_spl,n_tm,n_t,diag)
+      call bchfac(diag,n_spl+1,n_tm,ddiag)
+      call bchslv_fl(dom,diag,n_spl+1,n_tm)
       deallocate(diag,ddiag)
     endif
   endif
@@ -380,11 +452,13 @@ subroutine dump_mirror_fl(dom, ntime)
 end subroutine dump_mirror_fl
 
 subroutine load_mirror_sl(dom, ntime)
+  use sspline
   use champs_solid
   implicit none
   type(domain_solid), intent(inout) :: dom
   integer, intent(in) :: ntime
-  integer :: i,j,ntime_tmp
+  integer :: i,j,j1,j2,ntime_tmp,recn
+  real(fpp) :: t,tnt,tmp
 
   if (dom%mirror_type==1) then
     ntime_tmp = ntime
@@ -396,7 +470,7 @@ subroutine load_mirror_sl(dom, ntime)
 
   if (n_dcm==1) then
     call read_mirror_h5_sl(dom, ntime_tmp)
-  else
+  elseif (n_dcm>1) then
     if (mod(ntime_tmp,n_dcm)==0) then
       if (rnk==0) write(*,'("--> SEM : read mirror_sl, iteration : ",i6.6)') ntime_tmp
       do i = 1,n_spl+1
@@ -413,16 +487,56 @@ subroutine load_mirror_sl(dom, ntime)
       dom%mirror_sl%fields(1:3,:) = dom%mirror_sl%fields(1:3,:)+bspl_tmp(j)*displ_sl(:,:,i)
       dom%mirror_sl%fields(4:6,:) = dom%mirror_sl%fields(4:6,:)+bspl_tmp(j)*force_sl(:,:,i)
     enddo
+  else
+    t = (ntime_tmp-1)*d_t
+    tnt = t/d_tm
+    recn = int(tnt)
+    tnt = tnt-dble(recn)
+    if (ntime_tmp==0.or.recn/=recp) then
+      j1 = 1
+      j2 = n_spl+1
+      if (ntime_tmp>0) then
+        if (recn==recp+1) then
+          displ_sl(:,:,1:n_spl) = displ_sl(:,:,2:n_spl+1)
+          force_sl(:,:,1:n_spl) = force_sl(:,:,2:n_spl+1)
+          j1 = n_spl+1
+        elseif (recn==recp-1) then
+          displ_sl(:,:,2:n_spl+1) = displ_sl(:,:,1:n_spl)
+          force_sl(:,:,2:n_spl+1) = force_sl(:,:,1:n_spl)
+          j2 = 1
+        endif
+      endif
+      do j = j1,j2
+        if (recn+j<1.or.recn+j>n_tm) then
+          displ_sl(:,:,j) = 0.d0
+          force_sl(:,:,j) = 0.d0
+        else
+          call read_mirror_h5_sl(dom, recn+j-1)
+          displ_sl(:,:,j) = dom%mirror_sl%fields(1:3,:)
+          force_sl(:,:,j) = dom%mirror_sl%fields(4:6,:)
+        endif
+      enddo
+      recp = recn
+    endif
+    dom%mirror_sl%fields(1:3,:) = 0.d0
+    dom%mirror_sl%fields(4:6,:) = 0.d0
+    do i = 1,n_spl+1
+      tmp = bspln(0,n_spl,dble(tnt+i-1))
+      dom%mirror_sl%fields(1:3,:) = dom%mirror_sl%fields(1:3,:)+tmp*displ_sl(:,:,n_spl+2-i)
+      dom%mirror_sl%fields(4:6,:) = dom%mirror_sl%fields(4:6,:)+tmp*force_sl(:,:,n_spl+2-i)
+    enddo
   endif
 
 end subroutine load_mirror_sl
 
 subroutine load_mirror_fl(dom, ntime)
+  use sspline
   use champs_fluid
   implicit none
   type(domain_fluid), intent(inout) :: dom
   integer, intent(in) :: ntime
-  integer :: i,j,ntime_tmp
+  integer :: i,j,j1,j2,ntime_tmp,recn
+  real(fpp) :: t,tnt,tmp
 
   if (dom%mirror_type==1) then
     ntime_tmp = ntime
@@ -434,7 +548,7 @@ subroutine load_mirror_fl(dom, ntime)
 
   if (n_dcm==1) then
     call read_mirror_h5_fl(dom, ntime_tmp)
-  else
+  elseif (n_dcm>1) then
     if (mod(ntime_tmp,n_dcm)==0) then
       if (rnk==0) write(*,'("--> SEM : read mirror_fl, iteration : ",i6.6)') ntime_tmp
       do i = 1,n_spl+1
@@ -450,6 +564,44 @@ subroutine load_mirror_fl(dom, ntime)
       j = mod(ntime_tmp,n_dcm)+(n_spl+1-i)*n_dcm+1
       dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+bspl_tmp(j)*displ_fl(:,i)
       dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+bspl_tmp(j)*force_fl(:,i)
+    enddo
+  else
+    t = (ntime_tmp-1)*d_t
+    tnt = t/d_tm
+    recn = int(tnt)
+    tnt = tnt-dble(recn)
+    if (ntime_tmp==0.or.recn/=recp) then
+      j1 = 1
+      j2 = n_spl+1
+      if (ntime_tmp>0) then
+        if (recn==recp+1) then
+          displ_fl(:,1:n_spl) = displ_fl(:,2:n_spl+1)
+          force_fl(:,1:n_spl) = force_fl(:,2:n_spl+1)
+          j1 = n_spl+1
+        elseif (recn==recp-1) then
+          displ_fl(:,2:n_spl+1) = displ_fl(:,1:n_spl)
+          force_fl(:,2:n_spl+1) = force_fl(:,1:n_spl)
+          j2 = 1
+        endif
+      endif
+      do j = j1,j2
+        if (recn+j<1.or.recn+j>n_tm) then
+          displ_fl(:,j) = 0.d0
+          force_fl(:,j) = 0.d0
+        else
+          call read_mirror_h5_fl(dom, recn+j-1)
+          displ_fl(:,j) = dom%mirror_fl%fields(1,:)
+          force_fl(:,j) = dom%mirror_fl%fields(2,:)
+        endif
+      enddo
+      recp = recn
+    endif
+    dom%mirror_fl%fields(1,:) = 0.d0
+    dom%mirror_fl%fields(2,:) = 0.d0
+    do i = 1,n_spl+1
+      tmp = bspln(0,n_spl,dble(tnt+i-1))
+      dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+tmp*displ_fl(:,n_spl+2-i)
+      dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+tmp*force_fl(:,n_spl+2-i)
     enddo
   endif
 
@@ -762,6 +914,75 @@ subroutine write_mirror_h5_fl(dom, n)
   call h5fclose_f(fid, hdferr)
 
 end subroutine write_mirror_h5_fl
+
+subroutine write_mirror_h5_attr()
+  use semdatafiles
+  use sem_hdf5
+  implicit none
+  character(len=40) :: aname
+  character(len=MAX_FILE_SIZE) :: fnamef
+  integer(HID_T) :: fid,attr_id,memspace,space_id
+  integer :: hdferr
+  integer(HSIZE_T), dimension(1) :: dims
+
+  dims(1) = 1
+  call semname_mirrorfile_h5(rnk,fnamef)
+  call h5fopen_f(fnamef,H5F_ACC_RDWR_F,fid,hdferr)
+  aname = "Delta_t"
+  call h5screate_f(H5S_SCALAR_F,memspace,hdferr)
+  call h5acreate_f(fid,aname,H5T_NATIVE_DOUBLE,memspace,attr_id,hdferr)
+  call h5awrite_f(attr_id,H5T_NATIVE_DOUBLE,d_tm,dims,hdferr)
+  call h5aclose_f(attr_id,hdferr)
+  call h5sclose_f(memspace,hdferr)
+
+  aname = "Num_t"
+  call h5screate_f(H5S_SCALAR_F,memspace,hdferr)
+  call h5acreate_f(fid,aname,H5T_NATIVE_INTEGER,memspace,attr_id,hdferr)
+  call h5awrite_f(attr_id,H5T_NATIVE_INTEGER,n_tm,dims,hdferr)
+  call h5aclose_f(attr_id,hdferr)
+  call h5sclose_f(memspace,hdferr)
+
+  call h5fclose_f(fid,hdferr)
+
+end subroutine write_mirror_h5_attr
+
+subroutine read_mirror_h5_attr()
+  use semdatafiles
+  use sem_hdf5
+  implicit none
+  character(len=40) :: aname
+  character(len=MAX_FILE_SIZE) :: fnamef
+  integer(HID_T) :: fid,attr_id,memspace,space_id
+  integer :: hdferr
+  integer(HSIZE_T), dimension(1) :: dims,max_dims
+  real(fpp), dimension(1) :: val_r
+  integer, dimension(1) :: val_i
+
+  dims(1) = 1
+  call semname_mirrorfile_h5(rnk,fnamef)
+  call h5fopen_f(fnamef,H5F_ACC_RDONLY_F,fid,hdferr)
+
+  aname = "Delta_t"
+  call h5aopen_f(fid,aname,attr_id,hdferr)
+  call h5aget_space_f(attr_id,space_id,hdferr)
+  call h5sget_simple_extent_dims_f(space_id,dims,max_dims,hdferr)
+  call h5aread_f(attr_id,H5T_NATIVE_DOUBLE,val_r,dims,hdferr)
+  d_tm = val_r(1)
+  call h5aclose_f(attr_id,hdferr)
+  call h5sclose_f(space_id,hdferr)
+
+  aname = "Num_t"
+  call h5aopen_f(fid,aname,attr_id,hdferr)
+  call h5aget_space_f(attr_id,space_id,hdferr)
+  call h5sget_simple_extent_dims_f(space_id,dims,max_dims,hdferr)
+  call h5aread_f(attr_id,H5T_NATIVE_INTEGER,val_i,dims,hdferr)
+  n_tm = val_i(1)
+  call h5aclose_f(attr_id,hdferr)
+  call h5sclose_f(space_id,hdferr)
+
+  call h5fclose_f(fid,hdferr)
+
+end subroutine read_mirror_h5_attr
 
 end module smirror
 
