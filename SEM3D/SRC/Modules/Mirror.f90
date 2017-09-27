@@ -11,7 +11,7 @@ module smirror
   private
 
   integer, dimension(:,:,:,:), allocatable :: map2glltot_sl, map2glltot_fl
-  real(fpp), dimension(:), allocatable :: bspl_tmp
+  real(fpp), dimension(:), allocatable :: bspl_tmp, winf_sl, winf_fl
   real(fpp), dimension(:,:,:), allocatable :: displ_sl, force_sl
   real(fpp), dimension(:,:), allocatable :: displ_fl, force_fl
   real(fpp) :: d_t,d_tm
@@ -115,9 +115,10 @@ subroutine init_mirror_sl(Tdomain, surf)
       Tdomain%sdom%mirror_sl%n_glltot = n_glltot_sl
       Tdomain%sdom%mirror_sl%n_gll = n_gll
       Tdomain%sdom%mirror_sl%map = map2glltot_sl
-      Tdomain%sdom%mirror_sl%winfunc = wfunc
+      Tdomain%sdom%mirror_sl%winfunc = winf_sl
       displ_sl = 0.
       force_sl = 0.
+      deallocate(winf_sl)
     else
       Tdomain%sdom%mirror_sl%n_glltot = n_glltot_sl
     endif
@@ -142,6 +143,7 @@ subroutine init_mirror_fl(Tdomain, surf)
       write(*,'("--> SEM : mirror nodes_fl : ",i3,i6)') rnk,n_glltot_fl
       allocate(Tdomain%fdom%mirror_fl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
       allocate(Tdomain%fdom%mirror_fl%fields(2,n_glltot_fl))
+      allocate(Tdomain%sdom%mirror_fl%winfunc(n_glltot_fl))
       allocate(displ_fl(n_glltot_fl,n_spl+1))
       allocate(force_fl(n_glltot_fl,n_spl+1))
       Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
@@ -149,6 +151,7 @@ subroutine init_mirror_fl(Tdomain, surf)
       Tdomain%fdom%mirror_fl%map = map2glltot_fl
       displ_fl = 0.
       force_fl = 0.
+      deallocate(winf_fl)
     else
       Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
     endif
@@ -163,17 +166,21 @@ subroutine map_mirror_sl(Tdomain, surf)
   type(domain), intent(in) :: Tdomain
   type(surf_num), intent(in) :: surf
   integer :: ii,jj,dir,f,n,m,e,i,j,k
+  real(fpp) :: winx,winy,winz
   integer, dimension(:), allocatable :: idx
   logical, dimension(:,:,:,:), allocatable :: nodes_tag
+  real(fpp), dimension(:,:,:,:), allocatable :: nodes_winf
   real(fpp), dimension(:,:,:,:,:), allocatable :: nodes_norm
   real(fpp), dimension(:,:), allocatable :: nodesinfos
   real(fpp), dimension(0:2,0:3) :: cnodes
 
   allocate(nodes_tag(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
   allocate(nodes_norm(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1,0:2))
+  allocate(nodes_winf(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
   allocate(idx(0:Tdomain%sdom%nblocks-1))
   nodes_tag = .false.
   nodes_norm = 0.d0
+  nodes_winf = 1.d0
   do ii = 0,surf%n_faces-1
     f = surf%if_faces(ii)
     n = surf%if_norm(ii)
@@ -190,17 +197,27 @@ subroutine map_mirror_sl(Tdomain, surf)
       cnodes(0:2,jj) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(jj))
     enddo
     call mirror_face_normal(cnodes,dir)
-    select case (dir)
-      case(0)
-        nodes_tag(Tdomain%specel(e)%lnum,m,:,:) = .true.
-        nodes_norm(Tdomain%specel(e)%lnum,m,:,:,0) = m*2.d0/(n_gll-1)-1.d0
-      case(1)
-        nodes_tag(Tdomain%specel(e)%lnum,:,m,:) = .true.
-        nodes_norm(Tdomain%specel(e)%lnum,:,m,:,1) = m*2.d0/(n_gll-1)-1.d0
-      case(2)
-        nodes_tag(Tdomain%specel(e)%lnum,:,:,m) = .true.
-        nodes_norm(Tdomain%specel(e)%lnum,:,:,m,2) = m*2.d0/(n_gll-1)-1.d0
-    end select
+    nodes_tag(Tdomain%specel(e)%lnum,:,:,:) = .true.
+    nodes_norm(Tdomain%specel(e)%lnum,:,:,:,dir) = m*2.d0/(n_gll-1)-1.d0
+    winx = 1.d0
+    winy = 1.d0
+    winz = 1.d0
+    do k = 0,ngll-1
+      if (dir==2) winz = (0.5d0*cos(4.d0*atan(1.d0)*k*1.d0/(ngll-1))+0.5d0)
+      do j = 0,ngll-1
+        if (dir==1) winy = (0.5d0*cos(4.d0*atan(1.d0)*j*1.d0/(ngll-1))+0.5d0)
+        do i = 0,ngll-1
+          if (dir==0) winx = (0.5d0*cos(4.d0*atan(1.d0)*i*1.d0/(ngll-1))+0.5d0)
+          if (n>0) then
+            nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
+              nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*(1.-winx*winy*winz)
+          else
+            nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
+              nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*winx*winy*winz
+          endif
+        enddo
+      enddo
+    enddo
   enddo
   map2glltot_sl = -1
   n_glltot_sl = 0
@@ -221,9 +238,24 @@ subroutine map_mirror_sl(Tdomain, surf)
       enddo
     enddo
   enddo
-  deallocate(idx,nodes_tag,nodes_norm)
-  if (n_glltot_sl>0) call dump_coupling_nodes_sl(n_glltot_sl,nodesinfos)
-  deallocate(nodesinfos)
+  deallocate(idx,nodes_norm)
+  if (n_glltot_sl>0) then
+    call dump_coupling_nodes_sl(n_glltot_sl,nodesinfos)
+    allocate(winf_sl(n_glltot_sl))
+    do k = 0,n_gll-1
+      do j = 0,n_gll-1
+        do i = 0,n_gll-1
+          do e = 0,Tdomain%sdom%nblocks-1
+            if (nodes_tag(e,i,j,k)) then
+              n_glltot_sl = n_glltot_sl+1
+              winf_sl(n_glltot_sl) = nodes_winf(e,i,j,k)
+            endif
+          enddo
+        enddo
+      enddo
+    enddo
+  endif
+  deallocate(nodesinfos,nodes_tag,nodes_winf)
 
 end subroutine map_mirror_sl
 
@@ -235,15 +267,18 @@ subroutine map_mirror_fl(Tdomain, surf)
   integer :: ii,jj,dir,f,n,m,e,i,j,k
   integer, dimension(:), allocatable :: idx
   logical, dimension(:,:,:,:), allocatable :: nodes_tag
+  real(fpp), dimension(:,:,:,:), allocatable :: nodes_winf
   real(fpp), dimension(:,:,:,:,:), allocatable :: nodes_norm
   real(fpp), dimension(:,:), allocatable :: nodesinfos
   real(fpp), dimension(0:2,0:3) :: cnodes
 
   allocate(nodes_tag(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
   allocate(nodes_norm(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1,0:2))
+  allocate(nodes_winf(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
   allocate(idx(0:Tdomain%fdom%nblocks-1))
   nodes_tag = .false.
   nodes_norm = 0.d0
+  nodes_winf = 1.d0
   do ii = 0,surf%n_faces-1
     f = surf%if_faces(ii)
     n = surf%if_norm(ii)
@@ -260,20 +295,31 @@ subroutine map_mirror_fl(Tdomain, surf)
       cnodes(0:2,jj) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(jj))
     enddo
     call mirror_face_normal(cnodes,dir)
-    select case (dir)
-      case(0)
-        nodes_tag(Tdomain%specel(e)%lnum,m,:,:) = .true.
-        nodes_norm(Tdomain%specel(e)%lnum,m,:,:,0) = m*2.d0/(n_gll-1)-1.d0
-      case(1)
-        nodes_tag(Tdomain%specel(e)%lnum,:,m,:) = .true.
-        nodes_norm(Tdomain%specel(e)%lnum,:,m,:,1) = m*2.d0/(n_gll-1)-1.d0
-      case(2)
-        nodes_tag(Tdomain%specel(e)%lnum,:,:,m) = .true.
-        nodes_norm(Tdomain%specel(e)%lnum,:,:,m,2) = m*2.d0/(n_gll-1)-1.d0
-    end select
+    nodes_tag(Tdomain%specel(e)%lnum,:,:,:) = .true.
+    nodes_norm(Tdomain%specel(e)%lnum,:,:,:,dir) = m*2.d0/(n_gll-1)-1.d0
+    winx = 1.d0
+    winy = 1.d0
+    winz = 1.d0
+    do k = 0,ngll-1
+      if (dir==2) winz = (0.5d0*cos(4.d0*atan(1.d0)*k*1.d0/(ngll-1))+0.5d0)
+      do j = 0,ngll-1
+        if (dir==1) winy = (0.5d0*cos(4.d0*atan(1.d0)*j*1.d0/(ngll-1))+0.5d0)
+        do i = 0,ngll-1
+          if (dir==0) winx = (0.5d0*cos(4.d0*atan(1.d0)*i*1.d0/(ngll-1))+0.5d0)
+          if (n>0) then
+            nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
+              nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*(1.-winx*winy*winz)
+          else
+            nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
+              nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*winx*winy*winz
+          endif
+        enddo
+      enddo
+    enddo
   enddo
   map2glltot_fl = -1
   n_glltot_fl = 0
+  allocate(nodesinfos(0:(Tdomain%fdom%nblocks*n_gll*n_gll*n_gll-1),0:6))
   do k = 0,n_gll-1
     do j = 0,n_gll-1
       do i = 0,n_gll-1
@@ -282,17 +328,33 @@ subroutine map_mirror_fl(Tdomain, surf)
             n_glltot_fl = n_glltot_fl+1
             map2glltot_fl(e,i,j,k) = n_glltot_fl
             ii = Tdomain%specel(idx(e))%Iglobnum(i,j,k)
-            nodesinfos(n_glltot_sl-1,0:2) = Tdomain%GlobCoord(0:2,ii)
-            nodesinfos(n_glltot_sl-1,3:5) = nodes_norm(e,i,j,k,1:3)
-            nodesinfos(n_glltot_sl-1,6) = Tdomain%sdom%GLLw(i)*Tdomain%sdom%GLLw(j)*Tdomain%sdom%GLLw(k)
+            nodesinfos(n_glltot_fl-1,0:2) = Tdomain%GlobCoord(0:2,ii)
+            nodesinfos(n_glltot_fl-1,3:5) = nodes_norm(e,i,j,k,1:3)
+            nodesinfos(n_glltot_fl-1,6) = Tdomain%fdom%GLLw(i)*Tdomain%fdom%GLLw(j)*Tdomain%fdom%GLLw(k)
           endif
         enddo
       enddo
     enddo
   enddo
-  deallocate(idx,nodes_tag,nodes_norm)
-  if (n_glltot_fl>0) call dump_coupling_nodes_fl(n_glltot_fl,nodesinfos)
-  deallocate(nodesinfos)
+
+  deallocate(idx,nodes_norm)
+  if (n_glltot_fl>0) then
+    call dump_coupling_nodes_fl(n_glltot_fl,nodesinfos)
+    allocate(winf_fl(n_glltot_fl))
+    do k = 0,n_gll-1
+      do j = 0,n_gll-1
+        do i = 0,n_gll-1
+          do e = 0,Tdomain%fdom%nblocks-1
+            if (nodes_tag(e,i,j,k)) then
+              n_glltot_fl = n_glltot_fl+1
+              winf_fl(n_glltot_fl) = nodes_winf(e,i,j,k)
+            endif
+          enddo
+        enddo
+      enddo
+    enddo
+  endif
+  deallocate(nodesinfos,nodes_tag,nodes_winf)
 
 end subroutine map_mirror_fl
 
