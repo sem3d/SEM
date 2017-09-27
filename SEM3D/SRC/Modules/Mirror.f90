@@ -143,7 +143,7 @@ subroutine init_mirror_fl(Tdomain, surf)
       write(*,'("--> SEM : mirror nodes_fl : ",i3,i6)') rnk,n_glltot_fl
       allocate(Tdomain%fdom%mirror_fl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
       allocate(Tdomain%fdom%mirror_fl%fields(2,n_glltot_fl))
-      allocate(Tdomain%sdom%mirror_fl%winfunc(n_glltot_fl))
+      allocate(Tdomain%fdom%mirror_fl%winfunc(n_glltot_fl))
       allocate(displ_fl(n_glltot_fl,n_spl+1))
       allocate(force_fl(n_glltot_fl,n_spl+1))
       Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
@@ -202,12 +202,12 @@ subroutine map_mirror_sl(Tdomain, surf)
     winx = 1.d0
     winy = 1.d0
     winz = 1.d0
-    do k = 0,ngll-1
-      if (dir==2) winz = (0.5d0*cos(4.d0*atan(1.d0)*k*1.d0/(ngll-1))+0.5d0)
-      do j = 0,ngll-1
-        if (dir==1) winy = (0.5d0*cos(4.d0*atan(1.d0)*j*1.d0/(ngll-1))+0.5d0)
-        do i = 0,ngll-1
-          if (dir==0) winx = (0.5d0*cos(4.d0*atan(1.d0)*i*1.d0/(ngll-1))+0.5d0)
+    do k = 0,n_gll-1
+      if (dir==2) winz = (0.5d0*cos(4.d0*atan(1.d0)*k*1.d0/(n_gll-1))+0.5d0)
+      do j = 0,n_gll-1
+        if (dir==1) winy = (0.5d0*cos(4.d0*atan(1.d0)*j*1.d0/(n_gll-1))+0.5d0)
+        do i = 0,n_gll-1
+          if (dir==0) winx = (0.5d0*cos(4.d0*atan(1.d0)*i*1.d0/(n_gll-1))+0.5d0)
           if (n>0) then
             nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
               nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*(1.-winx*winy*winz)
@@ -265,6 +265,7 @@ subroutine map_mirror_fl(Tdomain, surf)
   type(domain), intent(in) :: Tdomain
   type(surf_num), intent(in) :: surf
   integer :: ii,jj,dir,f,n,m,e,i,j,k
+  real(fpp) :: winx,winy,winz
   integer, dimension(:), allocatable :: idx
   logical, dimension(:,:,:,:), allocatable :: nodes_tag
   real(fpp), dimension(:,:,:,:), allocatable :: nodes_winf
@@ -300,12 +301,12 @@ subroutine map_mirror_fl(Tdomain, surf)
     winx = 1.d0
     winy = 1.d0
     winz = 1.d0
-    do k = 0,ngll-1
-      if (dir==2) winz = (0.5d0*cos(4.d0*atan(1.d0)*k*1.d0/(ngll-1))+0.5d0)
-      do j = 0,ngll-1
-        if (dir==1) winy = (0.5d0*cos(4.d0*atan(1.d0)*j*1.d0/(ngll-1))+0.5d0)
-        do i = 0,ngll-1
-          if (dir==0) winx = (0.5d0*cos(4.d0*atan(1.d0)*i*1.d0/(ngll-1))+0.5d0)
+    do k = 0,n_gll-1
+      if (dir==2) winz = (0.5d0*cos(4.d0*atan(1.d0)*k*1.d0/(n_gll-1))+0.5d0)
+      do j = 0,n_gll-1
+        if (dir==1) winy = (0.5d0*cos(4.d0*atan(1.d0)*j*1.d0/(n_gll-1))+0.5d0)
+        do i = 0,n_gll-1
+          if (dir==0) winx = (0.5d0*cos(4.d0*atan(1.d0)*i*1.d0/(n_gll-1))+0.5d0)
           if (n>0) then
             nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
               nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*(1.-winx*winy*winz)
