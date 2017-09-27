@@ -160,23 +160,21 @@ subroutine map_mirror_sl(Tdomain, surf)
   implicit none
   type(domain), intent(in) :: Tdomain
   type(surf_num), intent(in) :: surf
-  character(len=80) :: fname
-  integer :: i_surf,i_node,i_dir,f,n,m,e,i,j,k
-  real(fpp) :: weight
-  integer, dimension(:), allocatable :: ind
-  logical, dimension(:,:,:,:), allocatable :: tmp
-  real(fpp), dimension(:,:,:,:,:), allocatable :: tmp_n
+  integer :: ii,jj,dir,f,n,m,e,i,j,k
+  integer, dimension(:), allocatable :: idx
+  logical, dimension(:,:,:,:), allocatable :: nodes_tag
+  real(fpp), dimension(:,:,:,:,:), allocatable :: nodes_norm
   real(fpp), dimension(:,:), allocatable :: nodesinfos
   real(fpp), dimension(0:2,0:3) :: cnodes
 
-  allocate(tmp(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
-  allocate(tmp_n(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1,0:2))
-  allocate(ind(0:Tdomain%sdom%nblocks-1))
-  tmp = .false.
-  tmp_n = 0.d0
-  do i_surf = 0,surf%n_faces-1
-    f = surf%if_faces(i_surf)
-    n = surf%if_norm(i_surf)
+  allocate(nodes_tag(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+  allocate(nodes_norm(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1,0:2))
+  allocate(idx(0:Tdomain%sdom%nblocks-1))
+  nodes_tag = .false.
+  nodes_norm = 0.d0
+  do ii = 0,surf%n_faces-1
+    f = surf%if_faces(ii)
+    n = surf%if_norm(ii)
     if (n>0) then
       m = 0
       e = Tdomain%sFace(f)%elem_0
@@ -185,21 +183,21 @@ subroutine map_mirror_sl(Tdomain, surf)
       e = Tdomain%sFace(f)%elem_1
     endif
     if (e==-1) cycle
-    ind(Tdomain%specel(e)%lnum) = e
-    do i_node = 0,3
-      cnodes(0:2,i_node) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(i_node))
+    idx(Tdomain%specel(e)%lnum) = e
+    do jj = 0,3
+      cnodes(0:2,jj) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(jj))
     enddo
-    call mirror_face_normal(cnodes,i_dir)
-    select case (i_dir)
+    call mirror_face_normal(cnodes,dir)
+    select case (dir)
       case(0)
-        tmp(Tdomain%specel(e)%lnum,m,:,:) = .true.
-        tmp_n(Tdomain%specel(e)%lnum,m,:,:,0) = m*2.d0/(n_gll-1)-1.d0
+        nodes_tag(Tdomain%specel(e)%lnum,m,:,:) = .true.
+        nodes_norm(Tdomain%specel(e)%lnum,m,:,:,0) = m*2.d0/(n_gll-1)-1.d0
       case(1)
-        tmp(Tdomain%specel(e)%lnum,:,m,:) = .true.
-        tmp_n(Tdomain%specel(e)%lnum,:,m,:,1) = m*2.d0/(n_gll-1)-1.d0
+        nodes_tag(Tdomain%specel(e)%lnum,:,m,:) = .true.
+        nodes_norm(Tdomain%specel(e)%lnum,:,m,:,1) = m*2.d0/(n_gll-1)-1.d0
       case(2)
-        tmp(Tdomain%specel(e)%lnum,:,:,m) = .true.
-        tmp_n(Tdomain%specel(e)%lnum,:,:,m,2) = m*2.d0/(n_gll-1)-1.d0
+        nodes_tag(Tdomain%specel(e)%lnum,:,:,m) = .true.
+        nodes_norm(Tdomain%specel(e)%lnum,:,:,m,2) = m*2.d0/(n_gll-1)-1.d0
     end select
   enddo
   map2glltot_sl = -1
@@ -209,58 +207,44 @@ subroutine map_mirror_sl(Tdomain, surf)
     do j = 0,n_gll-1
       do i = 0,n_gll-1
         do e = 0,Tdomain%sdom%nblocks-1
-          if (tmp(e,i,j,k)) then
+          if (nodes_tag(e,i,j,k)) then
             n_glltot_sl = n_glltot_sl+1
             map2glltot_sl(e,i,j,k) = n_glltot_sl
-            i_node = Tdomain%specel(ind(e))%Iglobnum(i,j,k)
-            nodesinfos(n_glltot_sl-1,0:2) = Tdomain%GlobCoord(0:2,i_node)
-            nodesinfos(n_glltot_sl-1,3:5) = tmp_n(e,i,j,k,1:3)
+            ii = Tdomain%specel(idx(e))%Iglobnum(i,j,k)
+            nodesinfos(n_glltot_sl-1,0:2) = Tdomain%GlobCoord(0:2,ii)
+            nodesinfos(n_glltot_sl-1,3:5) = nodes_norm(e,i,j,k,1:3)
             nodesinfos(n_glltot_sl-1,6) = Tdomain%sdom%GLLw(i)*Tdomain%sdom%GLLw(j)*Tdomain%sdom%GLLw(k)
           endif
         enddo
       enddo
     enddo
   enddo
+  deallocate(idx,nodes_tag,nodes_norm)
   if (n_glltot_sl>0) call dump_coupling_nodes_sl(n_glltot_sl,nodesinfos)
   deallocate(nodesinfos)
-  deallocate(ind)
-  deallocate(tmp)
-  deallocate(tmp_n)
 
 end subroutine map_mirror_sl
-
-subroutine dump_coupling_nodes_sl(n,nodesinfos)
-  use semdatafiles
-  implicit none
-  integer, intent(in) :: n
-  real(fpp), dimension(0:n-1,0:6), intent(in) :: nodesinfos
-  character(len=MAX_FILE_SIZE) :: fnamef
-  integer :: fu,i
-
-  call semname_mirrorfile_nodes(rnk,fnamef)
-  fu = 1111+rnk
-  open(fu,file=fnamef)
-  do i = 0,n-1
-    write(fu,'(3e16.8,f16.8,3f5.1)') nodesinfos(i,0:6)
-  enddo
-  close(fu)
-
-end subroutine dump_coupling_nodes_sl
 
 subroutine map_mirror_fl(Tdomain, surf)
   use sdomain
   implicit none
   type(domain), intent(in) :: Tdomain
   type(surf_num), intent(in) :: surf
-  integer :: i_surf,i_node,i_dir,f,n,m,e,i,j,k
-  logical, dimension(:,:,:,:), allocatable :: tmp
+  integer :: ii,jj,dir,f,n,m,e,i,j,k
+  integer, dimension(:), allocatable :: idx
+  logical, dimension(:,:,:,:), allocatable :: nodes_tag
+  real(fpp), dimension(:,:,:,:,:), allocatable :: nodes_norm
+  real(fpp), dimension(:,:), allocatable :: nodesinfos
   real(fpp), dimension(0:2,0:3) :: cnodes
 
-  allocate(tmp(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
-  tmp = .false.
-  do i_surf = 0,surf%n_faces-1
-    f = surf%if_faces(i_surf)
-    n = surf%if_norm(i_surf)
+  allocate(nodes_tag(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+  allocate(nodes_norm(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1,0:2))
+  allocate(idx(0:Tdomain%fdom%nblocks-1))
+  nodes_tag = .false.
+  nodes_norm = 0.d0
+  do ii = 0,surf%n_faces-1
+    f = surf%if_faces(ii)
+    n = surf%if_norm(ii)
     if (n>0) then
       m = 0
       e = Tdomain%sFace(f)%elem_0
@@ -269,17 +253,21 @@ subroutine map_mirror_fl(Tdomain, surf)
       e = Tdomain%sFace(f)%elem_1
     endif
     if (e==-1) cycle
-    do i_node = 0,3
-      cnodes(0:2,i_node) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(i_node))
+    idx(Tdomain%specel(e)%lnum) = e
+    do jj = 0,3
+      cnodes(0:2,jj) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(jj))
     enddo
-    call mirror_face_normal(cnodes, i_dir)
-    select case (i_dir)
+    call mirror_face_normal(cnodes,dir)
+    select case (dir)
       case(0)
-        tmp(Tdomain%specel(e)%lnum,m,:,:) = .true.
+        nodes_tag(Tdomain%specel(e)%lnum,m,:,:) = .true.
+        nodes_norm(Tdomain%specel(e)%lnum,m,:,:,0) = m*2.d0/(n_gll-1)-1.d0
       case(1)
-        tmp(Tdomain%specel(e)%lnum,:,m,:) = .true.
+        nodes_tag(Tdomain%specel(e)%lnum,:,m,:) = .true.
+        nodes_norm(Tdomain%specel(e)%lnum,:,m,:,1) = m*2.d0/(n_gll-1)-1.d0
       case(2)
-        tmp(Tdomain%specel(e)%lnum,:,:,m) = .true.
+        nodes_tag(Tdomain%specel(e)%lnum,:,:,m) = .true.
+        nodes_norm(Tdomain%specel(e)%lnum,:,:,m,2) = m*2.d0/(n_gll-1)-1.d0
     end select
   enddo
   map2glltot_fl = -1
@@ -288,15 +276,21 @@ subroutine map_mirror_fl(Tdomain, surf)
     do j = 0,n_gll-1
       do i = 0,n_gll-1
         do e = 0,Tdomain%fdom%nblocks-1
-          if (tmp(e,i,j,k)) then
+          if (nodes_tag(e,i,j,k)) then
             n_glltot_fl = n_glltot_fl+1
             map2glltot_fl(e,i,j,k) = n_glltot_fl
+            ii = Tdomain%specel(idx(e))%Iglobnum(i,j,k)
+            nodesinfos(n_glltot_sl-1,0:2) = Tdomain%GlobCoord(0:2,ii)
+            nodesinfos(n_glltot_sl-1,3:5) = nodes_norm(e,i,j,k,1:3)
+            nodesinfos(n_glltot_sl-1,6) = Tdomain%sdom%GLLw(i)*Tdomain%sdom%GLLw(j)*Tdomain%sdom%GLLw(k)
           endif
         enddo
       enddo
     enddo
   enddo
-  deallocate(tmp)
+  deallocate(idx,nodes_tag,nodes_norm)
+  if (n_glltot_fl>0) call dump_coupling_nodes_fl(n_glltot_fl,nodesinfos)
+  deallocate(nodesinfos)
 
 end subroutine map_mirror_fl
 
@@ -318,6 +312,42 @@ subroutine mirror_face_normal(cnodes, fdir)
   if (abs(fnorm(2))>abs(fnorm(fdir))) fdir = 2
 
 end subroutine mirror_face_normal
+
+subroutine dump_coupling_nodes_sl(n,nodesinfos)
+  use semdatafiles
+  implicit none
+  integer, intent(in) :: n
+  real(fpp), dimension(0:n-1,0:6), intent(in) :: nodesinfos
+  character(len=MAX_FILE_SIZE) :: fnamef
+  integer :: fu,i
+
+  call semname_mirrorfile_nodes_sl(rnk,fnamef)
+  fu = 1111+rnk
+  open(fu,file=fnamef)
+  do i = 0,n-1
+    write(fu,'(3e16.8,f16.8,3f5.1)') nodesinfos(i,0:6)
+  enddo
+  close(fu)
+
+end subroutine dump_coupling_nodes_sl
+
+subroutine dump_coupling_nodes_fl(n,nodesinfos)
+  use semdatafiles
+  implicit none
+  integer, intent(in) :: n
+  real(fpp), dimension(0:n-1,0:6), intent(in) :: nodesinfos
+  character(len=MAX_FILE_SIZE) :: fnamef
+  integer :: fu,i
+
+  call semname_mirrorfile_nodes_fl(rnk,fnamef)
+  fu = 1111+rnk
+  open(fu,file=fnamef)
+  do i = 0,n-1
+    write(fu,'(3e16.8,f16.8,3f5.1)') nodesinfos(i,0:6)
+  enddo
+  close(fu)
+
+end subroutine dump_coupling_nodes_fl
 
 subroutine create_mirror_files(Tdomain)
   use sdomain
