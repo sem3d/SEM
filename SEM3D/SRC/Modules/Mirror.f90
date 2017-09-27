@@ -109,11 +109,13 @@ subroutine init_mirror_sl(Tdomain, surf)
       write(*,'("--> SEM : mirror nodes_sl : ",i3,i6)') rnk,n_glltot_sl
       allocate(Tdomain%sdom%mirror_sl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
       allocate(Tdomain%sdom%mirror_sl%fields(6,n_glltot_sl))
+      allocate(Tdomain%sdom%mirror_sl%winfunc(n_glltot_sl))
       allocate(displ_sl(3,n_glltot_sl,n_spl+1))
       allocate(force_sl(3,n_glltot_sl,n_spl+1))
       Tdomain%sdom%mirror_sl%n_glltot = n_glltot_sl
       Tdomain%sdom%mirror_sl%n_gll = n_gll
       Tdomain%sdom%mirror_sl%map = map2glltot_sl
+      Tdomain%sdom%mirror_sl%winfunc = wfunc
       displ_sl = 0.
       force_sl = 0.
     else
