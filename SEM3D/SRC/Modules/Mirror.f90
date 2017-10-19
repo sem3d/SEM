@@ -222,7 +222,7 @@ subroutine map_mirror_sl(Tdomain, surf)
   enddo
   map2glltot_sl = -1
   n_glltot_sl = 0
-  allocate(nodesinfos(0:(Tdomain%sdom%nblocks*n_gll*n_gll*n_gll-1),0:6))
+  allocate(nodesinfos((Tdomain%sdom%nblocks*n_gll*n_gll*n_gll),7))
   do k = 0,n_gll-1
     do j = 0,n_gll-1
       do i = 0,n_gll-1
@@ -231,9 +231,9 @@ subroutine map_mirror_sl(Tdomain, surf)
             n_glltot_sl = n_glltot_sl+1
             map2glltot_sl(e,i,j,k) = n_glltot_sl
             ii = Tdomain%specel(idx(e))%Iglobnum(i,j,k)
-            nodesinfos(n_glltot_sl-1,0:2) = Tdomain%GlobCoord(0:2,ii)
-            nodesinfos(n_glltot_sl-1,3:5) = nodes_norm(e,i,j,k,1:3)
-            nodesinfos(n_glltot_sl-1,6) = Tdomain%sdom%GLLw(i)*Tdomain%sdom%GLLw(j)*Tdomain%sdom%GLLw(k)
+            nodesinfos(n_glltot_sl,1:3) = Tdomain%GlobCoord(0:2,ii)
+            nodesinfos(n_glltot_sl,4:6) = nodes_norm(e,i,j,k,0:2)
+            nodesinfos(n_glltot_sl,7) = Tdomain%sdom%GLLw(i)*Tdomain%sdom%GLLw(j)*Tdomain%sdom%GLLw(k)
           endif
         enddo
       enddo
@@ -322,7 +322,7 @@ subroutine map_mirror_fl(Tdomain, surf)
   enddo
   map2glltot_fl = -1
   n_glltot_fl = 0
-  allocate(nodesinfos(0:(Tdomain%fdom%nblocks*n_gll*n_gll*n_gll-1),0:6))
+  allocate(nodesinfos((Tdomain%fdom%nblocks*n_gll*n_gll*n_gll),7))
   do k = 0,n_gll-1
     do j = 0,n_gll-1
       do i = 0,n_gll-1
@@ -331,9 +331,9 @@ subroutine map_mirror_fl(Tdomain, surf)
             n_glltot_fl = n_glltot_fl+1
             map2glltot_fl(e,i,j,k) = n_glltot_fl
             ii = Tdomain%specel(idx(e))%Iglobnum(i,j,k)
-            nodesinfos(n_glltot_fl-1,0:2) = Tdomain%GlobCoord(0:2,ii)
-            nodesinfos(n_glltot_fl-1,3:5) = nodes_norm(e,i,j,k,1:3)
-            nodesinfos(n_glltot_fl-1,6) = Tdomain%fdom%GLLw(i)*Tdomain%fdom%GLLw(j)*Tdomain%fdom%GLLw(k)
+            nodesinfos(n_glltot_fl,1:3) = Tdomain%GlobCoord(0:2,ii)
+            nodesinfos(n_glltot_fl,4:6) = nodes_norm(e,i,j,k,0:2)
+            nodesinfos(n_glltot_fl,7) = Tdomain%fdom%GLLw(i)*Tdomain%fdom%GLLw(j)*Tdomain%fdom%GLLw(k)
           endif
         enddo
       enddo
@@ -385,15 +385,15 @@ subroutine dump_coupling_nodes_sl(n,nodesinfos)
   use semdatafiles
   implicit none
   integer, intent(in) :: n
-  real(fpp), dimension(0:n-1,0:6), intent(in) :: nodesinfos
+  real(fpp), dimension(:,:), intent(in) :: nodesinfos
   character(len=MAX_FILE_SIZE) :: fnamef
   integer :: fu,i
 
   call semname_mirrorfile_nodes_sl(rnk,fnamef)
   fu = 1111+rnk
   open(fu,file=fnamef)
-  do i = 0,n-1
-    write(fu,'(3e16.8,f16.8,3f5.1)') nodesinfos(i,0:6)
+  do i = 1,n
+    write(fu,'(7e16.8)') nodesinfos(i,1:7)
   enddo
   close(fu)
 
@@ -403,15 +403,15 @@ subroutine dump_coupling_nodes_fl(n,nodesinfos)
   use semdatafiles
   implicit none
   integer, intent(in) :: n
-  real(fpp), dimension(0:n-1,0:6), intent(in) :: nodesinfos
+  real(fpp), dimension(:,:), intent(in) :: nodesinfos
   character(len=MAX_FILE_SIZE) :: fnamef
   integer :: fu,i
 
   call semname_mirrorfile_nodes_fl(rnk,fnamef)
   fu = 1111+rnk
   open(fu,file=fnamef)
-  do i = 0,n-1
-    write(fu,'(3e16.8,f16.8,3f5.1)') nodesinfos(i,0:6)
+  do i = 1,n
+    write(fu,'(7e16.8)') nodesinfos(i,1:7)
   enddo
   close(fu)
 
