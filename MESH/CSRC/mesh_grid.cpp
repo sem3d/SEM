@@ -138,6 +138,7 @@ void RectMesh::read_params_old(FILE* fparam)
         mrrs.nU = m_U;
         if (pml_top<1) {
             mrrs.U = false;
+            mrrs.nU = -1;
         }
     }
 
