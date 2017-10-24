@@ -542,6 +542,7 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         !
         if (Tdomain%fpmldom%nbelem>0) call finalize_fluidpml_properties(Tdomain, Tdomain%fpmldom)
+        if (Tdomain%spmldom%nbelem>0) call finalize_solidpml_properties(Tdomain, Tdomain%spmldom)
     end subroutine finalize_pml_properties
 
     subroutine init_local_mass(Tdomain, specel)
