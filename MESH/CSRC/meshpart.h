@@ -112,6 +112,7 @@ public:
     void get_local_nodes(std::vector<double>& nodes) const;
     void get_local_elements(std::vector<int>& elems) const;
     void get_local_materials(std::vector<int>& mats, std::vector<int>& doms) const;
+    void get_local_mirrors(std::vector<int>& pmrrs) const;
     void get_local_faces(std::vector<int>& faces, std::vector<int>& doms) const;
     void get_local_edges(std::vector<int>& edges, std::vector<int>& doms) const;
     void get_local_vertices_dom(std::vector<int>& doms) const;

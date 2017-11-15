@@ -44,9 +44,22 @@ int Mesh3D::add_elem(int mat_idx, const Elem& el)
     }
     m_elems_offs.push_back(m_elems.size());
     m_mat.push_back( mat_idx );
+    has_mrrs = false;
     return m_elems_offs.size()-1;
 }
 
+int Mesh3D::add_elem_mrrs(int mat_idx, int pos_mrrs, const Elem& el)
+{
+    // Builds elem<->vertex graph
+    for(int i=0;i<el.N;++i) {
+        m_elems.push_back(el.v[i]);
+    }
+    m_elems_offs.push_back(m_elems.size());
+    m_mat.push_back( mat_idx );
+    has_mrrs = true;
+    m_mrrs.push_back(pos_mrrs);
+    return m_elems_offs.size()-1;
+}
 
 void Mesh3D::partition_mesh(int n_parts)
 {

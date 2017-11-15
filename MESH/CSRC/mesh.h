@@ -44,6 +44,7 @@ public:
 
     int add_node(double x, double y, double z);
     int add_elem(int mat_idx, const Elem& el);
+    int add_elem_mrrs(int mat_idx, int pos_mrrs, const Elem& el);
 
     int read_materials(const std::string& fname);
     int read_materials_v2(const std::string& fname);
@@ -100,6 +101,7 @@ public:
 
     int *m_xadj, *m_adjncy;
     bool debug;
+    bool has_mrrs;
 
     std::map<int,AABB> m_bbox;
     std::vector<double> m_xco,m_yco,m_zco;  ///< Coordinates of the nodes
@@ -107,6 +109,7 @@ public:
     //std::vector<int> m_Quad;
     std::vector<int> m_elems_offs; ///< size=n_elems+1; offset of node idx into elems
     std::vector<int> m_mat;  ///< size=n_elems; material index for element
+    std::vector<int> m_mrrs;  ///< size=n_elems; mirror position for element
     std::vector<int> m_nelems_per_proc; // ?? number of elements for each procs
     std::vector<Material> m_materials;
     std::vector<unsigned int> m_vertex_domains;
