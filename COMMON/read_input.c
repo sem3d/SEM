@@ -115,6 +115,7 @@ const keyword_t kw_mirror_type[] = {
     { 0, "record" },
     { 1, "forward" },
     { 2, "backward" },
+    { 3, NULL },
 };
 
 void init_source(source_t* source)
