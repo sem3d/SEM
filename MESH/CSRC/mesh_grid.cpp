@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 #include "mesh_grid.h"
 #include "mesh.h"
 #include "mesh_common.h"
@@ -142,6 +143,11 @@ void RectMesh::read_params_old(FILE* fparam)
         }
     }
 
+    has_sph=0;
+
+    getData_line(&buffer, &n, fparam);
+    sscanf(buffer, "%d", &has_sph);
+
 }
 
 int RectMesh::pointidx(int i, int j, int k)
@@ -259,6 +265,7 @@ int RectMesh::create_linear_grid_nodes(Mesh3D& mesh)
     }
     return nnodes;
 }
+
 int RectMesh::create_quadratic_grid_nodes(Mesh3D& mesh)
 {
     // Coordinates
@@ -288,6 +295,38 @@ int RectMesh::create_quadratic_grid_nodes(Mesh3D& mesh)
     return nnodes;
 }
 
+int RectMesh::create_linear_grid_nodes_sph(Mesh3D& mesh)
+{
+    // Coordinates
+    double xloc,yloc,zloc,wloc;
+    double layerzmax = zmax;
+    double zmin = layerzmax;
+    int k0 = 0;
+    int nnodes = 0;
+    for(int nl=0;nl<nlayers;++nl) {
+        zmin -= thickness[nl];
+    }
+    for(int nl=0;nl<nlayers;++nl) {
+        double layerzmin = layerzmax - thickness[nl];
+        double zstep = (layerzmax-layerzmin)/nsteps[nl];
+        for(int k=k0;k<=nsteps[nl];++k) {
+            for(int j=0;j<=nelemy;++j) {
+                for(int i=0;i<=nelemx;++i) {
+                    xloc = xmin+i*xstep;
+                    yloc = ymin+j*ystep;
+                    zloc = sqrt(zmax*zmax-xloc*xloc-yloc*yloc);
+                    wloc = (layerzmax-k*zstep-zmin)/(zmax-zmin);
+                    zloc = wloc*zloc+(1.-wloc)*zmin;
+                    mesh.add_node(xloc,yloc,zloc);
+                    nnodes++;
+                }
+            }
+        }
+        k0 = 1;
+        layerzmax = layerzmin;
+    }
+    return nnodes;
+}
 
 void RectMesh::create_linear_element(Elem& elem, int i, int j, int k)
 {
@@ -363,7 +402,11 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
     int nnodes = 0;
     if (elem_shape==8) {
         printf(" with linear elements\n");
-        nnodes = create_linear_grid_nodes(mesh);
+        if (has_sph) {
+            nnodes = create_linear_grid_nodes_sph(mesh);
+        } else {
+            nnodes = create_linear_grid_nodes(mesh);
+        }
     } else if (elem_shape==27) {
         printf(" with quadratic elements\n");
         nnodes = create_quadratic_grid_nodes(mesh);
