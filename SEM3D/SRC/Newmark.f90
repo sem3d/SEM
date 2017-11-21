@@ -398,19 +398,30 @@ contains
         integer, intent(in) :: i0, i1, ntime
         integer  :: n, indsol, indflu, indpml
 
+        ! DOMAIN FLUID
         if (Tdomain%fdom%nbelem>0) then
             call stat_starttick()
-            if (Tdomain%fdom%use_mirror.and.Tdomain%fdom%mirror_fl%n_glltot>0.and.Tdomain%fdom%mirror_type>0) then
-                call load_mirror_fl(Tdomain%fdom, ntime)
-            endif
-            do n = 0,Tdomain%fdom%nblocks-1
-                call forces_int_fluid(Tdomain%fdom, Tdomain%fdom%champs(i1), n)
-            end do
-            if (Tdomain%fdom%use_mirror.and.Tdomain%fdom%mirror_fl%n_glltot>0.and.Tdomain%fdom%mirror_type==0) then
-                call dump_mirror_fl(Tdomain%fdom, ntime)
+            ! Mirror Record
+            if (Tdomain%mirror_type==0.and.Tdomain%fdom%mirror_fl%n_glltot>0) then
+                do n = 0,Tdomain%fdom%nblocks-1
+                    call forces_int_fluid_mirror_dump(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
+                enddo
+                call dump_mirror_fl(Tdomain%fdom,ntime)
+            ! Mirror Forward/Backward
+            elseif (Tdomain%mirror_type>0.and.Tdomain%fdom%mirror_fl%n_glltot>0) then
+                call load_mirror_fl(Tdomain%fdom,ntime)
+                do n = 0,Tdomain%fdom%nblocks-1
+                    call forces_int_fluid_mirror_load(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
+                enddo
+            ! Without Mirror
+            else
+                do n = 0,Tdomain%fdom%nblocks-1
+                    call forces_int_fluid(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
+                enddo
             endif
             call stat_stoptick(STAT_FFLU)
-        end if
+        endif
+        ! DOMAIN PML FLUID
         if (Tdomain%fpmldom%nbelem>0) then
             call stat_starttick()
             do n = 0,Tdomain%fpmldom%nblocks-1
@@ -419,19 +430,30 @@ contains
             end do
             call stat_stoptick(STAT_PFLU)
         end if
+        ! DOMAIN SOLID
         if (Tdomain%sdom%nbelem>0) then
             call stat_starttick()
-            if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror_sl%n_glltot>0.and.Tdomain%sdom%mirror_type>0) then
-                call load_mirror_sl(Tdomain%sdom, ntime)
-            endif
-            do n = 0,Tdomain%sdom%nblocks-1
-                call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs(i1), n, Tdomain%nl_flag)
-            end do
-            if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror_sl%n_glltot>0.and.Tdomain%sdom%mirror_type==0) then
-                call dump_mirror_sl(Tdomain%sdom, ntime)
+            ! Mirror Record
+            if (Tdomain%mirror_type==0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
+                do n = 0,Tdomain%sdom%nblocks-1
+                    call forces_int_solid_mirror_dump(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                enddo
+                call dump_mirror_sl(Tdomain%sdom,ntime)
+            ! Mirror Forward/Backward
+            elseif (Tdomain%mirror_type>0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
+                call load_mirror_sl(Tdomain%sdom,ntime)
+                do n = 0,Tdomain%sdom%nblocks-1
+                    call forces_int_solid_mirror_load(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                enddo
+            ! Without Mirror
+            else
+                do n = 0,Tdomain%sdom%nblocks-1
+                    call forces_int_solid(Tdomain%sdom,Tdomain%sdom%champs(i1),n,Tdomain%nl_flag)
+                enddo
             endif
             call stat_stoptick(STAT_FSOL)
-        end if
+        endif
+        ! DOMAIN PML SOLID
         if (Tdomain%spmldom%nbelem>0) then
             call stat_starttick()
             do n = 0,Tdomain%spmldom%nblocks-1
@@ -487,8 +509,18 @@ contains
         integer, intent(in)  :: ntime
         real(kind=fpp), intent(in)  :: timer
         integer, intent(in) :: i1
-        integer  :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee
-        real(kind=fpp) :: t, ft, val
+        integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntime_eqv
+        real(kind=fpp) :: t, ft, val, timer_eqv
+
+        !if (Tdomain%mirror_type==1) return
+        if (Tdomain%mirror_type>=1) return
+
+        timer_eqv = timer
+        ntime_eqv = ntime
+        if (Tdomain%mirror_type==2) then
+            timer_eqv = Tdomain%TimeD%Duration-Tdomain%TimeD%dtmin-timer
+            ntime_eqv = Tdomain%TimeD%ntimeMax-1-ntime
+        endif
 
         do ns = 0, Tdomain%n_source-1
             if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
@@ -505,9 +537,9 @@ contains
                 ! le temps n'est plus decale pour les sources, pour un saute-mouton
                 !   on rajoute le 1/2 pas de temps qui correspond au fait que la
                 !    exterieure doive etre prise a t_(n+1/2)
-                t = timer+Tdomain%TimeD%dtmin/2_fpp
+                t = timer_eqv+Tdomain%TimeD%dtmin/2_fpp
                 ! TAG_SOURCE
-                ft = CompSource(Tdomain%sSource(ns), t, ntime)
+                ft = CompSource(Tdomain%sSource(ns), t, ntime_eqv)
                 if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
                     ! collocated force in solid
                     !
@@ -529,7 +561,7 @@ contains
                                 idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
                                 val = Tdomain%fdom%champs(i1)%ForcesFl(idx)
                                 val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
-                                !write(*,*) ntime,nel,i,j,k,val
+                                !write(*,*) ntime_eqv,nel,i,j,k,val
                                 Tdomain%fdom%champs(i1)%ForcesFl(idx) = val
                             enddo
                         enddo

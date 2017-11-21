@@ -54,7 +54,7 @@ module champs_solid
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
         ! Mirror
-        logical :: use_mirror
+        !!! GB logical :: use_mirror
         integer :: mirror_type
         type(time_mirror_sl) :: mirror_sl
 

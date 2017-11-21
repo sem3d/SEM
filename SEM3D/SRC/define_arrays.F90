@@ -115,7 +115,8 @@ contains
         endif
 
         ! Mirror
-        if (Tdomain%use_mirror) then
+        if (Tdomain%mirror_type>=0) then
+        !!! GB if (Tdomain%use_mirror) then
             find = .false.
             do n = 0,size(Tdomain%sSurfaces)-1
                 if (trim(Tdomain%sSurfaces(n)%name)=="mirror") then
@@ -124,7 +125,7 @@ contains
                     exit
                 endif
             enddo
-            if (.not.find) stop "no mirror in mesh"
+            if (.not.find) stop "no mirror in mesh file"
         endif
 
         do n = 0,Tdomain%n_elem-1
