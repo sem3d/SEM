@@ -116,9 +116,14 @@ void RectMesh::read_params_old(FILE* fparam)
         exit(1);
     }
 
-    has_mirrors=0;
-
+    // spherical shell top transf
     getData_line(&buffer, &n, fparam);
+    has_sph=0;
+    sscanf(buffer, "%d", &has_sph);
+
+    // mirrors options
+    getData_line(&buffer, &n, fparam);
+    has_mirrors=0;
     sscanf(buffer, "%d", &has_mirrors);
 
     if (has_mirrors<0 || has_mirrors>1) {
@@ -142,11 +147,6 @@ void RectMesh::read_params_old(FILE* fparam)
             mrrs.nU = -1;
         }
     }
-
-    has_sph=0;
-
-    getData_line(&buffer, &n, fparam);
-    sscanf(buffer, "%d", &has_sph);
 
 }
 
