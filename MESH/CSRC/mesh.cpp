@@ -44,6 +44,29 @@ int Mesh3D::add_elem(int mat_idx, const Elem& el)
     }
     m_elems_offs.push_back(m_elems.size());
     m_mat.push_back( mat_idx );
+
+    // Orientation check
+    double v1x, v1y, v1z;
+    double v2x, v2y, v2z;
+    double v3x, v3y, v3z;
+    double nx, ny, nz, s;
+    v1x = m_xco[el.v[1]] - m_xco[el.v[0]];
+    v1y = m_yco[el.v[1]] - m_yco[el.v[0]];
+    v1z = m_zco[el.v[1]] - m_zco[el.v[0]];
+    v2x = m_xco[el.v[3]] - m_xco[el.v[0]];
+    v2y = m_yco[el.v[3]] - m_yco[el.v[0]];
+    v2z = m_zco[el.v[3]] - m_zco[el.v[0]];
+    v3x = m_xco[el.v[4]] - m_xco[el.v[0]];
+    v3y = m_yco[el.v[4]] - m_yco[el.v[0]];
+    v3z = m_zco[el.v[4]] - m_zco[el.v[0]];
+
+    nx = v1y*v2z - v1z*v2y;
+    ny = v1z*v2x - v1x*v2z;
+    nz = v1x*v2y - v1y*v2x;
+    s = nx*v3x+ny*v3y+nz*v3z;
+    if (s<0) {
+        printf("Wrong orientation: Elem %ld mat=%d\n", m_elems.size()-1, mat_idx);
+    }
     return m_elems_offs.size()-1;
 }
 
