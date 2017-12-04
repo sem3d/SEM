@@ -87,6 +87,7 @@ void MeshReaderAbaqus::read_elements(Mesh3D& mesh)
         } while(curline[0]!='*');
         return;
     }
+    mesh.set_control_nodes(8);
     int mat_id = m_elemsets.size();
     m_elemsets.push_back(elset);
     long nn=0;
