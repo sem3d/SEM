@@ -549,30 +549,36 @@ subroutine dump_mirror_fl(dom, ntime)
 
 end subroutine dump_mirror_fl
 
-subroutine load_mirror_sl(dom, ntime)
+subroutine load_mirror_sl(dom,ntime)
   use sspline
   use champs_solid
   implicit none
   type(domain_solid), intent(inout) :: dom
   integer, intent(in) :: ntime
-  integer :: i,j,j1,j2,ntime_tmp,recn
+  integer :: i,j,j1,j2,ntimecur,ntimeloc,first,firstloc,recn
   real(fpp) :: t,tnt,tmp
 
   if (dom%mirror_type==1) then
-    ntime_tmp = ntime
+    ntimecur = ntime
+    ntimeloc = mod(ntime,n_dcm)
+    first = 0
+    firstloc = 0
   elseif (dom%mirror_type==2) then
-    ntime_tmp = n_t-ntime-1
+    ntimecur = n_t-1-ntime
+    ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
+    first = n_t-1
+    firstloc = n_dcm-1
   else
     write(*,*) "STOP, unauthorized action",rnk
   endif
 
   if (n_dcm==1) then
-    call read_mirror_h5_sl(dom, ntime_tmp)
+    call read_mirror_h5_sl(dom,ntimecur)
   elseif (n_dcm>1) then
-    if (mod(ntime_tmp,n_dcm)==0) then
-      if (rnk==0) write(*,'("--> SEM : read mirror_sl, iteration : ",i6.6)') ntime_tmp
+    if (ntimecur==first.or.ntimeloc==firstloc) then
+      if (rnk==0) write(*,'("--> SEM : read mirror_sl, iteration : ",i6.6)') ntimecur
       do i = 1,n_spl+1
-        j = int(ntime_tmp/n_dcm)+1
+        j = int(ntimecur/n_dcm)+1
         call read_mirror_h5_sl(dom, j+i-1-1)
         displ_sl(:,:,i) = dom%mirror_sl%fields(1:3,:)
         force_sl(:,:,i) = dom%mirror_sl%fields(4:6,:)
@@ -581,19 +587,19 @@ subroutine load_mirror_sl(dom, ntime)
     dom%mirror_sl%fields(1:3,:) = 0.
     dom%mirror_sl%fields(4:6,:) = 0.
     do i = 1,n_spl+1
-      j = mod(ntime_tmp,n_dcm)+(n_spl+1-i)*n_dcm+1
+      j = ntimeloc+(n_spl+1-i)*n_dcm+1
       dom%mirror_sl%fields(1:3,:) = dom%mirror_sl%fields(1:3,:)+bspl_tmp(j)*displ_sl(:,:,i)
       dom%mirror_sl%fields(4:6,:) = dom%mirror_sl%fields(4:6,:)+bspl_tmp(j)*force_sl(:,:,i)
     enddo
   else
-    t = (ntime_tmp-1)*d_t
+    t = ntimecur*d_t
     tnt = t/d_tm
     recn = int(tnt)
     tnt = tnt-dble(recn)
-    if (ntime_tmp==0.or.recn/=recp) then
+    if (ntimecur==first.or.recn/=recp) then
       j1 = 1
       j2 = n_spl+1
-      if (ntime_tmp>0) then
+      if (ntimecur>0) then
         if (recn==recp+1) then
           displ_sl(:,:,1:n_spl) = displ_sl(:,:,2:n_spl+1)
           force_sl(:,:,1:n_spl) = force_sl(:,:,2:n_spl+1)
@@ -625,32 +631,40 @@ subroutine load_mirror_sl(dom, ntime)
     enddo
   endif
 
+  if (dom%mirror_type==2) dom%mirror_sl%fields(1:6,:) = -dom%mirror_sl%fields(1:6,:)
+
 end subroutine load_mirror_sl
 
-subroutine load_mirror_fl(dom, ntime)
+subroutine load_mirror_fl(dom,ntime)
   use sspline
   use champs_fluid
   implicit none
   type(domain_fluid), intent(inout) :: dom
   integer, intent(in) :: ntime
-  integer :: i,j,j1,j2,ntime_tmp,recn
+  integer :: i,j,j1,j2,ntimecur,ntimeloc,first,firstloc,recn
   real(fpp) :: t,tnt,tmp
 
   if (dom%mirror_type==1) then
-    ntime_tmp = ntime
+    ntimecur = ntime
+    ntimeloc = mod(ntime,n_dcm)
+    first = 0
+    firstloc = 0
   elseif (dom%mirror_type==2) then
-    ntime_tmp = n_t-ntime-1
+    ntimecur = n_t-1-ntime
+    ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
+    first = n_t-1
+    firstloc = n_dcm-1
   else
     write(*,*) "STOP, unauthorized action",rnk
   endif
 
   if (n_dcm==1) then
-    call read_mirror_h5_fl(dom, ntime_tmp)
+    call read_mirror_h5_fl(dom,ntimecur)
   elseif (n_dcm>1) then
-    if (mod(ntime_tmp,n_dcm)==0) then
-      if (rnk==0) write(*,'("--> SEM : read mirror_fl, iteration : ",i6.6)') ntime_tmp
+    if (ntimecur==first.or.ntimeloc==firstloc) then
+      if (rnk==0) write(*,'("--> SEM : read mirror_fl, iteration : ",i6.6)') ntimecur
       do i = 1,n_spl+1
-        j = int(ntime_tmp/n_dcm)+1
+        j = int(ntimecur/n_dcm)+1
         call read_mirror_h5_fl(dom, j+i-1-1)
         displ_fl(:,i) = dom%mirror_fl%fields(1,:)
         force_fl(:,i) = dom%mirror_fl%fields(2,:)
@@ -659,19 +673,19 @@ subroutine load_mirror_fl(dom, ntime)
     dom%mirror_fl%fields(1,:) = 0.
     dom%mirror_fl%fields(2,:) = 0.
     do i = 1,n_spl+1
-      j = mod(ntime_tmp,n_dcm)+(n_spl+1-i)*n_dcm+1
+      j = ntimeloc+(n_spl+1-i)*n_dcm+1
       dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+bspl_tmp(j)*displ_fl(:,i)
       dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+bspl_tmp(j)*force_fl(:,i)
     enddo
   else
-    t = (ntime_tmp-1)*d_t
+    t = ntimecur*d_t
     tnt = t/d_tm
     recn = int(tnt)
     tnt = tnt-dble(recn)
-    if (ntime_tmp==0.or.recn/=recp) then
+    if (ntimecur==first.or.recn/=recp) then
       j1 = 1
       j2 = n_spl+1
-      if (ntime_tmp>0) then
+      if (ntimecur>0) then
         if (recn==recp+1) then
           displ_fl(:,1:n_spl) = displ_fl(:,2:n_spl+1)
           force_fl(:,1:n_spl) = force_fl(:,2:n_spl+1)
@@ -702,6 +716,8 @@ subroutine load_mirror_fl(dom, ntime)
       dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+tmp*force_fl(:,n_spl+2-i)
     enddo
   endif
+
+  if (dom%mirror_type==2) dom%mirror_fl%fields(1:2,:) = -dom%mirror_fl%fields(1:2,:)
 
 end subroutine load_mirror_fl
 
