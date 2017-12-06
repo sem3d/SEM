@@ -62,8 +62,8 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
     !
     integer :: i,j,k,l,e,ee
-    real(fpp), dimension(0:8) :: DUDV ! derivatives dUx/dx, ... dUz/dz
-    real(fpp), dimension(0:20) :: LC
+    real(fpp), dimension(0:VCHUNK-1,0:8) :: DUDV ! derivatives dUx/dx, ... dUz/dz
+    real(fpp), dimension(0:VCHUNK-1,0:20) :: LC
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,syx,szx,szy
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp) :: t4
@@ -87,16 +87,8 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                dUx_dxi  (ee,i,j,k) = 0.0D+0;
-                dUx_deta (ee,i,j,k) = 0.0D+0;
-                dUx_dzeta(ee,i,j,k) = 0.0D+0;
-                DO L = 0, ngll-1;
-                    dUx_dxi   (ee,i,j,k)= dUx_dxi  (ee,i,j,k)+Depla(ee,L,J,K,0)*dom%hprime(L,I);
-                    dUx_deta  (ee,i,j,k)= dUx_deta (ee,i,j,k)+Depla(ee,I,L,K,0)*dom%hprime(L,J);
-                    dUx_dzeta (ee,i,j,k)= dUx_dzeta(ee,i,j,k)+Depla(ee,I,J,L,0)*dom%hprime(L,K);
-                END DO;
-!                local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
+                ! Calcul de dUx/dxi dUx/deta dUx/dzeta
+                local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
             end do
         end do
@@ -108,7 +100,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
+                ! Calcul de dUy/dxi dUy/deta dUy/dzeta
                 local_deriv_ijke(Depla,1,dUy_dxi(ee,i,j,k),dUy_deta(ee,i,j,k),dUy_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
             end do
@@ -121,7 +113,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
+                ! Calcul de dUz/dxi dUz/deta dUz/dzeta
                 local_deriv_ijke(Depla,2,dUz_dxi(ee,i,j,k),dUz_deta(ee,i,j,k),dUz_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
             end do
@@ -145,33 +137,37 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #define JZY dom%InvGrad_(2,1,i,j,k,bnum,ee)
 #define JZZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
 
-                DUDV(dxx)=dUx_dxi(ee,i,j,k)*JXX + dUx_deta(ee,i,j,k)*JXY + dUx_dzeta(ee,i,j,k)*JXZ
-                DUDV(dxy)=dUx_dxi(ee,i,j,k)*JYX + dUx_deta(ee,i,j,k)*JYY + dUx_dzeta(ee,i,j,k)*JYZ
-                DUDV(dxz)=dUx_dxi(ee,i,j,k)*JZX + dUx_deta(ee,i,j,k)*JZY + dUx_dzeta(ee,i,j,k)*JZZ
+                DUDV(ee,dxx)=dUx_dxi(ee,i,j,k)*JXX + dUx_deta(ee,i,j,k)*JXY + dUx_dzeta(ee,i,j,k)*JXZ
+                DUDV(ee,dxy)=dUx_dxi(ee,i,j,k)*JYX + dUx_deta(ee,i,j,k)*JYY + dUx_dzeta(ee,i,j,k)*JYZ
+                DUDV(ee,dxz)=dUx_dxi(ee,i,j,k)*JZX + dUx_deta(ee,i,j,k)*JZY + dUx_dzeta(ee,i,j,k)*JZZ
 
-                DUDV(dyx)=dUy_dxi(ee,i,j,k)*JXX + dUy_deta(ee,i,j,k)*JXY + dUy_dzeta(ee,i,j,k)*JXZ
-                DUDV(dyy)=dUy_dxi(ee,i,j,k)*JYX + dUy_deta(ee,i,j,k)*JYY + dUy_dzeta(ee,i,j,k)*JYZ
-                DUDV(dyz)=dUy_dxi(ee,i,j,k)*JZX + dUy_deta(ee,i,j,k)*JZY + dUy_dzeta(ee,i,j,k)*JZZ
+                DUDV(ee,dyx)=dUy_dxi(ee,i,j,k)*JXX + dUy_deta(ee,i,j,k)*JXY + dUy_dzeta(ee,i,j,k)*JXZ
+                DUDV(ee,dyy)=dUy_dxi(ee,i,j,k)*JYX + dUy_deta(ee,i,j,k)*JYY + dUy_dzeta(ee,i,j,k)*JYZ
+                DUDV(ee,dyz)=dUy_dxi(ee,i,j,k)*JZX + dUy_deta(ee,i,j,k)*JZY + dUy_dzeta(ee,i,j,k)*JZZ
 
-                DUDV(dzx)=dUz_dxi(ee,i,j,k)*JXX + dUz_deta(ee,i,j,k)*JXY + dUz_dzeta(ee,i,j,k)*JXZ
-                DUDV(dzy)=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
-                DUDV(dzz)=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
+                DUDV(ee,dzx)=dUz_dxi(ee,i,j,k)*JXX + dUz_deta(ee,i,j,k)*JXY + dUz_dzeta(ee,i,j,k)*JXZ
+                DUDV(ee,dzy)=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
+                DUDV(ee,dzz)=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
+                END_SUBELEM_LOOP()
 
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 call compute_convolution_terms(dom, i, j, k, bnum, ee, DUDV, LC)
+                END_SUBELEM_LOOP()
 
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 lbd = dom%Lambda_(i,j,k,bnum,ee)
                 mu = dom%Mu_(i,j,k,bnum,ee)
                 l2mu = lbd+2*mu
 
-                sxx = l2mu*LC(L120_DXX)+lbd*LC(L2_DYY)+lbd*LC(L1_DZZ)
-                sxy = mu*(LC(L021_DXY)+LC(L2_DYX))
-                sxz = mu*(LC(L012_DXZ)+LC(L1_DZX))
-                syx = mu*(LC(L120_DYX)+LC(L2_DXY))
-                syy = lbd*LC(L2_DXX) + l2mu*LC(L021_DYY) + lbd*LC(L0_DZZ)
-                syz = mu*(LC(L012_DYZ)+LC(L0_DZY))
-                szx = mu*(LC(L120_DZX)+LC(L1_DXZ))
-                szy = mu*(LC(L021_DZY)+LC(L0_DYZ))
-                szz = lbd*LC(L1_DXX) + lbd*LC(L0_DYY) + l2mu*LC(L012_DZZ)
+                sxx = l2mu* LC(ee,L120_DXX) + lbd*LC(ee,L2_DYY)+lbd*LC(ee,L1_DZZ)
+                sxy = mu  *(LC(ee,L021_DXY) + LC(ee,L2_DYX))
+                sxz = mu  *(LC(ee,L012_DXZ) + LC(ee,L1_DZX))
+                syx = mu  *(LC(ee,L120_DYX) + LC(ee,L2_DXY))
+                syy = lbd * LC(ee,L2_DXX)   + l2mu*LC(ee,L021_DYY) + lbd*LC(ee,L0_DZZ)
+                syz = mu  *(LC(ee,L012_DYZ) + LC(ee,L0_DZY))
+                szx = mu  *(LC(ee,L120_DZX) + LC(ee,L1_DXZ))
+                szy = mu  *(LC(ee,L021_DZY) + LC(ee,L0_DYZ))
+                szz = lbd * LC(ee,L1_DXX)   + lbd*LC(ee,L0_DYY) + l2mu*LC(ee,L012_DZZ)
 
                 !
                 !=====================

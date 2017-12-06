@@ -104,6 +104,18 @@ contains
         cf2 = 0d0
     end subroutine cpml_compute_coefs_midpoint
     !
+    subroutine cpml_coefs_midpoint2(a0, dt, cf0, cf1)
+        real(fpp), intent(in) :: a0, dt
+        real(fpp), intent(out) :: cf0, cf1
+        !
+        real(fpp) :: c
+        ! Update convolution term (implicit midpoint)
+        c = (1d0+0.5d0*a0*dt)
+        cf0 = -a0*dt/c
+        cf1 = dt/c
+    end subroutine cpml_coefs_midpoint2
+
+    !
     subroutine cpml_compute_coefs_midpoint_ctr(a0, dt, cf0, cf1, cf2)
         real(fpp), intent(in) :: a0, dt
         real(fpp), intent(out) :: cf0, cf1, cf2
