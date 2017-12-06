@@ -500,7 +500,7 @@ contains
     end subroutine internal_forces
     !-------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------
-    subroutine external_forces(Tdomain,timer,ntime, i1)
+    subroutine external_forces(Tdomain,timer,ntime,i1)
 
         implicit none
 #include "index.h"
@@ -509,17 +509,17 @@ contains
         integer, intent(in)  :: ntime
         real(kind=fpp), intent(in)  :: timer
         integer, intent(in) :: i1
-        integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntime_eqv
-        real(kind=fpp) :: t, ft, val, timer_eqv
+        integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntimecur
+        real(kind=fpp) :: t, ft, val, timercur
 
-        !if (Tdomain%mirror_type==1) return
-        if (Tdomain%mirror_type>=1) return
+        if (Tdomain%mirror_type==1) return
+        !!!if (Tdomain%mirror_type>=1) return
 
-        timer_eqv = timer
-        ntime_eqv = ntime
+        timercur = timer
+        ntimecur = ntime
         if (Tdomain%mirror_type==2) then
-            timer_eqv = Tdomain%TimeD%Duration-Tdomain%TimeD%dtmin-timer
-            ntime_eqv = Tdomain%TimeD%ntimeMax-1-ntime
+            timercur = Tdomain%TimeD%Duration-(Tdomain%TimeD%dtmin*3_fpp/2_fpp)-timer
+            ntimecur = Tdomain%TimeD%ntimeMax-1-ntime
         endif
 
         do ns = 0, Tdomain%n_source-1
@@ -537,9 +537,9 @@ contains
                 ! le temps n'est plus decale pour les sources, pour un saute-mouton
                 !   on rajoute le 1/2 pas de temps qui correspond au fait que la
                 !    exterieure doive etre prise a t_(n+1/2)
-                t = timer_eqv+Tdomain%TimeD%dtmin/2_fpp
+                t = timercur+Tdomain%TimeD%dtmin/2_fpp
                 ! TAG_SOURCE
-                ft = CompSource(Tdomain%sSource(ns), t, ntime_eqv)
+                ft = CompSource(Tdomain%sSource(ns), t, ntimecur)
                 if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
                     ! collocated force in solid
                     !
@@ -561,7 +561,7 @@ contains
                                 idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
                                 val = Tdomain%fdom%champs(i1)%ForcesFl(idx)
                                 val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
-                                !write(*,*) ntime_eqv,nel,i,j,k,val
+                                !write(*,*) ntimecur,nel,i,j,k,val
                                 Tdomain%fdom%champs(i1)%ForcesFl(idx) = val
                             enddo
                         enddo
