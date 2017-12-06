@@ -818,8 +818,8 @@ contains
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
                             Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
-                            if (idx_m>=0) Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir)+ &
-                                dom%mirror_sl%fields(i_dir+1,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                            if (idx_m>=0) Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir) &
+                               +dom%mirror_sl%fields(i_dir+1,idx_m)*dom%mirror_sl%winfunc(idx_m)
                         enddo
                     enddo
                 enddo
