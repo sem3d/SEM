@@ -386,8 +386,8 @@ contains
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
                         Phi(ee,i,j,k) = field%Phi(idx)
-                        if (idx_m>=0) Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m)* &
-                            dom%mirror_fl%winfunc(idx_m)
+                        if (idx_m>=0) Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m) &
+                            *dom%mirror_fl%winfunc(idx_m)
                     enddo
                 enddo
             enddo
@@ -403,8 +403,8 @@ contains
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                        if (idx_m>=0) Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m)* &
-                            dom%mirror_fl%winfunc(idx_m)
+                        if (idx_m>=0) Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m) &
+                            *dom%mirror_fl%winfunc(idx_m)
                         field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
                     enddo
                 enddo
