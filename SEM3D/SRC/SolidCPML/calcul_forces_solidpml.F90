@@ -86,7 +86,7 @@ contains
         real(fpp) :: k0, d0, a0
         real(fpp) :: k1, d1, a1
         real(fpp) :: k2, d2, a2
-        real(fpp) :: dt, cf0,cf1,cf2
+        real(fpp) :: dt, cf0,cf1
         integer :: i1, i2, sel
 
         i1 = dom%I1(ee,bnum)

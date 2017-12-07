@@ -48,50 +48,52 @@ contains
         end select
     end subroutine calcul_forces_fluidpml
 
-    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, PhiNew, R)
+    subroutine compute_L_convolution_terms(dom, i, j, k, bnum, ee, Phi, R)
         use champs_fluidpml
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
-        real(fpp), intent(in) :: PhiNew
+        real(fpp), intent(in) :: Phi
         integer, intent(in) :: i, j, k, bnum, ee
         real(fpp), intent(out) :: R
         !
         real(fpp) :: a3b, a4b, a5b
-        real(fpp) :: PhiOld, R0, R1
+        real(fpp) :: R0n, R1n, R2n, dR0, dR1, dR2
         real(fpp) :: k0, d0, a0
         real(fpp) :: k1, d1, a1
         real(fpp) :: k2, d2, a2
-        real(fpp) :: dt, cf0,cf1, cf2
+        real(fpp) :: dt, cf0,cf1
 
         integer :: i1, i2, sel
 
         i1 = dom%I1(ee,bnum)
         i2 = dom%I2(ee,bnum)
 
-        PhiOld = dom%PhiOld(ee,i,j,k,bnum)
         ! XXX valable pour ndir=1
         dt = dom%dt
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
         a0 = dom%Alpha_0(ee,i,j,k,bnum)
         d0 = dom%dxi_k_0(ee,i,j,k,bnum)
         ! Update convolution term (implicit midpoint)
-        call cpml_compute_coefs(dom%cpml_integ, a0, dt, cf0, cf1, cf2)
-        R0 = cf0*dom%R1_0(ee,i,j,k,bnum) + cf1*PhiNew + cf2*PhiOld
-        dom%R1_0(ee,i,j,k,bnum) = R0
+        call cpml_coefs_midpoint2(a0, dt, cf0, cf1)
+        dR0 = cf0*dom%R1_0(ee,i,j,k,bnum) + cf1*Phi
+        R0n = dom%R1_0(ee,i,j,k,bnum) + 0.5*dR0
+        dom%R1_0(ee,i,j,k,bnum) = dom%R1_0(ee,i,j,k,bnum) + dR0
+
         if (i1==-1 .and. i2==-1) then
             a3b = k0*a0*a0*d0
-            R = a3b*R0
+            R = a3b*R0n
         else
             k1 = dom%Kappa_1(i,j,k,i1)
             a1 = dom%Alpha_1(i,j,k,i1)
             d1 = dom%dxi_k_1(i,j,k,i1)
-            call cpml_compute_coefs(dom%cpml_integ, a1, dt, cf0, cf1, cf2)
+            call cpml_coefs_midpoint2(a1, dt, cf0, cf1)
             if (.not. isclose(a0,a1)) then
-                R1 = cf0*dom%R1_1(i,j,k,i1) + cf1*PhiNew + cf2*PhiOld
+                dR1 = cf0*dom%R1_1(i,j,k,i1) + cf1*Phi
             else
-                R1 = cf0*dom%R1_1(i,j,k,i1) + (cf1+cf2)*R0
+                dR1 = cf0*dom%R1_1(i,j,k,i1) + cf1*R0n
             end if
-            dom%R1_1(i,j,k,i1) = R1
+            R1n = dom%R1_1(i,j,k,i1) + 0.5*dR1
+            dom%R1_1(i,j,k,i1) = dom%R1_1(i,j,k,i1) + dR1
             if (i2==-1) then
                 if (.not. isclose(a0,a1)) then
                     a3b = k0*k1*a0*a0*d0*(d1+a1-a0)/(a1-a0)
@@ -100,76 +102,72 @@ contains
                     a3b = k0*k1*a0*(a0*d0+a0*d1-2*d0*d1)
                     a4b = k0*k1*a0*a0*d0*(a1-a0+d1)
                 end if
-                R = a3b*R0 + a4b*R1
+                R = a3b*R0n + a4b*R1n
             else
                 k2 = dom%Kappa_2(i,j,k,i2)
                 a2 = dom%Alpha_2(i,j,k,i2)
                 d2 = dom%dxi_k_2(i,j,k,i2)
-                call cpml_compute_coefs(dom%cpml_integ, a2, dt, cf0, cf1, cf2)
+                call cpml_coefs_midpoint2(a2, dt, cf0, cf1)
                 sel = compare_roots(a0,a1,a2)
                 select case(sel)
                 case (CMP_ABC)
-                    dom%R1_2(i,j,k,i2) = cf0*dom%R1_2(i,j,k,i2) + cf1*PhiNew + cf2*PhiOld
+                    dR2 = cf0*dom%R1_2(i,j,k,i2) + cf1*Phi
                     call get_coefs_L_abc(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                 case (CMP_ABA)
-                    dom%R1_2(i,j,k,i2) = cf0*dom%R1_2(i,j,k,i2) + (cf1+cf2)*R0
+                    dR2 = cf0*dom%R1_2(i,j,k,i2) + cf1*R0n
                     call get_coefs_L_aba(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                 case (CMP_AAC)
-                    dom%R1_2(i,j,k,i2) = cf0*dom%R1_2(i,j,k,i2) + cf1*PhiNew + cf2*PhiOld
+                    dR2 = cf0*dom%R1_2(i,j,k,i2) + cf1*Phi
                     call get_coefs_L_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                 case (CMP_ABB)
-                    dom%R1_2(i,j,k,i2) = cf0*dom%R1_2(i,j,k,i2) + (cf1+cf2)*R1
+                    dR2 = cf0*dom%R1_2(i,j,k,i2) + cf1*R1n
                     call get_coefs_L_abb(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                 case (CMP_AAA)
-                    dom%R1_2(i,j,k,i2) = cf0*dom%R1_2(i,j,k,i2) + 2*(cf1+cf2)*R1
+                    dR2 = cf0*dom%R1_2(i,j,k,i2) + 2*cf1*R1n
                     call get_coefs_L_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, a3b, a4b, a5b)
                 case default
                     stop 1
                 end select
-                R = a3b*R0 + a4b*R1 + a5b*dom%R1_2(i,j,k,i2)
+                R2n = dom%R1_2(i,j,k,i2) + 0.5*dR2
+                dom%R1_2(i,j,k,i2) = dom%R1_2(i,j,k,i2) + dR2
+                R = a3b*R0n + a4b*R1n + a5b*R2n
             end if
         end if
-        ! Save PhiOld
-        dom%PhiOld(ee,i,j,k,bnum) = PhiNew
     end subroutine compute_L_convolution_terms
 
-    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, DPhiNew, LC)
+    subroutine compute_convolution_terms(dom, i, j, k, bnum, ee, DPhi, LC)
         use champs_fluidpml
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent(in), dimension(0:2) :: DPhiNew
-        real(fpp), intent(out), dimension(0:2) :: LC
+        real(fpp), intent(in), dimension(0:VCHUNK-1, 0:2) :: DPhi
+        real(fpp), intent(out), dimension(0:VCHUNK-1, 0:2) :: LC
         !
-        real(fpp), dimension(0:2) :: DPhiOld
         integer :: i1, i2
         i1 = dom%I1(ee,bnum)
         i2 = dom%I2(ee,bnum)
 
-        DPhiOld = dom%DPhiOld(ee,:,i,j,k,bnum)
         if (i2==-1) then
             if (i1==-1) then
-                call compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DPhiNew, DPhiOld, LC)
+                call compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DPhi, LC)
             else
-                call compute_convolution_terms_2d(dom, i, j, k, bnum, ee, DPhiNew, DPhiOld, LC)
+                call compute_convolution_terms_2d(dom, i, j, k, bnum, ee, DPhi, LC)
             end if
         else
-            call compute_convolution_terms_3d(dom, i, j, k, bnum, ee, DPhiNew, DPhiOld, LC)
+            call compute_convolution_terms_3d(dom, i, j, k, bnum, ee, DPhi, LC)
         end if
-        ! Save current value as previous
-        dom%DPhiOld(ee,:,i,j,k,bnum) = DPhiNew
     end subroutine compute_convolution_terms
 
-    subroutine compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DPhiNew, DPhi, LC)
+    subroutine compute_convolution_terms_1d(dom, i, j, k, bnum, ee, DPhi, LC)
         use champs_fluidpml
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent(in), dimension(0:2) :: DPhi, DPhiNew
-        real(fpp), intent(out), dimension(0:2) :: LC
+        real(fpp), intent(in), dimension(0:VCHUNK-1, 0:2) :: DPhi
+        real(fpp), intent(out), dimension(0:VCHUNK-1, 0:2) :: LC
         !
         integer   :: dim0, r
-        real(fpp) :: k0, d0, a0, dt, cf0, cf1, cf2
+        real(fpp) :: k0, d0, a0, dt, cf0, cf1, R0, R0n, dR0
         real(fpp), dimension(0:2) :: b0, b1
         real(fpp), dimension(0:2) :: cf
 
@@ -217,27 +215,27 @@ contains
 
         ! update convolution terms
         do r=0,2
-            call cpml_compute_coefs(dom%cpml_integ, cf(r), dt, cf0, cf1, cf2)
-            dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DPhiNew(r)+cf2*DPhi(r)
+            call cpml_coefs_midpoint2(cf(r), dt, cf0, cf1)
+            R0 = dom%R2_0(ee,r,i,j,k,bnum)
+            dR0 = cf0*R0+cf1*DPhi(ee,r)
+            R0n = R0 + 0.5*dR0
+            dom%R2_0(ee,r,i,j,k,bnum) = R0 + dR0
+            LC(ee,r) = b0(r)*DPhi(ee,r) + b1(r)*R0n
         end do
 
-        ! We add the terms in Dirac with the (only) convolution term
-        do r=0,2
-            LC(r) = b0(r)*DPhiNew(r) + b1(r)*dom%R2_0(ee,r,i,j,k,bnum)
-        end do
     end subroutine compute_convolution_terms_1d
 
     ! Compute convolution terms with atn in 2 directions
-    subroutine compute_convolution_terms_2d(dom, i, j, k, bnum, ee, DPhiNew, DPhi, LC)
+    subroutine compute_convolution_terms_2d(dom, i, j, k, bnum, ee, DPhi, LC)
         use champs_fluidpml
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent(in), dimension(0:2) :: DPhi, DPhiNew
-        real(fpp), intent(out), dimension(0:2) :: LC
+        real(fpp), intent(in), dimension(0:VCHUNK-1,0:2) :: DPhi
+        real(fpp), intent(out), dimension(0:VCHUNK-1,0:2) :: LC
         !
         integer   :: r, i1
-        real(fpp) :: dt, cf0, cf1, cf2, r0
+        real(fpp) :: dt, cf0, cf1, R0, R0n, dR0, R1, R1n, dR1
         real(fpp), dimension(0:2) :: b0, b1, b2
         real(fpp), dimension(0:2) :: e0, e1
 
@@ -247,45 +245,45 @@ contains
         i1 = dom%I1(ee,bnum)
         dt = dom%dt
         do r=0,2  ! ie 120, 021, 012
-            call cpml_compute_coefs(dom%cpml_integ, e0(r), dt, cf0, cf1, cf2)
-            dom%R2_0(ee,r,i,j,k,bnum) = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DPhiNew(r)+cf2*DPhi(r)
-
-            call cpml_compute_coefs(dom%cpml_integ, e1(r), dt, cf0, cf1, cf2)
+            call cpml_coefs_midpoint2(e0(r), dt, cf0, cf1)
+            R0 = dom%R2_0(ee,r,i,j,k,bnum)
+            dR0 = cf0*R0 + cf1*DPhi(ee,r)
+            dom%R2_0(ee,r,i,j,k,bnum) = R0 + dR0
+            R0n = R0 + 0.5*dR0
+            call cpml_coefs_midpoint2(e1(r), dt, cf0, cf1)
+            R1 = dom%R2_1(r,i,j,k,i1)
             if (.not. isclose(e0(r),e1(r))) then
-                dom%R2_1(r,i,j,k,i1) = cf0*dom%R2_1(r,i,j,k,i1)+cf1*DPhiNew(r)+cf2*DPhi(r)
+                dR1 = cf0*R1 + cf1*DPhi(ee,r)
             else
-                R0 = dom%R2_0(ee,r,i,j,k,bnum)
-                dom%R2_1(r,i,j,k,i1) = cf0*dom%R2_1(r,i,j,k,i1)+cf1*(R0)+cf2*(R0)
+                dR1 = cf0*R1 + cf1*R0n
+                dom%R2_1(r,i,j,k,i1) = R1 + dR1
             end if
-            !write(*,"(4I2,A3,2F12.3,A3,2F12.3,A3,2E16.8)") i,j,k, r, " E=",e0(r), e1(r)," B=", b1(r), b2(r), " R=", dom%R2_0(ee,r,i,j,k,bnum), dom%R2_1(r,i,j,k,i1)
+            R1n = R1 + 0.5*dR1
+            dom%R2_1(r,i,j,k,i1) = R1 + dR1
+            LC(ee,r) = b0(r)*DPhi(ee,r)+b1(r)*R0n+b2(r)*R1n
         end do
-        ! We add the terms in Dirac with the (only) convolution term
-        do r=0,2 ! ie 120, 021, 012
-            LC(r)=b0(r)*DPhiNew(r)+b1(r)*dom%R2_0(ee,r,i,j,k,bnum)+b2(r)*dom%R2_1(r,i,j,k,i1)
-        end do
-
     end subroutine compute_convolution_terms_2d
 
     ! Compute convolution terms with atn in 3 directions
-    subroutine compute_convolution_terms_3d(dom, i, j, k, bnum, ee, DPhiNew, DPhi, LC)
+    subroutine compute_convolution_terms_3d(dom, i, j, k, bnum, ee, DPhi, LC)
         use champs_fluidpml
         implicit none
         type(domain_fluidpml), intent (INOUT) :: dom
         integer, intent(in) :: i, j, k, bnum, ee
-        real(fpp), intent(in), dimension(0:2) :: DPhi, DPhiNew
-        real(fpp), intent(out), dimension(0:2) :: LC
+        real(fpp), intent(in), dimension(0:VCHUNK-1,0:2) :: DPhi
+        real(fpp), intent(out), dimension(0:VCHUNK-1,0:2) :: LC
         !
         integer   :: r, i1, i2
         real(fpp) :: k0, d0, a0
         real(fpp) :: k1, d1, a1
         real(fpp) :: k2, d2, a2
         real(fpp) :: dt
-        real(fpp) :: cf00, cf01, cf02
-        real(fpp) :: cf10, cf11, cf12
-        real(fpp) :: cf20, cf21, cf22
+        real(fpp) :: cf00, cf01
+        real(fpp) :: cf10, cf11
+        real(fpp) :: cf20, cf21
         real(fpp), dimension(0:2) :: b0, b1, b2, b3
         real(fpp), dimension(0:2,0:2) :: e
-        real(fpp) :: r0, r1, r2
+        real(fpp) :: R0, R1, R2, dR0, dR1, dR2
         integer, dimension(0:2) :: sel
 
         dt = dom%dt
@@ -316,45 +314,41 @@ contains
             R0 = dom%R2_0(ee,r,i,j,k,bnum)
             R1 = dom%R2_1(r,i,j,k,i1)
             R2 = dom%R2_2(r,i,j,k,i2)
-            call cpml_compute_coefs(dom%cpml_integ, e(0,r), dt, cf00, cf01, cf02)
-            call cpml_compute_coefs(dom%cpml_integ, e(1,r), dt, cf10, cf11, cf12)
-            call cpml_compute_coefs(dom%cpml_integ, e(2,r), dt, cf20, cf21, cf22)
+            call cpml_coefs_midpoint2(e(0,r), dt, cf00, cf01)
+            call cpml_coefs_midpoint2(e(1,r), dt, cf10, cf11)
+            call cpml_coefs_midpoint2(e(2,r), dt, cf20, cf21)
             select case(sel(r))
             case (CMP_ABC)
-                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
-                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
-                R2 = cf20*R2 + cf21*DPhiNew(r) + cf22*DPhi(r)
+                dR0 = cf00*R0 + cf01*DPhi(ee,r)
+                dR1 = cf10*R1 + cf11*DPhi(ee,r)
+                dR2 = cf20*R2 + cf21*DPhi(ee,r)
             case (CMP_AAC)
-                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
-                R1 = cf10*R1 + cf11*R0         + cf12*R0
-                R2 = cf20*R2 + cf21*DPhiNew(r) + cf22*DPhi(r)
+                dR0 = cf00*R0 + cf01*DPhi(ee,r)
+                dR1 = cf10*R1 + cf11*(R0+0.5*dR0)
+                dR2 = cf20*R2 + cf21*DPhi(ee,r)
             case (CMP_ABA)
-                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
-                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
-                R2 = cf20*R2 + cf21*R0         + cf22*R0
+                dR0 = cf00*R0 + cf01*DPhi(ee,r)
+                dR1 = cf10*R1 + cf11*DPhi(ee,r)
+                dR2 = cf20*R2 + cf21*(R0+0.5*dR0)
             case (CMP_ABB)
-                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
-                R1 = cf10*R1 + cf11*DPhiNew(r) + cf12*DPhi(r)
-                R2 = cf20*R2 + cf21*R1         + cf22*R1
+                dR0 = cf00*R0 + cf01*DPhi(ee,r)
+                dR1 = cf10*R1 + cf11*DPhi(ee,r)
+                dR2 = cf20*R2 + cf21*(R1+0.5*dR1)
             case (CMP_AAA)
-                R0 = cf00*R0 + cf01*DPhiNew(r) + cf02*DPhi(r)
-                R1 = cf10*R1 + cf11*R0         + cf12*R0
-                R2 = cf20*R2 + 2*(cf21*R1      + cf22*R1)
+                dR0 = cf00*R0 + cf01*DPhi(ee,r)
+                dR1 = cf10*R1 + cf11*(R0+0.5*dR0)
+                dR2 = cf20*R2 + 2*cf21*(R1+0.5*dR1)
             case default
                 stop 1
             end select
-            dom%R2_0(ee,r,i,j,k,bnum) = R0
-            dom%R2_1(r,i,j,k,i1) = R1
-            dom%R2_2(r,i,j,k,i2) = R2
+            dom%R2_0(ee,r,i,j,k,bnum) = R0 + dR0
+            dom%R2_1(r,i,j,k,i1)      = R1 + dR1
+            dom%R2_2(r,i,j,k,i2)      = R2 + dR2
+            R0 = R0 + 0.5*dR0
+            R1 = R1 + 0.5*dR1
+            R2 = R2 + 0.5*dR2
+            LC(ee,r) = b0(r)*DPhi(ee,r) + b1(r)*R0 + b2(r)*R1 + b3(r)*R2
         end do
-
-        do r=0,2 ! ie 120, 021, 012
-            LC(r) = b0(r)*DPhiNew(r) + &
-                    b1(r)*dom%R2_0(ee,r,i,j,k,bnum) + &
-                    b2(r)*dom%R2_1(r,i,j,k,i1) + &
-                    b3(r)*dom%R2_2(r,i,j,k,i2)
-        end do
-
     end subroutine compute_convolution_terms_3d
 
 #define NGLLVAL 4

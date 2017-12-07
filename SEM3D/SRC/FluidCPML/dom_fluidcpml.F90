@@ -93,10 +93,6 @@ contains
             dom%R1_0 = 0d0
             dom%R2_0 = 0d0
 
-            allocate(dom%PhiOld(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            dom%PhiOld = 0.
-            allocate(dom%DPhiOld(0:VCHUNK-1, 0:2, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1))
-            dom%DPhiOld = 0.
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then

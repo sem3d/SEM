@@ -73,36 +73,6 @@ contains
     end subroutine define_PML_DumpEnd
     !
 #ifdef CPML
-    subroutine cpml_compute_coefs(m, a0, dt, cf0, cf1, cf2)
-        integer, intent(in) :: m
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        select case (m)
-        case (CPML_MIDPOINT1)
-            call cpml_compute_coefs_midpoint(a0,dt,cf0,cf1,cf2)
-        case (CPML_MIDPOINT2)
-            call cpml_compute_coefs_midpoint_ctr(a0,dt,cf0,cf1,cf2)
-        case (CPML_ORDER1)
-            call  cpml_compute_coefs_O1(a0,dt,cf0,cf1,cf2)
-        case (CPML_ORDER2)
-            call cpml_compute_coefs_O2(a0,dt,cf0,cf1,cf2)
-        case default
-            write(*,*) "Unknown CPML integration scheme", m
-            stop 1
-        end select
-    end subroutine cpml_compute_coefs
-    !
-    subroutine cpml_compute_coefs_midpoint(a0, dt, cf0, cf1, cf2)
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        !
-        real(fpp) :: c
-        ! Update convolution term (implicit midpoint)
-        c = (1d0+0.5d0*a0*dt)
-        cf0 = (1d0-0.5d0*a0*dt)/c
-        cf1 = dt/c
-        cf2 = 0d0
-    end subroutine cpml_compute_coefs_midpoint
     !
     subroutine cpml_coefs_midpoint2(a0, dt, cf0, cf1)
         real(fpp), intent(in) :: a0, dt
@@ -116,45 +86,6 @@ contains
     end subroutine cpml_coefs_midpoint2
 
     !
-    subroutine cpml_compute_coefs_midpoint_ctr(a0, dt, cf0, cf1, cf2)
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        !
-        real(fpp) :: c
-        real(fpp), parameter :: theta=0.25d0
-        ! Update convolution term (implicit midpoint)
-        c = (1d0+0.5d0*a0*dt)
-        cf0 = (1d0-0.5d0*a0*dt)/c
-        cf1 = theta*dt/c
-        cf2 = (1d0-theta)*dt/c
-    end subroutine cpml_compute_coefs_midpoint_ctr
-    !
-    subroutine cpml_compute_coefs_O1(a0, dt, cf0, cf1, cf2)
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        ! First order CPML
-        cf0 = exp(-a0*dt)
-        if (abs(a0)<1e-8) then
-            cf1 = dt
-        else
-            cf1 = (1d0-cf0)/a0
-        endif
-        cf2 = 0d0
-    end subroutine cpml_compute_coefs_O1
-    !
-    subroutine cpml_compute_coefs_O2(a0, dt, cf0, cf1, cf2)
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        ! First order CPML
-        cf0 = exp(-a0*dt)
-        if (abs(a0)<1e-8) then
-            cf1 = 0.5d0*dt
-            cf2 = cf1*exp(-0.5d0*a0*dt)
-        else
-            cf1 = (1d0-exp(-0.5d0*a0*dt))/a0
-            cf2 = cf1*exp(-0.5d0*a0*dt)
-        endif
-    end subroutine cpml_compute_coefs_O2
     !
     subroutine copy_cpml_coordinates(Tdomain, dom, dmtype)
         use sdomain

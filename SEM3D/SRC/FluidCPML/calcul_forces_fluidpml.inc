@@ -36,9 +36,8 @@ subroutine PROCNAME(dom,ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jac
     real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_Jacob
     real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_IDensity
     !
-    real(fpp) :: dPhi_dX,dPhi_dY,dPhi_dZ
+    real(fpp), dimension(0:VCHUNK-1,0:2) :: dPhi, LC
     real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
-    real(fpp), dimension(0:2) :: LC
     real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     integer :: i,j,k,l,ei,ee
     real(fpp) :: sx,sy,sz,t4
@@ -88,17 +87,21 @@ subroutine PROCNAME(dom,ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jac
                 ga2 = InvGrad_(1,2,i,j,k,bnum,ee)
                 ga3 = InvGrad_(2,2,i,j,k,bnum,ee)
                 !- in the physical domain
-                dPhi_dx = dPhi_dxi*xi1 + dPhi_deta*et1 + dPhi_dzeta*ga1
-                dPhi_dy = dPhi_dxi*xi2 + dPhi_deta*et2 + dPhi_dzeta*ga2
-                dPhi_dz = dPhi_dxi*xi3 + dPhi_deta*et3 + dPhi_dzeta*ga3
+                dPhi(ee,0) = dPhi_dxi*xi1 + dPhi_deta*et1 + dPhi_dzeta*ga1
+                dPhi(ee,1) = dPhi_dxi*xi2 + dPhi_deta*et2 + dPhi_dzeta*ga2
+                dPhi(ee,2) = dPhi_dxi*xi3 + dPhi_deta*et3 + dPhi_dzeta*ga3
+                END_SUBELEM_LOOP()
 
-                call compute_convolution_terms(dom, i, j, k, bnum, ee, (/ dPhi_dx, dPhi_dy, dPhi_dz /), LC)
+                BEGIN_SUBELEM_LOOP(ei,ee,bnum)
+                call compute_convolution_terms(dom, i, j, k, bnum, ee, dPhi, LC)
+                END_SUBELEM_LOOP()
 
+                BEGIN_SUBELEM_LOOP(ei,ee,bnum)
                 ! (fluid equivalent) stress  ( = physical velocity)
                 xdens = IDensity_(i,j,k,bnum,ee)
-                sx = xdens*LC(0)
-                sy = xdens*LC(1)
-                sz = xdens*LC(2)
+                sx = xdens*LC(ee,0)
+                sy = xdens*LC(ee,1)
+                sz = xdens*LC(ee,2)
 
                 !if (i==1.and.j==1.and.k==1) write(*,*) "SS", sx, sy, sz
                 !=====================
