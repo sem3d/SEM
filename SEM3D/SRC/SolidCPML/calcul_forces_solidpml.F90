@@ -272,9 +272,9 @@ contains
         real(fpp), intent(out), dimension(0:VCHUNK-1, 0:20) :: LC
         !
         integer   :: dim0, r
-        real(fpp) :: k0, d0, a0, dt, cf0, cf1, cf2, dR
+        real(fpp) :: k0, d0, a0, dt, dR, cf0a, cf1a, cf0b, cf1b
         real(fpp), dimension(0:5) :: b0, b1
-        real(fpp), dimension(0:8) :: cf, R2_0n
+        real(fpp), dimension(0:8) :: cf0, cf1, R2_0n
 
         ! Initialize
         k0 = dom%Kappa_0(ee,i,j,k,bnum)
@@ -286,7 +286,12 @@ contains
         endif
         b0(:) = 1d0
         b1(:) = 0d0
-        cf(:) = a0
+        ! only two values possible for alpha_0, so we precompute the
+        ! integration coefficients
+        call cpml_coefs_midpoint2(a0, dt, cf0a, cf1a)
+        call cpml_coefs_midpoint2(a0+d0, dt, cf0b, cf1b)
+        cf0(:) = cf0a
+        cf1(:) = cf1a
 
         ! Li
         call get_coefs_Li_1d(dom, ee, bnum, i, j, k, b0, b1)
@@ -301,9 +306,12 @@ contains
             b1(kB012) = k0*d0  !b1
             b1(kB021) = k0*d0  !b1
             b1(kB120) = -d0/k0 !b3
-            cf(DXX) = a0+d0
-            cf(DYX) = a0+d0
-            cf(DZX) = a0+d0
+            cf0(DXX) = cf0b
+            cf0(DYX) = cf0b
+            cf0(DZX) = cf0b
+            cf1(DXX) = cf1b
+            cf1(DYX) = cf1b
+            cf1(DZX) = cf1b
         case(1)
             b0(kB012) = k0
             b0(kB021) = 1./k0
@@ -311,9 +319,12 @@ contains
             b1(kB012) = k0*d0
             b1(kB021) = -d0/k0
             b1(kB120) = k0*d0
-            cf(DXY) = a0+d0
-            cf(DYY) = a0+d0
-            cf(DZY) = a0+d0
+            cf0(DXY) = cf0b
+            cf0(DYY) = cf0b
+            cf0(DZY) = cf0b
+            cf1(DXY) = cf1b
+            cf1(DYY) = cf1b
+            cf1(DZY) = cf1b
         case(2)
             b0(kB012) = 1./k0
             b0(kB021) = k0
@@ -321,9 +332,12 @@ contains
             b1(kB012) = -d0/k0
             b1(kB021) = k0*d0
             b1(kB120) = k0*d0
-            cf(DXZ) = a0+d0
-            cf(DYZ) = a0+d0
-            cf(DZZ) = a0+d0
+            cf0(DXZ) = cf0b
+            cf0(DYZ) = cf0b
+            cf0(DZZ) = cf0b
+            cf1(DXZ) = cf1b
+            cf1(DYZ) = cf1b
+            cf1(DZZ) = cf1b
         case default
             stop 1
         end select
@@ -332,8 +346,7 @@ contains
         dt = dom%dt
         do r=0,8
             ! This loop relies on the fact that r=DXX or r=L120_DXX coincide for the right equations
-            call cpml_coefs_midpoint2(cf(r), dt, cf0, cf1)
-            dR = cf0*dom%R2_0(ee,r,i,j,k,bnum)+cf1*DUDV(ee, r)
+            dR = cf0(r)*dom%R2_0(ee,r,i,j,k,bnum)+cf1(r)*DUDV(ee, r)
             R2_0n(r) = dom%R2_0(ee,r,i,j,k,bnum) + 0.5*dR
             dom%R2_0(ee,r,i,j,k,bnum) = dom%R2_0(ee,r,i,j,k,bnum)+dR
         end do

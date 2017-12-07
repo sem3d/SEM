@@ -815,6 +815,7 @@ contains
         !
         integer :: i_dir, n, indpml
         do i_dir = 0,2
+!$omp simd linear(n)
             do n = 0,dom%nglltot-1
                 dom%champs(f0)%Forces(n,i_dir) = dom%champs(f1)%Forces(n,i_dir) * dom%MassMat(n)
                 dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f0)%Forces(n,i_dir)

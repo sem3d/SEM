@@ -81,8 +81,8 @@ contains
         real(fpp) :: c
         ! Update convolution term (implicit midpoint)
         c = (1d0+0.5d0*a0*dt)
-        cf0 = -a0*dt/c
         cf1 = dt/c
+        cf0 = -a0*cf1
     end subroutine cpml_coefs_midpoint2
 
     !
