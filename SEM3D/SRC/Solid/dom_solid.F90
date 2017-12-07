@@ -630,7 +630,6 @@ contains
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
-        use m_calcul_forces_atn_nl
 
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(inout) :: champs1
@@ -705,7 +704,7 @@ contains
         else
             if (n_solid>0) then
                 if (nl_flag) then
-                    call calcul_forces_atn_nl(dom,bnum,Fox,Foy,Foz,Depla)
+                    stop "Not supported NL+ATN"
                 else
                     call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
                 endif
