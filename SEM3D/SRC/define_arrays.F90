@@ -512,6 +512,7 @@ contains
             lambda = v0 - 2d0*mu/3d0
         case(MATDEF_HOOKE_RHO)
             ! XXX TODO
+            Cij = 0
         case(MATDEF_NLKP_VS_RHO)
             nu = mat%DNu
             mu = rho*v1**2

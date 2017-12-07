@@ -27,7 +27,7 @@ contains
         implicit none
         type(domain), intent(inout)  :: Tdomain
         integer, intent(in) :: f0, f1
-        integer                      :: n, n1, n2, n3, n4, ns
+        integer                      :: n, n1, n2, ns
         character(len=30 )           :: char
 
         if (Tdomain%n_NEBC/=0) then
@@ -153,7 +153,6 @@ contains
         type(domain),       intent(inout):: Tdomain
         real(fpp), dimension(:,:), optional,intent(in)   :: veloc_field
         real(fpp), dimension(0:2)               :: BtN, force, veloc
-        real(fpp), dimension(:,:), allocatable  :: coord
         integer                                    :: i, idx
 
         Velocity_P = surf_norm%Elastic%Pspeed
@@ -194,7 +193,6 @@ contains
         ! gives the forces on faces
 
         use Mathfval
-        use parameters, only: Addparametricvar
         use ssurf
         use ssources
         use Surface_prbl_type
@@ -205,7 +203,6 @@ contains
         real(fpp), dimension(0:2),         intent(in) :: Btn, gllcoord
         real(fpp), dimension(0:2),optional,intent(in) :: veloc
         type(SurfaceParam),                   intent(in) :: Param
-        type (source)                    :: Sour
         real(fpp)                     :: midtime
         real(fpp), dimension(0:2)     :: coord
 
@@ -272,7 +269,7 @@ contains
         real(fpp), dimension(0:2), intent(in)    :: Btn, Veloc, coord
         real(fpp),                 intent(in)    :: time, dt
         real(fpp), dimension(0:2)                :: Nm, V, voloc_0
-        real(fpp)                                :: nn, VV
+        real(fpp)                                :: VV
 
         Nm = Btn
         V  = Veloc - voloc_0

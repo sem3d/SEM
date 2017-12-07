@@ -637,7 +637,7 @@ contains
         !
         logical,    intent(in) :: nl_flag
         !
-        integer :: ngll,i,j,k,i_dir,e,ee,idx
+        integer :: ngll,i,j,k,i_dir,ee,idx
         integer :: n_solid
         logical :: aniso
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
@@ -852,7 +852,6 @@ contains
         integer, intent(in) :: f0, f1
         real(fpp), intent(in) :: cb, cg, dt
         integer :: i, n
-        real(fpp) :: f
 
         ! Only solid for starters
         do i = 0,2

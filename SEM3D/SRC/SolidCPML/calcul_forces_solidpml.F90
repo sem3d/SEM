@@ -375,7 +375,7 @@ contains
         real(fpp), dimension(0:14) :: b0, b1, b2
         real(fpp), dimension(0:2) :: c0, c1, c2, rr0, rr1
         real(fpp), dimension(0:8) :: e0, e1, R2_0n, R2_1n
-        real(fpp) :: dt, cf0, cf1, cf2, R0, dR0, dR1
+        real(fpp) :: dt, cf0, cf1, dR0, dR1
         integer :: dim0, dim1, dimsel
         ! Initialize
         b0 = 1.
@@ -508,7 +508,7 @@ contains
         real(fpp) :: k1, d1, a1
         real(fpp) :: k2, d2, a2
         real(fpp) :: dt
-        real(fpp) :: cf00, cf01, cf02, cf10, cf11, cf12, cf20, cf21, cf22
+        real(fpp) :: cf00, cf01, cf10, cf11, cf20, cf21
         real(fpp) :: R0, R1, R2, dR0, dR1, dR2
         real(fpp), dimension(0:14) :: b0, b1, b2, b3
         real(fpp), dimension(0:2) :: c0, c1, c2, c3

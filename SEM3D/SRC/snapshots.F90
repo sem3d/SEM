@@ -1107,9 +1107,6 @@ contains
         integer :: i, nn, ne, group
         real(fpp) :: time
         character(len=11), dimension(0:8) :: R2label, R2data
-#ifdef CPML
-        integer :: j
-#endif
 
         nn = outputs%ntot_nodes
         ne = outputs%ntot_cells

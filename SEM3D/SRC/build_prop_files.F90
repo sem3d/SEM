@@ -109,7 +109,7 @@ contains
         call read_attr_real_vec(grp_id, "xMinGlob", pf%MinBound)
         call read_attr_real_vec(grp_id, "xMaxGlob", pf%MaxBound)
         call read_dims(grp_id, "samples", dims)
-        pf%NN = dims
+        pf%NN = int(dims)
         ! On va calculer les indices i0,i1 j0,j1,k0,k1 tels que
         ! i0 plus grand entier tel que x(i0)<MinBound_loc(0), 
         ! i1 plus petit entier tel que x(i1)>MaxBound_loc(0), etc... 
@@ -123,12 +123,12 @@ contains
             if (pf%imax(k)>=pf%NN(k)) pf%imax(k) = pf%NN(k)-1
             if (pf%imin(k)>pf%imax(k)) pf%imin(k) = pf%imax(k)
         end do
-        
+
         call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
         if (subgrp) call H5Gclose_f(grp_id, hdferr)
         call H5Fclose_f(file_id, hdferr)
     end subroutine init_prop_file_field
-    
+
     subroutine cleanup_prop_file(mat)
         type(subdomain) :: mat
         if (.not. mat%present) return
@@ -191,5 +191,16 @@ contains
             end do
         end do
     end subroutine interpolate_elem_field
-    
+
 end module build_prop_files
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

@@ -52,7 +52,7 @@ contains
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
-        call cpml_allocate_multi_dir(Tdomain, dom, DM_SOLID_PML)
+        call cpml_allocate_multi_dir(Tdomain, dom)
 
         dir1_count = dom%dir1_count
         dir2_count = dom%dir2_count
@@ -647,6 +647,10 @@ contains
             a0b = k0*k1*k2
             a1b = a0b*(d0+d1+d2)
             a2b = a0b*(d0*(d1-a0) + d1*(d2-a1) + d2*(d0-a2))
+        case default
+            a0b = 0
+            a1b = 0
+            a2b = 0
         end select
         mass_0 = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
         ! Delta 1st derivative term from L : (12a) or (14a) from Ref1

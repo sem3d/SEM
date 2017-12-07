@@ -80,6 +80,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
     real(fpp) :: lbd, mu, l2mu
 
+
+    if (ngll/=ngllvar) stop 1
+
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1

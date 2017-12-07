@@ -121,7 +121,8 @@ contains
         integer, intent(in) :: dmtype
         !
         integer, allocatable, dimension(:) :: types
-        integer :: dir1_count, dir2_count, ndir, mi, n, dir, num, itype, lnum
+        integer :: dir1_count, dir2_count, ndir, mi, n, dir
+        !integer :: itype, num, lnum
         dir1_count = 0
         dir2_count = 0
         !
@@ -179,13 +180,12 @@ contains
         deallocate(types)
     end subroutine cpml_reorder_elements
 
-    subroutine cpml_allocate_multi_dir(Tdomain, dom, dmtype)
+    subroutine cpml_allocate_multi_dir(Tdomain, dom)
         use sdomain
         use gll3d
         implicit none
         type(domain) :: TDomain
         class(dombase_cpml), intent (INOUT) :: dom
-        integer, intent(in) :: dmtype
         !
         integer :: dir1_count, dir2_count, ngll
         ngll = dom%ngll
@@ -211,7 +211,6 @@ contains
         real(fpp), intent(out) :: alpha, kappa, dxi
         !
         real(fpp) :: xoverl, d0
-        integer :: lnum
 
         xoverl = xi/wpml
         if (xoverl > 1d0) xoverl = 1d0
@@ -460,8 +459,6 @@ contains
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
         !
-        real(fpp) :: k
-        !
         cb0 =  k0*k1/k2
         cb1 =  cb0*(a0-a2)*d0*(a0-a1-d1)/((a0-a1)*(a0-a2-d2))
         cb2 =  cb0*(a1-a2)*(a1-a0-d0)*d1/((a1-a0)*(a1-a2-d2))
@@ -471,8 +468,6 @@ contains
     subroutine get_coefs_Lijk_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
-        !
-        real(fpp) :: k
         !
         cb0 =  k0*k1/k2
 
@@ -487,8 +482,6 @@ contains
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
         !
-        real(fpp) :: k
-        !
         cb0 =  k0*k1/k2
         cb1 = cb0*d0*(a0 - a2)*(a0 - a1 - d1)/(a0 - a1)**2
         cb3 = -cb0*d1*(a1 - a2)*(a0 - a1 + d0)/(a0 - a1)
@@ -501,8 +494,6 @@ contains
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
         !
-        real(fpp) :: k
-        !
         cb0 =  k0*k1/k2
         cb3 = -cb0*d0*(a0 - a2)*(a0 - a1 - d1)/(a0 - a1)
         cb2 = -cb0*d1*(a1 - a2)* (a0 - a1 + d0)/(a0 - a1)**2
@@ -514,8 +505,6 @@ contains
     subroutine get_coefs_Lijk_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
-        !
-        real(fpp) :: k
         !
         cb0 =  k0*k1/k2
         cb3 = - cb0*d0*d1*(a0 - a2)
@@ -552,7 +541,7 @@ contains
         integer, intent(in) :: i, j, k, bnum, ee
         !
         real(fpp) :: a0, a1, d0, d1, cfp
-        integer :: i1, i2, sel
+        integer :: i1, i2
 
         if (dom%cpml_one_root == 0) return
 
