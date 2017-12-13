@@ -411,14 +411,10 @@ void Mesh3D::build_vertex_to_elem_map()
             m_vertex_to_elem.add_link(vtx, i);
             m_vertex_domains[vtx] |= (1<<domain);
 
-            // Update bounding boxen
+            // Update bounding box
             m_bbox[mat].update_bounds(Vec3(m_xco[vtx],m_yco[vtx],m_zco[vtx]));
-//            printf("VX[%d] dom=%d/%02x, %02x\n", vtx, domain, (int)(1<<domain), m_vertex_domains[vtx]);
         }
     }
-//    for(int k=0;k<n_vertices();++k) {
-//        printf("VX[%d] dom=%02x\n", k, m_vertex_domains[k]);
-//    }
 }
 
 void Mesh3D::build_sf_interface()
@@ -522,11 +518,64 @@ void Mesh3D::save_bbox()
     }
 }
 
+void Mesh3D::compute_pml_free_surface()
+{
+    int count=0;
+    Surface *surf = nullptr;
+    for(int el=0;el<n_elems();++el) {
+        int dom = get_elem_domain(el);
+        if (dom==DM_SOLID || dom==DM_FLUID) {
+            continue;
+        }
+        if ((m_xadj[el+1]-m_xadj[el])==6) {
+            // This element has 6 neighbours, so no free surface
+            continue;
+        }
+        // Build the liste of faces of its neighbours, then find which of
+        // this element's faces are free
+        face_map_t faces;
+        for(int k=m_xadj[el];k<m_xadj[el+1];++k) {
+            int e0 = m_elems_offs[m_adjncy[k]];
+            for(int fc=0;fc<6;++fc) {
+                int n[4];
+                for(int p=0;p<4;++p) {
+                    n[p] = m_elems[e0 + RefFace[fc].v[p]];
+                }
+                PFace facet(n,0);
+                faces[facet]=1;
+            }
+        }
+        // now try to find each faces of this elem
+        int e0 = m_elems_offs[el];
+        for(int fc=0;fc<6;++fc) {
+            int n[4];
+            for(int p=0;p<4;++p) {
+                n[p] = m_elems[e0 + RefFace[fc].v[p]];
+            }
+            PFace facet(n,0);
+            face_map_t::const_iterator it;
+            it = faces.find(facet);
+            if (it==faces.end()) {
+                printf("Found free face el=%d: %d %d %d %d\n", el, 
+                       facet.n[0], facet.n[1], facet.n[2], facet.n[3]);
+                count++;
+                if (surf==nullptr) {
+                    surf = get_surface("dirichlet");
+                }
+                facet.set_domain(dom);
+                surf->add_face(facet,0);
+            }
+        }
+    }
+    printf("Found %d free faces\n\n", count);
+}
+
 void Mesh3D::generate_output(int nprocs)
 {
     build_vertex_to_elem_map();
     save_bbox();
     partition_mesh(nprocs);
+    compute_pml_free_surface();
     // partition_mesh builds adjacency map that is used by build_sf_interface
     // Later on, we will want to treat SF interfaces like all others.
     // That is when we will be able to generate normals for all surfaces

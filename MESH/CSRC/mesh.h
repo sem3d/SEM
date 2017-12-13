@@ -26,7 +26,7 @@ public:
 
     void generate_output(int nprocs);
     void build_sf_interface();
-    
+    void compute_pml_free_surface();
     int n_nodes()     const { return m_elems.size(); }
     int n_vertices()  const { return m_xco.size(); }
     int n_elems()     const { return m_mat.size(); }
