@@ -80,8 +80,6 @@ struct PFace {
     // !! This will be only useful for faces at domain interfaces, otherwise
     // there is no way to tell which of the two elements sharing the face appears first
     int orient; // 1 if points inside original element -1 otherwise
-    // Add by Mtaro 
-    int material;
 };
 
 struct PEdge {
