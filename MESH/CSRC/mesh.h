@@ -32,10 +32,13 @@ public:
     int n_elems()     const { return m_mat.size(); }
     int n_parts()     const { return n_procs; }
     int n_materials() const { return m_materials.size(); }
-    int n_surfaces(const std::string c) {int cpt=0;
-        for (int i=0; i< m_surf_matname.size(); i++){
-            if (m_surf_matname[i].compare(0,c.length(),c)==0) cpt++;}
-        return cpt;}
+    int n_surfaces(const std::string c) {
+        int cpt=0;
+        for (int i=0; i< m_surf_matname.size(); i++) {
+            if (m_surf_matname[i].compare(0,c.length(),c)==0) cpt++;
+        }
+        return cpt;
+    }
     int n_surface() const { return m_surf_matname.size();}
 
     void set_control_nodes(int n) { n_ctl_nodes = n; }
@@ -95,7 +98,7 @@ public:
     int n_points;
     int n_neu;
     int n_PW;
-    int ngrps; 
+    int ngrps;
     int n_ctl_nodes; ///< Number of control nodes per element (8 or 27)
 
     int *m_xadj, *m_adjncy;

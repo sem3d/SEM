@@ -40,7 +40,7 @@ int Mesh3D::add_elem(int mat_idx, const Elem& el)
 {
     // Builds elem<->vertex graph
     for(int i=0;i<el.N;++i) {
-	m_elems.push_back(el.v[i]);
+        m_elems.push_back(el.v[i]);
     }
     m_elems_offs.push_back(m_elems.size());
     m_mat.push_back( mat_idx );
@@ -91,7 +91,7 @@ void Mesh3D::partition_mesh(int n_parts)
     m_xadj = 0L;
     m_adjncy = 0L;
     METIS_MeshToDual(&ne, &nn, &m_elems_offs[0], &m_elems[0],
-		     &ncommon, &numflags, &m_xadj, &m_adjncy);
+                     &ncommon, &numflags, &m_xadj, &m_adjncy);
 
     //dump_connectivity("conn1.dat");
     // Tentative de reordonnancement des elements pour optimiser la reutilisation de cache
@@ -203,38 +203,38 @@ int Mesh3D::read_materials_v2(const std::string& str)
 void Mesh3D::define_associated_materials()
 {
     int nmats = m_materials.size();
-    
+
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
-    
+
         m_bbox[k].set_assocMat(k);
-        
+
         if (mat.is_pml()) {
-        	m_bbox[k].set_assocMat(mat.associated_material);
+            m_bbox[k].set_assocMat(mat.associated_material);
         }
     }
-    
+
     /*
-    if( access( "assocMat.spec", F_OK ) != -1 ) {
-        printf("\n WARNING! assocMat.spec exists \n");
-        FILE* f = fopen("assocMat.spec", "r");
-        int k;
-        int assocMat;
+      if( access( "assocMat.spec", F_OK ) != -1 ) {
+      printf("\n WARNING! assocMat.spec exists \n");
+      FILE* f = fopen("assocMat.spec", "r");
+      int k;
+      int assocMat;
 
-        while (!feof (f))
-        {  
-            fscanf (f, "%d", &k);
-            fscanf (f, "%d", &assocMat);
-            
-            printf (" -Material %d associated to Material %d \n", k, assocMat);
+      while (!feof (f))
+      {
+      fscanf (f, "%d", &k);
+      fscanf (f, "%d", &assocMat);
 
-            m_bbox[k].set_assocMat(assocMat);      
-        }
-        fclose (f);    
-    }
-    else {
-        printf("\n WARNING! assocMat.spec doesn't exist \n");
-    }
+      printf (" -Material %d associated to Material %d \n", k, assocMat);
+
+      m_bbox[k].set_assocMat(assocMat);
+      }
+      fclose (f);
+      }
+      else {
+      printf("\n WARNING! assocMat.spec doesn't exist \n");
+      }
     */
 
 }
@@ -291,9 +291,12 @@ void Mesh3D::read_mesh_file(const std::string& fname)
     for (int i=0; i< m_mat.size(); i++){
         m_mat[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_mat[i]));}
 
-    if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT)>0)) {
-        read_mesh_Quad8(file_id);}
-    else {
+    if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT)>0))
+    {
+        read_mesh_Quad8(file_id);
+    }
+    else
+    {
         if (domain.size() > m_materials.size()){
             printf("\n\n ERROR: Nb of physical volume in PythonHDF5.h5 is greater than that given in material.input \n");
             exit(1);}
@@ -321,47 +324,46 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
     int nel, nnodes;
     std::vector<int> m_Quad, elemtrace, m_matQuad;
 
-    set_control_nodes(8);
     h5h_read_dset_2d(file_id, "/Mesh_quad4/Quad4", nel, nnodes,m_Quad);
     if (nnodes!=4) {
         printf("Error: dataset /Mesh_quad4/Quad4 is not of size NEL*4\n");
         exit(1);
     }
 
-  h5h_read_dset(file_id, "/Mesh_quad4/Mat", m_matQuad);
-  
-  std::vector<int> domain=m_matQuad;
-  std::sort( domain.begin(), domain.end() );
-  domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
-  
-  for (int i=0; i< m_matQuad.size(); i++){
-      m_matQuad[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_matQuad[i]));}
+    h5h_read_dset(file_id, "/Mesh_quad4/Mat", m_matQuad);
 
-  for (int i=0; i< domain.size(); i++){
-       std::ostringstream convert;
-       convert << domain[i];
-       m_surf_matname.push_back("surface"+convert.str());}
-   
-  printf("\n");
-  printf("Nb surfaces in PythonHDF5.h5 : %d \n\n", m_surf_matname.size());
+    std::vector<int> domain=m_matQuad;
+    std::sort( domain.begin(), domain.end() );
+    domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
 
-  elemtrace = m_elems;
-  int imat  = m_mat.size();
-  int mmm   = imat;
-   
-  for(int k=0; k< nel; ++k){
-     m_elems_offs.push_back(8*(k+1+mmm));     
-     std::vector<int> elemneed, elems;
-     for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
-     int elmat=imat+k;
-     int tg4nodes=m_matQuad[k]; 
-     int el8mat=-1;
-     findelem(elmat, elemtrace, elems, elemneed,el8mat);
-     m_mat.push_back(m_mat[el8mat]);
-      
-     for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
-     surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[el8mat]), tg4nodes);
-   }
+    for (int i=0; i< m_matQuad.size(); i++){
+        m_matQuad[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_matQuad[i]));}
+
+    for (int i=0; i< domain.size(); i++){
+        std::ostringstream convert;
+        convert << domain[i];
+        m_surf_matname.push_back("surface"+convert.str());}
+
+    printf("\n");
+    printf("Nb surfaces in PythonHDF5.h5 : %d \n\n", m_surf_matname.size());
+
+    elemtrace = m_elems;
+    int imat  = m_mat.size();
+    int mmm   = imat;
+
+    for(int k=0; k< nel; ++k){
+        m_elems_offs.push_back(8*(k+1+mmm));
+        std::vector<int> elemneed, elems;
+        for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
+        int elmat=imat+k;
+        int tg4nodes=m_matQuad[k];
+        int el8mat=-1;
+        findelem(elmat, elemtrace, elems, elemneed,el8mat);
+        m_mat.push_back(m_mat[el8mat]);
+
+        for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
+        surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[el8mat]), tg4nodes);
+    }
 }
 
 void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int &elmat)
@@ -516,7 +518,7 @@ void Mesh3D::save_bbox()
                 bbox->second.max[1]+tol_y,
                 bbox->second.max[2]+tol_z,
                 bbox->first);
-                //bbox->second.assocMat);
+        //bbox->second.assocMat);
     }
 }
 
@@ -531,11 +533,11 @@ void Mesh3D::generate_output(int nprocs)
     // build_sf_interface();
 
     for(int part=0;part<nprocs;++part) {
-	Mesh3DPart loc(*this, part);
+        Mesh3DPart loc(*this, part);
 
-	loc.compute_part();
-	loc.output_mesh_part();
-	loc.output_mesh_part_xmf();
+        loc.compute_part();
+        loc.output_mesh_part();
+        loc.output_mesh_part_xmf();
     }
     output_all_meshes_xmf(nprocs);
 }
@@ -544,6 +546,7 @@ void Mesh3D::generate_output(int nprocs)
 /* Local Variables:                                                        */
 /* mode: c++                                                               */
 /* show-trailing-whitespace: t                                             */
+/* indent-tabs-mode: nil                                                   */
 /* coding: utf-8                                                           */
 /* c-file-style: "stroustrup"                                              */
 /* End:                                                                    */
