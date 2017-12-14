@@ -176,7 +176,8 @@ int Mesh3D::read_materials_v2(const std::string& str)
     double  vs,vp,rho;
     int         ngllx;
     double    Qp, Qmu;
-
+    int npmls;
+    vector<int> pml_nums;
 
     FILE* f = fopen(str.c_str(), "r");
     if (!f) {
@@ -185,14 +186,33 @@ int Mesh3D::read_materials_v2(const std::string& str)
     }
     getData_line(&buffer, &linesize, f);
     sscanf(buffer, "%d", &nmats);
+    npmls = 0;
+
     for(int k=0;k<nmats;++k)  {
         getData_line(&buffer, &linesize, f);
         sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
 
-        printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
+        printf("mat=%2ld : t=%c vp=%lf vs=%lf rho=%lf ngll=%d Qp=%lf Qmu=%lf\n", m_materials.size(),
+               type, vp, vs, rho, ngllx, Qp, Qmu);
 
         m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+        if (type=='P' || type=='L') {
+            npmls++;
+            pml_nums.push_back(m_materials.size()-1);
+        }
+    }
+    printf("\nReading PML descriptions:\n");
+    for(int k=0;k<npmls;++k) {
+        int npow, rmat;
+        double apow, pX, wX, pY, wY, pZ, wZ;
+        getData_line(&buffer, &linesize, f);
+        sscanf(buffer, "%d %lf %lf %lf %lf %lf %lf %lf %d", &npow, &apow, &pX, &wX, &pY, &wY, &pZ, &wZ, &rmat);
+        int mat = pml_nums[k];
+        printf("mat=%2d : npow=%2d apow=%3.0lf  PX=%5.1lf WX=%5.1lf PY=%5.1lf WY=%5.1lf PZ=%5.1lf WZ=%5.1lf M=%d\n", mat,
+               npow, apow, pX, wX, pY, wY, pZ, wZ, rmat);
+
+        m_materials[k].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
     }
     free(buffer);
     return nmats;
@@ -260,7 +280,7 @@ void Mesh3D::write_materials_v2(const std::string& str)
         const Material& mat = m_materials[k];
 
         if (!mat.is_pml()) continue;
-        fprintf(f, "2 10. %lf %lf %lf %lf %lf %lf %d\n",
+        fprintf(f, "2 10. %8.1lf %8.1lf %8.1lf %8.1lf %8.1lf %8.1lf %2d\n",
                 mat.xpos, mat.xwidth,
                 mat.ypos, mat.ywidth,
                 mat.zpos, mat.zwidth, mat.associated_material);
