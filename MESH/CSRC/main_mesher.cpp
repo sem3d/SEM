@@ -131,9 +131,8 @@ int main(int argc, char**argv)
         mesh.write_materials("material.input");
 	break;
     case 2:
-        mesh.read_materials("mater.in");
+        mesh.read_materials("material.input");
         handle_abaqus_file(mesh);
-        mesh.write_materials("material.input");
 	break;
     case 3:
     	mesh.read_materials("material.input");
