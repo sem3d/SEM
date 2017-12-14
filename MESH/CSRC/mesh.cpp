@@ -15,6 +15,7 @@
 #include "meshpart.h"
 #include "mesh_common.h"
 #include <unistd.h>
+#include <cmath>
 
 using std::map;
 using std::multimap;
@@ -538,12 +539,38 @@ void Mesh3D::save_bbox()
     }
 }
 
+static double vdot(double v[3], double w[3])
+{
+    return v[0]*w[0]+v[1]*w[1]+v[2]*w[2];
+}
+
+static void vnorm(double v[3])
+{
+    double n = vdot(v,v);
+    double in = 1./sqrt(n);
+    v[0] *= in;
+    v[1] *= in;
+    v[2] *= in;
+}
+
+static void vcross(double r[3], double v[3], double w[3])
+{
+    r[0] = v[1]*w[2]-v[2]*w[1];
+    r[1] = w[0]*v[2]-w[2]*v[0];
+    r[2] = v[0]*w[1]-v[1]*w[0];
+}
+
+
 void Mesh3D::compute_pml_free_surface()
 {
     int count=0;
     Surface *surf = nullptr;
     for(int el=0;el<n_elems();++el) {
         int dom = get_elem_domain(el);
+        double pmlN[3];
+        double fcN[3], fc1[3], fc2[3];
+        int mat = m_mat[el];
+
         if (dom==DM_SOLID || dom==DM_FLUID) {
             continue;
         }
@@ -565,6 +592,10 @@ void Mesh3D::compute_pml_free_surface()
                 faces[facet]=1;
             }
         }
+        pmlN[0] = m_materials[mat].xwidth;
+        pmlN[1] = m_materials[mat].ywidth;
+        pmlN[2] = m_materials[mat].zwidth;
+        vnorm(pmlN);
         // now try to find each faces of this elem
         int e0 = m_elems_offs[el];
         for(int fc=0;fc<6;++fc) {
@@ -576,8 +607,29 @@ void Mesh3D::compute_pml_free_surface()
             face_map_t::const_iterator it;
             it = faces.find(facet);
             if (it==faces.end()) {
-                printf("Found free face el=%d: %d %d %d %d\n", el, 
+                printf("Found free face el=%d: %d %d %d %d\n", el,
                        facet.n[0], facet.n[1], facet.n[2], facet.n[3]);
+
+                // Check face orientation for PML
+                // TODO
+                fc1[0] = m_xco[facet.n[1]]-m_xco[facet.n[0]];
+                fc1[1] = m_yco[facet.n[1]]-m_yco[facet.n[0]];
+                fc1[2] = m_zco[facet.n[1]]-m_zco[facet.n[0]];
+                fc2[0] = m_xco[facet.n[3]]-m_xco[facet.n[0]];
+                fc2[1] = m_yco[facet.n[3]]-m_yco[facet.n[0]];
+                fc2[2] = m_zco[facet.n[3]]-m_zco[facet.n[0]];
+                vcross(fcN, fc1, fc2);
+                vnorm(fcN);
+                double r = vdot(fcN, pmlN);
+#if 0
+                // there's still a bug here??
+                if (fabs(r)<0.01) {
+                    printf("Skipped, not oriented correctly (%2d)\n", mat);
+                    printf("F: (%10.5lf, %10.5lf, %10.5lf)\n", fcN[0], fcN[1], fcN[2]);
+                    printf("P: (%10.5lf, %10.5lf, %10.5lf)\n", pmlN[0], pmlN[1], pmlN[2]);
+                    continue;
+                }
+#endif
                 count++;
                 if (surf==nullptr) {
                     surf = get_surface("dirichlet");
