@@ -66,8 +66,7 @@ void handle_hdf5_file(Mesh3D& mesh)
      scanf("%d", &numfiles);
      for(int k=0;k<numfiles;++k) {
          printf("File %d name ?\n", k+1);
-         scanf("%2000s", fname);  
-	 MeshReaderIdeas  reader(fname);
+         scanf("%2000s", fname);
 	 mesh.read_mesh_file(fname);
 	 }
 }
