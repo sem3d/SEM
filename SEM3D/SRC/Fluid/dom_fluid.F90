@@ -348,8 +348,7 @@ contains
             enddo
         enddo
 
-        Fo_Fl = 0d0
-
+        Fo_Fl = 0.0_fpp
         call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
 
         do k = 0,ngll-1
@@ -393,8 +392,7 @@ contains
             enddo
         enddo
 
-        Fo_Fl = 0d0
-
+        Fo_Fl = 0.0_fpp
         call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
 
         do k = 0,ngll-1
