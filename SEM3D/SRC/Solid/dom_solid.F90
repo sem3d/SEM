@@ -752,10 +752,9 @@ contains
             enddo
         enddo
 
-        Fox = 0d0
-        Foy = 0d0
-        Foz = 0d0
-
+        Fox = 0.0_fpp
+        Foy = 0.0_fpp
+        Foz = 0.0_fpp
         if (aniso) then
             if (n_solid>0) then
                 call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
@@ -826,10 +825,9 @@ contains
             enddo
         enddo
 
-        Fox = 0d0
-        Foy = 0d0
-        Foz = 0d0
-
+        Fox = 0.0_fpp
+        Foy = 0.0_fpp
+        Foz = 0.0_fpp
         if (aniso) then
             if (n_solid>0) then
                 call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
