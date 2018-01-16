@@ -290,7 +290,6 @@ contains
         do while(associated(ext_src))
 
 
-            ! FORCING the code to moment case - XXX to be changed
             Tdomain%sExtendSource(nextsrc)%kine_file = trim(fromcstr(ext_src%kine_file))
             Tdomain%sExtendSource(nextsrc)%slip_file = trim(fromcstr(ext_src%slip_file))
             Tdomain%sExtendSource(nextsrc)%is_force = .false.

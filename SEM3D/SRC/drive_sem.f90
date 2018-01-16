@@ -50,6 +50,8 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer :: min_rank_glob_sem
 #endif
 
+
+
     call stat_starttick()
     call MPI_Init (ierr)
     Tdomain%time_0 = MPI_Wtime();
@@ -281,13 +283,13 @@ subroutine RUN_PREPARED(Tdomain)
         !  valid only for one point source - to be generalized for each
         do i = 0,Tdomain%n_source-1
             
-            write(*,*) 'DRIVE_SEM source loop nsrc = ', i
+            !write(*,*) 'DRIVE_SEM source loop nsrc = ', i
 
             if(Tdomain%sSource(i)%i_time_function == 5)then
                 call read_source_file(Tdomain%sSource(i))
             elseif (Tdomain%sSource(i)%i_time_function == 15) then
                 call read_source_file_h5(Tdomain%sSource(i))
-                write(*,*) "EXTENDED FAULT"
+                !write(*,*) "EXTENDED FAULT"
             endif
         end do
     endif

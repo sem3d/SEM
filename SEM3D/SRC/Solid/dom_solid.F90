@@ -709,6 +709,15 @@ contains
                         champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
                         champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
                         champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+
+                        
+                        ! ELIF XXX
+                        !if (k==0 .and.  j==0  .and.  i==0) then
+                        !    write(61,*)  ee, idx
+                        !    write(61,*)  champs1%Forces(idx,:)
+                        !endif
+
+
                     enddo
                 enddo
             enddo
