@@ -89,40 +89,6 @@ contains
 #undef PROCNAME
 #define PROCNAME calcul_forces_nl_n
 #include "calcul_forces_solid.inc"
-!#undef ATTENUATION
-!#undef ANISO
-!#define NGLLVAL 4
-!#define PROCNAME_NL calcul_forces_nl_4
-!#include "calcul_forces_solid_nl.inc"
-!#undef NGLLVAL
-!#undef PROCNAME_NL
-!#define NGLLVAL 5
-!#define PROCNAME_NL calcul_forces_nl_5
-!#include "calcul_forces_solid_nl.inc"
-!#undef NGLLVAL
-!#undef PROCNAME_NL
-!#define NGLLVAL 6
-!#define PROCNAME_NL calcul_forces_nl_6
-!#include "calcul_forces_solid_nl.inc"
-!#undef NGLLVAL
-!#undef PROCNAME_NL
-!#define NGLLVAL 7
-!#define PROCNAME_NL calcul_forces_nl_7
-!#include "calcul_forces_solid_nl.inc"
-!#undef NGLLVAL
-!#undef PROCNAME_NL
-!#define NGLLVAL 8
-!#define PROCNAME_NL calcul_forces_nl_8
-!#include "calcul_forces_solid_nl.inc"
-!#undef NGLLVAL
-!#undef PROCNAME_NL
-!#define NGLLVAL 9
-!#define PROCNAME_NL calcul_forces_nl_9
-!#include "calcul_forces_solid_nl.inc"
-!#undef NGLLVAL
-!#undef PROCNAME_NL
-!#define PROCNAME_NL calcul_forces_nl_n
-!#include "calcul_forces_solid_nl.inc"
 
 end module m_calcul_forces_nl
 

@@ -142,7 +142,8 @@ MODULE constants
                           FFT = 4
     !Correlation Model
     integer, parameter :: cm_GAUSSIAN = 1, &
-                          cm_COS = 2
+                          cm_COS = 2,      &
+                          cm_KARMAN = 3
     !First-order Marginal Density
     integer, parameter :: fom_GAUSSIAN = 1, &
                           fom_LOGNORMAL = 2
@@ -169,7 +170,43 @@ MODULE constants
     integer, parameter :: CMP_ABA=2
     integer, parameter :: CMP_ABB=3
     integer, parameter :: CMP_AAA=4
-    real(fpp), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
+    
+    ! 3D INVARIANT CONSTANTS 
+    ! projection vector to get isotropic stress
+    real, dimension(0:2),     parameter   :: veci = (/ one, zero, zero /)
+    real, dimension(0:2),     parameter   :: vecj = (/ zero, one, zero /)
+    real, dimension(0:2),     parameter   :: veck = (/ zero, zero, one /)
+    real, dimension(0:2,0:2), parameter   :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
+    real, dimension(0:2,0:2), parameter   :: Mmatrix(0:2,0:2) = one
+    real, dimension(0:5),     parameter   :: Mvector  = (/one,one,one,zero,zero,zero/)    
+    real, dimension(0:5),     parameter   :: Avector  = (/one,one,one,two,two,two/)
+    real, dimension(0:5),     parameter   :: A1vector = (/one,one,one,half,half,half/)
+    real*8, parameter, dimension(0:5,0:5) :: &
+        Amatrix  = reshape((/ &
+        one , zero, zero, zero, zero, zero,&
+        zero, one , zero, zero, zero, zero, &
+        zero, zero, one , zero, zero, zero, &
+        zero, zero, zero, two , zero, zero, &
+        zero, zero, zero, zero, two , zero, &
+        zero, zero, zero, zero, zero, two   &
+        /), (/6,6/))
+    real(fpp), parameter, dimension(0:5,0:5) :: &
+        A1matrix = reshape((/ &
+        one , zero, zero, zero, zero, zero,&
+        zero, one , zero, zero, zero, zero, &
+        zero, zero, one , zero, zero, zero, &
+        zero, zero, zero, half, zero, zero, &
+        zero, zero, zero, zero, half, zero, &
+        zero, zero, zero, zero, zero, half  &
+        /), (/6,6/))
+     
+    ! NONLINEAR SOLVER TOLERANCES
+    real(KIND=8), parameter :: FTOL = 0.001D0  ! 1e-6
+    real(KIND=8), parameter :: LTOL = 0.001D0  ! 1e-6
+    real(KIND=8), parameter :: STOL = 0.0001D0  ! 1e-9
+    real(KIND=8), parameter :: PSI  = one!5.0D0
+    real(KIND=8), parameter :: OMEGA= zero!1.0D6
+
 CONTAINS
 
 
@@ -189,4 +226,4 @@ END MODULE constants
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :
+!! vim: set sw=4 ts=4 et tw=80 smartindent :
