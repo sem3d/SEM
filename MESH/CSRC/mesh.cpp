@@ -248,6 +248,8 @@ void Mesh3D::write_materials_v2(const std::string& str)
 
 void Mesh3D::read_mesh_file(const std::string& fname)
 {
+    int d0,d1, tag;
+    std::vector<int> tagg;
     hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     h5h_read_dset_Nx3(file_id, "/Nodes", m_xco, m_yco, m_zco);
     if (H5Lexists(file_id, "/Sem3D/Hexa8", H5P_DEFAULT)) {
@@ -259,8 +261,17 @@ void Mesh3D::read_mesh_file(const std::string& fname)
         printf("ERR: only Quad4 and Quad8 are supported \n");
         exit(1);
     }
-    h5h_read_dset(file_id, "/Sem3D/Mat", m_mat);
-
+    h5h_read_dset_2d(file_id, "/Sem3D/Mat",d0,d1,m_mat);
+    for (int i=0; i<d0; i++){
+        tag=m_mat[3*d0-i*3-2];
+        tagg.push_back(tag);
+    }
+    for (int i=0; i<d0; i++){
+        m_mat[d0-i-1]=tagg[i];
+        m_mat.pop_back();
+        m_mat.pop_back();
+    }
+    printf("size new %d",m_mat.size()); 
     std::vector<int> domain=m_mat;
     std::sort( domain.begin(), domain.end() );
     domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
