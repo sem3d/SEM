@@ -158,10 +158,16 @@ struct PVertex {
     int n[2];
 };
 
+struct surf_info_t {
+    std::vector<int> xxnodes;
+    int  dom;
+    int  mat;
+};
+
 typedef std::map<PFace,int>  face_map_t;
 typedef std::map<PEdge,int>  edge_map_t;
 typedef std::map<PVertex,int> vertex_map_t;
-typedef std::map<int, std::pair<std::pair< std::vector<int>, int>, int>  > mapf;
+typedef std::map<int, surf_info_t  > surf_info_map_t;
 
 class Surface {
 public:
@@ -178,11 +184,13 @@ public:
     void add_vertex(const PVertex& vx, int data) {
         m_vertices[vx] = data;
     }
-    void get_faces_data(mapf surfelem_t, int dom, std::vector<int>& data, std::vector<int>& orient, std::vector<int>& matdom) const {
+    void get_faces_data( int dom, std::vector<int>& data,
+                         std::vector<int>& orient,
+                         std::vector<int>& matdom) const {
         data.clear();
         orient.clear();
         matdom.clear();
-        
+
         for(face_map_t::const_iterator it=m_faces.begin();it!=m_faces.end();++it) {
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);

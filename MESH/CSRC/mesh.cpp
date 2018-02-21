@@ -353,6 +353,7 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
 
     h5h_read_dset(file_id, "/Mesh_quad4/Mat", m_matQuad);
 
+#if 0
     std::vector<int> domain=m_matQuad;
     std::sort( domain.begin(), domain.end() );
     domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
@@ -368,48 +369,49 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
     printf("\n");
     printf("Nb surfaces in PythonHDF5.h5 : %d \n\n", m_surf_matname.size());
 
-    elemtrace = m_elems;
     int imat  = m_mat.size();
     int mmm   = imat;
+    std::vector<int> the_element, facet;
+    facet.resize(4);
 
-    for(int k=0; k< nel; ++k){
+    for(int k=0; k< nel; ++k)
+    {
+        surf_info_t surf_info;
         m_elems_offs.push_back(8*(k+1+mmm));
-        std::vector<int> elemneed, elems;
-        for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
-        int elmat=imat+k;
-        int tg4nodes=m_matQuad[k];
-        int el8mat=-1;
-        findelem(elmat, elemtrace, elems, elemneed,el8mat);
-        m_mat.push_back(m_mat[el8mat]);
-
-        for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
-        surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[el8mat]), tg4nodes);
+        for(int j=0; j<4; j++) facet[j] = m_Quad[k*4+j];
+        int surfnum = m_matQuad[k];
+        int el_num = -1;
+        findelem(facet, the_element, el_num);
+        m_mat.push_back(m_mat[el_num]);
     }
+#endif
 }
 
-void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int &elmat)
+void Mesh3D::findelem(const std::vector<int>& elems, std::vector<int>& element, int &elnum) const
 {
     bool found=false;
-    //std::vector<double> seting_el=m_matseting.find(m_mat[imat])->second;
+    int nn = n_ctl_nodes;
+    element.resize(8);
 
-    for(int i=0; i< eltr.size()/8; i++){
-        std::vector<int> elems_i;
-        elems_i.clear();
-        for(int j=0; j<8; j++) elems_i.push_back(eltr[i*8+j]);
-        if (elems_i.size()==8){
-            int p=0;
-            for (int k=0; k< elems.size(); k++){
-                if (std::find(elems_i.begin(),elems_i.end(),elems[k])!=elems_i.end()) {p++;}
-            }
-            //std::vector<double> seting_i = m_matseting.find(m_mat[i])->second;
-            //if ((p==4)&&(seting_i==seting_el)){elemneed = elems_i; found=true; elmat=i;}
-            if ((p==4)){elemneed = elems_i; found=true; elmat=i;}
+    for(int i=0; i< m_elems.size(); i+=nn) {
+        for(int j=0; j<8; j++) {
+            element[j] = m_elems[i+j];
         }
-        if (found) break;
+        int p=0;
+        for (int k=0; k< elems.size(); k++) {
+            if (std::find(element.begin(),element.end(),elems[k])!=element.end()) {
+                p++;
+            }
+        }
+        if (p==elems.size()) {
+            elnum=i;
+            found = true;
+            break;
+        }
     }
     if (!found){
         printf(" Error: Unable to find Hexa8 elem corresponding to Quad4 \n\n");
-        elemneed = elems;exit(1);
+        exit(1);
     }
 }
 

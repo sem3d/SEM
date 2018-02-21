@@ -16,6 +16,8 @@
 #include "meshbase.h"
 #include "aabb.h"
 
+
+
 class Mesh3D
 {
 public:
@@ -27,6 +29,7 @@ public:
     void generate_output(int nprocs);
     void build_sf_interface();
     void compute_pml_free_surface();
+
     int n_nodes()     const { return m_elems.size(); }
     int n_vertices()  const { return m_xco.size(); }
     int n_elems()     const { return m_mat.size(); }
@@ -54,7 +57,7 @@ public:
     void write_materials_v2(const std::string& fname);
     void define_associated_materials();
     void read_mesh_file(const std::string& fname);
-    void findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int & elmat);
+    void findelem(const std::vector<int>& elems, std::vector<int>& element, int & elnum) const;
     //size_t getData_line(char **buffer, size_t linesize, FILE* f);
     void partition_mesh(int n_procs);
     void dump_connectivity(const char* fname);
@@ -115,7 +118,8 @@ public:
     std::vector<unsigned int> m_vertex_domains;
     VertexElemMap  m_vertex_to_elem;
     std::vector<std::string> m_surf_matname;
-    std::map<int, std::pair<std::pair< std::vector<int>, int>, int>  > surfelem; // hexa8_num,<hexa8_id>,hexa8_tag,Quad4_tag
+
+    std::map<int, surf_info_t  > surfelem; // hexa8_num,<hexa8_id>,hexa8_tag,Quad4_tag
 
     void build_vertex_to_elem_map();
     void save_bbox();
