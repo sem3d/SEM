@@ -213,7 +213,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
         printf("mat=%2d : npow=%2d apow=%3.0lf  PX=%5.1lf WX=%5.1lf PY=%5.1lf WY=%5.1lf PZ=%5.1lf WZ=%5.1lf M=%d\n", mat,
                npow, apow, pX, wX, pY, wY, pZ, wZ, rmat);
 
-        m_materials[k].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
+        m_materials[mat].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
     }
     free(buffer);
     return nmats;
@@ -578,7 +578,7 @@ void Mesh3D::compute_pml_free_surface()
             // This element has 6 neighbours, so no free surface
             continue;
         }
-        // Build the liste of faces of its neighbours, then find which of
+        // Build the list of faces of its neighbours, then find which of
         // this element's faces are free
         face_map_t faces;
         for(int k=m_xadj[el];k<m_xadj[el+1];++k) {
@@ -621,12 +621,17 @@ void Mesh3D::compute_pml_free_surface()
                 vcross(fcN, fc1, fc2);
                 vnorm(fcN);
                 double r = vdot(fcN, pmlN);
-#if 0
+#if 1
                 // there's still a bug here??
                 if (fabs(r)<0.01) {
                     printf("Skipped, not oriented correctly (%2d)\n", mat);
                     printf("F: (%10.5lf, %10.5lf, %10.5lf)\n", fcN[0], fcN[1], fcN[2]);
                     printf("P: (%10.5lf, %10.5lf, %10.5lf)\n", pmlN[0], pmlN[1], pmlN[2]);
+
+                    for(int n=0;n<4;++n) {
+                        printf("N[%d] ; {%8lf, %8lf, %8lf}\n",
+                               m_xco[facet.n[n]], m_yco[facet.n[n]],m_zco[facet.n[n]]);
+                    }
                     continue;
                 }
 #endif

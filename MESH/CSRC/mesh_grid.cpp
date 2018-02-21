@@ -398,18 +398,18 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                     mesh.add_elem(mat, elem);
                     // Check for free fluid surface and free pml surface
                     int dom = mesh.m_materials[mat].domain();
-                    if (dom==DM_FLUID || dom==DM_FLUID_PML) {
-                        if (LU) emit_free_face(dirich, dom, elem, 5, false);
-                    }
-                    if (dom==DM_SOLID_PML || dom==DM_FLUID_PML) {
-                        double x_dir = mesh.m_materials[mat].xwidth;
-                        double y_dir = mesh.m_materials[mat].ywidth;
-                        double z_dir = mesh.m_materials[mat].zwidth;
-                        emit_free_face(dirich, dom, elem,
-                                       LW&&(x_dir<0), LE&&(x_dir>0),
-                                       LS&&(y_dir<0), LN&&(y_dir>0),
-                                       LU&&(z_dir>0), LD&&(z_dir<0), false);
-                    }
+//                    if (dom==DM_FLUID || dom==DM_FLUID_PML) {
+//                        if (LU) emit_free_face(dirich, dom, elem, 5, false);
+//                    }
+//                    if (dom==DM_SOLID_PML || dom==DM_FLUID_PML) {
+//                        double x_dir = mesh.m_materials[mat].xwidth;
+//                        double y_dir = mesh.m_materials[mat].ywidth;
+//                        double z_dir = mesh.m_materials[mat].zwidth;
+//                        emit_free_face(dirich, dom, elem,
+//                                       LW&&(x_dir<0), LE&&(x_dir>0),
+//                                       LS&&(y_dir<0), LN&&(y_dir>0),
+//                                       LU&&(z_dir>0), LD&&(z_dir<0), false);
+//                    }
 
                     if (has_mirrors) {
                         bool SHELL = (i<mrrs.nW || i>(nelemx-mrrs.nE-1) ||
