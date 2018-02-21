@@ -28,29 +28,30 @@ public:
         }
     Material(const Material& mat):m_type(mat.m_type),
                                   ctype(mat.ctype),
+                                  cinitial_type(mat.cinitial_type),
                                   rho(mat.rho),
                                   Pspeed(mat.Pspeed),
                                   Sspeed(mat.Sspeed),
                                   Qpression(mat.Qpression),
                                   Qmu(mat.Qmu),
                                   m_ngll(mat.m_ngll),
-                                  cinitial_type(mat.cinitial_type),
                                   xpos(mat.xpos),
                                   xwidth(mat.xwidth),
                                   ypos(mat.ypos),
                                   ywidth(mat.ywidth),
                                   zpos(mat.zpos),
                                   zwidth(mat.zwidth),
-                                  m_pml_num(mat.m_pml_num),
-                                  associated_material(mat.associated_material)
+                                  associated_material(mat.associated_material),
+                                  m_pml_num(mat.m_pml_num)
         {
         }
 
 
     Material(char type, double Vp, double Vs, double Rho,
              double Qp, double Qmu_, int ngll):
-        ctype(type), rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
-        m_ngll(ngll), cinitial_type(type),
+        ctype(type), cinitial_type(type),
+        rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
+        m_ngll(ngll),
         xpos(0.), xwidth(0.), ypos(0.), ywidth(0.), zpos(0.), zwidth(0.), associated_material(-1)
         {
             switch (type) {

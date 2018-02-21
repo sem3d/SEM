@@ -82,8 +82,8 @@ public:
             }
             return true;
         }
-    Vec3 max;
     Vec3 min;
+    Vec3 max;
     int assocMat;
 };
 

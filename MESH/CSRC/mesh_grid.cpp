@@ -262,12 +262,12 @@ int RectMesh::create_quadratic_grid_nodes(Mesh3D& mesh)
 {
     // Coordinates
     double layerzmax = zmax;
-    double z;
+
     int k0 = 0;
     int nnodes = 0;
     int npx = 2*nelemx+1;
     int npy = 2*nelemy+1;
-    int npz;
+
     for(int nl=0;nl<nlayers;++nl) {
         double zmin = layerzmax - thickness[nl];
         double zstep = (layerzmax-zmin)/nsteps[nl];
@@ -367,7 +367,7 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
     // Elements
     Elem elem(elem_shape);
     int k=0;
-    Surface* dirich = mesh.get_surface("dirichlet");
+//    Surface* dirich = mesh.get_surface("dirichlet");
     Surface* smirror = mesh.get_surface("mirror");
     for(int nl=0;nl<nlayers;++nl) {
         for(int kl=0;kl<nsteps[nl];++kl) {
@@ -388,12 +388,12 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                     bool N = (j>(nelemy-npml-1));
                     bool U = (k<npml && nl==0);
                     bool D = (k>(nelemz-npml-1) && nl==(nlayers-1));
-                    bool LW = (i<1);
-                    bool LE = (i>(nelemx-2));
-                    bool LS = (j<1);
-                    bool LN = (j>(nelemy-2));
-                    bool LU = (k<1 && nl==0);
-                    bool LD = (k>(nelemz-2) && nl==(nlayers-1));
+//                    bool LW = (i<1);
+//                    bool LE = (i>(nelemx-2));
+//                    bool LS = (j<1);
+//                    bool LN = (j>(nelemy-2));
+//                    bool LU = (k<1 && nl==0);
+//                    bool LD = (k>(nelemz-2) && nl==(nlayers-1));
                     int mat = get_mat(mesh, nl, W,E,S,N,U,D);
                     mesh.add_elem(mat, elem);
                     // Check for free fluid surface and free pml surface
@@ -449,7 +449,7 @@ void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem,
 
 void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum, bool flp)
 {
-    int n[4];
+    index_t n[4];
     for(int k=0;k<4;++k) {
         n[k] = elem.v[RefFace[facenum].v[k]];
     }
