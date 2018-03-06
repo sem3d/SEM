@@ -55,9 +55,7 @@ contains
         rg = Tdomain%rank
 
         if (rg == 0) then
-            write(*,*)
             write(*,*) "--> READING SURFACE INPUT"
-            write(*,*)
         endif
 
         do while(associated(surf))

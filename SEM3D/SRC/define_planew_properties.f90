@@ -163,7 +163,6 @@ end function getwtype
 !     !! Ecriture par un seul proc
 !     rg = Tdomain%rank
 !     if (rg.eq.0) then
-!     write(*,*)
 !     write(*,*) "Plane wave Source analytical defined "
 !     write(*,*) "-------------------------------------"
 !     write(*,*) "Va = "//TRIM(Tdomain%sPlaneW%pSource%PlaneW_varia)
@@ -180,7 +179,6 @@ end function getwtype
 !             write(*,*) "F5 = "//TRIM(Tdomain%sPlaneW%pSource%PlaneW_funcxz)
 !             write(*,*) "F6 = "//TRIM(Tdomain%sPlaneW%pSource%PlaneW_funcyz)
 !         endif
-!         write(*,*)
 !     endif
 !     if (Tdomain%sPlaneW%pSource%PlaneW_paramvar==1) then
 !         write(*,*) "Param = "//TRIM(parametric_var)

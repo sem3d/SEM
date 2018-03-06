@@ -63,7 +63,6 @@ subroutine define_Neumann_properties(Tdomain)
 !       !! print parameters values in the screen
 !       write(schar,*) i_neu
 !       surfname = "Neumann"//adjustl(schar(1:len_trim(schar)))
-!       write(*,*)
 !       write(*,2004) "SURFACE -> ", i_neu, " :: ", trim(surfname) 
 !       write(*,2007) "Domaim  : " , Tdomain%Neumann%Neu_Param%mat_index
 !       write(*,2009) "Lambda  : " , Tdomain%Neumann%Neu_Param%lambda
@@ -71,7 +70,6 @@ subroutine define_Neumann_properties(Tdomain)
 !       write(*,2009) "Wave Vp : ", Tdomain%Neumann%Neu_Param%lambda
 !
 !     enddo   
-!    write(*,*)
 !    return
 !    include 'formats.in'
 !end subroutine define_Neumann_properties

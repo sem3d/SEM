@@ -197,8 +197,6 @@ contains
         endif
 
 
-        write (*,*)
-        write (*,*)
         close(13)
 
     end subroutine read_material_file_v2
