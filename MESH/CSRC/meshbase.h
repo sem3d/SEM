@@ -13,6 +13,14 @@
 #include <cstdlib>
 #include <cassert>
 
+// type for global indexes
+typedef int64_t  index_t;
+constexpr index_t invalid_index = (index_t)(-1);
+// type for local indexes (to each cpu partition inmem)
+typedef int32_t  loc_index_t;
+
+
+
 /// Faces are stored as v1 v2 v3 v4, with v1 < v2 < v4
 /// The nodes are consecutive, the direction is determined by the ordering of
 /// the vertex number of the second node ie
@@ -24,17 +32,17 @@
 /// oriented in the same manner)
 struct PFace {
     PFace() {}
-    PFace( int v[4], int dom) {
-        set_domain(dom);
+    PFace( index_t v[4], int _dom) {
+        set_domain(_dom);
         set_face(v);
     }
-    void set_domain(int dom) {
-        n[4] = dom;
+    void set_domain(int _dom) {
+        dom = _dom;
     }
-    PFace(const PFace& fc):orient(fc.orient)
-        { for(int k=0;k<5;++k) n[k]=fc.n[k]; }
+    PFace(const PFace& fc):dom(fc.dom),orient(fc.orient)
+        { for(int k=0;k<4;++k) n[k]=fc.n[k]; }
 
-    void set_face(int v[4]) {
+    void set_face(index_t v[4]) {
         int l=0;
         int k;
         for(k=1;k<4;++k) {
@@ -56,16 +64,18 @@ struct PFace {
         }
     }
     bool operator<(const PFace& fc) const {
-	for(int i=0;i<5;++i) {
+	for(int i=0;i<4;++i) {
 	    if (n[i] < fc.n[i]) return true;
 	    if (n[i] > fc.n[i]) return false;
 	}
+        if (dom<fc.dom) return true;
 	return false;
     }
     bool operator==(const PFace& fc) const {
-	for(int i=0;i<5;++i) {
+	for(int i=0;i<4;++i) {
 	    if (n[i] != fc.n[i]) return false;
 	}
+        if (dom!=fc.dom) return false;
 	return true;
     }
     /// Same as operator= but ignore domain
@@ -75,8 +85,9 @@ struct PFace {
 	}
 	return true;
     }
-    int domain() const { return n[4]; }
-    int n[5];
+    int domain() const { return dom; }
+    index_t n[4];
+    int dom;
     // !! This will be only useful for faces at domain interfaces, otherwise
     // there is no way to tell which of the two elements sharing the face appears first
     int orient; // 1 if points inside original element -1 otherwise
@@ -84,7 +95,7 @@ struct PFace {
 
 struct PEdge {
     PEdge() {}
-    PEdge( int v0, int v1, int dom ) {
+    PEdge( index_t v0, index_t v1, int dom ) {
         n[2] = dom;
         set_edge(v0, v1);
     }
@@ -92,7 +103,7 @@ struct PEdge {
         for(int k=0;k<3;++k) n[k]=ed.n[k];
     }
 
-    void set_edge(int v0, int v1) {
+    void set_edge(index_t v0, index_t v1) {
         if (v0<v1) {
             n[0] = v0;
             n[1] = v1;
@@ -122,13 +133,13 @@ struct PEdge {
 	return true;
     }
     int domain() const { return n[2]; }
-    int n[3];
+    index_t n[3];
 };
 
 
 struct PVertex {
     PVertex() {}
-    PVertex( int v0, int dom ) {
+    PVertex( index_t v0, int dom ) {
         n[0] = v0;
         n[1] = dom;
     }
@@ -155,13 +166,20 @@ struct PVertex {
 	return true;
     }
     int domain() const { return n[1]; }
-    int n[2];
+    index_t n[2];
 };
 
-typedef std::map<PFace,int>  face_map_t;
-typedef std::map<PEdge,int>  edge_map_t;
-typedef std::map<PVertex,int> vertex_map_t;
-typedef std::map<int, std::pair<std::pair< std::vector<int>, int>, int>  > mapf;
+struct surf_info_t {
+    std::vector<index_t> xxnodes;
+    int  dom;
+    int  mat;
+};
+
+typedef std::map<PFace,index_t>  face_map_t;
+typedef std::map<PEdge,index_t>  edge_map_t;
+typedef std::map<PVertex,index_t> vertex_map_t;
+typedef std::map<index_t,index_t> node_id_map_t;
+typedef std::map<index_t, surf_info_t  > surf_info_map_t;
 
 class Surface {
 public:
@@ -178,11 +196,13 @@ public:
     void add_vertex(const PVertex& vx, int data) {
         m_vertices[vx] = data;
     }
-    void get_faces_data(mapf surfelem_t, int dom, std::vector<int>& data, std::vector<int>& orient, std::vector<int>& matdom) const {
+    void get_faces_data( int dom, std::vector<int>& data,
+                         std::vector<int>& orient,
+                         std::vector<int>& matdom) const {
         data.clear();
         orient.clear();
         matdom.clear();
-        
+
         for(face_map_t::const_iterator it=m_faces.begin();it!=m_faces.end();++it) {
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);
@@ -243,29 +263,8 @@ struct Elem {
 struct HexElem : public Elem
 {
     HexElem(int nn=8):Elem(nn) {}
-//    HexElem(int a, int b, int c, int d,
-//	    int e, int f, int g, int h) {
-//	v[0] = a;
-//	v[1] = b;
-//	v[2] = c;
-//	v[3] = d;
-//	v[4] = e;
-//	v[5] = f;
-//	v[6] = g;
-//	v[7] = h;
-//    }
 };
 
-struct QuadElem : public Elem
-{
-    QuadElem():Elem(4) {}
-//    QuadElem(int a, int b, int c, int d){
-//	v[0] = a;
-//	v[1] = b;
-//	v[2] = c;
-//	v[3] = d;
-//    }
-};
 
 struct FaceDesc {
     int v[4];  /// Local vertex index

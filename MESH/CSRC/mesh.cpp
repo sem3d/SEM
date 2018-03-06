@@ -29,7 +29,7 @@ using std::pair;
 
 
 // =====================================================
-int Mesh3D::add_node(double x, double y, double z)
+index_t Mesh3D::add_node(double x, double y, double z)
 {
     m_xco.push_back( x );
     m_yco.push_back( y );
@@ -37,7 +37,7 @@ int Mesh3D::add_node(double x, double y, double z)
     return m_xco.size()-1;
 }
 
-int Mesh3D::add_elem(int mat_idx, const Elem& el)
+index_t Mesh3D::add_elem(int mat_idx, const Elem& el)
 {
     // Builds elem<->vertex graph
     for(int i=0;i<el.N;++i) {
@@ -72,20 +72,20 @@ int Mesh3D::add_elem(int mat_idx, const Elem& el)
 }
 
 
-void Mesh3D::partition_mesh(int n_parts)
+void Mesh3D::partition_mesh(index_t n_parts)
 {
-    int ne = n_elems();
-    int nn = n_vertices();
-    int ncommon = 1;
-    int numflags = 0;
-    int ncon=1;
-    vector<int> vwgt;
-    int *vsize=0L;
-    int *adjwgt=0L;
-    float *tpwgts=0L;
-    float *ubvec=0L;
-    int *options=0L;
-    int edgecut;
+    idx_t ne = n_elems();
+    idx_t nn = n_vertices();
+    idx_t ncommon = 1;
+    idx_t numflags = 0;
+    idx_t ncon=1;
+    vector<idx_t> vwgt;
+    idx_t *vsize=0L;
+    idx_t *adjwgt=0L;
+    real_t *tpwgts=0L;
+    real_t *ubvec=0L;
+    idx_t *options=0L;
+    idx_t edgecut;
 
     n_procs = n_parts;
     m_procs.resize(ne);
@@ -140,12 +140,12 @@ void Mesh3D::partition_mesh(int n_parts)
 void Mesh3D::dump_connectivity(const char* fname)
 {
     FILE* fmat = fopen(fname, "wb");
-    int ne = n_elems();
+    size_t ne = n_elems();
     unsigned char* mat = (unsigned char*)malloc(ne*ne*sizeof(unsigned char));
     memset(mat, 0, ne*ne);
-    for(int i=0;i<n_elems();++i) {
-        for(int k=m_xadj[i];k<m_xadj[i+1];++k) {
-            int j = m_adjncy[k];
+    for(size_t i=0;i<n_elems();++i) {
+        for(index_t k=m_xadj[i];k<m_xadj[i+1];++k) {
+            index_t j = m_adjncy[k];
             mat[i+ne*j] = 1;
             mat[j+ne*i] = 1;
         }
@@ -170,7 +170,6 @@ int Mesh3D::read_materials(const std::string& str)
 int Mesh3D::read_materials_v2(const std::string& str)
 {
     int         nmats;
-    int           k=0;
     char         type;
     char *buffer=NULL;
     size_t linesize=0;
@@ -213,7 +212,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
         printf("mat=%2d : npow=%2d apow=%3.0lf  PX=%5.1lf WX=%5.1lf PY=%5.1lf WY=%5.1lf PZ=%5.1lf WZ=%5.1lf M=%d\n", mat,
                npow, apow, pX, wX, pY, wY, pZ, wZ, rmat);
 
-        m_materials[k].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
+        m_materials[mat].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
     }
     free(buffer);
     return nmats;
@@ -309,7 +308,7 @@ void Mesh3D::read_mesh_file(const std::string& fname)
     std::sort( domain.begin(), domain.end() );
     domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
 
-    for (int i=0; i< m_mat.size(); i++){
+    for (size_t i=0; i< m_mat.size(); i++){
         m_mat[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_mat[i]));}
 
     if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT)>0))
@@ -353,6 +352,7 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
 
     h5h_read_dset(file_id, "/Mesh_quad4/Mat", m_matQuad);
 
+#if 0
     std::vector<int> domain=m_matQuad;
     std::sort( domain.begin(), domain.end() );
     domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
@@ -368,48 +368,50 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
     printf("\n");
     printf("Nb surfaces in PythonHDF5.h5 : %d \n\n", m_surf_matname.size());
 
-    elemtrace = m_elems;
     int imat  = m_mat.size();
     int mmm   = imat;
+    std::vector<int> the_element;
+    index_t facet[4];
+    facet.resize(4);
 
-    for(int k=0; k< nel; ++k){
+    for(int k=0; k< nel; ++k)
+    {
+        surf_info_t surf_info;
         m_elems_offs.push_back(8*(k+1+mmm));
-        std::vector<int> elemneed, elems;
-        for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
-        int elmat=imat+k;
-        int tg4nodes=m_matQuad[k];
-        int el8mat=-1;
-        findelem(elmat, elemtrace, elems, elemneed,el8mat);
-        m_mat.push_back(m_mat[el8mat]);
-
-        for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
-        surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[el8mat]), tg4nodes);
+        for(int j=0; j<4; j++) facet[j] = m_Quad[k*4+j];
+        int surfnum = m_matQuad[k];
+        int el_num = -1;
+        findelem(facet, the_element, el_num);
+        m_mat.push_back(m_mat[el_num]);
     }
+#endif
 }
 
-void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int &elmat)
+void Mesh3D::findelem(const std::vector<int>& elems, std::vector<int>& element, int &elnum) const
 {
     bool found=false;
-    //std::vector<double> seting_el=m_matseting.find(m_mat[imat])->second;
+    int nn = n_ctl_nodes;
+    element.resize(8);
 
-    for(int i=0; i< eltr.size()/8; i++){
-        std::vector<int> elems_i;
-        elems_i.clear();
-        for(int j=0; j<8; j++) elems_i.push_back(eltr[i*8+j]);
-        if (elems_i.size()==8){
-            int p=0;
-            for (int k=0; k< elems.size(); k++){
-                if (std::find(elems_i.begin(),elems_i.end(),elems[k])!=elems_i.end()) {p++;}
-            }
-            //std::vector<double> seting_i = m_matseting.find(m_mat[i])->second;
-            //if ((p==4)&&(seting_i==seting_el)){elemneed = elems_i; found=true; elmat=i;}
-            if ((p==4)){elemneed = elems_i; found=true; elmat=i;}
+    for(size_t i=0; i< m_elems.size(); i+=nn) {
+        for(int j=0; j<8; j++) {
+            element[j] = m_elems[i+j];
         }
-        if (found) break;
+        size_t p=0;
+        for (size_t k=0; k< elems.size(); k++) {
+            if (std::find(element.begin(),element.end(),elems[k])!=element.end()) {
+                p++;
+            }
+        }
+        if (p==elems.size()) {
+            elnum=i;
+            found = true;
+            break;
+        }
     }
     if (!found){
         printf(" Error: Unable to find Hexa8 elem corresponding to Quad4 \n\n");
-        elemneed = elems;exit(1);
+        exit(1);
     }
 }
 
@@ -442,10 +444,10 @@ void Mesh3D::build_sf_interface()
 {
     PFace fc;
     Surface* sf = get_surface("sf");
-    for(int el=0;el<n_elems();++el) {
+    for(size_t el=0;el<n_elems();++el) {
         int dom0 = get_elem_domain(el);
-        for(int k=m_xadj[el];k<m_xadj[el+1];++k) {
-            int neighbour = m_adjncy[k];
+        for(index_t k=m_xadj[el];k<m_xadj[el+1];++k) {
+            index_t neighbour = m_adjncy[k];
             int dom1 = get_elem_domain(neighbour);
             // Make sure the face normal points inside fluid or fluidpml domain
             if ((dom0==DM_FLUID && dom1==DM_SOLID) ||
@@ -474,21 +476,21 @@ void Mesh3D::build_sf_interface()
     }
 }
 
-bool Mesh3D::get_common_face(int e0, int e1, PFace& fc)
+bool Mesh3D::get_common_face(index_t e0, index_t e1, PFace& fc)
 {
-    int nodes0[8];
-    int nodes1[8];
-    int face0[4];
-    std::set<int> inter;
+    index_t nodes0[8];
+    index_t nodes1[8];
+    index_t face0[4];
+    std::set<index_t> inter;
     get_elem_nodes(e0, nodes0);
     get_elem_nodes(e1, nodes1);
-    std::set<int> snodes1(nodes1,nodes1+8);
+    std::set<index_t> snodes1(nodes1,nodes1+8);
     // walks faces from e0 and return fc if found in e1 with orientation from e0
     for(int nf=0;nf<6;++nf) {
         for(int p=0;p<4;++p) {
             face0[p] = nodes0[RefFace[nf].v[p]];
         }
-        std::set<int> sface0(face0,face0+4);
+        std::set<index_t> sface0(face0,face0+4);
         inter.clear();
         std::set_intersection(sface0.begin(),sface0.end(),snodes1.begin(),snodes1.end(),
                               std::inserter(inter,inter.begin()));
@@ -500,12 +502,11 @@ bool Mesh3D::get_common_face(int e0, int e1, PFace& fc)
     return false;
 }
 
-void Mesh3D::get_neighbour_elements(int nn, const int* n, std::set<int>& elemset) const
+void Mesh3D::get_neighbour_elements(int nn, const index_t* n, std::set<index_t>& elemset) const
 {
-    std::set<int> elems, temp;
+    std::set<index_t> elems, temp;
     m_vertex_to_elem.vertex_to_elements(n[0], elemset);
     for(int k=1;k<nn;++k) {
-        int vertex_id = n[k];
         elems.clear();
         temp.clear();
         m_vertex_to_elem.vertex_to_elements(n[k], elems);
@@ -565,7 +566,7 @@ void Mesh3D::compute_pml_free_surface()
 {
     int count=0;
     Surface *surf = nullptr;
-    for(int el=0;el<n_elems();++el) {
+    for(size_t el=0;el<n_elems();++el) {
         int dom = get_elem_domain(el);
         double pmlN[3];
         double fcN[3], fc1[3], fc2[3];
@@ -578,13 +579,13 @@ void Mesh3D::compute_pml_free_surface()
             // This element has 6 neighbours, so no free surface
             continue;
         }
-        // Build the liste of faces of its neighbours, then find which of
+        // Build the list of faces of its neighbours, then find which of
         // this element's faces are free
         face_map_t faces;
-        for(int k=m_xadj[el];k<m_xadj[el+1];++k) {
-            int e0 = m_elems_offs[m_adjncy[k]];
+        for(index_t k=m_xadj[el];k<m_xadj[el+1];++k) {
+            index_t e0 = m_elems_offs[m_adjncy[k]];
             for(int fc=0;fc<6;++fc) {
-                int n[4];
+                index_t n[4];
                 for(int p=0;p<4;++p) {
                     n[p] = m_elems[e0 + RefFace[fc].v[p]];
                 }
@@ -597,9 +598,9 @@ void Mesh3D::compute_pml_free_surface()
         pmlN[2] = m_materials[mat].zwidth;
         vnorm(pmlN);
         // now try to find each faces of this elem
-        int e0 = m_elems_offs[el];
+        index_t e0 = m_elems_offs[el];
         for(int fc=0;fc<6;++fc) {
-            int n[4];
+            index_t n[4];
             for(int p=0;p<4;++p) {
                 n[p] = m_elems[e0 + RefFace[fc].v[p]];
             }
@@ -607,7 +608,7 @@ void Mesh3D::compute_pml_free_surface()
             face_map_t::const_iterator it;
             it = faces.find(facet);
             if (it==faces.end()) {
-                printf("Found free face el=%d: %d %d %d %d\n", el,
+                printf("Found free face el=%ld: %ld %ld %ld %ld\n", el,
                        facet.n[0], facet.n[1], facet.n[2], facet.n[3]);
 
                 // Check face orientation for PML
@@ -621,12 +622,17 @@ void Mesh3D::compute_pml_free_surface()
                 vcross(fcN, fc1, fc2);
                 vnorm(fcN);
                 double r = vdot(fcN, pmlN);
-#if 0
+#if 1
                 // there's still a bug here??
                 if (fabs(r)<0.01) {
                     printf("Skipped, not oriented correctly (%2d)\n", mat);
                     printf("F: (%10.5lf, %10.5lf, %10.5lf)\n", fcN[0], fcN[1], fcN[2]);
                     printf("P: (%10.5lf, %10.5lf, %10.5lf)\n", pmlN[0], pmlN[1], pmlN[2]);
+
+                    for(int n=0;n<4;++n) {
+                        printf("N[%d] ; {%8lf, %8lf, %8lf}\n", n,
+                               m_xco[facet.n[n]], m_yco[facet.n[n]],m_zco[facet.n[n]]);
+                    }
                     continue;
                 }
 #endif
