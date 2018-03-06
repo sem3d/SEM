@@ -6,7 +6,6 @@ program SEM3D
     use mpi
     use semdatafiles
     use drive_sem
-    use stat
 
     character(Len=MAX_FILE_SIZE),parameter :: p_param = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_traces = "./traces"
@@ -18,7 +17,6 @@ program SEM3D
 
     integer :: ierr, rg
 
-    call stat_init()
     call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_mat, p_mirror)
 
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
@@ -29,7 +27,6 @@ program SEM3D
     if (rg==0) then
         write (*,*) "fin du calcul sur processeurs "
     end if
-    call stat_finalize()
     call mpi_finalize(ierr)
 
 end program SEM3D

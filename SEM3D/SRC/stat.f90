@@ -1,5 +1,7 @@
 module stat
     use constants, only : fpp
+    use sem_c_bindings, only : sem_mkdir
+    implicit none
     ! TYPE DE STATISTIQUES
     integer, parameter :: STAT_COUNT = 12
     integer, parameter :: STAT_GIVE  = 0 !
@@ -20,23 +22,75 @@ module stat
 
     integer, private :: clockRate, maxPeriod
 
-    integer, private :: startFullTick, stopFullTick
-    real(fpp)   , private :: fullTime
+    integer*8, private :: startFullTick, stopFullTick
+    real(fpp), private :: fullTime
 
     integer     , private :: startTick, stopTick, deltaTick
     real(fpp), dimension(0:STAT_COUNT-1), private :: statTimes
-    contains
+    integer*8, dimension(0:STAT_COUNT-1), private :: statStart, statStop
 
-    subroutine stat_init()
+    logical :: log_traces
+    integer :: ntraces, itrace, rank
+    integer*8, allocatable, dimension(2,:) :: traces
+contains
+
+
+    subroutine add_start_trace(step)
         implicit none
+        integer, intent(in) :: step
+
+        traces(1,itrace) = step
+        traces(2,itrace) = statStart(step)-startFullTick
+        itrace = itrace + 1
+    end subroutine add_start_trace
+
+    subroutine add_stop_trace(step)
+        implicit none
+        integer, intent(in) :: step
+
+        traces(itrace,1) = step+1000
+        traces(itrace,2) = statStart(step)-startFullTick
+        itrace = itrace + 1
+        if (itrace>ntraces) then
+            write(124,*) traces(1:itrace-1,1)
+            write(125,*) traces(1:itrace-1,2)
+            itrace = 1
+        end if
+    end subroutine add_stop_trace
+
+    subroutine stat_init(rg, nprocs, dotraces)
+        implicit none
+        integer, intent(in) :: rg, nprocs
+        logical, intent(in) :: dotraces
+        character(Len=1000) :: fname
 
         call system_clock(COUNT_RATE=clockRate)
         call system_clock(COUNT_MAX=maxPeriod)
 
         call system_clock(count=startFullTick)
+        if (log_traces) call add_start_trace(STAT_FULL)
 
         statTimes(:) = 0d0
+        statStart(:) = 0d0
+        statStop(:) = 0d0
+
+        log_traces = dotraces
+        rank = rg
+
+        if (log_traces) then
+            ntraces = 2000
+            itraces = 1
+            sem_mkdir("timings")
+            write(fname,"(A,I6.6,A)") "timings/type.", rank,".bin"
+            open(124, file=trim(adjustl(fname)),unformatted)
+            write(fname,"(A,I6.6,A)") "timings/time.", rank,".bin"
+            open(125, file=trim(adjustl(fname)),unformatted)
+
+            allocate(traces(ntraces+4,2))
+        end if
+
     end subroutine stat_init
+
 
     subroutine stat_finalize()
         use mpi
@@ -45,6 +99,13 @@ module stat
         integer :: status(MPI_STATUS_SIZE)
 
         call system_clock(count=stopFullTick)
+        if (log_traces) then
+            ntraces=1 ! force output
+            call add_stop_trace(STAT_FULL)
+            close(124)
+            close(125)
+        end if
+
         deltaTick = stopFullTick-startFullTick
         if (deltaTick < 0) deltaTick = deltaTick+maxPeriod
         fullTime = real(deltaTick)/clockRate
@@ -69,23 +130,41 @@ module stat
         end if
     end subroutine stat_finalize
 
-    subroutine stat_starttick()
+    subroutine stat_starttick(step)
         implicit none
+        integer, intent(in) :: step
+        integer*8 :: clk
 
-        call system_clock(count=startTick)
+        call system_clock(count=statStart(step))
+
+        if (log_traces) call add_start_trace(step)
+
     end subroutine stat_starttick
 
     subroutine stat_stoptick(step)
         implicit none
-        integer :: step
+        integer, intent(in) :: step
 
         real(fpp) :: time
 
-        call system_clock(count=stopTick)
-        deltaTick = stopTick-startTick
+        call system_clock(count=statStop(step))
+        if (log_traces) call add_stop_trace(step)
+        deltaTick = statStop(step)-statStart(step)
         if (deltaTick < 0) deltaTick = deltaTick+maxPeriod
         time = real(deltaTick)/clockRate
         statTimes(step) = statTimes(step) + time
     end subroutine stat_stoptick
 
 end module stat
+
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

@@ -50,7 +50,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer :: min_rank_glob_sem
 #endif
 
-    call stat_starttick()
     call MPI_Init (ierr)
 
 !----------------------------------------------------------------------------------------------!
@@ -110,6 +109,10 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #endif
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
+
+    call stat_init(rg, nb_procs, .true.)
+    call stat_starttick(STAT_FULL)
+
  !----------------------------------------------------------------------------------------------!
  !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
  !----------------------------------------------------------------------------------------------!
@@ -133,6 +136,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
  !---------------------------------------------------------------------------------------------!
 
     call END_SEM(Tdomain,ntime)
+    call stat_finalize()
 
 end subroutine sem
  !-----------------------------------------------------------------------------------
