@@ -482,6 +482,7 @@ contains
         integer(HID_T) :: fid
         integer :: hdferr, code, ierr
         integer :: group, subgroup
+        integer, dimension(0:Tdomain%nb_procs-1) :: nodes_per_proc
         !- Create subdomains communicators
         rg = Tdomain%rank
         group = rg/Tdomain%ngroup
@@ -521,7 +522,8 @@ contains
             call h5fclose_f(fid, hdferr)
         endif
 
-        if (rg==0) call write_master_xdmf(Tdomain)
+        call mpi_gather(outputs%nnodes, 1, MPI_INTEGER, nodes_per_proc, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        if (rg==0) call write_master_xdmf(Tdomain, nodes_per_proc)
     end subroutine write_snapshot_geom
 
     subroutine write_global_nodes(Tdomain, fid, outputs)
@@ -1034,12 +1036,13 @@ contains
 
     end subroutine save_field_h5
 
-    subroutine write_master_xdmf(Tdomain)
+    subroutine write_master_xdmf(Tdomain, nodes_per_proc)
         implicit none
         type(domain), intent(in) :: Tdomain
         integer :: n_procs, nelem, n_groups
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer :: group
+        integer, intent(in), dimension(0:Tdomain%nb_procs-1) :: nodes_per_proc
+        integer :: group, k, group_nodes
         n_procs = Tdomain%nb_procs
         n_groups = (n_procs+Tdomain%ngroup-1)/Tdomain%ngroup
         nelem = Tdomain%n_elem
@@ -1051,9 +1054,17 @@ contains
         write(61,"(a)") '<Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">'
         write(61,"(a)") '<Domain>'
         write(61,"(a)") '<Grid CollectionType="Spatial" GridType="Collection">'
-        !!! XXX: recuperer le nom par semname_*
+
         do group=0,n_groups-1
-            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',group,'.xmf" xpointer="xpointer(//Xdmf/Domain/Grid)"/>'
+            ! check if the group does any output
+            group_nodes = 0
+            do k=group*Tdomain%ngroup, min(n_procs-1, (group+1)*Tdomain%ngroup-1)
+                group_nodes = group_nodes + nodes_per_proc(k)
+            end do
+            if (group_nodes /= 0) then
+                write(61,"(a,I4.4,a)") '<xi:include href="mesh.',group,'.xmf" xpointer="xpointer(//Xdmf/Domain/Grid)"/>'
+            end if
+
         end do
 
         write(61,"(a)") '</Grid>'
