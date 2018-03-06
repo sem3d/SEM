@@ -630,7 +630,6 @@ contains
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
-        use m_calcul_forces_atn_nl
 
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(inout) :: champs1
@@ -638,7 +637,7 @@ contains
         !
         logical,    intent(in) :: nl_flag
         !
-        integer :: ngll,i,j,k,i_dir,e,ee,idx
+        integer :: ngll,i,j,k,i_dir,ee,idx
         integer :: n_solid
         logical :: aniso
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
@@ -714,7 +713,7 @@ contains
         else
             if (n_solid>0) then
                 if (nl_flag) then
-                    call calcul_forces_atn_nl(dom,bnum,Fox,Foy,Foz,Depla)
+                    stop "Not supported NL+ATN"
                 else
                     call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
                 endif
@@ -825,6 +824,7 @@ contains
         !
         integer :: i_dir, n, indpml
         do i_dir = 0,2
+!$omp simd linear(n)
             do n = 0,dom%nglltot-1
                 dom%champs(f0)%Forces(n,i_dir) = dom%champs(f1)%Forces(n,i_dir) * dom%MassMat(n)
                 dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f0)%Forces(n,i_dir)
@@ -848,6 +848,32 @@ contains
         M = dom%Lambda_(i,j,k,bnum,ee) + 2.*dom%Mu_(i,j,k,bnum,ee)
         Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
     end function solid_Pspeed
+
+
+    subroutine lddrk_init_solid(dom, f0)
+        type(domain_solid), intent (INOUT) :: dom
+        integer, intent(in) :: f0
+
+        dom%champs(f0)%Forces = 0d0
+    end subroutine lddrk_init_solid
+
+    subroutine lddrk_update_solid(dom, f0, f1, dt, cb, cg)
+        type(domain_solid), intent (INOUT) :: dom
+        integer, intent(in) :: f0, f1
+        real(fpp), intent(in) :: cb, cg, dt
+        integer :: i, n
+
+        ! Only solid for starters
+        do i = 0,2
+            do n = 0,dom%nglltot-1
+                dom%champs(f0)%Forces(n,i) = dom%champs(f0)%Forces(n,i) * dom%MassMat(n)
+                dom%champs(f1)%Veloc(n,i) = cb*dom%champs(f1)%Veloc(n,i) + dt*dom%champs(f0)%Forces(n,i)
+                dom%champs(f1)%Depla(n,i) = cb*dom%champs(f1)%Depla(n,i) + dt*dom%champs(f0)%Veloc(n,i)
+                dom%champs(f0)%Depla(n,i) = dom%champs(f0)%Depla(n,i) + cg*dom%champs(f1)%Depla(n,i)
+                dom%champs(f0)%Veloc(n,i) = dom%champs(f0)%Veloc(n,i) + cg*dom%champs(f1)%Veloc(n,i)
+            end do
+        end do
+    end subroutine lddrk_update_solid
 end module dom_solid
 
 !! Local Variables:

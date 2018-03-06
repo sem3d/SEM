@@ -46,6 +46,7 @@ void  h5h_read_dset_Nx3(hid_t g, const char* dname,
 void  h5h_read_dset(hid_t g, const char* dname, std::vector<int>& v);
 void  h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, std::vector<double>& data);
 void  h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, std::vector<int>& data);
+void  h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, std::vector<int64_t>& data);
 
 
 

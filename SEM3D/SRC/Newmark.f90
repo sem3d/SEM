@@ -40,41 +40,25 @@ module mtimestep
 contains
 
     subroutine Timestep_LDDRK(Tdomain,ntime)
+        use dom_solid
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: ntime
         !
         real(fpp) :: cb, cg, cc, t0, t, dt
-        integer :: i0, i1, tmp, i
-        i0 = 0
-        i1 = 1
+        integer :: i
         t0 = Tdomain%TimeD%rtime
         dt = Tdomain%TimeD%dtmin
-        Tdomain%sdom%champs(i1)%Veloc = Tdomain%sdom%champs(i0)%Veloc
-        Tdomain%sdom%champs(i1)%Depla = Tdomain%sdom%champs(i0)%Depla
-        Tdomain%sdom%champs(i0)%Forces = 0d0
         do i=1,6
             cb = LDDRK_beta(i)
             cg = LDDRK_gamma(i)
             cc = LDDRK_c(i)
             t = t0 + cc*dt
 
-
-            call internal_forces(Tdomain, i0, i1, ntime)
-            call external_forces(Tdomain,t,ntime, i1)
-            call comm_forces(Tdomain,i1)
-
-
-            ! Only solid for starters
-            Tdomain%sdom%champs(i1)%Veloc = cb*Tdomain%sdom%champs(i0)%Veloc + dt*Tdomain%sdom%champs(i1)%Forces
-            Tdomain%sdom%champs(i1)%Depla = cb*Tdomain%sdom%champs(i0)%Depla + dt*Tdomain%sdom%champs(i1)%Veloc
-
-            Tdomain%sdom%champs(i1)%Veloc = Tdomain%sdom%champs(i0)%Veloc+Tdomain%sdom%champs(i0)%Veloc
-            Tdomain%sdom%champs(i1)%Depla = Tdomain%sdom%champs(i0)%Depla
-
-            ! SWAP i0,i1 for storage
-            tmp = i1
-            i1 = i0
-            i0 = tmp
+            call lddrk_init_solid(Tdomain%sdom, 0)
+            call internal_forces(Tdomain, 0, 0, ntime)
+            call external_forces(Tdomain, t, ntime, 0)
+            call comm_forces(Tdomain, 0)
+            call lddrk_update_solid(Tdomain%sdom, 0, 1, dt, cb, cg)
         end do
     end subroutine Timestep_LDDRK
     !

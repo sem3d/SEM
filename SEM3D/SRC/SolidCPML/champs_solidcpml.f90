@@ -55,7 +55,6 @@ module champs_solidpml
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: R1_0, R2_0
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: R1_1, R2_1
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: R1_2, R2_2
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: DUDVold, Uold
 
         ! Save forces contributions for snapshots
         real(fpp), dimension(:,:), allocatable :: FDump, FMasU, Fint

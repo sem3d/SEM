@@ -42,11 +42,12 @@ public:
     edge_map_t m_edges;
     face_map_t m_faces;
 
-    int n_faces() const { return m_faces.size(); }
-    int n_edges() const { return m_edges.size(); }
-    int n_vertices() const { return m_vertices.size(); }
+    size_t n_faces() const { return m_faces.size(); }
+    size_t n_edges() const { return m_edges.size(); }
+    size_t n_vertices() const { return m_vertices.size(); }
 
-    void get_faces(std::vector<int>& defs, std::vector<int>& ids, std::vector<int>& doms) const {
+    void get_faces(std::vector<index_t>& defs,
+                   std::vector<index_t>& ids, std::vector<int>& doms) const {
         defs.clear();
         ids.clear();
         doms.clear();
@@ -56,7 +57,8 @@ public:
             doms.push_back(it->first.domain());
         }
     }
-    void get_edges(std::vector<int>& defs, std::vector<int>& ids, std::vector<int>& doms) const {
+    void get_edges(std::vector<index_t>& defs,
+                   std::vector<index_t>& ids, std::vector<int>& doms) const {
         defs.clear();
         ids.clear();
         doms.clear();
@@ -66,7 +68,9 @@ public:
             doms.push_back(it->first.domain());
         }
     }
-    void get_vertices(std::vector<int>& defs, std::vector<int>& ids, std::vector<int>& doms) const {
+    void get_vertices(std::vector<index_t>& defs,
+                      std::vector<index_t>& ids,
+                      std::vector<int>& doms) const {
         defs.clear();
         ids.clear();
         doms.clear();
@@ -96,28 +100,28 @@ public:
     bool is_border_element(int el);
 
     // manages local facets
-    int add_facet(const PFace& facet, bool border);
-    int add_edge(const PEdge& edge, bool border);
-    int add_vertex(const PVertex& vertex, bool border);
-    int add_node(int v0);
+    index_t add_facet(const PFace& facet, bool border);
+    index_t add_edge(const PEdge& edge, bool border);
+    index_t add_vertex(const PVertex& vertex, bool border);
+    index_t add_node(index_t v0);
     
     int get_mat_(int el) const; 
-    int n_nodes() const    { return m_nodes_to_id.size(); }
-    int n_elems() const    { return m_elems.size(); }
-    int n_faces() const    { return m_face_to_id.size(); }
-    int n_edges() const    { return m_edge_to_id.size(); }
-    int n_vertices() const { return m_vertex_to_id.size(); }
+    size_t n_nodes() const    { return m_nodes_to_id.size(); }
+    size_t n_elems() const    { return m_elems.size(); }
+    size_t n_faces() const    { return m_face_to_id.size(); }
+    size_t n_edges() const    { return m_edge_to_id.size(); }
+    size_t n_vertices() const { return m_vertex_to_id.size(); }
 
     void define_Eventual_Boundary_Surface(int el);
     void get_local_nodes(std::vector<double>& nodes) const;
-    void get_local_elements(std::vector<int>& elems) const;
+    void get_local_elements(std::vector<loc_index_t>& elems) const;
     void get_local_materials(std::vector<int>& mats, std::vector<int>& doms) const;
-    void get_local_faces(std::vector<int>& faces, std::vector<int>& doms) const;
-    void get_local_edges(std::vector<int>& edges, std::vector<int>& doms) const;
+    void get_local_faces(std::vector<loc_index_t>& faces, std::vector<int>& doms) const;
+    void get_local_edges(std::vector<loc_index_t>& edges, std::vector<int>& doms) const;
     void get_local_vertices_dom(std::vector<int>& doms) const;
-    void get_face_coupling(int d0, int d1, std::vector<int>& cpl, std::vector<int>& orient) const;
-    void get_edge_coupling(int d0, int d1, std::vector<int>& cpl) const;
-    void get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) const;
+    void get_face_coupling(int d0, int d1, std::vector<index_t>& cpl, std::vector<int>& orient) const;
+    void get_edge_coupling(int d0, int d1, std::vector<index_t>& cpl) const;
+    void get_vertex_coupling(int d0, int d1, std::vector<index_t>& cpl) const;
 
     // Generic function to write and compute coupling interfaces
     void write_coupling_interface(hid_t fid, const char* pfx, int d0, int d1);
@@ -125,16 +129,16 @@ public:
                            const char* atype, int n0, const char* field);
     void output_int_constant(FILE* f, int indent, const char* aname, const char* atype, int val);
     void reorder_comm(MeshPartComm& comm);
-    void global_to_local_ids(std::vector<int>& ids) const;
+    void global_to_local_ids(std::vector<index_t>& ids) const;
 
 protected:
     const Mesh3D& m_mesh;
     int m_proc;
 
-    std::vector<int> m_elems; // Local elements
-    std::vector<int> m_elems_faces; // local face number of each local element
-    std::vector<int> m_elems_edges; // local edge number of each local element
-    std::vector<int> m_elems_vertices; // local vertex number of each local element
+    std::vector<index_t> m_elems; // Local elements
+    std::vector<index_t> m_elems_faces; // local face number of each local element
+    std::vector<index_t> m_elems_edges; // local edge number of each local element
+    std::vector<index_t> m_elems_vertices; // local vertex number of each local element
     std::vector<Surface*> m_surfaces;
     face_map_t m_face_to_id;
     edge_map_t m_edge_to_id;
@@ -145,12 +149,12 @@ protected:
     std::vector<bool> m_vertex_border;
 
     std::map<int,MeshPartComm> m_comm;
-    std::map<int,int> m_nodes_to_id;
+    node_id_map_t m_nodes_to_id;
 
-    void handle_local_element(int el, bool is_border);
-    void handle_neighbouring_face(int lnf, const PFace& fc, int el);
-    void handle_neighbouring_edge(int lne, const PEdge& ed, int el);
-    void handle_neighbouring_vertex(int lnv, const PVertex& vx, int el);
+    void handle_local_element(index_t el, bool is_border);
+    void handle_neighbouring_face(index_t lnf, const PFace& fc, index_t el);
+    void handle_neighbouring_edge(index_t lne, const PEdge& ed, index_t el);
+    void handle_neighbouring_vertex(index_t lnv, const PVertex& vx, index_t el);
     void handle_surface(const Surface* surf);
     void output_mesh_attributes(hid_t fid);
     void output_local_mesh(hid_t fid);

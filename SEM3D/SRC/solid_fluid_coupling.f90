@@ -30,7 +30,7 @@ contains
         integer, intent(in) :: f0, idxS, idxSF
         real(fpp), intent(out) :: mu(0:2)
         !
-        real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1, cf2
+        real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1, R0, R1, dR0, dR1, R0n, R1n
         real(fpp), dimension(0:2) :: b0bar, b1bar, b2bar
         integer :: r
         integer :: dir0, dir1
@@ -51,18 +51,21 @@ contains
 
         ! Update convolution terms for R0
         do r=0,2
-            call cpml_compute_coefs(dom%cpml_integ, a0, dom%dt, cf0, cf1, cf2)
-            dom%R_0_SF(r, idxSF) = cf0*dom%R_0_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)&
-                                  +cf2*dom%champs(f0)%Depla(idxS, r)
+            call cpml_coefs_midpoint2(a0, dom%dt, cf0, cf1)
+            R0 = dom%R_0_SF(r, idxSF)
+            dR0 = cf0*R0 + cf1*dom%champs(f0)%Depla(idxS, r)
+            dom%R_0_SF(r, idxSF) = R0 + dR0
+            R0n = R0 + 0.5*dR0
 
-            call cpml_compute_coefs(dom%cpml_integ, a1, dom%dt, cf0, cf1, cf2)
+            call cpml_coefs_midpoint2(a1, dom%dt, cf0, cf1)
+            R1 = dom%R_1_SF(r, idxSF)
             if(.not. isclose(a0, a1)) then
-                dom%R_1_SF(r, idxSF) = cf0*dom%R_1_SF(r,idxSF)+cf1*dom%champs(f0)%Depla(idxS, r)&
-                                      +cf2*dom%champs(f0)%Depla(idxS, r)
+                dR1 = cf0*R1 + cf1*dom%champs(f0)%Depla(idxS, r)
             else
-                dom%R_1_SF(r, idxSF) = cf0*dom%R_1_SF(r,idxSF)+cf1*dom%R_0_SF(r, idxSF)&
-                                      +cf2*dom%R_0_SF(r, idxSF)
+                dR1 = cf0*R1 + cf1*R0n
             end if
+            dom%R_1_SF(r, idxSF) = R1 + dR1
+            R1n = R1 + 0.5*dR1
         end do
 
         if (dom%I1_SF(idxSF) == -1) then
@@ -135,8 +138,8 @@ contains
         end if
 
         mu(:) =         b0bar(:) * dom%champs(f0)%Depla(idxS, :)
-        mu(:) = mu(:) + b1bar(:) * dom%R_0_SF(:, idxSF)
-        mu(:) = mu(:) + b2bar(:) * dom%R_1_SF(:, idxSF)
+        mu(:) = mu(:) + b1bar(:) * R0n
+        mu(:) = mu(:) + b2bar(:) * R1n
     end subroutine compute_convolution_StoF
 
     ! N_ij = delta_ij . F^-1[-w^2 s0 s1 s2 / si]
@@ -148,7 +151,7 @@ contains
         integer, intent(in) :: f0, idxF, idxSF
         real(fpp), intent(out) :: nphi(0:2)
         !
-        real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1, cf2
+        real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1, R0, R0n, dR0, R1, R1n, dR1
         real(fpp), dimension(0:2) :: a0bar, a1bar, a2bar, a3bar, a4bar
         real(fpp) :: AccPhi
         integer :: dir0, dir1
@@ -177,10 +180,12 @@ contains
         a3bar(dir0) = 0.
 
         ! Update convolution terms for R0
-        call cpml_compute_coefs(dom%cpml_integ, a0, dom%dt, cf0, cf1, cf2)
-        dom%R_0_SF(idxSF) = cf0*dom%R_0_SF(idxSF)+cf1*dom%champs(f0)%Phi(idxF)&
-                           +cf2*dom%champs(f0)%Phi(idxF)
-
+        call cpml_coefs_midpoint2(a0, dom%dt, cf0, cf1)
+        R0 = dom%R_0_SF(idxSF)
+        dR0 = cf0*R0+cf1*dom%champs(f0)%Phi(idxF)
+        dom%R_0_SF(idxSF) = R0 + dR0
+        R0n = R0 + 0.5*dR0
+        R1n = 0
         ! Convolute the second direction to attenuate (A.5*) from Ref1.
 
         if(dom%I1_SF(idxSF) /= -1) then
@@ -224,18 +229,19 @@ contains
             a4bar(Is0s1) = a0bar(Is0s1) * a1 ** 2 * d1 * (a0 - a1 + d0) / (a0 - a1)
 
             ! Update convolution terms for R1
-            call cpml_compute_coefs(dom%cpml_integ, a1, dom%dt, cf0, cf1, cf2)
-            dom%R_1_SF(idxSF) = cf0*dom%R_1_SF(idxSF)+cf1*dom%champs(f0)%Phi(idxF)&
-                               +cf2*dom%champs(f0)%Phi(idxF)
-
+            call cpml_coefs_midpoint2(a1, dom%dt, cf0, cf1)
+            R1 = dom%R_1_SF(idxSF)
+            dR1 = cf0*R1+cf1*dom%champs(f0)%Phi(idxF)
+            dom%R_1_SF(idxSF) = R1 + dR1
+            R1n = R1 + 0.5*dR1
         end if
 
         AccPhi = dom%champs(f0)%ForcesFl(idxF) * dom%MassMat(idxF)
         nphi(:) =           a0bar * AccPhi
         nphi(:) = nphi(:) + a1bar * dom%champs(f0)%VelPhi(idxF)
         nphi(:) = nphi(:) + a2bar * dom%champs(f0)%Phi(idxF)
-        nphi(:) = nphi(:) + a3bar * dom%R_0_SF(idxSF)
-        nphi(:) = nphi(:) + a4bar * dom%R_1_SF(idxSF)
+        nphi(:) = nphi(:) + a3bar * R0n
+        nphi(:) = nphi(:) + a4bar * R1n
     end subroutine compute_convolution_FtoS
 
 #endif

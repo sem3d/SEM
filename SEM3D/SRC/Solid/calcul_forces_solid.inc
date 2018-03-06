@@ -16,6 +16,12 @@
 
 #define USE_LOCAL_MEM
 
+#ifdef ATTENUATION
+#ifdef NONLINEAR
+#error "ATTENUATION+NONLINEAR Not supported yet"
+#endif
+#endif
+
 subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solid
     use nonlinear
@@ -45,24 +51,29 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
-    real(fpp) :: xmu
 #ifdef NONLINEAR
     real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP
     real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_epl
     logical    :: st_epl
 #endif
-#ifdef ATTENUATION
+
 #ifdef ANISO
     real(fpp) :: Eyz, Exz, Exy
-#endif
-    real(fpp) :: stt, x2mu, xpression, xkappa
-    integer   :: i_sls
 #else
     real(fpp) :: xla2mu, xla
+    real(fpp) :: xmu
 #endif
-#ifdef NGLLVAL
-    if (ngll/=ngll0) stop 1
+
+#ifdef ATTENUATION
+    real(fpp) :: stt, xpression, xkappa
+    integer   :: i_sls
+#ifndef ANISO
+    real(fpp) :: x2mu
 #endif
+#endif
+
+    if (ngll/=ngllvar) stop 1
+
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
@@ -131,6 +142,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dzx=dUz_dxi(ee,i,j,k)*JXX + dUz_deta(ee,i,j,k)*JXY + dUz_dzeta(ee,i,j,k)*JXZ
                 dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
                 dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
+
 #ifdef ATTENUATION
                 ! Save for reuse
                 dUx_dxi  (ee,i,j,k) = dxx
@@ -144,9 +156,8 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dUz_dzeta(ee,i,j,k) = dzz
 #endif
 
-#ifdef ATTENUATION
 #ifdef ANISO
-                ! ATTENUATION ISOTROPE
+                ! SIGMA ANISOTROPE
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
@@ -159,6 +170,21 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
 #undef CC
 #else
+                ! LINEAR ELASTIC ISOTROPE
+                xmu = dom%Mu_    (i,j,k,bnum,ee)
+                xla = dom%Lambda_(i,j,k,bnum,ee)
+                xla2mu = xla + 2. * xmu
+                sxx = xla2mu * DXX + xla * ( DYY + DZZ )
+                sxy = xmu * ( DXY + DYX )
+                sxz = xmu * ( DXZ + DZX )
+                syy = xla2mu * DYY + xla * ( DXX + DZZ )
+                syz = xmu * ( DYZ + DZY )
+                szz = xla2mu * DZZ + xla * ( DXX + DYY )
+#endif
+
+#ifdef ATTENUATION
+#ifndef ANISO
+                ! if the compiler is not too dumb, the previous definition won't be computed...
                 ! ATTENUATION ISOTROPE
                 xmu = dom%Mu_(i,j,k,bnum,ee) * dom%onemSbeta_(i,j,k,bnum,ee)
                 x2mu = 2. * xmu
@@ -185,20 +211,17 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxx = sxx - stt + xpression
                 syy = syy - stt + xpression
                 szz = szz - stt + xpression
-#else
-                ! SANS ATTENUATION
-                xmu = dom%Mu_    (i,j,k,bnum,ee)
-                xla = dom%Lambda_(i,j,k,bnum,ee)
-                xla2mu = xla + 2. * xmu
+#endif
+
 #ifdef NONLINEAR
 
                 start       =   dom%stress_(0:5,i,j,k,bnum,ee)
                 center      =   dom%center_(0:5,i,j,k,bnum,ee)
                 radius      =   zero !dom%radius_(i,j,k,bnum,ee)
                 syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
-                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) 
-                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) 
-                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee) 
+                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee)
+                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee)
+                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee)
                 ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
 
                 dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
@@ -233,16 +256,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)
                 dom%plstrain_(0:5,i,j,k,bnum,ee) = dEpsP(0:5)
                 dom%radius_(i,j,k,bnum,ee)       = zero !radius
-
-#else
-                ! LINEAR ELASTIC ISOTROPE
-                sxx = xla2mu * DXX + xla * ( DYY + DZZ )
-                sxy = xmu * ( DXY + DYX )
-                sxz = xmu * ( DXZ + DZX )
-                syy = xla2mu * DYY + xla * ( DXX + DZZ )
-                syz = xmu * ( DYZ + DZY )
-                szz = xla2mu * DZZ + xla * ( DXX + DYY )
-#endif
 #endif
                 !
                 !=====================
@@ -393,23 +406,27 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !=-=-=-=-=-=-=-=-=-=-
 #endif
 #ifdef ATTENUATION
-    call PROCNAME_ATN(dom,bnum,dUx_dxi,dUx_deta,dUx_dzeta,&
+    call PROCNAME_ATN(dom,ngll,bnum,dUx_dxi,dUx_deta,dUx_dzeta,&
         dUy_dxi,dUy_deta,dUy_dzeta, &
         dUz_dxi,dUz_deta,dUz_dzeta)
 #endif
 end subroutine PROCNAME
 
 #ifdef ATTENUATION
-subroutine PROCNAME_ATN(dom,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
+subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
     use champs_solid
     use deriv3d
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
     integer, intent(in) :: bnum
-    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDXX,mDXY,mDXZ
-    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDYX,mDYY,mDYZ
-    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDZX,mDZY,mDZZ
+    integer, intent(in) :: ngllvar
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: mDXX,mDXY,mDXZ
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: mDYX,mDYY,mDYZ
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: mDZX,mDZY,mDZZ
 #define DXX mDXX(ee,i,j,k)
 #define DXY mDXY(ee,i,j,k)
 #define DXZ mDXZ(ee,i,j,k)
@@ -425,16 +442,20 @@ subroutine PROCNAME_ATN(dom,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
     real(fpp) :: epsilondev_xx_loc,epsilondev_yy_loc
     real(fpp) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
     real(fpp) :: epsilonvol_loc
-    integer   :: i_sls,i,j,k, ngll,e,ee
+    integer   :: i_sls,i,j,k, e,ee
     real(fpp) :: factorS_loc,Sn,Snp1
-    real(fpp) :: factorP_loc,Pn,Pnp1
     real(fpp) :: epsilon_trace_over_3
-    real(fpp) :: factor_common_3, factor_common_P, omega_tau_s, gamma_mu, gamma_kappa
+    real(fpp) :: factor_common_3, omega_tau_s, gamma_mu, gamma_kappa
     real(fpp) :: alphaval, betaval, gammaval
     real(fpp) :: dt_tau
+#ifndef ANISO
+    real(fpp) :: factor_common_P, factorP_loc, Pn, Pnp1
+#endif
+
+    if (ngll/=ngllvar) stop 1
+
     n_solid = dom%n_sls
 
-    ngll = dom%ngll
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
@@ -454,11 +475,11 @@ subroutine PROCNAME_ATN(dom,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
                     omega_tau_s = dom%omega_tau_s(i_sls)
                     gamma_kappa = dom%agamma_kappa_(i_sls,i,j,k,bnum,ee)
                     gamma_mu = dom%agamma_mu_(i_sls,i,j,k,bnum,ee)
+                    RK4_attenu_coefs(dom%dt, omega_tau_s, alphaval, betaval, gammaval)
 #ifndef ANISO
                     ! get coefficients for that standard linear solid
                     factor_common_P = 2_fpp*gamma_kappa*omega_tau_s
                     factorP_loc   = dom%Kappa_(i,j,k,bnum,ee) * factor_common_P
-                    RK4_attenu_coefs(dom%dt,omega_tau_s,alphaval, betaval, gammaval)
 
                     !  terme volumique
                     Pn   = factorP_loc * dom%epsilonvol_(i,j,k,bnum,ee)

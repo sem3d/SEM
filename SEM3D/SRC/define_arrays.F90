@@ -512,6 +512,7 @@ contains
             lambda = v0 - 2d0*mu/3d0
         case(MATDEF_HOOKE_RHO)
             ! XXX TODO
+            Cij = 0
         case(MATDEF_NLKP_VS_RHO)
             nu = mat%DNu
             mu = rho*v1**2
@@ -542,6 +543,7 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         !
         if (Tdomain%fpmldom%nbelem>0) call finalize_fluidpml_properties(Tdomain, Tdomain%fpmldom)
+        if (Tdomain%spmldom%nbelem>0) call finalize_solidpml_properties(Tdomain, Tdomain%spmldom)
     end subroutine finalize_pml_properties
 
     subroutine init_local_mass(Tdomain, specel)

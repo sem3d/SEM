@@ -340,6 +340,20 @@ void h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, vector<int>&
     H5Dclose(dset_id);
 }
 
+void h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, vector<int64_t>& data)
+{
+    hid_t dset_id;
+    hsize_t dim0, dim1;
+
+    dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
+    h5h_get_dset2d_size(dset_id, dim0, dim1);
+    d0 = dim0;
+    d1 = dim1;
+    data.resize(dim0*dim1);
+    H5Dread(dset_id, H5T_NATIVE_INT64, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
+    H5Dclose(dset_id);
+}
+
 
 #undef _MIN
 #undef _MAX

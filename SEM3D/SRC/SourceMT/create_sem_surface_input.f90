@@ -28,7 +28,6 @@ contains
         type(domain), intent(inout)  :: Tdomain
         type(sem_config), intent(in) :: config
         type(sem_surfaces), pointer  :: surf
-        character(Len=MAX_FILE_SIZE) :: fnamef
         character(len=20)            :: char
         character(len=70)            :: sourcename
         real(fpp)                 :: ndir
@@ -367,7 +366,6 @@ contains
         type(SurfaceParam),        intent(inout) :: surfsrc
         type(SurfaceT),            intent(inout) :: surf
         real(fpp), dimension(0:2)             :: dirP, dirD
-        real(fpp)                             :: dot
 
         dirP = surfsrc%dir
 
@@ -426,8 +424,8 @@ contains
 
         implicit none
         type(domain), intent(in)                   :: Tdomain
-        integer                                    :: n, ns, s, intt, code, pr, rg
-        integer                                    :: nb_proc, som, rg0
+        integer                                    :: n, ns, s, intt, code, rg
+        integer                                    :: nb_proc
         logical                                    :: find
         logical,dimension(:), allocatable          :: Tab_logic
         integer ,dimension(:), allocatable         :: surf_tags

@@ -63,7 +63,6 @@ contains
 
         use ssurf
         use Mathfval
-        use parameters, only: Addparametricvar
         use ssources
 
         implicit none
@@ -119,7 +118,6 @@ contains
 
         use ssurf
         use Mathfval
-        use parameters, only: Addparametricvar
         use Alertes
 
         implicit none
@@ -165,7 +163,6 @@ contains
 
         use ssurf
         use Mathfval
-        use parameters, only: Addparametricvar
         use ssources
         use Alertes
 
@@ -175,8 +172,7 @@ contains
         real(fpp), dimension(0:2)       ,  intent(in) :: coord
         real(fpp), dimension(0:2)       ,  intent(out):: displ, accel, veloc
         type(FoncValue)    :: Sourcef
-        type (source)      :: Sour
-        real(fpp)       :: dot, result
+        real(fpp)       :: dot
         character(len=256) :: FunctionName ='PlaneWanedispl'
         character(len=256) :: SourceFile = 'selectsurfload'
         character(len=700) :: ErrorSMS

@@ -53,8 +53,6 @@ module champs_fluidpml
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: R2_1
         real(fpp), dimension(:,:,:,:)    , allocatable :: R1_2
         real(fpp), dimension(:,:,:,:,:)  , allocatable :: R2_2
-        real(fpp), dimension(:,:,:,:,:)  , allocatable :: PhiOld
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: DPhiOld
 
         ! Solid - Fluid coupling
         real(fpp), dimension(:), allocatable :: R_0_SF, R_1_SF

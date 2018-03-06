@@ -66,8 +66,7 @@ void handle_hdf5_file(Mesh3D& mesh)
      scanf("%d", &numfiles);
      for(int k=0;k<numfiles;++k) {
          printf("File %d name ?\n", k+1);
-         scanf("%2000s", fname);  
-	 MeshReaderIdeas  reader(fname);
+         scanf("%2000s", fname);
 	 mesh.read_mesh_file(fname);
 	 }
 }
@@ -131,9 +130,8 @@ int main(int argc, char**argv)
         mesh.write_materials("material.input");
 	break;
     case 2:
-        mesh.read_materials("mater.in");
+        mesh.read_materials("material.input");
         handle_abaqus_file(mesh);
-        mesh.write_materials("material.input");
 	break;
     case 3:
     	mesh.read_materials("material.input");

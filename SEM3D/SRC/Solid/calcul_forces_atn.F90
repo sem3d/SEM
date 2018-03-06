@@ -119,6 +119,7 @@ gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
         end select
     end subroutine calcul_forces_aniso_atn
 
+#define ANISO
 #define ATTENUATION
 #define NGLLVAL 4
 #undef PROCNAME

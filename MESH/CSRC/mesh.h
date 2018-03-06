@@ -16,6 +16,8 @@
 #include "meshbase.h"
 #include "aabb.h"
 
+
+
 class Mesh3D
 {
 public:
@@ -26,24 +28,28 @@ public:
 
     void generate_output(int nprocs);
     void build_sf_interface();
-    
-    int n_nodes()     const { return m_elems.size(); }
-    int n_vertices()  const { return m_xco.size(); }
-    int n_elems()     const { return m_mat.size(); }
-    int n_parts()     const { return n_procs; }
-    int n_materials() const { return m_materials.size(); }
-    int n_surfaces(const std::string c) {int cpt=0;
-        for (int i=0; i< m_surf_matname.size(); i++){
-            if (m_surf_matname[i].compare(0,c.length(),c)==0) cpt++;}
-        return cpt;}
-    int n_surface() const { return m_surf_matname.size();}
+    void compute_pml_free_surface();
+
+    size_t n_nodes()     const { return m_elems.size(); }
+    size_t n_vertices()  const { return m_xco.size(); }
+    size_t n_elems()     const { return m_mat.size(); }
+    size_t n_parts()     const { return n_procs; }
+    size_t n_materials() const { return m_materials.size(); }
+    size_t n_surfaces(const std::string c) const {
+        size_t cpt=0;
+        for (size_t i=0; i< m_surf_matname.size(); i++) {
+            if (m_surf_matname[i].compare(0,c.length(),c)==0) cpt++;
+        }
+        return cpt;
+    }
+    size_t n_surface() const { return m_surf_matname.size();}
 
     void set_control_nodes(int n) { n_ctl_nodes = n; }
 
     int nodes_per_elem() const { return n_ctl_nodes; }
 
-    int add_node(double x, double y, double z);
-    int add_elem(int mat_idx, const Elem& el);
+    index_t add_node(double x, double y, double z);
+    index_t add_elem(int mat_idx, const Elem& el);
 
     int read_materials(const std::string& fname);
     int read_materials_v2(const std::string& fname);
@@ -51,22 +57,18 @@ public:
     void write_materials_v2(const std::string& fname);
     void define_associated_materials();
     void read_mesh_file(const std::string& fname);
-    void findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int & elmat);
+    void findelem(const std::vector<int>& elems, std::vector<int>& element, int & elnum) const;
     //size_t getData_line(char **buffer, size_t linesize, FILE* f);
-    void partition_mesh(int n_procs);
+    void partition_mesh(index_t n_parts);
     void dump_connectivity(const char* fname);
 
-    int elem_part(int iel) const { return m_procs[iel]; }
+    index_t elem_part(index_t iel) const { return m_procs[iel]; }
 
-    int n_shared_faces() const { return -1; }
-    int n_shared_edges() const { return -1; }
-    int n_shared_vertices() const { return -1; }
+    bool get_common_face(index_t e0, index_t e1, PFace& fc);
 
-    bool get_common_face(int e0, int e1, PFace& fc);
-
-    void get_elem_nodes(int el, int nodes[8]) {
-        int off = m_elems_offs[el];
-        for(int k=0;k<8;++k) nodes[k] = m_elems[off+k];
+    void get_elem_nodes(index_t el, index_t nodes[8]) {
+        index_t off = m_elems_offs[el];
+        for(unsigned k=0;k<8;++k) nodes[k] = m_elems[off+k];
     }
     /// Returns domain number for an element:
     /// for now domain number == domain type:
@@ -74,7 +76,7 @@ public:
     /// 2: solid pml
     /// 3: fluid
     /// 4: solid
-    int get_elem_domain(int el) const {
+    int get_elem_domain(index_t el) const {
         const Material& mat = m_materials[m_mat[el]];
         //printf("%d -> %c (%d/%d)\n", el, mat.ctype, m_mat[el], int(m_materials.size()));
         return mat.domain();
@@ -87,39 +89,40 @@ public:
         return sfp;
     }
 
-    void get_neighbour_elements(int nn, const int* n, std::set<int>& elemset) const;
+    void get_neighbour_elements(int nn, const index_t* n, std::set<index_t>& elemset) const;
 
 public:
     // attributes
-    int n_procs;
+    index_t n_procs;
     int n_points;
     int n_neu;
     int n_PW;
-    int ngrps; 
+    int ngrps;
     int n_ctl_nodes; ///< Number of control nodes per element (8 or 27)
 
-    int *m_xadj, *m_adjncy;
+    index_t *m_xadj, *m_adjncy;
     bool debug;
 
     std::map<int,AABB> m_bbox;
     std::vector<double> m_xco,m_yco,m_zco;  ///< Coordinates of the nodes
-    std::vector<int> m_elems; ///< size=(8|27)*n_elems ; describe each node of every elements
+    std::vector<index_t> m_elems; ///< size=(8|27)*n_elems ; describe each node of every elements
     //std::vector<int> m_Quad;
-    std::vector<int> m_elems_offs; ///< size=n_elems+1; offset of node idx into elems
+    std::vector<index_t> m_elems_offs; ///< size=n_elems+1; offset of node idx into elems
     std::vector<int> m_mat;  ///< size=n_elems; material index for element
     std::vector<int> m_nelems_per_proc; // ?? number of elements for each procs
     std::vector<Material> m_materials;
     std::vector<unsigned int> m_vertex_domains;
     VertexElemMap  m_vertex_to_elem;
     std::vector<std::string> m_surf_matname;
-    std::map<int, std::pair<std::pair< std::vector<int>, int>, int>  > surfelem; // hexa8_num,<hexa8_id>,hexa8_tag,Quad4_tag
+
+    surf_info_map_t surfelem; // hexa8_num,<hexa8_id>,hexa8_tag,Quad4_tag
 
     void build_vertex_to_elem_map();
     void save_bbox();
     // A map of surfaces, indexed by names
     std::map<std::string,Surface*> m_surfaces;
 protected:
-    std::vector<int> m_procs; ///< size=n_elems; elem->proc association
+    std::vector<index_t> m_procs; ///< size=n_elems; elem->proc association
 
 protected:
 

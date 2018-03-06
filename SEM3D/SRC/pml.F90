@@ -73,76 +73,19 @@ contains
     end subroutine define_PML_DumpEnd
     !
 #ifdef CPML
-    subroutine cpml_compute_coefs(m, a0, dt, cf0, cf1, cf2)
-        integer, intent(in) :: m
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        select case (m)
-        case (CPML_MIDPOINT1)
-            call cpml_compute_coefs_midpoint(a0,dt,cf0,cf1,cf2)
-        case (CPML_MIDPOINT2)
-            call cpml_compute_coefs_midpoint_ctr(a0,dt,cf0,cf1,cf2)
-        case (CPML_ORDER1)
-            call  cpml_compute_coefs_O1(a0,dt,cf0,cf1,cf2)
-        case (CPML_ORDER2)
-            call cpml_compute_coefs_O2(a0,dt,cf0,cf1,cf2)
-        case default
-            write(*,*) "Unknown CPML integration scheme", m
-            stop 1
-        end select
-    end subroutine cpml_compute_coefs
     !
-    subroutine cpml_compute_coefs_midpoint(a0, dt, cf0, cf1, cf2)
+    subroutine cpml_coefs_midpoint2(a0, dt, cf0, cf1)
         real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
+        real(fpp), intent(out) :: cf0, cf1
         !
         real(fpp) :: c
         ! Update convolution term (implicit midpoint)
         c = (1d0+0.5d0*a0*dt)
-        cf0 = (1d0-0.5d0*a0*dt)/c
         cf1 = dt/c
-        cf2 = 0d0
-    end subroutine cpml_compute_coefs_midpoint
+        cf0 = -a0*cf1
+    end subroutine cpml_coefs_midpoint2
+
     !
-    subroutine cpml_compute_coefs_midpoint_ctr(a0, dt, cf0, cf1, cf2)
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        !
-        real(fpp) :: c
-        real(fpp), parameter :: theta=0.25d0
-        ! Update convolution term (implicit midpoint)
-        c = (1d0+0.5d0*a0*dt)
-        cf0 = (1d0-0.5d0*a0*dt)/c
-        cf1 = theta*dt/c
-        cf2 = (1d0-theta)*dt/c
-    end subroutine cpml_compute_coefs_midpoint_ctr
-    !
-    subroutine cpml_compute_coefs_O1(a0, dt, cf0, cf1, cf2)
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        ! First order CPML
-        cf0 = exp(-a0*dt)
-        if (abs(a0)<1e-8) then
-            cf1 = dt
-        else
-            cf1 = (1d0-cf0)/a0
-        endif
-        cf2 = 0d0
-    end subroutine cpml_compute_coefs_O1
-    !
-    subroutine cpml_compute_coefs_O2(a0, dt, cf0, cf1, cf2)
-        real(fpp), intent(in) :: a0, dt
-        real(fpp), intent(out) :: cf0, cf1, cf2
-        ! First order CPML
-        cf0 = exp(-a0*dt)
-        if (abs(a0)<1e-8) then
-            cf1 = 0.5d0*dt
-            cf2 = cf1*exp(-0.5d0*a0*dt)
-        else
-            cf1 = (1d0-exp(-0.5d0*a0*dt))/a0
-            cf2 = cf1*exp(-0.5d0*a0*dt)
-        endif
-    end subroutine cpml_compute_coefs_O2
     !
     subroutine copy_cpml_coordinates(Tdomain, dom, dmtype)
         use sdomain
@@ -178,7 +121,8 @@ contains
         integer, intent(in) :: dmtype
         !
         integer, allocatable, dimension(:) :: types
-        integer :: dir1_count, dir2_count, ndir, mi, n, dir, num, itype, lnum
+        integer :: dir1_count, dir2_count, ndir, mi, n, dir
+        !integer :: itype, num, lnum
         dir1_count = 0
         dir2_count = 0
         !
@@ -236,13 +180,12 @@ contains
         deallocate(types)
     end subroutine cpml_reorder_elements
 
-    subroutine cpml_allocate_multi_dir(Tdomain, dom, dmtype)
+    subroutine cpml_allocate_multi_dir(Tdomain, dom)
         use sdomain
         use gll3d
         implicit none
         type(domain) :: TDomain
         class(dombase_cpml), intent (INOUT) :: dom
-        integer, intent(in) :: dmtype
         !
         integer :: dir1_count, dir2_count, ngll
         ngll = dom%ngll
@@ -268,7 +211,6 @@ contains
         real(fpp), intent(out) :: alpha, kappa, dxi
         !
         real(fpp) :: xoverl, d0
-        integer :: lnum
 
         xoverl = xi/wpml
         if (xoverl > 1d0) xoverl = 1d0
@@ -517,8 +459,6 @@ contains
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
         !
-        real(fpp) :: k
-        !
         cb0 =  k0*k1/k2
         cb1 =  cb0*(a0-a2)*d0*(a0-a1-d1)/((a0-a1)*(a0-a2-d2))
         cb2 =  cb0*(a1-a2)*(a1-a0-d0)*d1/((a1-a0)*(a1-a2-d2))
@@ -528,8 +468,6 @@ contains
     subroutine get_coefs_Lijk_aac(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
-        !
-        real(fpp) :: k
         !
         cb0 =  k0*k1/k2
 
@@ -544,8 +482,6 @@ contains
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
         !
-        real(fpp) :: k
-        !
         cb0 =  k0*k1/k2
         cb1 = cb0*d0*(a0 - a2)*(a0 - a1 - d1)/(a0 - a1)**2
         cb3 = -cb0*d1*(a1 - a2)*(a0 - a1 + d0)/(a0 - a1)
@@ -558,8 +494,6 @@ contains
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
         !
-        real(fpp) :: k
-        !
         cb0 =  k0*k1/k2
         cb3 = -cb0*d0*(a0 - a2)*(a0 - a1 - d1)/(a0 - a1)
         cb2 = -cb0*d1*(a1 - a2)* (a0 - a1 + d0)/(a0 - a1)**2
@@ -571,8 +505,6 @@ contains
     subroutine get_coefs_Lijk_aaa(k0,k1,k2,a0,a1,a2,d0,d1,d2, cb0, cb1, cb2, cb3)
         real(fpp), intent(in)  :: k0,k1,k2,a0,a1,a2,d0,d1,d2
         real(fpp), intent(out) :: cb0, cb1, cb2, cb3
-        !
-        real(fpp) :: k
         !
         cb0 =  k0*k1/k2
         cb3 = - cb0*d0*d1*(a0 - a2)
@@ -609,7 +541,7 @@ contains
         integer, intent(in) :: i, j, k, bnum, ee
         !
         real(fpp) :: a0, a1, d0, d1, cfp
-        integer :: i1, i2, sel
+        integer :: i1, i2
 
         if (dom%cpml_one_root == 0) return
 
