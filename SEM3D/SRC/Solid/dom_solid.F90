@@ -674,8 +674,18 @@ contains
                             do ee = 0, VCHUNK-1
                                 idx = dom%Idom_(i,j,k,bnum,ee)
                                 Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
-                                ! MIRROR INTERACTION
-                                if (dom%use_mirror.and.dom%mirror_sl%n_glltot>0) then
+                            enddo
+                        enddo
+                    enddo
+                enddo
+            enddo
+            if (dom%use_mirror.and.dom%mirror_sl%n_glltot>0) then
+                ! MIRROR INTERACTION
+                do i_dir = 0,2
+                    do k = 0,ngll-1
+                        do j = 0,ngll-1
+                            do i = 0,ngll-1
+                                do ee = 0, VCHUNK-1
                                     idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
                                     if (idx_m>=0.and.dom%mirror_type==0) then
                                         dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
@@ -683,13 +693,12 @@ contains
                                         Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir)+ &
                                             dom%mirror_sl%fields(i_dir+1,idx_m)
                                     endif
-                                endif
-                                !
+                                enddo
                             enddo
                         enddo
                     enddo
                 enddo
-            enddo
+            endif
         endif
 
         Fox = 0d0
