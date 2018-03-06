@@ -233,7 +233,7 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i=0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(ee) safelen(VCHUNK) private(acoeff)
 #endif
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
@@ -294,6 +294,9 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(ee) safelen(VCHUNK) private(ind)
+#endif
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     VelPhi(ee,i,j,k) = champs1%fpml_VelPhi(ind,0) + &
@@ -307,7 +310,7 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(ee) safelen(VCHUNK) private(dVPhi_dxi,dVPhi_deta,dVPhi_dzeta,dVelPhi_dx, dVelPhi_dy, dVelPhi_dz)
 #endif
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)

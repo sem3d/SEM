@@ -260,6 +260,9 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i=0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
+#endif
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     sum_vx = 0d0
                     sum_vy = 0d0
@@ -291,6 +294,9 @@ contains
             do l = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
+#endif
                         BEGIN_SUBELEM_LOOP(e,ee,bnum)
                         acoeff = - dom%hprime(j,l)*dom%GLLw(i)*dom%GLLw(l)*dom%GLLw(k)*dom%Jacob_(i,l,k,bnum,ee)
                         sum_vx = acoeff*(dom%InvGrad_(0,1,i,l,k,bnum,ee)*dom%Diagonal_Stress_(i,l,k,0,bnum,ee) + &
@@ -319,6 +325,9 @@ contains
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
+#endif
                         BEGIN_SUBELEM_LOOP(e,ee,bnum)
                         acoeff = - dom%hprime(k,l)*dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(l)*dom%Jacob_(i,j,l,bnum,ee)
                         sum_vx = acoeff*(dom%InvGrad_(0,2,i,j,l,bnum,ee)*dom%Diagonal_Stress_(i,j,l,0,bnum,ee) + &
@@ -396,7 +405,7 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(e,ee)
 #endif
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
