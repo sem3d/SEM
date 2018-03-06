@@ -135,7 +135,7 @@ int parse_materials_spec(yyscan_t scanner, sem_material_list_t* mats)
     return 1;
 }
 
-void read_sem_materials(sem_material_list_t* materials, const char* mater_in, int* err)
+void read_sem_materials(sem_material_list_t* materials, int rank, const char* mater_in, int* err)
 {
     struct scan_info info;
     FILE* input;
@@ -149,10 +149,11 @@ void read_sem_materials(sem_material_list_t* materials, const char* mater_in, in
     input = fopen(mater_in, "r");
 
     if (input==NULL) {
-      fprintf(stderr, "Error opening file : '%s'\n", mater_in);
-      fprintf(stderr, "error: %d - %s\n", errno, strerror(errno));
-      return ; // Not critical
-//      exit(1);
+	if (rank==0) {
+	    fprintf(stderr, "Error opening file : '%s'\n", mater_in);
+	    fprintf(stderr, "error: %d - %s\n", errno, strerror(errno));
+	}
+	return ; // Not critical
     }
     clear_scan(&info);
 

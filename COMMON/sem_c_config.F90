@@ -239,11 +239,12 @@ module sem_c_config
            integer(C_INT), intent(out) :: err
        end subroutine read_sem_config
 
-       subroutine read_sem_materials(materials, spec, err) bind(c)
+       subroutine read_sem_materials(materials, rank, spec, err) bind(c)
            use iso_c_binding
            import :: sem_material_list
            type(sem_material_list), intent(in) :: materials
            character(C_CHAR), dimension(*) :: spec
+           integer(C_INT), intent(in) :: rank
            integer(C_INT), intent(out) :: err
        end subroutine read_sem_materials
 

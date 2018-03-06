@@ -82,7 +82,7 @@ contains
         type(sem_material), pointer :: matdesc
         integer :: code, num
 
-        call read_sem_materials(Tdomain%material_list, "material.spec"//C_NULL_CHAR, code)
+        call read_sem_materials(Tdomain%material_list, Tdomain%rank, "material.spec"//C_NULL_CHAR, code)
 
         call c_f_pointer(Tdomain%material_list%head, matdesc)
 
