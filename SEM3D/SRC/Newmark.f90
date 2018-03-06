@@ -115,7 +115,7 @@ contains
 
         ! External Forces
         if(Tdomain%logicD%any_source)then
-            call stat_starttick()
+            call stat_starttick(STAT_FEXT)
             call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime, 1)
             call stat_stoptick(STAT_FEXT)
         end if
@@ -208,7 +208,7 @@ contains
         integer :: n, k
 
         if(Tdomain%Comm_data%ncomm > 0)then
-            call stat_starttick()
+            call stat_starttick(STAT_GIVE)
             do n = 0,Tdomain%Comm_data%ncomm-1
                 ! Domain SOLID
                 k = 0
@@ -246,7 +246,7 @@ contains
             call exchange_sem_var(Tdomain, 104, Tdomain%Comm_data)
 
             ! Take
-            call stat_starttick()
+            call stat_starttick(STAT_TAKE)
             do n = 0,Tdomain%Comm_data%ncomm-1
                 ! Domain SOLID
                 k = 0
@@ -298,28 +298,28 @@ contains
 
         ! Elements solide
         if (Tdomain%sdom%nglltot /= 0) then
-            call stat_starttick()
+            call stat_starttick(STAT_FSOL)
             call newmark_predictor_solid(Tdomain%sdom,0,1)
             call stat_stoptick(STAT_FSOL)
         endif
 
         ! Elements fluide
         if (Tdomain%fdom%nglltot /= 0) then
-            call stat_starttick()
+            call stat_starttick(STAT_FFLU)
             call newmark_predictor_fluid(Tdomain%fdom,0,1)
             call stat_stoptick(STAT_FFLU)
         endif
 
         ! Elements solide pml
         if (Tdomain%spmldom%nglltot /= 0) then
-            call stat_starttick()
+            call stat_starttick(STAT_PSOL)
             call newmark_predictor_solidpml(Tdomain%spmldom, Tdomain,0,1)
             call stat_stoptick(STAT_PSOL)
         endif
 
         ! Elements fluide pml
         if (Tdomain%fpmldom%nglltot /= 0) then
-            call stat_starttick()
+            call stat_starttick(STAT_PFLU)
             call newmark_predictor_fluidpml(Tdomain%fpmldom, Tdomain,0,1)
             call stat_stoptick(STAT_PFLU)
         endif
@@ -341,13 +341,13 @@ contains
         dt = Tdomain%TimeD%dtmin
         ! Si il existe des éléments PML fluides
         if (Tdomain%fpmldom%nglltot /= 0) then
-            call stat_starttick()
+            call stat_starttick(STAT_PFLU)
             call newmark_corrector_fluidpml(Tdomain%fpmldom, dt, 0, 1)
             call stat_stoptick(STAT_PFLU)
         endif
         ! Si il existe des éléments fluides
         if (Tdomain%fdom%nglltot /= 0) then
-            call stat_starttick()
+            call stat_starttick(STAT_FFLU)
             call newmark_corrector_fluid(Tdomain%fdom, dt, 0, 1)
             call stat_stoptick(STAT_FFLU)
         endif
@@ -369,14 +369,14 @@ contains
         t = Tdomain%TimeD%rtime
         ! Si il existe des éléments PML solides
         if (Tdomain%spmldom%nglltot /= 0) then
-            call stat_starttick()
+            call stat_starttick(STAT_PSOL)
             call newmark_corrector_solidpml(Tdomain%spmldom, dt, t, 0, 1)
             call stat_stoptick(STAT_PSOL)
         endif
 
         ! Si il existe des éléments solides
         if (Tdomain%sdom%nglltot /= 0) then
-            call stat_starttick()
+            call stat_starttick(STAT_FSOL)
             call newmark_corrector_solid(Tdomain%sdom, dt, 0, 1)
             call stat_stoptick(STAT_FSOL)
         endif
@@ -399,7 +399,7 @@ contains
         integer  :: n, indsol, indflu, indpml
 
         if (Tdomain%fdom%nbelem>0) then
-            call stat_starttick()
+            call stat_starttick(STAT_FFLU)
             if (Tdomain%fdom%use_mirror.and.Tdomain%fdom%mirror_fl%n_glltot>0.and.Tdomain%fdom%mirror_type>0) then
                 call load_mirror_fl(Tdomain%fdom, ntime)
             endif
@@ -412,7 +412,7 @@ contains
             call stat_stoptick(STAT_FFLU)
         end if
         if (Tdomain%fpmldom%nbelem>0) then
-            call stat_starttick()
+            call stat_starttick(STAT_PFLU)
             do n = 0,Tdomain%fpmldom%nblocks-1
                 call pred_flu_pml(Tdomain%fpmldom, Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs(i1), n)
                 call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%fpmldom%champs(i1), n, Tdomain)
@@ -420,7 +420,7 @@ contains
             call stat_stoptick(STAT_PFLU)
         end if
         if (Tdomain%sdom%nbelem>0) then
-            call stat_starttick()
+            call stat_starttick(STAT_FSOL)
             if (Tdomain%sdom%use_mirror.and.Tdomain%sdom%mirror_sl%n_glltot>0.and.Tdomain%sdom%mirror_type>0) then
                 call load_mirror_sl(Tdomain%sdom, ntime)
             endif
@@ -433,7 +433,7 @@ contains
             call stat_stoptick(STAT_FSOL)
         end if
         if (Tdomain%spmldom%nbelem>0) then
-            call stat_starttick()
+            call stat_starttick(STAT_PSOL)
             do n = 0,Tdomain%spmldom%nblocks-1
                 call pred_sol_pml(Tdomain%spmldom, Tdomain%TimeD%dtmin, Tdomain%spmldom%champs(i1), n)
                 call forces_int_sol_pml(Tdomain%spmldom, Tdomain%spmldom%champs(i1), n, Tdomain)

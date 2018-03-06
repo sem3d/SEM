@@ -37,7 +37,7 @@ contains
         vector%send_reqs = MPI_REQUEST_NULL
         vector%recv_reqs = MPI_REQUEST_NULL
 
-        call stat_starttick()
+        call stat_starttick(STAT_WAIT)
         do i = 0,vector%ncomm-1
             dest = vector%Data(i)%dest
             src = vector%Data(i)%src

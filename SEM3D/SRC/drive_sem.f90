@@ -25,7 +25,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     use mdefinitions, only : define_arrays
     use semconfig !< pour config C
     use sem_c_bindings
-    use stat, only : stat_starttick, stat_stoptick, STAT_START
+    use stat, only : stat_starttick, stat_stoptick, stat_init, stat_finalize, STAT_FULL, STAT_START
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -112,6 +112,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     call stat_init(rg, nb_procs, .true.)
     call stat_starttick(STAT_FULL)
+    call stat_starttick(STAT_START)
 
  !----------------------------------------------------------------------------------------------!
  !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
@@ -126,6 +127,8 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
+
+    call stat_stoptick(STAT_START)
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
@@ -534,7 +537,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         endif
         !- Time remaining
         if (mod(ntime,20)==0) then
-            call stat_starttick()
+            call stat_starttick(STAT_TSTEP)
             call TREMAIN(remaining_time)
             if(remaining_time < max_time_left) interrupt = 1
             call MPI_ALLREDUCE(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
@@ -548,7 +551,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- Ici, on a une info globale pour interrupt, protection, i_snap
         if(interrupt > 0) protection = 1
 
-        call stat_starttick()
+        call stat_starttick(STAT_IO)
 
 !---------------------------------------------------------!
     !- SNAPSHOTS

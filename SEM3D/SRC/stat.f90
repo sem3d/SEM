@@ -15,23 +15,22 @@ module stat
     integer, parameter :: STAT_FULL  = 8 !
     integer, parameter :: STAT_TSTEP = 9 ! Timestep synchronisation
     integer, parameter :: STAT_IO    =10 ! IO
-    integer, parameter :: STAT_START =11 ! Initialisation/startup time
+    integer, parameter :: STAT_START  =11 ! Initialisation/startup time
 
     character(len=5), dimension(0:STAT_COUNT-1) :: stat_labels = (/ &
         "GIVE ", "TAKE ", "WAIT ", "FSOL ", "FFLU ", "PSOL ", "PFLU ", "FEXT ", "FULL ", "TSTEP","IO   ", "INIT " /)
 
-    integer, private :: clockRate, maxPeriod
+    integer*8, private :: clockRate, maxPeriod
 
-    integer*8, private :: startFullTick, stopFullTick
+    integer*8, private :: startFullTick, stopFullTick, deltaTick
     real(fpp), private :: fullTime
 
-    integer     , private :: startTick, stopTick, deltaTick
     real(fpp), dimension(0:STAT_COUNT-1), private :: statTimes
     integer*8, dimension(0:STAT_COUNT-1), private :: statStart, statStop
 
     logical :: log_traces
     integer :: ntraces, itrace, rank
-    integer*8, allocatable, dimension(2,:) :: traces
+    integer*8, allocatable, dimension(:,:) :: traces
 contains
 
 
@@ -39,8 +38,8 @@ contains
         implicit none
         integer, intent(in) :: step
 
-        traces(1,itrace) = step
-        traces(2,itrace) = statStart(step)-startFullTick
+        traces(itrace,1) = step
+        traces(itrace,2) = statStart(step)-startFullTick
         itrace = itrace + 1
     end subroutine add_start_trace
 
@@ -49,11 +48,11 @@ contains
         integer, intent(in) :: step
 
         traces(itrace,1) = step+1000
-        traces(itrace,2) = statStart(step)-startFullTick
+        traces(itrace,2) = statStop(step)-startFullTick
         itrace = itrace + 1
         if (itrace>ntraces) then
-            write(124,*) traces(1:itrace-1,1)
-            write(125,*) traces(1:itrace-1,2)
+            write(124) traces(1:itrace-1,1)
+            write(125) traces(1:itrace-1,2)
             itrace = 1
         end if
     end subroutine add_stop_trace
@@ -63,11 +62,13 @@ contains
         integer, intent(in) :: rg, nprocs
         logical, intent(in) :: dotraces
         character(Len=1000) :: fname
+        integer :: ierr
 
         call system_clock(COUNT_RATE=clockRate)
         call system_clock(COUNT_MAX=maxPeriod)
 
         call system_clock(count=startFullTick)
+        statStart(STAT_FULL)=startFullTick
         if (log_traces) call add_start_trace(STAT_FULL)
 
         statTimes(:) = 0d0
@@ -79,12 +80,12 @@ contains
 
         if (log_traces) then
             ntraces = 2000
-            itraces = 1
-            sem_mkdir("timings")
+            itrace = 1
+            ierr = sem_mkdir("timings")
             write(fname,"(A,I6.6,A)") "timings/type.", rank,".bin"
-            open(124, file=trim(adjustl(fname)),unformatted)
+            open(124, file=trim(adjustl(fname)),form="unformatted", access="stream")
             write(fname,"(A,I6.6,A)") "timings/time.", rank,".bin"
-            open(125, file=trim(adjustl(fname)),unformatted)
+            open(125, file=trim(adjustl(fname)),form="unformatted", access="stream")
 
             allocate(traces(ntraces+4,2))
         end if
@@ -99,6 +100,7 @@ contains
         integer :: status(MPI_STATUS_SIZE)
 
         call system_clock(count=stopFullTick)
+        statStop(STAT_FULL)=stopFullTick
         if (log_traces) then
             ntraces=1 ! force output
             call add_stop_trace(STAT_FULL)
@@ -123,7 +125,7 @@ contains
                 end if
 
                 do i=0,STAT_COUNT-1
-                    write(123, '(a6,I4,f10.3)') stat_labels(i), r, statTimes(i)
+                    write(123, '(a8,I6,f12.5)') stat_labels(i), r, statTimes(i)
                 end do
             end do
             close (123)
