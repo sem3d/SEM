@@ -352,7 +352,7 @@ contains
     subroutine read_mesh_file_h5(Tdomain)
         use mpi
         use sem_c_bindings
-        use semdatafiles, only : MAX_FILE_SIZE
+        use semdatafiles, only : MAX_FILE_SIZE, strrank
         use constants
         use surface_input
 

@@ -44,6 +44,21 @@ contains
         end if
     end function pjoin
 
+    function strrank(rank)
+        implicit none
+        integer, intent(in) :: rank
+        character(Len=MAX_FILE_SIZE) :: strrank
+
+        if (rank<10000) then
+            write(strrank,"(I4.4)") rank
+        else if (rank<100000) then
+            write(strrank,"(I5.5)") rank
+        else
+            write(strrank,"(I6.6)") rank
+        endif
+    end function strrank
+
+
     subroutine init_mka3d_path()
         path_param = "./Parametrage/sem"
         path_traces = "./Capteurs/sem"
@@ -94,7 +109,8 @@ contains
         integer, intent(in) :: rank
         character(Len=MAX_FILE_SIZE), intent(out) :: fname
         character(Len=MAX_FILE_SIZE) :: temp
-        write(temp,"(a7,I4.4,a3)") "mirror.",rank,".h5"
+
+        temp = "mirror."//trim(adjustl(strrank(rank)))//".h5"
         fname = pjoin(path_mirror,temp)
     end subroutine semname_mirrorfile_h5
 
@@ -117,7 +133,8 @@ contains
         integer, intent(in) :: rank
         character(Len=MAX_FILE_SIZE), intent(out) :: fname
         character(Len=MAX_FILE_SIZE) :: temp
-        write(temp,"(a9,I4.4,a3)") "capteurs.",rank,".h5"
+
+        temp = "capteurs."//trim(adjustl(strrank(rank)))//".h5"
         fname = pjoin(path_traces,temp)
     end subroutine semname_tracefile_h5
 
@@ -155,7 +172,8 @@ contains
         character(Len=MAX_FILE_SIZE)             :: temp1, temp2
 
         call semname_protection_iter_dir(iter,temp1)
-        write(temp2,"(a11,I8.8,a1,I4.4)") "Protection_",iter,".",rank
+
+        write(temp2,"(a11,I8.8,a1,a)") "Protection_",iter,".",trim(adjustl(strrank(rank)))
         fnamef = pjoin(temp1, temp2)
         DEBUG(fnamef)
     end subroutine semname_protection_iter_rank_file
@@ -344,23 +362,23 @@ contains
 
    !!end fichier main 2d
 
-    subroutine semname_snap_geom_file (srank,fnamef)
+    subroutine semname_snap_geom_file (rank,fnamef)
         implicit none
-        integer,intent(in) :: srank
+        integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
         character(Len=MAX_FILE_SIZE) :: temp
 
-        write(temp,"(a,I4.4,a)") "geometry",srank,".h5"
+        temp = "geometry."//trim(adjustl(strrank(rank)))//".h5"
         fnamef = pjoin(path_results, temp)
     end subroutine semname_snap_geom_file
 
-    subroutine semname_snap_result_file (srank,isort,fnamef)
+    subroutine semname_snap_result_file (rank,isort,fnamef)
         implicit none
-        integer,intent(in) :: srank, isort
+        integer,intent(in) :: rank, isort
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
         character(Len=MAX_FILE_SIZE) :: temp
 
-        write(temp,"(a,I4.4,a,I4.4,a)") "Rsem",isort,"/sem_field.",srank,".h5"
+        write(temp,"(a,I4.4,a,a,a)") "Rsem",isort,"/sem_field.",trim(adjustl(strrank(rank))),".h5"
         fnamef = pjoin(path_results, temp)
     end subroutine semname_snap_result_file
 
@@ -397,7 +415,8 @@ contains
         character(Len=*),intent(in) :: meshfile
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
         character(Len=MAX_FILE_SIZE) :: temp, sem_dir
-        write(temp,"(a,a1,I4.4)") trim(adjustl(meshfile)),".",rg
+
+        temp = trim(adjustl(meshfile))//"."//trim(adjustl(strrank(rg)))
         sem_dir = pjoin(path_data, "sem")
         fnamef = pjoin(sem_dir, temp)
     end subroutine semname_read_input_meshfile
@@ -672,22 +691,6 @@ contains
 
     !!end fichier savefield_disp 3d
 
-    !!fichier savetrace 3d
-    subroutine semname_savetrace_trace (n,coord,k,fnamef) !3d
-        !SEMFILE 61->63 W ./data/Trace(X~Y~Z)/traceIII(X~Y~Z)JJJ
-        implicit none
-        integer ,intent(in) :: n
-        integer ,intent(in) :: k
-        character(Len=*),intent(in) :: coord
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-        write(fnamef,"(a,I4.4,a,I3.3)") "trace",n,trim(adjustl(coord)),k
-        fnamef = pjoin(path_traces, temp)
-        DEBUG(fnamef)
-    end subroutine semname_savetrace_trace
-
-    !!end fichier savetrace 3d
-
     !!fichier sem 2d 3d
     subroutine semname_sem_frontiere(fichier,fnamef) !2d
         !SEMFILE ?(sem%fileId) W XXXfrontiere
@@ -766,17 +769,6 @@ contains
 
 
 !--------- Fichiers log/debug ---------------------
-    subroutine semname_drive_sem_listing (rg, fnamef)
-        implicit none
-        integer, intent(in) :: rg
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-
-        write(temp,"(a,I4.4)")"sem.listing.",rg
-
-        fnamef = pjoin(path_logs, temp)
-    end subroutine semname_drive_sem_listing
-
     !! Nom du fichier contenant le nombre de processeurs ayant genere une sortie
     subroutine semname_nb_proc(isort,fnamef)
         implicit none
