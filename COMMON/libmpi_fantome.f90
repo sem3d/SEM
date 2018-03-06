@@ -64,7 +64,7 @@ module mpi
        MODULE PROCEDURE MPI_Sendrecv_rv, MPI_Sendrecv_r1, MPI_Sendrecv_iv, MPI_Sendrecv_i1, MPI_Sendrecv_rm
     END INTERFACE
     INTERFACE MPI_Allgather
-       MODULE PROCEDURE MPI_Allgather_rv, MPI_Allgather_r1, MPI_Allgather_iv, MPI_Allgather_i1
+       MODULE PROCEDURE MPI_Allgather_rv, MPI_Allgather_r1, MPI_Allgather_iv, MPI_Allgather_i1, MPI_Allgather_bool
     END INTERFACE
 
     include 'mpif.h'
@@ -164,6 +164,15 @@ contains
         ierr = 0
 
     end subroutine MPI_COMM_SPLIT
+
+    subroutine MPI_COMM_FREE (comm, ierr)
+        implicit none
+        integer, intent(in) :: comm
+        integer, intent(inout) ::ierr
+
+        ierr = 0
+
+    end subroutine MPI_COMM_FREE
 
 
     !! ----------------------- MPI_Bcast ---------------------------
@@ -725,6 +734,15 @@ contains
         recvbuf = sendbuf
     end subroutine MPI_ALLGATHER_i1
 
+    subroutine MPI_ALLGATHER_bool(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm, ierr )
+        implicit none
+        integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, comm
+        integer, intent(inout) :: ierr
+        logical, intent(inout) :: recvbuf(recvcount)
+        logical, intent(in) :: sendbuf
+        ierr = 0
+        recvbuf = sendbuf
+    end subroutine MPI_ALLGATHER_bool
     !! ----------------------- MPI_Sendrecv ---------------------------
     subroutine MPI_SENDRECV_r1(val1, long1, type1, dest1, tag1, val2, long2, type2, dest2, tag2, comm, status, ierr)
         implicit none

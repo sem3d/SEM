@@ -133,14 +133,6 @@ set(SEM3D_SOURCES_CPL
     ${PRJ}/SRC/drive_sem.f90
     ${PRJ}/SRC/main.F90
     )
-
-include_directories(${PRJ}/SRC)
-add_library(sem3dcommon ${SEM3D_SOURCES})
-add_dependencies(sem3dcommon semcommon)
-set_target_properties(sem3dcommon PROPERTIES
-				  COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
-                                  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)
-
 if(OPT_MPI)
   #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
   # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
@@ -155,6 +147,14 @@ if(OPT_MPI)
 else(OPT_MPI)
   set(SEM3D_SOURCES ${SEM3D_SOURCES} ${FTM_SOURCES})
 endif(OPT_MPI)
+
+include_directories(${PRJ}/SRC)
+add_library(sem3dcommon ${SEM3D_SOURCES})
+add_dependencies(sem3dcommon semcommon)
+set_target_properties(sem3dcommon PROPERTIES
+				  COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
+                                  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)
+
 
 add_executable(sem3d.exe  ${SEM3D_SOURCES_CPL})
 target_link_libraries(sem3d.exe sem3dcommon ${SEM_EXTRA_LIBS})

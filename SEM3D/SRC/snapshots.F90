@@ -67,10 +67,10 @@ contains
     end subroutine grp_write_real_2d
 
     subroutine write_1d_var_c(outputs, parent_id, fname, field)
-        type(output_var_t), intent(in) :: outputs
+        type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         character(len=*), intent(in) :: fname
-        real(fpp), dimension(:) :: field
+        real(fpp), intent(in), dimension(:) :: field
         !
         integer(HSIZE_T), dimension(1) :: dims
         integer(HID_T) :: dset_id
@@ -88,10 +88,10 @@ contains
     end subroutine write_1d_var_c
 
     subroutine write_1d_var_n(outputs, parent_id, fname, field)
-        type(output_var_t), intent(in) :: outputs
+        type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         character(len=*), intent(in) :: fname
-        real(fpp), dimension(:) :: field
+        real(fpp), intent(in), dimension(:) :: field
         !
         integer(HSIZE_T), dimension(1) :: dims
         integer(HID_T) :: dset_id
@@ -109,10 +109,10 @@ contains
     end subroutine write_1d_var_n
 
     subroutine write_2d_var_vecn(outputs, parent_id, fname, field)
-        type(output_var_t), intent(in) :: outputs
+        type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         character(len=*), intent(in) :: fname
-        real(fpp), dimension(:,:) :: field
+        real(fpp), intent(in), dimension(:,:) :: field
         !
         integer(HSIZE_T), dimension(2) :: dims
         integer(HID_T) :: dset_id
@@ -131,7 +131,7 @@ contains
     end subroutine write_2d_var_vecn
 
     subroutine grp_write_fields(outputs, parent_id, out_variables)
-        type(output_var_t), intent(in) :: outputs
+        type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         integer, dimension(0:), intent(in) :: out_variables
         !
@@ -530,7 +530,7 @@ contains
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
-        type(output_var_t), intent(in) :: outputs
+        type(output_var_t), intent(inout) :: outputs
         !
         real(fpp), dimension(:,:), allocatable :: nodes
         integer :: n
