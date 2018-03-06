@@ -212,7 +212,6 @@ contains
                                 enddo
                             endif
                         endif
-                        write(*,*)
 
                     else
 
@@ -238,11 +237,9 @@ contains
 
                 else
                     write(*,'(A21,30I4)') "Associated surface : ",(Tdomain%nsurfsource(nsurf)%index(i), i=1,Count(Boolean))
-                    write(*,*)
                 endif
                 nsurf = nsurf + 1
                 Tdomain%logicD%surfBC = .true.
-                write(*,*)
             endif
             call c_f_pointer(surf%next, surf)
 
@@ -251,7 +248,6 @@ contains
         if (Tdomain%nsurface /= nsurf) Tdomain%nsurface = nsurf
         if (allocated(dummylist)) deallocate(dummylist)
         if (nsurf==0) Tdomain%logicD%surfBC = .false.
-        write(*,*)
 
     end subroutine read_surface_input
     !----------------------------------------------------------------------------------
@@ -356,8 +352,6 @@ contains
                 enddo
             enddo
         end do
-        write(*,*)
-
     end subroutine define_surface_properties
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------

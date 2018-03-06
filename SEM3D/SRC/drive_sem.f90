@@ -401,7 +401,6 @@ subroutine INIT_COUPLING_MKA(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    character(Len=MAX_FILE_SIZE) :: fnamef
     integer                      :: finSem,MaxNgParDir
 
     if (Tdomain%rank == 0) then
@@ -409,8 +408,6 @@ subroutine INIT_COUPLING_MKA(Tdomain)
             ' en vitesses, systeme lineaire sur la vitesse,', &
             ' contraintes discontinues pour les ddl de couplage'
     endif
-    call semname_drive_sem_listing(Tdomain%rank, fnamef)
-    open(UNIT=50, FILE=fnamef, STATUS='UNKNOWN')
     call initialisation_couplage(Tdomain, MaxNgParDir)
     finSem = 0
 
