@@ -823,18 +823,19 @@ contains
         integer, intent(in) :: f0, f1
         !
         integer :: i_dir, n, indpml
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs(f0)%Forces(indpml,:) = 0.
+            !dom%champs(f0)%Veloc(indpml,:) = 0.
+        enddo
         do i_dir = 0,2
 !$omp simd linear(n)
             do n = 0,dom%nglltot-1
                 dom%champs(f0)%Forces(n,i_dir) = dom%champs(f1)%Forces(n,i_dir) * dom%MassMat(n)
                 dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f0)%Forces(n,i_dir)
+                dom%champs(f0)%Depla(n,i_dir) = dom%champs(f0)%Depla(n,i_dir) + dt * dom%champs(f0)%Veloc(n,i_dir)
             end do
         enddo
-        do n = 0, dom%n_dirich-1
-            indpml = dom%dirich(n)
-            dom%champs(f0)%Veloc(indpml,:) = 0.
-        enddo
-        dom%champs(f0)%Depla = dom%champs(f0)%Depla + dt * dom%champs(f0)%Veloc
     end subroutine newmark_corrector_solid
 
     function solid_Pspeed(dom, lnum, i, j, k) result(Pspeed)

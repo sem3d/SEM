@@ -242,6 +242,7 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
+#if 0
     subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
         use sdomain
         type(domain_solidpml), intent(inout) :: dom
@@ -364,6 +365,43 @@ contains
             enddo
         enddo
     end subroutine forces_int_sol_pml
+#else
+    subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
+        use sdomain
+        type(domain_solidpml), intent(inout) :: dom
+        type(champssolidpml), intent(inout) :: champs1
+        integer :: bnum
+        type (domain), intent (INOUT), target :: Tdomain ! Needed for compilation compatibility with SolidCPML
+        !
+        select case(dom%ngll)
+        case(5)
+            call forces_int_sol_pml_5(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
+                dom%m_Diagonal_Stress, dom%m_Residual_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+        case(6)
+            call forces_int_sol_pml_6(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
+                dom%m_Diagonal_Stress, dom%m_Residual_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+         case default
+            call forces_int_sol_pml_n(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
+                dom%m_Diagonal_Stress, dom%m_Residual_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+        end select
+        
+    end subroutine forces_int_sol_pml
+
+#define NGLLVAL 5
+#define PROCNAME forces_int_sol_pml_5
+#include "calcul_forces_int_pml.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#define NGLLVAL 6
+#define PROCNAME forces_int_sol_pml_6
+#include "calcul_forces_int_pml.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#define PROCNAME forces_int_sol_pml_n
+#include "calcul_forces_int_pml.inc"
+
+
+#endif
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
         implicit none
