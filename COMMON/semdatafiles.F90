@@ -368,7 +368,7 @@ contains
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
         character(Len=MAX_FILE_SIZE) :: temp
 
-        temp = "geometry."//trim(adjustl(strrank(rank)))//".h5"
+        temp = "geometry"//trim(adjustl(strrank(rank)))//".h5"
         fnamef = pjoin(path_results, temp)
     end subroutine semname_snap_geom_file
 
