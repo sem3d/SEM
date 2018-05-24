@@ -608,8 +608,8 @@ void Mesh3D::compute_pml_free_surface()
             face_map_t::const_iterator it;
             it = faces.find(facet);
             if (it==faces.end()) {
-                printf("Found free face el=%ld: %ld %ld %ld %ld\n", el,
-                       facet.n[0], facet.n[1], facet.n[2], facet.n[3]);
+                //printf("Found free face el=%ld: %ld %ld %ld %ld\n", el,
+                //       facet.n[0], facet.n[1], facet.n[2], facet.n[3]);
 
                 // Check face orientation for PML
                 // TODO
@@ -625,14 +625,14 @@ void Mesh3D::compute_pml_free_surface()
 #if 1
                 // there's still a bug here??
                 if (fabs(r)<0.01) {
-                    printf("Skipped, not oriented correctly (%2d)\n", mat);
-                    printf("F: (%10.5lf, %10.5lf, %10.5lf)\n", fcN[0], fcN[1], fcN[2]);
-                    printf("P: (%10.5lf, %10.5lf, %10.5lf)\n", pmlN[0], pmlN[1], pmlN[2]);
+                    //printf("Skipped, not oriented correctly (%2d)\n", mat);
+                    //printf("F: (%10.5lf, %10.5lf, %10.5lf)\n", fcN[0], fcN[1], fcN[2]);
+                    //printf("P: (%10.5lf, %10.5lf, %10.5lf)\n", pmlN[0], pmlN[1], pmlN[2]);
 
-                    for(int n=0;n<4;++n) {
-                        printf("N[%d] ; {%8lf, %8lf, %8lf}\n", n,
-                               m_xco[facet.n[n]], m_yco[facet.n[n]],m_zco[facet.n[n]]);
-                    }
+                    //for(int n=0;n<4;++n) {
+                    //    printf("N[%d] ; {%8lf, %8lf, %8lf}\n", n,
+                    //           m_xco[facet.n[n]], m_yco[facet.n[n]],m_zco[facet.n[n]]);
+                    //}
                     continue;
                 }
 #endif
