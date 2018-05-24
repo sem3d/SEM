@@ -304,25 +304,25 @@ void Mesh3D::read_mesh_file(const std::string& fname)
     }
     h5h_read_dset(file_id, "/Sem3D/Mat", m_mat);
 
-    std::vector<int> domain=m_mat;
-    std::sort( domain.begin(), domain.end() );
-    domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
-
-    for (size_t i=0; i< m_mat.size(); i++){
-        m_mat[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_mat[i]));}
-
-    if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT)>0))
-    {
-        read_mesh_Quad8(file_id);
-    }
-    else
-    {
-        if (domain.size() > m_materials.size()){
-            printf("\n\n ERROR: Nb of physical volume in PythonHDF5.h5 is greater than that given in material.input \n");
-            exit(1);}
-        else if (domain.size() < m_materials.size()){ int mmm=m_materials.size();
-            for (int i= domain.size()-1; i < mmm; i++) m_materials.pop_back();}
-    }
+//    std::vector<int> domain=m_mat;
+//    std::sort( domain.begin(), domain.end() );
+//    domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
+//
+//    for (size_t i=0; i< m_mat.size(); i++){
+//        m_mat[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_mat[i]));}
+//
+//    if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT)>0))
+//    {
+//        read_mesh_Quad8(file_id);
+//    }
+//    else
+//    {
+//        if (domain.size() > m_materials.size()){
+//            printf("\n\n ERROR: Nb of physical volume in PythonHDF5.h5 is greater than that given in material.input \n");
+//            exit(1);}
+//        else if (domain.size() < m_materials.size()){ int mmm=m_materials.size();
+//            for (int i= domain.size()-1; i < mmm; i++) m_materials.pop_back();}
+//    }
 }
 
 void Mesh3D::read_mesh_hexa8(hid_t file_id)
