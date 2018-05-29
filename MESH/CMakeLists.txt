@@ -33,6 +33,7 @@ include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
 add_library(mesh3d
   ${SEMCOMMON}/h5helper.cpp
   ${SEMCOMMON}/read_unv.cpp
+  ${SEMCOMMON}/read_input.c
   ${PRJ}/CSRC/mesh_h5_output.cpp
   ${PRJ}/CSRC/meshpart.cpp
   ${PRJ}/CSRC/mesh.cpp

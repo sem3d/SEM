@@ -9,6 +9,7 @@
 #include "mesh_grid.h"
 #include "mesh.h"
 #include "mesh_common.h"
+#include "read_input.h"
 
 using namespace std;
 
@@ -126,13 +127,13 @@ void RectMesh::read_params_old(FILE* fparam)
     has_mirrors=0;
     sscanf(buffer, "%d", &has_mirrors);
 
-    if (has_mirrors<0 || has_mirrors>1) {
+    if (has_mirrors<0 || has_mirrors>2) {
         printf("Check your parameter file : we read has_mirros=%d instead of 0 or 1\n", has_mirrors);
         exit(1);
     }
 
     int m_W, m_E, m_S, m_N, m_D, m_U;
-    if (has_mirrors) {
+    if (has_mirrors == 1) {
         getData_line(&buffer, &n, fparam);
         sscanf(buffer, "%d %d %d %d %d %d", &m_W, &m_E, &m_S, &m_N, &m_D, &m_U);
         mrrs.W = mrrs.E = mrrs.S = mrrs.N = mrrs.D = mrrs.U = true;
@@ -148,6 +149,13 @@ void RectMesh::read_params_old(FILE* fparam)
         }
     }
 
+    if (has_mirrors == 2) { // Read input.spec
+        sem_config_t config;
+        int err;
+        read_sem_config(&config, 0, 3, "input.spec", &err);
+        dump_config(&config);
+        printf("\n");
+    }
 }
 
 int RectMesh::pointidx(int i, int j, int k)
