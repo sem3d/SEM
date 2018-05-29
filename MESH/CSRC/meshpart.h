@@ -161,7 +161,6 @@ protected:
     std::vector<index_t> m_mirror_ijk;
     std::vector<double> m_mirror_xyz;
     void handle_mirror(index_t el);
-    void compute_gll(const int& v, const double& xi, const double& eta, const double& zeta) const;
     void shape8_local2global(double const vco[3][8],
                              const double& xi, const double& eta, const double& zeta,
                              double& x, double& y, double& z) const;

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "mesh.h"
 #include "meshpart.h"
+#include "sem_cell_t.h"
 
 using std::vector;
 
@@ -341,11 +342,6 @@ index_t Mesh3DPart::add_node(index_t v0)
     return nv;
 }
 
-void Mesh3DPart::compute_gll(const int& v, const double& xi, const double& eta, const double& zeta) const
-{
-  // TODO
-}
-
 void Mesh3DPart::shape8_local2global(double const vco[3][8],
                                      const double& xi, const double& eta, const double& zeta,
                                      double& x, double& y, double& z) const
@@ -385,33 +381,38 @@ void Mesh3DPart::handle_mirror(index_t el)
         vco[2][lv1] = m_mesh.m_zco[gv1];
     }
 
+    vector<double> gll;
+    sem_cell_t sc; sc.calcul_gll(m_cfg->ngll, gll);
+
     double f0 = 0.;
     bool init = false;
+    for(int k=0;k<m_cfg->ngll;++k) {
+        for(int j=0;j<m_cfg->ngll;++j) {
+            for(int i=0;i<m_cfg->ngll;++i) {
+                double x, y, z;
+                shape8_local2global(vco, gll[i], gll[j], gll[k], x, y, z);
 
-    for(int ed=0;ed<12;++ed) {
-        for(int v=0;v<m_cfg->ngll;++v) {
-            double xi, eta, zeta;
-            compute_gll(v, xi, eta, zeta);
-            double x, y, z;
-            shape8_local2global(vco, xi, eta, zeta, x, y, z);
+                double r = m_cfg->mirror_impl_surf_radius;
+                double xc = m_cfg->mirror_impl_surf_center[0];
+                double yc = m_cfg->mirror_impl_surf_center[1];
+                double zc = m_cfg->mirror_impl_surf_center[2];
 
-            double r = m_cfg->mirror_impl_surf_radius;
-            double xc = m_cfg->mirror_impl_surf_center[0];
-            double yc = m_cfg->mirror_impl_surf_center[1];
-            double zc = m_cfg->mirror_impl_surf_center[2];
+                double dx = x-xc;
+                double dy = y-yc;
+                double dz = z-zc;
 
-            double dx = x-xc;
-            double dy = y-yc;
-            double dz = z-zc;
+                if (!init) {f0 = dx*dx + dy*dy + dz*dz - r*r; init = true;}
 
-            if (!init) {f0 = dx*dx + dy*dy + dz*dz - r*r; init = true;}
-
-            double f = dx*dx + dy*dy + dz*dz - r*r;
-            if (f0*f < 0.) {
-                m_mirror_e.push_back(el);
-                m_mirror_xyz.push_back(x);
-                m_mirror_xyz.push_back(y);
-                m_mirror_xyz.push_back(z);
+                double f = dx*dx + dy*dy + dz*dz - r*r;
+                if (f0*f < 0.) {
+                    m_mirror_e.push_back(el);
+                    m_mirror_ijk.push_back(i);
+                    m_mirror_ijk.push_back(j);
+                    m_mirror_ijk.push_back(k);
+                    m_mirror_xyz.push_back(x);
+                    m_mirror_xyz.push_back(y);
+                    m_mirror_xyz.push_back(z);
+                }
             }
         }
     }
