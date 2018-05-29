@@ -161,6 +161,10 @@ protected:
     std::vector<index_t> m_mirror_ijk;
     std::vector<double> m_mirror_xyz;
     void handle_mirror(index_t el);
+    void compute_gll(const int& v, const double& xi, const double& eta, const double& zeta) const;
+    void shape8_local2global(double vco[3][8],
+                             const double& xi, const double& eta, const double& zeta,
+                             double& x, double& y, double& z) const;
 
     void handle_local_element(index_t el, bool is_border);
     void handle_neighbouring_face(index_t lnf, const PFace& fc, index_t el);

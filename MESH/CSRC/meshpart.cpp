@@ -341,6 +341,18 @@ index_t Mesh3DPart::add_node(index_t v0)
     return nv;
 }
 
+void Mesh3DPart::compute_gll(const int& v, const double& xi, const double& eta, const double& zeta) const
+{
+  // TODO
+}
+
+void Mesh3DPart::shape8_local2global(double vco[3][8],
+                                     const double& xi, const double& eta, const double& zeta,
+                                     double& x, double& y, double& z) const
+{
+  // TODO
+}
+
 void Mesh3DPart::handle_mirror(index_t el)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
@@ -363,29 +375,33 @@ void Mesh3DPart::handle_mirror(index_t el)
     }
 
     double f0 = 0.;
-    for(int e=0;e<e0;++e) {
-        index_t gid = m_mesh.m_elems[e0+e];
-        double x = m_mesh.m_xco[gid];
-        double y = m_mesh.m_yco[gid];
-        double z = m_mesh.m_zco[gid];
+    bool init = false;
 
-        double r = m_cfg->mirror_impl_surf_radius;
-        double xc = m_cfg->mirror_impl_surf_center[0];
-        double yc = m_cfg->mirror_impl_surf_center[1];
-        double zc = m_cfg->mirror_impl_surf_center[2];
+    for(int ed=0;ed<12;++ed) {
+        for(int v=0;v<m_cfg->ngll;++v) {
+            double xi, eta, zeta;
+            compute_gll(v, xi, eta, zeta);
+            double x, y, z;
+            shape8_local2global(vco, xi, eta, zeta, x, y, z);
 
-        double dx = x-xc;
-        double dy = y-yc;
-        double dz = z-zc;
+            double r = m_cfg->mirror_impl_surf_radius;
+            double xc = m_cfg->mirror_impl_surf_center[0];
+            double yc = m_cfg->mirror_impl_surf_center[1];
+            double zc = m_cfg->mirror_impl_surf_center[2];
 
-        if (e==0) f0 = dx*dx + dy*dy + dz*dz - r*r;
+            double dx = x-xc;
+            double dy = y-yc;
+            double dz = z-zc;
 
-        double f = dx*dx + dy*dy + dz*dz - r*r;
-        if (f0*f < 0.) {
-            m_mirror_e.push_back(el);
-            m_mirror_xyz.push_back(x);
-            m_mirror_xyz.push_back(y);
-            m_mirror_xyz.push_back(z);
+            if (!init) {f0 = dx*dx + dy*dy + dz*dz - r*r; init = true;}
+
+            double f = dx*dx + dy*dy + dz*dz - r*r;
+            if (f0*f < 0.) {
+                m_mirror_e.push_back(el);
+                m_mirror_xyz.push_back(x);
+                m_mirror_xyz.push_back(y);
+                m_mirror_xyz.push_back(z);
+            }
         }
     }
 }
