@@ -299,6 +299,29 @@ int expect_amortissement(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+int expect_impl_surf(yyscan_t scanner, sem_config_t* config)
+{
+    config->mirror_impl_surf = 1;
+
+    int tok, err;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+        tok = skip_blank(scanner);
+        if (tok!=K_ID) break;
+
+        if (cmp(scanner,"radius")) err=expect_eq_float(scanner, &config->mirror_impl_surf_radius, 1);
+        if (cmp(scanner,"center")) err=expect_eq_float(scanner,  config->mirror_impl_surf_center, 3);
+
+        if (err<=0) return 0;
+        if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+
+    return 1;
+}
+
 int expect_mirror(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err;
@@ -313,6 +336,7 @@ int expect_mirror(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_mirror_type, &config->mirror_type);
         if (cmp(scanner,"fmax")) err=expect_eq_float(scanner, &config->mirror_fmax,1);
         if (cmp(scanner,"nspl")) err=expect_eq_int(scanner, &config->mirror_nspl,1);
+        if (cmp(scanner,"impl_surf")) err=expect_impl_surf(scanner, config);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -894,6 +918,11 @@ void init_sem_config(sem_config_t* cfg)
     cfg->mirror_type = 0;
     cfg->mirror_fmax = 0.;
     cfg->mirror_nspl = 5;
+    cfg->mirror_impl_surf = 0;
+    cfg->mirror_impl_surf_radius = 1.;
+    cfg->mirror_impl_surf_center[0] = 0.;
+    cfg->mirror_impl_surf_center[1] = 0.;
+    cfg->mirror_impl_surf_center[2] = 0.;
 }
 
 
@@ -928,6 +957,12 @@ void dump_config(sem_config_t* cfg)
            cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
            cfg->out_variables[9], cfg->out_variables[10]);
     printf("Nonlinear analysis : %d\n",cfg->nl_flag);
+    printf("Mirror : use %d, type %d, fmax %f, nspl %d, impl_surf %d, impl_surf_radius %f, impl_surf_center %f %f %f\n",
+           cfg->use_mirror, cfg->mirror_type,
+           cfg->mirror_fmax, cfg->mirror_nspl,
+           cfg->mirror_impl_surf,
+           cfg->mirror_impl_surf_radius,
+           cfg->mirror_impl_surf_center[0], cfg->mirror_impl_surf_center[1], cfg->mirror_impl_surf_center[2]);
 }
 
 
