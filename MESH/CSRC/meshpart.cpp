@@ -346,11 +346,22 @@ void Mesh3DPart::compute_gll(const int& v, const double& xi, const double& eta, 
   // TODO
 }
 
-void Mesh3DPart::shape8_local2global(double vco[3][8],
+void Mesh3DPart::shape8_local2global(double const vco[3][8],
                                      const double& xi, const double& eta, const double& zeta,
                                      double& x, double& y, double& z) const
 {
-  // TODO
+    x = 0.125 * (vco[0][0]*(1-xi)*(1-eta)*(1-zeta) + vco[0][1]*(1+xi)*(1-eta)*(1-zeta) +
+                 vco[0][2]*(1+xi)*(1+eta)*(1-zeta) + vco[0][3]*(1-xi)*(1+eta)*(1-zeta) +
+                 vco[0][4]*(1-xi)*(1-eta)*(1+zeta) + vco[0][5]*(1+xi)*(1-eta)*(1+zeta) +
+                 vco[0][6]*(1+xi)*(1+eta)*(1+zeta) + vco[0][7]*(1-xi)*(1+eta)*(1+zeta));
+    y = 0.125 * (vco[1][0]*(1-xi)*(1-eta)*(1-zeta) + vco[1][1]*(1+xi)*(1-eta)*(1-zeta) +
+                 vco[1][2]*(1+xi)*(1+eta)*(1-zeta) + vco[1][3]*(1-xi)*(1+eta)*(1-zeta) +
+                 vco[1][4]*(1-xi)*(1-eta)*(1+zeta) + vco[1][5]*(1+xi)*(1-eta)*(1+zeta) +
+                 vco[1][6]*(1+xi)*(1+eta)*(1+zeta) + vco[1][7]*(1-xi)*(1+eta)*(1+zeta));
+    z = 0.125 * (vco[2][0]*(1-xi)*(1-eta)*(1-zeta) + vco[2][1]*(1+xi)*(1-eta)*(1-zeta) +
+                 vco[2][2]*(1+xi)*(1+eta)*(1-zeta) + vco[2][3]*(1-xi)*(1+eta)*(1-zeta) +
+                 vco[2][4]*(1-xi)*(1-eta)*(1+zeta) + vco[2][5]*(1+xi)*(1-eta)*(1+zeta) +
+                 vco[2][6]*(1+xi)*(1+eta)*(1+zeta) + vco[2][7]*(1-xi)*(1+eta)*(1+zeta));
 }
 
 void Mesh3DPart::handle_mirror(index_t el)
