@@ -344,10 +344,35 @@ index_t Mesh3DPart::add_node(index_t v0)
 void Mesh3DPart::handle_mirror(index_t el)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
+    if (!m_cfg->mirror_impl_surf) return;
 
-    // TODO
+    double f0 = 0.;
+    index_t e0 = m_mesh.m_elems_offs[el];
+    for(int e=0;e<e0;++e) {
+        index_t gid = m_mesh.m_elems[e0+e];
+        double x = m_mesh.m_xco[gid];
+        double y = m_mesh.m_yco[gid];
+        double z = m_mesh.m_zco[gid];
 
-    m_mirror_e.push_back(el);
+        double r = m_cfg->mirror_impl_surf_radius;
+        double xc = m_cfg->mirror_impl_surf_center[0];
+        double yc = m_cfg->mirror_impl_surf_center[1];
+        double zc = m_cfg->mirror_impl_surf_center[2];
+
+        double dx = x-xc;
+        double dy = y-yc;
+        double dz = z-zc;
+
+        if (e==0) f0 = dx*dx + dy*dy + dz*dz - r*r;
+
+        double f = dx*dx + dy*dy + dz*dz - r*r;
+        if (f0*f < 0.) {
+            m_mirror_e.push_back(el);
+            m_mirror_xyz.push_back(x);
+            m_mirror_xyz.push_back(y);
+            m_mirror_xyz.push_back(z);
+        }
+    }
 }
 
 void Mesh3DPart::handle_local_element(index_t el, bool is_border)
