@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 #include "mesh_grid.h"
 #include "mesh.h"
 #include "mesh_common.h"
@@ -115,9 +116,14 @@ void RectMesh::read_params_old(FILE* fparam)
         exit(1);
     }
 
-    has_mirrors=0;
-
+    // spherical shell top transf
     getData_line(&buffer, &n, fparam);
+    has_sph=0;
+    sscanf(buffer, "%d", &has_sph);
+
+    // mirrors options
+    getData_line(&buffer, &n, fparam);
+    has_mirrors=0;
     sscanf(buffer, "%d", &has_mirrors);
 
     if (has_mirrors<0 || has_mirrors>1) {
@@ -138,6 +144,7 @@ void RectMesh::read_params_old(FILE* fparam)
         mrrs.nU = m_U;
         if (pml_top<1) {
             mrrs.U = false;
+            mrrs.nU = -1;
         }
     }
 
@@ -258,6 +265,7 @@ int RectMesh::create_linear_grid_nodes(Mesh3D& mesh)
     }
     return nnodes;
 }
+
 int RectMesh::create_quadratic_grid_nodes(Mesh3D& mesh)
 {
     // Coordinates
@@ -287,6 +295,38 @@ int RectMesh::create_quadratic_grid_nodes(Mesh3D& mesh)
     return nnodes;
 }
 
+int RectMesh::create_linear_grid_nodes_sph(Mesh3D& mesh)
+{
+    // Coordinates
+    double xloc,yloc,zloc,wloc;
+    double layerzmax = zmax;
+    double zmin = layerzmax;
+    int k0 = 0;
+    int nnodes = 0;
+    for(int nl=0;nl<nlayers;++nl) {
+        zmin -= thickness[nl];
+    }
+    for(int nl=0;nl<nlayers;++nl) {
+        double layerzmin = layerzmax - thickness[nl];
+        double zstep = (layerzmax-layerzmin)/nsteps[nl];
+        for(int k=k0;k<=nsteps[nl];++k) {
+            for(int j=0;j<=nelemy;++j) {
+                for(int i=0;i<=nelemx;++i) {
+                    xloc = xmin+i*xstep;
+                    yloc = ymin+j*ystep;
+                    zloc = sqrt(zmax*zmax-xloc*xloc-yloc*yloc);
+                    wloc = (layerzmax-k*zstep-zmin)/(zmax-zmin);
+                    zloc = wloc*zloc+(1.-wloc)*zmin;
+                    mesh.add_node(xloc,yloc,zloc);
+                    nnodes++;
+                }
+            }
+        }
+        k0 = 1;
+        layerzmax = layerzmin;
+    }
+    return nnodes;
+}
 
 void RectMesh::create_linear_element(Elem& elem, int i, int j, int k)
 {
@@ -340,6 +380,10 @@ void RectMesh::create_quadratic_element(Elem& elem, int i, int j, int k)
 
 void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
 {
+    bool extvol,intvol;
+    int pos_mrrs;
+    Surface* smirror;
+
     assert(xmin<xmax);
     assert(ymin<ymax);
 
@@ -358,7 +402,11 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
     int nnodes = 0;
     if (elem_shape==8) {
         printf(" with linear elements\n");
-        nnodes = create_linear_grid_nodes(mesh);
+        if (has_sph) {
+            nnodes = create_linear_grid_nodes_sph(mesh);
+        } else {
+            nnodes = create_linear_grid_nodes(mesh);
+        }
     } else if (elem_shape==27) {
         printf(" with quadratic elements\n");
         nnodes = create_quadratic_grid_nodes(mesh);
@@ -367,8 +415,8 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
     // Elements
     Elem elem(elem_shape);
     int k=0;
-//    Surface* dirich = mesh.get_surface("dirichlet");
-    Surface* smirror = mesh.get_surface("mirror");
+    if (has_mirrors) smirror = mesh.get_surface("mirror");
+
     for(int nl=0;nl<nlayers;++nl) {
         for(int kl=0;kl<nsteps[nl];++kl) {
             for(int j=0;j<nelemy;++j) {
@@ -388,44 +436,36 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                     bool N = (j>(nelemy-npml-1));
                     bool U = (k<npml && nl==0);
                     bool D = (k>(nelemz-npml-1) && nl==(nlayers-1));
-//                    bool LW = (i<1);
-//                    bool LE = (i>(nelemx-2));
-//                    bool LS = (j<1);
-//                    bool LN = (j>(nelemy-2));
-//                    bool LU = (k<1 && nl==0);
-//                    bool LD = (k>(nelemz-2) && nl==(nlayers-1));
                     int mat = get_mat(mesh, nl, W,E,S,N,U,D);
-                    mesh.add_elem(mat, elem);
+                    // Mirrors
+                    if (has_mirrors) {
+                        extvol = (i<mrrs.nW || i>(nelemx-mrrs.nE-1) ||
+                                       j<mrrs.nS || j>(nelemy-mrrs.nN-1) ||
+                                       k<mrrs.nU || k>(nelemz-mrrs.nD-1));
+                        intvol = (i>mrrs.nW && i<(nelemx-mrrs.nE-1) &&
+                                       j>mrrs.nS && j<(nelemy-mrrs.nN-1) &&
+                                       k>mrrs.nU && k<(nelemz-mrrs.nD-1));
+                        pos_mrrs = 0;
+                        if (extvol) pos_mrrs = 2;
+                        if (intvol) pos_mrrs = 1;
+                    }
+                    // Emit element
+                    if (has_mirrors) { //XXX
+                        mesh.add_elem_mrrs(mat, pos_mrrs, elem);
+                    } else {
+                        mesh.add_elem(mat, elem);
+                    }
                     // Check for free fluid surface and free pml surface
                     int dom = mesh.m_materials[mat].domain();
-//                    if (dom==DM_FLUID || dom==DM_FLUID_PML) {
-//                        if (LU) emit_free_face(dirich, dom, elem, 5, false);
-//                    }
-//                    if (dom==DM_SOLID_PML || dom==DM_FLUID_PML) {
-//                        double x_dir = mesh.m_materials[mat].xwidth;
-//                        double y_dir = mesh.m_materials[mat].ywidth;
-//                        double z_dir = mesh.m_materials[mat].zwidth;
-//                        emit_free_face(dirich, dom, elem,
-//                                       LW&&(x_dir<0), LE&&(x_dir>0),
-//                                       LS&&(y_dir<0), LN&&(y_dir>0),
-//                                       LU&&(z_dir>0), LD&&(z_dir<0), false);
-//                    }
-
+                    // Mirrors
                     if (has_mirrors) {
-                        bool SHELL = (i<mrrs.nW || i>(nelemx-mrrs.nE-1) ||
-                                      j<mrrs.nS || j>(nelemy-mrrs.nN-1) ||
-                                      k<mrrs.nU || k>(nelemz-mrrs.nD-1));
-                        bool MW = (i==mrrs.nW && !SHELL);
-                        bool ME = (i==(nelemx-mrrs.nE-1) && !SHELL);
-                        bool MS = (j==mrrs.nS && !SHELL);
-                        bool MN = (j==(nelemy-mrrs.nN-1) && !SHELL);
-                        bool MU = (k==mrrs.nU && !SHELL);
-                        bool MD = (k==(nelemz-mrrs.nD-1) && !SHELL);
-                        if (dom==DM_SOLID || dom==DM_FLUID) {
-                            emit_free_face(smirror, dom, elem, MW&&mrrs.W, ME&&mrrs.E,
-                                                               MS&&mrrs.S, MN&&mrrs.N,
-                                                               MU&&mrrs.U, MD&&mrrs.D, true);
-                        }
+                        W = (!extvol && mrrs.W && i==mrrs.nW);
+                        S = (!extvol && mrrs.S && j==mrrs.nS);
+                        U = (!extvol && mrrs.U && k==mrrs.nU);
+                        E = (!extvol && mrrs.E && i==(nelemx-mrrs.nE-1));
+                        N = (!extvol && mrrs.N && j==(nelemy-mrrs.nN-1));
+                        D = (!extvol && mrrs.D && k==(nelemz-mrrs.nD-1));
+                        emit_mirr_face(smirror,dom,elem,W,E,S,N,U,D);
                     }
                 }
             }
@@ -435,19 +475,39 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
 }
 
 void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem,
-                              bool W, bool E, bool S, bool N, bool U, bool D, bool flp)
+                              bool W, bool E, bool S, bool N, bool U, bool D)
 {
-    if (W&&flp) emit_free_face(surf, dom, elem, 4, true);
-    if (W&&!flp) emit_free_face(surf, dom, elem, 4, false);
-    if (E&&flp) emit_free_face(surf, dom, elem, 2, true);
-    if (E&&!flp) emit_free_face(surf, dom, elem, 2, false);
-    if (S) emit_free_face(surf, dom, elem, 1, false);
-    if (N) emit_free_face(surf, dom, elem, 3, false);
-    if (U) emit_free_face(surf, dom, elem, 5, false);
-    if (D) emit_free_face(surf, dom, elem, 0, false);
+    if (W) emit_free_face(surf, dom, elem, 4);
+    if (E) emit_free_face(surf, dom, elem, 2);
+    if (S) emit_free_face(surf, dom, elem, 1);
+    if (N) emit_free_face(surf, dom, elem, 3);
+    if (U) emit_free_face(surf, dom, elem, 5);
+    if (D) emit_free_face(surf, dom, elem, 0);
 }
 
-void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum, bool flp)
+void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum)
+{
+    int n[4];
+    for(int k=0;k<4;++k) {
+        n[k] = elem.v[RefFace[facenum].v[k]];
+    }
+    PFace fc(n, dom);
+    surf->add_face(fc, 0);
+
+}
+
+void RectMesh::emit_mirr_face(Surface* surf, int dom, const Elem& elem,
+                              bool W, bool E, bool S, bool N, bool U, bool D)
+{
+    if (W) emit_mirr_face(surf, dom, elem, 4, true);
+    if (E) emit_mirr_face(surf, dom, elem, 2, true);
+    if (S) emit_mirr_face(surf, dom, elem, 1, false);
+    if (N) emit_mirr_face(surf, dom, elem, 3, false);
+    if (U) emit_mirr_face(surf, dom, elem, 5, false);
+    if (D) emit_mirr_face(surf, dom, elem, 0, false);
+}
+
+void RectMesh::emit_mirr_face(Surface* surf, int dom, const Elem& elem, int facenum, bool flp)
 {
     index_t n[4];
     for(int k=0;k<4;++k) {

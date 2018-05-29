@@ -22,21 +22,21 @@ contains
 
     end subroutine bmn
 
-    real(fpp) recursive function bspln(i,k,x) result(rspln)
+    recursive function bspln(i,k,x) result(b)
         implicit none
-        real(fpp) :: x
+
+        real(fpp) :: x,b
         integer :: k,i
 
-        rspln = 0.
-        if (k+1>0) then
-            if (k+1==1) then
-                if (x>=i.and.x<i+1) rspln = 1.
+        b=0.d0
+        if(k+1>0)then
+            if(k+1==1)then
+                if(x>=i.and.x<i+1)b=1.d0
             else
-                rspln = (x-i)*bspln(i,k-1,x)/(k+1-1)+(i+k+1-x)*bspln(i+1,k-1,x)/(k+1-1)
-                if (k==0) rspln = 0.
+                b=(x-i)*bspln(i,k-1,x)/(k+1-1)+(i+k+1-x)*bspln(i+1,k-1,x)/(k+1-1)
+                if(k==0)b=0
             endif
         endif
-
     end function bspln
 
     subroutine bmdiag(m,n,nsp,nt,spmat)

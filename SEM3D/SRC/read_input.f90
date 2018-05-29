@@ -612,15 +612,14 @@ contains
         endif
 
         ! Mirror
-        Tdomain%use_mirror = Tdomain%config%use_mirror .ne. 0
         Tdomain%mirror_type = Tdomain%config%mirror_type
-        if (Tdomain%use_mirror.and.Tdomain%mirror_type>0) then
-            Tdomain%logicD%any_source = .false.
-        endif
-        if (rg==0) then
-            write(*, '("Mirror: present=",i1," type=",i1)') &
-                Tdomain%config%use_mirror, Tdomain%config%mirror_type
-        endif
+        if (Tdomain%config%use_mirror==0) Tdomain%mirror_type = -1
+        !!! GB Tdomain%use_mirror = Tdomain%config%use_mirror .ne. 0
+        !!! GB Tdomain%mirror_type = Tdomain%config%mirror_type
+        !!! GB if (Tdomain%mirror_type>=1) then
+        !!! GB     Tdomain%logicD%any_source = .false.
+        !!! GB endif
+        if (rg==0) write(*, '("Mirror type: ",i1)') Tdomain%mirror_type
 
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)

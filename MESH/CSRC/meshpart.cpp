@@ -428,6 +428,16 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats, std::vector<int>& d
     }
 }
 
+void Mesh3DPart::get_local_mirrors(std::vector<int>& pmrrs) const
+{
+    pmrrs.resize(m_elems.size());
+    size_t p=0;
+    for(size_t k=0;k<m_elems.size();++k) {
+        int el = m_elems[k];
+        pmrrs[k] = m_mesh.m_mrrs[el];
+    }
+}
+
 void Mesh3DPart::get_local_faces(std::vector<loc_index_t>& faces, std::vector<int>& doms) const
 {
     faces.resize(m_face_to_id.size()*4);
@@ -638,6 +648,10 @@ void Mesh3DPart::output_local_mesh(hid_t fid)
     h5h_write_dset(fid, "domains", n_elems(), tmpi1.data());
     for(unsigned k=0;k<tmpi1.size();++k) {
         elem_doms[tmpi1[k]]++;
+    }
+    if (m_mesh.has_mrrs) {
+        get_local_mirrors(tmpi);
+        h5h_write_dset(fid, "mirror_pos", n_elems(), &tmpi[0]);
     }
     //
     convert_indexes(m_elems_faces, tmpi);

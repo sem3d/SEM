@@ -104,8 +104,8 @@ public:
     index_t add_edge(const PEdge& edge, bool border);
     index_t add_vertex(const PVertex& vertex, bool border);
     index_t add_node(index_t v0);
-    
-    int get_mat_(int el) const; 
+
+    int get_mat_(int el) const;
     size_t n_nodes() const    { return m_nodes_to_id.size(); }
     size_t n_elems() const    { return m_elems.size(); }
     size_t n_faces() const    { return m_face_to_id.size(); }
@@ -116,8 +116,10 @@ public:
     void get_local_nodes(std::vector<double>& nodes) const;
     void get_local_elements(std::vector<loc_index_t>& elems) const;
     void get_local_materials(std::vector<int>& mats, std::vector<int>& doms) const;
+    void get_local_mirrors(std::vector<int>& pmrrs) const;
     void get_local_faces(std::vector<loc_index_t>& faces, std::vector<int>& doms) const;
     void get_local_edges(std::vector<loc_index_t>& edges, std::vector<int>& doms) const;
+
     void get_local_vertices_dom(std::vector<int>& doms) const;
     void get_face_coupling(int d0, int d1, std::vector<index_t>& cpl, std::vector<int>& orient) const;
     void get_edge_coupling(int d0, int d1, std::vector<index_t>& cpl) const;

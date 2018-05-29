@@ -114,6 +114,24 @@ contains
         fname = pjoin(path_mirror,temp)
     end subroutine semname_mirrorfile_h5
 
+    subroutine semname_mirrorfile_nodes_sl(rank, fname)
+        implicit none
+        integer, intent(in) :: rank
+        character(Len=MAX_FILE_SIZE), intent(out) :: fname
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,"(a7,I4.4,a13)") "mirror.",rank,".nodes_sl.txt"
+        fname = pjoin(path_mirror,temp)
+    end subroutine semname_mirrorfile_nodes_sl
+
+    subroutine semname_mirrorfile_nodes_fl(rank, fname)
+        implicit none
+        integer, intent(in) :: rank
+        character(Len=MAX_FILE_SIZE), intent(out) :: fname
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,"(a7,I4.4,a13)") "mirror.",rank,".nodes_fl.txt"
+        fname = pjoin(path_mirror,temp)
+    end subroutine semname_mirrorfile_nodes_fl
+
     subroutine semname_read_capteurs(file,fnamef)
         implicit none
         character(Len=*),intent(in) :: file

@@ -44,7 +44,7 @@ contains
         call init_dombase(dom)
 
         ! Mirror
-        dom%use_mirror = Tdomain%use_mirror
+        !!! GB dom%use_mirror = Tdomain%use_mirror
         dom%mirror_type = Tdomain%mirror_type
 
         if(nbelem /= 0) then
@@ -287,11 +287,8 @@ contains
         integer :: ngll,i,j,k,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
         real(fpp) :: val
-        !
-        integer :: lnum, idx_m
 
         ngll = dom%ngll
-        lnum = bnum*VCHUNK
 
         ! d(rho*Phi)_dX
         ! d(rho*Phi)_dY
@@ -303,15 +300,6 @@ contains
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         Phi(ee,i,j,k) = field%Phi(idx)
                         Fo_Fl(ee,i,j,k) = 0d0
-                        ! MIRROR INTERACTION
-                        if (dom%use_mirror.and.dom%mirror_fl%n_glltot>0) then
-                            idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                            if (idx_m>=0.and.dom%mirror_type==0) then
-                                dom%mirror_fl%fields(1,idx_m) = Phi(ee,i,j,k)
-                            elseif (idx_m>=0.and.dom%mirror_type>0) then
-                                Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m)
-                            endif
-                        endif
                     enddo
                 enddo
             enddo
@@ -326,15 +314,6 @@ contains
                     do ee = 0, VCHUNK-1
                         e = bnum*VCHUNK+ee
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        ! MIRROR INTERACTION
-                        if (dom%use_mirror.and.dom%mirror_fl%n_glltot>0) then
-                            idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                            if (idx_m>=0.and.dom%mirror_type==0) then
-                                dom%mirror_fl%fields(2,idx_m) = Fo_Fl(ee,i,j,k)
-                            elseif (idx_m>=0.and.dom%mirror_type>0) then
-                                Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m)
-                            endif
-                        endif
                         val = field%ForcesFl(idx)
                         val = val - Fo_Fl(ee,i,j,k)
                         field%ForcesFl(idx) = val
@@ -343,6 +322,94 @@ contains
             enddo
         enddo
     end subroutine forces_int_fluid
+
+    subroutine forces_int_fluid_mirror_dump(dom,field,bnum)
+        use m_calcul_forces_fluid
+
+        type(domain_fluid),intent(inout) :: dom
+        type(champsfluid),intent(inout) :: field
+        integer,intent(in) :: bnum
+        integer :: lnum,ngll,i,j,k,ee,idx,idx_m
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl,Phi
+
+        ngll = dom%ngll
+        lnum = bnum*VCHUNK
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+                        Phi(ee,i,j,k) = field%Phi(idx)
+                        if (idx_m>=0) dom%mirror_fl%fields(1,idx_m) = Phi(ee,i,j,k)
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        Fo_Fl = 0.0_fpp
+        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+                        if (idx_m>=0) dom%mirror_fl%fields(2,idx_m) = Fo_Fl(ee,i,j,k)
+                        field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
+                    enddo
+                enddo
+            enddo
+        enddo
+
+    end subroutine forces_int_fluid_mirror_dump
+
+    subroutine forces_int_fluid_mirror_load(dom,field,bnum)
+        use m_calcul_forces_fluid
+
+        type(domain_fluid),intent(inout) :: dom
+        type(champsfluid),intent(inout) :: field
+        integer,intent(in) :: bnum
+        integer :: lnum,ngll,i,j,k,ee,idx,idx_m
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl,Phi
+
+        ngll = dom%ngll
+        lnum = bnum*VCHUNK
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+                        Phi(ee,i,j,k) = field%Phi(idx)
+                        if (idx_m>=0) Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m) &
+                            *dom%mirror_fl%winfunc(idx_m)
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        Fo_Fl = 0.0_fpp
+        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+                        if (idx_m>=0) Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m) &
+                            *dom%mirror_fl%winfunc(idx_m)
+                        field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
+                    enddo
+                enddo
+            enddo
+        enddo
+
+    end subroutine forces_int_fluid_mirror_load
 
     subroutine newmark_predictor_fluid(dom, f0, f1)
         type(domain_fluid), intent (INOUT) :: dom

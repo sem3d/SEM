@@ -5,15 +5,17 @@
 module smirror
     use constants, only : fpp
     implicit none
+#include "index.h"
     public :: init_mirror, create_mirror_files, dump_mirror_sl, load_mirror_sl, dump_mirror_fl, &
         load_mirror_fl
     private
 
     integer, dimension(:,:,:,:), allocatable :: map2glltot_sl, map2glltot_fl
-    real(fpp), dimension(:), allocatable :: bspl_tmp
+    real(fpp), dimension(:), allocatable :: bspl_tmp, winf_sl, winf_fl
     real(fpp), dimension(:,:,:), allocatable :: displ_sl, force_sl
     real(fpp), dimension(:,:), allocatable :: displ_fl, force_fl
-    integer :: rnk, n_spl, n_dcm, n_t, n_tdwn, n_gll, n_glltot_sl, n_glltot_fl
+    real(fpp) :: d_t,d_tm
+    integer :: rnk, recp, n_spl, n_dcm, n_t, n_tm, n_gll, n_glltot_sl, n_glltot_fl
 
 contains
 
@@ -25,9 +27,18 @@ contains
         type(SurfaceT), intent(inout) :: surf
 
         rnk = Tdomain%rank
-        call decim_factor(Tdomain)
-        allocate(bspl_tmp((n_spl+1)*n_dcm+1))
-        call bmn(bspl_tmp, n_dcm, n_spl)
+
+        if (Tdomain%mirror_type==0) then
+            call create_mirror_h5()
+            call dump_param_mirror(Tdomain)
+        else
+            call load_param_mirror(Tdomain)
+        endif
+
+        if (n_dcm>1) then
+            allocate(bspl_tmp((n_spl+1)*n_dcm+1))
+            call bmn(bspl_tmp, n_dcm, n_spl)
+        endif
 
         if (surf%surf_sl%nbtot/=0) then
             call init_mirror_sl(Tdomain, surf%surf_sl)
@@ -38,26 +49,49 @@ contains
 
     end subroutine init_mirror
 
-    subroutine decim_factor(Tdomain)
+    subroutine dump_param_mirror(Tdomain)
         use sdomain
         implicit none
         type(domain), intent(inout) :: Tdomain
-        real(fpp) :: fmax,d_t
+        real(fpp) :: fmax
 
         n_spl = Tdomain%config%mirror_nspl
-        fmax = Tdomain%config%mirror_fmax
         d_t = Tdomain%TimeD%dtmin
         n_t = Tdomain%TimeD%ntimeMax
 
+        fmax = Tdomain%config%mirror_fmax
         if (fmax>0.) then
             n_dcm = int(0.25/(fmax*d_t))
-            n_tdwn = int(n_t/n_dcm)+(n_spl+1)
-            if (Tdomain%rank==25) write(*,'("--> SEM : mirror decimation : ",2i6)') n_dcm,n_tdwn
+            n_tm = int(n_t/n_dcm)+(n_spl+1)
+            if (Tdomain%rank==0) write(*,'("--> SEM : mirror decimation : ",2i6)') n_dcm,n_tm
         else
             n_dcm = 1
+            n_tm = n_t
         endif
 
-    end subroutine decim_factor
+        d_tm = d_t*n_dcm
+
+        call write_mirror_h5_attr()
+
+    end subroutine dump_param_mirror
+
+    subroutine load_param_mirror(Tdomain)
+        use sdomain
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+
+        n_spl = Tdomain%config%mirror_nspl
+        d_t = Tdomain%TimeD%dtmin
+        n_t = Tdomain%TimeD%ntimeMax
+
+        call read_mirror_h5_attr()
+
+        n_dcm = -1
+        if (modulo(d_tm,d_t)==0.d0) n_dcm = int(d_tm/d_t)
+
+        if (Tdomain%rank==0) write(*,'("--> SEM : mirror decimation : ",2i6)') n_dcm,n_tm
+
+    end subroutine load_param_mirror
 
     subroutine init_mirror_sl(Tdomain, surf)
         use sdomain
@@ -75,13 +109,16 @@ contains
                 write(*,'("--> SEM : mirror nodes_sl : ",i3,i6)') rnk,n_glltot_sl
                 allocate(Tdomain%sdom%mirror_sl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
                 allocate(Tdomain%sdom%mirror_sl%fields(6,n_glltot_sl))
+                allocate(Tdomain%sdom%mirror_sl%winfunc(n_glltot_sl))
                 allocate(displ_sl(3,n_glltot_sl,n_spl+1))
                 allocate(force_sl(3,n_glltot_sl,n_spl+1))
                 Tdomain%sdom%mirror_sl%n_glltot = n_glltot_sl
                 Tdomain%sdom%mirror_sl%n_gll = n_gll
                 Tdomain%sdom%mirror_sl%map = map2glltot_sl
+                Tdomain%sdom%mirror_sl%winfunc = winf_sl
                 displ_sl = 0.
                 force_sl = 0.
+                deallocate(winf_sl)
             else
                 Tdomain%sdom%mirror_sl%n_glltot = n_glltot_sl
             endif
@@ -106,13 +143,16 @@ contains
                 write(*,'("--> SEM : mirror nodes_fl : ",i3,i6)') rnk,n_glltot_fl
                 allocate(Tdomain%fdom%mirror_fl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
                 allocate(Tdomain%fdom%mirror_fl%fields(2,n_glltot_fl))
+                allocate(Tdomain%fdom%mirror_fl%winfunc(n_glltot_fl))
                 allocate(displ_fl(n_glltot_fl,n_spl+1))
                 allocate(force_fl(n_glltot_fl,n_spl+1))
                 Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
                 Tdomain%fdom%mirror_fl%n_gll = n_gll
                 Tdomain%fdom%mirror_fl%map = map2glltot_fl
+                Tdomain%fdom%mirror_fl%winfunc = winf_fl
                 displ_fl = 0.
                 force_fl = 0.
+                deallocate(winf_fl)
             else
                 Tdomain%fdom%mirror_fl%n_glltot = n_glltot_fl
             endif
@@ -126,15 +166,25 @@ contains
         implicit none
         type(domain), intent(in) :: Tdomain
         type(surf_num), intent(in) :: surf
-        integer :: i_surf,i_node,i_dir,f,n,m,e,i,j,k
-        logical, dimension(:,:,:,:), allocatable :: tmp
-        real(fpp), dimension(0:2,0:4) :: cnodes
+        integer :: ii,jj,dir,f,n,m,e,i,j,k
+        real(fpp) :: winx,winy,winz
+        integer, dimension(:), allocatable :: idx
+        logical, dimension(:,:,:,:), allocatable :: nodes_tag
+        real(fpp), dimension(:,:,:,:), allocatable :: nodes_winf
+        real(fpp), dimension(:,:,:,:,:), allocatable :: nodes_norm
+        real(fpp), dimension(:,:), allocatable :: nodesinfos
+        real(fpp), dimension(0:2,0:3) :: cnodes
 
-        allocate(tmp(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
-        tmp = .false.
-        do i_surf = 0,surf%n_faces-1
-            f = surf%if_faces(i_surf)
-            n = surf%if_norm(i_surf)
+        allocate(nodes_tag(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+        allocate(nodes_norm(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1,0:2))
+        allocate(nodes_winf(0:Tdomain%sdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+        allocate(idx(0:Tdomain%sdom%nblocks-1))
+        nodes_tag = .false.
+        nodes_norm = 0.d0
+        nodes_winf = 1.d0
+        do ii = 0,surf%n_faces-1
+            f = surf%if_faces(ii)
+            n = surf%if_norm(ii)
             if (n>0) then
                 m = 0
                 e = Tdomain%sFace(f)%elem_0
@@ -143,34 +193,71 @@ contains
                 e = Tdomain%sFace(f)%elem_1
             endif
             if (e==-1) cycle
-            do i_node = 0,3
-                cnodes(0:2,i_node) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(i_node))
+            idx(Tdomain%specel(e)%lnum) = e
+            do jj = 0,3
+                cnodes(0:2,jj) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(jj))
             enddo
-            call mirror_face_normal(cnodes, i_dir)
-            select case (i_dir)
-            case(0)
-                tmp(Tdomain%specel(e)%lnum,m,:,:) = .true.
-            case(1)
-                tmp(Tdomain%specel(e)%lnum,:,m,:) = .true.
-            case(2)
-                tmp(Tdomain%specel(e)%lnum,:,:,m) = .true.
-            end select
-        enddo
-        map2glltot_sl = -1
-        n_glltot_sl = 0
-        do k = 0,n_gll-1
-            do j = 0,n_gll-1
-                do i = 0,n_gll-1
-                    do e = 0,Tdomain%sdom%nblocks-1
-                        if (tmp(e,i,j,k)) then
-                            n_glltot_sl = n_glltot_sl+1
-                            map2glltot_sl(e,i,j,k) = n_glltot_sl
+            call mirror_face_normal(cnodes,dir)
+            nodes_tag(Tdomain%specel(e)%lnum,:,:,:) = .true.
+            nodes_norm(Tdomain%specel(e)%lnum,:,:,:,dir) = m*2.d0/(n_gll-1)-1.d0
+            winx = 1.d0
+            winy = 1.d0
+            winz = 1.d0
+            do k = 0,n_gll-1
+                if (dir==2) winz = (0.5d0*cos(4.d0*atan(1.d0)*k*1.d0/(n_gll-1))+0.5d0)
+                do j = 0,n_gll-1
+                    if (dir==1) winy = (0.5d0*cos(4.d0*atan(1.d0)*j*1.d0/(n_gll-1))+0.5d0)
+                    do i = 0,n_gll-1
+                        if (dir==0) winx = (0.5d0*cos(4.d0*atan(1.d0)*i*1.d0/(n_gll-1))+0.5d0)
+                        if (n>0) then
+                            nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
+                                nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*(1.-winx*winy*winz)
+                        else
+                            nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
+                                nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*winx*winy*winz
                         endif
                     enddo
                 enddo
             enddo
         enddo
-        deallocate(tmp)
+        map2glltot_sl = -1
+        n_glltot_sl = 0
+        allocate(nodesinfos((Tdomain%sdom%nblocks*n_gll*n_gll*n_gll),7))
+        do k = 0,n_gll-1
+            do j = 0,n_gll-1
+                do i = 0,n_gll-1
+                    do e = 0,Tdomain%sdom%nblocks-1
+                        if (nodes_tag(e,i,j,k)) then
+                            n_glltot_sl = n_glltot_sl+1
+                            map2glltot_sl(e,i,j,k) = n_glltot_sl
+                            ii = Tdomain%specel(idx(e))%Iglobnum(i,j,k)
+                            nodesinfos(n_glltot_sl,1:3) = Tdomain%GlobCoord(0:2,ii)
+                            nodesinfos(n_glltot_sl,4:6) = nodes_norm(e,i,j,k,0:2)
+                            nodesinfos(n_glltot_sl,7) = Tdomain%sdom%GLLw(i)*Tdomain%sdom%GLLw(j)*Tdomain%sdom%GLLw(k)
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+        deallocate(idx,nodes_norm)
+        if (n_glltot_sl>0) then
+            call dump_coupling_nodes_sl(n_glltot_sl,nodesinfos)
+            allocate(winf_sl(n_glltot_sl))
+            n_glltot_sl = 0
+            do k = 0,n_gll-1
+                do j = 0,n_gll-1
+                    do i = 0,n_gll-1
+                        do e = 0,Tdomain%sdom%nblocks-1
+                            if (nodes_tag(e,i,j,k)) then
+                                n_glltot_sl = n_glltot_sl+1
+                                winf_sl(n_glltot_sl) = nodes_winf(e,i,j,k)
+                            endif
+                        enddo
+                    enddo
+                enddo
+            enddo
+        endif
+        deallocate(nodesinfos,nodes_tag,nodes_winf)
 
     end subroutine map_mirror_sl
 
@@ -179,15 +266,25 @@ contains
         implicit none
         type(domain), intent(in) :: Tdomain
         type(surf_num), intent(in) :: surf
-        integer :: i_surf,i_node,i_dir,f,n,m,e,i,j,k
-        logical, dimension(:,:,:,:), allocatable :: tmp
-        real(fpp), dimension(0:2,0:4) :: cnodes
+        integer :: ii,jj,dir,f,n,m,e,i,j,k
+        real(fpp) :: winx,winy,winz
+        integer, dimension(:), allocatable :: idx
+        logical, dimension(:,:,:,:), allocatable :: nodes_tag
+        real(fpp), dimension(:,:,:,:), allocatable :: nodes_winf
+        real(fpp), dimension(:,:,:,:,:), allocatable :: nodes_norm
+        real(fpp), dimension(:,:), allocatable :: nodesinfos
+        real(fpp), dimension(0:2,0:3) :: cnodes
 
-        allocate(tmp(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
-        tmp = .false.
-        do i_surf = 0,surf%n_faces-1
-            f = surf%if_faces(i_surf)
-            n = surf%if_norm(i_surf)
+        allocate(nodes_tag(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+        allocate(nodes_norm(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1,0:2))
+        allocate(nodes_winf(0:Tdomain%fdom%nblocks-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+        allocate(idx(0:Tdomain%fdom%nblocks-1))
+        nodes_tag = .false.
+        nodes_norm = 0.d0
+        nodes_winf = 1.d0
+        do ii = 0,surf%n_faces-1
+            f = surf%if_faces(ii)
+            n = surf%if_norm(ii)
             if (n>0) then
                 m = 0
                 e = Tdomain%sFace(f)%elem_0
@@ -196,34 +293,72 @@ contains
                 e = Tdomain%sFace(f)%elem_1
             endif
             if (e==-1) cycle
-            do i_node = 0,3
-                cnodes(0:2,i_node) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(i_node))
+            idx(Tdomain%specel(e)%lnum) = e
+            do jj = 0,3
+                cnodes(0:2,jj) = Tdomain%Coord_Nodes(0:2,Tdomain%sFace(f)%inodes(jj))
             enddo
-            call mirror_face_normal(cnodes, i_dir)
-            select case (i_dir)
-            case(0)
-                tmp(Tdomain%specel(e)%lnum,m,:,:) = .true.
-            case(1)
-                tmp(Tdomain%specel(e)%lnum,:,m,:) = .true.
-            case(2)
-                tmp(Tdomain%specel(e)%lnum,:,:,m) = .true.
-            end select
-        enddo
-        map2glltot_fl = -1
-        n_glltot_fl = 0
-        do k = 0,n_gll-1
-            do j = 0,n_gll-1
-                do i = 0,n_gll-1
-                    do e = 0,Tdomain%fdom%nblocks-1
-                        if (tmp(e,i,j,k)) then
-                            n_glltot_fl = n_glltot_fl+1
-                            map2glltot_fl(e,i,j,k) = n_glltot_fl
+            call mirror_face_normal(cnodes,dir)
+            nodes_tag(Tdomain%specel(e)%lnum,:,:,:) = .true.
+            nodes_norm(Tdomain%specel(e)%lnum,:,:,:,dir) = m*2.d0/(n_gll-1)-1.d0
+            winx = 1.d0
+            winy = 1.d0
+            winz = 1.d0
+            do k = 0,n_gll-1
+                if (dir==2) winz = (0.5d0*cos(4.d0*atan(1.d0)*k*1.d0/(n_gll-1))+0.5d0)
+                do j = 0,n_gll-1
+                    if (dir==1) winy = (0.5d0*cos(4.d0*atan(1.d0)*j*1.d0/(n_gll-1))+0.5d0)
+                    do i = 0,n_gll-1
+                        if (dir==0) winx = (0.5d0*cos(4.d0*atan(1.d0)*i*1.d0/(n_gll-1))+0.5d0)
+                        if (n>0) then
+                            nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
+                                nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*(1.-winx*winy*winz)
+                        else
+                            nodes_winf(Tdomain%specel(e)%lnum,i,j,k) = &
+                                nodes_winf(Tdomain%specel(e)%lnum,i,j,k)*winx*winy*winz
                         endif
                     enddo
                 enddo
             enddo
         enddo
-        deallocate(tmp)
+        map2glltot_fl = -1
+        n_glltot_fl = 0
+        allocate(nodesinfos((Tdomain%fdom%nblocks*n_gll*n_gll*n_gll),7))
+        do k = 0,n_gll-1
+            do j = 0,n_gll-1
+                do i = 0,n_gll-1
+                    do e = 0,Tdomain%fdom%nblocks-1
+                        if (nodes_tag(e,i,j,k)) then
+                            n_glltot_fl = n_glltot_fl+1
+                            map2glltot_fl(e,i,j,k) = n_glltot_fl
+                            ii = Tdomain%specel(idx(e))%Iglobnum(i,j,k)
+                            nodesinfos(n_glltot_fl,1:3) = Tdomain%GlobCoord(0:2,ii)
+                            nodesinfos(n_glltot_fl,4:6) = nodes_norm(e,i,j,k,0:2)
+                            nodesinfos(n_glltot_fl,7) = Tdomain%fdom%GLLw(i)*Tdomain%fdom%GLLw(j)*Tdomain%fdom%GLLw(k)
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        deallocate(idx,nodes_norm)
+        if (n_glltot_fl>0) then
+            call dump_coupling_nodes_fl(n_glltot_fl,nodesinfos)
+            allocate(winf_fl(n_glltot_fl))
+            n_glltot_fl = 0
+            do k = 0,n_gll-1
+                do j = 0,n_gll-1
+                    do i = 0,n_gll-1
+                        do e = 0,Tdomain%fdom%nblocks-1
+                            if (nodes_tag(e,i,j,k)) then
+                                n_glltot_fl = n_glltot_fl+1
+                                winf_fl(n_glltot_fl) = nodes_winf(e,i,j,k)
+                            endif
+                        enddo
+                    enddo
+                enddo
+            enddo
+        endif
+        deallocate(nodesinfos,nodes_tag,nodes_winf)
 
     end subroutine map_mirror_fl
 
@@ -231,7 +366,7 @@ contains
         use shape_geom_3d
         implicit none
         real(fpp), dimension(0:2, 0:3), intent(in) :: cnodes
-        real(fpp), dimension(0:2) :: dfx, dfy, fnorm
+        real(fpp), dimension(0:2) :: dfx, dfy,fnorm
         integer, intent(out) :: fdir
         integer :: i
 
@@ -245,6 +380,42 @@ contains
         if (abs(fnorm(2))>abs(fnorm(fdir))) fdir = 2
 
     end subroutine mirror_face_normal
+
+    subroutine dump_coupling_nodes_sl(n,nodesinfos)
+        use semdatafiles
+        implicit none
+        integer, intent(in) :: n
+        real(fpp), dimension(:,:), intent(in) :: nodesinfos
+        character(len=MAX_FILE_SIZE) :: fnamef
+        integer :: fu,i
+
+        call semname_mirrorfile_nodes_sl(rnk,fnamef)
+        fu = 1111+rnk
+        open(fu,file=fnamef)
+        do i = 1,n
+            write(fu,'(7e16.8)') nodesinfos(i,1:7)
+        enddo
+        close(fu)
+
+    end subroutine dump_coupling_nodes_sl
+
+    subroutine dump_coupling_nodes_fl(n,nodesinfos)
+        use semdatafiles
+        implicit none
+        integer, intent(in) :: n
+        real(fpp), dimension(:,:), intent(in) :: nodesinfos
+        character(len=MAX_FILE_SIZE) :: fnamef
+        integer :: fu,i
+
+        call semname_mirrorfile_nodes_fl(rnk,fnamef)
+        fu = 1111+rnk
+        open(fu,file=fnamef)
+        do i = 1,n
+            write(fu,'(7e16.8)') nodesinfos(i,1:7)
+        enddo
+        close(fu)
+
+    end subroutine dump_coupling_nodes_fl
 
     subroutine create_mirror_files(Tdomain)
         use sdomain
@@ -321,10 +492,10 @@ contains
                     dom%mirror_sl%fields(4:6,:) = force_sl(:,:,i)
                     call append_mirror_h5_sl(dom)
                 enddo
-                allocate(diag(n_spl+1,n_tdwn),ddiag(n_tdwn))
-                call bmdiag(n_dcm,n_spl,n_tdwn,n_t,diag)
-                call bchfac(diag,n_spl+1,n_tdwn,ddiag)
-                call bchslv_sl(dom,diag,n_spl+1,n_tdwn)
+                allocate(diag(n_spl+1,n_tm),ddiag(n_tm))
+                call bmdiag(n_dcm,n_spl,n_tm,n_t,diag)
+                call bchfac(diag,n_spl+1,n_tm,ddiag)
+                call bchslv_sl(dom,diag,n_spl+1,n_tm)
                 deallocate(diag,ddiag)
             endif
         endif
@@ -368,38 +539,46 @@ contains
                     dom%mirror_fl%fields(2,:) = force_fl(:,i)
                     call append_mirror_h5_fl(dom)
                 enddo
-                allocate(diag(n_spl+1,n_tdwn),ddiag(n_tdwn))
-                call bmdiag(n_dcm,n_spl,n_tdwn,n_t,diag)
-                call bchfac(diag,n_spl+1,n_tdwn,ddiag)
-                call bchslv_fl(dom,diag,n_spl+1,n_tdwn)
+                allocate(diag(n_spl+1,n_tm),ddiag(n_tm))
+                call bmdiag(n_dcm,n_spl,n_tm,n_t,diag)
+                call bchfac(diag,n_spl+1,n_tm,ddiag)
+                call bchslv_fl(dom,diag,n_spl+1,n_tm)
                 deallocate(diag,ddiag)
             endif
         endif
 
     end subroutine dump_mirror_fl
 
-    subroutine load_mirror_sl(dom, ntime)
+    subroutine load_mirror_sl(dom,ntime)
+        use sspline
         use champs_solid
         implicit none
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: ntime
-        integer :: i,j,ntime_tmp
+        integer :: i,j,j1,j2,ntimecur,ntimeloc,first,firstloc,recn
+        real(fpp) :: t,tnt,tmp
 
         if (dom%mirror_type==1) then
-            ntime_tmp = ntime
+            ntimecur = ntime
+            ntimeloc = mod(ntime,n_dcm)
+            first = 0
+            firstloc = 0
         elseif (dom%mirror_type==2) then
-            ntime_tmp = n_t-ntime-1
+            ntimecur = n_t-1-ntime
+            ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
+            first = n_t-1
+            firstloc = n_dcm-1
         else
             write(*,*) "STOP, unauthorized action",rnk
         endif
 
         if (n_dcm==1) then
-            call read_mirror_h5_sl(dom, ntime_tmp)
-        else
-            if (mod(ntime_tmp,n_dcm)==0) then
-                if (rnk==0) write(*,'("--> SEM : read mirror_sl, iteration : ",i6.6)') ntime_tmp
+            call read_mirror_h5_sl(dom,ntimecur)
+        elseif (n_dcm>1) then
+            if (ntimecur==first.or.ntimeloc==firstloc) then
+                if (rnk==0) write(*,'("--> SEM : read mirror_sl, iteration : ",i6.6)') ntimecur
                 do i = 1,n_spl+1
-                    j = int(ntime_tmp/n_dcm)+1
+                    j = int(ntimecur/n_dcm)+1
                     call read_mirror_h5_sl(dom, j+i-1-1)
                     displ_sl(:,:,i) = dom%mirror_sl%fields(1:3,:)
                     force_sl(:,:,i) = dom%mirror_sl%fields(4:6,:)
@@ -408,36 +587,84 @@ contains
             dom%mirror_sl%fields(1:3,:) = 0.
             dom%mirror_sl%fields(4:6,:) = 0.
             do i = 1,n_spl+1
-                j = mod(ntime_tmp,n_dcm)+(n_spl+1-i)*n_dcm+1
+                j = ntimeloc+(n_spl+1-i)*n_dcm+1
                 dom%mirror_sl%fields(1:3,:) = dom%mirror_sl%fields(1:3,:)+bspl_tmp(j)*displ_sl(:,:,i)
                 dom%mirror_sl%fields(4:6,:) = dom%mirror_sl%fields(4:6,:)+bspl_tmp(j)*force_sl(:,:,i)
             enddo
+        else
+            t = ntimecur*d_t
+            tnt = t/d_tm
+            recn = int(tnt)
+            tnt = tnt-dble(recn)
+            if (ntimecur==first.or.recn/=recp) then
+                j1 = 1
+                j2 = n_spl+1
+                if (ntimecur>0) then
+                    if (recn==recp+1) then
+                        displ_sl(:,:,1:n_spl) = displ_sl(:,:,2:n_spl+1)
+                        force_sl(:,:,1:n_spl) = force_sl(:,:,2:n_spl+1)
+                        j1 = n_spl+1
+                    elseif (recn==recp-1) then
+                        displ_sl(:,:,2:n_spl+1) = displ_sl(:,:,1:n_spl)
+                        force_sl(:,:,2:n_spl+1) = force_sl(:,:,1:n_spl)
+                        j2 = 1
+                    endif
+                endif
+                do j = j1,j2
+                    if (recn+j<1.or.recn+j>n_tm) then
+                        displ_sl(:,:,j) = 0.d0
+                        force_sl(:,:,j) = 0.d0
+                    else
+                        call read_mirror_h5_sl(dom, recn+j-1)
+                        displ_sl(:,:,j) = dom%mirror_sl%fields(1:3,:)
+                        force_sl(:,:,j) = dom%mirror_sl%fields(4:6,:)
+                    endif
+                enddo
+                recp = recn
+            endif
+            dom%mirror_sl%fields(1:3,:) = 0.d0
+            dom%mirror_sl%fields(4:6,:) = 0.d0
+            do i = 1,n_spl+1
+                tmp = bspln(0,n_spl,dble(tnt+i-1))
+                dom%mirror_sl%fields(1:3,:) = dom%mirror_sl%fields(1:3,:)+tmp*displ_sl(:,:,n_spl+2-i)
+                dom%mirror_sl%fields(4:6,:) = dom%mirror_sl%fields(4:6,:)+tmp*force_sl(:,:,n_spl+2-i)
+            enddo
         endif
+
+        if (dom%mirror_type==2) dom%mirror_sl%fields(1:6,:) = -dom%mirror_sl%fields(1:6,:)
 
     end subroutine load_mirror_sl
 
-    subroutine load_mirror_fl(dom, ntime)
+    subroutine load_mirror_fl(dom,ntime)
+        use sspline
         use champs_fluid
         implicit none
         type(domain_fluid), intent(inout) :: dom
         integer, intent(in) :: ntime
-        integer :: i,j,ntime_tmp
+        integer :: i,j,j1,j2,ntimecur,ntimeloc,first,firstloc,recn
+        real(fpp) :: t,tnt,tmp
 
         if (dom%mirror_type==1) then
-            ntime_tmp = ntime
+            ntimecur = ntime
+            ntimeloc = mod(ntime,n_dcm)
+            first = 0
+            firstloc = 0
         elseif (dom%mirror_type==2) then
-            ntime_tmp = n_t-ntime-1
+            ntimecur = n_t-1-ntime
+            ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
+            first = n_t-1
+            firstloc = n_dcm-1
         else
             write(*,*) "STOP, unauthorized action",rnk
         endif
 
         if (n_dcm==1) then
-            call read_mirror_h5_fl(dom, ntime_tmp)
-        else
-            if (mod(ntime_tmp,n_dcm)==0) then
-                if (rnk==0) write(*,'("--> SEM : read mirror_fl, iteration : ",i6.6)') ntime_tmp
+            call read_mirror_h5_fl(dom,ntimecur)
+        elseif (n_dcm>1) then
+            if (ntimecur==first.or.ntimeloc==firstloc) then
+                if (rnk==0) write(*,'("--> SEM : read mirror_fl, iteration : ",i6.6)') ntimecur
                 do i = 1,n_spl+1
-                    j = int(ntime_tmp/n_dcm)+1
+                    j = int(ntimecur/n_dcm)+1
                     call read_mirror_h5_fl(dom, j+i-1-1)
                     displ_fl(:,i) = dom%mirror_fl%fields(1,:)
                     force_fl(:,i) = dom%mirror_fl%fields(2,:)
@@ -446,11 +673,51 @@ contains
             dom%mirror_fl%fields(1,:) = 0.
             dom%mirror_fl%fields(2,:) = 0.
             do i = 1,n_spl+1
-                j = mod(ntime_tmp,n_dcm)+(n_spl+1-i)*n_dcm+1
+                j = ntimeloc+(n_spl+1-i)*n_dcm+1
                 dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+bspl_tmp(j)*displ_fl(:,i)
                 dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+bspl_tmp(j)*force_fl(:,i)
             enddo
+        else
+            t = ntimecur*d_t
+            tnt = t/d_tm
+            recn = int(tnt)
+            tnt = tnt-dble(recn)
+            if (ntimecur==first.or.recn/=recp) then
+                j1 = 1
+                j2 = n_spl+1
+                if (ntimecur>0) then
+                    if (recn==recp+1) then
+                        displ_fl(:,1:n_spl) = displ_fl(:,2:n_spl+1)
+                        force_fl(:,1:n_spl) = force_fl(:,2:n_spl+1)
+                        j1 = n_spl+1
+                    elseif (recn==recp-1) then
+                        displ_fl(:,2:n_spl+1) = displ_fl(:,1:n_spl)
+                        force_fl(:,2:n_spl+1) = force_fl(:,1:n_spl)
+                        j2 = 1
+                    endif
+                endif
+                do j = j1,j2
+                    if (recn+j<1.or.recn+j>n_tm) then
+                        displ_fl(:,j) = 0.d0
+                        force_fl(:,j) = 0.d0
+                    else
+                        call read_mirror_h5_fl(dom, recn+j-1)
+                        displ_fl(:,j) = dom%mirror_fl%fields(1,:)
+                        force_fl(:,j) = dom%mirror_fl%fields(2,:)
+                    endif
+                enddo
+                recp = recn
+            endif
+            dom%mirror_fl%fields(1,:) = 0.d0
+            dom%mirror_fl%fields(2,:) = 0.d0
+            do i = 1,n_spl+1
+                tmp = bspln(0,n_spl,dble(tnt+i-1))
+                dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+tmp*displ_fl(:,n_spl+2-i)
+                dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+tmp*force_fl(:,n_spl+2-i)
+            enddo
         endif
+
+        if (dom%mirror_type==2) dom%mirror_fl%fields(1:2,:) = -dom%mirror_fl%fields(1:2,:)
 
     end subroutine load_mirror_fl
 
@@ -761,6 +1028,75 @@ contains
         call h5fclose_f(fid, hdferr)
 
     end subroutine write_mirror_h5_fl
+
+    subroutine write_mirror_h5_attr()
+        use semdatafiles
+        use sem_hdf5
+        implicit none
+        character(len=40) :: aname
+        character(len=MAX_FILE_SIZE) :: fnamef
+        integer(HID_T) :: fid,attr_id,memspace,space_id
+        integer :: hdferr
+        integer(HSIZE_T), dimension(1) :: dims
+
+        dims(1) = 1
+        call semname_mirrorfile_h5(rnk,fnamef)
+        call h5fopen_f(fnamef,H5F_ACC_RDWR_F,fid,hdferr)
+        aname = "Delta_t"
+        call h5screate_f(H5S_SCALAR_F,memspace,hdferr)
+        call h5acreate_f(fid,aname,H5T_NATIVE_DOUBLE,memspace,attr_id,hdferr)
+        call h5awrite_f(attr_id,H5T_NATIVE_DOUBLE,d_tm,dims,hdferr)
+        call h5aclose_f(attr_id,hdferr)
+        call h5sclose_f(memspace,hdferr)
+
+        aname = "Num_t"
+        call h5screate_f(H5S_SCALAR_F,memspace,hdferr)
+        call h5acreate_f(fid,aname,H5T_NATIVE_INTEGER,memspace,attr_id,hdferr)
+        call h5awrite_f(attr_id,H5T_NATIVE_INTEGER,n_tm,dims,hdferr)
+        call h5aclose_f(attr_id,hdferr)
+        call h5sclose_f(memspace,hdferr)
+
+        call h5fclose_f(fid,hdferr)
+
+    end subroutine write_mirror_h5_attr
+
+    subroutine read_mirror_h5_attr()
+        use semdatafiles
+        use sem_hdf5
+        implicit none
+        character(len=40) :: aname
+        character(len=MAX_FILE_SIZE) :: fnamef
+        integer(HID_T) :: fid,attr_id,memspace,space_id
+        integer :: hdferr
+        integer(HSIZE_T), dimension(1) :: dims,max_dims
+        real(fpp), dimension(1) :: val_r
+        integer, dimension(1) :: val_i
+
+        dims(1) = 1
+        call semname_mirrorfile_h5(rnk,fnamef)
+        call h5fopen_f(fnamef,H5F_ACC_RDONLY_F,fid,hdferr)
+
+        aname = "Delta_t"
+        call h5aopen_f(fid,aname,attr_id,hdferr)
+        call h5aget_space_f(attr_id,space_id,hdferr)
+        call h5sget_simple_extent_dims_f(space_id,dims,max_dims,hdferr)
+        call h5aread_f(attr_id,H5T_NATIVE_DOUBLE,val_r,dims,hdferr)
+        d_tm = val_r(1)
+        call h5aclose_f(attr_id,hdferr)
+        call h5sclose_f(space_id,hdferr)
+
+        aname = "Num_t"
+        call h5aopen_f(fid,aname,attr_id,hdferr)
+        call h5aget_space_f(attr_id,space_id,hdferr)
+        call h5sget_simple_extent_dims_f(space_id,dims,max_dims,hdferr)
+        call h5aread_f(attr_id,H5T_NATIVE_INTEGER,val_i,dims,hdferr)
+        n_tm = val_i(1)
+        call h5aclose_f(attr_id,hdferr)
+        call h5sclose_f(space_id,hdferr)
+
+        call h5fclose_f(fid,hdferr)
+
+    end subroutine read_mirror_h5_attr
 
 end module smirror
 !! Local Variables:

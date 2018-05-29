@@ -40,9 +40,11 @@ module champs_solid
 
     ! Mirror
     type :: time_mirror_sl
-        integer :: n_glltot, n_gll
+        integer :: n_glltot, n_gll, n_t
+        real(fpp) :: d_t
         integer, dimension(:,:,:,:), allocatable :: map
-        real(fpp), dimension(:, :), allocatable :: fields
+        real(fpp), dimension(:,:), allocatable :: fields
+        real(fpp), dimension(:), allocatable :: winfunc
     end type time_mirror_sl
     
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
@@ -52,7 +54,7 @@ module champs_solid
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
         ! Mirror
-        logical :: use_mirror
+        !!! GB logical :: use_mirror
         integer :: mirror_type
         type(time_mirror_sl) :: mirror_sl
 

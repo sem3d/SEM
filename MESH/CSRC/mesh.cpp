@@ -68,9 +68,18 @@ index_t Mesh3D::add_elem(int mat_idx, const Elem& el)
     if (s<0) {
         printf("Wrong orientation: Elem %ld mat=%d\n", m_elems.size()-1, mat_idx);
     }
+    has_mrrs = false;
     return m_elems_offs.size()-1;
 }
 
+// XXX: cleanup
+index_t Mesh3D::add_elem_mrrs(int mat_idx, int pos_mrrs, const Elem& el)
+{
+    idx = add_elem(mat_idx, el);
+    has_mrrs = true;
+    m_mrrs.push_back(pos_mrrs);
+    return idx;
+}
 
 void Mesh3D::partition_mesh(index_t n_parts)
 {
