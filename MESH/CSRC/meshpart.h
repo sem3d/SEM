@@ -156,6 +156,12 @@ protected:
     std::map<int,MeshPartComm> m_comm;
     node_id_map_t m_nodes_to_id;
 
+    // Mirror
+    std::vector<index_t> m_mirror_e;
+    std::vector<index_t> m_mirror_ijk;
+    std::vector<double> m_mirror_xyz;
+    void handle_mirror(index_t el);
+
     void handle_local_element(index_t el, bool is_border);
     void handle_neighbouring_face(index_t lnf, const PFace& fc, index_t el);
     void handle_neighbouring_edge(index_t lne, const PEdge& ed, index_t el);
