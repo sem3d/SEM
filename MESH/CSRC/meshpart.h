@@ -8,6 +8,7 @@
 
 #include "meshbase.h"
 #include "mesh.h"
+#include "sem_input.h" // sem_config_t
 #include <vector>
 #include <map>
 #include <set>
@@ -85,9 +86,10 @@ public:
 /** Manages a part of the mesh on a specific processor */
 class Mesh3DPart {
 public:
-    Mesh3DPart(const Mesh3D& mesh, int proc):
+    Mesh3DPart(const Mesh3D& mesh, int proc, const sem_config_t* config):
         m_mesh(mesh),
-        m_proc(proc) {}
+        m_proc(proc),
+        m_cfg(config) {}
 
 
     void compute_part();
@@ -136,6 +138,7 @@ public:
 protected:
     const Mesh3D& m_mesh;
     int m_proc;
+    const sem_config_t* m_cfg;
 
     std::vector<index_t> m_elems; // Local elements
     std::vector<index_t> m_elems_faces; // local face number of each local element

@@ -15,12 +15,12 @@
 #include "reader_ideas.h"
 #include "mesh_common.h"
 
-void handle_on_the_fly(Mesh3D& mesh)
+void handle_on_the_fly(Mesh3D& mesh, sem_config_t* config)
 {
     FILE* fparams;
     RectMesh desc;
     fparams = fopen("mat.dat","r");
-    desc.read_params_old(fparams);
+    desc.read_params_old(fparams, config);
     fclose(fparams);
     desc.init_rectangular_mesh(mesh);
 }
@@ -122,11 +122,11 @@ int main(int argc, char**argv)
     printf("            Your choice is %d \n", choice);
     printf(" \n\n");
 
-
+    sem_config_t config;
     switch(choice) {
     case 1:
     	mesh.read_materials("mater.in");
-        handle_on_the_fly(mesh);
+        handle_on_the_fly(mesh, &config);
         mesh.write_materials("material.input");
 	break;
     case 2:
@@ -151,7 +151,7 @@ int main(int argc, char**argv)
     //mesh.write_materials("material.input");
     mesh.define_associated_materials();
 
-    mesh.generate_output(NPROCS);
+    mesh.generate_output(NPROCS, &config);
     return 0;
 }
 

@@ -15,8 +15,7 @@
 #include "vertex_elem_map.h"
 #include "meshbase.h"
 #include "aabb.h"
-
-
+#include "sem_input.h" // sem_config_t
 
 class Mesh3D
 {
@@ -26,7 +25,7 @@ public:
 	m_elems_offs.push_back(0);
     }
 
-    void generate_output(int nprocs);
+    void generate_output(int nprocs, const sem_config_t* config = NULL);
     void build_sf_interface();
     void compute_pml_free_surface();
 

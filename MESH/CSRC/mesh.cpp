@@ -657,7 +657,7 @@ void Mesh3D::compute_pml_free_surface()
     printf("Found %d free faces\n\n", count);
 }
 
-void Mesh3D::generate_output(int nprocs)
+void Mesh3D::generate_output(int nprocs, const sem_config_t* config)
 {
     build_vertex_to_elem_map();
     save_bbox();
@@ -669,7 +669,7 @@ void Mesh3D::generate_output(int nprocs)
     // build_sf_interface();
 
     for(int part=0;part<nprocs;++part) {
-        Mesh3DPart loc(*this, part);
+        Mesh3DPart loc(*this, part, config);
 
         loc.compute_part();
         loc.output_mesh_part();

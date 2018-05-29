@@ -13,7 +13,7 @@
 
 using namespace std;
 
-void RectMesh::read_params_old(FILE* fparam)
+void RectMesh::read_params_old(FILE* fparam, sem_config_t* config)
 {
     char* buffer=NULL;
     size_t n=0;
@@ -150,11 +150,12 @@ void RectMesh::read_params_old(FILE* fparam)
     }
 
     if (has_mirrors == 2) { // Read input.spec
-        sem_config_t config;
-        int err;
-        read_sem_config(&config, 0, 3, "input.spec", &err);
-        dump_config(&config);
-        printf("\n");
+        if (config) {
+            int err;
+            read_sem_config(config, 0, 3, "input.spec", &err);
+            dump_config(config);
+            printf("\n");
+        }
     }
 }
 

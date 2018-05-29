@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include "meshbase.h"
+#include "sem_input.h" // sem_config_t
 
 // Describe directions of presence of PML elements
 // When generating a structured axis aligned grid
@@ -47,7 +48,7 @@ struct RectMesh {
     int elem_shape;
 
     void read_params(FILE* fparam);
-    void read_params_old(FILE* fparam);
+    void read_params_old(FILE* fparam, sem_config_t* config = NULL);
     void init_rectangular_mesh(Mesh3D& mesh);
     void apply_pml_borders();
 protected:
