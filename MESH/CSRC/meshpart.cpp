@@ -346,8 +346,23 @@ void Mesh3DPart::handle_mirror(index_t el)
     if (!m_cfg || !m_cfg->use_mirror) return;
     if (!m_cfg->mirror_impl_surf) return;
 
-    double f0 = 0.;
+    double vco[3][8];
     index_t e0 = m_mesh.m_elems_offs[el];
+    for(int ed=0;ed<12;++ed) {
+        index_t lv0 = RefEdge[ed][0];
+        index_t lv1 = RefEdge[ed][1];
+        index_t gv0 = m_mesh.m_elems[e0 + lv0];
+        index_t gv1 = m_mesh.m_elems[e0 + lv1];
+
+        vco[0][lv0] = m_mesh.m_xco[gv0];
+        vco[1][lv0] = m_mesh.m_yco[gv0];
+        vco[2][lv0] = m_mesh.m_zco[gv0];
+        vco[0][lv1] = m_mesh.m_xco[gv1];
+        vco[1][lv1] = m_mesh.m_yco[gv1];
+        vco[2][lv1] = m_mesh.m_zco[gv1];
+    }
+
+    double f0 = 0.;
     for(int e=0;e<e0;++e) {
         index_t gid = m_mesh.m_elems[e0+e];
         double x = m_mesh.m_xco[gid];
