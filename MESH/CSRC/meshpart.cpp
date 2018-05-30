@@ -367,18 +367,11 @@ void Mesh3DPart::handle_mirror(index_t el)
 
     double vco[3][8];
     index_t e0 = m_mesh.m_elems_offs[el];
-    for(int ed=0;ed<12;++ed) {
-        index_t lv0 = RefEdge[ed][0];
-        index_t lv1 = RefEdge[ed][1];
-        index_t gv0 = m_mesh.m_elems[e0 + lv0];
-        index_t gv1 = m_mesh.m_elems[e0 + lv1];
-
-        vco[0][lv0] = m_mesh.m_xco[gv0];
-        vco[1][lv0] = m_mesh.m_yco[gv0];
-        vco[2][lv0] = m_mesh.m_zco[gv0];
-        vco[0][lv1] = m_mesh.m_xco[gv1];
-        vco[1][lv1] = m_mesh.m_yco[gv1];
-        vco[2][lv1] = m_mesh.m_zco[gv1];
+    for(int vt=0;vt<8;++vt) {
+        index_t gv = m_mesh.m_elems[e0 + vt];
+        vco[0][vt] = m_mesh.m_xco[gv];
+        vco[1][vt] = m_mesh.m_yco[gv];
+        vco[2][vt] = m_mesh.m_zco[gv];
     }
 
     vector<double> gll;
@@ -386,10 +379,11 @@ void Mesh3DPart::handle_mirror(index_t el)
 
     double f0 = 0.;
     bool init = false;
-    bool sign_changed = false;
+    bool sign_pos = false;
+    bool sign_minus = false;
     std::vector<index_t> mirror_e;
     std::vector<index_t> mirror_ijk;
-    std::vector<double> mirror_xyz;
+    std::vector<double>  mirror_xyz;
     for(int k=0;k<m_cfg->ngll;++k) {
         for(int j=0;j<m_cfg->ngll;++j) {
             for(int i=0;i<m_cfg->ngll;++i) {
@@ -405,26 +399,24 @@ void Mesh3DPart::handle_mirror(index_t el)
                 double dy = y-yc;
                 double dz = z-zc;
 
-                if (!init) {f0 = r*r - dx*dx + dy*dy + dz*dz; init = true;}
-
                 double f = r*r - dx*dx + dy*dy + dz*dz;
-                if (f0*f < 0.) {
-                    sign_changed = true;
-                    if (f > 0.) { // In the ball.
-                        mirror_e.push_back(el);
-                        mirror_ijk.push_back(i);
-                        mirror_ijk.push_back(j);
-                        mirror_ijk.push_back(k);
-                        mirror_xyz.push_back(x);
-                        mirror_xyz.push_back(y);
-                        mirror_xyz.push_back(z);
-                    }
+                if (f >= 0.) {
+                    mirror_e.push_back(el);
+                    mirror_ijk.push_back(i);
+                    mirror_ijk.push_back(j);
+                    mirror_ijk.push_back(k);
+                    mirror_xyz.push_back(x);
+                    mirror_xyz.push_back(y);
+                    mirror_xyz.push_back(z);
+                    sign_pos = true;
+                } else {
+                    sign_minus = true;
                 }
             }
         }
     }
 
-    if (sign_changed) {
+    if (sign_pos && sign_minus) {
         m_mirror_e.insert  (m_mirror_e.end(),   mirror_e.begin(),   mirror_e.end()  );
         m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
         m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
