@@ -5,15 +5,14 @@
 #include <algorithm>
 #include "mesh.h"
 #include "meshpart.h"
-#include "sem_cell_t.h"
+#include "sem_gll.h"
 
 using std::vector;
-
-
 
 void Mesh3DPart::compute_part()
 {
     /// Handle all elements on this node and those that touches it
+    compute_gll();
     for(size_t k=0;k<m_mesh.n_elems();++k) {
         if (m_mesh.elem_part(k)==m_proc) {
             bool border = is_border_element(k);
@@ -360,6 +359,14 @@ void Mesh3DPart::shape8_local2global(double const vco[3][8],
                  vco[2][6]*(1+xi)*(1+eta)*(1+zeta) + vco[2][7]*(1-xi)*(1+eta)*(1+zeta));
 }
 
+void Mesh3DPart::compute_gll()
+{
+    if (!m_cfg || !m_cfg->use_mirror) return;
+    if (!m_cfg->mirror_impl_surf) return;
+
+    calcul_gll(m_cfg->ngll, m_gll);
+}
+
 void Mesh3DPart::handle_mirror(index_t el)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
@@ -374,9 +381,6 @@ void Mesh3DPart::handle_mirror(index_t el)
         vco[2][vt] = m_mesh.m_zco[gv];
     }
 
-    vector<double> gll;
-    sem_cell_t sc; sc.calcul_gll(m_cfg->ngll, gll);
-
     double f0 = 0.;
     bool init = false;
     bool sign_pos = false;
@@ -388,7 +392,7 @@ void Mesh3DPart::handle_mirror(index_t el)
         for(int j=0;j<m_cfg->ngll;++j) {
             for(int i=0;i<m_cfg->ngll;++i) {
                 double x, y, z;
-                shape8_local2global(vco, gll[i], gll[j], gll[k], x, y, z);
+                shape8_local2global(vco, m_gll[i], m_gll[j], m_gll[k], x, y, z);
 
                 double r = m_cfg->mirror_impl_surf_radius;
                 double xc = m_cfg->mirror_impl_surf_center[0];
