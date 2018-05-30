@@ -487,7 +487,7 @@ void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem,
 
 void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum)
 {
-    int n[4];
+    index_t n[4];
     for(int k=0;k<4;++k) {
         n[k] = elem.v[RefFace[facenum].v[k]];
     }

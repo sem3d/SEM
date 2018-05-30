@@ -674,7 +674,7 @@ contains
                         enddo
                     enddo
                 enddo
-            endif
+            enddo
         endif
 
         Fox = 0d0
@@ -721,7 +721,6 @@ contains
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
-        use m_calcul_forces_atn_nl
 
         type(domain_solid),intent(inout) :: dom
         type(champssolid),intent(inout) :: champs1
@@ -793,7 +792,6 @@ contains
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
-        use m_calcul_forces_atn_nl
 
         type(domain_solid),intent(inout) :: dom
         type(champssolid),intent(inout) :: champs1

@@ -75,7 +75,7 @@ index_t Mesh3D::add_elem(int mat_idx, const Elem& el)
 // XXX: cleanup
 index_t Mesh3D::add_elem_mrrs(int mat_idx, int pos_mrrs, const Elem& el)
 {
-    idx = add_elem(mat_idx, el);
+    index_t idx = add_elem(mat_idx, el);
     has_mrrs = true;
     m_mrrs.push_back(pos_mrrs);
     return idx;
