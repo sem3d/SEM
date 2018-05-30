@@ -880,8 +880,25 @@ void Mesh3DPart::output_mesh_part()
     }
 
     H5Fclose(fid);
+
+    output_mirror();
 }
 
+void Mesh3DPart::output_mirror() const
+{
+    printf("%04d : number of mirror points = %ld\n", m_proc, m_mirror_xyz.size()/3);
+
+    char fname[2048];
+    snprintf(fname, sizeof(fname), "mirror.%04d.h5", m_proc);
+    hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+    hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    h5h_write_dset(rid, "E", m_mirror_e);
+    //h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
+    //h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
+    H5Gclose(rid);
+    H5Fclose(fid);
+}
 
 void Mesh3DPart::output_comm(hid_t gid, const MeshPartComm& comm, int dest)
 {
