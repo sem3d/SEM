@@ -386,6 +386,10 @@ void Mesh3DPart::handle_mirror(index_t el)
 
     double f0 = 0.;
     bool init = false;
+    bool sign_changed = false;
+    std::vector<index_t> mirror_e;
+    std::vector<index_t> mirror_ijk;
+    std::vector<double> mirror_xyz;
     for(int k=0;k<m_cfg->ngll;++k) {
         for(int j=0;j<m_cfg->ngll;++j) {
             for(int i=0;i<m_cfg->ngll;++i) {
@@ -401,20 +405,33 @@ void Mesh3DPart::handle_mirror(index_t el)
                 double dy = y-yc;
                 double dz = z-zc;
 
-                if (!init) {f0 = dx*dx + dy*dy + dz*dz - r*r; init = true;}
+                if (!init) {f0 = r*r - dx*dx + dy*dy + dz*dz; init = true;}
 
-                double f = dx*dx + dy*dy + dz*dz - r*r;
+                double f = r*r - dx*dx + dy*dy + dz*dz;
                 if (f0*f < 0.) {
-                    m_mirror_e.push_back(el);
-                    m_mirror_ijk.push_back(i);
-                    m_mirror_ijk.push_back(j);
-                    m_mirror_ijk.push_back(k);
-                    m_mirror_xyz.push_back(x);
-                    m_mirror_xyz.push_back(y);
-                    m_mirror_xyz.push_back(z);
+                    sign_changed = true;
+                    if (f > 0.) { // In the ball.
+                        mirror_e.push_back(el);
+                        mirror_ijk.push_back(i);
+                        mirror_ijk.push_back(j);
+                        mirror_ijk.push_back(k);
+                        mirror_xyz.push_back(x);
+                        mirror_xyz.push_back(y);
+                        mirror_xyz.push_back(z);
+                    }
                 }
             }
         }
+    }
+
+    if (sign_changed) {
+        m_mirror_e.insert  (m_mirror_e.end(),   mirror_e.begin(),   mirror_e.end()  );
+        m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
+        m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
+        m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
+        m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
+        m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
+        m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
     }
 }
 
