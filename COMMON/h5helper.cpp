@@ -1,5 +1,6 @@
 
 #include "h5helper.h"
+#include "types.h"
 #include <cassert>
 #include <vector>
 #include <cstdlib>
@@ -88,8 +89,6 @@ hid_t h5h_dset_prop(hsize_t d0)
 
 
 /** WRITE DSET **/
-
-typedef int64_t index_t; // Redefine to avoid prereq : mesh.h -> h5*.h : TODO check with Ludovic.
 
 // Use specialized template functions to get HDF5 type from T (to avoid C++11 is_same).
 template<typename T> hid_t h5h_get_type();
