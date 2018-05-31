@@ -24,13 +24,8 @@ hid_t h5h_dset_prop(hsize_t d0);
 
 template<typename T> void  h5h_write_dset(hid_t parent, const char* name, int d0, const T* arr);
 template<typename T> void  h5h_write_dset(hid_t parent, const char* name, const std::vector<T>& arr);
-void  h5h_write_dset_2d(hid_t parent, const char* name, int d0, int d1, const double* arr);
-void  h5h_write_dset_2d(hid_t parent, const char* dname, int d1, const std::vector<double>& v);
-
-void  h5h_write_dset_2d(hid_t parent, const char* name, int d0, int d1, const int* arr);
-void  h5h_write_dset_2d(hid_t parent, const char* dname, int d1, const std::vector<int>& v);
-
-
+template<typename T> void  h5h_write_dset_2d(hid_t parent, const char* name, int d0, int d1, const T* arr);
+template<typename T> void  h5h_write_dset_2d(hid_t parent, const char* dname, int d1, const std::vector<T>& v);
 
 int   h5h_read_attr_int(hid_t dset_id, const char* attrname);
 void  h5h_write_attr_int(hid_t dset_id, const char* attrname, int val);

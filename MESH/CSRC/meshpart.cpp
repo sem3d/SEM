@@ -894,8 +894,8 @@ void Mesh3DPart::output_mirror() const
 
     hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     h5h_write_dset(rid, "E", m_mirror_e);
-    //h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
-    //h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
+    h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
+    h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
     H5Gclose(rid);
     H5Fclose(fid);
 }
