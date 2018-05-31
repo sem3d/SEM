@@ -97,7 +97,7 @@ template<> hid_t h5h_get_type<double>() {return H5T_NATIVE_DOUBLE;}
 template<> hid_t h5h_get_type<int>() {return H5T_NATIVE_INT;}
 template<> hid_t h5h_get_type<index_t>() {return H5T_NATIVE_INT64;}
 
-/** 1D, double */
+// Template : 1D array
 template<typename T> void h5h_write_dset(hid_t parent, const char* name, int d0, const T* arr)
 {
     hid_t dset_id, space_id, prop_id;
@@ -126,7 +126,7 @@ template void h5h_write_dset<double>(hid_t parent, const char* name, const std::
 template void h5h_write_dset<int>(hid_t parent, const char* name, const std::vector<int>& arr);
 template void h5h_write_dset<index_t>(hid_t parent, const char* name, const std::vector<index_t>& arr);
 
-/** 2D double */
+// Template : 2D array
 template<typename T> void h5h_write_dset_2d(hid_t parent, const char* name, int d0, int d1, const T* arr)
 {
     hid_t dset_id, space_id, prop_id;
