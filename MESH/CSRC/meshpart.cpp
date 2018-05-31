@@ -423,10 +423,6 @@ void Mesh3DPart::handle_mirror(index_t el)
     if (sign_pos && sign_minus) {
         m_mirror_e.insert  (m_mirror_e.end(),   mirror_e.begin(),   mirror_e.end()  );
         m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
-        m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
-        m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
-        m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
-        m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
         m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
     }
 }
@@ -889,13 +885,16 @@ void Mesh3DPart::output_mirror() const
     printf("%04d : number of mirror points = %ld\n", m_proc, m_mirror_xyz.size()/3);
 
     char fname[2048];
-    snprintf(fname, sizeof(fname), "mirror.%04d.h5", m_proc);
+    snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
     hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     h5h_write_dset(rid, "E", m_mirror_e);
     h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
     h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
+    unsigned int nb_pts = m_mirror_xyz.size()/3;
+    vector<index_t> id; for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
+    h5h_write_dset(rid, "ID", id); // Only needed for XMF
     H5Gclose(rid);
     H5Fclose(fid);
 }
@@ -1088,39 +1087,21 @@ void Mesh3DPart::output_xmf_faces()
 void Mesh3DPart::output_xmf_mirror()
 {
     char fname[2048];
-    FILE* f;
-
-    int n_faces_mirror = 0;
-    for(unsigned k=0;k<m_surfaces.size();++k) {
-        if (m_surfaces[k]->name()=="mirror") {
-            n_faces_mirror = m_surfaces[k]->m_faces.size();
-            break;
-        }
-    }
-
     snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.xmf", m_proc);
-    f = fopen(fname,"w");
+    FILE* f = fopen(fname,"w");
     output_xmf_header(f);
-    fprintf(f, "    <Grid Name=\"faces.%04d\">\n", m_proc);
-    fprintf(f, "      <Topology Type=\"Quadrilateral\" NumberOfElements=\"%ld\">\n", n_faces());
-    fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%ld 4\">\n", n_faces());
-    fprintf(f, "mesh4spec.%04d.h5:/faces_def\n",m_proc);
+    unsigned int nb_pts = m_mirror_xyz.size()/3;
+    fprintf(f, "    <Grid Name=\"mirror.%04d\">\n", m_proc);
+    fprintf(f, "      <Topology Type=\"Polyvertex\">\n");
+    fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%ld\">\n", nb_pts);
+    fprintf(f, "mesh4spec.%04d.mirror.h5:/Mirror/ID\n",m_proc);
     fprintf(f, "        </DataItem>\n");
     fprintf(f, "      </Topology>\n");
     fprintf(f, "      <Geometry Type=\"XYZ\">\n");
-    fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%ld 3\">\n", n_nodes());
-    fprintf(f, "mesh4spec.%04d.h5:/local_nodes\n", m_proc);
+    fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%ld 3\">\n", nb_pts);
+    fprintf(f, "mesh4spec.%04d.mirror.h5:/Mirror/XYZ\n", m_proc);
     fprintf(f, "        </DataItem>\n");
     fprintf(f, "      </Geometry>\n");
-    output_int_scalar(f, 6, "FDom", "Cell", n_faces(), "/faces_dom");
-    fprintf(f, "    </Grid>\n");
-    fprintf(f, "    <Grid Name=\"surface.%04d\" GridType=\"Subset\" Section=\"DataItem\">\n", m_proc);
-    fprintf(f, "      <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d\">\n", n_faces_mirror);
-    fprintf(f, "mesh4spec.%04d.h5:/Surfaces/mirror/sl_faces\n",m_proc);
-    fprintf(f, "      </DataItem>\n");
-    fprintf(f, "      <Grid Name=\"Target\" Reference=\"XML\">\n");
-    fprintf(f, "/Xdmf/Domain/Grid[@Name=\"faces.%04d\"]\n", m_proc);
-    fprintf(f, "      </Grid>\n");
     fprintf(f, "    </Grid>\n");
     output_xmf_footer(f);
     fclose(f);
