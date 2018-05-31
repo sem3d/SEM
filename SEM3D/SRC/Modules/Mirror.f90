@@ -166,6 +166,58 @@ contains
         implicit none
         type(domain), intent(in) :: Tdomain
         type(surf_num), intent(in) :: surf
+        !
+
+        if (Tdomain%config%mirror_impl_surf == 1) then
+            call map_mirror_sl_ball(Tdomain)
+        else
+            call map_mirror_sl_box(Tdomain, surf)
+        endif
+    end subroutine map_mirror_sl
+
+    subroutine map_mirror_sl_ball(Tdomain)
+        use sdomain
+        use hdf5
+        use sem_hdf5
+        use semdatafiles
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        !
+        character(Len=MAX_FILE_SIZE) :: fname
+        integer(HID_T) :: fid
+        integer :: hdferr
+        integer, dimension(:), allocatable :: mirror_E
+        integer, dimension(:,:), allocatable :: mirror_IJK
+        integer :: e, i, j, k, gel, idx
+        !
+
+        fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
+        call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
+        call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
+        call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+        call h5fclose_f(fid, hdferr)
+
+        map2glltot_sl = -1
+        n_glltot_sl = 0
+        do idx = 0,size(mirror_E)-1
+            gel = mirror_E(idx)
+            i = mirror_IJK(idx,0)
+            j = mirror_IJK(idx,1)
+            k = mirror_IJK(idx,2)
+            if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
+            e = Tdomain%specel(gel)%lnum
+            n_glltot_sl = n_glltot_sl+1
+            map2glltot_sl(e,i,j,k) = n_glltot_sl
+        enddo
+
+        deallocate(mirror_E, mirror_IJK)
+    end subroutine map_mirror_sl_ball
+
+    subroutine map_mirror_sl_box(Tdomain, surf)
+        use sdomain
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        type(surf_num), intent(in) :: surf
         integer :: ii,jj,dir,f,n,m,e,i,j,k
         real(fpp) :: winx,winy,winz
         integer, dimension(:), allocatable :: idx
@@ -259,9 +311,61 @@ contains
         endif
         deallocate(nodesinfos,nodes_tag,nodes_winf)
 
-    end subroutine map_mirror_sl
+    end subroutine map_mirror_sl_box
 
     subroutine map_mirror_fl(Tdomain, surf)
+        use sdomain
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        type(surf_num), intent(in) :: surf
+        !
+
+        if (Tdomain%config%mirror_impl_surf == 1) then
+            call map_mirror_fl_ball(Tdomain)
+        else
+            call map_mirror_fl_box(Tdomain, surf)
+        endif
+    end subroutine map_mirror_fl
+
+    subroutine map_mirror_fl_ball(Tdomain)
+        use sdomain
+        use hdf5
+        use sem_hdf5
+        use semdatafiles
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        !
+        character(Len=MAX_FILE_SIZE) :: fname
+        integer(HID_T) :: fid
+        integer :: hdferr
+        integer, dimension(:), allocatable :: mirror_E
+        integer, dimension(:,:), allocatable :: mirror_IJK
+        integer :: e, i, j, k, gel, idx
+        !
+
+        fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
+        call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
+        call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
+        call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+        call h5fclose_f(fid, hdferr)
+
+        map2glltot_fl = -1
+        n_glltot_fl = 0
+        do idx = 0,size(mirror_E)-1
+            gel = mirror_E(idx)
+            i = mirror_IJK(idx,0)
+            j = mirror_IJK(idx,1)
+            k = mirror_IJK(idx,2)
+            if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
+            e = Tdomain%specel(gel)%lnum
+            n_glltot_fl = n_glltot_fl+1
+            map2glltot_fl(e,i,j,k) = n_glltot_fl
+        enddo
+
+        deallocate(mirror_E, mirror_IJK)
+    end subroutine map_mirror_fl_ball
+
+    subroutine map_mirror_fl_box(Tdomain, surf)
         use sdomain
         implicit none
         type(domain), intent(in) :: Tdomain
@@ -360,7 +464,7 @@ contains
         endif
         deallocate(nodesinfos,nodes_tag,nodes_winf)
 
-    end subroutine map_mirror_fl
+    end subroutine map_mirror_fl_box
 
     subroutine mirror_face_normal(cnodes, fdir)
         use shape_geom_3d
