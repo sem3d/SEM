@@ -403,7 +403,7 @@ void Mesh3DPart::handle_mirror(index_t el)
                 double dy = y-yc;
                 double dz = z-zc;
 
-                double f = r*r - dx*dx + dy*dy + dz*dz;
+                double f = r*r - (dx*dx + dy*dy + dz*dz);
                 if (f >= 0.) {
                     mirror_e.push_back(el);
                     mirror_ijk.push_back(i);
