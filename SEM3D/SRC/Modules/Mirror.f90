@@ -210,6 +210,9 @@ contains
             map2glltot_sl(e,i,j,k) = n_glltot_sl
         enddo
 
+        allocate(winf_sl(n_glltot_sl))
+        winf_sl = 1.
+
         deallocate(mirror_E, mirror_IJK)
     end subroutine map_mirror_sl_ball
 
@@ -361,6 +364,9 @@ contains
             n_glltot_fl = n_glltot_fl+1
             map2glltot_fl(e,i,j,k) = n_glltot_fl
         enddo
+
+        allocate(winf_fl(n_glltot_fl))
+        winf_fl = 1.
 
         deallocate(mirror_E, mirror_IJK)
     end subroutine map_mirror_fl_ball
