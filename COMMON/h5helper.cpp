@@ -1,6 +1,6 @@
 
 #include "h5helper.h"
-#include "types.h"
+#include "sem_types.h"
 #include <cassert>
 #include <vector>
 #include <cstdlib>

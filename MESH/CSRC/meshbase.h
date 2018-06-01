@@ -12,7 +12,7 @@
 #include <string>
 #include <cstdlib>
 #include <cassert>
-#include "types.h"
+#include "sem_types.h"
 
 // type for global indexes
 constexpr index_t invalid_index = (index_t)(-1);
