@@ -100,7 +100,7 @@ contains
         type(surf_num), intent(inout) :: surf
         integer :: n_elmtot
 
-        n_elmtot = Tdomain%sdom%nblocks
+        n_elmtot = Tdomain%sdom%nbelem
         n_gll = Tdomain%sdom%ngll
         if (surf%nbtot/=0) then
             allocate(map2glltot_sl(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
@@ -134,7 +134,7 @@ contains
         type(surf_num), intent(inout) :: surf
         integer :: n_elmtot
 
-        n_elmtot = Tdomain%fdom%nblocks
+        n_elmtot = Tdomain%fdom%nbelem
         n_gll = Tdomain%fdom%ngll
         if (surf%nbtot/=0) then
             allocate(map2glltot_fl(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
