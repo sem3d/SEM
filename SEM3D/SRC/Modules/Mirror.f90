@@ -40,10 +40,10 @@ contains
             call bmn(bspl_tmp, n_dcm, n_spl)
         endif
 
-        if (surf%surf_sl%nbtot/=0) then
+        if (Tdomain%config%mirror_impl_surf == 1 .or. surf%surf_sl%nbtot/=0) then
             call init_mirror_sl(Tdomain, surf%surf_sl)
         endif
-        if (surf%surf_fl%nbtot/=0) then
+        if (Tdomain%config%mirror_impl_surf == 1 .or. surf%surf_fl%nbtot/=0) then
             call init_mirror_fl(Tdomain, surf%surf_fl)
         endif
 
@@ -102,7 +102,7 @@ contains
 
         n_elmtot = Tdomain%sdom%nbelem
         n_gll = Tdomain%sdom%ngll
-        if (surf%nbtot/=0) then
+        if (Tdomain%config%mirror_impl_surf == 1 .or. surf%nbtot/=0) then
             allocate(map2glltot_sl(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
             call map_mirror_sl(Tdomain, surf)
             if (n_glltot_sl>0) then
@@ -136,7 +136,7 @@ contains
 
         n_elmtot = Tdomain%fdom%nbelem
         n_gll = Tdomain%fdom%ngll
-        if (surf%nbtot/=0) then
+        if (Tdomain%config%mirror_impl_surf == 1 .or. surf%nbtot/=0) then
             allocate(map2glltot_fl(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
             call map_mirror_fl(Tdomain, surf)
             if (n_glltot_fl>0) then
