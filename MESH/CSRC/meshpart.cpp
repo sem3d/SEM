@@ -368,7 +368,7 @@ void Mesh3DPart::compute_gll()
     calcul_gll(m_cfg->ngll, m_gll);
 }
 
-void Mesh3DPart::handle_mirror(index_t el)
+void Mesh3DPart::handle_mirror_elem(index_t el)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
     if (!m_cfg->mirror_impl_surf) return;
@@ -471,7 +471,7 @@ void Mesh3DPart::handle_local_element(index_t el, bool is_border)
             index_t gid = m_mesh.m_elems[e0 + vx];
             add_node(gid);
         }
-        handle_mirror(el);
+        handle_mirror_elem(el);
     }
 }
 
