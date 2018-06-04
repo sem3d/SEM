@@ -382,8 +382,6 @@ void Mesh3DPart::handle_mirror_elem(index_t el)
         vco[2][vt] = m_mesh.m_zco[gv];
     }
 
-    double f0 = 0.;
-    bool init = false;
     bool sign_pos = false;
     bool sign_minus = false;
     std::vector<index_t> mirror_e;
