@@ -467,13 +467,19 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
                 if (efc.eq_geom(fc)) {
                     // Mark face as mirror face
 
+                    double ebc[3] = {0., 0., 0.}; // Element barycenter
                     double vco[3][8];
                     for(int vt=0;vt<8;++vt) {
                         index_t gv = m_mesh.m_elems[e0 + vt];
                         vco[0][vt] = m_mesh.m_xco[gv];
                         vco[1][vt] = m_mesh.m_yco[gv];
                         vco[2][vt] = m_mesh.m_zco[gv];
+
+                        ebc[0] += vco[0][vt];
+                        ebc[1] += vco[1][vt];
+                        ebc[2] += vco[2][vt];
                     }
+                    ebc[0] /= 8; ebc[1] /= 8; ebc[2] /= 8;
 
                     int k = 0;
                     for(int j=0;j<m_cfg->ngll;++j) {
