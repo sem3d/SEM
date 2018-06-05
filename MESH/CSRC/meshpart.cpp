@@ -438,14 +438,21 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
 {
     if (!smirror) return;
 
+    // Loop over faces of mirror surface
+
     face_map_t::const_iterator itfound, it;
     for(it=smirror->m_faces.begin();it!=smirror->m_faces.end();++it) {
         const PFace& fc = it->first;
+
+        // Get elements connected to the face
+
         std::set<index_t> elemset;
         m_mesh.get_neighbour_elements(4, fc.n, elemset);
         std::set<index_t>::const_iterator it;
         for(it=elemset.begin();it!=elemset.end();++it) {
             if (m_mesh.elem_part(*it)==m_proc) continue;
+
+            // Get faces of each element
 
             index_t el = *it;
             index_t e0 = m_mesh.m_elems_offs[el];
@@ -455,7 +462,9 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
                 for(int p=0;p<4;++p) n[p] = m_mesh.m_elems[e0 + RefFace[f].v[p]];
                 PFace efc(n, dom);
 
-                if (efc.eq_geom(fc)) { // Surface face = element face
+                // Check if surface face = element face
+
+                if (efc.eq_geom(fc)) {
                   // TODO: add e,i,j,k,w,n in mirror
                   //       e,i,j,k,w => should be easy
                   //       n => how to know ??
