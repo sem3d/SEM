@@ -188,9 +188,10 @@ typedef struct {
     int mirror_type;
     double mirror_fmax;
     int mirror_nspl;
-    int mirror_impl_surf;
+    int mirror_impl_surf_type;
     double mirror_impl_surf_radius;
     double mirror_impl_surf_center[3];
+    double mirror_impl_surf_box[6];
 
     // PML informations
     int pml_type;

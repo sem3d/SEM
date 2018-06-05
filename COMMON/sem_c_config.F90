@@ -78,9 +78,10 @@ module sem_c_config
        integer(C_INT) :: mirror_type
        real(C_DOUBLE) :: mirror_fmax
        integer(C_INT) :: mirror_nspl
-       integer(kind=C_INT) :: mirror_impl_surf;
+       integer(kind=C_INT) :: mirror_impl_surf_type;
        real(C_DOUBLE) :: mirror_impl_surf_radius;
        real(C_DOUBLE), dimension(3) :: mirror_impl_surf_center;
+       real(C_DOUBLE), dimension(6) :: mirror_impl_surf_box;
 
        !! PML informations
        integer(C_INT) :: pml_type

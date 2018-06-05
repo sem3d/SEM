@@ -363,7 +363,6 @@ void Mesh3DPart::shape8_local2global(double const vco[3][8],
 void Mesh3DPart::compute_gll()
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
-    if (!m_cfg->mirror_impl_surf) return;
 
     calcul_gll(m_cfg->ngll, m_gll);
 }
@@ -371,7 +370,7 @@ void Mesh3DPart::compute_gll()
 void Mesh3DPart::handle_mirror_ball(index_t el)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
-    if (!m_cfg->mirror_impl_surf) return;
+    if (m_cfg->mirror_impl_surf_type != 1) return;
 
     double vco[3][8];
     index_t e0 = m_mesh.m_elems_offs[el];
