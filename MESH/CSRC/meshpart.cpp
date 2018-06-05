@@ -440,6 +440,7 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
 
     // Loop over faces of mirror surface
 
+    std::set<tuple<index_t, int, int>> sp; // Surface points
     face_map_t::const_iterator itfound, it;
     for(it=smirror->m_faces.begin();it!=smirror->m_faces.end();++it) {
         const PFace& fc = it->first;
@@ -478,6 +479,10 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
                     int k = 0;
                     for(int j=0;j<m_cfg->ngll;++j) {
                         for(int i=0;i<m_cfg->ngll;++i) {
+                            tuple<index_t, int, int> fp = tuple<index_t, int, int>(el, i, j);
+                            if (sp.find(fp) != sp.end()) continue; // Skip double points
+                            sp.insert(fp);
+
                             double x, y, z;
                             shape8_local2global(vco, m_gll[i], m_gll[j], m_gll[k], x, y, z);
 
