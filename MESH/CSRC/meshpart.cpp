@@ -387,6 +387,7 @@ void Mesh3DPart::handle_mirror_ball(index_t el)
     std::vector<index_t> mirror_e;
     std::vector<index_t> mirror_ijk;
     std::vector<double>  mirror_xyz;
+    std::vector<double>  mirror_w;
     for(int k=0;k<m_cfg->ngll;++k) {
         for(int j=0;j<m_cfg->ngll;++j) {
             for(int i=0;i<m_cfg->ngll;++i) {
@@ -411,6 +412,9 @@ void Mesh3DPart::handle_mirror_ball(index_t el)
                     mirror_xyz.push_back(x);
                     mirror_xyz.push_back(y);
                     mirror_xyz.push_back(z);
+                    mirror_w.push_back(m_gll[i]);
+                    mirror_w.push_back(m_gll[j]);
+                    mirror_w.push_back(m_gll[k]);
                     sign_pos = true;
                 } else {
                     sign_minus = true;
@@ -423,6 +427,7 @@ void Mesh3DPart::handle_mirror_ball(index_t el)
         m_mirror_e.insert  (m_mirror_e.end(),   mirror_e.begin(),   mirror_e.end()  );
         m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
         m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
+        m_mirror_w.insert  (m_mirror_w.end(),   mirror_w.begin(),   mirror_w.end()  );
     }
 }
 
@@ -895,6 +900,7 @@ void Mesh3DPart::output_mirror() const
     h5h_write_dset(rid, "E", m_mirror_e);
     h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
     h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
+    h5h_write_dset_2d(rid, "W", 3, m_mirror_w);
     unsigned int nb_pts = m_mirror_xyz.size()/3;
     vector<index_t> id; for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
     h5h_write_dset(rid, "ID", id); // Only needed for XMF
