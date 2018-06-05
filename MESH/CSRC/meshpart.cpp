@@ -454,6 +454,13 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
                 index_t n[4];
                 for(int p=0;p<4;++p) n[p] = m_mesh.m_elems[e0 + RefFace[f].v[p]];
                 PFace efc(n, dom);
+
+                if (efc.eq_geom(fc)) { // Surface face = element face
+                  // TODO: add e,i,j,k,w,n in mirror
+                  //       e,i,j,k,w => should be easy
+                  //       n => how to know ??
+                  break;
+                }
             }
         }
     }
