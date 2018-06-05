@@ -465,10 +465,37 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
                 // Check if surface face = element face
 
                 if (efc.eq_geom(fc)) {
-                  // TODO: add e,i,j,k,w,n in mirror
-                  //       e,i,j,k,w => should be easy
-                  //       n => how to know ??
-                  break;
+                    // Mark face as mirror face
+
+                    double vco[3][8];
+                    for(int vt=0;vt<8;++vt) {
+                        index_t gv = m_mesh.m_elems[e0 + vt];
+                        vco[0][vt] = m_mesh.m_xco[gv];
+                        vco[1][vt] = m_mesh.m_yco[gv];
+                        vco[2][vt] = m_mesh.m_zco[gv];
+                    }
+
+                    int k = 0;
+                    for(int j=0;j<m_cfg->ngll;++j) {
+                        for(int i=0;i<m_cfg->ngll;++i) {
+                            double x, y, z;
+                            shape8_local2global(vco, m_gll[i], m_gll[j], m_gll[k], x, y, z);
+
+                            m_mirror_e.push_back(el);
+                            m_mirror_ijk.push_back(i);
+                            m_mirror_ijk.push_back(j);
+                            m_mirror_ijk.push_back(k);
+                            m_mirror_xyz.push_back(x);
+                            m_mirror_xyz.push_back(y);
+                            m_mirror_xyz.push_back(z);
+                            m_mirror_w.push_back(m_gll[i]);
+                            m_mirror_w.push_back(m_gll[j]);
+                            m_mirror_w.push_back(m_gll[k]);
+                        }
+                    }
+
+                    // TODO: add n => how to know ??
+                    break;
                 }
             }
         }
