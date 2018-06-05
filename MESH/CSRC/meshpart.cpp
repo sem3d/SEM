@@ -499,6 +499,8 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
                         }
                     }
 
+                    // Get normal faces
+
                     // TODO: add n => how to know ??
                     break;
                 }
