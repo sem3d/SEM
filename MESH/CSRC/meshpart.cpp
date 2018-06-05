@@ -446,6 +446,15 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
         std::set<index_t>::const_iterator it;
         for(it=elemset.begin();it!=elemset.end();++it) {
             if (m_mesh.elem_part(*it)==m_proc) continue;
+
+            index_t el = *it;
+            index_t e0 = m_mesh.m_elems_offs[el];
+            int dom = m_mesh.get_elem_domain(el);
+            for(int f=0;f<6;++f) {
+                index_t n[4];
+                for(int p=0;p<4;++p) n[p] = m_mesh.m_elems[e0 + RefFace[f].v[p]];
+                PFace efc(n, dom);
+            }
         }
     }
 }
