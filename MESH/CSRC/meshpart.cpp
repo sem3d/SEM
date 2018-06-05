@@ -501,12 +501,18 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
                             m_mirror_w.push_back(m_gll[i]);
                             m_mirror_w.push_back(m_gll[j]);
                             m_mirror_w.push_back(m_gll[k]);
+
+                            bool elem_in_box = true;
+                            if (ebc[0] < m_cfg->mirror_impl_surf_box[0] ||
+                                ebc[0] > m_cfg->mirror_impl_surf_box[1]) elem_in_box = false;
+                            if (ebc[1] < m_cfg->mirror_impl_surf_box[2] ||
+                                ebc[1] > m_cfg->mirror_impl_surf_box[3]) elem_in_box = false;
+                            if (ebc[2] < m_cfg->mirror_impl_surf_box[4] ||
+                                ebc[2] > m_cfg->mirror_impl_surf_box[5]) elem_in_box = false;
+                            m_mirror_n.push_back(elem_in_box ? 1 : -1); // Outward or inward normal
                         }
                     }
 
-                    // Get normal faces
-
-                    // TODO: add n => how to know ??
                     break;
                 }
             }
