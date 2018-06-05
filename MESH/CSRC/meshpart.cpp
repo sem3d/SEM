@@ -441,6 +441,12 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
     face_map_t::const_iterator itfound, it;
     for(it=smirror->m_faces.begin();it!=smirror->m_faces.end();++it) {
         const PFace& fc = it->first;
+        std::set<index_t> elemset;
+        m_mesh.get_neighbour_elements(4, fc.n, elemset);
+        std::set<index_t>::const_iterator it;
+        for(it=elemset.begin();it!=elemset.end();++it) {
+            if (m_mesh.elem_part(*it)==m_proc) continue;
+        }
     }
 }
 
