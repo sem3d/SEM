@@ -161,7 +161,7 @@ protected:
     std::vector<index_t> m_mirror_ijk;
     std::vector<double> m_mirror_xyz;
     std::vector<double> m_mirror_w;
-    std::vector<int> m_mirror_n;
+    std::vector<int> m_mirror_inside;
     std::vector<double> m_gll;
     void compute_gll();
     void handle_mirror_ball(index_t el);
