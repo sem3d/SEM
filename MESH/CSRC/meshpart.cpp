@@ -1015,7 +1015,9 @@ void Mesh3DPart::output_mesh_part()
 
 void Mesh3DPart::output_mirror() const
 {
-    printf("%04d : number of mirror points = %ld\n", m_proc, m_mirror_xyz.size()/3);
+    unsigned int nb_pts = m_mirror_xyz.size()/3;
+    printf("%04d : number of mirror points = %ld\n", m_proc, nb_pts);
+    if (nb_pts == 0) return;
 
     char fname[2048];
     snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
@@ -1028,7 +1030,6 @@ void Mesh3DPart::output_mirror() const
     h5h_write_dset_2d(rid, "W", 3, m_mirror_w);
     h5h_write_dset(rid, "inside", m_mirror_inside);
     h5h_write_dset_2d(rid, "outnormal", 3, m_mirror_outnormal);
-    unsigned int nb_pts = m_mirror_xyz.size()/3;
     vector<index_t> id; for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
     h5h_write_dset(rid, "ID", id); // Only needed for XMF
     H5Gclose(rid);
@@ -1222,11 +1223,13 @@ void Mesh3DPart::output_xmf_faces()
 
 void Mesh3DPart::output_xmf_mirror()
 {
+    unsigned int nb_pts = m_mirror_xyz.size()/3;
+    if (nb_pts == 0) return;
+
     char fname[2048];
     snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.xmf", m_proc);
     FILE* f = fopen(fname,"w");
     output_xmf_header(f);
-    unsigned int nb_pts = m_mirror_xyz.size()/3;
     fprintf(f, "    <Grid Name=\"mirror.%04d\">\n", m_proc);
     fprintf(f, "      <Topology Type=\"Polyvertex\">\n");
     fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%ld\">\n", nb_pts);
