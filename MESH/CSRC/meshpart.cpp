@@ -3,6 +3,7 @@
 #include <cassert>
 #include <vector>
 #include <algorithm>
+#include <cmath> // sqrt
 #include "mesh.h"
 #include "meshpart.h"
 #include "sem_gll.h"
@@ -388,6 +389,7 @@ void Mesh3DPart::handle_mirror_ball(index_t el)
     std::vector<double>  mirror_xyz;
     std::vector<double>  mirror_w;
     std::vector<int> mirror_inside;
+    std::vector<double> mirror_outnormal;
     for(int k=0;k<m_cfg->ngll;++k) {
         for(int j=0;j<m_cfg->ngll;++j) {
             for(int i=0;i<m_cfg->ngll;++i) {
@@ -416,6 +418,10 @@ void Mesh3DPart::handle_mirror_ball(index_t el)
                     mirror_w.push_back(m_gll[j]);
                     mirror_w.push_back(m_gll[k]);
                     mirror_inside.push_back(1);
+                    double norm = sqrt(dx*dx + dy*dy + dz*dz);
+                    mirror_outnormal.push_back(dx/norm);
+                    mirror_outnormal.push_back(dy/norm);
+                    mirror_outnormal.push_back(dz/norm);
                     sign_pos = true;
                 } else {
                     sign_minus = true;
@@ -430,6 +436,7 @@ void Mesh3DPart::handle_mirror_ball(index_t el)
         m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
         m_mirror_w.insert  (m_mirror_w.end(),   mirror_w.begin(),   mirror_w.end()  );
         m_mirror_inside.insert(m_mirror_inside.end(), mirror_inside.begin(), mirror_inside.end()  );
+        m_mirror_outnormal.insert(m_mirror_outnormal.end(), mirror_outnormal.begin(), mirror_outnormal.end());
     }
 }
 
@@ -510,6 +517,37 @@ void Mesh3DPart::handle_mirror_box(const Surface* smirror)
                             if (ebc[2] < m_cfg->mirror_impl_surf_box[4] ||
                                 ebc[2] > m_cfg->mirror_impl_surf_box[5]) elem_in_box = false;
                             m_mirror_inside.push_back(elem_in_box ? 1 : 0);
+
+                            double fdiag1[3];
+                            fdiag1[0] = vco[0][RefFace[f].v[2]] - vco[0][RefFace[f].v[0]];
+                            fdiag1[1] = vco[1][RefFace[f].v[2]] - vco[1][RefFace[f].v[0]];
+                            fdiag1[2] = vco[2][RefFace[f].v[2]] - vco[2][RefFace[f].v[0]];
+                            double fdiag2[3];
+                            fdiag2[0] = vco[0][RefFace[f].v[3]] - vco[0][RefFace[f].v[1]];
+                            fdiag2[1] = vco[1][RefFace[f].v[3]] - vco[1][RefFace[f].v[1]];
+                            fdiag2[2] = vco[2][RefFace[f].v[3]] - vco[2][RefFace[f].v[1]];
+                            double fnorm[3];
+                            fnorm[0] = fdiag1[1]*fdiag2[2] - fdiag1[2]*fdiag2[1];
+                            fnorm[1] = fdiag1[2]*fdiag2[0] - fdiag1[0]*fdiag2[2];
+                            fnorm[2] = fdiag1[0]*fdiag2[1] - fdiag1[1]*fdiag2[0];
+                            double fn = sqrt(fnorm[0]*fnorm[0] + fnorm[1]*fnorm[1] + fnorm[2]*fnorm[2]);
+                            fnorm[0] /= fn; fnorm[1] /= fn; fnorm[2] /= fn;
+                            double fbc[3] = {0., 0., 0.}; // Face barycenter
+                            for(int vt=0;vt<4;++vt) {
+                                fbc[0] += vco[0][RefFace[f].v[vt]];
+                                fbc[1] += vco[1][RefFace[f].v[vt]];
+                                fbc[2] += vco[2][RefFace[f].v[vt]];
+                            }
+                            fbc[0] /= 4; fbc[1] /= 4; fbc[2] /= 4;
+                            double out[3];
+                            out[0] = elem_in_box ? fbc[0] - ebc[0] : ebc[0] - fbc[0];
+                            out[1] = elem_in_box ? fbc[1] - ebc[1] : ebc[1] - fbc[1];
+                            out[2] = elem_in_box ? fbc[2] - ebc[2] : ebc[2] - fbc[2];
+                            double sprod = fnorm[0]*out[0] + fnorm[1]*out[1] + fnorm[2]*out[2];
+                            if (sprod < 0.) {fnorm[0] *= -1.; fnorm[1] *= -1.; fnorm[2] *= -1.;}
+                            m_mirror_outnormal.push_back(fnorm[0]);
+                            m_mirror_outnormal.push_back(fnorm[1]);
+                            m_mirror_outnormal.push_back(fnorm[2]);
                         }
                     }
 
@@ -987,6 +1025,7 @@ void Mesh3DPart::output_mirror() const
     h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
     h5h_write_dset_2d(rid, "W", 3, m_mirror_w);
     h5h_write_dset(rid, "inside", m_mirror_inside);
+    h5h_write_dset_2d(rid, "outnormal", 3, m_mirror_outnormal);
     unsigned int nb_pts = m_mirror_xyz.size()/3;
     vector<index_t> id; for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
     h5h_write_dset(rid, "ID", id); // Only needed for XMF
