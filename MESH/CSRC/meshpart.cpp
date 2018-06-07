@@ -443,6 +443,8 @@ void Mesh3DPart::handle_mirror_ball(index_t el)
 void Mesh3DPart::handle_mirror_box(const Surface* smirror)
 {
     if (!smirror) return;
+    if (!m_cfg || !m_cfg->use_mirror) return;
+    if (m_cfg->mirror_impl_surf_type != 2) return;
 
     // Loop over faces of mirror surface
 
