@@ -198,13 +198,14 @@ contains
         call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
         call h5fclose_f(fid, hdferr)
 
+        write(*,*) "MIRROR SHAPE:", size(mirror_IJK,1), size(mirror_IJK,2)
         map2glltot_sl = -1
         n_glltot_sl = 0
         do idx = 0,size(mirror_E)-1
             gel = mirror_E(idx)
-            i = mirror_IJK(idx,0)
-            j = mirror_IJK(idx,1)
-            k = mirror_IJK(idx,2)
+            i = mirror_IJK(0,idx)
+            j = mirror_IJK(1,idx)
+            k = mirror_IJK(2,idx)
             if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
             e = Tdomain%specel(gel)%lnum
             n_glltot_sl = n_glltot_sl+1
@@ -358,9 +359,9 @@ contains
         n_glltot_fl = 0
         do idx = 0,size(mirror_E)-1
             gel = mirror_E(idx)
-            i = mirror_IJK(idx,0)
-            j = mirror_IJK(idx,1)
-            k = mirror_IJK(idx,2)
+            i = mirror_IJK(0,idx)
+            j = mirror_IJK(1,idx)
+            k = mirror_IJK(2,idx)
             if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
             e = Tdomain%specel(gel)%lnum
             n_glltot_fl = n_glltot_fl+1
