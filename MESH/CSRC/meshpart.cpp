@@ -365,7 +365,7 @@ void Mesh3DPart::compute_gll()
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
 
-    calcul_gll(m_cfg->ngll, m_gll);
+    calcul_gll(m_cfg->ngll-1, m_gll);
 }
 
 void Mesh3DPart::handle_mirror_ball(index_t el)
