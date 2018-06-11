@@ -388,7 +388,7 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
     std::vector<index_t> mirror_ijk;
     std::vector<double>  mirror_xyz;
     std::vector<double>  mirror_w;
-    std::vector<int> mirror_inside;
+    std::vector<double> mirror_inside;
     std::vector<double> mirror_outnormal;
     for(int k=0;k<m_cfg->ngll;++k) {
         for(int j=0;j<m_cfg->ngll;++j) {
@@ -417,7 +417,7 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
                     mirror_w.push_back(m_gll[i]);
                     mirror_w.push_back(m_gll[j]);
                     mirror_w.push_back(m_gll[k]);
-                    mirror_inside.push_back(1);
+                    mirror_inside.push_back(1.);
                     double norm = sqrt(dx*dx + dy*dy + dz*dz);
                     mirror_outnormal.push_back(dx/norm);
                     mirror_outnormal.push_back(dy/norm);
@@ -435,7 +435,7 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
         m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
         m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
         m_mirror_w.insert  (m_mirror_w.end(),   mirror_w.begin(),   mirror_w.end()  );
-        m_mirror_inside.insert(m_mirror_inside.end(), mirror_inside.begin(), mirror_inside.end()  );
+        m_mirror_inside.insert(m_mirror_inside.end(), mirror_inside.begin(), mirror_inside.end());
         m_mirror_outnormal.insert(m_mirror_outnormal.end(), mirror_outnormal.begin(), mirror_outnormal.end());
     }
 }
@@ -518,7 +518,7 @@ void Mesh3DPart::handle_mirror_surf(const Surface* smirror)
                                 ebc[1] > m_cfg->mirror_impl_surf_box[3]) elem_in_box = false;
                             if (ebc[2] < m_cfg->mirror_impl_surf_box[4] ||
                                 ebc[2] > m_cfg->mirror_impl_surf_box[5]) elem_in_box = false;
-                            m_mirror_inside.push_back(elem_in_box ? 1 : 0);
+                            m_mirror_inside.push_back(elem_in_box ? 1. : 0.);
 
                             double fdiag1[3];
                             fdiag1[0] = vco[0][RefFace[f].v[2]] - vco[0][RefFace[f].v[0]];
