@@ -36,7 +36,6 @@ contains
 
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg, bnum, ee
-        logical :: find
 
         ! Copy Idom from element to domain_XXX
         ! Note : this must be done first as CPLM domain needs dom%Idom_ to build M, K, ...
@@ -115,18 +114,7 @@ contains
         endif
 
         ! Mirror
-        if (Tdomain%mirror_type>=0) then
-        !!! GB if (Tdomain%use_mirror) then
-            find = .false.
-            do n = 0,size(Tdomain%sSurfaces)-1
-                if (trim(Tdomain%sSurfaces(n)%name)=="mirror") then
-                    call init_mirror(Tdomain, Tdomain%sSurfaces(n))
-                    find = .true.
-                    exit
-                endif
-            enddo
-            if (.not.find) stop "no mirror in mesh file"
-        endif
+        if (Tdomain%use_mirror) call init_mirror(Tdomain)
 
         do n = 0,Tdomain%n_elem-1
             if(allocated(Tdomain%specel(n)%Idom)) &
