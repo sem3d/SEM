@@ -166,7 +166,7 @@ protected:
     std::vector<double> m_gll;
     void compute_gll();
     void handle_mirror_ball(index_t el);
-    void handle_mirror_box(const Surface* smirror);
+    void handle_mirror_surf(const Surface* smirror);
     void shape8_local2global(double const vco[3][8],
                              const double& xi, const double& eta, const double& zeta,
                              double& x, double& y, double& z) const;

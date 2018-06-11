@@ -28,7 +28,7 @@ void Mesh3DPart::compute_part()
     std::map<std::string, Surface*>::const_iterator it;
     for(it=m_mesh.m_surfaces.begin();it!=m_mesh.m_surfaces.end();++it) {
         handle_surface(it->second);
-        if (m_surfaces.back()->name() == "mirror") handle_mirror_box(m_surfaces.back());
+        if (m_surfaces.back()->name() == "mirror") handle_mirror_surf(m_surfaces.back());
     }
     printf("Created %ld facets\n", m_face_to_id.size());
 }
@@ -440,7 +440,7 @@ void Mesh3DPart::handle_mirror_ball(index_t el)
     }
 }
 
-void Mesh3DPart::handle_mirror_box(const Surface* smirror)
+void Mesh3DPart::handle_mirror_surf(const Surface* smirror)
 {
     if (!smirror) return;
     if (!m_cfg || !m_cfg->use_mirror) return;
