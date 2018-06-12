@@ -175,7 +175,6 @@ contains
         call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
         call h5fclose_f(fid, hdferr)
 
-        write(*,*) "MIRROR SHAPE:", size(mirror_IJK,1), size(mirror_IJK,2)
         map2glltot_sl = -1
         n_glltot_sl = 0
         do idx = 0,size(mirror_E)-1
