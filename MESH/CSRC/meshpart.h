@@ -87,7 +87,7 @@ public:
 /** Manages implicit surfaces */
 class implicit_surf {
 public:
-    virtual double f(const double& x, const double& y, const double& z) const = 0;
+    virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const = 0;
     virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const = 0;
 };
 class sphere: public implicit_surf {
@@ -98,9 +98,11 @@ public:
         yc = config ? config->mirror_impl_surf_center[1] : 0.;
         zc = config ? config->mirror_impl_surf_center[2] : 0.;
     }
-    virtual double f(const double& x, const double& y, const double& z) const {
+    virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const {
         double dx = x-xc, dy = y-yc, dz = z-zc;
-        return r*r - (dx*dx + dy*dy + dz*dz);
+        double f = r*r - (dx*dx + dy*dy + dz*dz);
+        if (win) *win = f >= 0. ? 1. : 0.;
+        return f;
     };
     virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const {
         double dx = x-xc, dy = y-yc, dz = z-zc;
@@ -121,11 +123,13 @@ public:
         zmin = config ? config->mirror_impl_surf_box[4] : -1.;
         zmax = config ? config->mirror_impl_surf_box[5] :  1.;
     }
-    virtual double f(const double& x, const double& y, const double& z) const {
+    virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const {
         double fx = -1.; if (fabs(x - xmin) < 1.e-12 || fabs(x - xmax) < 1.e-12) fx = 0.; if (xmin < x && x < xmax) fx = 1.;
         double fy = -1.; if (fabs(y - ymin) < 1.e-12 || fabs(y - ymax) < 1.e-12) fy = 0.; if (ymin < y && y < ymax) fy = 1.;
         double fz = -1.; if (fabs(z - zmin) < 1.e-12 || fabs(z - zmax) < 1.e-12) fz = 0.; if (zmin < z && z < zmax) fz = 1.;
-        return fx*fy*fz;
+        double f = fx*fy*fz;
+        if (win) *win = f >= 0. ? 1. : 0.;
+        return f;
     };
     virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const {
         nx = ny = nz = 0.;

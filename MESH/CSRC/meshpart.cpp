@@ -400,7 +400,8 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
                 double x, y, z;
                 shape8_local2global(vco, m_gll[i], m_gll[j], m_gll[k], x, y, z);
 
-                double f = is->f(x, y, z);
+                double win = 0.;
+                double f = is->f(x, y, z, &win);
                 if (f >= 0.) {
                     mirror_e.push_back(el);
                     mirror_ijk.push_back(i);
@@ -412,7 +413,7 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
                     mirror_w.push_back(m_gll[i]);
                     mirror_w.push_back(m_gll[j]);
                     mirror_w.push_back(m_gll[k]);
-                    mirror_inside.push_back(1.);
+                    mirror_inside.push_back(win);
                     double nx, ny, nz;
                     is->n(x, y, z, nx, ny, nz);
                     mirror_outnormal.push_back(nx);
