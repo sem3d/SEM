@@ -173,6 +173,7 @@ contains
         call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
         call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
         call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+        call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
         call h5fclose_f(fid, hdferr)
 
         map2glltot_sl = -1
@@ -187,9 +188,6 @@ contains
             n_glltot_sl = n_glltot_sl+1
             map2glltot_sl(e,i,j,k) = n_glltot_sl
         enddo
-
-        allocate(winf_sl(n_glltot_sl))
-        winf_sl = 1.
 
         deallocate(mirror_E, mirror_IJK)
     end subroutine map_mirror_sl
@@ -214,6 +212,7 @@ contains
         call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
         call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
         call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+        call read_dset_1d_real(fid, "/Mirror/inside", winf_fl, 0)
         call h5fclose_f(fid, hdferr)
 
         map2glltot_fl = -1
@@ -228,9 +227,6 @@ contains
             n_glltot_fl = n_glltot_fl+1
             map2glltot_fl(e,i,j,k) = n_glltot_fl
         enddo
-
-        allocate(winf_fl(n_glltot_fl))
-        winf_fl = 1.
 
         deallocate(mirror_E, mirror_IJK)
     end subroutine map_mirror_fl
