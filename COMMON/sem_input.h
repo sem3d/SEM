@@ -192,6 +192,7 @@ typedef struct {
     double mirror_impl_surf_radius;
     double mirror_impl_surf_center[3];
     double mirror_impl_surf_box[6];
+    int mirror_smooth_window;
 
     // PML informations
     int pml_type;

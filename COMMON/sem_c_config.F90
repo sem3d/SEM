@@ -82,6 +82,7 @@ module sem_c_config
        real(C_DOUBLE) :: mirror_impl_surf_radius;
        real(C_DOUBLE), dimension(3) :: mirror_impl_surf_center;
        real(C_DOUBLE), dimension(6) :: mirror_impl_surf_box;
+       integer(C_INT) :: mirror_smooth_window
 
        !! PML informations
        integer(C_INT) :: pml_type

@@ -97,6 +97,7 @@ public:
         xc = config ? config->mirror_impl_surf_center[0] : 0.;
         yc = config ? config->mirror_impl_surf_center[1] : 0.;
         zc = config ? config->mirror_impl_surf_center[2] : 0.;
+        smooth_win = config ? config->mirror_smooth_window : 0;
     }
     virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const {
         double dx = x-xc, dy = y-yc, dz = z-zc;
@@ -111,11 +112,15 @@ public:
     };
     void compute_window(double* win, const double& f) const {
         if (!win) return;
-        *win = f >= 0. ? 1. : 0.;
+        if (!smooth_win) *win = f >= 0. ? 1. : 0.;
+        else {
+            // TODO
+        }
     };
 private:
     double r;
     double xc, yc, zc;
+    int smooth_win;
 };
 class box: public implicit_surf {
 public:
@@ -126,6 +131,7 @@ public:
         ymax = config ? config->mirror_impl_surf_box[3] :  1.;
         zmin = config ? config->mirror_impl_surf_box[4] : -1.;
         zmax = config ? config->mirror_impl_surf_box[5] :  1.;
+        smooth_win = config ? config->mirror_smooth_window : 0;
     }
     virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const {
         double fx = -1.; if (fabs(x - xmin) < 1.e-12 || fabs(x - xmax) < 1.e-12) fx = 0.; if (xmin < x && x < xmax) fx = 1.;
@@ -143,10 +149,14 @@ public:
     };
     void compute_window(double* win, const double& f) const {
         if (!win) return;
-        *win = f >= 0. ? 1. : 0.;
+        if (!smooth_win) *win = f >= 0. ? 1. : 0.;
+        else {
+            // TODO
+        }
     };
 private:
     double xmin, xmax, ymin, ymax, zmin, zmax;
+    int smooth_win;
 };
 
 /** Manages a part of the mesh on a specific processor */

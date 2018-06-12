@@ -318,6 +318,7 @@ int expect_impl_surf(yyscan_t scanner, sem_config_t* config)
             err=expect_eq_float(scanner, config->mirror_impl_surf_box, 6); // xmin, xmax, ymin, ymax, zmin, zmax
             config->mirror_impl_surf_type = 2;
         }
+        if (cmp(scanner,"smooth_window")) err=expect_eq_bool(scanner, &config->mirror_smooth_window, 1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -978,6 +979,7 @@ void dump_config(sem_config_t* cfg)
                    cfg->mirror_impl_surf_box[0], cfg->mirror_impl_surf_box[1], cfg->mirror_impl_surf_box[2],
                    cfg->mirror_impl_surf_box[3], cfg->mirror_impl_surf_box[4], cfg->mirror_impl_surf_box[5]);
         }
+        printf("Mirror : smooth_window %d\n", cfg->mirror_smooth_window);
     }
 }
 
