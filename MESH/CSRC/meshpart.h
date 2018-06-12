@@ -101,13 +101,17 @@ public:
     virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const {
         double dx = x-xc, dy = y-yc, dz = z-zc;
         double f = r*r - (dx*dx + dy*dy + dz*dz);
-        if (win) *win = f >= 0. ? 1. : 0.;
+        compute_window(win, f);
         return f;
     };
     virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const {
         double dx = x-xc, dy = y-yc, dz = z-zc;
         double norm = sqrt(dx*dx + dy*dy + dz*dz);
         nx = dx/norm; ny = dy/norm; dz = dz/norm;
+    };
+    void compute_window(double* win, const double& f) const {
+        if (!win) return;
+        *win = f >= 0. ? 1. : 0.;
     };
 private:
     double r;
@@ -128,7 +132,7 @@ public:
         double fy = -1.; if (fabs(y - ymin) < 1.e-12 || fabs(y - ymax) < 1.e-12) fy = 0.; if (ymin < y && y < ymax) fy = 1.;
         double fz = -1.; if (fabs(z - zmin) < 1.e-12 || fabs(z - zmax) < 1.e-12) fz = 0.; if (zmin < z && z < zmax) fz = 1.;
         double f = fx*fy*fz;
-        if (win) *win = f >= 0. ? 1. : 0.;
+        compute_window(win, f);
         return f;
     };
     virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const {
@@ -136,6 +140,10 @@ public:
         if (fabs(x - xmin) < 1.e-12) nx = -1.; if (fabs(x - xmax) < 1.e-12) nx = 1.;
         if (fabs(y - ymin) < 1.e-12) ny = -1.; if (fabs(y - ymax) < 1.e-12) ny = 1.;
         if (fabs(z - zmin) < 1.e-12) nz = -1.; if (fabs(z - zmax) < 1.e-12) nz = 1.;
+    };
+    void compute_window(double* win, const double& f) const {
+        if (!win) return;
+        *win = f >= 0. ? 1. : 0.;
     };
 private:
     double xmin, xmax, ymin, ymax, zmin, zmax;
