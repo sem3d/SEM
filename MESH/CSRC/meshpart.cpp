@@ -374,6 +374,7 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
 
     implicit_surf* is = NULL;
     if (m_cfg->mirror_impl_surf_type == 1) is = new sphere(m_cfg);
+    else if (m_cfg->mirror_impl_surf_type == 2) is = new box(m_cfg);
     else return; // Not implemented.
 
     double vco[3][8];

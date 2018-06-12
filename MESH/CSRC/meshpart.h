@@ -111,6 +111,31 @@ private:
     double r;
     double xc, yc, zc;
 };
+class box: public implicit_surf {
+public:
+    box(const sem_config_t* config) {
+        xmin = config ? config->mirror_impl_surf_box[0] : -1.;
+        xmax = config ? config->mirror_impl_surf_box[1] :  1.;
+        ymin = config ? config->mirror_impl_surf_box[2] : -1.;
+        ymax = config ? config->mirror_impl_surf_box[3] :  1.;
+        zmin = config ? config->mirror_impl_surf_box[4] : -1.;
+        zmax = config ? config->mirror_impl_surf_box[5] :  1.;
+    }
+    virtual double f(const double& x, const double& y, const double& z) const {
+        double fx = -1.; if (fabs(x - xmin) < 1.e-12 || fabs(x - xmax) < 1.e-12) fx = 0.; if (xmin < x && x < xmax) fx = 1.;
+        double fy = -1.; if (fabs(y - ymin) < 1.e-12 || fabs(y - ymax) < 1.e-12) fy = 0.; if (ymin < y && y < ymax) fy = 1.;
+        double fz = -1.; if (fabs(z - zmin) < 1.e-12 || fabs(z - zmax) < 1.e-12) fz = 0.; if (zmin < z && z < zmax) fz = 1.;
+        return fx*fy*fz;
+    };
+    virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const {
+        nx = ny = nz = 0.;
+        if (fabs(x - xmin) < 1.e-12) nx = -1.; if (fabs(x - xmax) < 1.e-12) nx = 1.;
+        if (fabs(y - ymin) < 1.e-12) ny = -1.; if (fabs(y - ymax) < 1.e-12) ny = 1.;
+        if (fabs(z - zmin) < 1.e-12) nz = -1.; if (fabs(z - zmax) < 1.e-12) nz = 1.;
+    };
+private:
+    double xmin, xmax, ymin, ymax, zmin, zmax;
+};
 
 /** Manages a part of the mesh on a specific processor */
 class Mesh3DPart {
