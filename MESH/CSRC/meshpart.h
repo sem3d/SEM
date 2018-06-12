@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <cmath> // sqrt
 
 template<typename T0, typename T1>
 T1 get(const std::map<T0,T1>& m, const T0& key, const T1& def)
@@ -81,6 +82,34 @@ public:
             doms.push_back(it->first.domain());
         }
     }
+};
+
+/** Manages implicit surfaces */
+class implicit_surf {
+public:
+    virtual double f(const double& x, const double& y, const double& z) const = 0;
+    virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const = 0;
+};
+class sphere: public implicit_surf {
+public:
+    sphere(const sem_config_t* config) {
+        r  = config ? config->mirror_impl_surf_radius    : 1.;
+        xc = config ? config->mirror_impl_surf_center[0] : 0.;
+        yc = config ? config->mirror_impl_surf_center[1] : 0.;
+        zc = config ? config->mirror_impl_surf_center[2] : 0.;
+    }
+    virtual double f(const double& x, const double& y, const double& z) const {
+        double dx = x-xc, dy = y-yc, dz = z-zc;
+        return r*r - (dx*dx + dy*dy + dz*dz);
+    };
+    virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const {
+        double dx = x-xc, dy = y-yc, dz = z-zc;
+        double norm = sqrt(dx*dx + dy*dy + dz*dz);
+        nx = dx/norm; ny = dy/norm; dz = dz/norm;
+    };
+private:
+    double r;
+    double xc, yc, zc;
 };
 
 /** Manages a part of the mesh on a specific processor */
