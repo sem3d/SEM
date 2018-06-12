@@ -371,7 +371,10 @@ void Mesh3DPart::compute_gll()
 void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
-    if (m_cfg->mirror_impl_surf_type != 1) return;
+
+    implicit_surf* is = NULL;
+    if (m_cfg->mirror_impl_surf_type == 1) is = new sphere(m_cfg);
+    else return; // Not implemented.
 
     double vco[3][8];
     index_t e0 = m_mesh.m_elems_offs[el];
@@ -396,16 +399,7 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
                 double x, y, z;
                 shape8_local2global(vco, m_gll[i], m_gll[j], m_gll[k], x, y, z);
 
-                double r = m_cfg->mirror_impl_surf_radius;
-                double xc = m_cfg->mirror_impl_surf_center[0];
-                double yc = m_cfg->mirror_impl_surf_center[1];
-                double zc = m_cfg->mirror_impl_surf_center[2];
-
-                double dx = x-xc;
-                double dy = y-yc;
-                double dz = z-zc;
-
-                double f = r*r - (dx*dx + dy*dy + dz*dz);
+                double f = is->f(x, y, z);
                 if (f >= 0.) {
                     mirror_e.push_back(el);
                     mirror_ijk.push_back(i);
@@ -418,10 +412,11 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
                     mirror_w.push_back(m_gll[j]);
                     mirror_w.push_back(m_gll[k]);
                     mirror_inside.push_back(1.);
-                    double norm = sqrt(dx*dx + dy*dy + dz*dz);
-                    mirror_outnormal.push_back(dx/norm);
-                    mirror_outnormal.push_back(dy/norm);
-                    mirror_outnormal.push_back(dz/norm);
+                    double nx, ny, nz;
+                    is->n(x, y, z, nx, ny, nz);
+                    mirror_outnormal.push_back(nx);
+                    mirror_outnormal.push_back(ny);
+                    mirror_outnormal.push_back(nz);
                     sign_pos = true;
                 } else {
                     sign_minus = true;
@@ -429,6 +424,7 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
             }
         }
     }
+    delete is;
 
     if (sign_pos && sign_minus) {
         m_mirror_e.insert  (m_mirror_e.end(),   mirror_e.begin(),   mirror_e.end()  );
