@@ -873,7 +873,7 @@ contains
         implicit none
         character(len=40) :: aname
         character(len=MAX_FILE_SIZE) :: fnamef
-        integer(HID_T) :: fid,attr_id,memspace,space_id
+        integer(HID_T) :: fid,attr_id,memspace
         integer :: hdferr
         integer(HSIZE_T), dimension(1) :: dims
 
@@ -904,7 +904,7 @@ contains
         implicit none
         character(len=40) :: aname
         character(len=MAX_FILE_SIZE) :: fnamef
-        integer(HID_T) :: fid,attr_id,memspace,space_id
+        integer(HID_T) :: fid,attr_id,space_id
         integer :: hdferr
         integer(HSIZE_T), dimension(1) :: dims,max_dims
         real(fpp), dimension(1) :: val_r
