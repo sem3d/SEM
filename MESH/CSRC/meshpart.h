@@ -87,8 +87,8 @@ public:
 /** Manages implicit surfaces */
 class implicit_surf {
 public:
-    virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const = 0;
-    virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const = 0;
+    virtual double f(double x, double y, double z, double* win = NULL) const = 0;
+    virtual void n(double x, double y, double z, double& nx, double& ny, double& nz) const = 0;
 };
 class sphere: public implicit_surf {
 public:
@@ -99,18 +99,18 @@ public:
         zc = config ? config->mirror_impl_surf_center[2] : 0.;
         smooth_win = config ? config->mirror_smooth_window : 0;
     }
-    virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const {
+    virtual double f(double x, double y, double z, double* win = NULL) const {
         double dx = x-xc, dy = y-yc, dz = z-zc;
         double f = r*r - (dx*dx + dy*dy + dz*dz);
         compute_window(win, f);
         return f;
     };
-    virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const {
+    virtual void n(double x, double y, double z, double& nx, double& ny, double& nz) const {
         double dx = x-xc, dy = y-yc, dz = z-zc;
         double norm = sqrt(dx*dx + dy*dy + dz*dz);
         nx = dx/norm; ny = dy/norm; dz = dz/norm;
     };
-    void compute_window(double* win, const double& f) const {
+    void compute_window(double* win, double f) const {
         if (!win) return;
         if (!smooth_win) *win = f >= 0. ? 1. : 0.;
         else {
@@ -133,7 +133,7 @@ public:
         zmax = config ? config->mirror_impl_surf_box[5] :  1.;
         smooth_win = config ? config->mirror_smooth_window : 0;
     }
-    virtual double f(const double& x, const double& y, const double& z, double* win = NULL) const {
+    virtual double f(double x, double y, double z, double* win = NULL) const {
         double fx = -1.; if (fabs(x - xmin) < 1.e-12 || fabs(x - xmax) < 1.e-12) fx = 0.; if (xmin < x && x < xmax) fx = 1.;
         double fy = -1.; if (fabs(y - ymin) < 1.e-12 || fabs(y - ymax) < 1.e-12) fy = 0.; if (ymin < y && y < ymax) fy = 1.;
         double fz = -1.; if (fabs(z - zmin) < 1.e-12 || fabs(z - zmax) < 1.e-12) fz = 0.; if (zmin < z && z < zmax) fz = 1.;
@@ -141,13 +141,13 @@ public:
         compute_window(win, f);
         return f;
     };
-    virtual void n(const double& x, const double& y, const double& z, double& nx, double& ny, double& nz) const {
+    virtual void n(double x, double y, double z, double& nx, double& ny, double& nz) const {
         nx = ny = nz = 0.;
         if (fabs(x - xmin) < 1.e-12) nx = -1.; if (fabs(x - xmax) < 1.e-12) nx = 1.;
         if (fabs(y - ymin) < 1.e-12) ny = -1.; if (fabs(y - ymax) < 1.e-12) ny = 1.;
         if (fabs(z - zmin) < 1.e-12) nz = -1.; if (fabs(z - zmax) < 1.e-12) nz = 1.;
     };
-    void compute_window(double* win, const double& f) const {
+    void compute_window(double* win, double f) const {
         if (!win) return;
         if (!smooth_win) *win = f >= 0. ? 1. : 0.;
         else {
@@ -244,7 +244,7 @@ protected:
     void handle_mirror_implicit_surf(index_t el);
     void handle_mirror_surf(const Surface* smirror);
     void shape8_local2global(double const vco[3][8],
-                             const double& xi, const double& eta, const double& zeta,
+                             double xi, double eta, double zeta,
                              double& x, double& y, double& z) const;
 
     void handle_local_element(index_t el, bool is_border);

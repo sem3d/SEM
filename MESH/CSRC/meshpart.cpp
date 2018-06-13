@@ -344,7 +344,7 @@ index_t Mesh3DPart::add_node(index_t v0)
 }
 
 void Mesh3DPart::shape8_local2global(double const vco[3][8],
-                                     const double& xi, const double& eta, const double& zeta,
+                                     double xi, double eta, double zeta,
                                      double& x, double& y, double& z) const
 {
     x = 0.125 * (vco[0][0]*(1-xi)*(1-eta)*(1-zeta) + vco[0][1]*(1+xi)*(1-eta)*(1-zeta) +

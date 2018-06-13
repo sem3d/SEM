@@ -924,6 +924,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->mirror_type = 0;
     cfg->mirror_fmax = 0.;
     cfg->mirror_nspl = 5;
+    cfg->mirror_smooth_window = 0;
     cfg->mirror_impl_surf_type = 0;
     cfg->mirror_impl_surf_radius = 1.;
     cfg->mirror_impl_surf_center[0] = 0.;
