@@ -51,7 +51,7 @@ contains
         integer :: lnum
         real(fpp) :: dxmin,courant,courant_max
         real(fpp) :: dt_min, dt, dt_loc
-        real(fpp) :: floc_max, dxmax, f_max
+        real(fpp) :: dxmax
         real(fpp) :: pspeed, maxPspeed, sumPspeed
         real(fpp), dimension(0:Tdomain%n_mat-1) :: avgPspeed_mat, dxmin_mat, dt_loc_mat
         integer, dimension(0:Tdomain%n_mat-1) :: ngll_mat
@@ -61,12 +61,10 @@ contains
         courant = Tdomain%TimeD%courant
         courant_max = 0
         dt_loc = huge(1.)
-        floc_max  = huge(1.)
         dxmin_mat = huge(1.)
         avgPspeed_mat = 0d0
         ngll_mat = 0
         use_average = Tdomain%use_avg
-        print*, "Tdomain%use_avg = ", Tdomain%use_avg
 
         do n = 0, Tdomain%n_elem -1
             dxmin = 1e10
@@ -123,7 +121,6 @@ contains
             mat = Tdomain%specel(n)%mat_index
             dt_loc = min(dt_loc, dxmin/maxPspeed)
             dxmax = sqrt(dxmax)
-            floc_max  = min(floc_max,  Tdomain%sSubdomain(mat)%Sspeed/30/dxmax)
             ngll_mat(mat) = ngll_mat(mat) + (ngll*ngll*ngll)
             avgPspeed_mat(mat) = avgPspeed_mat(mat) + sumPspeed
             dxmin_mat(mat) = min(dxmin, dxmin_mat(mat))
@@ -139,11 +136,8 @@ contains
             dt_loc = minval(dt_loc_mat)
         end if
 
-        if(rg==0) write(*,*) 'dt_loc',dt_loc
         call MPI_AllReduce (dt_loc, dt_min, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
-
-        call MPI_AllReduce (floc_max, f_max, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
-        if(rg==0) write(*,*) 'f_max',f_max
+        if(rg==0) write(*,*) 'dt_min',dt_min
 
         dt = courant * dt_min
 

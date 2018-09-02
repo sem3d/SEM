@@ -248,6 +248,8 @@ void Mesh3D::write_materials_v2(const std::string& str)
 
 void Mesh3D::read_mesh_file(const std::string& fname)
 {
+    int d0,d1, tag;
+    std::vector<int> tagg;
     hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     h5h_read_dset_Nx3(file_id, "/Nodes", m_xco, m_yco, m_zco);
     if (H5Lexists(file_id, "/Sem3D/Hexa8", H5P_DEFAULT)) {
@@ -259,8 +261,21 @@ void Mesh3D::read_mesh_file(const std::string& fname)
         printf("ERR: only Quad4 and Quad8 are supported \n");
         exit(1);
     }
-    h5h_read_dset(file_id, "/Sem3D/Mat", m_mat);
-
+    h5h_read_dset_2d(file_id, "/Sem3D/Mat",d0,d1,m_mat);
+    if (d0==1){
+        d0=d1;
+        d1=1;
+    } 
+    for (int i=0; i<d0; i++){
+        tag=m_mat[d1*i+std::max(0,d1-2)];
+        tagg.push_back(tag);
+    }
+    for (int i=0; i<d0; i++){
+        m_mat[i]=tagg[i];
+        for (int j=1; j<d1; j++){
+            m_mat.pop_back();
+        }
+    }
     std::vector<int> domain=m_mat;
     std::sort( domain.begin(), domain.end() );
     domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
@@ -524,4 +539,4 @@ void Mesh3D::generate_output(int nprocs)
 /* coding: utf-8                                                           */
 /* c-file-style: "stroustrup"                                              */
 /* End:                                                                    */
-/* vim: set sw=4 ts=8 et tw=80 smartindent :                               */
+/* vim: set sw=4 ts=4 et tw=80 smartindent :                               */

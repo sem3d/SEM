@@ -60,8 +60,6 @@ subroutine SourcePosition (Tdomain)
             xi   = coordloc(0,i)
             eta  = coordloc(1,i)
             zeta = coordloc(2,i)
-
-                
             if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
             if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
         

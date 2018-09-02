@@ -646,7 +646,6 @@ contains
                     !buffer = "eof_gl" !TEST 
                 end do
 
-
             close(fid_2)
 
             prop_Count = 0

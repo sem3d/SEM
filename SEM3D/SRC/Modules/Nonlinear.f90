@@ -9,39 +9,9 @@ module nonlinear
     use sdomain
     use deriv3d
     use constants
+    use invariants
 
     implicit none
-    real(KIND=8), parameter :: FTOL = 0.00010000000000D0
-    real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
-    real(KIND=8), parameter :: STOL = 0.00010000000000D0
-    real(KIND=8), parameter :: PSI  = one!5.0D0
-    real(KIND=8), parameter :: OMEGA= zero!1.0D6
-    real, dimension(0:2),     parameter   :: veci = (/ one, zero, zero /)
-    real, dimension(0:2),     parameter   :: vecj = (/ zero, one, zero /)
-    real, dimension(0:2),     parameter   :: veck = (/ zero, zero, one /)
-    real, dimension(0:2,0:2), parameter   :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
-    real, dimension(0:2,0:2), parameter   :: Mmatrix(0:2,0:2) = one
-    real, dimension(0:5),     parameter   :: Mvector  = (/one,one,one,zero,zero,zero/)    
-    real, dimension(0:5),     parameter   :: Avector  = (/one,one,one,two,two,two/)
-    real, dimension(0:5),     parameter   :: A1vector = (/one,one,one,half,half,half/)
-    real*8, parameter, dimension(0:5,0:5) :: &
-        Amatrix  = reshape((/ &
-        one , zero, zero, zero, zero, zero,&
-        zero, one , zero, zero, zero, zero, &
-        zero, zero, one , zero, zero, zero, &
-        zero, zero, zero, two , zero, zero, &
-        zero, zero, zero, zero, two , zero, &
-        zero, zero, zero, zero, zero, two   &
-        /), (/6,6/))
-    real(fpp), parameter, dimension(0:5,0:5) :: &
-        A1matrix = reshape((/ &
-        one , zero, zero, zero, zero, zero,&
-        zero, one , zero, zero, zero, zero, &
-        zero, zero, one , zero, zero, zero, &
-        zero, zero, zero, half, zero, zero, &
-        zero, zero, zero, zero, half, zero, &
-        zero, zero, zero, zero, zero, half  &
-        /), (/6,6/))
 
 contains
 
@@ -100,7 +70,6 @@ contains
         DEL(0:5,0:5) = zero
         DEL(0:2,0:2) = DEL(0:2,0:2) + lambda*Mmatrix
         DEL(0:5,0:5) = DEL(0:5,0:5) + two*mu*A1matrix
-
         return
     end subroutine stiff_matrix
 
@@ -150,7 +119,7 @@ contains
         real(fpp), dimension(0:5)              :: dev
         real(fpp)                              :: tau_eq
         ! COMPUTE STRESS COMPONENTS
-        call tensor_components(stress,dev)
+        call tensor_deviator(stress,dev)
         ! COMPUTE MISES FUNCTION
         call tau_mises(dev-center,tau_eq)
         ! COMPUTE MISES FUNCTION GRADIENT
@@ -171,34 +140,18 @@ contains
         ! intent OUT
         real(fpp),                 intent(out):: J2M
         !
-        real(fpp), dimension(0:5)             :: temp
-        real(fpp)                             :: J2M2
+        ! real(fpp), dimension(0:5)             :: temp
+        ! real(fpp)                             :: J2M2
         !
-        temp = three*half*Avector*dev
-        J2M2 = dot_product(dev,temp)
-        J2M  = sqrt(J2M2)
+        ! temp = three*half*Avector*dev
+        ! J2M2 = dot_product(dev,temp)
+        ! J2M  = sqrt(J2M2)
+        call second_deviator_invariant(dev,J2M)
+        J2M = sqrt(three*J2M)
         !
         return
         !
     end subroutine
-
-    !****************************************************************************
-    ! TENSOR COMPONENTS (SPHERICAL & DEVIATORIC)
-    !****************************************************************************
-
-    subroutine tensor_components(stress,dev)
-        ! intent IN
-        real(fpp), dimension(0:5), intent(in)    :: stress
-        ! intent OUT
-        real(fpp), dimension(0:5), intent(inout) :: dev
-        real(fpp)                                :: press
-        !
-        press = dot_product(stress,Mvector)/three
-        dev   = stress-press*Mvector
-        !
-        return
-        !
-    end subroutine tensor_components
 
     !****************************************************************************
     ! CHECK PLASTIC CONSISTENCY (KKT CONDITIONS)
@@ -226,7 +179,7 @@ contains
         call mises_yld_locus(stress0,center,radius,syld,FS,gradFS)
         call mises_yld_locus(stress1,center,radius,syld,FT,gradFT)
 
-        alpha_epl = -one
+        alpha_epl = zero
         if (FT.le.FTOL) then
             alpha_epl = one
             st_epl = .false.
@@ -254,8 +207,8 @@ contains
         endif
 
         if (.not.flagxit)then
-            write(*,*) "ERROR IN FINDING INTERSECTION!!  F = ",FS
-            stop
+            write(*,*) "ERROR IN FINDING INTERSECTION!!  F = ",FS,FT
+            alpha_epl=zero
         endif
 
         ! ON-LOCUS STRESS STATE
@@ -290,7 +243,7 @@ contains
         call stiff_matrix(lambda,mu,DEL)
         deltaTk = one
         Ttot    = zero
-        deltaTmin = 0.001d0
+        deltaTmin = 0.001d0 ! 1e-4
         flag_fail = .false.
         counter = 1
         do while ((Ttot.lt.one).and.counter.le.10)
@@ -541,6 +494,7 @@ contains
             radius = radiust
             pstrain = pstrain+beta*gradF0
             if (abs(F1).le.FTOL_DRIFT) then
+                write(*,*) 'drift',F1
                 exit
             endif
         enddo
@@ -560,13 +514,13 @@ contains
         real(fpp), dimension(0:5)                :: start,gradF,dev,dev_temp,temp,dev0
         real(fpp)                                :: Fstart,err0,err1,beta
         integer                             :: counter
-        call tensor_components(start0,dev0)
+        call tensor_deviator(start0,dev0)
         alpha=F0/(F0-Ftrial)
         start(0:5)=start0(0:5)
         temp=start+alpha*dtrial0
         do counter=0,9
-            call tensor_components(temp, dev_temp)
-            call tensor_components(start,dev)
+            call tensor_deviator(temp, dev_temp)
+            call tensor_deviator(start,dev)
             call tau_mises(-dev+dev_temp,err0)
             call tau_mises(dev-dev0,err1)
             err0=err0/err1
@@ -589,15 +543,15 @@ contains
         real(fpp), dimension(0:5)                :: start,gradF,dev,dev_temp,temp,dev0
         real(fpp)                                :: alphanew,err0,err1,beta
         integer                             :: counter
-        call tensor_components(start0,dev0)
+        call tensor_deviator(start0,dev0)
         alpha=F0/(F0-Ftrial)
         beta=0d0
         alphanew=0d0
         start(0:5)=start0(0:5)
         temp(0:5)=start(0:5)+alpha*dtrial0(0:5)
         do counter=0,9
-            call tensor_components(temp, dev_temp)
-            call tensor_components(start,dev)
+            call tensor_deviator(temp, dev_temp)
+            call tensor_deviator(start,dev)
             call tau_mises(-dev+dev_temp,err0)
             call tau_mises(dev-dev0,err1)
             err0=err0/err1
@@ -639,7 +593,7 @@ contains
         ! LOAD REVERSAL
         if (nsub.gt.1) then
             Fsave=F0
-            do counter0=0,3
+            do counter0=0,2
                 dalpha = (alpha1-alpha0)/nsub
                 flagxit=.false.
                 do counter1=0,nsub-1
@@ -670,10 +624,9 @@ contains
             call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
             call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
 
-            if ((F0.lt.-FTOL).and.(F1.gt.FTOL)) then
-            else
-                write(*,*) "LOAD REVERSAL FAILED"
-            endif
+!            if ((F0.lt.-FTOL).and.(F1.gt.FTOL)) then
+!            
+!            endif
         endif
 
         ! ORIGINAL PEGASUS ALGORITHM
@@ -695,9 +648,9 @@ contains
                 alpha0=alpha
             endif
         end do
-        if (FM.gt.FTOL) then
-            write(*,*) "WARNING: F>TOL!!!!!!!!!"
-        endif
+!        if (FM.gt.FTOL) then
+!            write(*,*) "WARNING: F>TOL!!!!!!!!!"
+!        endif
     end subroutine gotoFpegasus
 
 end module nonlinear

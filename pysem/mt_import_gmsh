@@ -144,7 +144,7 @@ class Gmsh(object):
             desc = [ int(k) for k in line.split() ]
             num = desc[0]
             typ = desc[1]
-            tags = desc[3:3+desc[2]]
+            tags = desc[2:3+desc[2]]
             nodes = self.renumber(desc[3+desc[2]:])
             handle_elem = self.elem_type_handler.get(typ, self.ignore_elem)
             handle_elem(num, nodes, tags)
@@ -174,7 +174,7 @@ class Gmsh(object):
 
     def handle_hexa(self, num, nodes, tags):
         self.mesh.hexa8.append(nodes)
-        self.hexa8_mat.append(tags[self.tag_mat]);
+        self.hexa8_mat.append(tags[self.tag_mat:self.tag_mat+3]);
 
     def handle_quad8(self, num, nodes, tags):
         self.mesh.quad8.append(nodes)

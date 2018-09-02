@@ -512,12 +512,12 @@ contains
         case(MATDEF_NLKP_VS_RHO)
             nu = mat%DNu
             mu = rho*v1**2
-            lambda = 2.0d0*nu*v1/(1.0d0-2.0d0*nu)
+            lambda = 2.0d0*nu*(rho*v1**2)/(1.0d0-2.0d0*nu)
             nlkp = v0
         case(MATDEF_NU_VS_RHO)
             nu = v0
             mu = rho*v1**2
-            lambda = 2.0d0*nu*v1/(1.0d0-2.0d0*nu)
+            lambda = 2.0d0*nu*(rho*v1**2)/(1.0d0-2.0d0*nu)
             nlkp = 1.0d40
         end select
 
