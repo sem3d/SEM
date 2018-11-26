@@ -248,8 +248,8 @@ contains
         ngll = dom%ngll
         dir1_count = dom%dir1_count
         dir2_count = dom%dir2_count
-        write(*,*) "Allocating: PML-N1:", dir1_count
-        write(*,*) "Allocating: PML-N2:", dir2_count
+        !write(*,*) "Allocating: PML-N1:", dir1_count
+        !write(*,*) "Allocating: PML-N2:", dir2_count
         if (dir1_count>0) then
             allocate(dom%Alpha_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))
             allocate(dom%Kappa_1(0:ngll-1,0:ngll-1,0:ngll-1,0:dir1_count-1))

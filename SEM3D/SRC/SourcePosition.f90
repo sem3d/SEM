@@ -54,7 +54,6 @@ subroutine SourcePosition (Tdomain)
         call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
         n_el = -1
         
-        
         do i=1,nmax
             inside = .true.
             xi   = coordloc(0,i)
@@ -63,8 +62,6 @@ subroutine SourcePosition (Tdomain)
             if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
             if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
         
-            print*,'nmax,xi,eta,zeta', nmax, xi,eta,zeta
-                   
             if (inside) then
                 n_el = elems(i)
                 exit
