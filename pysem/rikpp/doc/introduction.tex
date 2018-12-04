@@ -1,0 +1,11 @@
+\chapter{Introduction}
+
+
+The 1D-3C SEM code is a numerical tool for spectral element modeling (SEM) of one-dimensional (1D) seismic wave propagation with three components (3C) in linear and nonlinear media. It is an extended version of the 1D SEM code supplied by the PhD work of Elise Delavaud \cite{Delavaud2007}. The additional contributions have been made by Elif Oral during her PhD thesis \cite{Oral2016}. \\
+
+The 1D-3C SEM code offers many choices for the soil rheology in propagation medium and bottom boundary conditions. As soil constitutive model (soil rheology), it is possible to model elasticity, viscoelasticity, elastoplasticity and visco-elastoplasticity. For boundary conditions, 1D-3C SEM allows for defining rigid condition, absorbing layer condition with Perfectly Marched Layers (PML), borehole condition and free surface condition. \\
+
+For viscoelastic attenuation in propagation medium, \cite{LiuArchuleta2006} model has been implemented in the code, whereas soil nonlinearity is based on MPII model of \cite{Iwan1967}. For nonlinearity, the code offers pressure-dependent and pressure-independent modeling possibilities. For pressure-independent models, it is possible to define soil nonlinearity with given experimental data or hyperbolic curve of  \cite{HardinDrnevich1972}. Furthermore, in pressure-dependent models, effective and total stress analyses could be performed. The excess pore pressure development in effective stress analysis is modeled in 1D-3C SEM code following the front saturation model of \cite{Iaietal1990}. For more details on theory of these models, the user is invited to refer to \cite{Oral2016}. \\
+
+
+The 1D-3C SEM code is a completely free (open) source and it is provided with several example files and Python-based scripts to be used for pre- and post-treatments.  In the following, first, the compilation of the code is detailed. Second, the employment of different models into the code is explained by means of various examples. Lastly, the use of available python scripts are given. \\

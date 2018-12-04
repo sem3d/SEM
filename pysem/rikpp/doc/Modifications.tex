@@ -1,0 +1,35 @@
+\chapter{Modifications made in SEM3D}
+\label{chapmodi}
+The major modifications that we applied to SEM3D in order to implement extended-source modeling are listed below for advanced users.
+
+\begin{itemize}
+
+
+\item \textbf{SRC/Modules/Sources.f90 :} In 'CompSource' subroutine, for extended sources, 'call Source\textunderscore File' is added in order to compute the forces at each time step of simulation (with the help of Filippo Gatti).\\
+
+\item \textbf{SRC/Modules/Sources.f90 :} Inread\textunderscore source\textunderscore file\textunderscore h5 subroutine, for extended sources, the subroutine reads moment-time history instead of slip-time history.\\
+
+\item \textbf{SRC/read\textunderscore input.f90 :} In 'create\textunderscore sem\textunderscore extended\textunderscore sources' subroutine, definition of src\%moment variable of each extended source is changed. It is equated to directional tensor (product of slip and normal vectors of fault plane). \\
+
+
+\item \textbf{SRC/Modules/Extended\textunderscore source.f90 :} 'is\textunderscore force' logical variable is added to sExtendSource subdomain of Tdomain domain.  \\
+
+\item \textbf{SRC/Modules/create\textunderscore point\textunderscore sources\textunderscore from\textunderscore fault.f90 :} New subroutines \\ (create\textunderscore point\textunderscore sources\textunderscore from\textunderscore fault\textunderscore moment and create\textunderscore point\textunderscore sources\textunderscore from\textunderscore fault\textunderscore force) are added for orientation to force or moment option.  All the necessary computations are made directly in these new subroutines. \\
+
+
+\end{itemize}
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

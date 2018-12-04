@@ -1,0 +1,50 @@
+This is BibTeX, Version 0.99d (TeX Live 2015)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: manual.aux
+A level-1 auxiliary file: RIKmodel.aux
+A level-1 auxiliary file: Convertisseur.aux
+A level-1 auxiliary file: SEM.aux
+A level-1 auxiliary file: Modifications.aux
+The style file: apalike.bst
+Database file #1: Biblio.bib
+You've used 2 entries,
+            1935 wiz_defined-function locations,
+            521 strings with 4544 characters,
+and the built_in function-call counts, 813 in all, are:
+= -- 80
+> -- 30
+< -- 1
++ -- 10
+- -- 10
+* -- 73
+:= -- 146
+add.period$ -- 6
+call.type$ -- 2
+change.case$ -- 15
+chr.to.int$ -- 2
+cite$ -- 2
+duplicate$ -- 28
+empty$ -- 58
+format.name$ -- 12
+if$ -- 153
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 2
+newline$ -- 13
+num.names$ -- 6
+pop$ -- 10
+preamble$ -- 1
+purify$ -- 15
+quote$ -- 0
+skip$ -- 22
+stack$ -- 0
+substring$ -- 65
+swap$ -- 2
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 12
+warning$ -- 0
+while$ -- 8
+width$ -- 0
+write$ -- 28
