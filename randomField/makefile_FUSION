@@ -212,7 +212,7 @@ spectra_RF.o         : displayCarvalhol.o \
 		       constants_RF.o \
                        ranlib.o \
 		       type_RF.o \
-               		   special_functions.o
+                       special_functions.o
 math_RF.o            : displayCarvalhol.o \
 		       write_Log_File.o \
 		       constants_RF.o
