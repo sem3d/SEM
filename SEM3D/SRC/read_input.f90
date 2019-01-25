@@ -37,20 +37,20 @@ contains
         do mat = 0, Tdomain%n_mat-1
             dom = Tdomain%sSubDomain(mat)%dom
             select case (dom)
-                 case (DM_SOLID)
-                     Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     Tdomain%any_sdom = .true.
-                 case (DM_FLUID)
-                     Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     Tdomain%any_fdom = .true.
-                 case (DM_SOLID_PML)
-                     Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     Tdomain%any_spml = .true.
-                 case (DM_FLUID_PML)
-                     Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     Tdomain%any_fpml = .true.
-                 case default
-                     stop " Fatal Error : unknown domain"
+            case (DM_SOLID)
+                Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_sdom = .true.
+            case (DM_FLUID)
+                Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_fdom = .true.
+            case (DM_SOLID_PML)
+                Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_spml = .true.
+            case (DM_FLUID_PML)
+                Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_fpml = .true.
+            case default
+                stop " Fatal Error : unknown domain"
             end select
         end do
         !- GLL properties in elements, on faces, edges.
@@ -106,9 +106,6 @@ contains
             Tdomain%sSubdomain(num)%DLambda  = matdesc%lambda
             Tdomain%sSubdomain(num)%DMu      = matdesc%mu
             Tdomain%sSubdomain(num)%DKappa   = matdesc%kappa
-!            Tdomain%sSubdomain(num)%DSyld    = matdesc%syld
-!            Tdomain%sSubdomain(num)%DCkin    = matdesc%ckin
-!            Tdomain%sSubdomain(num)%DKkin    = matdesc%kkin
             Tdomain%sSubdomain(num)%DRinf    = matdesc%rinf
             Tdomain%sSubdomain(num)%DBiso    = matdesc%biso
             Tdomain%sSubdomain(num)%DNlkp    = matdesc%nlkp
@@ -215,9 +212,7 @@ contains
 
         call c_f_pointer(config%source, src)
         nsrc = 0
-        
         do while(associated(src))
-
             Tdomain%Ssource(nsrc)%Xsource = src%coords(1)
             Tdomain%Ssource(nsrc)%Ysource = src%coords(2)
             Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
@@ -228,7 +223,7 @@ contains
             end if
             if (src%func .eq. 15) then
                 Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
-            endif 
+            endif
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
             Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
@@ -265,7 +260,8 @@ contains
             call c_f_pointer(src%next, src)
 
         end do
-       
+
+
     end subroutine create_sem_sources
 
 
@@ -288,19 +284,16 @@ contains
         call c_f_pointer(config%extended_source, ext_src)
         ntotal = nsrc ; nextsrc = 0
         do while(associated(ext_src))
-
-
             Tdomain%sExtendSource(nextsrc)%kine_file = trim(fromcstr(ext_src%kine_file))
             Tdomain%sExtendSource(nextsrc)%slip_file = trim(fromcstr(ext_src%slip_file))
             Tdomain%sExtendSource(nextsrc)%is_force = .false.
-            if(ext_src%is_force == 1) Tdomain%sExtendSource(nextsrc)%is_force = .true. 
-            
+            if(ext_src%is_force == 1) Tdomain%sExtendSource(nextsrc)%is_force = .true.
             call h5fopen_f(Tdomain%sExtendSource(nextsrc)%kine_file, H5F_ACC_RDONLY_F, fid, hdferr)
             call read_attr_int (fid, "Ns",    Tdomain%sExtendSource(nextsrc)%Ns)
             call read_attr_int (fid, "Nd",    Tdomain%sExtendSource(nextsrc)%Nd)
             call read_attr_int (fid, "Nt",    Tdomain%sExtendSource(nextsrc)%Nt)
             call read_attr_real(fid, "dt",    Tdomain%sExtendSource(nextsrc)%Dt)
-           
+
             Tdomain%sExtendSource(nextsrc)%Npt = Tdomain%sExtendSource(nextsrc)%Ns * Tdomain%sExtendSource(nextsrc)%Nd
             ntotal = ntotal + Tdomain%sExtendSource(nextsrc)%Npt
             call h5fclose_f(fid, hdferr)
@@ -328,7 +321,7 @@ contains
         end do
 
     end subroutine create_sem_extended_sources
-!
+    !
 
 
     subroutine create_point_sources_from_fault(Tdomain, extsrc, fid, nsrc)
@@ -338,7 +331,6 @@ contains
         use shape_geom_3d
         implicit none
         type(domain), intent(inout)       :: Tdomain
-        !type(Extended_source), intent(in) :: extsrc
         type(Extended_source), intent(inout) :: extsrc
         integer(HID_T), intent(in)        :: fid
         integer, intent(inout)            :: nsrc
@@ -350,18 +342,18 @@ contains
 
 
         if (.NOT.  extsrc%is_force) &
-        call create_point_sources_from_fault_moment(Tdomain, extsrc, fid, nsrc)
+            call create_point_sources_from_fault_moment(Tdomain, extsrc, fid, nsrc)
 
         if (extsrc%is_force) &
-        call create_point_sources_from_fault_force(Tdomain, extsrc, fid, nsrc)
+            call create_point_sources_from_fault_force(Tdomain, extsrc, fid, nsrc)
 
 
 
     end subroutine create_point_sources_from_fault
-!
+    !
 
 
-	subroutine create_point_sources_from_fault_moment(Tdomain, extsrc, fid, nsrc)
+    subroutine create_point_sources_from_fault_moment(Tdomain, extsrc, fid, nsrc)
         use sdomain
         use constants
         use sem_hdf5
@@ -447,20 +439,19 @@ contains
                 Tdomain%Ssource(nsrc)%ts = extsrc%Dt
                 Tdomain%Ssource(nsrc)%Nt = extsrc%Nt
 
-               ! MODIFICATION BY ELIF 
-               Tdomain%Ssource(nsrc)%moment(:,:) = Moment(:,:)
-               
-               nsrc = nsrc+1
+                Tdomain%Ssource(nsrc)%moment(:,:) = Moment(:,:)
+
+                nsrc = nsrc+1
             enddo
         enddo
 
         deallocate(Xtemp, Ytemp, Ztemp)
 
-	end subroutine create_point_sources_from_fault_moment
-!
+    end subroutine create_point_sources_from_fault_moment
+    !
 
 
-	subroutine create_point_sources_from_fault_force(Tdomain, extsrc, fid, nsrc)
+    subroutine create_point_sources_from_fault_force(Tdomain, extsrc, fid, nsrc)
 
         use sdomain
         use constants
@@ -477,14 +468,12 @@ contains
         real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp
         integer :: i, j
 
-
-        
         ! Lecture des datasets, avec (x,y,z) repere direct.
         ! Allocation des tableaux de coordonnes
         allocate (Xtemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
         allocate (Ytemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
         allocate (Ztemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
-        
+
         call read_dataset(fid, "x", tmp)
         do i=0,extsrc%Ns-1
             Xtemp(i,:) = tmp(:,i+1)
@@ -500,7 +489,7 @@ contains
             Ztemp(i,:) = tmp(:,i+1)
         enddo
         deallocate(tmp)
-      
+
         ! Vecteur de direction
         call read_attr_real_vec(fid, "Dir", dirvec)
 
@@ -531,17 +520,17 @@ contains
                 Tdomain%Ssource(nsrc)%i_time_function = 15         ! flag pour source file...
                 Tdomain%Ssource(nsrc)%ts = extsrc%Dt
                 Tdomain%Ssource(nsrc)%Nt = extsrc%Nt
-         
+
                 Tdomain%Ssource(nsrc)%dir = dirvec
-              
-               
-               nsrc = nsrc+1
+
+
+                nsrc = nsrc+1
             enddo
         enddo
-       deallocate(Xtemp, Ytemp, Ztemp)
+        deallocate(Xtemp, Ytemp, Ztemp)
 
-	end subroutine create_point_sources_from_fault_force
-!
+    end subroutine create_point_sources_from_fault_force
+    !
 
 
     function is_in_box(pos, box)
@@ -722,14 +711,14 @@ contains
         !! Add by Mtaro
         call init_surface_source(Tdomain)
         if (Tdomain%logicD%surfBC) then
-           call read_surface_input(Tdomain, Tdomain%config)
+            call read_surface_input(Tdomain, Tdomain%config)
         endif
 
         ! Gestion des Sources
         if (Tdomain%config%nextended_sources==0) then
             ! Only a few ponctual sources
             Tdomain%n_source = Tdomain%config%nsources
-            
+
             !write(*,*) 'TOTAL SOURCE NUMBER IS   ', Tdomain%n_source
             allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
             ! Create point sources from C structures
@@ -744,7 +733,7 @@ contains
 
         !---
         if (Tdomain%logicD%surfBC) then
-           call surface_in_list(Tdomain)
+            call surface_in_list(Tdomain)
         endif
 
         !---   Properties of materials.
@@ -761,20 +750,20 @@ contains
 
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input
-    
+
     subroutine init_surface_source(Tdomain)
 
-       use sdomain
-    
-       implicit none
-       type(domain), intent(inout) :: Tdomain
-    
-       Tdomain%nsurface = 0
-       Tdomain%n_NEBC =0
-       Tdomain%n_PWBC =0
-       Tdomain%n_FTBC =0
-       Tdomain%n_DIRIC=0
-    
+        use sdomain
+
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+
+        Tdomain%nsurface = 0
+        Tdomain%n_NEBC =0
+        Tdomain%n_PWBC =0
+        Tdomain%n_FTBC =0
+        Tdomain%n_DIRIC=0
+
     end subroutine init_surface_source
 
     function getLine (fid, comment_Tag) result(nextLine)

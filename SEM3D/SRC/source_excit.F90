@@ -130,8 +130,6 @@ contains
 
         allocate(src%ExtForce(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         M(:,:) = src%Moment(:,:)
-        
-
         InvGrad(:,:) = src%InvGrad(:,:)
         do k = 0,ngll-1
             call pol_lagrange(ngll,GLLc,k,zeta,wzeta)
@@ -171,7 +169,6 @@ contains
         integer :: nsour,nels,ngll
         real(fpp), dimension(:), allocatable :: GLLc
 
-
         do nsour = 0, Tdomain%n_source -1
             if(Tdomain%sSource(nsour)%proc == rank)then
                 nels = Tdomain%sSource(nsour)%elem
@@ -203,7 +200,6 @@ contains
                     call source_excit_pulse_fluid(Tdomain, nels, Tdomain%sSource(nsour), ngll, GLLc)
                 else if(Tdomain%sSource(nsour)%i_type_source == 2)then
                     call source_excit_moment(Tdomain%sSource(nsour), ngll, GLLc)
-
                 end if  ! end i_type_source
                 deallocate(GLLc)
             end if

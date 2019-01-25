@@ -73,8 +73,8 @@ contains
                     localcoord(1,k) = eta
                     localcoord(2,k) = zeta
                 else
-                    !write(*,*) "find_location failed:", xi, eta, zeta, ok
-                    write(*,*) "find_location failed:", x0,y0, z0
+                    write(*,*) "find_location failed:", xi, eta, zeta, ok
+                    write(*,*) "find_location for source at :", x0,y0, z0
                 endif
                 if (k>=nmax) exit
             end do

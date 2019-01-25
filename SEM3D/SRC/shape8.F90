@@ -65,9 +65,6 @@ contains
                             dxp = abs(xp-Tdomain%GlobCoord(0,ipoint))
                             dyp = abs(yp-Tdomain%GlobCoord(1,ipoint))
                             dzp = abs(zp-Tdomain%GlobCoord(2,ipoint))
-                            !if (dxp>XEPS .or. dyp>XEPS .or. dzp>XEPS) then
-                                !write(*,*) "DIFF", n, ipoint, Tdomain%GlobCoord(:,ipoint), ":", dxp, dyp, dzp
-                            !end if
                         end if
                         !
                         Tdomain%GlobCoord(0,ipoint) = xp
@@ -376,7 +373,7 @@ contains
         real(fpp), dimension(0:2,0:2) :: jac
         real(fpp), dimension(0:2) :: x
         real(fpp) :: xa, ya, za, err, Det
-        integer, parameter :: niter=4000
+        integer, parameter :: niter=1000
         integer :: i
         xout = xin
         do i=1,niter
@@ -413,7 +410,7 @@ contains
         xref(1) = ya
         xref(2) = za
         call simple_newton_8(coord, xref, xin, xout, niter)
-        if (niter==4000 .or. niter<0) ok=.false.
+        if (niter==1000 .or. niter<0) ok=.false.
         xi = xout(0)
         eta = xout(1)
         zeta = xout(2)

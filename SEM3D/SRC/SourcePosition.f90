@@ -50,10 +50,9 @@ subroutine SourcePosition (Tdomain)
 
         ! On trouve les elements autour de la source
         nmax = NMAXEL
-        !call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc)
         call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
         n_el = -1
-        
+
         do i=1,nmax
             inside = .true.
             xi   = coordloc(0,i)
@@ -61,7 +60,7 @@ subroutine SourcePosition (Tdomain)
             zeta = coordloc(2,i)
             if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
             if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
-        
+
             if (inside) then
                 n_el = elems(i)
                 exit
@@ -156,4 +155,3 @@ end subroutine SourcePosition
 !! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent :
-

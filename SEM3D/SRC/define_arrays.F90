@@ -58,7 +58,6 @@ contains
             !deallocate(Tdomain%specel(n)%Idom) ! TODO : to uncomment when non-CPML domains use dom%Idom_ instead of specel%Idom
         end do
 
-
         rg = Tdomain%rank
 
         if( Tdomain%earthchunk_isInit/=0) then
@@ -67,22 +66,14 @@ contains
 
 
         call init_materials(Tdomain)
-
         ! We need the timestep to continue with PML defs...
-        ! A nettoyer XXX ELIF
         call Compute_Courant(Tdomain,rg)
-        
-
+!
         call init_domains(Tdomain)
-
-       ! write(*,*) 'Init_domains OK'
-
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
             ! Compute MassMat
             call init_local_mass(Tdomain, Tdomain%specel(n))
-
-           ! write(*,*) 'init_local_mass OK'
             ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is
             if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
                 call init_solidpml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
@@ -91,8 +82,6 @@ contains
                 call init_fluidpml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             end if
         enddo
-        
-
         ! Here we have local mass matrix (not assembled) on elements and
         ! each of faces, edges, vertices containing assembled (on local processor only) mass matrix
         if( Tdomain%earthchunk_isInit/=0) then
@@ -109,7 +98,6 @@ contains
         call assemble_mass_matrices(Tdomain)
         call finalize_pml_properties(Tdomain)
         call inverse_mass_mat(Tdomain)
-
 
         ! Copy Idom from element to domain_XXX
 
