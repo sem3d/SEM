@@ -14,13 +14,15 @@
 #include "reader_abaqus.h"
 #include "reader_ideas.h"
 #include "mesh_common.h"
+#include "read_input.h"
+#include "sem_input.h"
 
-void handle_on_the_fly(Mesh3D& mesh, sem_config_t* config)
+void handle_on_the_fly(Mesh3D& mesh)
 {
     FILE* fparams;
     RectMesh desc;
     fparams = fopen("mat.dat","r");
-    desc.read_params_old(fparams, config);
+    desc.read_params_old(fparams);
     fclose(fparams);
     desc.init_rectangular_mesh(mesh);
 }
@@ -123,10 +125,14 @@ int main(int argc, char**argv)
     printf(" \n\n");
 
     sem_config_t config;
+    int err;
+    read_sem_config(&config, 0, 3, "input.spec", &err);
+    dump_config(&config);
+
     switch(choice) {
     case 1:
     	mesh.read_materials("mater.in");
-        handle_on_the_fly(mesh, &config);
+        handle_on_the_fly(mesh);
         mesh.write_materials("material.input");
 	break;
     case 2:
