@@ -8,6 +8,7 @@ import sys
 import h5py
 import os.path as osp
 import numpy as np
+import argparse
 
 try:
     import mt
@@ -144,7 +145,7 @@ class Gmsh(object):
             desc = [ int(k) for k in line.split() ]
             num = desc[0]
             typ = desc[1]
-            tags = desc[2:3+desc[2]]
+            tags = desc[3:3+desc[2]]
             nodes = self.renumber(desc[3+desc[2]:])
             handle_elem = self.elem_type_handler.get(typ, self.ignore_elem)
             handle_elem(num, nodes, tags)
@@ -174,7 +175,7 @@ class Gmsh(object):
 
     def handle_hexa(self, num, nodes, tags):
         self.mesh.hexa8.append(nodes)
-        self.hexa8_mat.append(tags[self.tag_mat:self.tag_mat+3]);
+        self.hexa8_mat.append(tags[self.tag_mat]);
 
     def handle_quad8(self, num, nodes, tags):
         self.mesh.quad8.append(nodes)
@@ -230,7 +231,20 @@ class Gmsh(object):
         f.close()
         create_xdmf_structure(fname)
 
-if __name__ == "__main__":
+
+def main():
+    parser = argparse.ArgumentParser(description="Conversion gmsh vers hdf5 (sem/mka)")
+    parser.add_argument("-p", help="Use physical volume as material", dest="mat", default=0, action="store_const", const=1)
+    parser.add_argument("-c", help="Use color as material", dest="mat", action="store_const", const=2)
+    parser.add_argument("input", help="input file in msh format")
+    parser.add_argument("output", help="output file (HDF5)")
+    opt = parser.parse_args()
+
     mesh = Gmsh()
-    mesh.read(file(sys.argv[1]))
-    mesh.save(sys.argv[2])
+    mesh.tag_mat = opt.mat
+    mesh.read(file(opt.input))
+    mesh.save(opt.output)
+
+        
+if __name__ == "__main__":
+    main()
