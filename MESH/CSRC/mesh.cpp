@@ -262,20 +262,16 @@ void Mesh3D::read_mesh_file(const std::string& fname)
         exit(1);
     }
     h5h_read_dset_2d(file_id, "/Sem3D/Mat",d0,d1,m_mat);
-    if (d0==1){
-        d0=d1;
-        d1=1;
-    } 
     for (int i=0; i<d0; i++){
-        tag=m_mat[d1*i+std::max(0,d1-2)];
+        tag=m_mat[3*d0-i*3-2];
         tagg.push_back(tag);
     }
     for (int i=0; i<d0; i++){
-        m_mat[i]=tagg[i];
-        for (int j=1; j<d1; j++){
-            m_mat.pop_back();
-        }
+        m_mat[d0-i-1]=tagg[i];
+        m_mat.pop_back();
+        m_mat.pop_back();
     }
+    printf("size new %d",m_mat.size()); 
     std::vector<int> domain=m_mat;
     std::sort( domain.begin(), domain.end() );
     domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
@@ -539,4 +535,4 @@ void Mesh3D::generate_output(int nprocs)
 /* coding: utf-8                                                           */
 /* c-file-style: "stroustrup"                                              */
 /* End:                                                                    */
-/* vim: set sw=4 ts=4 et tw=80 smartindent :                               */
+/* vim: set sw=4 ts=8 et tw=80 smartindent :                               */
