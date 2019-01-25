@@ -85,14 +85,14 @@ temps (ignoré dans la version actuelle) et les paramètres :math:`Q_\kappa` et 
 pour l'atténuation des ondes P et S.
 
 
-Format de material.input
-========================
+Format de material.input (version obsolète)
+===========================================
 
 **Dans une future version le contenu de ce fichier sera intégré au fichier input.spec**
 
 Le fichier ``material.input`` est créé automatiquement pour le cas avec un maillage automatique.
 
-Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
+Pour le cas où le maillage n'est pas automatique, le fichier a par exemple l'allure suivante ::
 
   22
   P 0380 150 1900 05 05 07 0.000005 0 0
@@ -174,25 +174,101 @@ Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
 
 
 
-Format de material.input V2
-===========================
+Format de material.input (nouvelle version)
+===========================================
 
+Le format de ``material.input`` a été modifié. 
+Voici un exemple de sa nouvelle présentation, suivi d'explications sur les paramètres qui interviennent : ::
 
-::
+    21
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    S 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    S 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    # PML properties
+    # npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
+    2 10. -2.450000 0.000000 0.000000 0.000000 6.000000 -5.000000 7
+    2 10. -5.000000 0.000000 -5.000000 0.000000 6.000000 -5.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 0.000000 6.000000 -5.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 -5.000000 6.000000 -5.000000 8
+    2 10. -5.000000 0.000000 -5.000000 -5.000000 6.000000 -5.000000 8
+    2 10. 5.000000 5.000000 -5.000000 -5.000000 6.000000 -5.000000 8
+    2 10. 5.000000 5.000000 -5.000000 0.000000 6.000000 -5.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 0.000000 6.000000 0.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 -5.000000 6.000000 0.000000 8
+    2 10. -5.000000 0.000000 -5.000000 -5.000000 6.000000 0.000000 8
+    2 10. 5.000000 5.000000 -5.000000 -5.000000 6.000000 0.000000 8
+    2 10. 5.000000 5.000000 -5.000000 0.000000 6.000000 0.000000 8
+    2 10. -2.450000 0.000000 0.000000 0.000000 26.000000 5.000000 7
+    2 10. -5.000000 0.000000 0.000000 0.000000 26.000000 5.000000 8
+    2 10. -5.000000 -5.000000 0.000000 0.000000 26.000000 5.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 -5.000000 26.000000 5.000000 8
+    2 10. -5.000000 0.000000 -5.000000 -5.000000 26.000000 5.000000 8
+    2 10. 5.000000 5.000000 -5.000000 -5.000000 26.000000 5.000000 8
+    2 10. 5.000000 5.000000 -5.000000 0.000000 26.000000 5.000000 8
 
-   Nmat
-   Type  Pspeed  Sspeed Density  NGLL  Qp  Qmu
-   # Two lines skipped after Nmat material lines
-   # The second line
-   npow  Apow  posX  widthX  posY widthY posZ widthZ  mat
+Plus précisément, ce fichier doit contenir :
+  
+- Le nombre de milieux décrits sur la première ligne ;
+  
+- Une ligne par milieu, contenant :
+  
+  - Le type de milieu :
+        
+        - Solide : noté S
+        
+        - Fluide : noté F
+        
+        - PML solide : noté P
+        
+        - PML fluide : noté L
+  
+  - Les vitesses d'ondes P et S (en m/s)
+  
+  - La densité (en kg/m^3)
+  
+  - Le nombre de points d'intégration de Gauss-Lobatto-Legendre (GLL) ;
+  
+  - Les coefficients attenuations d'ondes P et S.
+  
+- 2 lignes de commentaires
+  
+- Pour chaque milieu de type PML (donc P ou L), une ligne permettant de paramétrer les directions d'atténuation :
+  
+  - Les paramètres n et A pour les PML filtrantes ;
+  
+  - Les coordonnées (posX, posY, posZ) d'un point à la frontière entre le PML et la matériau solide/liquide adjacent ;
+  
+  - La taille de l'extrusion suivant la direction de l'espace (widthX, widthY, widthZ). Elle peut être positive ou négative suivant le sens donné aux axes (X,Y,Z). Une inversion du signe occasionnera une amplification au lieu d'une atténuation !
+  
+  - Le numéro attributé au matériau solide/liquide adjacent au PML. Attention ! la numérotation commence à 0. Ainsi les deux matériaux solides décrits dans l'exemple ci-dessus sont bien numérotés 7 et 8 (et non 8 et 9).
 
+**Remarque :** pour l'extrusion, trois types de figure sont à distinguer, suivant la nature de la surface de contact PML-solide/liquide :
 
-Description des paramètres : comme le format V1 sauf :
-
-- posX, widthX : position du début de la couche PML sur l'axe X. Si widthX == 0, alors
-  pas de PML en X. Le signe de widthX donne sa direction : la pml
-  se trouve entre (posX) et (posX+widthX)
-
+- Surface de contact : l'extrusion se fait uniquement dans la direction normale à la surface de contact. On mettra 0 dans les deux autres directions.
+   
+- Arête en contact : l'extrusion se fait dans les deux directions normales à l'arête uniquement.
+   
+- Coin en contact : si seul un point fait le contact entre le PML et le milieu adjacent, l'extrusion se fait dans les trois dimensions de l'espace.
+   
+  
    
 Format de material.spec
 =======================

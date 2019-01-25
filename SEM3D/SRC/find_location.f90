@@ -23,12 +23,13 @@ contains
     ! multiple elements are returned only if the point lies on elements boudaries
     ! The local coords are always within the element except when the point is outside
     ! the mesh in which case nmax is -1 on return and only one candidate is selected
-    subroutine find_location(Tdomain, x0,y0,z0, nmax, elems, localcoord)
+    subroutine find_location(Tdomain, x0,y0,z0, nmax, elems, localcoord, nsrc)
         type(domain), intent(in) :: Tdomain
         real(fpp), intent(in) :: x0, y0, z0
         integer, intent(inout) :: nmax
         integer, dimension(nmax) :: elems
         real(fpp), dimension(0:2,nmax) :: localcoord
+        integer, intent(in), optional :: nsrc
         !
         integer :: n, nnodes, i, j, k
         real(fpp) :: mindist, dist
@@ -73,6 +74,7 @@ contains
                     localcoord(2,k) = zeta
                 else
                     write(*,*) "find_location failed:", xi, eta, zeta, ok
+                    write(*,*) "find_location for source at :", x0,y0, z0
                 endif
                 if (k>=nmax) exit
             end do

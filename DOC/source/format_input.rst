@@ -388,7 +388,7 @@ Les fonctions temporelles sont:
 
   .. math::
 
-     f(t) = \frac{Q*Y}{2}*(X^{\frac{v*(t-t_0)-a}{d^2}}+X^{\frac{v*(t-t_0)-a-L}{d^2}})
+     f(t) = \frac{Q*Y}{2}*(X^{\left(\frac{v*(t-t_0)-a}{d}\right)^2}+X^{\left(\frac{v*(t-t_0)-a-L}{d}\right)^2})
 
 
 Section ``snapshots``

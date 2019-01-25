@@ -23,6 +23,11 @@ module sextended_sources
        character(len = 30)                  :: kine_file               ! file name of the Kinetic File
        character(len = 30)                  :: slip_file               ! file name of the Slip Time File
 
+       ! ELIF 19/06/2017
+       ! Force/Moment-time function to be read
+       logical                             :: is_force
+
+
     end type Extended_Source
 
 contains

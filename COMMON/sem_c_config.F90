@@ -59,6 +59,8 @@ module sem_c_config
        !! Output Variables
        integer(C_INT), dimension(OUT_LAST+1) :: out_variables
        integer(C_INT) :: nl_flag
+       integer(C_INT) :: use_avg
+       integer(C_INT) :: prot_at_time
 
        !! Protection reprise
        integer(C_INT) :: prorep
@@ -144,9 +146,7 @@ module sem_c_config
        type(C_PTR) :: next
        type(C_PTR) :: kine_file
        type(C_PTR) :: slip_file
-       real(C_DOUBLE) :: dip
-       real(C_DOUBLE) :: strike
-       real(C_DOUBLE) :: rake
+       integer(C_INT) :: is_force
     end type sem_extended_source
 
     ! ce type doit correspondre au type station_def_t de sem_input.h **a l'ordre pres**

@@ -37,20 +37,20 @@ contains
         do mat = 0, Tdomain%n_mat-1
             dom = Tdomain%sSubDomain(mat)%dom
             select case (dom)
-                 case (DM_SOLID)
-                     Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     Tdomain%any_sdom = .true.
-                 case (DM_FLUID)
-                     Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     Tdomain%any_fdom = .true.
-                 case (DM_SOLID_PML)
-                     Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     Tdomain%any_spml = .true.
-                 case (DM_FLUID_PML)
-                     Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                     Tdomain%any_fpml = .true.
-                 case default
-                     stop " Fatal Error : unknown domain"
+            case (DM_SOLID)
+                Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_sdom = .true.
+            case (DM_FLUID)
+                Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_fdom = .true.
+            case (DM_SOLID_PML)
+                Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_spml = .true.
+            case (DM_FLUID_PML)
+                Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_fpml = .true.
+            case default
+                stop " Fatal Error : unknown domain"
             end select
         end do
         !- GLL properties in elements, on faces, edges.
@@ -106,9 +106,6 @@ contains
             Tdomain%sSubdomain(num)%DLambda  = matdesc%lambda
             Tdomain%sSubdomain(num)%DMu      = matdesc%mu
             Tdomain%sSubdomain(num)%DKappa   = matdesc%kappa
-!            Tdomain%sSubdomain(num)%DSyld    = matdesc%syld
-!            Tdomain%sSubdomain(num)%DCkin    = matdesc%ckin
-!            Tdomain%sSubdomain(num)%DKkin    = matdesc%kkin
             Tdomain%sSubdomain(num)%DRinf    = matdesc%rinf
             Tdomain%sSubdomain(num)%DBiso    = matdesc%biso
             Tdomain%sSubdomain(num)%DNlkp    = matdesc%nlkp
@@ -139,7 +136,7 @@ contains
         fid = 13
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
-        if(rg==0) write(*,*) "read material file : ", trim(fnamef)
+        if(rg==0) write(*,*) "read material file : ", trim(adjustL(fnamef))
         open (fid, file=fnamef, status="old", form="formatted")
 
         buffer = getLine (fid, "#")
@@ -222,6 +219,9 @@ contains
             if (src%func .eq. 5) then
                 Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
             end if
+            if (src%func .eq. 15) then
+                Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
+            endif
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
             Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
@@ -284,16 +284,14 @@ contains
         do while(associated(ext_src))
             Tdomain%sExtendSource(nextsrc)%kine_file = trim(fromcstr(ext_src%kine_file))
             Tdomain%sExtendSource(nextsrc)%slip_file = trim(fromcstr(ext_src%slip_file))
+            Tdomain%sExtendSource(nextsrc)%is_force = .false.
+            if(ext_src%is_force == 1) Tdomain%sExtendSource(nextsrc)%is_force = .true.
             call h5fopen_f(Tdomain%sExtendSource(nextsrc)%kine_file, H5F_ACC_RDONLY_F, fid, hdferr)
             call read_attr_int (fid, "Ns",    Tdomain%sExtendSource(nextsrc)%Ns)
             call read_attr_int (fid, "Nd",    Tdomain%sExtendSource(nextsrc)%Nd)
             call read_attr_int (fid, "Nt",    Tdomain%sExtendSource(nextsrc)%Nt)
             call read_attr_real(fid, "dt",    Tdomain%sExtendSource(nextsrc)%Dt)
-            call read_attr_real(fid, "dip",   Tdomain%sExtendSource(nextsrc)%dip)
-            call read_attr_real(fid, "rake",  Tdomain%sExtendSource(nextsrc)%rake)
-            call read_attr_real(fid, "strike",Tdomain%sExtendSource(nextsrc)%strike)
-            call read_attr_real_vec(fid, "Vnormal",Tdomain%sExtendSource(nextsrc)%Normal(:))
-            call read_attr_real_vec(fid, "Vslip",  Tdomain%sExtendSource(nextsrc)%Uslip(:))
+
             Tdomain%sExtendSource(nextsrc)%Npt = Tdomain%sExtendSource(nextsrc)%Ns * Tdomain%sExtendSource(nextsrc)%Nd
             ntotal = ntotal + Tdomain%sExtendSource(nextsrc)%Npt
             call h5fclose_f(fid, hdferr)
@@ -321,6 +319,7 @@ contains
         end do
 
     end subroutine create_sem_extended_sources
+    !
 
 
     subroutine create_point_sources_from_fault(Tdomain, extsrc, fid, nsrc)
@@ -330,7 +329,7 @@ contains
         use shape_geom_3d
         implicit none
         type(domain), intent(inout)       :: Tdomain
-        type(Extended_source), intent(in) :: extsrc
+        type(Extended_source), intent(inout) :: extsrc
         integer(HID_T), intent(in)        :: fid
         integer, intent(inout)            :: nsrc
         real(fpp)                         :: dS
@@ -339,11 +338,47 @@ contains
         real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
         integer :: i, j
 
+
+        if (.NOT.  extsrc%is_force) &
+            call create_point_sources_from_fault_moment(Tdomain, extsrc, fid, nsrc)
+
+        if (extsrc%is_force) &
+            call create_point_sources_from_fault_force(Tdomain, extsrc, fid, nsrc)
+
+
+
+    end subroutine create_point_sources_from_fault
+    !
+
+
+    subroutine create_point_sources_from_fault_moment(Tdomain, extsrc, fid, nsrc)
+        use sdomain
+        use constants
+        use sem_hdf5
+        use shape_geom_3d
+        implicit none
+        type(domain), intent(inout)       :: Tdomain
+        ! type(Extended_source), intent(in) :: extsrc
+        type(Extended_source), intent(inout) :: extsrc
+        integer(HID_T), intent(in)        :: fid
+        integer, intent(inout)            :: nsrc
+        real(fpp)                         :: dS
+        real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn
+        real(fpp), dimension(0:2,0:2)          :: Moment
+        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
+        integer :: i, j
+
+
+
+        ! Lire les vecteurs dans le fichier kine
+        call read_attr_real_vec(fid, "Vnormal",extsrc%Normal(:))
+        call read_attr_real_vec(fid, "Vslip",  extsrc%Uslip(:))
+
+
+
         ! Recuperation du vecteur normal et du vecteur de glissement
         normal = extsrc%Normal
         U      = extsrc%Uslip
-        write(*,*) "Vecteur Normal : ", normal(:)
-        write(*,*) "Slip Direction : ", U(:)
 
         ! Construction du moment correspondant au slip
         do i=0,2
@@ -352,12 +387,12 @@ contains
             enddo
         enddo
 
+
         ! Lecture des datasets, avec (x,y,z) repere direct.
         ! Allocation des tableaux de coordonnes
         allocate (Xtemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
         allocate (Ytemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
         allocate (Ztemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
-        allocate(MUtemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
 
         call read_dataset(fid, "x", tmp)
         do i=0,extsrc%Ns-1
@@ -374,18 +409,12 @@ contains
             Ztemp(i,:) = tmp(:,i+1)
         enddo
         deallocate(tmp)
-        call read_dataset(fid, "mu", tmp)
-        do i=0,extsrc%Ns-1
-            MUtemp(i,:) = tmp(:,i+1)
-        enddo
 
         ! Surface elementaire
         v1(0) = Xtemp(1,0)-Xtemp(0,0) ; v2(0) = Xtemp(0,1)-Xtemp(0,0)
         v1(1) = Ytemp(1,0)-Ytemp(0,0) ; v2(1) = Ytemp(0,1)-Ytemp(0,0)
         v1(2) = Ztemp(1,0)-Ztemp(0,0) ; v2(2) = Ztemp(0,1)-Ztemp(0,0)
         call cross_prod(v1,v2,dSn)
-        dS = sqrt(dSn(0)**2 + dSn(1)**2 + dSn(2)**2)
-        write(*,*) "Surface Elementaire : ", dS
 
         do i=0,extsrc%Ns-1
             do j=0,extsrc%Nd-1
@@ -404,21 +433,102 @@ contains
 
                 ! Comportement temporel
                 Tdomain%Ssource(nsrc)%time_file = extsrc%slip_file ! Slip-rate history file
-                Tdomain%Ssource(nsrc)%i_time_function = 5 ! flag pour source file...
+                Tdomain%Ssource(nsrc)%i_time_function = 15 ! flag pour source file...
                 Tdomain%Ssource(nsrc)%ts = extsrc%Dt
                 Tdomain%Ssource(nsrc)%Nt = extsrc%Nt
 
-                ! Assignation du moment
-                Tdomain%Ssource(nsrc)%moment(:,:) = dS * MUtemp(i,j) * Moment(:,:)
+                Tdomain%Ssource(nsrc)%moment(:,:) = Moment(:,:)
 
                 nsrc = nsrc+1
             enddo
         enddo
 
-        deallocate(Xtemp, Ytemp, Ztemp, MUtemp, tmp)
+        deallocate(Xtemp, Ytemp, Ztemp)
 
-    end subroutine create_point_sources_from_fault
+    end subroutine create_point_sources_from_fault_moment
+    !
 
+
+    subroutine create_point_sources_from_fault_force(Tdomain, extsrc, fid, nsrc)
+
+        use sdomain
+        use constants
+        use sem_hdf5
+        use shape_geom_3d
+        implicit none
+        type(domain), intent(inout)            :: Tdomain
+        type(Extended_source), intent(in)      :: extsrc
+        integer(HID_T), intent(in)             :: fid
+        integer, intent(inout)                 :: nsrc
+        real(fpp)                         	   :: dS
+        real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn, dirvec
+        real(fpp), dimension(0:2,0:2)          :: Moment
+        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp
+        integer :: i, j
+
+        ! Lecture des datasets, avec (x,y,z) repere direct.
+        ! Allocation des tableaux de coordonnes
+        allocate (Xtemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
+        allocate (Ytemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
+        allocate (Ztemp(0:extsrc%Ns-1,0:extsrc%Nd-1))
+
+        call read_dataset(fid, "x", tmp)
+        do i=0,extsrc%Ns-1
+            Xtemp(i,:) = tmp(:,i+1)
+        enddo
+        deallocate(tmp)
+        call read_dataset(fid, "y", tmp)
+        do i=0,extsrc%Ns-1
+            Ytemp(i,:) = tmp(:,i+1)
+        enddo
+        deallocate(tmp)
+        call read_dataset(fid, "z", tmp)
+        do i=0,extsrc%Ns-1
+            Ztemp(i,:) = tmp(:,i+1)
+        enddo
+        deallocate(tmp)
+
+        ! Vecteur de direction
+        call read_attr_real_vec(fid, "Dir", dirvec)
+
+
+        ! Surface elementaire
+        v1(0) = Xtemp(1,0)-Xtemp(0,0) ; v2(0) = Xtemp(0,1)-Xtemp(0,0)
+        v1(1) = Ytemp(1,0)-Ytemp(0,0) ; v2(1) = Ytemp(0,1)-Ytemp(0,0)
+        v1(2) = Ztemp(1,0)-Ztemp(0,0) ; v2(2) = Ztemp(0,1)-Ztemp(0,0)
+        call cross_prod(v1,v2,dSn)
+
+        do i=0,extsrc%Ns-1
+            do j=0,extsrc%Nd-1
+                ! Source position
+                Tdomain%Ssource(nsrc)%Xsource = Xtemp(i,j)
+                Tdomain%Ssource(nsrc)%Ysource = Ytemp(i,j)
+                Tdomain%Ssource(nsrc)%Zsource = Ztemp(i,j)
+
+                ! Position in the grid
+                Tdomain%Ssource(nsrc)%ind_i = i
+                Tdomain%Ssource(nsrc)%ind_j = j
+
+                ! Moment-type source for all the points
+                Tdomain%Ssource(nsrc)%i_type_source = 1            ! CHANGED
+                Tdomain%Ssource(nsrc)%amplitude_factor = 1.0
+
+                ! Comportement temporel
+                Tdomain%Ssource(nsrc)%time_file = extsrc%slip_file ! Slip-rate history file
+                Tdomain%Ssource(nsrc)%i_time_function = 15         ! flag pour source file...
+                Tdomain%Ssource(nsrc)%ts = extsrc%Dt
+                Tdomain%Ssource(nsrc)%Nt = extsrc%Nt
+
+                Tdomain%Ssource(nsrc)%dir = dirvec
+
+
+                nsrc = nsrc+1
+            enddo
+        enddo
+        deallocate(Xtemp, Ytemp, Ztemp)
+
+    end subroutine create_point_sources_from_fault_force
+    !
 
 
     function is_in_box(pos, box)
@@ -511,7 +621,7 @@ contains
         character(Len=MAX_FILE_SIZE) :: fnamef
         logical                      :: logic_scheme
         integer                      :: rg
-        integer i
+        integer                      :: i
 
         rg = Tdomain%rank
 
@@ -534,7 +644,10 @@ contains
         Tdomain%TimeD%fmax                = Tdomain%config%fmax
         Tdomain%TimeD%type_timeinteg      = Tdomain%config%type_timeinteg
         Tdomain%nl_flag = .false.
+        Tdomain%use_avg = .false.
+        Tdomain%prot_at_time = Tdomain%config%prot_at_time
         if(Tdomain%config%nl_flag == 1) Tdomain%nl_flag = .true.
+        if(Tdomain%config%use_avg == 1) Tdomain%use_avg = .true.
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
@@ -596,13 +709,15 @@ contains
         !! Add by Mtaro
         call init_surface_source(Tdomain)
         if (Tdomain%logicD%surfBC) then
-           call read_surface_input(Tdomain, Tdomain%config)
+            call read_surface_input(Tdomain, Tdomain%config)
         endif
 
         ! Gestion des Sources
         if (Tdomain%config%nextended_sources==0) then
             ! Only a few ponctual sources
             Tdomain%n_source = Tdomain%config%nsources
+
+            !write(*,*) 'TOTAL SOURCE NUMBER IS   ', Tdomain%n_source
             allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
             ! Create point sources from C structures
             call create_sem_sources(Tdomain, Tdomain%config)
@@ -622,7 +737,7 @@ contains
 
         !---
         if (Tdomain%logicD%surfBC) then
-           call surface_in_list(Tdomain)
+            call surface_in_list(Tdomain)
         endif
 
         !---   Properties of materials.
@@ -639,20 +754,20 @@ contains
 
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input
-    
+
     subroutine init_surface_source(Tdomain)
 
-       use sdomain
-    
-       implicit none
-       type(domain), intent(inout) :: Tdomain
-    
-       Tdomain%nsurface = 0
-       Tdomain%n_NEBC =0
-       Tdomain%n_PWBC =0
-       Tdomain%n_FTBC =0
-       Tdomain%n_DIRIC=0
-    
+        use sdomain
+
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+
+        Tdomain%nsurface = 0
+        Tdomain%n_NEBC =0
+        Tdomain%n_PWBC =0
+        Tdomain%n_FTBC =0
+        Tdomain%n_DIRIC=0
+
     end subroutine init_surface_source
 
     function getLine (fid, comment_Tag) result(nextLine)

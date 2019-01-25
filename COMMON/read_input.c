@@ -108,7 +108,7 @@ const keyword_t kw_source_func[] = {
     { 12, "hsf" },
     { 13, "dm" },
     { 14, "analytic", },
-    { 15, NULL },
+    { 15, "fault_file" },
 };
 
 const keyword_t kw_mirror_type[] = {
@@ -178,9 +178,7 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 void init_extended_source(extended_source_t* extended_source)
 {
     memset(extended_source, 0, sizeof(extended_source_t));
-    extended_source->dip    = 0.;
-    extended_source->strike = 0.;
-    extended_source->rake   = 0.;
+    extended_source->is_force = 0; 
 }
 
 int expect_extended_source(yyscan_t scanner, sem_config_t* config)
@@ -203,10 +201,7 @@ int expect_extended_source(yyscan_t scanner, sem_config_t* config)
 	if (tok!=K_ID) break;
 	if      (cmp(scanner,"kine_file")) err=expect_eq_string(scanner, &extended_source->kine_file,1);
 	else if (cmp(scanner,"slip_file")) err=expect_eq_string(scanner, &extended_source->slip_file,1);
-	else if (cmp(scanner,"dip")) err=expect_eq_float(scanner, &extended_source->dip, 1);
-	else if (cmp(scanner,"strike")) err=expect_eq_float(scanner, &extended_source->strike, 1);
-	else if (cmp(scanner,"rake")) err=expect_eq_float(scanner, &extended_source->rake, 1);
-
+	else if (cmp(scanner,"is_force")) err=expect_eq_int(scanner, &extended_source->is_force, 1);
 	if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -853,6 +848,8 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
 	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
 	else if (cmp(scanner,"nonlinear")) err=expect_eq_int(scanner, &config->nl_flag,1);
+	else if (cmp(scanner,"use_avg")) err=expect_eq_int(scanner, &config->use_avg,1);
+	else if (cmp(scanner,"prot_at_time")) err=expect_eq_int(scanner, &config->prot_at_time,1);
         else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
 	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
