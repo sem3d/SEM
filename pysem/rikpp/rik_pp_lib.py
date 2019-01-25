@@ -15,7 +15,6 @@ import shutil
 import h5py
 from scipy import signal
 from scipy.interpolate import interp1d
-from INTFORTRAN import trapezoid
 import pylab as p
 import matplotlib as mpl
 import matplotlib.pyplot as plt
