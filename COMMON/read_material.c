@@ -98,7 +98,6 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
         if (cmp(scanner,"nlkp"))        err=expect_eq_float(scanner, &mat->nlkp, 1);
 	
     if (cmp(scanner,"copy")) {
-            //printf("Enter: copy material");
             err=expect_eq_int(scanner, &nmat, 1);
             if (err<=0) {
                 printf("COPY FAILED");

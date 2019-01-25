@@ -135,9 +135,6 @@ module sem_c_config
        type(C_PTR) :: next
        type(C_PTR) :: kine_file
        type(C_PTR) :: slip_file
-       real(C_DOUBLE) :: dip
-       real(C_DOUBLE) :: strike
-       real(C_DOUBLE) :: rake
        integer(C_INT) :: is_force
     end type sem_extended_source
 
