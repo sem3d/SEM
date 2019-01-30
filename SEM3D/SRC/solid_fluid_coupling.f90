@@ -21,6 +21,46 @@ contains
 
 #ifdef CPML
 
+    subroutine calc_directions(dir0, dir1, flag0, Ix, Iy, Iz)
+        integer, intent(in) :: dir0, dir1, flag0
+        integer, intent(out) :: Ix, Iy, Iz
+
+        Ix = dir0
+        if (flag0 == -1) then
+            ! only one direction of attenuation
+            ! y / z should have a symetric role
+            ! keep the frame orientation direct
+            select case(dir0)
+            case(0)
+                Iy = 1
+                Iz = 2
+            case(1)
+                Iy = 0
+                Iz = 2
+            case(2)
+                Iy = 1
+                Iz = 0
+            case default
+                stop 1
+            end select
+        else
+            ! two directions
+            Iy = dir1
+            select case(dir0)
+            case(0)
+                if(dir1==1) then
+                    Iz = 2
+                else
+                    Iz = 1
+                end if
+            case(1)
+                Iz = 0
+            case default
+                stop 1
+            end select
+        end if
+    end subroutine calc_directions
+
     ! M_ij = delta_ij . F^-1[s0 s1 s2 / si]
     subroutine compute_convolution_StoF(dom, f0, idxS, idxSF, mu)
         use champs_solidpml
@@ -30,9 +70,11 @@ contains
         integer, intent(in) :: f0, idxS, idxSF
         real(fpp), intent(out) :: mu(0:2)
         !
-        real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1, R0, R1, dR0, dR1, R0n, R1n
-        real(fpp), dimension(0:2) :: b0bar, b1bar, b2bar
-        integer :: r
+        real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1
+        real(fpp) :: R0y, R0z, dR0y, dR0z, R0yn, R0zn
+        real(fpp) :: R1x, R1z, dR1x, dR1z, R1xn, R1zn
+        real(fpp) :: Ux, Uy, Uz
+        real(fpp) :: b1bar, b2bar
         integer :: dir0, dir1
         integer :: Ix, Iy, Iz
 
@@ -48,98 +90,69 @@ contains
         k1 = dom%Kappa_SF(1, idxSF)
         a1 = dom%Alpha_SF(1, idxSF)
         d1 = dom%dxi_k_SF(1, idxSF)
+        call calc_directions(dir0, dir1, dom%I1_SF(idxSF), Ix, Iy, Iz)
+
+        Ux = dom%champs(f0)%Depla(idxS, Ix)
+        Uy = dom%champs(f0)%Depla(idxS, Iy)
+        Uz = dom%champs(f0)%Depla(idxS, Iz)
 
         ! Update convolution terms for R0
-        do r=0,2
-            call cpml_coefs_midpoint2(a0, dom%dt, cf0, cf1)
-            R0 = dom%R_0_SF(r, idxSF)
-            dR0 = cf0*R0 + cf1*dom%champs(f0)%Depla(idxS, r)
-            dom%R_0_SF(r, idxSF) = R0 + dR0
-            R0n = R0 + 0.5*dR0
+        ! R0(0) = exp(-a0.t)*Uy ; R0(1) = exp(-a0.t)*Uz ;
+        call cpml_coefs_midpoint2(a0, dom%dt, cf0, cf1)
+        R0y = dom%R_0_SF(0, idxSF)
+        R0z = dom%R_0_SF(1, idxSF)
+        dR0y = cf0*R0y + cf1*Uy
+        dR0z = cf0*R0z + cf1*Uz
+        dom%R_0_SF(0, idxSF) = R0y + dR0y
+        dom%R_0_SF(1, idxSF) = R0z + dR0z
+        R0yn = R0y + 0.5*dR0y
+        R0zn = R0z + 0.5*dR0z
 
+
+        if (dom%I1_SF(idxSF) /= -1) then
+            ! Update convolution terms for R1
+            ! R1(0) = exp(-a1.t)*Ux ; R1(1) = exp(-a1.t)*Uz ;
+            ! if a0==a1 : R1(1) = t.exp(-a1.t)*Uz ;
+            ! if no attenuation we should have a1=0 hence cf0=0
+            !write(*,*) idxSF, "S->F:0", k0, a0, d0
+            !write(*,*) idxSF, "S->F:1", k1, a1, d1
             call cpml_coefs_midpoint2(a1, dom%dt, cf0, cf1)
-            R1 = dom%R_1_SF(r, idxSF)
+            R1x = dom%R_1_SF(0, idxSF)
+            R1z = dom%R_1_SF(1, idxSF)
+            dR1x = cf0*R1x + cf1*Ux
             if(.not. isclose(a0, a1)) then
-                dR1 = cf0*R1 + cf1*dom%champs(f0)%Depla(idxS, r)
+                dR1z = cf0*R1z + cf1*Uz
             else
-                dR1 = cf0*R1 + cf1*R0n
+                dR1z = cf0*R1z + cf1*R0zn
             end if
-            dom%R_1_SF(r, idxSF) = R1 + dR1
-            R1n = R1 + 0.5*dR1
-        end do
-
-        if (dom%I1_SF(idxSF) == -1) then
-            select case(dir0)
-            case(0)
-                Ix = 0
-                Iy = 1
-                Iz = 2
-            case(1)
-                Ix = 1
-                Iy = 0
-                Iz = 2
-            case(2)
-                Ix = 2
-                Iy = 1
-                Iz = 0
-            case default
-                stop 1
-            end select
-
-            b0bar(Ix) = 1.
-            b0bar(Iy) = k0
-            b0bar(Iz) = k0
-            b1bar(Ix) = 0.
-            b1bar(Iy) = k0*d0
-            b1bar(Iz) = k0*d0
-            b2bar(Ix) = 0.
-            b2bar(Iy) = 0.
-            b2bar(Iz) = 0.
+            dom%R_1_SF(0, idxSF) = R1x + dR1x
+            dom%R_1_SF(1, idxSF) = R1z + dR1z
+            R1xn = R1x + 0.5*dR1x
+            R1zn = R1z + 0.5*dR1z
         else
-            select case(dir0)
-            case(0)
-                Ix = 0
-                if(dir1==1) then
-                    Iy = 1
-                    Iz = 2
-                else
-                    Iy = 2
-                    Iz = 1
-                end if
-            case(1)
-                Ix = 1
-                Iy = 2
-                Iz = 0
-            case default
-                stop 1
-            end select
-
-            if(.not. isclose(a0, a1)) then
-                b0bar(Ix) = k1    ! F-1(s1)
-                b0bar(Iy) = k0    ! F-1(s0)
-                b0bar(Iz) = k0*k1 ! F-1(s0s1)
-                b1bar(Ix) = 0.
-                b1bar(Iy) = k0*d0
-                b1bar(Iz) = k0*k1*d0*(a0-a1-d1)/(a0-a1)
-                b2bar(Ix) = k1*d1
-                b2bar(Iy) = 0.
-                b2bar(Iz) = k0*k1*d1*(a0-a1+d0)/(a0-a1)
-            else
-                b0bar(Ix) = k1    ! F-1(s1)
-                b0bar(Iy) = k0    ! F-1(s0)
-                b0bar(Iz) = k0*k1 ! F-1(s0s1)
-                b1bar(Ix) = k1*d1
-                b1bar(Iy) = k0*d0
-                b1bar(Iz) = k0*k1*(d0+d1)
-                b2bar(Ix) = 0.
-                b2bar(Iy) = 0.
-                b2bar(Iz) = k0*k1*d0*d1
-            end if
+            R1xn = 0
+            R1zn = 0
         end if
 
-        mu(:) =         b0bar(:) * dom%champs(f0)%Depla(idxS, :)
-        mu(:) = mu(:) + b1bar(:) * R0n
-        mu(:) = mu(:) + b2bar(:) * R1n
+        if (dom%I1_SF(idxSF) == -1) then
+            ! From here, attenuation is along Ix.
+            mu(Ix) = 1.*Ux
+            mu(Iy) = k0*Uy + k0*d0*R0yn
+            mu(Iz) = k0*Uz + k0*d0*R0zn
+        else
+            ! From here, attenuation is along Ix, Iy.
+            if(.not. isclose(a0, a1)) then
+                b1bar = k0*k1*d0*(a0-a1-d1)/(a0-a1)
+                b2bar = k0*k1*d1*(a0-a1+d0)/(a0-a1)
+            else
+                b1bar = k0*k1*(d0+d1)
+                b2bar = k0*k1*d0*d1
+            end if
+            mu(Ix) =    k1*Ux + k1*d1*R1xn
+            mu(Iy) =    k0*Uy + k0*d0*R0yn
+            mu(Iz) = k0*k1*Uz + b1bar*R0zn + b2bar*R1zn
+            mu(0:2) = 0.
+        end if
     end subroutine compute_convolution_StoF
 
     ! N_ij = delta_ij . F^-1[-w^2 s0 s1 s2 / si]
@@ -152,10 +165,9 @@ contains
         real(fpp), intent(out) :: nphi(0:2)
         !
         real(fpp) :: k0, a0, d0, k1, a1, d1, cf0, cf1, R0, R0n, dR0, R1, R1n, dR1
-        real(fpp), dimension(0:2) :: a0bar, a1bar, a2bar, a3bar, a4bar
-        real(fpp) :: AccPhi
+        real(fpp) :: AccPhi, VelPhi, Phi
         integer :: dir0, dir1
-        integer :: Is0, Is1, Is0s1
+        integer :: Ix, Iy, Iz
 
         nphi(0:2) = 0 ! No convolution
 
@@ -168,82 +180,57 @@ contains
         a0 = dom%Alpha_SF(0, idxSF)
         d0 = dom%dxi_k_SF(0, idxSF)
 
-        a0bar = k0
-        a1bar = a0bar * d0
-        a2bar = a0bar * d0 * (-a0)
-        a3bar = a0bar * a0**2 * d0
-        a4bar = 0.
+        k1 = dom%Kappa_SF(1, idxSF)
+        a1 = dom%Alpha_SF(1, idxSF)
+        d1 = dom%dxi_k_SF(1, idxSF)
+        call calc_directions(dir0, dir1, dom%I1_SF(idxSF), Ix, Iy, Iz)
 
-        a0bar(dir0) = 0.
-        a1bar(dir0) = 0.
-        a2bar(dir0) = 0.
-        a3bar(dir0) = 0.
-
+        AccPhi = dom%champs(f0)%ForcesFl(idxF)
+        VelPhi = dom%champs(f0)%VelPhi(idxF)
+        Phi    = dom%champs(f0)%Phi(idxF)
         ! Update convolution terms for R0
+        ! R0(0) = exp(-a0.t)*X
         call cpml_coefs_midpoint2(a0, dom%dt, cf0, cf1)
         R0 = dom%R_0_SF(idxSF)
-        dR0 = cf0*R0+cf1*dom%champs(f0)%Phi(idxF)
+        dR0 = cf0*R0 + cf1*Phi
         dom%R_0_SF(idxSF) = R0 + dR0
         R0n = R0 + 0.5*dR0
-        R1n = 0
+
         ! Convolute the second direction to attenuate (A.5*) from Ref1.
-
         if(dom%I1_SF(idxSF) /= -1) then
-            k1 = dom%Kappa_SF(1, idxSF)
-            a1 = dom%Alpha_SF(1, idxSF)
-            d1 = dom%dxi_k_SF(1, idxSF)
-
-            if (dir0==0.and.dir1==1) then
-                ! For X=0,Y=1
-                Is0   = 1
-                Is1   = 0
-                Is0s1 = 2
-            else if (dir0==0.and.dir1==2) then
-                ! For X=0,Z=1
-                Is0   = 2
-                Is1   = 0
-                Is0s1 = 1
-            else if (dir0==1.and.dir1==2) then
-                ! For Y=0,Z=1
-                Is0   = 2
-                Is1   = 1
-                Is0s1 = 0
-            else
-                stop 1
-            end if
-
-            a0bar(Is0)   = k0
-            a0bar(Is1)   = k1
-            a0bar(Is0s1) = k0 * k1
-            a1bar(Is0)   = a0bar(Is0)   * d0
-            a1bar(Is1)   = a0bar(Is1)   * d1
-            a1bar(Is0s1) = a0bar(Is0s1) * (d0 + d1)
-            a2bar(Is0)   = a0bar(Is0)   * d0 * (-a0)
-            a2bar(Is1)   = a0bar(Is1)   * d1 * (-a1)
-            a2bar(Is0s1) = a0bar(Is0s1) * (d0 * d1 - a0 * d0 - a1 * d1)
-            a3bar(Is0)   = a0bar(Is0)   * a0 ** 2 * d0
-            a3bar(Is1)   = a0bar(Is1)   * a1 ** 2 * d1
-            a3bar(Is0s1) = a0bar(Is0s1) * a0 ** 2 * d0 * (a1 - a0 + d1) / (a1 - a0)
-            a4bar(Is0)   = a0bar(Is0)   * a1 ** 2 * d1
-            a4bar(Is1)   = a0bar(Is1)   * a0 ** 2 * d0
-            a4bar(Is0s1) = a0bar(Is0s1) * a1 ** 2 * d1 * (a0 - a1 + d0) / (a0 - a1)
-
+            !write(*,*) idxSF, "F->S:0", k0, a0, d0
+            !write(*,*) idxSF, "F->S:1", k1, a1, d1
             ! Update convolution terms for R1
+            ! R1(0) = exp(-a1.t)*X R1(1) = t.exp(-a1.t)*X
+            ! R1(1) used only if a0==a1
             call cpml_coefs_midpoint2(a1, dom%dt, cf0, cf1)
             R1 = dom%R_1_SF(idxSF)
-            dR1 = cf0*R1+cf1*dom%champs(f0)%Phi(idxF)
+            if(.not. isclose(a0, a1)) then
+                dR1 = cf0*R1 + cf1*Phi
+            else
+                dR1 = cf0*R1 + cf1*R0n
+            end if
             dom%R_1_SF(idxSF) = R1 + dR1
             R1n = R1 + 0.5*dR1
+
+            if(.not. isclose(a0, a1)) then
+                nphi(Ix) = k1*(AccPhi + d1*(VelPhi - a1*(Phi + a1*R1n)))
+                nphi(Iy) = k0*(AccPhi + d0*(VelPhi - a0*(Phi + a0*R0n)))
+                nphi(Iz) = k0*k1*(AccPhi + (d0+d1)*VelPhi + (d0*d1-a0*d0-a1*d1)*Phi)
+                nphi(Iz) = nphi(Iz) + k0*k1*(a0*a0*d0*(a0-a1-d1)*R0n+a1*a1*d1*(a0-a1+d0)*R1n )/(a0-a1)
+            else
+                nphi(Ix) = k1*(AccPhi + d1*(VelPhi - a1*(Phi + a1*R0n))) ! R0n is right since R1n is /=
+                nphi(Iy) = k0*(AccPhi + d0*(VelPhi - a0*(Phi + a0*R0n)))
+                nphi(Iz) = k0*k1*(AccPhi + (d0+d1)*VelPhi + (d0*d1-a0*d0-a1*d1)*Phi)
+                nphi(Iz) = nphi(Iz) + k0*k1*a0*( (a0*(d0+d1)-2*d0*d1)*R0n + a0*d0*d1*R1n)
+            end if
+            nphi(0:2) = 0.
+        else
+            nphi(Ix) =     AccPhi
+            nphi(Iy) = k0*(AccPhi + d0*(VelPhi - a0*(Phi + a0*R0n)))
+            nphi(Iz) = nphi(Iy)
         end if
-
-        AccPhi = dom%champs(f0)%ForcesFl(idxF) * dom%MassMat(idxF)
-        nphi(:) =           a0bar * AccPhi
-        nphi(:) = nphi(:) + a1bar * dom%champs(f0)%VelPhi(idxF)
-        nphi(:) = nphi(:) + a2bar * dom%champs(f0)%Phi(idxF)
-        nphi(:) = nphi(:) + a3bar * R0n
-        nphi(:) = nphi(:) + a4bar * R1n
     end subroutine compute_convolution_FtoS
-
 #endif
 
 subroutine StoF_coupling(Tdomain, f0, f1)
