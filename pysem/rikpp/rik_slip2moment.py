@@ -62,7 +62,7 @@ if __name__=='__main__':
     figurename = 'napa_2014_moment_vs_time.png'
 
     # Saving point-coordinates in file ...?
-    coord_file_name = 'Coordinates_SEM3D_extended_fault_points.dat'
+    coord_file_name = 'source_coordinates.csv'
 
     # Input files 
     RIK_slipfile = os.path.join(fld, 'slipdistribution.dat')
@@ -172,7 +172,7 @@ if __name__=='__main__':
 
     print 'fark', fark
     # Opening file to save SEM3D coordinates of grid points
-    coord_file = open (coord_file_name, 'w')
+    coord_file = open (coord_file_name, 'w+')
     # Burada rotation yapiyorum
     n = 0
     dx_plane = xgrid[0,1]-xgrid[0,0]
@@ -183,6 +183,7 @@ if __name__=='__main__':
     dx_rot = np.dot(MatMesh,np.array([dx_plane,dy_plane,dz_plane]))
     print('dx-dy-dz rot')
     print(dx_rot[0],dx_rot[1],dx_rot[2])
+    coord_file.write('{:>10},{:>15},{:>15},{:>15}\n'.format('N','X','Y','Z'))
     for j in np.arange(NW):
         for i in np.arange(NL):
             n = n+ 1
@@ -197,11 +198,11 @@ if __name__=='__main__':
             depth[i,j] = dum[2]+ fark[2]
 
             # Writing out the cordinates
-            coord_file.write('%s \t %s \t %s \t %s \n'\
-                    %  (str(n), str(xgrid[i,j]), str(ygrid[i,j]), str(depth[i,j])))
+            coord_file.write('{:>10d},{:>15.5f},{:>15.5f},{:>15.5f}\n'.format(\
+                n,xgrid[i,j],ygrid[i,j],depth[i,j]))
             print '***'
     coord_file.close()
-
+    exit()
 
     if plot_figure:
         ### PLOTTING ###
