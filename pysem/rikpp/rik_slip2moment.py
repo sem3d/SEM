@@ -13,7 +13,7 @@ import h5py
 from matplotlib import pyplot as plt
 import seaborn as sns
 import rik_pp_lib as rp
-
+from scipy.integrate import cumtrapz
 #=======================================================================
 # General informations
 #=======================================================================
@@ -143,7 +143,7 @@ if __name__=='__main__':
     for i in range(0, NL):
         for j in range(0, NW):
             n = n+ 1
-            Moment[i,j,:] = rp.trapezoid(NT, dt, MR[i,j,:])
+            Moment[i,j,:] = cumtrapz(MR[i,j,:],dx=dt,initial=0.) #
             print NT, dt, '  --->  Point ', n
 
     print 'Total point number in fault plane: ', NL*NW
@@ -175,6 +175,14 @@ if __name__=='__main__':
     coord_file = open (coord_file_name, 'w')
     # Burada rotation yapiyorum
     n = 0
+    dx_plane = xgrid[0,1]-xgrid[0,0]
+    dy_plane = ygrid[1,0]-ygrid[0,0]
+    dz_plane = depth[0,1]-depth[0,0]
+    print('dx-dy-dz plane')
+    print(dx_plane,dy_plane,dz_plane)
+    dx_rot = np.dot(MatMesh,np.array([dx_plane,dy_plane,dz_plane]))
+    print('dx-dy-dz rot')
+    print(dx_rot[0],dx_rot[1],dx_rot[2])
     for j in np.arange(NW):
         for i in np.arange(NL):
             n = n+ 1
