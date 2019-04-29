@@ -220,7 +220,7 @@ contains
 
             call wLog("FFT Local Division")
 
-            if(xNStepGlob(MSH%nDim) < MSH%nb_procs) stop("ERROR!! When using parallel FFT the last dimension should have at least 1 slice by proc")
+            if(xNStepGlob(MSH%nDim) < MSH%nb_procs) stop ("ERROR!! When using parallel FFT the last dimension should have at least 1 slice by proc")
         
             if(MSH%nDim == 2) then
                 L = xNStepGlob(1)
