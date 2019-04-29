@@ -36,9 +36,6 @@ typedef struct extended_source {
     struct extended_source* next;
     char* kine_file;
     char* slip_file;
-    double dip;
-    double strike;
-    double rake;
     int  is_force;
 } extended_source_t;
 

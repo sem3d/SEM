@@ -136,9 +136,11 @@ contains
         class(dombase_cpml) :: dom
         integer :: nbtot_SF
         !
-        ! Note: nbtot_SF << nbelems (or ngll) as the SF coupling surface is small compared to the full mesh.
-        ! This is why the allocations are sized with nbtot_SF (not ngll, not nbelems). Otherwise, we allocate
-        ! huge amount of data that will not be used !
+        ! Note: nbtot_SF << nbelems (or ngll) as the SF coupling
+        ! surface is small compared to the full mesh.  This is why the
+        ! allocations are sized with nbtot_SF (not ngll, not
+        ! nbelems). Otherwise, we allocate huge amount of data that
+        ! will not be used !
         if (nbtot_SF <= 0) return
         allocate(dom%D0_SF   (     0:nbtot_SF-1))
         allocate(dom%I1_SF   (     0:nbtot_SF-1))
