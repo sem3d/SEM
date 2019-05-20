@@ -162,19 +162,29 @@ contains
         if (Tdomain%logicD%surfBC) then
             call add_surface_force(Tdomain,0,1)
         endif
+#ifdef CPML
+        if(Tdomain%logicD%SF_local_present)then
+            call StoF_coupling(Tdomain,0,1)
+            !- fluid -> solid coupling (pressure times velocity)
+            call FtoS_coupling(Tdomain,0,1)
+        end if
+        !- correction phase
+        call Newmark_Corrector_F(Tdomain)
+        !- solid -> fluid coupling (normal dot velocity)
+        call Newmark_Corrector_S(Tdomain)
+#else
         if(Tdomain%logicD%SF_local_present)then
             call StoF_coupling(Tdomain,0,1)
         end if
-
+        !- correction phase
+        call Newmark_Corrector_F(Tdomain)
         if(Tdomain%logicD%SF_local_present)then
             !- fluid -> solid coupling (pressure times velocity)
             call FtoS_coupling(Tdomain,0,1)
         end if
-
         !- solid -> fluid coupling (normal dot velocity)
         call Newmark_Corrector_S(Tdomain)
-        !- correction phase
-        call Newmark_Corrector_F(Tdomain)
+#endif
 
         if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 

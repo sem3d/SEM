@@ -144,8 +144,8 @@ contains
 
         nbtot_SF = Tdomain%SF%intSolFluPml%surf0%nbtot
         call allocate_dombase_cpml(dom, nbtot_SF)
-        if (nbtot_SF >= 0) allocate(dom%R_0_SF(0:2, 0:nbtot_SF-1))
-        if (nbtot_SF >= 0) allocate(dom%R_1_SF(0:2, 0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R_0_SF(0:1, 0:nbtot_SF-1))
+        if (nbtot_SF >= 0) allocate(dom%R_1_SF(0:1, 0:nbtot_SF-1))
         dom%R_0_SF = 0.
         dom%R_1_SF = 0.
     end subroutine allocate_dom_solidpml

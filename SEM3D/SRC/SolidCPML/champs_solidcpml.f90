@@ -60,7 +60,9 @@ module champs_solidpml
         real(fpp), dimension(:,:), allocatable :: FDump, FMasU, Fint
 
         ! Solid - Fluid coupling
-        real(fpp), dimension(:,:), allocatable :: R_0_SF, R_1_SF
+        real(fpp), dimension(:,:), allocatable :: R_0_SF ! exp(-a0.t)Uy , exp(-a0.t)Uz
+        real(fpp), dimension(:,:), allocatable :: R_1_SF ! exp(-a1.t)Ux , [ exp(-a1.t)Uz
+                                                         ! or if (a0=a1) t.exp(-a0.t)Uz ]
     end type domain_solidpml
 
     contains
