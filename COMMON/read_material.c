@@ -51,9 +51,9 @@ void matcpy(sem_material_t* dst, sem_material_t* src)
     dst->nlkp = src->nlkp;
     dst->rinf = src->rinf;
     dst->biso = src->biso;
-    dst->filename0 = strdup(src->filename0);
-    dst->filename1 = strdup(src->filename1);
-    dst->filename2 = strdup(src->filename2);
+    dst->filename0 = src->filename0;
+    dst->filename1 = src->filename1;
+    dst->filename2 = src->filename2;
 }
 
 int expect_material(yyscan_t scanner, sem_material_list_t* mats)
