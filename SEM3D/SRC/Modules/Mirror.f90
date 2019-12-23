@@ -167,29 +167,35 @@ contains
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
         integer :: e, i, j, k, gel, idx
+        logical :: file_exists
         !
 
         fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
-        call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
-        call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
-        call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
-        call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
-        call h5fclose_f(fid, hdferr)
+        INQUIRE(FILE=fname, EXIST=file_exists)
+        if (file_exists)then
+            call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
+            call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
+            call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+            call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
+            call h5fclose_f(fid, hdferr)
 
-        map2glltot_sl = -1
-        n_glltot_sl = 0
-        do idx = 0,size(mirror_E)-1
-            gel = mirror_E(idx)
-            i = mirror_IJK(0,idx)
-            j = mirror_IJK(1,idx)
-            k = mirror_IJK(2,idx)
-            if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
-            e = Tdomain%specel(gel)%lnum
-            n_glltot_sl = n_glltot_sl+1
-            map2glltot_sl(e,i,j,k) = n_glltot_sl
-        enddo
+            map2glltot_sl = -1
+            n_glltot_sl = 0
+            do idx = 0,size(mirror_E)-1
+                gel = mirror_E(idx)
+                i = mirror_IJK(0,idx)
+                j = mirror_IJK(1,idx)
+                k = mirror_IJK(2,idx)
+                if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
+                e = Tdomain%specel(gel)%lnum
+                n_glltot_sl = n_glltot_sl+1
+                map2glltot_sl(e,i,j,k) = n_glltot_sl
+            enddo
 
-        deallocate(mirror_E, mirror_IJK)
+            deallocate(mirror_E, mirror_IJK)
+        else
+            n_glltot_sl=0
+        endif
     end subroutine map_mirror_sl
 
     subroutine map_mirror_fl(Tdomain)
@@ -206,29 +212,35 @@ contains
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
         integer :: e, i, j, k, gel, idx
+        logical :: file_exists
         !
 
         fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
-        call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
-        call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
-        call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
-        call read_dset_1d_real(fid, "/Mirror/inside", winf_fl, 0)
-        call h5fclose_f(fid, hdferr)
+        INQUIRE(FILE=fname, EXIST=file_exists)
+        if (file_exists)then
+            call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
+            call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
+            call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+            call read_dset_1d_real(fid, "/Mirror/inside", winf_fl, 0)
+            call h5fclose_f(fid, hdferr)
 
-        map2glltot_fl = -1
-        n_glltot_fl = 0
-        do idx = 0,size(mirror_E)-1
-            gel = mirror_E(idx)
-            i = mirror_IJK(0,idx)
-            j = mirror_IJK(1,idx)
-            k = mirror_IJK(2,idx)
-            if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
-            e = Tdomain%specel(gel)%lnum
-            n_glltot_fl = n_glltot_fl+1
-            map2glltot_fl(e,i,j,k) = n_glltot_fl
-        enddo
+            map2glltot_fl = -1
+            n_glltot_fl = 0
+            do idx = 0,size(mirror_E)-1
+                gel = mirror_E(idx)
+                i = mirror_IJK(0,idx)
+                j = mirror_IJK(1,idx)
+                k = mirror_IJK(2,idx)
+                if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
+                e = Tdomain%specel(gel)%lnum
+                n_glltot_fl = n_glltot_fl+1
+                map2glltot_fl(e,i,j,k) = n_glltot_fl
+            enddo
 
-        deallocate(mirror_E, mirror_IJK)
+            deallocate(mirror_E, mirror_IJK)
+        else
+            n_glltot_fl=0
+        endif
     end subroutine map_mirror_fl
 
     subroutine mirror_face_normal(cnodes, fdir)
