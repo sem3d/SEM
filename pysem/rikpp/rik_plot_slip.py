@@ -40,4 +40,4 @@ if __name__ == '__main__':
     # Attention a l'ordre de W et L #
     plotslip (Wgrid,Lgrid,LF,WF,slip,False,'napa_slip.png',NcX,NcY)
 
-    print '*** Done ***'
+    print('*** Done ***')

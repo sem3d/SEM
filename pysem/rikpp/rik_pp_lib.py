@@ -93,23 +93,23 @@ def vecteurs(aD,aS,aR,output):
                         +np.sin(aR)*np.sin(aD)])
     output.attrs['Vnormal'] = Vnormal
     output.attrs['Vslip']   = Vslip
-    print "Vector normal to the fault : ", Vnormal
-    print "Vector of the slip         : ", Vslip
+    print("Vector normal to the fault : {}".format(Vnormal))
+    print("Vector of the slip         : {}".format(Vslip))
     M = np.zeros((3,3))
     for i in np.arange(3):
         for j in np.arange(3):
             M[i,j] = Vnormal[i]*Vslip[j]+Vnormal[j]*Vslip[i]
-    print 'Moment matrix of SEM3D code: '
-    print M[0,:]
-    print M[1,:]
-    print M[2,:]
+    print('Moment matrix of SEM3D code: ')
+    print(M[0,:])
+    print(M[1,:])
+    print(M[2,:])
 
 def read_moment_rate_RIK(dosya,dim):
     ''' Lire la vitesse de moment par un fichier dosya et 
     l'assigner a l'array de dimension dim '''
     
     Mrate = np.zeros((dim[0]*dim[1], dim[2]))
-    print 'Reading moment rate of all points...'
+    print('Reading moment rate of all points...')
     f = open (dosya, 'r')
     # Pour tous les points
     for i in np.arange(dim[0] * dim[1]):
@@ -146,8 +146,8 @@ def readhypo(filename):
 def read_subsources (filename):
 
     f = open (filename, 'r')
-    print 'Reading the file', filename
-    print '...'
+    print('Reading the file {}'.format(filename))
+    print('...')
     xgrid     = np.genfromtxt(filename, usecols=0)
     ygrid     = np.genfromtxt(filename, usecols=1)
     ssources  = np.genfromtxt(filename, usecols=2)
@@ -159,8 +159,8 @@ def readfileslip (NSR, filename):
     ygrid = np.zeros((NSR))
     slip  = np.zeros((NSR))
     f = open (filename, 'r')
-    print 'Reading the file', filename
-    print '...'
+    print('Reading the file {}'.format(filename))
+    print('...')
     for i in np.arange(NSR):
         string   = f.readline()
         degerler = [float(j) for j in string.split()]
@@ -170,7 +170,7 @@ def readfileslip (NSR, filename):
     return xgrid, ygrid, slip
 
 def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
-    print 'Plotting max-slip distribution'; print;
+    print('Plotting max-slip distribution')
     # Making a colormap
     c    = mcolors.ColorConverter().to_rgb
     cc = ['#ffffff', '#dfe6ff', '#a5b5da', '#516b8e', '#c5ce9b',
@@ -194,8 +194,8 @@ def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
     ax.set_ylim([-0.2,1.1*WF])
     vmin = slip.min()
     vmax = slip.max()
-    print 'min and max of slip:'
-    print vmin,vmax; print;
+    print('min and max of slip:')
+    print(vmin,vmax)
     grid = slip.reshape((nrows, ncols))
     im = plt.imshow(grid, extent=(0.0,1.1*LF,0.0,1.1*WF), interpolation='bilinear', cmap=cmap, origin='lower')
     formatter = LogFormatter(10, labelOnlyBase=False)
@@ -214,7 +214,7 @@ def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
 
 def plotsubsources(x,y,radius,LF,WF,kaydet,figname,nucx,nucy):
 
-    print 'Plotting sub-sources'; print;
+    print('Plotting sub-sources\n')
     
     # Making a colormap
     c    = mcolors.ColorConverter().to_rgb
@@ -259,7 +259,7 @@ def plotsubsources(x,y,radius,LF,WF,kaydet,figname,nucx,nucy):
 
 def plotgrid(nrows,ncols,LF,WF,kaydet,figname,hypox,hypoy,x,y):
 
-    print 'Creating the 2D grid...'
+    print('Creating the 2D grid...')
     # Making a colormap
     c    = mcolors.ColorConverter().to_rgb
     cc = ['#ffffff', '#dfe6ff', '#a5b5da', '#516b8e', '#c5ce9b',

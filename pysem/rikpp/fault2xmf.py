@@ -162,7 +162,6 @@ if __name__=='__main__':
         #aR    = np.pi/180.0* rake
         #aD    = np.pi/180.0* dip
         ## Rotation matrix
-        #print 'Rotation matrix: '
         #MatMesh = rp.get_rotation_tensor(aS, aD)
         # Time steps
         dt = kf.attrs["dt"] 

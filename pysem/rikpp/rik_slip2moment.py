@@ -87,7 +87,7 @@ if __name__=='__main__':
     aR    = np.pi/180.0* rake
     aD    = np.pi/180.0* dip
     # Rotation matrix
-    print 'Rotation matrix: '
+    print('Rotation matrix: ')
     MatMesh = rp.get_rotation_tensor(aS, aD)
 
     src_sem = SEM_source(e=2.2754e+06,n=4.2421e+06,z=-10.0e+3)
@@ -122,11 +122,11 @@ if __name__=='__main__':
     depth[:,:] = 0.0
 
     # x,y koordinatlari (RIK) - metre
-    print '*********'
-    print 'Hypocenter of RIK model:'
-    print RIK_hypocenter[0], RIK_hypocenter[1], RIK_hypocenter[2]
-    print 'Hypocenter of SEM model:'
-    print SEM_hypocenter[0], SEM_hypocenter[1], SEM_hypocenter[2]
+    print('*********')
+    print('Hypocenter of RIK model:')
+    print(RIK_hypocenter[0], RIK_hypocenter[1], RIK_hypocenter[2])
+    print('Hypocenter of SEM model:')
+    print(SEM_hypocenter[0], SEM_hypocenter[1], SEM_hypocenter[2])
     # RIK model - Les coordonnees de x et y
     RIK_xcoord = np.genfromtxt(RIK_slipfile, usecols=1)  # Y_RIK
     RIK_ycoord = np.genfromtxt(RIK_slipfile, usecols=0)  # X_RIK
@@ -138,15 +138,15 @@ if __name__=='__main__':
     Moment = slipfile_out.create_dataset('moment', (NL, NW, NT), chunks=(1, 1, NT))
 
     # Integration pour calculer le moment
-    print 'INTEGRATION'
+    print('INTEGRATION')
     n = 0
     for i in range(0, NL):
         for j in range(0, NW):
             n = n+ 1
             Moment[i,j,:] = cumtrapz(MR[i,j,:],dx=dt,initial=0.) #
-            print NT, dt, '  --->  Point ', n
+            print('{} {}  --->  Point {}'.format(NT,dt,n))
 
-    print 'Total point number in fault plane: ', NL*NW
+    print('Total point number in fault plane: {}'.format(NL*NW))
     n = 0
     for j in np.arange(NW):
         for i in np.arange(NL):
@@ -155,7 +155,7 @@ if __name__=='__main__':
                 xgrid[i,j] = RIK_xcoord[n]
                 ygrid[i,j] = RIK_ycoord[n]
             else:
-                print 'ATTENTION: CHANGE THIS FOR MODELS WITH MORE THAN 1 POINT'
+                print('ATTENTION: CHANGE THIS FOR MODELS WITH MORE THAN 1 POINT')
                 xgrid[i,j] = RIK_xcoord
                 ygrid[i,j] = RIK_ycoord
             depth[i,j] = (RIK_hypocenter[2]/1e3+ np.sin(aD)* (RIK_hypocenter[0]/1e3-xgrid[i,j]))
@@ -170,7 +170,6 @@ if __name__=='__main__':
     fark  = np.dot(MatMesh,RIK_hypocenter)
     fark  = (SEM_hypocenter-fark)
 
-    print 'fark', fark
     # Opening file to save SEM3D coordinates of grid points
     coord_file = open (coord_file_name, 'w+')
     # Burada rotation yapiyorum
@@ -187,7 +186,6 @@ if __name__=='__main__':
     for j in np.arange(NW):
         for i in np.arange(NL):
             n = n+ 1
-            print 'Point ',n,	
             # Rotasyon uyguluyorum
             coord = np.array([xgrid[i,j], ygrid[i,j], depth[i,j]])
             dum   = np.dot(MatMesh,coord)
@@ -200,7 +198,6 @@ if __name__=='__main__':
             # Writing out the cordinates
             coord_file.write('{:>10d},{:>15.5f},{:>15.5f},{:>15.5f}\n'.format(\
                 n,xgrid[i,j],ygrid[i,j],depth[i,j]))
-            print '***'
     coord_file.close()
     exit()
 

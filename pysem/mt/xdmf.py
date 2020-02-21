@@ -198,7 +198,7 @@ def create_xdmf_structure(fname, temporal=False):
             if typ.match_group(grp):
                 break
         else:
-            print "Group", grpname, "doesn't contain cell information"
+            print("Group {} doesn't contain cell information".format(grpname))
             # Does not contain any cell description leave it...
             continue
         elems = typ.from_group(grp)

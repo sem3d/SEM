@@ -101,7 +101,7 @@ class Gmsh(object):
             if not section.startswith("$"):
                 continue
             parser = self.sections.get(section, self.unknown_section)
-            print "Processing section:", section
+            print("Processing section: {}".format(section))
             end_section = "$End" + section[1:]
             parser(f, end_section)
 
@@ -169,7 +169,7 @@ class Gmsh(object):
         self.quad4_mat.append(tags[self.tag_mat]);
 
     def handle_tetra(self, num, nodes, tags):
-        print num, nodes, tags
+        print('{} {} {}'.format(num, nodes, tags))
         self.mesh.tetra4.append(nodes)
         self.tetra4_mat.append(tags[self.tag_mat]);
 
