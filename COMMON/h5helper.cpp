@@ -125,6 +125,35 @@ template void h5h_write_dset<double>(hid_t parent, const char* name, const std::
 template void h5h_write_dset<int>(hid_t parent, const char* name, const std::vector<int>& arr);
 template void h5h_write_dset<index_t>(hid_t parent, const char* name, const std::vector<index_t>& arr);
 
+// Templete : 1D empty array
+
+template<typename T> void h5h_write_dset_empty(hid_t parent, const char* name, int d0, const T* arr)
+{
+    hid_t dset_id, space_id, prop_id;
+    hsize_t dims[1];
+    dims[0] = d0;
+    //if (d0==0) return;
+    space_id = H5Screate_simple(1, dims, NULL);
+    prop_id = h5h_dset_prop(d0);
+    dset_id = H5Dcreate(parent, name, H5T_IEEE_F64LE, space_id, H5P_DEFAULT, prop_id, H5P_DEFAULT);
+    H5Dwrite(dset_id, h5h_get_type<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, arr);
+    H5Dclose(dset_id);
+    H5Pclose(prop_id);
+    H5Sclose(space_id);
+}
+// Instanciate functions from template.
+template void h5h_write_dset_empty<double>(hid_t parent, const char* name, int d0, const double* arr);
+template void h5h_write_dset_empty<int>(hid_t parent, const char* name, int d0, const int* arr);
+template void h5h_write_dset_empty<index_t>(hid_t parent, const char* name, int d0, const index_t* arr);
+
+template<typename T> void h5h_write_dset_empty(hid_t parent, const char* name, const std::vector<T>& arr)
+{
+    h5h_write_dset_empty(parent, name, arr.size(), &arr[0]);
+}
+// Instanciate functions from template.
+template void h5h_write_dset_empty<double>(hid_t parent, const char* name, const std::vector<double>& arr);
+template void h5h_write_dset_empty<int>(hid_t parent, const char* name, const std::vector<int>& arr);
+template void h5h_write_dset_empty<index_t>(hid_t parent, const char* name, const std::vector<index_t>& arr);
 // Template : 2D array
 template<typename T> void h5h_write_dset_2d(hid_t parent, const char* name, int d0, int d1, const T* arr)
 {
@@ -154,6 +183,35 @@ template<typename T> void h5h_write_dset_2d(hid_t parent, const char* name, int 
 template void h5h_write_dset_2d<double>(hid_t parent, const char* name, int d1, const std::vector<double>& arr);
 template void h5h_write_dset_2d<int>(hid_t parent, const char* name, int d1, const std::vector<int>& arr);
 template void h5h_write_dset_2d<index_t>(hid_t parent, const char* name, int d1, const std::vector<index_t>& arr);
+
+// Template write dataset 2d
+template<typename T> void h5h_write_dset_2d_empty(hid_t parent, const char* name, int d0, int d1, const T* arr)
+{
+    hid_t dset_id, space_id, prop_id;
+    hsize_t dims[2];
+    dims[0] = d0;
+    dims[1] = d1;
+    space_id = H5Screate_simple(2, dims, NULL);
+    prop_id = h5h_dset_prop(d0, d1);
+    dset_id = H5Dcreate(parent, name, H5T_IEEE_F64LE, space_id, H5P_DEFAULT, prop_id, H5P_DEFAULT);
+    H5Dwrite(dset_id, h5h_get_type<T>(), H5S_ALL, H5S_ALL, H5P_DEFAULT, arr);
+    H5Dclose(dset_id);
+    H5Pclose(prop_id);
+    H5Sclose(space_id);
+}
+// Instanciate functions from template.
+template void h5h_write_dset_2d_empty<double>(hid_t parent, const char* name, int d0, int d1, const double* arr);
+template void h5h_write_dset_2d_empty<int>(hid_t parent, const char* name, int d0, int d1, const int* arr);
+template void h5h_write_dset_2d_empty<index_t>(hid_t parent, const char* name, int d0, int d1, const index_t* arr);
+
+template<typename T> void h5h_write_dset_2d_empty(hid_t parent, const char* name, int d1, const vector<T>& v)
+{
+    h5h_write_dset_2d_empty(parent, name, v.size()/d1, d1,  &v[0]);
+}
+// Instanciate functions from template.
+template void h5h_write_dset_2d_empty<double>(hid_t parent, const char* name, int d1, const std::vector<double>& arr);
+template void h5h_write_dset_2d_empty<int>(hid_t parent, const char* name, int d1, const std::vector<int>& arr);
+template void h5h_write_dset_2d_empty<index_t>(hid_t parent, const char* name, int d1, const std::vector<index_t>& arr);
 
 /** ATTRIBUTES **/
 

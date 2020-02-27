@@ -1015,13 +1015,33 @@ void Mesh3DPart::output_mirror() const
 {
     unsigned int nb_pts = m_mirror_xyz.size()/3;
     printf("%04d : number of mirror points = %ld\n", m_proc, nb_pts);
-    if (nb_pts == 0) return;
-
     char fname[2048];
     snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
     hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (nb_pts == 0){
+        printf("processor with empty mirror: %d",m_proc);
+        std::vector<index_t> empty_mirror_e;
+        std::vector<index_t> empty_mirror_ijk;
+        std::vector<double>  empty_mirror_xyz;
+        std::vector<double>  empty_mirror_w;
+        std::vector<double>  empty_mirror_inside;
+        std::vector<double>  empty_mirror_outnormal;
+
+        h5h_write_dset_empty(rid, "E", empty_mirror_e);
+        h5h_write_dset_2d_empty(rid, "IJK", 3, empty_mirror_ijk);
+        h5h_write_dset_2d_empty(rid, "XYZ", 3, empty_mirror_xyz);
+        h5h_write_dset_2d_empty(rid, "W", 3, empty_mirror_w);
+        h5h_write_dset_empty(rid, "inside", empty_mirror_inside);
+        h5h_write_dset_2d_empty(rid, "outnormal", 3, empty_mirror_outnormal);
+        vector<index_t> id; //for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
+        h5h_write_dset_empty(rid, "ID", id); // Only needed for XMF
+        H5Gclose(rid);
+        H5Fclose(fid);
+        return;
+    };
+    //    return;
     h5h_write_dset(rid, "E", m_mirror_e);
     h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
     h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
