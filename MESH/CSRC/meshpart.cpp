@@ -368,7 +368,7 @@ void Mesh3DPart::compute_gll()
     calcul_gll(m_cfg->ngll-1, m_gll);
 }
 
-void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
+void Mesh3DPart::handle_mirror_implicit_surf(index_t el, index_t lid)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
 
@@ -403,7 +403,7 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
                 double win = 0.;
                 double f = is->f(x, y, z, &win);
                 if (f >= 0.) {
-                    mirror_e.push_back(el);
+                    mirror_e.push_back(lid);
                     mirror_ijk.push_back(i);
                     mirror_ijk.push_back(j);
                     mirror_ijk.push_back(k);
@@ -568,6 +568,7 @@ void Mesh3DPart::handle_local_element(index_t el, bool is_border)
 
     if ((dom0==false)&&(it==m_mesh.surfelem.end())){
 
+        index_t lid = m_elems.size();
         m_elems.push_back(el);
         // Assign all 6 faces
         for(int fc=0;fc<6;++fc) {
@@ -597,7 +598,7 @@ void Mesh3DPart::handle_local_element(index_t el, bool is_border)
             index_t gid = m_mesh.m_elems[e0 + vx];
             add_node(gid);
         }
-        handle_mirror_implicit_surf(el);
+        handle_mirror_implicit_surf(el,lid);
     }
 }
 
