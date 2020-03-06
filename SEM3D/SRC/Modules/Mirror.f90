@@ -101,20 +101,21 @@ contains
         type(domain_solid), intent (INOUT) :: dom
         integer :: n_elmtot
 
-        n_elmtot = dom%nbelem
+        n_elmtot = dom%nbelem+VCHUNK-1
         n_gll = dom%ngll
+        n_glltot_sl = 0
         allocate(map2glltot_sl(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
         call map_mirror_sl(Tdomain)
 
         dom%mirror_sl%n_glltot = n_glltot_sl
+        allocate(dom%mirror_sl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+        dom%mirror_sl%map = -1
         if (n_glltot_sl>0) then
             write(*,'("--> SEM : mirror nodes_sl : ",i3,i6)') rnk,n_glltot_sl
-            allocate(dom%mirror_sl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
             allocate(dom%mirror_sl%fields(6,n_glltot_sl))
             allocate(dom%mirror_sl%winfunc(n_glltot_sl))
             allocate(displ_sl(3,n_glltot_sl,n_spl+1))
             allocate(force_sl(3,n_glltot_sl,n_spl+1))
-            dom%mirror_sl%n_glltot = n_glltot_sl
             dom%mirror_sl%n_gll = n_gll
             dom%mirror_sl%map = map2glltot_sl
             dom%mirror_sl%winfunc = winf_sl
@@ -171,35 +172,28 @@ contains
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
         integer :: e, i, j, k, gel, idx
-        logical :: file_exists
-        !
 
         fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
-        INQUIRE(FILE=fname, EXIST=file_exists)
-        if (file_exists)then
-            call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
-            call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
-            call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
-            call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
-            call h5fclose_f(fid, hdferr)
+        call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
+        call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
+        call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+        call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
+        call h5fclose_f(fid, hdferr)
 
-            map2glltot_sl = -1
-            n_glltot_sl = 0
-            do idx = 0,size(mirror_E)-1
-                gel = mirror_E(idx)
-                i = mirror_IJK(0,idx)
-                j = mirror_IJK(1,idx)
-                k = mirror_IJK(2,idx)
-                if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
-                e = Tdomain%specel(gel)%lnum
-                n_glltot_sl = n_glltot_sl+1
-                map2glltot_sl(e,i,j,k) = n_glltot_sl
-            enddo
-
-            deallocate(mirror_E, mirror_IJK)
-        else
-            n_glltot_sl=0
-        endif
+        map2glltot_sl = -1
+        n_glltot_sl = 0
+        do idx = 0,size(mirror_E)-1
+            gel = mirror_E(idx)
+            i = mirror_IJK(0,idx)
+            j = mirror_IJK(1,idx)
+            k = mirror_IJK(2,idx)
+            if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
+            e = Tdomain%specel(gel)%lnum
+            n_glltot_sl = n_glltot_sl+1
+            map2glltot_sl(e,i,j,k) = n_glltot_sl
+        enddo
+        
+        deallocate(mirror_E, mirror_IJK)
     end subroutine map_mirror_sl
 
     subroutine map_mirror_fl(Tdomain)
@@ -216,35 +210,29 @@ contains
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
         integer :: e, i, j, k, gel, idx
-        logical :: file_exists
         !
 
         fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
-        INQUIRE(FILE=fname, EXIST=file_exists)
-        if (file_exists)then
-            call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
-            call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
-            call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
-            call read_dset_1d_real(fid, "/Mirror/inside", winf_fl, 0)
-            call h5fclose_f(fid, hdferr)
+        call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
+        call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
+        call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+        call read_dset_1d_real(fid, "/Mirror/inside", winf_fl, 0)
+        call h5fclose_f(fid, hdferr)
 
-            map2glltot_fl = -1
-            n_glltot_fl = 0
-            do idx = 0,size(mirror_E)-1
-                gel = mirror_E(idx)
-                i = mirror_IJK(0,idx)
-                j = mirror_IJK(1,idx)
-                k = mirror_IJK(2,idx)
-                if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
-                e = Tdomain%specel(gel)%lnum
-                n_glltot_fl = n_glltot_fl+1
-                map2glltot_fl(e,i,j,k) = n_glltot_fl
-            enddo
+        map2glltot_fl = -1
+        n_glltot_fl = 0
+        do idx = 0,size(mirror_E)-1
+            gel = mirror_E(idx)
+            i = mirror_IJK(0,idx)
+            j = mirror_IJK(1,idx)
+            k = mirror_IJK(2,idx)
+            if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
+            e = Tdomain%specel(gel)%lnum
+            n_glltot_fl = n_glltot_fl+1
+            map2glltot_fl(e,i,j,k) = n_glltot_fl
+        enddo
 
-            deallocate(mirror_E, mirror_IJK)
-        else
-            n_glltot_fl=0
-        endif
+        deallocate(mirror_E, mirror_IJK)
     end subroutine map_mirror_fl
 
     subroutine mirror_face_normal(cnodes, fdir)
@@ -313,7 +301,6 @@ contains
         integer :: i,j
         real(fpp), dimension(:), allocatable :: ddiag
         real(fpp), dimension(:,:), allocatable :: diag
-
         if (n_dcm==1) then
             call append_mirror_h5_sl(dom)
         else
@@ -406,7 +393,7 @@ contains
         integer, intent(in) :: ntime
         integer :: i,j,j1,j2,ntimecur,ntimeloc,first,firstloc,recn
         real(fpp) :: t,tnt,tmp
-
+        
         if (dom%mirror_type==1) then
             ntimecur = ntime
             ntimeloc = mod(ntime,n_dcm)

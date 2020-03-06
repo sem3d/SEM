@@ -721,29 +721,30 @@ contains
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
+        use sdomain
 
         type(domain_solid),intent(inout) :: dom
         type(champssolid),intent(inout) :: champs1
         integer,intent(in) :: bnum
         logical :: aniso
         integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
+
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
-
+        integer :: code
         n_solid = dom%n_sls
         aniso = dom%aniso
         ngll = dom%ngll
         lnum = bnum*VCHUNK
-
         do i_dir = 0,2
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
-                        do ee = 0, VCHUNK-1
+                        do ee = 0,VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
-                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            idx_m = dom%mirror_sl%map(ee+lnum,i,j,k)
                             Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
-                            if (idx_m>=0) dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
+                            if (idx_m>0) dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
                         enddo
                     enddo
                 enddo
@@ -766,14 +767,13 @@ contains
                 call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
             endif
         endif
-
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
-                        if (idx_m>=0) then
+                        if (idx_m>0) then
                             dom%mirror_sl%fields(4,idx_m) = Fox(ee,i,j,k)
                             dom%mirror_sl%fields(5,idx_m) = Foy(ee,i,j,k)
                             dom%mirror_sl%fields(6,idx_m) = Foz(ee,i,j,k)
@@ -785,7 +785,6 @@ contains
                 enddo
             enddo
         enddo
-
     end subroutine forces_int_solid_mirror_dump
 
     subroutine forces_int_solid_mirror_load(dom,champs1,bnum)
@@ -805,7 +804,6 @@ contains
         aniso = dom%aniso
         ngll = dom%ngll
         lnum = bnum*VCHUNK
-
         do i_dir = 0,2
             do k = 0,ngll-1
                 do j = 0,ngll-1
@@ -814,8 +812,11 @@ contains
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
                             Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
-                            if (idx_m>=0) Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir) &
-                               +dom%mirror_sl%fields(i_dir+1,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                            if (idx_m>0)then
+                                Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir) &
+                                    +dom%mirror_sl%fields(i_dir+1,idx_m)*&
+                                    dom%mirror_sl%winfunc(idx_m)
+                            endif
                         enddo
                     enddo
                 enddo
@@ -845,7 +846,7 @@ contains
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
-                        if (idx_m>=0) then
+                        if (idx_m>0) then
                             Fox(ee,i,j,k) = Fox(ee,i,j,k)-dom%mirror_sl%fields(4,idx_m)*dom%mirror_sl%winfunc(idx_m)
                             Foy(ee,i,j,k) = Foy(ee,i,j,k)-dom%mirror_sl%fields(5,idx_m)*dom%mirror_sl%winfunc(idx_m)
                             Foz(ee,i,j,k) = Foz(ee,i,j,k)-dom%mirror_sl%fields(6,idx_m)*dom%mirror_sl%winfunc(idx_m)
