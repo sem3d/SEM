@@ -40,8 +40,12 @@ contains
         endif
 
         if (Tdomain%use_mirror) then
-            call compute_mirror_sl(Tdomain, Tdomain%sdom)
-            call compute_mirror_fl(Tdomain, Tdomain%fdom)
+            if (Tdomain%sdom%nbelem>0)then
+                call compute_mirror_sl(Tdomain, Tdomain%sdom)
+            endif
+            if (Tdomain%fdom%nbelem>0)then
+                call compute_mirror_fl(Tdomain, Tdomain%fdom)
+            endif
         endif
     end subroutine init_mirror
 
