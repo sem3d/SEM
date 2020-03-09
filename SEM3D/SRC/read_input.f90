@@ -159,11 +159,10 @@ contains
                 Tdomain%sSubDomain(i)%Pspeed,               &
                 Tdomain%sSubDomain(i)%Sspeed,               &
                 Tdomain%sSubDomain(i)%dDensity,             &
-                NGLL,                                       &
                 Tdomain%sSubDomain(i)%Qpression,            &
                 Tdomain%sSubDomain(i)%Qmu
 
-            Tdomain%sSubDomain(i)%NGLL = NGLL
+            Tdomain%sSubDomain(i)%NGLL = Tdomain%ngll
             Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)
             Tdomain%sSubdomain(i)%material_definition = MATERIAL_CONSTANT
             Tdomain%sSubDomain(i)%deftype = MATDEF_VP_VS_RHO
@@ -726,6 +725,8 @@ contains
             call create_sem_extended_sources(Tdomain, Tdomain%config)
         endif
 
+        ! NGLL points
+        Tdomain%ngll = Tdomain%config%ngll
         ! Mirror
         Tdomain%use_mirror = .false.
         if (Tdomain%config%use_mirror/=0) Tdomain%use_mirror = .true.

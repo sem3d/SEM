@@ -77,6 +77,7 @@ module sdomain
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
        integer :: n_hexa_local !< Nombre de subelements hexa dans le proc(division aux GLLs)
+       integer :: ngll
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
        logical :: any_sdom, any_fdom, any_spml, any_fpml
 

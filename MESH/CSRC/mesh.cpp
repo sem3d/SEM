@@ -275,10 +275,9 @@ void Mesh3D::write_materials_v2(const std::string& str)
     fprintf(f, "%d\n", nmats);
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
-        fprintf(f, "%c %lf %lf %lf %d %lf %lf\n",
+        fprintf(f, "%c %lf %lf %lf %lf %lf\n",
                 mat.cinitial_type,
                 mat.Pspeed, mat.Sspeed, mat.rho,
-                mat.m_ngll,
                 mat.Qpression, mat.Qmu);
     }
 
