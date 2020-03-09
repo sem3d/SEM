@@ -108,6 +108,8 @@ contains
         call map_mirror_sl(Tdomain)
 
         dom%mirror_sl%n_glltot = n_glltot_sl
+        dom%mirror_sl%n_gll = n_gll
+
         allocate(dom%mirror_sl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
         dom%mirror_sl%map = -1
         if (n_glltot_sl>0) then
@@ -116,7 +118,6 @@ contains
             allocate(dom%mirror_sl%winfunc(n_glltot_sl))
             allocate(displ_sl(3,n_glltot_sl,n_spl+1))
             allocate(force_sl(3,n_glltot_sl,n_spl+1))
-            dom%mirror_sl%n_gll = n_gll
             dom%mirror_sl%map = map2glltot_sl
             dom%mirror_sl%winfunc = winf_sl
             displ_sl = 0.
@@ -134,21 +135,22 @@ contains
         type(domain_fluid), intent (INOUT) :: dom
         integer :: n_elmtot
 
-        n_elmtot = dom%nbelem
+        n_elmtot = dom%nbelem+VCHUNK-1
         n_gll = dom%ngll
         allocate(map2glltot_fl(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
         call map_mirror_fl(Tdomain)
 
         dom%mirror_fl%n_glltot = n_glltot_fl
+        dom%mirror_fl%n_gll = n_gll
+        
+        allocate(dom%mirror_fl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
+        dom%mirror_fl%map = -1
         if (n_glltot_fl>0) then
             write(*,'("--> SEM : mirror nodes_fl : ",i3,i6)') rnk,n_glltot_fl
-            allocate(dom%mirror_fl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
             allocate(dom%mirror_fl%fields(2,n_glltot_fl))
             allocate(dom%mirror_fl%winfunc(n_glltot_fl))
             allocate(displ_fl(n_glltot_fl,n_spl+1))
             allocate(force_fl(n_glltot_fl,n_spl+1))
-            dom%mirror_fl%n_glltot = n_glltot_fl
-            dom%mirror_fl%n_gll = n_gll
             dom%mirror_fl%map = map2glltot_fl
             dom%mirror_fl%winfunc = winf_fl
             displ_fl = 0.
