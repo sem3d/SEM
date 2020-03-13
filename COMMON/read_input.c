@@ -214,7 +214,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err, k;
 
-    for(k=0;k<12;++k) {
+    for(k=0;k<14;++k) {
         config->out_variables[k] = 0;
     }
     tok = skip_blank(scanner);
@@ -236,6 +236,8 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         else if (cmp(scanner,"eTotal")) err=expect_eq_int(scanner, &(config->out_variables[9]),1);
         else if (cmp(scanner,"edevpl")) err=expect_eq_int(scanner, &(config->out_variables[10]),1);
         else if (cmp(scanner,"dudx")) err=expect_eq_int(scanner, &(config->out_variables[11]),1);
+        else if (cmp(scanner,"gradla")) err=expect_eq_int(scanner, &(config->out_variables[12]),1);
+        else if (cmp(scanner,"gradmu")) err=expect_eq_int(scanner, &(config->out_variables[13]),1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -907,6 +909,9 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[8]  = 0; // Contrainte Dev
     cfg->out_variables[9]  = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
     cfg->out_variables[10] = 0; // Deformation Dev Pl
+    cfg->out_variables[11] = 0; // dUdX
+    cfg->out_variables[12] = 0; // Grad Lambda
+    cfg->out_variables[13] = 0; // Grad Mu
     cfg->nl_flag = 0; // calcul nonlineaire
 
     // CPML
@@ -956,11 +961,12 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
+    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
            cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
            cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
            cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
-           cfg->out_variables[9], cfg->out_variables[10]);
+           cfg->out_variables[9], cfg->out_variables[10],cfg->out_variables[11],\
+           cfg->out_variables[12],cfg->out_variables[13]);
     printf("Nonlinear analysis : %d\n",cfg->nl_flag);
     printf("Mirror : use %d\n", cfg->use_mirror);
     if (cfg->use_mirror) {

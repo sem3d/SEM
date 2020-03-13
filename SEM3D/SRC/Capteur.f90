@@ -499,6 +499,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+
         real(fpp), dimension(:), allocatable :: GLLc
         logical :: nl_flag
         integer :: nComp
@@ -531,6 +532,7 @@ contains
         allocate(doutx(0:ngll-1))
         allocate(douty(0:ngll-1))
         allocate(doutz(0:ngll-1))
+        
         do i = 0,ngll - 1
             call  pol_lagrange(ngll,GLLc,i,capteur%xi,outx(i))
             call  pol_lagrange(ngll,GLLc,i,capteur%eta,outy(i))

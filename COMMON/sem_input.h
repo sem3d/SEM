@@ -165,7 +165,7 @@ typedef struct {
     int comp_energ;
 
     // Output Variables
-    int out_variables[12];
+    int out_variables[14];
     int nl_flag;
     int use_avg;
     int prot_at_time;

@@ -192,6 +192,74 @@ contains
 
         end subroutine deallocate_dom_solid
 
+    subroutine get_solid_dom_grad_lambda(dom, lnum, grad_La)
+        use deriv3d
+        implicit none
+        !
+        type(domain_solid), intent(inout)     :: dom
+        integer, intent(in)                   :: lnum
+        real(fpp), intent(inout), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: grad_La 
+        integer                  :: ngll, i, j, k
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: xlambda
+        real(fpp)                :: DLambdaDX,DLambdaDY,DLambdaDZ
+        real(fpp), dimension(0:2,0:2) :: invgrad_ijk
+        integer :: bnum, ee
+
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        ngll = dom%ngll
+
+        grad_La = 0d0
+        xlambda = dom%Lambda_(:,:,:,bnum,ee) 
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
+                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                        invgrad_ijk,xlambda,DLambdaDX,DLambdaDY,DLambdaDZ)
+                    grad_La(i,j,k,0)=DLambdaDX
+                    grad_La(i,j,k,1)=DLambdaDY
+                    grad_La(i,j,k,2)=DLambdaDZ
+                end do
+            end do
+        end do
+        return
+    end subroutine get_solid_dom_grad_lambda
+
+    subroutine get_solid_dom_grad_mu(dom, lnum, grad_Mu)
+        use deriv3d
+        implicit none
+        !
+        type(domain_solid), intent(inout)     :: dom
+        integer, intent(in)                   :: lnum
+        real(fpp), intent(inout), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: grad_Mu
+        integer                  :: ngll, i, j, k
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: xmu
+        real(fpp)                :: DMuDX,DMuDY,DMuDZ
+        real(fpp), dimension(0:2,0:2) :: invgrad_ijk
+        integer :: bnum, ee
+
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        ngll = dom%ngll
+
+        grad_Mu = 0d0
+        xmu = dom%Mu_(:,:,:,bnum,ee)
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
+                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                        invgrad_ijk,xmu,DMuDX,DMuDY,DMuDZ)
+                    grad_Mu(i,j,k,0)=DMuDX
+                    grad_Mu(i,j,k,1)=DMuDY
+                    grad_Mu(i,j,k,2)=DMuDZ
+                end do
+            end do
+        end do
+        return
+    end subroutine get_solid_dom_grad_mu
+
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy,&
         eps_vol, eps_dev, sig_dev, nl_flag, eps_dev_pl)
@@ -228,6 +296,7 @@ contains
 
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
+        xlambda = 0d0
         xmu = 0d0
         x2mu = 0d0
         flag_gradUint = 0
@@ -255,6 +324,7 @@ contains
                 end do
             end do
         end do
+
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1

@@ -87,6 +87,28 @@ contains
         end if
     end subroutine write_1d_var_c
 
+    subroutine write_2d_var_vecc(outputs, parent_id, fname, field)
+        type(output_var_t), intent(inout) :: outputs
+        integer(HID_T), intent(in) :: parent_id
+        character(len=*), intent(in) :: fname
+        real(fpp), intent(in), dimension(:,:) :: field
+        !
+        integer(HSIZE_T), dimension(2) :: dims
+        integer(HID_T) :: dset_id
+        integer :: hdferr, ierr
+
+        call MPI_Gatherv(field, outputs%ncells, MPI_REAL_FPP, &
+            outputs%all_data_2d_c, outputs%counts_c, outputs%displs_c, MPI_REAL_FPP, 0,&
+            outputs%comm, ierr)
+        if (outputs%rank==0) then
+            dims(1) = 3
+            dims(2) = outputs%ntot_cells
+            call create_dset_2d(parent_id, trim(fname), H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, outputs%all_data_2d_c, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+        end if
+    end subroutine write_2d_var_vecc
+
     subroutine write_1d_var_n(outputs, parent_id, fname, field)
         type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
@@ -180,6 +202,7 @@ contains
             call write_1d_var_c(outputs, parent_id, "sig_dev_xz", outputs%sig_dev(4,:))
             call write_1d_var_c(outputs, parent_id, "sig_dev_yz", outputs%sig_dev(5,:))
         end if
+
 
         ! VELOCITY
         if (out_variables(OUT_VITESSE) == 1) then
@@ -445,6 +468,7 @@ contains
             allocate(outputs%all_data_1d_n(0:ntot_nodes-1))
             allocate(outputs%all_data_1d_c(0:ntot_cells-1))
             allocate(outputs%all_data_2d_n(0:2,0:ntot_nodes-1))
+            allocate(outputs%all_data_2d_c(0:2,0:ntot_cells-1))
             outputs%ntot_nodes = ntot_nodes
             outputs%ntot_cells = ntot_cells
         else
@@ -702,7 +726,7 @@ contains
     end subroutine allocate_fields
 
     subroutine deallocate_fields(out_flags, fields)
-        integer, dimension(0:10), intent(in) :: out_flags
+        integer, dimension(0:OUT_LAST), intent(in) :: out_flags
         type (output_var_t), intent(inout) :: fields
 
         if (out_flags(OUT_DEPLA     ) == 1) deallocate(fields%displ)
@@ -870,7 +894,6 @@ contains
         nl_flag=Tdomain%nl_flag
         nnodes = outputs%nnodes
         out_variables(:) = Tdomain%out_variables(:)
-
         call create_dir_sorties(Tdomain, isort)
         allocate(valence(0:nnodes-1))
 
@@ -969,10 +992,10 @@ contains
                         end select
 
                         ! sortie par noeud
-                        if (out_variables(OUT_DEPLA)   == 1)  outputs%displ(0:2,ind) = fieldU(i,j,k,0:2)
-                        if (out_variables(OUT_VITESSE) == 1)  outputs%veloc(0:2,ind) = fieldV(i,j,k,0:2)
-                        if (out_variables(OUT_ACCEL)   == 1)  outputs%accel(0:2,ind) = fieldA(i,j,k,0:2)
-                        if (out_variables(OUT_PRESSION) == 1) outputs%press_n(ind) = fieldP(i,j,k)
+                        if (out_variables(OUT_DEPLA)    == 1) outputs%displ(0:2,ind) = fieldU(i,j,k,0:2)
+                        if (out_variables(OUT_VITESSE)  == 1) outputs%veloc(0:2,ind) = fieldV(i,j,k,0:2)
+                        if (out_variables(OUT_ACCEL)    == 1) outputs%accel(0:2,ind) = fieldA(i,j,k,0:2)
+                        if (out_variables(OUT_PRESSION) == 1) outputs%press_n(ind)   = fieldP(i,j,k)
                     enddo
                 enddo
             enddo
@@ -1107,6 +1130,17 @@ contains
         write(61,"(a)") '</Attribute>'
     end subroutine write_xdmf_attr_scalar_cells
 
+    subroutine write_xdmf_attr_vector_cells(aname, ne, i, group, adata)
+        character(len=*) :: aname, adata
+        integer :: ne, i, group
+        !
+        write(61,"(a,a,a,a,a,a)") '<Attribute Name="', trim(aname), '" Center="Cell" AttributeType="Vector">'
+        write(61,"(a,I9,a)") '<DataItem Format="HDF" NumberType="Float" Precision="4" Dimensions="', ne, '">'
+        write(61,"(a,I4.4,a,I4.4,a,a)") 'Rsem', i, '/sem_field.', group, '.h5:/', adata
+        write(61,"(a)") '</DataItem>'
+        write(61,"(a)") '</Attribute>'
+    end subroutine write_xdmf_attr_vector_cells
+
     subroutine write_xdmf(Tdomain, isort, outputs, out_variables)
         implicit none
         type (domain), intent (IN):: Tdomain
@@ -1235,9 +1269,6 @@ contains
 !                call write_xdmf_attr_vector_nodes(trim(R2label(j)), nn, i, group, trim(R2data(j)))
 !            end do
 !
-!            call write_xdmf_attr_vector_nodes("FDump", nn, i, group, "FDump")
-!            call write_xdmf_attr_vector_nodes("FMasU", nn, i, group, "FMasU")
-!            call write_xdmf_attr_vector_nodes("Fint" , nn, i, group, "Fint" )
 #else
             ! ALPHA/DUMPSX
             write(61,"(a)") '<Attribute Name="Alpha" Center="Node" AttributeType="Scalar">'
@@ -1260,16 +1291,30 @@ contains
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Lamb" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                 '">geometry',group,'.h5:/Lamb</DataItem>'
             write(61,"(a)") '</Attribute>'
-            ! MU
-            write(61,"(a)") '<Attribute Name="Mu" Center="Node" AttributeType="Scalar">'
-            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mu" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
-                '">geometry',group,'.h5:/Mu</DataItem>'
-            write(61,"(a)") '</Attribute>'
-            ! KAPPA
-            write(61,"(a)") '<Attribute Name="Kappa" Center="Node" AttributeType="Scalar">'
-            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
-                '">geometry',group,'.h5:/Kappa</DataItem>'
-            write(61,"(a)") '</Attribute>'
+            if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
+                ! GRAD LAMBDA
+                write(61,"(a)") '<Attribute Name="GradLa_gll" Center="Node" AttributeType="Vector">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="GradLa_gll" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                    ' 3">geometry',group,'.h5:/GradLa_gll</DataItem>'
+                write(61,"(a)") '</Attribute>'
+                ! MU
+                write(61,"(a)") '<Attribute Name="Mu" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mu" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                    '">geometry',group,'.h5:/Mu</DataItem>'
+                write(61,"(a)") '</Attribute>'
+            end if
+            if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
+                ! GRAD MU
+                write(61,"(a)") '<Attribute Name="GradMu_gll" Center="Node" AttributeType="Vector">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="GradMu_gll" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                    ' 3">geometry',group,'.h5:/GradMu_gll</DataItem>'
+                write(61,"(a)") '</Attribute>'
+                ! KAPPA
+                write(61,"(a)") '<Attribute Name="Kappa" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                    '">geometry',group,'.h5:/Kappa</DataItem>'
+                write(61,"(a)") '</Attribute>'
+            end if
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar">'
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" NumberType="Int"  Dimensions="',nn, &
@@ -1286,6 +1331,7 @@ contains
     end subroutine write_xdmf
 
     subroutine write_constant_fields(Tdomain, fid, outputs)
+        use dom_solid
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
@@ -1300,10 +1346,14 @@ contains
         real(fpp) :: dx, dy, dz, dt
 #endif
         real(fpp), dimension(:),allocatable :: dens, lamb, mu, kappa
+        real(fpp), dimension(:,:,:,:), allocatable :: grad_La
+        real(fpp), dimension(:,:,:,:), allocatable :: grad_Mu
+        real(fpp), dimension(:,:),allocatable :: grad_La_n,grad_Mu_n 
         integer :: ngll, idx
         integer :: i, j, k, n, lnum, nnodes_tot, bnum, ee
         integer :: domain_type, imat
         integer :: nnodes, ncells
+        logical :: flag_grad
 
         nnodes = outputs%nnodes
         ncells = outputs%ncells
@@ -1313,6 +1363,16 @@ contains
         allocate(lamb(0:nnodes-1))
         allocate(mu(0:nnodes-1))
         allocate(kappa(0:nnodes-1))
+
+        if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
+            allocate(grad_La_n(0:2,0:nnodes-1))
+            grad_La_n = 0d0
+        end if 
+        if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
+            allocate(grad_Mu_n(0:2,0:nnodes-1))
+            grad_Mu_n = 0d0
+        end if
+
 #ifdef CPML
         allocate(alpha_pml(0:3*nnodes-1))
         alpha_pml = -1.0
@@ -1500,6 +1560,10 @@ contains
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
+                allocate(grad_La(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                call get_solid_dom_grad_lambda(Tdomain%sdom, Tdomain%specel(n)%lnum, grad_La)
+            end if
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
@@ -1507,6 +1571,7 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
                                 lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
+                                if (Tdomain%out_variables(OUT_GRAD_LA) == 1) grad_La_n(0:2,idx) = grad_La(i,j,k,0:2)
                             case (DM_SOLID_PML)
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
                             case (DM_FLUID)
@@ -1519,6 +1584,7 @@ contains
                     end do
                 end do
             end do
+            if (allocated(grad_La)) deallocate(grad_La)
         end do
 
         ! mu
@@ -1527,6 +1593,10 @@ contains
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
+                allocate(grad_Mu(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                call get_solid_dom_grad_mu(Tdomain%sdom, Tdomain%specel(n)%lnum, grad_Mu)
+            end if
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
@@ -1534,6 +1604,7 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
                                 mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
+                                if (Tdomain%out_variables(OUT_GRAD_MU) == 1) grad_Mu_n(0:2,idx) = grad_Mu(i,j,k,0:2)
                             case (DM_SOLID_PML)
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
                             case (DM_FLUID)
@@ -1546,6 +1617,7 @@ contains
                     end do
                 end do
             end do
+            if (allocated(grad_Mu)) deallocate(grad_Mu)
         end do
 
         ! kappa
@@ -1588,10 +1660,22 @@ contains
         call grp_write_real_1d(outputs, fid, "Lamb", nnodes, lamb, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Mu", nnodes, mu, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Kappa", nnodes, kappa, nnodes_tot)
+        ! GRAD LAMBDA
+        if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
+            call grp_write_real_2d(outputs, fid, "GradLa_gll", 3, nnodes, grad_La_n, nnodes_tot)
+        end if
+        ! GRAD MU
+        if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
+            call grp_write_real_2d(outputs, fid, "GradMu_gll", 3, nnodes, grad_Mu_n, nnodes_tot)
+        end if
 
         call grp_write_int_1d(outputs, fid, "Dom", nnodes, outputs%domains, nnodes_tot)
         deallocate(mass,jac)
         deallocate(dens, lamb, mu, kappa)
+        if(allocated(grad_La)) deallocate(grad_La)
+        if(allocated(grad_Mu)) deallocate(grad_Mu)
+        if(allocated(grad_La_n)) deallocate(grad_La_n)
+        if(allocated(grad_Mu_n)) deallocate(grad_Mu_n)
 #ifdef CPML
 
         deallocate(alpha_pml)
