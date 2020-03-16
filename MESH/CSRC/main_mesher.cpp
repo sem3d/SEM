@@ -108,8 +108,6 @@ int main(int argc, char**argv)
     sscanf(buffer,"%d", &NPROCS);
 
     printf("             %d processor(s)\n", NPROCS);
-
-
     printf(" \n\n");
     printf("  --> Which Initial Mesh?\n");
     printf("      1- On the fly\n");
@@ -130,27 +128,27 @@ int main(int argc, char**argv)
     dump_config(&config);
 
     switch(choice) {
-    case 1:
-    	mesh.read_materials("mater.in");
+      case 1:
+        mesh.read_materials("mater.in");
         handle_on_the_fly(mesh);
         mesh.write_materials("material.input");
-	break;
-    case 2:
+        break;
+      case 2:
         mesh.read_materials("material.input");
         handle_abaqus_file(mesh);
-	break;
-    case 3:
-    	mesh.read_materials("material.input");
+        break;
+      case 3:
+        mesh.read_materials("material.input");
         handle_ideas_file(mesh);
         break;
-    case 4:
+      case 4:
         mesh.read_materials("material.input");
         handle_hdf5_file(mesh);
         break;
-    case 5:
+      case 5:
         handle_earth_chunk(mesh);
         break;
-    default:
+      default:
         break;
     };
 

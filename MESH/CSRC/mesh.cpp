@@ -183,7 +183,6 @@ int Mesh3D::read_materials_v2(const std::string& str)
     char *buffer=NULL;
     size_t linesize=0;
     double  vs,vp,rho;
-    int         ngllx;
     double    Qp, Qmu;
     int npmls;
     vector<int> pml_nums;
@@ -199,13 +198,13 @@ int Mesh3D::read_materials_v2(const std::string& str)
 
     for(int k=0;k<nmats;++k)  {
         getData_line(&buffer, &linesize, f);
-        sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
-               &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
+        sscanf(buffer, "%c %lf %lf %lf %lf %lf",
+               &type, &vp, &vs, &rho, &Qp, &Qmu);
 
-        printf("mat=%2ld : t=%c vp=%lf vs=%lf rho=%lf ngll=%d Qp=%lf Qmu=%lf\n", m_materials.size(),
-               type, vp, vs, rho, ngllx, Qp, Qmu);
+        printf("mat=%2ld : t=%c vp=%lf vs=%lf rho=%lf Qp=%lf Qmu=%lf\n", m_materials.size(),
+               type, vp, vs, rho, Qp, Qmu);
 
-        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu));
         if (type=='P' || type=='L') {
             npmls++;
             pml_nums.push_back(m_materials.size()-1);

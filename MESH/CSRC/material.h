@@ -34,7 +34,6 @@ public:
                                   Sspeed(mat.Sspeed),
                                   Qpression(mat.Qpression),
                                   Qmu(mat.Qmu),
-                                  m_ngll(mat.m_ngll),
                                   xpos(mat.xpos),
                                   xwidth(mat.xwidth),
                                   ypos(mat.ypos),
@@ -48,10 +47,9 @@ public:
 
 
     Material(char type, double Vp, double Vs, double Rho,
-             double Qp, double Qmu_, int ngll):
+             double Qp, double Qmu_):
         ctype(type), cinitial_type(type),
         rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
-        m_ngll(ngll),
         xpos(0.), xwidth(0.), ypos(0.), ywidth(0.), zpos(0.), zwidth(0.), associated_material(-1)
         {
             switch (type) {
@@ -127,7 +125,6 @@ public:
     double Sspeed;
     double Qpression;
     double Qmu;
-    int m_ngll;
     double xpos, xwidth;
     double ypos, ywidth;
     double zpos, zwidth;
