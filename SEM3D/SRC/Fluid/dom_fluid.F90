@@ -330,7 +330,9 @@ contains
         type(champsfluid),intent(inout) :: field
         integer,intent(in) :: bnum
         integer :: lnum,ngll,i,j,k,ee,idx,idx_m
-        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl,Phi
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Phi
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: VelPhi
 
         ngll = dom%ngll
         lnum = bnum*VCHUNK
@@ -342,7 +344,11 @@ contains
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
                         Phi(ee,i,j,k) = field%Phi(idx)
-                        if (idx_m>=0) dom%mirror_fl%fields(1,idx_m) = Phi(ee,i,j,k)
+                        VelPhi(ee,i,j,k) = field%VelPhi(idx)
+                        if (idx_m>0) then
+                            dom%mirror_fl%fields(1,idx_m) = Phi(ee,i,j,k)
+                            dom%mirror_fl%fields(3,idx_m) = VelPhi(ee,i,j,k)
+                        end if
                     enddo
                 enddo
             enddo
@@ -357,7 +363,7 @@ contains
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                        if (idx_m>=0) dom%mirror_fl%fields(2,idx_m) = Fo_Fl(ee,i,j,k)
+                        if (idx_m>0) dom%mirror_fl%fields(2,idx_m) = Fo_Fl(ee,i,j,k)
                         field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
                     enddo
                 enddo
@@ -373,7 +379,8 @@ contains
         type(champsfluid),intent(inout) :: field
         integer,intent(in) :: bnum
         integer :: lnum,ngll,i,j,k,ee,idx,idx_m
-        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl,Phi
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Phi
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl
 
         ngll = dom%ngll
         lnum = bnum*VCHUNK
@@ -385,7 +392,7 @@ contains
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
                         Phi(ee,i,j,k) = field%Phi(idx)
-                        if (idx_m>=0) Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m) &
+                        if (idx_m>0) Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m) &
                             *dom%mirror_fl%winfunc(idx_m)
                     enddo
                 enddo
@@ -401,7 +408,7 @@ contains
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                        if (idx_m>=0) Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m) &
+                        if (idx_m>0) Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m) &
                             *dom%mirror_fl%winfunc(idx_m)
                         field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
                     enddo
