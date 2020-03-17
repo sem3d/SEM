@@ -6,7 +6,7 @@ sim_time = %(sim_time)f;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 dim=3;
-
+ngll=5;
 snapshots {
     save_snap = %(save_snap)s;
     snap_interval = %(snap_interval)s;
