@@ -13,7 +13,7 @@ module smirror
     integer, dimension(:,:,:,:), allocatable :: map2glltot_sl, map2glltot_fl
     real(fpp), dimension(:), allocatable :: bspl_tmp, winf_sl, winf_fl
     real(fpp), dimension(:,:,:), allocatable :: displ_sl, veloc_sl, force_sl
-    real(fpp), dimension(:,:), allocatable :: displ_fl, force_fl
+    real(fpp), dimension(:,:), allocatable :: displ_fl, veloc_fl, force_fl
     real(fpp) :: d_t,d_tm
     integer :: rnk, recp, n_spl, n_dcm, n_t, n_tm, n_gll, n_glltot_sl, n_glltot_fl
 
@@ -149,13 +149,15 @@ contains
         dom%mirror_fl%map = -1
         if (n_glltot_fl>0) then
             write(*,'("--> SEM : mirror nodes_fl : ",i3,i6)') rnk,n_glltot_fl
-            allocate(dom%mirror_fl%fields(2,n_glltot_fl))
+            allocate(dom%mirror_fl%fields(3,n_glltot_fl))
             allocate(dom%mirror_fl%winfunc(n_glltot_fl))
             allocate(displ_fl(n_glltot_fl,n_spl+1))
+            allocate(veloc_fl(n_glltot_fl,n_spl+1))
             allocate(force_fl(n_glltot_fl,n_spl+1))
             dom%mirror_fl%map = map2glltot_fl
             dom%mirror_fl%winfunc = winf_fl
             displ_fl = 0.
+            veloc_fl = 0.
             force_fl = 0.
             deallocate(winf_fl)
         endif
@@ -290,7 +292,7 @@ contains
         !! Displacement and force fields in fluid
         dname = "Fields_fl"
         call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
-            int(2,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
+            int(3,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
         call h5dclose_f(dset_id, hdferr)
         call h5fclose_f(fid, hdferr)
 
@@ -364,17 +366,21 @@ contains
                 j = mod(ntime,n_dcm)+(n_spl+1-i)*n_dcm+1
                 displ_fl(:,i) = displ_fl(:,i)+bspl_tmp(j)*dom%mirror_fl%fields(1,:)
                 force_fl(:,i) = force_fl(:,i)+bspl_tmp(j)*dom%mirror_fl%fields(2,:)
+                veloc_fl(:,i) = veloc_fl(:,i)+bspl_tmp(j)*dom%mirror_fl%fields(3,:)
             enddo
             if (mod(ntime,n_dcm)==n_dcm-1) then
                 if (rnk==0) write(*,'("--> SEM : dump mirror_fl, iteration : ",i6.6)') ntime
                 dom%mirror_fl%fields(1,:) = displ_fl(:,1)
                 dom%mirror_fl%fields(2,:) = force_fl(:,1)
+                dom%mirror_fl%fields(3,:) = veloc_fl(:,1)
                 call append_mirror_h5_fl(dom)
                 do i = 1,n_spl
                     displ_fl(:,i) = displ_fl(:,i+1)
                     force_fl(:,i) = force_fl(:,i+1)
+                    veloc_fl(:,i) = veloc_fl(:,i+1)
                 enddo
                 displ_fl(:,n_spl+1) = 0.
+                veloc_fl(:,n_spl+1) = 0.
                 force_fl(:,n_spl+1) = 0.
             endif
             if (ntime==n_t-1) then
@@ -382,6 +388,7 @@ contains
                 do i = 1,n_spl+1
                     dom%mirror_fl%fields(1,:) = displ_fl(:,i)
                     dom%mirror_fl%fields(2,:) = force_fl(:,i)
+                    dom%mirror_fl%fields(3,:) = veloc_fl(:,i)
                     call append_mirror_h5_fl(dom)
                 enddo
                 allocate(diag(n_spl+1,n_tm),ddiag(n_tm))
@@ -522,6 +529,7 @@ contains
                     call read_mirror_h5_fl(dom, j+i-1-1)
                     displ_fl(:,i) = dom%mirror_fl%fields(1,:)
                     force_fl(:,i) = dom%mirror_fl%fields(2,:)
+                    veloc_fl(:,i) = dom%mirror_fl%fields(3,:)
                 enddo
             endif
             dom%mirror_fl%fields(1,:) = 0.
@@ -530,6 +538,7 @@ contains
                 j = ntimeloc+(n_spl+1-i)*n_dcm+1
                 dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+bspl_tmp(j)*displ_fl(:,i)
                 dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+bspl_tmp(j)*force_fl(:,i)
+                dom%mirror_fl%fields(3,:) = dom%mirror_fl%fields(3,:)+bspl_tmp(j)*veloc_fl(:,i)
             enddo
         else
             t = ntimecur*d_t
@@ -543,10 +552,12 @@ contains
                     if (recn==recp+1) then
                         displ_fl(:,1:n_spl) = displ_fl(:,2:n_spl+1)
                         force_fl(:,1:n_spl) = force_fl(:,2:n_spl+1)
+                        veloc_fl(:,1:n_spl) = veloc_fl(:,2:n_spl+1)
                         j1 = n_spl+1
                     elseif (recn==recp-1) then
                         displ_fl(:,2:n_spl+1) = displ_fl(:,1:n_spl)
                         force_fl(:,2:n_spl+1) = force_fl(:,1:n_spl)
+                        veloc_fl(:,2:n_spl+1) = veloc_fl(:,1:n_spl)
                         j2 = 1
                     endif
                 endif
@@ -554,10 +565,12 @@ contains
                     if (recn+j<1.or.recn+j>n_tm) then
                         displ_fl(:,j) = 0.d0
                         force_fl(:,j) = 0.d0
+                        veloc_fl(:,j) = 0.d0
                     else
                         call read_mirror_h5_fl(dom, recn+j-1)
                         displ_fl(:,j) = dom%mirror_fl%fields(1,:)
                         force_fl(:,j) = dom%mirror_fl%fields(2,:)
+                        veloc_fl(:,j) = dom%mirror_fl%fields(3,:)
                     endif
                 enddo
                 recp = recn
@@ -568,10 +581,11 @@ contains
                 tmp = bspln(0,n_spl,dble(tnt+i-1))
                 dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+tmp*displ_fl(:,n_spl+2-i)
                 dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+tmp*force_fl(:,n_spl+2-i)
+                dom%mirror_fl%fields(3,:) = dom%mirror_fl%fields(3,:)+tmp*veloc_fl(:,n_spl+2-i)
             enddo
         endif
 
-        if (dom%mirror_type==2) dom%mirror_fl%fields(1:2,:) = -dom%mirror_fl%fields(1:2,:)
+        if (dom%mirror_type==2) dom%mirror_fl%fields(1:3,:) = -dom%mirror_fl%fields(1:3,:)
 
     end subroutine load_mirror_fl
 
@@ -689,35 +703,43 @@ contains
                     call read_mirror_h5_fl(dom, j+n-1)
                     displ_fl(:,j+1) = dom%mirror_fl%fields(1,:)
                     force_fl(:,j+1) = dom%mirror_fl%fields(2,:)
+                    veloc_fl(:,j+1) = dom%mirror_fl%fields(3,:)
                 enddo
             else
                 do j = 0,nbands-2
                     displ_fl(:,j+1) = displ_fl(:,j+2)
                     force_fl(:,j+1) = force_fl(:,j+2)
+                    veloc_fl(:,j+1) = veloc_fl(:,j+2)
                 enddo
                 call read_mirror_h5_fl(dom, n+nbands-2)
                 displ_fl(:,nbands) = dom%mirror_fl%fields(1,:)
                 force_fl(:,nbands) = dom%mirror_fl%fields(2,:)
+                veloc_fl(:,nbands) = dom%mirror_fl%fields(3,:)
             endif
             do j = 1,nbands-1
                 displ_fl(:,j+1) = displ_fl(:,j+1)-w(j+1,n)*displ_fl(:,1)
                 force_fl(:,j+1) = force_fl(:,j+1)-w(j+1,n)*force_fl(:,1)
+                veloc_fl(:,j+1) = veloc_fl(:,j+1)-w(j+1,n)*veloc_fl(:,1)
             enddo
             dom%mirror_fl%fields(1,:) = displ_fl(:,1)
             dom%mirror_fl%fields(2,:) = force_fl(:,1)
+            dom%mirror_fl%fields(3,:) = veloc_fl(:,1)
             call write_mirror_h5_fl(dom, n-1)
         enddo
         do n = nrow-nbands+2,nrow
             do j = 0,nbands-2
                 displ_fl(:,j+1) = displ_fl(:,j+2)
                 force_fl(:,j+1) = force_fl(:,j+2)
+                veloc_fl(:,j+1) = veloc_fl(:,j+2)
             enddo
             do j = 1,nrow-n
                 displ_fl(:,j+1) = displ_fl(:,j+1)-w(j+1,n)*displ_fl(:,1)
                 force_fl(:,j+1) = force_fl(:,j+1)-w(j+1,n)*force_fl(:,1)
+                veloc_fl(:,j+1) = veloc_fl(:,j+1)-w(j+1,n)*veloc_fl(:,1)
             enddo
             dom%mirror_fl%fields(1,:) = displ_fl(:,1)
             dom%mirror_fl%fields(2,:) = force_fl(:,1)
+            dom%mirror_fl%fields(3,:) = veloc_fl(:,1)
             call write_mirror_h5_fl(dom, n-1)
         enddo
         !! Back substitution, Solve L'*X = D**(-1)*Y.
@@ -725,32 +747,40 @@ contains
             do j = nrow-n,1,-1
                 displ_fl(:,j+1) = displ_fl(:,j)
                 force_fl(:,j+1) = force_fl(:,j)
+                veloc_fl(:,j+1) = veloc_fl(:,j)
             enddo
             call read_mirror_h5_fl(dom, n-1)
             displ_fl(:,1) = dom%mirror_fl%fields(1,:)*w(1,n)
             force_fl(:,1) = dom%mirror_fl%fields(2,:)*w(1,n)
+            veloc_fl(:,1) = dom%mirror_fl%fields(3,:)*w(1,n)
             do j = 1,nrow-n
                 displ_fl(:,1) = displ_fl(:,1)-w(j+1,n)*displ_fl(:,j+1)
                 force_fl(:,1) = force_fl(:,1)-w(j+1,n)*force_fl(:,j+1)
+                veloc_fl(:,1) = veloc_fl(:,1)-w(j+1,n)*veloc_fl(:,j+1)
             enddo
             dom%mirror_fl%fields(1,:) = displ_fl(:,1)
             dom%mirror_fl%fields(2,:) = force_fl(:,1)
+            dom%mirror_fl%fields(3,:) = veloc_fl(:,1)
             call write_mirror_h5_fl(dom, n-1)
         enddo
         do n = nrow-nbands+1,1,-1
             do j = nbands-1,1,-1
                 displ_fl(:,j+1) = displ_fl(:,j)
                 force_fl(:,j+1) = force_fl(:,j)
+                veloc_fl(:,j+1) = veloc_fl(:,j)
             enddo
             call read_mirror_h5_fl(dom, n-1)
             displ_fl(:,1) = dom%mirror_fl%fields(1,:)*w(1,n)
             force_fl(:,1) = dom%mirror_fl%fields(2,:)*w(1,n)
+            veloc_fl(:,1) = dom%mirror_fl%fields(3,:)*w(1,n)
             do j = 1,nbands-1
                 displ_fl(:,1) = displ_fl(:,1)-w(j+1,n)*displ_fl(:,j+1)
                 force_fl(:,1) = force_fl(:,1)-w(j+1,n)*force_fl(:,j+1)
+                veloc_fl(:,1) = veloc_fl(:,1)-w(j+1,n)*veloc_fl(:,j+1)
             enddo
             dom%mirror_fl%fields(1,:) = displ_fl(:,1)
             dom%mirror_fl%fields(2,:) = force_fl(:,1)
+            dom%mirror_fl%fields(3,:) = veloc_fl(:,1)
             call write_mirror_h5_fl(dom, n-1)
         enddo
         return

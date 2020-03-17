@@ -801,6 +801,7 @@ contains
 
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
         integer :: code
         n_solid = dom%n_sls
         aniso = dom%aniso
@@ -814,7 +815,11 @@ contains
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(ee+lnum,i,j,k)
                             Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
-                            if (idx_m>0) dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
+                            Veloc(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
+                            if (idx_m>0) then
+                                dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
+                                dom%mirror_sl%fields(i_dir+7,idx_m) = Veloc(ee,i,j,k,i_dir)
+                            end if
                         enddo
                     enddo
                 enddo
@@ -869,6 +874,7 @@ contains
         integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+        !real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
 
         n_solid = dom%n_sls
         aniso = dom%aniso
@@ -882,10 +888,14 @@ contains
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
                             Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            !Veloc(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
                             if (idx_m>0)then
                                 Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir) &
                                     +dom%mirror_sl%fields(i_dir+1,idx_m)*&
                                     dom%mirror_sl%winfunc(idx_m)
+                                !Veloc(ee,i,j,k,i_dir) = Veloc(ee,i,j,k,i_dir) &
+                                !    +dom%mirror_sl%fields(i_dir+7,idx_m)*&
+                                !    dom%mirror_sl%winfunc(idx_m)
                             endif
                         enddo
                     enddo
@@ -907,6 +917,7 @@ contains
                 call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
                 call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+                ! [TODO] calcul_forces_nl
             endif
         endif
 
