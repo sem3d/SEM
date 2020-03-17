@@ -27,7 +27,6 @@ sont facultatifs) ::
              ... from upper layer, 1 element is created backwards over 100. m => zmin = -200
   1        # PMLs on X / Y ? 0: no, 1: yes => PML on X and Y (at left and rigth for each direction)
   1 1      # PMLs on Z     ? on top ? at the bottom ? (0: no, 1: yes)
-  5        # nb of GLL nodes in the PML
   1        # 8 or 27 control points for elements (1 or 2)
 
 Note : après la ligne qui définit le nombre de couches, il doit y avoir autant de lignes que de couches.
@@ -62,7 +61,6 @@ Voici un second exemple de fichier mat.dat qui spécifie 3 couches de PML dans l
              ... from upper layer, 1 element is created backwards over 100. m => zmin = -200
   3        # Number of extra PML layers (0=no pmls)
   2 1 0 0 0 1 1   # PMLs on U/D/N/S/E/W
-  5        # nb of GLL nodes in the PML
   1        # 8 or 27 control points for elements (1 or 2)
   
 
@@ -72,16 +70,15 @@ Format de mater.in
 Le fichier ``mater.in`` décrit combien de matériaux sont utilisés dans le modèle :: 
 
   1
-  S  6300.00  2500.00   2800. 5   5    5  0.000005 630. 250.
+  S  6300.00  2500.00   2800. 630. 250.
 
  `1` est le nombre de matériaux dans le modèle.
 
 La deuxième ligne décrit le type de matériau (``S`` matériau solide et
 ``F`` matériau fluide). Pour chaque matériau, on déclare
 successivement, la vitesse de propagation de l'onde de pression,
-vitesse de l'onde de cisaillement, la densité du matériau, le nombre
-de GLLs dans les trois directions( ``x``, ``y`` et ``z``), le pas de
-temps (ignoré dans la version actuelle) et les paramètres :math:`Q_\kappa` et :math:`Q_\mu`
+vitesse de l'onde de cisaillement, la densité du matériau, 
+et les paramètres :math:`Q_\kappa` et :math:`Q_\mu`
 pour l'atténuation des ondes P et S.
 
 
@@ -181,27 +178,27 @@ Le format de ``material.input`` a été modifié.
 Voici un exemple de sa nouvelle présentation, suivi d'explications sur les paramètres qui interviennent : ::
 
     21
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    S 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    S 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
-    P 630.000000 250.000000 1800.000000 5 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    S 630.000000 250.000000 1800.000000 0.000000 0.000000
+    S 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
     # PML properties
     # npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
     2 10. -2.450000 0.000000 0.000000 0.000000 6.000000 -5.000000 7
@@ -243,8 +240,6 @@ Plus précisément, ce fichier doit contenir :
   - Les vitesses d'ondes P et S (en m/s)
   
   - La densité (en kg/m^3)
-  
-  - Le nombre de points d'intégration de Gauss-Lobatto-Legendre (GLL) ;
   
   - Les coefficients attenuations d'ondes P et S.
   
