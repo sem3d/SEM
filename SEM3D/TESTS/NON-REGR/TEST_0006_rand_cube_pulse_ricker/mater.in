@@ -6,7 +6,7 @@
 # Material Properties
 # Type, Vp, Vs, Rho, nGLL,Q_kappa, Q_mu 
 #
-S   3535.533   2500.000   2800.000   5   0.0 0.0
+S   3535.533   2500.000   2800.000  0.0 0.0
 #
 # PML Properties (if any specific)
 # Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
