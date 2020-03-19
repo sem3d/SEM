@@ -9,7 +9,7 @@ script to parse and post-process SEM3D traces
 """
 # Required modules
 import matplotlib as mpl
-#mpl.use('Agg') # de-comment if pyplot raise errors
+mpl.use('Agg') # de-comment if pyplot raise errors
 from matplotlib import pyplot as plt
 import argparse
 import os.path as osp
@@ -295,14 +295,14 @@ def save_object(obj, filename):
     output.close()
     
 if __name__=='__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-w','--wkd',type=str,default='../test/traces/',help='Database main directory')
-    parser.add_argument('-f','--fmt',type=str,default='h5',help='Database format')
-    parser.add_argument('-n','--nam',type=str,nargs='+',default=['all'],help = 'Name of the set(s) of monitors')
-    parser.add_argument('-v','--var',type=str,nargs='+',default=['Displ','Veloc','Accel'],help='Output variables')
-    parser.add_argument('-r','--rdr',type=str,nargs='+',default=['x','y','z'],help='Motion components')
-    parser.add_argument('-m','--mon',type=int,nargs='+',default=[0],help='Monitor number')
-    parser.add_argument('-p','--plt',action='store_true',default=True,help='Plot?')
+    parser = argparse.ArgumentParser(prefix_chars='@')
+    parser.add_argument('@w','@@wkd',type=str,default='../test/traces/',help='Database main directory')
+    parser.add_argument('@f','@@fmt',type=str,default='h5',help='Database format')
+    parser.add_argument('@n','@@nam',type=str,nargs='+',default=['all'],help = 'Name of the set(s) of monitors')
+    parser.add_argument('@v','@@var',type=str,nargs='+',default=['Displ','Veloc','Accel'],help='Output variables')
+    parser.add_argument('@r','@@rdr',type=str,nargs='+',default=['x','y','z'],help='Motion components')
+    parser.add_argument('@m','@@mon',type=int,nargs='+',default=[0],help='Monitor number')
+    parser.add_argument('@p','@@plt',action='store_true',default=True,help='Plot?')
     opt = parser.parse_args().__dict__
     
     
