@@ -31,7 +31,7 @@ def base_smooth_heterogeneous(d,grd,nu=0.3):
     mu = np.zeros_like(grd[d])
     ds = np.full_like(grd[d],2000.).transpose(*trnsp)
     
-    la = (80.0+0.45*np.abs(z)+\
+    la = 20.*(80.0+0.45*np.abs(z)+\
         35.0*np.exp(-(np.abs(z)-22.5)**2/150.0))*1.e6 # Mpa
     mu = 0.5*(1.-2.*nu)*la/nu
     la = la.transpose(*trnsp)
