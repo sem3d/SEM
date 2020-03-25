@@ -261,9 +261,7 @@ contains
                 if (capteur%type == CPT_INTERP) then
                     call sortieGrandeurCapteur_interp(Tdomain, capteur)
                 else if (capteur%type == CPT_ENERGY) then
-                    !print*, "BEFORE sortieGrandeurCapteur_energy"
                     call sortieGrandeurCapteur_energy(Tdomain, capteur)
-                    !print*, "AFTER sortieGrandeurCapteur_energy"
                 end if
                 if (capteur%icache==NCAPT_CACHE) do_flush = .true.
             end if
@@ -525,7 +523,6 @@ contains
         allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
         allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! dudx 9
-
         allocate(outx(0:ngll-1))
         allocate(outy(0:ngll-1))
         allocate(outz(0:ngll-1))

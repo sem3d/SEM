@@ -41,8 +41,6 @@ module msnapdata
         real(fpp), dimension(:,:), allocatable :: eps_dev, sig_dev
         real(fpp), dimension(:)  , allocatable :: P_energy, S_energy
         real(fpp), dimension(:,:), allocatable :: eps_dev_pl
-        real(fpp), dimension(:,:), allocatable :: grad_La_c
-        real(fpp), dimension(:,:), allocatable :: grad_Mu_c
 
         ! Storage for communications
         integer, dimension(:),   allocatable :: displs_n, displs_c
