@@ -11,6 +11,7 @@ module smirror
     private
 
     integer, dimension(:,:,:,:), allocatable :: map2glltot_sl, map2glltot_fl
+    real(fpp), dimension(:,:), allocatable :: coords_sl, coords_fl
     real(fpp), dimension(:), allocatable :: bspl_tmp, winf_sl, winf_fl
     real(fpp), dimension(:,:,:), allocatable :: displ_sl, veloc_sl, force_sl
     real(fpp), dimension(:,:), allocatable :: displ_fl, veloc_fl, force_fl
@@ -100,7 +101,7 @@ contains
         type(domain), intent (inout) :: Tdomain
         type(domain_solid), intent (INOUT) :: dom
         integer :: n_elmtot
-
+        integer :: e,i,j,k
         n_elmtot = dom%nbelem+VCHUNK-1
         n_gll = dom%ngll
         n_glltot_sl = 0
@@ -114,17 +115,20 @@ contains
         dom%mirror_sl%map = -1
         if (n_glltot_sl>0) then
             write(*,'("--> SEM : mirror nodes_sl : ",i3,i6)') rnk,n_glltot_sl
+            allocate(dom%mirror_sl%coords(3,n_glltot_sl))
             allocate(dom%mirror_sl%fields(9,n_glltot_sl))
             allocate(dom%mirror_sl%winfunc(n_glltot_sl))
             allocate(displ_sl(3,n_glltot_sl,n_spl+1))
             allocate(veloc_sl(3,n_glltot_sl,n_spl+1))
             allocate(force_sl(3,n_glltot_sl,n_spl+1))
+            dom%mirror_sl%coords = coords_sl
             dom%mirror_sl%map = map2glltot_sl
             dom%mirror_sl%winfunc = winf_sl
             displ_sl = 0.
             veloc_sl = 0.
             force_sl = 0.
-            deallocate(winf_sl)
+            deallocate(winf_sl,coords_sl)
+            call write_mirror_coords_sl(dom)
         endif
         deallocate(map2glltot_sl)
     end subroutine compute_mirror_sl
@@ -177,12 +181,15 @@ contains
         integer :: hdferr
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
-        integer :: e, i, j, k, gel, idx
+        integer, dimension(:,:), allocatable :: mirror_XYZ
+        integer :: e, i, j, k, gel, idx, idx_m
+        real :: x,y,z
 
-        fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
+        fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".h5"
         call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
         call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
         call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+        call read_dset_2d_int(fid, "/Mirror/XYZ", mirror_XYZ, 0)
         call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
         call h5fclose_f(fid, hdferr)
 
@@ -190,16 +197,33 @@ contains
         n_glltot_sl = 0
         do idx = 0,size(mirror_E)-1
             gel = mirror_E(idx)
-            i = mirror_IJK(0,idx)
-            j = mirror_IJK(1,idx)
-            k = mirror_IJK(2,idx)
             if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
             e = Tdomain%specel(gel)%lnum
             n_glltot_sl = n_glltot_sl+1
+            i = mirror_IJK(0,idx)
+            j = mirror_IJK(1,idx)
+            k = mirror_IJK(2,idx)
             map2glltot_sl(e,i,j,k) = n_glltot_sl
         enddo
-        
-        deallocate(mirror_E, mirror_IJK)
+        if(n_glltot_sl>0) then
+            allocate(coords_sl(3,n_glltot_sl))
+            do idx = 0,size(mirror_E)-1
+                gel = mirror_E(idx)
+                if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
+                e = Tdomain%specel(gel)%lnum
+                i = mirror_IJK(0,idx)
+                j = mirror_IJK(1,idx)
+                k = mirror_IJK(2,idx)
+                x = mirror_XYZ(0,idx)
+                y = mirror_XYZ(1,idx)
+                z = mirror_XYZ(2,idx)
+                idx_m = map2glltot_sl(e,i,j,k)
+                coords_sl(1,idx_m) = x
+                coords_sl(2,idx_m) = y
+                coords_sl(3,idx_m) = z
+            end do 
+        end if
+        deallocate(mirror_E, mirror_IJK, mirror_XYZ)
     end subroutine map_mirror_sl
 
     subroutine map_mirror_fl(Tdomain)
@@ -218,7 +242,7 @@ contains
         integer :: e, i, j, k, gel, idx
         !
 
-        fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
+        fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".h5"
         call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
         call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
         call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
@@ -284,8 +308,18 @@ contains
         call init_hdf5()
         call semname_mirrorfile_h5(rnk, fnamef)
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
+        !! Coordinates of solid mirror points
+        dname = "coords_sl"
+        call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
+            int(3,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
+        call h5dclose_f(dset_id, hdferr)
         !! Displacement and force fields in solid
         dname = "Fields_sl"
+        call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
+            int(9,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
+        call h5dclose_f(dset_id, hdferr)
+        !! Coordinates of fluid mirror points
+        dname = "coords_fl"
         call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
             int(9,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
         call h5dclose_f(dset_id, hdferr)
@@ -787,6 +821,28 @@ contains
 
     end subroutine bchslv_fl
 
+
+    subroutine write_mirror_coords_sl(dom)
+        use champs_solid
+        use semdatafiles
+        use sem_hdf5
+        implicit none
+        type(domain_solid), intent(inout) :: dom
+        character (len=40) :: dname
+        character (len=MAX_FILE_SIZE) :: fnamef
+        integer(HID_T) :: fid, dset_id
+        integer :: hdferr
+
+        call semname_mirrorfile_h5(rnk, fnamef)
+        call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
+        dname = "coords_sl"
+        call h5dopen_f(fid, trim(dname), dset_id, hdferr)
+        call append_dataset_2d(dset_id, dom%mirror_sl%coords, hdferr)
+        call h5dclose_f(dset_id, hdferr)
+        call h5fclose_f(fid, hdferr)
+
+    end subroutine write_mirror_coords_sl
+
     subroutine append_mirror_h5_sl(dom)
         use champs_solid
         use semdatafiles
@@ -893,7 +949,7 @@ contains
         integer(HSIZE_T), dimension(2) :: offset, dcount
 
         offset = (/0,n*dom%mirror_sl%n_glltot/)
-        dcount = (/6,dom%mirror_sl%n_glltot/)
+        dcount = (/9,dom%mirror_sl%n_glltot/)
         call semname_mirrorfile_h5(rnk, fnamef)
         call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
         dname = "Fields_sl"
@@ -918,7 +974,7 @@ contains
         integer(HSIZE_T), dimension(2) :: offset, dcount
 
         offset = (/0,n*dom%mirror_fl%n_glltot/)
-        dcount = (/2,dom%mirror_fl%n_glltot/)
+        dcount = (/3,dom%mirror_fl%n_glltot/)
         call semname_mirrorfile_h5(rnk, fnamef)
         call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
         dname = "Fields_fl"
