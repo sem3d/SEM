@@ -868,10 +868,10 @@ void Mesh3DPart::output_local_mesh(hid_t fid)
     for(unsigned k=0;k<tmpi1.size();++k) {
         elem_doms[tmpi1[k]]++;
     }
-    if (m_mesh.has_mrrs) {
-        get_local_mirrors(tmpi);
-        h5h_write_dset(fid, "mirror_pos", n_elems(), &tmpi[0]);
-    }
+    //if (m_mesh.has_mrrs) {
+    //    get_local_mirrors(tmpi);
+    //    h5h_write_dset(fid, "mirror_pos", n_elems(), &tmpi[0]);
+    //}
     //
     convert_indexes(m_elems_faces, tmpi);
     h5h_write_dset_2d(fid, "faces", n_elems(), 6, tmpi.data());
@@ -1007,41 +1007,40 @@ void Mesh3DPart::output_mesh_part()
         output_comm(gid, it->second, it->first);
     }
 
+    output_mirror(fid);
     H5Fclose(fid);
-
-    output_mirror();
 }
 
-void Mesh3DPart::output_mirror() const
+void Mesh3DPart::output_mirror(hid_t fid) const
 {
     unsigned int nb_pts = m_mirror_xyz.size()/3;
     printf("%04d : number of mirror points = %ld\n", m_proc, nb_pts);
     char fname[2048];
-    snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
-    hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    // snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
+    // hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    if (nb_pts == 0){
-        printf("processor with empty mirror: %d",m_proc);
-        std::vector<index_t> empty_mirror_e;
-        std::vector<index_t> empty_mirror_ijk;
-        std::vector<double>  empty_mirror_xyz;
-        std::vector<double>  empty_mirror_w;
-        std::vector<double>  empty_mirror_inside;
-        std::vector<double>  empty_mirror_outnormal;
+    //if (nb_pts == 0){
+    //    printf("processor with empty mirror: %d",m_proc);
+    //    std::vector<index_t> empty_mirror_e;
+    //    std::vector<index_t> empty_mirror_ijk;
+    //    std::vector<double>  empty_mirror_xyz;
+    //    std::vector<double>  empty_mirror_w;
+    //    std::vector<double>  empty_mirror_inside;
+    //    std::vector<double>  empty_mirror_outnormal;
 
-        h5h_write_dset_empty(rid, "E", empty_mirror_e);
-        h5h_write_dset_2d_empty(rid, "IJK", 3, empty_mirror_ijk);
-        h5h_write_dset_2d_empty(rid, "XYZ", 3, empty_mirror_xyz);
-        h5h_write_dset_2d_empty(rid, "W", 3, empty_mirror_w);
-        h5h_write_dset_empty(rid, "inside", empty_mirror_inside);
-        h5h_write_dset_2d_empty(rid, "outnormal", 3, empty_mirror_outnormal);
-        vector<index_t> id; //for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
-        h5h_write_dset_empty(rid, "ID", id); // Only needed for XMF
-        H5Gclose(rid);
-        H5Fclose(fid);
-        return;
-    };
+    //    h5h_write_dset_empty(rid, "E", empty_mirror_e);
+    //    h5h_write_dset_2d_empty(rid, "IJK", 3, empty_mirror_ijk);
+    //    h5h_write_dset_2d_empty(rid, "XYZ", 3, empty_mirror_xyz);
+    //    h5h_write_dset_2d_empty(rid, "W", 3, empty_mirror_w);
+    //    h5h_write_dset_empty(rid, "inside", empty_mirror_inside);
+    //    h5h_write_dset_2d_empty(rid, "outnormal", 3, empty_mirror_outnormal);
+    //    vector<index_t> id; //for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
+    //    h5h_write_dset_empty(rid, "ID", id); // Only needed for XMF
+    //    H5Gclose(rid);
+    //    H5Fclose(fid);
+    //    return;
+    //};
     //    return;
     h5h_write_dset(rid, "E", m_mirror_e);
     h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
@@ -1052,7 +1051,7 @@ void Mesh3DPart::output_mirror() const
     vector<index_t> id; for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
     h5h_write_dset(rid, "ID", id); // Only needed for XMF
     H5Gclose(rid);
-    H5Fclose(fid);
+    //H5Fclose(fid);
 }
 
 void Mesh3DPart::output_comm(hid_t gid, const MeshPartComm& comm, int dest)
