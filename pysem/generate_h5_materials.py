@@ -143,6 +143,7 @@ if __name__=='__main__':
     opt['xlim'].sort() 
     opt['ylim'].sort()
     opt['zlim'].sort()
+    opt['step'] = [int(x) for x in opt['step']] 
 
     # mechanical properties to be generated
     model = (opt['tag'],opt['dir'])
