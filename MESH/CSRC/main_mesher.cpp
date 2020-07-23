@@ -16,6 +16,7 @@
 #include "mesh_common.h"
 #include "read_input.h"
 #include "sem_input.h"
+#include "earthmesh.h"
 
 void handle_on_the_fly(Mesh3D& mesh)
 {
@@ -77,6 +78,34 @@ void handle_earth_chunk(Mesh3D& mesh)
 {
 }
 
+void handle_full_earth(Mesh3D& mesh)
+{
+    /* earth.dat format:
+NLAYERS  Z0 N0 MAT0
+z Z1 mat div NDIV
+z Z2 mat raf 1
+z Z3 mat div 5
+s surfname mat div 6
+
+z: indicate a fixed scalar value
+s: interpolate surface depth from surfname=h5file/dataset 
+mat: material number
+N0 : number of cell of center cube across one edge
+MAT0: material of the center cube
+div/raf either divide the layer or refine
+Z is distance from center and should appear in increasing order
+Z0<Z1<Z2<Z3<surf
+
+The center cube has Nc= Ninit*Ninit*Ninit cells.
+    */
+    FILE* fparams;
+    EarthMesh earth(mesh);
+    fparams = fopen("earth.dat","r");
+    earth.read_params(fparams);
+    fclose(fparams);
+    earth.init_earth();
+}
+
 /// Emulates old mesher interface
 
 int main(int argc, char**argv)
@@ -117,6 +146,7 @@ int main(int argc, char**argv)
     printf("      3- Ideas (.unv) files\n");
     printf("      4- HDF5 Hex8 files\n");
     printf("      5- Earth Chunk\n");
+    printf("      6- Full earth\n");
 
     getData_line(&buffer, &linesize, stdin);
 
@@ -149,6 +179,9 @@ int main(int argc, char**argv)
         break;
     case 5:
         handle_earth_chunk(mesh);
+        break;
+    case 6:
+        handle_full_earth(mesh);
         break;
     default:
         break;
