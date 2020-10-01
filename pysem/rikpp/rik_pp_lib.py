@@ -201,7 +201,7 @@ def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
     formatter = LogFormatter(10, labelOnlyBase=False)
     cb = fig.colorbar(im, shrink=0.5, aspect=10, pad=0.01, ticks=np.arange(vmin,vmax,1), format=formatter)
     cb.set_label('Slip [m]', labelpad=20, y=0.5, rotation=90, fontsize=17)
-    p.setp(cb.ax.yaxis.get_ticklabels(), fontsize=16)
+    #p.setp(cb.ax.yaxis.get_ticklabels(), fontsize=16)
     ax.plot(nucx,nucy, marker='*', color='red',markersize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)

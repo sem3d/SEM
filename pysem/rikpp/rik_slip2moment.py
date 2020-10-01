@@ -57,16 +57,21 @@ class RIK_source(object):
         return np.array([self.x,self.y,self.z])
 
 if __name__=='__main__':
+    # Working directory
     fld = '/home/filippo/Data/Filippo/ares/workdir/RIK/napa_2014/results'
-    plot_figure     = True
+
+    # Flag to plot 
+    plot_figure = True
+
+    # Figure name
     figurename = 'napa_2014_moment_vs_time.png'
 
     # Saving point-coordinates in file ...?
     coord_file_name = 'source_coordinates.csv'
 
     # Input files 
-    RIK_slipfile = os.path.join(fld, 'slipdistribution.dat')
-    mrfile = os.path.join(fld, 'MomentRate.dat')
+    RIK_slipfile = os.path.join(fld,'slipdistribution.dat')
+    mrfile = os.path.join(fld,'MomentRate.dat')
     hypfile = os.path.join(fld,'nucleationpoint.dat')
 
     NT = 480
