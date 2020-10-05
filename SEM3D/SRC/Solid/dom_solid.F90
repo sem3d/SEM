@@ -262,7 +262,7 @@ contains
 
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy,&
-        eps_vol, eps_dev, sig_dev, nl_flag, eps_dev_pl)
+        eps_vol, eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
         use deriv3d
         implicit none
         !
@@ -274,6 +274,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: S_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:6) :: eps_dev_pl
@@ -306,6 +307,7 @@ contains
         if (.not.nl_flag) then
             flag_gradUint = flag_gradUint     + &
                 out_variables(OUT_PRESSION)   + &
+                out_variables(OUT_DUDX)       + &
                 out_variables(OUT_EPS_VOL)    + &
                 out_variables(OUT_EPS_DEV)    + &
                 out_variables(OUT_STRESS_DEV)
@@ -350,6 +352,17 @@ contains
                         if (out_variables(OUT_EPS_VOL) == 1) then
                             eps_vol(i,j,k) = divU
                         end if
+                        if (out_variables(OUT_DUDX) == 1) then
+                            dUdX(i,j,k,0) = DXX
+                            dUdX(i,j,k,1) = DXY
+                            dUdX(i,j,k,2) = DXZ
+                            dUdX(i,j,k,3) = DYX
+                            dUdX(i,j,k,4) = DYY
+                            dUdX(i,j,k,5) = DYZ
+                            dUdX(i,j,k,6) = DZX
+                            dUdX(i,j,k,7) = DZY
+                            dUdX(i,j,k,8) = DZZ
+                        endif
                         ! ELASTIC-VISCOELASTIC MODULA
                         if (out_variables(OUT_ENERGYP) == 1 .or. &
                             out_variables(OUT_ENERGYS) == 1 .or. &
@@ -434,6 +447,18 @@ contains
                         if (out_variables(OUT_ENERGYS) == 1) then
                             S_energy(i,j,k) = zero
                         end if
+                        ! TOTAL STRAIN
+                        if (out_variables(OUT_EPS_DEV) == 1) then
+                            dUdX(i,j,k,0) = dom%strain_(0,i,j,k,bnum,ee)  !DXX
+                            dUdX(i,j,k,1) = dom%strain_(3,i,j,k,bnum,ee)  !DXY
+                            dUdX(i,j,k,2) = dom%strain_(4,i,j,k,bnum,ee)  !DXZ
+                            dUdX(i,j,k,3) = dom%strain_(3,i,j,k,bnum,ee)  !DYX
+                            dUdX(i,j,k,4) = dom%strain_(1,i,j,k,bnum,ee)  !DYY
+                            dUdX(i,j,k,5) = dom%strain_(5,i,j,k,bnum,ee)  !DYZ
+                            dUdX(i,j,k,6) = dom%strain_(4,i,j,k,bnum,ee)  !DZX
+                            dUdX(i,j,k,7) = dom%strain_(5,i,j,k,bnum,ee)  !DZY
+                            dUdX(i,j,k,8) = dom%strain_(2,i,j,k,bnum,ee)  !DZZ
+                        endif
                         ! DEVIATORIC TOTAL STRAIN
                         if (out_variables(OUT_EPS_DEV) == 1) then
                             eps_dev(i,j,k,:)   = zero

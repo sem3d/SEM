@@ -176,6 +176,19 @@ contains
             call write_1d_var_n(outputs, parent_id, "press_gll", outputs%press_n)
         end if
 
+        ! DUDX
+        if (out_variables(OUT_DUDX) == 1) then
+            call write_1d_var_c(outputs, parent_id, "dUxdx", outputs%dUdX(0,:))
+            call write_1d_var_c(outputs, parent_id, "dUxdy", outputs%dUdX(1,:))
+            call write_1d_var_c(outputs, parent_id, "dUxdz", outputs%dUdX(2,:))
+            call write_1d_var_c(outputs, parent_id, "dUydx", outputs%dUdX(3,:))
+            call write_1d_var_c(outputs, parent_id, "dUydy", outputs%dUdX(4,:))
+            call write_1d_var_c(outputs, parent_id, "dUydz", outputs%dUdX(5,:))
+            call write_1d_var_c(outputs, parent_id, "dUzdx", outputs%dUdX(6,:))
+            call write_1d_var_c(outputs, parent_id, "dUzdy", outputs%dUdX(7,:))
+            call write_1d_var_c(outputs, parent_id, "dUzdz", outputs%dUdX(8,:))
+        end if
+
         ! EPS_DEV
         if (out_variables(OUT_EPS_DEV) == 1) then
             call write_1d_var_c(outputs, parent_id, "eps_dev_xx", outputs%eps_dev(0,:))
@@ -654,11 +667,13 @@ contains
         if (nl_flag) then
             flag_gradU = (out_flags(OUT_ENERGYP)     + &
                           out_flags(OUT_ENERGYS)     + &
+                          out_flags(OUT_DUDX)        + &
                           out_flags(OUT_EPS_VOL)) /= 0
         else
             flag_gradU = (out_flags(OUT_PRESSION)    + &
                           out_flags(OUT_ENERGYP)     + &
                           out_flags(OUT_ENERGYS)     + &
+                          out_flags(OUT_DUDX)        + &
                           out_flags(OUT_EPS_VOL)     + &
                           out_flags(OUT_EPS_DEV)     + &
                           out_flags(OUT_STRESS_DEV)) /= 0
@@ -668,6 +683,7 @@ contains
         if (out_flags(OUT_VITESSE   ) == 1) allocate(outputs%veloc(0:2,0:nnodes-1))
         if (out_flags(OUT_ACCEL     ) == 1) allocate(outputs%accel(0:2,0:nnodes-1))
         if (out_flags(OUT_PRESSION  ) == 1) allocate(outputs%press_n(0:nnodes-1))
+        if (out_flags(OUT_DUDX      ) == 1) allocate(outputs%dUdX(0:8,0:nnodes-1))
         ! sortie par element
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(outputs%P_energy(0:ncells-1))
         if (out_flags(OUT_ENERGYS   ) == 1) allocate(outputs%S_energy(0:ncells-1))
@@ -682,6 +698,7 @@ contains
         if (out_flags(OUT_ACCEL     ) == 1) outputs%accel      = 0.
         if (out_flags(OUT_ENERGYP   ) == 1) outputs%P_energy   = 0.
         if (out_flags(OUT_ENERGYS   ) == 1) outputs%S_energy   = 0.
+        if (out_flags(OUT_DUDX      ) == 1) outputs%dUdX       = 0.
         if (out_flags(OUT_EPS_VOL   ) == 1) outputs%eps_vol    = 0.
         if (out_flags(OUT_PRESSION  ) == 1) outputs%press_c    = 0.
         if (out_flags(OUT_PRESSION  ) == 1) outputs%press_n    = 0.
@@ -734,6 +751,7 @@ contains
         if (out_flags(OUT_ACCEL     ) == 1) deallocate(fields%accel)
         if (out_flags(OUT_ENERGYP   ) == 1) deallocate(fields%P_energy)
         if (out_flags(OUT_ENERGYS   ) == 1) deallocate(fields%S_energy)
+        if (out_flags(OUT_DUDX      ) == 1) deallocate(fields%dUdX)
         if (out_flags(OUT_EPS_VOL   ) == 1) deallocate(fields%eps_vol)
         if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_c)
         if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_n)
@@ -880,7 +898,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev, eps_dev_pl, dUdX
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         integer :: bnum, ee
         real(fpp), dimension(:), allocatable :: GLLc ! GLLw
@@ -924,13 +942,14 @@ contains
                 ! Allocate everything here, it simpler and not that costly...
                 if (oldngll/=0) then
                     deallocate(fieldP,fieldU,fieldV,fieldA)
-                    deallocate(eps_vol,eps_dev,sig_dev)
+                    deallocate(eps_vol,eps_dev,sig_dev,dUdX)
                     deallocate(P_energy,S_energy)
                 endif
                 allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                 allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                 allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
                 allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
@@ -949,10 +968,11 @@ contains
                     end if
                     call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,    &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
-                        eps_dev, sig_dev, nl_flag, eps_dev_pl)
+                        eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
                 case (DM_FLUID)
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
-                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, &
+                        sig_dev, dUdX)
                 case (DM_SOLID_PML)
                     call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -1037,7 +1057,7 @@ contains
         enddo
         if (oldngll/=0) then
             deallocate(fieldP,fieldU,fieldV,fieldA)
-            deallocate(eps_vol,eps_dev,sig_dev)
+            deallocate(eps_vol,eps_dev,sig_dev,dUdX)
             deallocate(P_energy,S_energy)
         endif
 
@@ -1200,6 +1220,17 @@ contains
             if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_nodes("Press_gll",  nn, i, group, "press_gll" )
             if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_cells("Press_elem", ne, i, group, "press_elem")
             if (out_variables(OUT_EPS_VOL)  == 1) call write_xdmf_attr_scalar_cells("eps_vol",    ne, i, group, "eps_vol"   )
+            if (out_variables(OUT_DUDX) == 1) then
+                call write_xdmf_attr_scalar_nodes("dUxdx", nn, i, group, "dUxdx")
+                call write_xdmf_attr_scalar_nodes("dUxdy", nn, i, group, "dUxdy")
+                call write_xdmf_attr_scalar_nodes("dUxdz", nn, i, group, "dUxdz")
+                call write_xdmf_attr_scalar_nodes("dUydx", nn, i, group, "dUydx")
+                call write_xdmf_attr_scalar_nodes("dUydy", nn, i, group, "dUydy")
+                call write_xdmf_attr_scalar_nodes("dUydz", nn, i, group, "dUydz")
+                call write_xdmf_attr_scalar_nodes("dUzdx", nn, i, group, "dUzdx")
+                call write_xdmf_attr_scalar_nodes("dUzdy", nn, i, group, "dUzdy")
+                call write_xdmf_attr_scalar_nodes("dUzdz", nn, i, group, "dUzdz")
+            end if
             if (out_variables(OUT_EPS_DEV) == 1) then
                 call write_xdmf_attr_scalar_cells("eps_dev_xx", ne, i, group, "eps_dev_xx")
                 call write_xdmf_attr_scalar_cells("eps_dev_yy", ne, i, group, "eps_dev_yy")

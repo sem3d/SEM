@@ -494,6 +494,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: dUdX
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
@@ -520,6 +521,7 @@ contains
         allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! tot energy 5
+        allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
         allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
         allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! dudx 9
@@ -560,10 +562,10 @@ contains
             case (DM_SOLID)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-                nl_flag, eps_dev_pl)
+                dUdX, nl_flag, eps_dev_pl)
             case (DM_FLUID)
               call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
             case (DM_SOLID_PML)
               call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -619,6 +621,12 @@ contains
                         ioff = offset(OUT_ENERGYS)
                         nComp = OUT_VAR_DIMS_3D(OUT_ENERGYS)-1
                         grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*S_energy(i,j,k)
+                    end if
+
+                    if (out_variables(OUT_DUDX) == 1) then
+                        ioff = offset(OUT_DUDX)
+                        nComp = OUT_VAR_DIMS_3D(OUT_DUDX)-1
+                        grandeur (ioff:ioff+nComp) = grandeur (ioff:ioff+nComp)+weight*dUdX(i,j,k,:)
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then

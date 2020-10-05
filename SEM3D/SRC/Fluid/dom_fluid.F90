@@ -96,7 +96,8 @@ contains
     end subroutine fluid_velocity
 
     subroutine get_fluid_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
+        use deriv3d
         implicit none
         !
         type(domain_fluid), intent(inout)          :: dom
@@ -104,14 +105,18 @@ contains
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable   :: phi
         real(fpp), dimension(:,:,:), allocatable   :: vphi
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldU, fieldV, fieldA
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldU
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldV
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldA
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: S_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
-        !
+        real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,divU!
+        real(fpp), dimension(0:2,0:2) :: invgrad_ijk
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
         integer :: bnum, ee
@@ -121,6 +126,7 @@ contains
 
         flag_gradU = (out_variables(OUT_ENERGYP) + &
             out_variables(OUT_ENERGYS) + &
+            out_variables(OUT_DUDX) + &
             out_variables(OUT_EPS_VOL) + &
             out_variables(OUT_EPS_DEV) + &
             out_variables(OUT_STRESS_DEV)) /= 0
@@ -170,7 +176,7 @@ contains
 #endif
         end if
 
-        if (out_variables(OUT_VITESSE) == 1) then
+        if (out_variables(OUT_VITESSE) == 1.or.flag_gradU) then
 #ifdef CPML
             call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                  dom%IDensity_(:,:,:,bnum,ee),vphi,fieldV)
@@ -190,10 +196,39 @@ contains
 #endif
         end if
 
-        if (out_variables(OUT_EPS_VOL) == 1) then
-            eps_vol(:,:,:) = 0.
-        end if
+        if (flag_gradU) then
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,bnum,ee)
+                        invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                            invgrad_ijk,fieldV(:,:,:,0),DXX,DYX,DZX)
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                            invgrad_ijk,fieldV(:,:,:,1),DXY,DYY,DZY)
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                            invgrad_ijk,fieldV(:,:,:,2),DXZ,DYZ,DZZ)
+                        divU = DXX+DYY+DZZ
 
+                        if (out_variables(OUT_DUDX) == 1) then
+                            dUdX(i,j,k,0) = DXX
+                            dUdX(i,j,k,1) = DXY
+                            dUdX(i,j,k,2) = DXZ
+                            dUdX(i,j,k,3) = DYX
+                            dUdX(i,j,k,4) = DYY
+                            dUdX(i,j,k,5) = DYZ
+                            dUdX(i,j,k,6) = DZX
+                            dUdX(i,j,k,7) = DZY
+                            dUdX(i,j,k,8) = DZZ
+                        end if
+
+                        if (out_variables(OUT_EPS_VOL) == 1) then
+                            eps_vol(:,:,:) = divU
+                        end if
+                    end do
+                end do
+            end do
+        end if
         if (out_variables(OUT_ENERGYP) == 1) then
             P_energy(:,:,:) = 0. !TODO
         end if
