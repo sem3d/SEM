@@ -8,6 +8,8 @@ Set of subroutines to post-process RIK output
 # Required modules
 #=======================================================================
 import os 
+from os.path import join as opj
+import argparse
 import sys
 import numpy as np
 import math
@@ -28,7 +30,7 @@ from   matplotlib.cm import ScalarMappable
 from   matplotlib import ticker
 from   matplotlib.colors import LogNorm
 from   matplotlib.image import NonUniformImage
-from   matplotlib.ticker import LogFormatter
+from   matplotlib.ticker import LogFormatter, FormatStrFormatter
 from   matplotlib.patches import Circle
 import seaborn as sns
 from   collections import OrderedDict 
@@ -45,6 +47,30 @@ __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
 
+def start_rik():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--wkd',type=str,default="./",help="Working directory")
+    parser.add_argument('--plot',action='store_true',help="plot?")
+    parser.add_argument('-t','--tag',type=str,default='slip',help="tag")
+    parser.add_argument('--L','-L',type=float,default=15.,help="fault length")
+    parser.add_argument('--W','-W',type=float,default=15.,help="fault width")
+    parser.add_argument('--nL',type=int,default=294,help="Number of grids along fault length")
+    parser.add_argument('--nW',type=int,default=213,help="Number of grids along fault width")
+    parser.add_argument('--nt',type=int,default=480,help="Number of time steps")
+    parser.add_argument('--dt',type=float,default=0.025,help="Time step")
+    parser.add_argument('--hL',type=float,default=12.5,help="Hypocenter along-length coordinate")
+    parser.add_argument('--hW',type=float,default=0.0,help="Hypocenter along-width coordinate")
+    parser.add_argument('--hE',type=float,default=0.0,help="Hypocenter east coordinate")
+    parser.add_argument('--hN',type=float,default=0.0,help="Hypocenter north coordinate")
+    parser.add_argument('--hZ',type=float,default=0.0,help="Hypocenter elevation coordinate")
+    parser.add_argument('--strike',type=float,default=45.0,help="Strike")
+    parser.add_argument('--dip',type=float,default=60.0,help="Dip")
+    parser.add_argument('--rake',type=float,default=108.0,help="Rake")
+    parser.add_argument('--sf',type=str,default="slipdistribution.dat",help="Filename of slip distributions")
+    parser.add_argument('--fg',type=str,default="xxx.png",help="Figure file name")
+    parser.set_defaults(plot=True)
+    opt = parser.parse_args().__dict__
+    return opt
 
 def get_rotation_tensor(aS,aD):
     r'''From [N,E,D] et to [E,N,Z]
@@ -171,6 +197,7 @@ def readfileslip (NSR, filename):
 
 def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
     print('Plotting max-slip distribution')
+    print(nrows,ncols,LF,WF)
     # Making a colormap
     c    = mcolors.ColorConverter().to_rgb
     cc = ['#ffffff', '#dfe6ff', '#a5b5da', '#516b8e', '#c5ce9b',
@@ -187,28 +214,31 @@ def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
     fig = p.figure(figsize=(18,10))
     p.subplots_adjust(hspace=0.35)
     ax = fig.add_subplot(111)
-    ax.set_xlabel('Along strike [km]', fontsize=17)
-    ax.set_ylabel('Along up-dip [km]', fontsize=17)
+    ax.set_xlabel(r'Along strike [km]', fontsize=17)
+    ax.set_ylabel(r'Along up-dip [km]', fontsize=17)
     
-    ax.set_xlim([0,1.1*LF])
-    ax.set_ylim([-0.2,1.1*WF])
+    ax.set_xlim([0.,LF])
+    ax.set_ylim([0.,WF])
     vmin = slip.min()
     vmax = slip.max()
     print('min and max of slip:')
     print(vmin,vmax)
     grid = slip.reshape((nrows, ncols))
-    im = plt.imshow(grid, extent=(0.0,1.1*LF,0.0,1.1*WF), interpolation='bilinear', cmap=cmap, origin='lower')
-    formatter = LogFormatter(10, labelOnlyBase=False)
-    cb = fig.colorbar(im, shrink=0.5, aspect=10, pad=0.01, ticks=np.arange(vmin,vmax,1), format=formatter)
-    cb.set_label('Slip [m]', labelpad=20, y=0.5, rotation=90, fontsize=17)
-    #p.setp(cb.ax.yaxis.get_ticklabels(), fontsize=16)
-    ax.plot(nucx,nucy, marker='*', color='red',markersize=20)
+    im = plt.imshow(grid, extent=(0.0,LF,0.0,WF),interpolation='bilinear',cmap=cmap,origin='lower')
+    formatter = FormatStrFormatter('%.1f') #LogFormatter(10,labelOnlyBase=False)
+    #norm = mpl.colors.Normalize(vmin=vmin,vmax=vmax)
+    cb = fig.colorbar(im,shrink=0.5,aspect=10,pad=0.01,
+            ticks=np.linspace(vmin,vmax,11),format=formatter)
+    cb.set_label('Slip [m]',labelpad=20,y=0.5,rotation=90,fontsize=17)
+    p.setp(cb.ax.yaxis.get_ticklabels(), fontsize=16)
+    ax.plot(nucx,nucy, marker='*',color='red',markersize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     topname  = 'Max slip [m] = '+ '% .4f' % max(slip)
     plt.title(topname+'\n', fontsize=20)
     if kaydet:
-        fig.savefig(figname, dpi=300)
+        fig.savefig(figname,dpi=500,bbox_inches='tight')
+        plt.close()
     else:
         plt.show()
 
