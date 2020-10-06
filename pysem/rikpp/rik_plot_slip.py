@@ -4,8 +4,14 @@
 Main file to plot slip patches obtained with RIKsrf2
 
 Example:
-    
-    python3 rik_plot_slip.py --nL 140 --nW 80 --sf /home/filippo/Data/Filippo/aeolus/ModeleVitessesEDF/slipdistribution.dat --hL 5.0 --hW 3.0 -L 7 -W 4
+
+    Plot slip contour over 140 x 80 fault grid, with hypocenter located at (x,y=(5 km, 3 km) on the fault 2D plane 
+    ^ W 
+    |
+    |____> L
+
+    python3 rik_plot_slip.py --nL 140 --nW 80 --sf slipdistribution.dat --hL 5.0 --hW 3.0 -L 7 -W 4 --fg teil
+
 '''
 #=======================================================================
 # Required modules

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 """
-Main file to convert RIK output into SEM3D input
+Main file to convert RIKsrf2 output into SEM3D input
 
 Example:
+
+    python3 rik_slip2moment.py --nL 170 --nW 98 --sf slipdistribution.dat --hL 3.66 --hW 3.15 -L 7 -W 4 --fg=teil --strike 45. --dip 60. --rake 108. --nt 2048 --dt 0.01 --hE 6.318922E5 --hN 4.931475E6 --hZ -860.0 --wkd ./ --tag teil    
 
 
 """
