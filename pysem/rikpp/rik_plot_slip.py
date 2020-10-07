@@ -10,16 +10,12 @@ Example:
     |
     |____> L
 
-    python3 rik_plot_slip.py --nL 140 --nW 80 --sf slipdistribution.dat --hL 5.0 --hW 3.0 -L 7 -W 4 --fg teil
+    python3 rik_plot_slip.py @wkd ./ @nL 140 @nW 80 @sf ./slipdistribution.dat @hL 3.66 @hW 3.15 @L 7.0 @W 4.0 @tag teil
 
 '''
 #=======================================================================
 # Required modules
 #=======================================================================
-import os
-import sys
-import argparse
-import os.path as osp
 from rik_pp_lib import *
 #=======================================================================
 # General informations
@@ -37,8 +33,8 @@ if __name__ == '__main__':
     opt = start_rik()
     globals().update(opt)
     # Input data
+    fg=opj(wkd,tag)
     NSR = nW*nL
     x, y, slip = readfileslip(NSR, sf)
-
     # Attention a l'ordre de W et L #
     plotslip (nW,nL,L,W,slip,True,fg,hL,hW)
