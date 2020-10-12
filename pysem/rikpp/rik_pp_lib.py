@@ -243,8 +243,8 @@ def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
     topname  = r"$\max\Delta u$ [m] = {{{:>.2f}}}".format(max(slip))
     plt.title(topname,fontsize=20)
     if kaydet:
-        print("{:>s}.png".format(figname))
-        plt.savefig("{:>s}.png".format(figname),dpi=500,bbox_inches='tight')
+        print("{:>s}_slipmax.png".format(figname))
+        plt.savefig("{:>s}_slipmax.png".format(figname),dpi=500,bbox_inches='tight')
         plt.close()
     else:
         plt.show()
