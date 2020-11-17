@@ -16,7 +16,6 @@ Example:
 from rik_pp_lib import *
 from scipy.integrate import cumtrapz
 from scipy.spatial import Voronoi,Delaunay,voronoi_plot_2d
-
 u'''General informations'''
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2018, MSSMat UMR CNRS 8579 - CentraleSupélec"
@@ -94,8 +93,6 @@ class mesh(object):
             
     def RotTransMesh3d(self,aS,aD,hyp):
         MatMesh = get_rotation_tensor(aS, aD)
-        import pdb
-        pdb.set_trace()
         trs = np.dot(MatMesh,hyp[0])
         trs = hyp[1]-trs
         for i,p in enumerate(self.msh.nodes):
@@ -149,7 +146,6 @@ if __name__=='__main__':
 
     T_total = (nt-1)*dt
     time = np.linspace(0.0, T_total, nt)
-
     # Les angles en radian
     print("/n/n")
     print("Hypocenter (UTM): \nEW: {:>.1f}\nNS: {:>.1f}\nUD: {:>.1f}\n".format(hE,hN,hZ))

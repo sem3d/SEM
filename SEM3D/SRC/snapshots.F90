@@ -1322,16 +1322,16 @@ contains
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Lamb" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                 '">geometry',group,'.h5:/Lamb</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! MU
+            write(61,"(a)") '<Attribute Name="Mu" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mu" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                '">geometry',group,'.h5:/Mu</DataItem>'
+            write(61,"(a)") '</Attribute>'
             if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
                 ! GRAD LAMBDA
                 write(61,"(a)") '<Attribute Name="GradLa_gll" Center="Node" AttributeType="Vector">'
                 write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="GradLa_gll" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                     ' 3">geometry',group,'.h5:/GradLa_gll</DataItem>'
-                write(61,"(a)") '</Attribute>'
-                ! MU
-                write(61,"(a)") '<Attribute Name="Mu" Center="Node" AttributeType="Scalar">'
-                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mu" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
-                    '">geometry',group,'.h5:/Mu</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
             if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
@@ -1340,12 +1340,12 @@ contains
                 write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="GradMu_gll" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                     ' 3">geometry',group,'.h5:/GradMu_gll</DataItem>'
                 write(61,"(a)") '</Attribute>'
-                ! KAPPA
-                write(61,"(a)") '<Attribute Name="Kappa" Center="Node" AttributeType="Scalar">'
-                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
-                    '">geometry',group,'.h5:/Kappa</DataItem>'
-                write(61,"(a)") '</Attribute>'
             end if
+            ! KAPPA
+            write(61,"(a)") '<Attribute Name="Kappa" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                '">geometry',group,'.h5:/Kappa</DataItem>'
+            write(61,"(a)") '</Attribute>'
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar">'
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" NumberType="Int"  Dimensions="',nn, &
