@@ -1,23 +1,10 @@
-To use the randomFields library
+# randomFields
 
-COMPILATION
-===========
+## INSTALL
 
-The folder structure that you shoud create is:
+Follow the guidelines in `INSTALL.md`
 
-|build
-|build_RF
-|sem-ecp
-    |_randomfield
-            |_README_random_fields   <- YOU ARE HERE
-
-Create a file called makefile inside the folder build_RF indicating your libraries paths. 
-Some examples of tested configurations can be found inside sem-ecp/randomfield/.
-Enter the folder builg_RF and execute "make -f <your_makefile_File>.
-
-
-USING INSIDE SEM
-================
+## USING INSIDE SEM
 
 We suppose that we're running a test case in a folder called TEST. The location of this folder is arbitrary.
 
@@ -29,11 +16,10 @@ located in the TEST/mat/h5 folder.
 Once properties are generated you SEM simulation.
 
 
-INPUTS
-======
+## INPUTS
 
-RF_main_input
--------------
+### RF_main_input
+
 This file indicates that we are using the library with SEM and the folder of materials.
 It REMAINS UNCHANGED for every SEM simulation.
 Its contents are:
