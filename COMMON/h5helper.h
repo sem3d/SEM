@@ -9,7 +9,7 @@
 
 // hdf5.h may  include mpi.h which can include mpicxx.h and we don't want that since
 // we would need to link against libmpicxx ...
-#define OMPI_SKIP_MPICXX
+//#define OMPI_SKIP_MPICXX
 #include <hdf5.h>
 #include <vector>
 
