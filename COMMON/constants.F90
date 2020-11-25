@@ -91,6 +91,14 @@ MODULE constants
     integer, parameter :: MATDEF_HOOKE_RHO     = 4
     integer, parameter :: MATDEF_NLKP_VS_RHO   = 5
     integer, parameter :: MATDEF_NU_VS_RHO     = 6
+    ! Heterogeneous damping
+    integer, parameter :: MATDEF_VP_VS_RHO_D     = 7
+    integer, parameter :: MATDEF_E_NU_RHO_D      = 8
+    integer, parameter :: MATDEF_LAMBDA_MU_RHO_D = 9
+    integer, parameter :: MATDEF_KAPPA_MU_RHO_D  = 10
+    integer, parameter :: MATDEF_HOOKE_RHO_D     = 11
+    integer, parameter :: MATDEF_NLKP_VS_RHO_D   = 12
+    integer, parameter :: MATDEF_NU_VS_RHO_D     = 13
 
     ! DOMAINS (par ordre de priorite pour les sauvegardes)
     integer, parameter :: DM_SOLID = 4

@@ -178,15 +178,15 @@ contains
 
         ! DUDX
         if (out_variables(OUT_DUDX) == 1) then
-            call write_1d_var_c(outputs, parent_id, "dUxdx", outputs%dUdX(0,:))
-            call write_1d_var_c(outputs, parent_id, "dUxdy", outputs%dUdX(1,:))
-            call write_1d_var_c(outputs, parent_id, "dUxdz", outputs%dUdX(2,:))
-            call write_1d_var_c(outputs, parent_id, "dUydx", outputs%dUdX(3,:))
-            call write_1d_var_c(outputs, parent_id, "dUydy", outputs%dUdX(4,:))
-            call write_1d_var_c(outputs, parent_id, "dUydz", outputs%dUdX(5,:))
-            call write_1d_var_c(outputs, parent_id, "dUzdx", outputs%dUdX(6,:))
-            call write_1d_var_c(outputs, parent_id, "dUzdy", outputs%dUdX(7,:))
-            call write_1d_var_c(outputs, parent_id, "dUzdz", outputs%dUdX(8,:))
+            call write_1d_var_n(outputs, parent_id, "dUxdx", outputs%dUdX(0,:))
+            call write_1d_var_n(outputs, parent_id, "dUxdy", outputs%dUdX(1,:))
+            call write_1d_var_n(outputs, parent_id, "dUxdz", outputs%dUdX(2,:))
+            call write_1d_var_n(outputs, parent_id, "dUydx", outputs%dUdX(3,:))
+            call write_1d_var_n(outputs, parent_id, "dUydy", outputs%dUdX(4,:))
+            call write_1d_var_n(outputs, parent_id, "dUydz", outputs%dUdX(5,:))
+            call write_1d_var_n(outputs, parent_id, "dUzdx", outputs%dUdX(6,:))
+            call write_1d_var_n(outputs, parent_id, "dUzdy", outputs%dUdX(7,:))
+            call write_1d_var_n(outputs, parent_id, "dUzdz", outputs%dUdX(8,:))
         end if
 
         ! EPS_DEV

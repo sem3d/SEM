@@ -624,7 +624,7 @@ contains
         dom%dt = Tdomain%TimeD%dtmin
     end subroutine init_domain_solid
 
-    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, nlkp, nl_flag)
+    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, nlkp, nl_flag, Qp, Qs)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -632,6 +632,8 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Qp
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Qs
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: nlkp
         logical, intent(in) :: nl_flag
         real(fpp),parameter :: gamma_el = 1.0d-5
@@ -666,8 +668,8 @@ contains
             if (dom%aniso) then
                 dom%Q_(:,:,:,bnum,ee) = mat%Qmu
             else
-                dom%Qs_(:,:,:,bnum,ee) = mat%Qmu
-                dom%Qp_(:,:,:,bnum,ee) = mat%Qpression
+                dom%Qs_(:,:,:,bnum,ee) = Qs
+                dom%Qp_(:,:,:,bnum,ee) = Qp
             endif
         endif
 

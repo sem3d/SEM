@@ -77,7 +77,7 @@ module ssubdomains
         ! depending on material_definition we can have
         ! Vp(v1) Vs(v2) Rho(v3)
         ! Lambda(v1) Mu(v2) Rho(v3) ...
-        type(PropertyField), dimension(3) :: pf
+        type(PropertyField), dimension(5) :: pf
 
     end type Subdomain
 

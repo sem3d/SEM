@@ -623,11 +623,11 @@ contains
                         grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*S_energy(i,j,k)
                     end if
 
-                    if (out_variables(OUT_DUDX) == 1) then
-                        ioff = offset(OUT_DUDX)
-                        nComp = OUT_VAR_DIMS_3D(OUT_DUDX)-1
-                        grandeur (ioff:ioff+nComp) = grandeur (ioff:ioff+nComp)+weight*dUdX(i,j,k,:)
-                    end if
+                    !if (out_variables(OUT_DUDX) == 1) then
+                    !    ioff = offset(OUT_DUDX)
+                    !    nComp = OUT_VAR_DIMS_3D(OUT_DUDX)-1
+                    !    grandeur (ioff:ioff+nComp) = grandeur (ioff:ioff+nComp)+weight*dUdX(i,j,k,:)
+                    !end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then
                         ioff = offset(OUT_EPS_VOL)
