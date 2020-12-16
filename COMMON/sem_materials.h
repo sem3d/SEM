@@ -54,7 +54,8 @@ typedef struct sem_material_t {
     double rho;
     double Vp;
     double Vs;
-    double E, nu;
+    double E;
+    double nu;
     double lambda;
     double kappa;
     double mu;
@@ -66,8 +67,8 @@ typedef struct sem_material_t {
     double nlkp;
     double rinf;
     double biso;
-    double Qpression;
-    double Qmu;
+    double Qp;
+    double Qs;
 
     struct sem_material_t* next;
 } sem_material_t;

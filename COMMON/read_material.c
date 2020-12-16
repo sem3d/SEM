@@ -55,8 +55,8 @@ void matcpy(sem_material_t* dst, sem_material_t* src)
     dst->nlkp = src->nlkp;
     dst->rinf = src->rinf;
     dst->biso = src->biso;
-    dst->Qpression  = src->Qpression;
-    dst->Qmu        = src->Qmu;
+    dst->Qp = src->Qp;
+    dst->Qs = src->Qs;
 
     dst->filename0 = src->filename0;
     dst->filename1 = src->filename1;
@@ -109,8 +109,8 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
         if (cmp(scanner,"kappa"))     err=expect_eq_float(scanner, &mat->kappa, 1);
         if (cmp(scanner,"mu"))        err=expect_eq_float(scanner, &mat->mu, 1);
         if (cmp(scanner,"nlkp"))      err=expect_eq_float(scanner, &mat->nlkp, 1);
-        if (cmp(scanner,"Qp"))        err=expect_eq_float(scanner, &mat->Qpression, 1);
-        if (cmp(scanner,"Qs"))        err=expect_eq_float(scanner, &mat->Qmu, 1);
+        if (cmp(scanner,"Qp"))        err=expect_eq_float(scanner, &mat->Qp, 1);
+        if (cmp(scanner,"Qs"))        err=expect_eq_float(scanner, &mat->Qs, 1);
         if (cmp(scanner,"copy")) {
             err=expect_eq_int(scanner, &nmat, 1);
             if (err<=0) {

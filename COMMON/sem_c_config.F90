@@ -225,8 +225,8 @@ module sem_c_config
        real(C_DOUBLE) :: rinf
        real(C_DOUBLE) :: biso
        !
-       real(C_DOUBLE) :: Qpression
-       real(C_DOUBLE) :: Qmu
+       real(C_DOUBLE) :: Qp
+       real(C_DOUBLE) :: Qs
        !
        type(C_PTR)    :: next
     end type sem_material

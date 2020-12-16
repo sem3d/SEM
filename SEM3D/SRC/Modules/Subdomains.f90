@@ -65,6 +65,7 @@ module ssubdomains
         
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression
+        real(fpp) :: Qs, Qp
         !! PML
         real(fpp), dimension(0:2) :: pml_pos, pml_width
         integer :: npow

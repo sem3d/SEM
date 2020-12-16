@@ -449,66 +449,35 @@ contains
         logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
         aniso = .false.
+        Qp = mat%Qpression
+        Qs = mat%Qmu
         select case(mat%material_definition)
             case(MATERIAL_CONSTANT)
                 !    on copie toujours le materiau de base
                 !    si le flag gradient est actif alors on peut changer les proprietes
                 rho = mat%Ddensity
                 select case(mat%deftype)
-                case(MATDEF_VP_VS_RHO)
+                case(MATDEF_VP_VS_RHO,MATDEF_VP_VS_RHO_D)
                     v0 = mat%Pspeed
                     v1 = mat%Sspeed
-                case(MATDEF_E_NU_RHO)
+                case(MATDEF_E_NU_RHO,MATDEF_E_NU_RHO_D)
                     v0 = mat%DE
                     v1 = mat%DNU
-                case(MATDEF_LAMBDA_MU_RHO)
+                case(MATDEF_LAMBDA_MU_RHO,MATDEF_LAMBDA_MU_RHO_d)
                     v0 = mat%DLambda
                     v1 = mat%DMu
-                case(MATDEF_KAPPA_MU_RHO)
+                case(MATDEF_KAPPA_MU_RHO,MATDEF_KAPPA_MU_RHO_D)
                     v0 = mat%DKappa
                     v1 = mat%DMu
-                case(MATDEF_HOOKE_RHO)
+                case(MATDEF_HOOKE_RHO,MATDEF_HOOKE_RHO_D)
                     aniso = .true.
                     ! XXX TODO REQUIRED ATTENTION
-                case(MATDEF_NLKP_VS_RHO)
+                case(MATDEF_NLKP_VS_RHO,MATDEF_NLKP_VS_RHO_D)
                     v0 = mat%DNlkp
                     v1 = mat%Sspeed
-                case(MATDEF_NU_VS_RHO)
+                case(MATDEF_NU_VS_RHO,MATDEF_NU_VS_RHO_D)
                     v0 = mat%DNu
                     v1 = mat%Sspeed
-                case(MATDEF_VP_VS_RHO_D)
-                    v0 = mat%Pspeed
-                    v1 = mat%Sspeed
-                    Qp = mat%Qpression
-                    Qs = mat%Qmu
-                case(MATDEF_E_NU_RHO_D)
-                    v0 = mat%DE
-                    v1 = mat%DNU
-                    Qp = mat%Qpression
-                    Qs = mat%Qmu
-                case(MATDEF_LAMBDA_MU_RHO_D)
-                    v0 = mat%DLambda
-                    v1 = mat%DMu
-                    Qp = mat%Qpression
-                    Qs = mat%Qmu
-                case(MATDEF_KAPPA_MU_RHO_D)
-                    v0 = mat%DKappa
-                    v1 = mat%DMu
-                    Qp = mat%Qpression
-                    Qs = mat%Qmu
-                case(MATDEF_HOOKE_RHO_D)
-                    aniso = .true.
-                    ! XXX TODO REQUIRED ATTENTION
-                case(MATDEF_NLKP_VS_RHO_D)
-                    v0 = mat%DNlkp
-                    v1 = mat%Sspeed
-                    Qp = mat%Qpression
-                    Qs = mat%Qmu
-                case(MATDEF_NU_VS_RHO_D)
-                    v0 = mat%DNu
-                    v1 = mat%Sspeed
-                    Qp = mat%Qpression
-                    Qs = mat%Qmu
                 end select
             case( MATERIAL_FILE )
                 ! XXX interpolate rho/v0/v1 from file

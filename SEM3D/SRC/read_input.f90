@@ -87,12 +87,6 @@ contains
 
         call c_f_pointer(Tdomain%material_list%head, matdesc)
 
-        if (c_associated(matdesc%filename0))then
-            write(*,*) "fn0 C associated"
-        end if
-        if (c_associated(matdesc%filename4))then
-            write(*,*) "fn4 associated"
-        end if
         do while(associated(matdesc))
             num = matdesc%num
             select case(matdesc%defspatial)
@@ -123,8 +117,8 @@ contains
             Tdomain%sSubdomain(num)%DRinf    = matdesc%rinf
             Tdomain%sSubdomain(num)%DBiso    = matdesc%biso
             Tdomain%sSubdomain(num)%DNlkp    = matdesc%nlkp
-            Tdomain%sSubdomain(num)%Qpression= matdesc%Qpression
-            Tdomain%sSubdomain(num)%Qmu      = matdesc%Qmu
+            Tdomain%sSubdomain(num)%Qp       = matdesc%Qp
+            Tdomain%sSubdomain(num)%Qs       = matdesc%Qs
 
             !!! TODO Add Qp/Qmu, PML
             call c_f_pointer(matdesc%next, matdesc)
