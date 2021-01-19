@@ -242,7 +242,7 @@ def main():
 
     mesh = Gmsh()
     mesh.tag_mat = opt.mat
-    mesh.read(file(opt.input))
+    mesh.read(open(opt.input,'r'))
     mesh.save(opt.output)
 
         
