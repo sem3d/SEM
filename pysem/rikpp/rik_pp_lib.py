@@ -240,7 +240,7 @@ def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
     ax.plot(nucx,nucy, marker='*',color='red',markersize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
-    topname  = r"$\max\Delta u$ [m] = {{{:>.2f}}}".format(max(slip))
+    topname  = r"$\max\Delta u$ = {{:>.2f}} m".format(max(slip))
     plt.title(topname,fontsize=20)
     if kaydet:
         print("{:>s}_slipmax.png".format(figname))
