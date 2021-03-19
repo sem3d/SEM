@@ -3,9 +3,11 @@
 """
 Script to create h5 material files for SEM3D
 
-    Ex.1 : Compute amplitude Ax knowning PML length (300. m):
+    Ex.1 generate linear gradient along z direction for a cube of [-100.0,100.0]x[-100.0,100.0]x[-100.0,100.0] 
+    with step [20x20x20]
         
-        python3 generate_h5_materials.py --pfx base_smooth_het
+        python3 generate_h5_materials.py @@tag linear_gradient @@pfx example @@dir z @@xlim -100.0 100.0 @@ylim -100.0 100.0 @zlim -100.0 100.0
+            @@step 20 20 20
 """
 # Required modules
 import argparse
@@ -33,6 +35,8 @@ def base_smooth_heterogeneous(d,grd,nu=0.3):
     
     la = 20.*(80.0+0.45*np.abs(z)+\
         35.0*np.exp(-(np.abs(z)-22.5)**2/150.0))*1.e6 # Mpa
+    # la = 20.*(100.0+0.45*np.abs(z)+\
+#         50.0*np.exp(-(np.abs(z)-100.0)**2/1000.0))*1.e6 # Mpa
     mu = 0.5*(1.-2.*nu)*la/nu
     la = la.transpose(*trnsp)
     mu = mu.transpose(*trnsp)
@@ -124,16 +128,16 @@ def write_xdmf(pfx,prop,mat,lims):
 
 if __name__=='__main__':
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--prop',type=str,nargs='+',default= ['la','mu','ds','vp','vs'],help="list of properties to be generated")
-    parser.add_argument('--tag',type=str,default="linear_gradient",help="tag for material model")
-    parser.add_argument('--dir',type=str,default="z",help="Main gradient direction [x|y|z]")
-    parser.add_argument('--xlim',type=float,nargs='*',default=[-45.0,45.0],help="Limits of the box [xmin xmax]")
-    parser.add_argument('--ylim',type=float,nargs='*',default=[-45.0,45.0],help="Limits of the box [ymin ymax]")
-    parser.add_argument('--zlim',type=float,nargs='*',default=[-65.0, 5.0],help="Limits of the box [zmin zmax]")
-    parser.add_argument('--step',type=float,nargs='*',default=[10,10,501],help="Numbers of points per direction [nx ny nz]")
-    parser.add_argument('--pfx',type=str,default="linear_gradient",help="File prefix")
-    parser.add_argument('--nu',type=float,default=0.3,help="Poisson's ratio")
+    parser = argparse.ArgumentParser(prefix_chars='@')
+    parser.add_argument('@@prop',type=str,nargs='+',default= ['la','mu','ds','vp','vs'],help="list of properties to be generated")
+    parser.add_argument('@@tag',type=str,default="linear_gradient",help="tag for material model")
+    parser.add_argument('@@dir',type=str,default="z",help="Main gradient direction [x|y|z]")
+    parser.add_argument('@@xlim',type=float,nargs='*',default=[-45.0,45.0],help="Limits of the box [xmin xmax]")
+    parser.add_argument('@@ylim',type=float,nargs='*',default=[-45.0,45.0],help="Limits of the box [ymin ymax]")
+    parser.add_argument('@@zlim',type=float,nargs='*',default=[-65.0, 5.0],help="Limits of the box [zmin zmax]")
+    parser.add_argument('@@step',type=float,nargs='*',default=[10,10,501],help="Numbers of points per direction [nx ny nz]")
+    parser.add_argument('@@pfx',type=str,default="linear_gradient",help="File prefix")
+    parser.add_argument('@@nu',type=float,default=0.3,help="Poisson's ratio")
     opt = parser.parse_args().__dict__
     
     assert len(opt['xlim'])==2
