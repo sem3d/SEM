@@ -14,7 +14,7 @@ module smirror
     real(fpp), dimension(:), allocatable :: bspl_tmp, winf_sl, winf_fl
     real(fpp), dimension(:,:,:), allocatable :: displ_sl, force_sl
     real(fpp), dimension(:,:), allocatable :: displ_fl, force_fl
-    real(fpp) :: d_t,d_tm
+    real(fpp) :: d_t,d_tm,t_offset
     integer :: rnk, recp, n_spl, n_dcm, n_t, n_tm, n_gll, n_glltot_sl, n_glltot_fl
 
 contains
@@ -40,9 +40,10 @@ contains
         endif
 
         if (Tdomain%use_mirror) then
-            call compute_mirror_sl(Tdomain, Tdomain%sdom)
-            call compute_mirror_fl(Tdomain, Tdomain%fdom)
+            if (Tdomain%sdom%nbelem>0) call compute_mirror_sl(Tdomain, Tdomain%sdom)
+            if (Tdomain%fdom%nbelem>0) call compute_mirror_fl(Tdomain, Tdomain%fdom)
         endif
+
     end subroutine init_mirror
 
     subroutine dump_param_mirror(Tdomain)
@@ -79,6 +80,8 @@ contains
         n_spl = Tdomain%config%mirror_nspl
         d_t = Tdomain%TimeD%dtmin
         n_t = Tdomain%TimeD%ntimeMax
+
+        t_offset = Tdomain%config%mirror_offset
 
         call read_mirror_h5_attr()
 
@@ -167,29 +170,35 @@ contains
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
         integer :: e, i, j, k, gel, idx
+        logical :: file_exists
         !
 
         fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
-        call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
-        call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
-        call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
-        call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
-        call h5fclose_f(fid, hdferr)
+        INQUIRE(FILE=fname, EXIST=file_exists)
+        if (file_exists)then
+            call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
+            call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
+            call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+            call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
+            call h5fclose_f(fid, hdferr)
 
-        map2glltot_sl = -1
-        n_glltot_sl = 0
-        do idx = 0,size(mirror_E)-1
-            gel = mirror_E(idx)
-            i = mirror_IJK(0,idx)
-            j = mirror_IJK(1,idx)
-            k = mirror_IJK(2,idx)
-            if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
-            e = Tdomain%specel(gel)%lnum
-            n_glltot_sl = n_glltot_sl+1
-            map2glltot_sl(e,i,j,k) = n_glltot_sl
-        enddo
+            map2glltot_sl = -1
+            n_glltot_sl = 0
+            do idx = 0,size(mirror_E)-1
+                gel = mirror_E(idx)
+                i = mirror_IJK(0,idx)
+                j = mirror_IJK(1,idx)
+                k = mirror_IJK(2,idx)
+                if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
+                e = Tdomain%specel(gel)%lnum
+                n_glltot_sl = n_glltot_sl+1
+                map2glltot_sl(e,i,j,k) = n_glltot_sl
+            enddo
 
-        deallocate(mirror_E, mirror_IJK)
+            deallocate(mirror_E, mirror_IJK)
+        else
+            n_glltot_sl=0
+        endif
     end subroutine map_mirror_sl
 
     subroutine map_mirror_fl(Tdomain)
@@ -206,29 +215,35 @@ contains
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
         integer :: e, i, j, k, gel, idx
+        logical :: file_exists
         !
 
         fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".mirror.h5"
-        call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
-        call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
-        call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
-        call read_dset_1d_real(fid, "/Mirror/inside", winf_fl, 0)
-        call h5fclose_f(fid, hdferr)
+        INQUIRE(FILE=fname, EXIST=file_exists)
+        if (file_exists)then
+            call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
+            call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
+            call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
+            call read_dset_1d_real(fid, "/Mirror/inside", winf_fl, 0)
+            call h5fclose_f(fid, hdferr)
 
-        map2glltot_fl = -1
-        n_glltot_fl = 0
-        do idx = 0,size(mirror_E)-1
-            gel = mirror_E(idx)
-            i = mirror_IJK(0,idx)
-            j = mirror_IJK(1,idx)
-            k = mirror_IJK(2,idx)
-            if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
-            e = Tdomain%specel(gel)%lnum
-            n_glltot_fl = n_glltot_fl+1
-            map2glltot_fl(e,i,j,k) = n_glltot_fl
-        enddo
+            map2glltot_fl = -1
+            n_glltot_fl = 0
+            do idx = 0,size(mirror_E)-1
+                gel = mirror_E(idx)
+                i = mirror_IJK(0,idx)
+                j = mirror_IJK(1,idx)
+                k = mirror_IJK(2,idx)
+                if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
+                e = Tdomain%specel(gel)%lnum
+                n_glltot_fl = n_glltot_fl+1
+                map2glltot_fl(e,i,j,k) = n_glltot_fl
+            enddo
 
-        deallocate(mirror_E, mirror_IJK)
+            deallocate(mirror_E, mirror_IJK)
+        else
+            n_glltot_fl=0
+        endif
     end subroutine map_mirror_fl
 
     subroutine mirror_face_normal(cnodes, fdir)
@@ -392,12 +407,12 @@ contains
         real(fpp) :: t,tnt,tmp
 
         if (dom%mirror_type==1) then
-            ntimecur = ntime
+            ntimecur = ntime+(t_offset/d_t)
             ntimeloc = mod(ntime,n_dcm)
             first = 0
             firstloc = 0
         elseif (dom%mirror_type==2) then
-            ntimecur = n_t-1-ntime
+            ntimecur = n_t-1-(ntime+(t_offset/d_t))
             ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
             first = n_t-1
             firstloc = n_dcm-1
@@ -478,12 +493,12 @@ contains
         real(fpp) :: t,tnt,tmp
 
         if (dom%mirror_type==1) then
-            ntimecur = ntime
+            ntimecur = ntime+(t_offset/d_t)
             ntimeloc = mod(ntime,n_dcm)
             first = 0
             firstloc = 0
         elseif (dom%mirror_type==2) then
-            ntimecur = n_t-1-ntime
+            ntimecur = n_t-1-(ntime+(t_offset/d_t))
             ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
             first = n_t-1
             firstloc = n_dcm-1
