@@ -188,6 +188,9 @@ typedef struct {
     int mirror_type;
     double mirror_fmax;
     int mirror_nspl;
+    double mirror_offset;
+    int mirror_expl;
+    int mirror_recalc;
     int mirror_impl_surf_type;
     double mirror_impl_surf_radius;
     double mirror_impl_surf_center[3];

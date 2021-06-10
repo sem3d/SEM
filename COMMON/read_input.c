@@ -338,6 +338,9 @@ int expect_mirror(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"fmax")) err=expect_eq_float(scanner, &config->mirror_fmax,1);
         if (cmp(scanner,"nspl")) err=expect_eq_int(scanner, &config->mirror_nspl,1);
         if (cmp(scanner,"impl_surf")) err=expect_impl_surf(scanner, config);
+        if (cmp(scanner,"offset")) err=expect_eq_float(scanner, &config->mirror_offset,1);
+        if (cmp(scanner,"expl_form")) err=expect_eq_bool(scanner, &config->mirror_expl, 1);
+        if (cmp(scanner,"recalc")) err=expect_eq_bool(scanner, &config->mirror_recalc, 1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -886,6 +889,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 
 void init_sem_config(sem_config_t* cfg)
 {
+    int i;
     memset(cfg, 0, sizeof(sem_config_t));
     // Valeurs par defaut
     cfg->courant = 0.2;
@@ -921,13 +925,16 @@ void init_sem_config(sem_config_t* cfg)
     cfg->mirror_type = 0;
     cfg->mirror_fmax = 0.;
     cfg->mirror_nspl = 5;
+    cfg->mirror_offset = 0.;
+    cfg->mirror_expl = 0;
+    cfg->mirror_recalc = 0;
     cfg->mirror_smooth_window = 0;
     cfg->mirror_impl_surf_type = 0;
     cfg->mirror_impl_surf_radius = 1.;
     cfg->mirror_impl_surf_center[0] = 0.;
     cfg->mirror_impl_surf_center[1] = 0.;
     cfg->mirror_impl_surf_center[2] = 0.;
-    for (int i = 0; i < 6; i++) cfg->mirror_impl_surf_box[i] = 0.;
+    for (i = 0; i < 6; i++) cfg->mirror_impl_surf_box[i] = 0.;
 }
 
 
@@ -965,6 +972,7 @@ void dump_config(sem_config_t* cfg)
     printf("Mirror : use %d\n", cfg->use_mirror);
     if (cfg->use_mirror) {
         printf("Mirror : type %d, fmax %f, nspl %d\n", cfg->mirror_type, cfg->mirror_fmax, cfg->mirror_nspl);
+        printf("Mirror : explicit form %d, force recalc %d\n", cfg->mirror_expl, cfg->mirror_recalc);
         if (cfg->mirror_impl_surf_type == 1) {
             printf("Mirror : impl_surf type %d, impl_surf_radius %f, impl_surf_center %f %f %f\n",
                    cfg->mirror_impl_surf_type,
