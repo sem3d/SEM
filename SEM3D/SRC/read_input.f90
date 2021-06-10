@@ -731,6 +731,10 @@ contains
         if (Tdomain%config%use_mirror/=0) Tdomain%use_mirror = .true.
         Tdomain%mirror_type = Tdomain%config%mirror_type
         if (Tdomain%config%use_mirror==0) Tdomain%mirror_type = -1
+        Tdomain%mirror_expl = .false.
+        if (Tdomain%config%mirror_expl/=0) Tdomain%mirror_expl = .true.
+        Tdomain%mirror_recalc = .false.
+        if (Tdomain%config%mirror_recalc/=0) Tdomain%mirror_recalc = .true.
 
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
