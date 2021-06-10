@@ -368,7 +368,7 @@ void Mesh3DPart::compute_gll()
     calcul_gll(m_cfg->ngll-1, m_gll);
 }
 
-void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
+void Mesh3DPart::handle_mirror_implicit_surf(index_t el, index_t elnum)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
 
@@ -386,8 +386,8 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
         vco[2][vt] = m_mesh.m_zco[gv];
     }
 
-    bool sign_pos = false;
-    bool sign_minus = false;
+    bool tag_pos = false;
+    bool tag_nul = false;
     std::vector<index_t> mirror_e;
     std::vector<index_t> mirror_ijk;
     std::vector<double>  mirror_xyz;
@@ -402,8 +402,14 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
 
                 double win = 0.;
                 double f = is->f(x, y, z, &win);
+
                 if (f >= 0.) {
-                    mirror_e.push_back(el);
+                    tag_pos = true;
+                } else {
+                    tag_nul = true;
+                }
+                if (m_cfg->mirror_expl || m_cfg->mirror_recalc || f >= 0.) {
+                    mirror_e.push_back(elnum);
                     mirror_ijk.push_back(i);
                     mirror_ijk.push_back(j);
                     mirror_ijk.push_back(k);
@@ -419,16 +425,13 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el)
                     mirror_outnormal.push_back(nx);
                     mirror_outnormal.push_back(ny);
                     mirror_outnormal.push_back(nz);
-                    sign_pos = true;
-                } else {
-                    sign_minus = true;
                 }
             }
         }
     }
     delete is;
 
-    if (sign_pos && sign_minus) {
+    if (tag_pos && tag_nul) {
         m_mirror_e.insert  (m_mirror_e.end(),   mirror_e.begin(),   mirror_e.end()  );
         m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
         m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
@@ -597,7 +600,7 @@ void Mesh3DPart::handle_local_element(index_t el, bool is_border)
             index_t gid = m_mesh.m_elems[e0 + vx];
             add_node(gid);
         }
-        handle_mirror_implicit_surf(el);
+        handle_mirror_implicit_surf(el,m_elems.size()-1);
     }
 }
 
@@ -1015,13 +1018,32 @@ void Mesh3DPart::output_mirror() const
 {
     unsigned int nb_pts = m_mirror_xyz.size()/3;
     printf("%04d : number of mirror points = %ld\n", m_proc, nb_pts);
-    if (nb_pts == 0) return;
-
     char fname[2048];
     snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
     hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (nb_pts == 0){
+        printf("processor with empty mirror: %d\n",m_proc);
+        std::vector<index_t> empty_mirror_e;
+        std::vector<index_t> empty_mirror_ijk;
+        std::vector<double>  empty_mirror_xyz;
+        std::vector<double>  empty_mirror_w;
+        std::vector<double>  empty_mirror_inside;
+        std::vector<double>  empty_mirror_outnormal;
+
+        h5h_write_dset_empty(rid, "E", empty_mirror_e);
+        h5h_write_dset_2d_empty(rid, "IJK", 3, empty_mirror_ijk);
+        h5h_write_dset_2d_empty(rid, "XYZ", 3, empty_mirror_xyz);
+        h5h_write_dset_2d_empty(rid, "W", 3, empty_mirror_w);
+        h5h_write_dset_empty(rid, "inside", empty_mirror_inside);
+        h5h_write_dset_2d_empty(rid, "outnormal", 3, empty_mirror_outnormal);
+        vector<index_t> id; //for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
+        h5h_write_dset_empty(rid, "ID", id); // Only needed for XMF
+        H5Gclose(rid);
+        H5Fclose(fid);
+        return;
+    };
     h5h_write_dset(rid, "E", m_mirror_e);
     h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
     h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
