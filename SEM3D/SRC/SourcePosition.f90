@@ -50,7 +50,8 @@ subroutine SourcePosition (Tdomain)
 
         ! On trouve les elements autour de la source
         nmax = NMAXEL
-        call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
+        !call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
+        call find_location_centroid(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
         n_el = -1
 
         do i=1,nmax
@@ -58,6 +59,7 @@ subroutine SourcePosition (Tdomain)
             xi   = coordloc(0,i)
             eta  = coordloc(1,i)
             zeta = coordloc(2,i)
+
             if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
             if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
 

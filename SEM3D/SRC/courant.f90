@@ -125,6 +125,7 @@ contains
             avgPspeed_mat(mat) = avgPspeed_mat(mat) + sumPspeed
             dxmin_mat(mat) = min(dxmin, dxmin_mat(mat))
         enddo
+        Tdomain%dxmax = dxmax
 
         if(use_average) then
             if(rg==0) write(*,*) 'WARNING!!using average'
