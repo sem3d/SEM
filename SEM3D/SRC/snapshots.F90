@@ -858,6 +858,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real(fpp), dimension(:,:,:,:,:), allocatable :: fieldUder
         integer :: bnum, ee
         real(fpp), dimension(:), allocatable :: GLLc ! GLLw
         real(fpp), dimension(:,:,:), allocatable :: jac
@@ -903,6 +904,7 @@ contains
                     deallocate(fieldP,fieldU,fieldV,fieldA)
                     deallocate(eps_vol,eps_dev,sig_dev)
                     deallocate(P_energy,S_energy)
+                    deallocate(fieldUder)
                 endif
                 allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
@@ -916,6 +918,7 @@ contains
                 allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
                 allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                 ! dudx 9
+                allocate(fieldUder(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2))
                 oldngll = ngll
             endif
             domain_type = Tdomain%specel(n)%domain
@@ -926,7 +929,7 @@ contains
                     end if
                     call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,    &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
-                        eps_dev, sig_dev, nl_flag, eps_dev_pl)
+                        eps_dev, sig_dev, nl_flag, eps_dev_pl, fieldUder)
                 case (DM_FLUID)
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -1016,6 +1019,7 @@ contains
             deallocate(fieldP,fieldU,fieldV,fieldA)
             deallocate(eps_vol,eps_dev,sig_dev)
             deallocate(P_energy,S_energy)
+            deallocate(fieldUder)
         endif
 
         if (outputs%rank==0) then
