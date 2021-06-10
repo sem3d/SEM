@@ -133,14 +133,32 @@ public:
         zmax = config ? config->mirror_impl_surf_box[5] :  1.;
         smooth_win = config ? config->mirror_smooth_window : 0;
     }
+//    GB GB
+//    virtual double f(double x, double y, double z, double* win = NULL) const {
+//        double fx = -1.; if (fabs(x - xmin) < 1.e-12 || fabs(x - xmax) < 1.e-12) fx = 0.; if (xmin < x && x < xmax) fx = 1.;
+//        double fy = -1.; if (fabs(y - ymin) < 1.e-12 || fabs(y - ymax) < 1.e-12) fy = 0.; if (ymin < y && y < ymax) fy = 1.;
+//        double fz = -1.; if (fabs(z - zmin) < 1.e-12 || fabs(z - zmax) < 1.e-12) fz = 0.; if (zmin < z && z < zmax) fz = 1.;
+//        double f = fx*fy*fz;
+//        compute_window(win, f);
+//        return f;
+//    };
     virtual double f(double x, double y, double z, double* win = NULL) const {
-        double fx = -1.; if (fabs(x - xmin) < 1.e-12 || fabs(x - xmax) < 1.e-12) fx = 0.; if (xmin < x && x < xmax) fx = 1.;
-        double fy = -1.; if (fabs(y - ymin) < 1.e-12 || fabs(y - ymax) < 1.e-12) fy = 0.; if (ymin < y && y < ymax) fy = 1.;
-        double fz = -1.; if (fabs(z - zmin) < 1.e-12 || fabs(z - zmax) < 1.e-12) fz = 0.; if (zmin < z && z < zmax) fz = 1.;
-        double f = fx*fy*fz;
+        double xeps = (xmax-xmin)*1.e-12;
+        double yeps = (ymax-ymin)*1.e-12;
+        double zeps = (zmax-zmin)*1.e-12;
+        double f = -1.;
+        if (   (xmin-x) < xeps && (x-xmax) < xeps
+            && (ymin-y) < yeps && (y-ymax) < yeps
+            && (zmin-z) < zeps && (z-zmax) < zeps ){
+            f = 1.;
+            if (fabs(x - xmin) < xeps || fabs(x - xmax) < xeps) f = 0.;
+            if (fabs(y - ymin) < yeps || fabs(y - ymax) < yeps) f = 0.;
+            if (fabs(z - zmin) < zeps || fabs(z - zmax) < zeps) f = 0.;
+        }
         compute_window(win, f);
         return f;
     };
+//    GB GB
     virtual void n(double x, double y, double z, double& nx, double& ny, double& nz) const {
         nx = ny = nz = 0.;
         if (fabs(x - xmin) < 1.e-12) nx = -1.; if (fabs(x - xmax) < 1.e-12) nx = 1.;
@@ -241,7 +259,7 @@ protected:
     std::vector<double> m_mirror_outnormal;
     std::vector<double> m_gll;
     void compute_gll();
-    void handle_mirror_implicit_surf(index_t el);
+    void handle_mirror_implicit_surf(index_t el, index_t elnum);
     void handle_mirror_surf(const Surface* smirror);
     void shape8_local2global(double const vco[3][8],
                              double xi, double eta, double zeta,
