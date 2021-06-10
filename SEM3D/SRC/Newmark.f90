@@ -430,16 +430,34 @@ contains
             call stat_starttick(STAT_FSOL)
             ! Mirror Record
             if (Tdomain%mirror_type==0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
-                do n = 0,Tdomain%sdom%nblocks-1
-                    call forces_int_solid_mirror_dump(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
-                enddo
+                if (Tdomain%mirror_expl) then
+                    do n = 0,Tdomain%sdom%nblocks-1
+                        call forces_int_solid_mirror_dump_expl(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                    enddo
+                else
+                    do n = 0,Tdomain%sdom%nblocks-1
+                        call forces_int_solid_mirror_dump(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                    enddo
+                endif
                 call dump_mirror_sl(Tdomain%sdom,ntime)
             ! Mirror Forward/Backward
             elseif (Tdomain%mirror_type>0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
                 call load_mirror_sl(Tdomain%sdom,ntime)
-                do n = 0,Tdomain%sdom%nblocks-1
-                    call forces_int_solid_mirror_load(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
-                enddo
+                if (Tdomain%mirror_recalc) then
+                    do n = 0,Tdomain%sdom%nblocks-1
+                        call forces_int_solid_mirror_load_recalc(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                    enddo
+                else
+                    if (Tdomain%mirror_expl) then
+                        do n = 0,Tdomain%sdom%nblocks-1
+                            call forces_int_solid_mirror_load_expl(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                        enddo
+                    else
+                        do n = 0,Tdomain%sdom%nblocks-1
+                            call forces_int_solid_mirror_load(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                        enddo
+                    endif
+                endif
             ! Without Mirror
             else
                 do n = 0,Tdomain%sdom%nblocks-1
