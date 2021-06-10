@@ -109,6 +109,7 @@ contains
         call read_attr_real_vec(grp_id, "xMinGlob", pf%MinBound)
         call read_attr_real_vec(grp_id, "xMaxGlob", pf%MaxBound)
         call read_dims(grp_id, "samples", dims)
+
         pf%NN = int(dims)
         ! On va calculer les indices i0,i1 j0,j1,k0,k1 tels que
         ! i0 plus grand entier tel que x(i0)<MinBound_loc(0), 
@@ -125,6 +126,7 @@ contains
         end do
 
         call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
+
         if (subgrp) call H5Gclose_f(grp_id, hdferr)
         call H5Fclose_f(file_id, hdferr)
     end subroutine init_prop_file_field
@@ -158,7 +160,6 @@ contains
         do k = 0,mat%ngll-1
             do j = 0,mat%ngll-1
                 do i = 0,mat%ngll-1
-
                     idef = specel%Iglobnum(i,j,k)
                     do n=0,2
                         xx(n) = Tdomain%GlobCoord(n,idef)
@@ -176,6 +177,8 @@ contains
                         if (ii(n)  < pf%imin(n)) ii(n) = pf%imin(n)
                         if (ii(n) >= pf%imax(n)) ii(n) = pf%imax(n)-1
                         aa(n) = pos-ii(n)
+                        if (aa(n)<0.) aa(n)=0.
+                        if (aa(n)>1.) aa(n)=1.
                     end do
                     ! trilinear interpolation
                     val =       (1.-aa(0))*(1.-aa(1))*(1.-aa(2))*pf%var(ii(0)  ,ii(1)  ,ii(2)  )
