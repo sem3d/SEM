@@ -194,7 +194,7 @@ contains
 
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy,&
-        eps_vol, eps_dev, sig_dev, nl_flag, eps_dev_pl)
+        eps_vol, eps_dev, sig_dev, nl_flag, eps_dev_pl, fieldUder)
         use deriv3d
         implicit none
         !
@@ -210,6 +210,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:6) :: eps_dev_pl
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2,0:2) :: fieldUder
         !
         logical                  :: flag_gradU
         integer                  :: ngll, i, j, k, ind
@@ -259,7 +260,7 @@ contains
             do j=0,ngll-1
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
-                    if (flag_gradU) then
+                    if (flag_gradU .or. (out_variables(OUT_DUDX) == 1)) then
                         invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
                         call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
                              invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
@@ -268,6 +269,17 @@ contains
                         call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
                              invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                         divU = DXX+DYY+DZZ
+                        if (out_variables(OUT_DUDX) == 1) then
+                            fieldUder(i,j,k,0,0) = DXX
+                            fieldUder(i,j,k,0,1) = DXY
+                            fieldUder(i,j,k,0,2) = DXZ
+                            fieldUder(i,j,k,1,0) = DYX
+                            fieldUder(i,j,k,1,1) = DYY
+                            fieldUder(i,j,k,1,2) = DYZ
+                            fieldUder(i,j,k,2,0) = DZX
+                            fieldUder(i,j,k,2,1) = DZY
+                            fieldUder(i,j,k,2,2) = DZZ
+                        end if
                     end if
                     if (out_variables(OUT_VITESSE) == 1) fieldV(i,j,k,:) = dom%champs(0)%Veloc(ind,:)
                     if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs(0)%Forces(ind,:)
@@ -788,6 +800,145 @@ contains
 
     end subroutine forces_int_solid_mirror_dump
 
+
+    subroutine forces_int_solid_mirror_dump_expl(dom,champs1,bnum)
+        use m_calcul_forces
+        use m_calcul_forces_atn
+        use m_calcul_forces_nl
+
+        type(domain_solid),intent(inout) :: dom
+        type(champssolid),intent(inout) :: champs1
+        integer,intent(in) :: bnum
+        logical :: aniso
+        integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
+!!!        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_ex,Foy_ex,Foz_ex
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+
+        n_solid = dom%n_sls
+        aniso = dom%aniso
+        ngll = dom%ngll
+        lnum = bnum*VCHUNK
+
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            if (idx_m>=0) dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        Fox = 0.0_fpp
+        Foy = 0.0_fpp
+        Foz = 0.0_fpp
+        if (aniso) then
+            if (n_solid>0) then
+                call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_aniso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        else
+            if (n_solid>0) then
+                call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        endif
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        !!! update mirror excitation force with -W.(K.u)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                        if (idx_m>=0) then
+                            dom%mirror_sl%fields(4,idx_m) = -Fox(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                            dom%mirror_sl%fields(5,idx_m) = -Foy(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                            dom%mirror_sl%fields(6,idx_m) = -Foz(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+!!!                            Fox_ex(ee,i,j,k) = -Fox(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+!!!                            Foy_ex(ee,i,j,k) = -Foy(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+!!!                            Foz_ex(ee,i,j,k) = -Foz(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        !!! compute K.(W.u)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                        if (idx_m>=0) then
+                            Depla(ee,i,j,k,0) = champs1%Depla(idx,0)*dom%mirror_sl%winfunc(idx_m)
+                            Depla(ee,i,j,k,1) = champs1%Depla(idx,1)*dom%mirror_sl%winfunc(idx_m)
+                            Depla(ee,i,j,k,2) = champs1%Depla(idx,2)*dom%mirror_sl%winfunc(idx_m)
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+        Fox = 0.0_fpp
+        Foy = 0.0_fpp
+        Foz = 0.0_fpp
+        if (aniso) then
+            if (n_solid>0) then
+                call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_aniso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        else
+            if (n_solid>0) then
+                call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        endif
+
+        !!! update mirror excitation force with +K.(W.u)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                        if (idx_m>=0) then 
+                            dom%mirror_sl%fields(4,idx_m) = dom%mirror_sl%fields(4,idx_m)+Fox(ee,i,j,k)
+                            dom%mirror_sl%fields(5,idx_m) = dom%mirror_sl%fields(5,idx_m)+Foy(ee,i,j,k)
+                            dom%mirror_sl%fields(6,idx_m) = dom%mirror_sl%fields(6,idx_m)+Foz(ee,i,j,k)
+!!!                            dom%mirror_sl%fields(4,idx_m) = Fox_ex(ee,i,j,k)+Fox(ee,i,j,k)
+!!!                            dom%mirror_sl%fields(5,idx_m) = Foy_ex(ee,i,j,k)+Foy(ee,i,j,k)
+!!!                            dom%mirror_sl%fields(6,idx_m) = Foz_ex(ee,i,j,k)+Foz(ee,i,j,k)
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+
+    end subroutine forces_int_solid_mirror_dump_expl
+
+
     subroutine forces_int_solid_mirror_load(dom,champs1,bnum)
         use m_calcul_forces
         use m_calcul_forces_atn
@@ -859,6 +1010,232 @@ contains
         enddo
 
     end subroutine forces_int_solid_mirror_load
+
+
+    subroutine forces_int_solid_mirror_load_expl(dom,champs1,bnum)
+        use m_calcul_forces
+        use m_calcul_forces_atn
+        use m_calcul_forces_nl
+
+        type(domain_solid),intent(inout) :: dom
+        type(champssolid),intent(inout) :: champs1
+        integer,intent(in) :: bnum
+        logical :: aniso
+        integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_ex,Foy_ex,Foz_ex
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+
+        n_solid = dom%n_sls
+        aniso = dom%aniso
+        ngll = dom%ngll
+        lnum = bnum*VCHUNK
+
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        Fox = 0.0_fpp
+        Foy = 0.0_fpp
+        Foz = 0.0_fpp
+        if (aniso) then
+            if (n_solid>0) then
+                call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_aniso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        else
+            if (n_solid>0) then
+                call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        endif
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                        !!! apply explicit mirror excitation force -W.(K.u)+K.(W.u)
+                        if (idx_m>=0) then
+                            Fox(ee,i,j,k) = Fox(ee,i,j,k)+dom%mirror_sl%fields(4,idx_m)
+                            Foy(ee,i,j,k) = Foy(ee,i,j,k)+dom%mirror_sl%fields(5,idx_m)
+                            Foz(ee,i,j,k) = Foz(ee,i,j,k)+dom%mirror_sl%fields(6,idx_m)
+                        endif
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                    enddo
+                enddo
+            enddo
+        enddo
+
+    end subroutine forces_int_solid_mirror_load_expl
+
+
+    subroutine forces_int_solid_mirror_load_recalc(dom,champs1,bnum)
+        use m_calcul_forces
+        use m_calcul_forces_atn
+        use m_calcul_forces_nl
+
+        type(domain_solid),intent(inout) :: dom
+        type(champssolid),intent(inout) :: champs1
+        integer,intent(in) :: bnum
+        logical :: aniso
+        integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_m,Foy_m,Foz_m
+        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+
+        n_solid = dom%n_sls
+        aniso = dom%aniso
+        ngll = dom%ngll
+        lnum = bnum*VCHUNK
+
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        Fox = 0.0_fpp
+        Foy = 0.0_fpp
+        Foz = 0.0_fpp
+        if (aniso) then
+            if (n_solid>0) then
+                call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_aniso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        else
+            if (n_solid>0) then
+                call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        endif
+
+        !!! compute mirror excitation force -W.(K.u)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                        if (idx_m>=0) then
+                            Depla(ee,i,j,k,0) = dom%mirror_sl%fields(1,idx_m)
+                            Depla(ee,i,j,k,1) = dom%mirror_sl%fields(2,idx_m)
+                            Depla(ee,i,j,k,2) = dom%mirror_sl%fields(3,idx_m)
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+        Fox_m = 0.0_fpp
+        Foy_m = 0.0_fpp
+        Foz_m = 0.0_fpp
+        if (aniso) then
+            if (n_solid>0) then
+                call calcul_forces_aniso_atn(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+            else
+                call calcul_forces_aniso(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+            endif
+        else
+            if (n_solid>0) then
+                call calcul_forces_iso_atn(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+            else
+                call calcul_forces_iso(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+            endif
+        endif
+        !!! update regular forces using mirror excitation -W.(K.u)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                        if (idx_m>=0) then
+                            Fox(ee,i,j,k) = Fox(ee,i,j,k)-Fox_m(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                            Foy(ee,i,j,k) = Foy(ee,i,j,k)-Foy_m(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                            Foz(ee,i,j,k) = Foz(ee,i,j,k)-Foz_m(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+        !!! compute mirror excitation force +K.(W.u)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                        if (idx_m>=0) then
+                            Depla(ee,i,j,k,0) = dom%mirror_sl%fields(1,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                            Depla(ee,i,j,k,1) = dom%mirror_sl%fields(2,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                            Depla(ee,i,j,k,2) = dom%mirror_sl%fields(3,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+        Fox_m = 0.0_fpp
+        Foy_m = 0.0_fpp
+        Foz_m = 0.0_fpp
+        if (aniso) then
+            if (n_solid>0) then
+                call calcul_forces_aniso_atn(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+            else
+                call calcul_forces_aniso(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+            endif
+        else
+            if (n_solid>0) then
+                call calcul_forces_iso_atn(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+            else
+                call calcul_forces_iso(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+            endif
+        endif
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                        !!! update regular forces using mirror excitation +K.(W.u)
+                        if (idx_m>=0) then
+                            Fox(ee,i,j,k) = Fox(ee,i,j,k)+Fox_m(ee,i,j,k)
+                            Foy(ee,i,j,k) = Foy(ee,i,j,k)+Foy_m(ee,i,j,k)
+                            Foz(ee,i,j,k) = Foz(ee,i,j,k)+Foz_m(ee,i,j,k)
+                        endif
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                    enddo
+                enddo
+            enddo
+        enddo
+
+
+    end subroutine forces_int_solid_mirror_load_recalc
+
+
 
     ! XXX WTF?
     subroutine compute_planeW_Exafield(lnum,ctime,Tdomain,f)
@@ -982,15 +1359,3 @@ contains
         end do
     end subroutine lddrk_update_solid
 end module dom_solid
-
-!! Local Variables:
-!! mode: f90
-!! show-trailing-whitespace: t
-!! coding: utf-8
-!! f90-do-indent: 4
-!! f90-if-indent: 4
-!! f90-type-indent: 4
-!! f90-program-indent: 4
-!! f90-continuation-indent: 4
-!! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :
