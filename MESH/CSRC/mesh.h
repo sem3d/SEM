@@ -21,7 +21,7 @@ class Mesh3D
 {
 public:
     // methods
-    Mesh3D():m_xadj(0L), m_adjncy(0L), debug(false) {
+        Mesh3D():m_xadj(0L), m_adjncy(0L), debug(false), has_mrrs(false) {
 	m_elems_offs.push_back(0);
     }
 
