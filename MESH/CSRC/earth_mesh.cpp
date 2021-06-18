@@ -6,7 +6,7 @@
 
 #include <cmath>
 #include <cassert>
-#include "earthmesh.h"
+#include "earth_mesh.h"
 
 void EarthMesh::read_params(FILE* inp)
 {

@@ -16,7 +16,7 @@
 #include "mesh_common.h"
 #include "read_input.h"
 #include "sem_input.h"
-#include "earthmesh.h"
+#include "earth_mesh.h"
 
 void handle_on_the_fly(Mesh3D& mesh)
 {
