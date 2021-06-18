@@ -655,7 +655,7 @@ contains
                             dUkdZ = fieldU(i,j,k,d)*outx(i)*outy(j)*doutz(k)
                             grandeur(ioff+d+0) = grandeur(ioff+d+0) + dUkdX
                             grandeur(ioff+d+3) = grandeur(ioff+d+3) + dUkdY
-                            grandeur(ioff+d+6) = grandeur(ioff+d+6) + dUkdY
+                            grandeur(ioff+d+6) = grandeur(ioff+d+6) + dUkdZ
                         end do
                     end if
                 enddo
