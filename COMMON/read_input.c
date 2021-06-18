@@ -979,6 +979,7 @@ void dump_config(sem_config_t* cfg)
         }
         printf("Mirror : smooth_window %d\n", cfg->mirror_smooth_window);
     }
+    fflush(stdout);
 }
 
 
