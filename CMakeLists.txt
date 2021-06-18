@@ -56,6 +56,10 @@ if (OPT_MPI)
   add_definitions(-D__MPI)
 endif (OPT_MPI)
 
+# We use c99 and c++11
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # FLAGS ifort :
   # -fpp : preprocesseur
