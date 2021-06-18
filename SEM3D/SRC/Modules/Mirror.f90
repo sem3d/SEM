@@ -14,7 +14,7 @@ module smirror
     real(fpp), dimension(:), allocatable :: bspl_tmp, winf_sl, winf_fl
     real(fpp), dimension(:,:,:), allocatable :: displ_sl, force_sl
     real(fpp), dimension(:,:), allocatable :: displ_fl, force_fl
-    real(fpp) :: d_t,d_tm
+    real(fpp) :: d_t,d_tm,t_offset
     integer :: rnk, recp, n_spl, n_dcm, n_t, n_tm, n_gll, n_glltot_sl, n_glltot_fl
 
 contains
@@ -40,9 +40,10 @@ contains
         endif
 
         if (Tdomain%use_mirror) then
-            call compute_mirror_sl(Tdomain, Tdomain%sdom)
-            call compute_mirror_fl(Tdomain, Tdomain%fdom)
+            if (Tdomain%sdom%nbelem>0) call compute_mirror_sl(Tdomain, Tdomain%sdom)
+            if (Tdomain%fdom%nbelem>0) call compute_mirror_fl(Tdomain, Tdomain%fdom)
         endif
+
     end subroutine init_mirror
 
     subroutine dump_param_mirror(Tdomain)
@@ -79,6 +80,8 @@ contains
         n_spl = Tdomain%config%mirror_nspl
         d_t = Tdomain%TimeD%dtmin
         n_t = Tdomain%TimeD%ntimeMax
+
+        t_offset = Tdomain%config%mirror_offset
 
         call read_mirror_h5_attr()
 
@@ -404,12 +407,12 @@ contains
         real(fpp) :: t,tnt,tmp
 
         if (dom%mirror_type==1) then
-            ntimecur = ntime
+            ntimecur = ntime+(t_offset/d_t)
             ntimeloc = mod(ntime,n_dcm)
             first = 0
             firstloc = 0
         elseif (dom%mirror_type==2) then
-            ntimecur = n_t-1-ntime
+            ntimecur = n_t-1-(ntime+(t_offset/d_t))
             ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
             first = n_t-1
             firstloc = n_dcm-1
@@ -490,12 +493,12 @@ contains
         real(fpp) :: t,tnt,tmp
 
         if (dom%mirror_type==1) then
-            ntimecur = ntime
+            ntimecur = ntime+(t_offset/d_t)
             ntimeloc = mod(ntime,n_dcm)
             first = 0
             firstloc = 0
         elseif (dom%mirror_type==2) then
-            ntimecur = n_t-1-ntime
+            ntimecur = n_t-1-(ntime+(t_offset/d_t))
             ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
             first = n_t-1
             firstloc = n_dcm-1

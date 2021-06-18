@@ -65,6 +65,7 @@ contains
         integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out
         real(fpp), allocatable, dimension(:,:) :: coordl
         integer :: periodeRef
+        logical :: flag
 
 
         station_next = Tdomain%config%stations
@@ -87,7 +88,10 @@ contains
             yc = station_ptr%coords(2)
             zc = station_ptr%coords(3)
             numproc = -1
-            call trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta)
+            flag = .false.
+            nom = fromcstr(station_ptr%name)
+            if (trim(nom(1:20))=="UU_18872") flag = .true.
+            call trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta, flag)
             ! Cas ou le capteur est dans le maillage
             if (n_el/=-1) then
                 numproc = Tdomain%rank
@@ -499,6 +503,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real(fpp), dimension(:,:,:,:,:), allocatable :: fieldUder
         real(fpp), dimension(:), allocatable :: GLLc
         logical :: nl_flag
         integer :: nComp
@@ -524,6 +529,7 @@ contains
         allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
         allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! dudx 9
+        allocate(fieldUder(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2))
 
         allocate(outx(0:ngll-1))
         allocate(outy(0:ngll-1))
@@ -561,7 +567,7 @@ contains
             case (DM_SOLID)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-                nl_flag, eps_dev_pl)
+                nl_flag, eps_dev_pl, fieldUder)
             case (DM_FLUID)
               call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -650,12 +656,9 @@ contains
                     if (out_variables(OUT_DUDX) == 1) then
                         ioff = offset(OUT_DUDX)
                         do d=0,2
-                            dUkdX = fieldU(i,j,k,d)*doutx(i)*outy(j)*outz(k)
-                            dUkdY = fieldU(i,j,k,d)*outx(i)*douty(j)*outz(k)
-                            dUkdZ = fieldU(i,j,k,d)*outx(i)*outy(j)*doutz(k)
-                            grandeur(ioff+d+0) = grandeur(ioff+d+0) + dUkdX
-                            grandeur(ioff+d+3) = grandeur(ioff+d+3) + dUkdY
-                            grandeur(ioff+d+6) = grandeur(ioff+d+6) + dUkdZ
+                            grandeur(ioff+d+0) = grandeur(ioff+d+0) + weight*fieldUder(i,j,k,d,0)
+                            grandeur(ioff+d+3) = grandeur(ioff+d+3) + weight*fieldUder(i,j,k,d,1)
+                            grandeur(ioff+d+6) = grandeur(ioff+d+6) + weight*fieldUder(i,j,k,d,2)
                         end do
                     end if
                 enddo
@@ -681,6 +684,7 @@ contains
         deallocate(eps_dev_pl)
         deallocate(sig_dev)
         deallocate(grandeur)
+        deallocate(fieldUder)
         deallocate(outx)
         deallocate(outy)
         deallocate(outz)
@@ -841,7 +845,7 @@ contains
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
     !! alors le capteur est sur une face, arete ou sur un sommet
     !!
-    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta)
+    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta, flag)
         use mshape8
         use mshape27
         use mlocations3d
@@ -850,17 +854,19 @@ contains
         real(fpp), intent(in) :: xc, yc, zc
         integer, intent(out) :: n_el, n_eln
         real(fpp), intent(out) :: xi, eta, zeta
+        logical, intent(in) :: flag
         !
         integer :: i
         logical :: inside
         integer :: nmax
-        integer, parameter :: NMAXEL=20
+        integer, parameter :: NMAXEL=100
         integer, dimension(NMAXEL) :: elems
         real(fpp), dimension(0:2,NMAXEL) :: coordloc
         real(fpp), parameter :: EPS = 1D-13, EPSN = 0.1D0
 
         nmax = NMAXEL
-        call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
+        !call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
+        call find_location_centroid(Tdomain, xc, yc, zc, nmax, elems, coordloc)
         n_el = -1
         n_eln = -1
         ! Cas ou la station est dans le maillage

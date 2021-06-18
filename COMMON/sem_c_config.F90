@@ -80,6 +80,9 @@ module sem_c_config
        integer(C_INT) :: mirror_type
        real(C_DOUBLE) :: mirror_fmax
        integer(C_INT) :: mirror_nspl
+       real(C_DOUBLE) :: mirror_offset
+       integer(C_INT) :: mirror_expl
+       integer(C_INT) :: mirror_recalc
        integer(kind=C_INT) :: mirror_impl_surf_type;
        real(C_DOUBLE) :: mirror_impl_surf_radius;
        real(C_DOUBLE), dimension(3) :: mirror_impl_surf_center;

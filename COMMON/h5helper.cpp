@@ -280,7 +280,7 @@ void h5h_read_dset_Nx2(hid_t g, const char* dname, vector<double>& v, vector<dou
     startfile[1] = 1;
     H5Sselect_hyperslab(filespace_id, H5S_SELECT_SET, startfile, NULL, countfile, NULL); // Get Y, mask X
     H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id, H5P_DEFAULT, &w[0]);
-
+    
     H5Sclose(memspace_id);
     H5Sclose(filespace_id);
     H5Dclose(dset_id);
@@ -291,12 +291,14 @@ void h5h_read_dset_Nx3(hid_t g, const char* dname, vector<double>& u, vector<dou
     hid_t dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
     hsize_t dim1 = -1, dim2 = -1;
     h5h_get_dset2d_size(dset_id, dim1, dim2);
-
+//    printf("les dimensions lues sont les suivantes : %d  %d\n",dim1,dim2); 
+//    printf("on rappelle qu'on lit le data set : %s\n",dname);
     u.resize(dim1);
     v.resize(dim1);
     w.resize(dim1);
     hid_t memspace_id = H5Screate_simple(1, &dim1, NULL);
-    hsize_t startmem[1] = {0}; hsize_t countmem[1] = {dim1};
+    hsize_t startmem[1] = {0};
+    hsize_t countmem[1] = {dim1};
     H5Sselect_hyperslab(memspace_id, H5S_SELECT_SET, startmem, NULL, countmem, NULL);
 
     hid_t filespace_id = H5Dget_space(dset_id);

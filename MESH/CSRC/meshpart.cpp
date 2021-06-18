@@ -368,7 +368,7 @@ void Mesh3DPart::compute_gll()
     calcul_gll(m_cfg->ngll-1, m_gll);
 }
 
-void Mesh3DPart::handle_mirror_implicit_surf(index_t el, index_t lid)
+void Mesh3DPart::handle_mirror_implicit_surf(index_t el, index_t elnum)
 {
     if (!m_cfg || !m_cfg->use_mirror) return;
 
@@ -386,8 +386,8 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el, index_t lid)
         vco[2][vt] = m_mesh.m_zco[gv];
     }
 
-    bool sign_pos = false;
-    bool sign_minus = false;
+    bool tag_pos = false;
+    bool tag_nul = false;
     std::vector<index_t> mirror_e;
     std::vector<index_t> mirror_ijk;
     std::vector<double>  mirror_xyz;
@@ -402,8 +402,15 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el, index_t lid)
 
                 double win = 0.;
                 double f = is->f(x, y, z, &win);
+
                 if (f >= 0.) {
-                    mirror_e.push_back(lid);
+                    tag_pos = true;
+                } else {
+                    tag_nul = true;
+                }
+                // In case explicit or recalc we need to store all gll points
+                if (m_cfg->mirror_expl || m_cfg->mirror_recalc || f >= 0.) {
+                    mirror_e.push_back(elnum);
                     mirror_ijk.push_back(i);
                     mirror_ijk.push_back(j);
                     mirror_ijk.push_back(k);
@@ -419,16 +426,13 @@ void Mesh3DPart::handle_mirror_implicit_surf(index_t el, index_t lid)
                     mirror_outnormal.push_back(nx);
                     mirror_outnormal.push_back(ny);
                     mirror_outnormal.push_back(nz);
-                    sign_pos = true;
-                } else {
-                    sign_minus = true;
                 }
             }
         }
     }
     delete is;
-
-    if (sign_pos && sign_minus) {
+    // We only keep the mirror data if we cross the mirror surface (ie f is both pos and neg within the element).
+    if (tag_pos && tag_nul) {
         m_mirror_e.insert  (m_mirror_e.end(),   mirror_e.begin(),   mirror_e.end()  );
         m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
         m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
@@ -1022,7 +1026,7 @@ void Mesh3DPart::output_mirror() const
 
     hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if (nb_pts == 0){
-        printf("processor with empty mirror: %d",m_proc);
+        printf("processor with empty mirror: %d\n",m_proc);
         std::vector<index_t> empty_mirror_e;
         std::vector<index_t> empty_mirror_ijk;
         std::vector<double>  empty_mirror_xyz;
@@ -1042,7 +1046,6 @@ void Mesh3DPart::output_mirror() const
         H5Fclose(fid);
         return;
     };
-    //    return;
     h5h_write_dset(rid, "E", m_mirror_e);
     h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
     h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
