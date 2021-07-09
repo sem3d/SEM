@@ -1,38 +1,23 @@
+#### PATH TO HDF5 AND MPI LIBRARY AND INCLUDES - to be modified by user (to be completed)
+LIBHDF5 = -L/path/to/local/local/hdf5/lib -lhdf5hl_fortran -lhdf5_hl -lhdf5_fortran -lhdf5 -ldl -lm -lz 
+INCLUDEHDF5 = -I/path/to/local/local/hdf5/include
 
-#####INSTALL (Should work with this makefile if you set all standard paths -- Tested 31/03/2016)
-#Install Xcode from app store
-#Install macports (https://www.macports.org/install.php)
-## On Terminal
-#sudo port selfupdate
-#sudo port upgrade outdated
-#sudo port install gcc5
-#sudo port select --set gcc mp-gcc5
-#sudo port install openmpi-gcc5
-#sudo port select --set mpi openmpi-gcc5-fortran
-#sudo port install hdf5 +gcc5 +fortran +szip +openmpi -cxx
-#sudo port install fftw-3 +gcc5 +fortran +openmpi
-#sudo ln -sf /opt/local/bin/mpifort-openmpi-gcc5 /opt/local/bin/mpifort
+LIBMPI = -L/path/to/local/openmpi/lib -lmpi_cxx -lmpi -lmpi_mpifh -lmpi_usempif08 -lmpi_usempi_ignore_tkr
+INCLUDEMPI = -I/path/to/local/openmpi/include
 
-#### PATH TO HDF5 AND MPI LIBRARY AND INCLUDES - to be modified by user (to be completed if not the stantard ones)
-LIBHDF5     = -L/opt/local/lib -lhdf5 -lhdf5_hl -lhdf5_fortran -lhdf5hl_fortran
-INCLUDEHDF5 = -I/opt/local/include
-LIBFFTW     = -L/opt/local/lib -lfftw3 -lfftw3_threads -lfftw3_mpi
-INCLUDEFFTW = -I/opt/local/include
-#LIBMPI      = -I/opt/local/lib/openmpi-gcc5 -lopen-trace-format -lotfaux -lvt-hyb -lvt-mpi-unify -lvt-mpi -lvt-mt -lvt-pomp -lvt
-#INCLUDEMPI  = -I/opt/local/include/openmpi-gcc5
-
-#LIBMPI = -L/opt/local/lib/mpich-gcc5 -lmpi -lmpicxx -lmpifort -lpmpi
-#INCLUDEMPI = -I/opt/local/include/mpich-gcc5
+LIBFFTW = -L/path/to/local/local/fftw/lib -lfftw3_mpi -lfftw3 -lfftw3_threads
+INCLUDEFFTW = -I/path/to/local/local/fftw/include
 
 EXEC  = randomField.exe
 EXEC2 = statistics.exe
-FC   = mpifort
-#FFLAGS = -g -cpp -Wall -Werror -ffree-line-length-none -DMAKELOG
-#FFLAGS = -g -cpp -ffree-line-length-none # -DMAKELOG
-FFLAGS = -O3 -cpp -Wall -ffree-line-length-none -DMAKELOG
+LIB1 = libRF.a
+FC   = mpif90
 
-#FFLAGS = -g -cpp -ffree-line-length-none # -DMAKELOG
-#
+FFLAGS = -g -O1  -ffree-line-length-none -cpp 
+# Other flags
+# -DMAKELOG -init=arrays,snan -fp-speculation=safe -fpe-all=0 -no-ftz -fp-stack-check -check all -check bounds -check uninit -ftrapuv 
+# -fbacktrace -fbounds-check -ffpe-trap=invalid,zero,overflow,underflow,denormal
+
 
 #### FROM THIS POINT ON THE USER SHOULD NOT MODIFY
 RM := rm -rf
@@ -105,13 +90,14 @@ COMM_OBJ += ./charFunctions.o \
 ./xerbla.o \
 ./dger.o \
 ./systemUt_RF.o \
+./special_functions.o \
 ./fftw3.o
 
 #./type_TEST.o \
 #./test_func_RF.o \
 
-LIBS = $(LIBHDF5) $(LIBMPI) $(LIBFFTW)
-INCLUDE = $(INCLUDEHDF5) $(INCLUDEMPI) $(INCLUDEFFTW)
+LIBS =  $(LIBFFTW) $(LIBHDF5) $(LIBMPI)
+INCLUDE = $(INCLUDEMPI) $(INCLUDEFFTW) $(INCLUDEHDF5) 
 
 #Dependencies
 main_RandomField.o   : calls_RF.o \
@@ -226,7 +212,8 @@ spectra_RF.o         : displayCarvalhol.o \
 		       write_Log_File.o \
 		       constants_RF.o \
                        ranlib.o \
-		       type_RF.o
+		       type_RF.o \
+                       special_functions.o
 math_RF.o            : displayCarvalhol.o \
 		       write_Log_File.o \
 		       constants_RF.o

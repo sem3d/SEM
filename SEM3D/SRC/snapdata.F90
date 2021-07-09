@@ -27,6 +27,8 @@ module msnapdata
         ! Nodes fields
         real(fpp), dimension(:,:), allocatable :: displ, veloc, accel
         real(fpp), dimension(:)  , allocatable :: press_n
+        real(fpp), dimension(:,:), allocatable :: grad_La_n
+        real(fpp), dimension(:,:), allocatable :: grad_Mu_n
 #ifdef CPML
         real(fpp), dimension(:,:), allocatable :: R1_0, R1_1, R1_2
         real(fpp), dimension(:,:), allocatable :: R2_0_dX, R2_0_dY, R2_0_dZ
@@ -35,10 +37,10 @@ module msnapdata
         real(fpp), dimension(:,:), allocatable :: FDump, FMasU, Fint
 #endif
         ! Cell fields
-        real(fpp), dimension(:)  , allocatable   :: press_c, eps_vol
-        real(fpp), dimension(:,:), allocatable   :: eps_dev, sig_dev
-        real(fpp), dimension(:), allocatable     :: P_energy, S_energy
-        real(fpp), dimension(:,:), allocatable   :: eps_dev_pl
+        real(fpp), dimension(:)  , allocatable :: press_c, eps_vol
+        real(fpp), dimension(:,:), allocatable :: eps_dev, sig_dev, dUdX
+        real(fpp), dimension(:)  , allocatable :: P_energy, S_energy
+        real(fpp), dimension(:,:), allocatable :: eps_dev_pl
 
         ! Storage for communications
         integer, dimension(:),   allocatable :: displs_n, displs_c
@@ -46,7 +48,7 @@ module msnapdata
         real(fpp), dimension(:), allocatable :: all_data_1d_n, all_data_1d_c
         integer, dimension(:),   allocatable :: displs2d_n ! so far no vectors on cells
         integer, dimension(:),   allocatable :: counts2d_n
-        real(fpp), dimension(:,:), allocatable :: all_data_2d_n
+        real(fpp), dimension(:,:), allocatable :: all_data_2d_n,all_data_2d_c
         ! Sizes (group)
         integer :: ntot_nodes, ntot_cells
     end type output_var_t

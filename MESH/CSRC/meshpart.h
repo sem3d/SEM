@@ -273,7 +273,7 @@ protected:
     void output_mesh_attributes(hid_t fid);
     void output_local_mesh(hid_t fid);
     void output_surface(hid_t fid, const Surface* surf);
-    void output_mirror() const;
+    void output_mirror(hid_t fid) const;
     void output_comm(hid_t gid, const MeshPartComm& comm, int dest);
 
     void write_surface_dom(hid_t gid, const Surface* surf, const char* pfx, int dom);

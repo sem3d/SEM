@@ -221,13 +221,15 @@ module sem_c_config
        type(C_PTR)    :: filename0
        type(C_PTR)    :: filename1
        type(C_PTR)    :: filename2
+       type(C_PTR)    :: filename3
+       type(C_PTR)    :: filename4
        !
-!       real(C_DOUBLE) :: syld
-!       real(C_DOUBLE) :: ckin
-!       real(C_DOUBLE) :: kkin
        real(C_DOUBLE) :: nlkp
        real(C_DOUBLE) :: rinf
        real(C_DOUBLE) :: biso
+       !
+       real(C_DOUBLE) :: Qp
+       real(C_DOUBLE) :: Qs
        !
        type(C_PTR)    :: next
     end type sem_material
@@ -271,8 +273,8 @@ contains
         use semdatafiles
         type(c_ptr), intent(in) :: cstr
         character(Len=MAX_FILE_SIZE) :: fromcstr
-        character,pointer,dimension(:) :: ctemp
-        integer, dimension(1) :: clen
+        character(kind=c_char),pointer,dimension(:) :: ctemp
+        integer(kind=c_size_t), dimension(1) :: clen
         integer :: i
         clen(1) = strlen(cstr)
         call c_f_pointer(cstr, ctemp, clen)

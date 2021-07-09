@@ -52,17 +52,12 @@ time_scheme {
     courant = 0.2;
 };
 
-amortissement {
-    nsolids = 0;           # number of solids for attenuation (0 if no attenuation)
-};
+ngll=5;
 
 capteurs "UU" {
     type = points;
     file = "stations.txt";
     period = 40;
-};
-material {
-    type = constant;
 };
 out_variables {
     enP = 0;   # P-wave energy (scalar field)

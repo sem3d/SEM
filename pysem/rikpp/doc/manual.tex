@@ -7,14 +7,10 @@
 \usepackage{Chicago}
 \usepackage{url}
 
-\usepackage{graphicx}
+\usepackage{graphicx, animate}
 \usepackage{caption}
 
-
-%\def\ImPath{/home/ampuero/WAVES/SEM2DPACK_2.x/doc/FIGURES}
-%\def\ImPath{../FIGURES}
-%\def\Version{2.3.8}
-\def\MonthYear{June 2017}
+\def\MonthYear{\today}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% A4 wide
@@ -190,11 +186,6 @@
 \fdunB
 %Version \Version \\[3mm]
 \MonthYear \\[3cm]
-Elif ORAL\\[2mm]
-{\small
-
-E-mail: elif.oral@centralesupelec.fr \\
-}
 \end{center}
 \vfill
 %\newpage
@@ -215,10 +206,7 @@ E-mail: elif.oral@centralesupelec.fr \\
 %%%%%%% BODY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \include{RIKmodel}
-\include{Convertisseur}
 \include{SEM}
-\include{Modifications}
-
 \bibliographystyle{apalike}
 \bibliography {Biblio}
 

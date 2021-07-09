@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 """
-Main file to convert RIK output into SEM3D input
+Main file to convert RIKsrf2 output into SEM3D input
+
+Example:
+
+    python3 rik_slip2moment.py @nL 140 @nW 80 @sf ./slipdistribution.dat @hL 3.66 @hW 3.15 @L 7.0 @W 4.0 @fg teil @strike 45. @dip 60. @rake 108. @nt 2048 @dt 0.01 @hE 631892.2 @hN 4931475.0 @hZ -860.0 @wkd ./ @tag teil
+
+
 """
 
 #=======================================================================
 # Required modules
 #=======================================================================
-import os
-import numpy as np
-import h5py
-from matplotlib import pyplot as plt
-import seaborn as sns
-import rik_pp_lib as rp
+from rik_pp_lib import *
 from scipy.integrate import cumtrapz
-#=======================================================================
-# General informations
-#=======================================================================
+from scipy.spatial import Voronoi,Delaunay,voronoi_plot_2d
+u'''General informations'''
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2018, MSSMat UMR CNRS 8579 - CentraleSupélec"
 __credits__ = ["Filippo Gatti"]
@@ -25,6 +25,82 @@ __version__ = "1.0.1"
 __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
+
+class mesh(object):
+    def __init__(self,**args):
+        if len(args.keys())==1:
+            self.xg = args['xg']
+        if len(args.keys())==2:
+            self.xg = args['xg']
+            self.yg = args['yg']
+        if len(args.keys())==3:
+            self.xg = args['xg']
+            self.yg = args['yg']
+            self.zg = args['zg']
+        if self.xg.size:
+            self.nW = self.xg.shape[0]
+            self.nL = self.xg.shape[1]
+        if self.xg.size and self.yg.size:
+            try:
+                self.genmesh3d()
+            except:
+                self.genmesh2d()
+               
+    def __call__(self,**args):
+        self.__init__(**args)
+    
+    def plot_3d_geo(self):
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        surf = ax.plot_surface(self.xg, self.yg, self.zg, \
+                               rstride=1, cstride=1, cmap=cm.coolwarm,\
+                               linewidth=0, antialiased=False)
+        ax.zaxis.set_major_locator(LinearLocator(10))
+        ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+        plt.show()
+    
+    def genmesh2d(self):
+        p2d = np.array([self.xg.T.reshape(-1,),\
+                        self.yg.T.reshape(-1,)],dtype=np.float64).T
+        self.msh = Delaunay(p2d)
+        self.msh.nodes = np.zeros((self.msh.points.shape[0],self.msh.points.shape[1]+1))
+        self.msh.nodes[:,:-1]=self.msh.points
+        return 
+    
+    def genmesh3d(self):
+        p2d = np.array([self.xg.T.reshape(-1,),\
+                        self.yg.T.reshape(-1,)],dtype=np.float64).T
+        zg = self.zg.T.reshape(-1,)
+        self.msh = Delaunay(p2d)
+        self.msh.nodes = np.zeros((self.msh.points.shape[0],\
+                                   self.msh.points.shape[1]+1),\
+                                   dtype=np.float64)
+        self.msh.nodes[:,:-1]=self.msh.points 
+        for s in self.msh.simplices:
+            self.msh.nodes[s,-1] = zg[s]
+        return
+    
+    def RotTransMesh2d(self,aS,aD,hyp):
+        MatMesh = get_rotation_tensor(aS, aD)
+        trs = np.dot(MatMesh,hyp[0])
+        trs = hyp[1]-trs
+        #self.msh.nodes = np.empty((self.msh.points.shape[0],self.msh.points.shape[1]+1))
+        for i,p in enumerate(self.msh.points):
+            self.msh.nodes[i,:] = trs+np.dot(MatMesh,\
+                                             np.concatenate((p.flatten(),\
+                                                             np.array([0.],dtype=np.float64))))
+            
+    def RotTransMesh3d(self,aS,aD,hyp):
+        MatMesh = get_rotation_tensor(aS, aD)
+        trs = np.dot(MatMesh,hyp[0])
+        trs = hyp[1]-trs
+        for i,p in enumerate(self.msh.nodes):
+            self.msh.nodes[i,:] = trs+np.dot(MatMesh,p.flatten())
+            
+    def write_mesh2h5(self,fid):
+        fid.create_dataset(name='Nodes', data=self.msh.nodes)
+        fid.create_dataset(name='Elements', data=self.msh.simplices)
 
 class SEM_source(object):
     def __init__(self,e=0.,n=0.,z=0.):
@@ -36,7 +112,7 @@ class SEM_source(object):
         self.n = n
         self.z = z
     def get_hypo(self):
-        return np.array([self.e,self.n,self.z])
+        return np.array([self.e,self.n,self.z],dtype=np.float64)
 
 class RIK_source(object):
     def __init__(self,x=0.,y=0.,z=0.,hypfile=None):
@@ -52,124 +128,107 @@ class RIK_source(object):
         if hypfile:
             self.read_hypo(hypfile)
     def read_hypo(self,hypfile):
-        self.x, self.y = rp.readhypo(hypfile)
+        self.x, self.y = readhypo(hypfile)
     def get_hypo(self):
-        return np.array([self.x,self.y,self.z])
+        return np.array([self.x,self.y,self.z],dtype=np.float64)
 
 if __name__=='__main__':
-    fld = '/home/filippo/Data/Filippo/ares/workdir/RIK/napa_2014/results'
-    plot_figure     = True
-    figurename = 'napa_2014_moment_vs_time.png'
-
-    # Saving point-coordinates in file ...?
+    opt = start_rik()
+    globals().update(opt)
+    fg = opj(wkd,"{:>s}".format(tag))
     coord_file_name = 'source_coordinates.csv'
 
     # Input files 
-    RIK_slipfile = os.path.join(fld, 'slipdistribution.dat')
-    mrfile = os.path.join(fld, 'MomentRate.dat')
-    hypfile = os.path.join(fld,'nucleationpoint.dat')
+    RIK_slipfile = opj(wkd,'slipdistribution.dat')
+    mrfile = opj(wkd,'MomentRate.dat')
+    srfile = opj(wkd, 'sr.dat')
+    hypfile = opj(wkd,'nucleationpoint.dat')
 
-    NT = 480
-    dt = 0.025
-    T_total = (NT-1)*dt
-    time = np.linspace(0.0, T_total, NT)
-    # Nombre de points de grille (toute la grille si different 
-    # que strong-motion generation area)
-    NL = 150 #210
-    NW = 100 #170
-
-    # Les angles 
-    strike = 38#35.0
-    dip    = 63#35.0
-    rake   = 172#-172.0
+    T_total = (nt-1)*dt
+    time = np.linspace(0.0, T_total, nt)
     # Les angles en radian
-    aS    = np.pi/180.0* strike
-    aR    = np.pi/180.0* rake
-    aD    = np.pi/180.0* dip
-    # Rotation matrix
-    print('Rotation matrix: ')
-    MatMesh = rp.get_rotation_tensor(aS, aD)
+    print("/n/n")
+    print("Hypocenter (UTM): \nEW: {:>.1f}\nNS: {:>.1f}\nUD: {:>.1f}\n".format(hE,hN,hZ))
+    print("strike: {:>.1f}, dip: {:>.1f}, rake: {:>.1f}\n".format(strike,dip,rake))
+    aS,aR,aD = np.pi/180.0*strike,np.pi/180.0*rake,np.pi/180.0*dip
 
-    src_sem = SEM_source(e=2.2754e+06,n=4.2421e+06,z=-10.0e+3)
-    # Lire les coordonnees de l'hypocentre (point de nucleation)
-    src_rik = RIK_source(hypfile=hypfile)
-    src_rik(z=10.e+3)
-    # On suppose que l'hypocentre est  (en metres)
-    RIK_hypocenter = src_rik.get_hypo()  # Y_RIK, X_RIK, DEPTH(DOWNWARD)
-    SEM_hypocenter = src_sem.get_hypo()  # EST,   NORD,  UPWARD
-
-    MR = rp.read_moment_rate_RIK (mrfile, (int(NL), int(NW), int(NT)))
-
+    MatMesh = get_rotation_tensor(aS,aD)
+    src_sem = SEM_source(e=hE,n=hN,z=hZ)
+    src_rik = RIK_source(hypfile=hypfile,z=np.abs(hZ)/1.0e3)
+    RIK_hypocenter,SEM_hypocenter = src_rik.get_hypo(),src_sem.get_hypo()
+    print("RIK_hypocenter: \nx [km]: {0}\ny [km]: {1}\nd [km]: {2}\n".format(*tuple(RIK_hypocenter.tolist())))
+    MR = read_moment_rate_RIK(mrfile,(int(nL),int(nW),int(nt)))
+    SR = read_moment_rate_RIK(srfile,(int(nL),int(nW),int(nt)))
+    
     # Creation des fichiers d'entree pour SEM
-    kinefile_out  = h5py.File('napa2014_kine.hdf5', 'w')
-    slipfile_out  = h5py.File('napa2014_moment.hdf5','w')
+    kfo = h5py.File(opj(wkd,'{:>s}_kine.h5'.format(tag)),'w')
+    sfo = h5py.File(opj(wkd,'{:>s}_moment.h5'.format(tag)),'w')
+    #driver='mpio', comm=MPI.COMM_WORLD)
     # Attribuer les proprietes temporelles
-    kinefile_out.attrs['Nt'] = NT
-    kinefile_out.attrs['dt'] = time[1]-time[0]
-    kinefile_out.attrs['Ns'] = NL 
-    kinefile_out.attrs['Nd'] = NW
-
+    kfo.attrs['Nt'] = nt
+    kfo.attrs['dt'] = time[1]-time[0]
+    kfo.attrs['Ns'] = nL 
+    kfo.attrs['Nd'] = nW
+    sfo.create_dataset('time', data=time)
     # Vecteurs du normale et du slip
-    rp.vecteurs(aD,aS,aR,kinefile_out)
+    vecteurs(aD,aS,aR,kfo)
 
     # Coordonnees des points dans le repere SEM3D
-    xgrid = kinefile_out.create_dataset('x', (NL, NW), chunks=(1, 1))
-    ygrid = kinefile_out.create_dataset('y', (NL, NW), chunks=(1, 1))
-    depth = kinefile_out.create_dataset('z', (NL, NW), chunks=(1, 1))
-
+    xgrid = kfo.create_dataset('x',(nL,nW),chunks=(1,1))
+    ygrid = kfo.create_dataset('y',(nL,nW),chunks=(1,1))
+    depth = kfo.create_dataset('z',(nL,nW),chunks=(1,1))
     xgrid[:,:] = 0.0
     ygrid[:,:] = 0.0
     depth[:,:] = 0.0
 
-    # x,y koordinatlari (RIK) - metre
-    print('*********')
-    print('Hypocenter of RIK model:')
-    print(RIK_hypocenter[0], RIK_hypocenter[1], RIK_hypocenter[2])
-    print('Hypocenter of SEM model:')
-    print(SEM_hypocenter[0], SEM_hypocenter[1], SEM_hypocenter[2])
-    # RIK model - Les coordonnees de x et y
     RIK_xcoord = np.genfromtxt(RIK_slipfile, usecols=1)  # Y_RIK
     RIK_ycoord = np.genfromtxt(RIK_slipfile, usecols=0)  # X_RIK
 
-    # Creer le matrice hdf5 pour le temps
-    slipfile_out.create_dataset('time', data=time)
-
     # Creer le matrice hdf5 pour le moment
-    Moment = slipfile_out.create_dataset('moment', (NL, NW, NT), chunks=(1, 1, NT))
-
+    Moment = sfo.create_dataset('moment',(nL,nW,nt),chunks=(1,1,nt))
+    Slip=np.zeros((nL,nW,nt),dtype=np.float32)
     # Integration pour calculer le moment
-    print('INTEGRATION')
     n = 0
-    for i in range(0, NL):
-        for j in range(0, NW):
+    for i in range(0, nL):
+        for j in range(0, nW):
             n = n+ 1
-            Moment[i,j,:] = cumtrapz(MR[i,j,:],dx=dt,initial=0.) #
-            print('{} {}  --->  Point {}'.format(NT,dt,n))
-
-    print('Total point number in fault plane: {}'.format(NL*NW))
+            Moment[i,j,:] = cumtrapz(MR[i,j,:],dx=dt,initial=0.)
+            Slip[i,j,:] = cumtrapz(SR[i,j,:],dx=dt,initial=0.)
+            
+    for t in range(nt):
+        sfo.create_dataset('mom_{:>d}'.format(t), shape=(nL*nW,),\
+                           data = Moment[:,:,t].T.reshape((nL*nW,)),\
+                           chunks=(1,))
+        kfo.create_dataset('slp_{:>d}'.format(t), shape=(nL*nW,),\
+                           data = Slip[:,:,t].T.reshape((nL*nW,)),\
+                           chunks=(1,))
+        kfo.create_dataset('sra_{:>d}'.format(t), shape=(nL*nW,),\
+                           data = SR[:,:,t].T.reshape((nL*nW,)),\
+                           chunks=(1,))
+    
     n = 0
-    for j in np.arange(NW):
-        for i in np.arange(NL):
-            # en kilometres
-            if (NL*NW > 1):
+    for j in np.arange(nW):
+        for i in np.arange(nL):
+            if (nL*nW > 1):
                 xgrid[i,j] = RIK_xcoord[n]
                 ygrid[i,j] = RIK_ycoord[n]
             else:
-                print('ATTENTION: CHANGE THIS FOR MODELS WITH MORE THAN 1 POINT')
                 xgrid[i,j] = RIK_xcoord
                 ygrid[i,j] = RIK_ycoord
-            depth[i,j] = (RIK_hypocenter[2]/1e3+ np.sin(aD)* (RIK_hypocenter[0]/1e3-xgrid[i,j]))
-
-            # en metres
-            xgrid[i,j] = xgrid[i,j]* 1e3
-            ygrid[i,j] = ygrid[i,j]* 1e3
-            depth[i,j] = depth[i,j]* 1e3
-
+            depth[i,j] = RIK_hypocenter[2]+np.sin(aD)*(RIK_hypocenter[1]-xgrid[i,j])
+            xgrid[i,j] *= 1.0e3 
+            ygrid[i,j] *= 1.0e3 
+            depth[i,j] *= 1.0e3
             n = n+1
-    # ATTENTION: Once rotate edip sonra farkina bakiyorum
+    RIK_hypocenter*=1.0e3
+    fmsh = mesh(xg=xgrid[()],yg=ygrid[()],zg=depth[()])
+    fmsh.RotTransMesh3d(aS,aD,(RIK_hypocenter,SEM_hypocenter))
+
+    fmsh.write_mesh2h5(sfo)
+    fmsh.write_mesh2h5(kfo)
+    exit()
     fark  = np.dot(MatMesh,RIK_hypocenter)
     fark  = (SEM_hypocenter-fark)
-
     # Opening file to save SEM3D coordinates of grid points
     coord_file = open (coord_file_name, 'w+')
     # Burada rotation yapiyorum
@@ -177,14 +236,10 @@ if __name__=='__main__':
     dx_plane = xgrid[0,1]-xgrid[0,0]
     dy_plane = ygrid[1,0]-ygrid[0,0]
     dz_plane = depth[0,1]-depth[0,0]
-    print('dx-dy-dz plane')
-    print(dx_plane,dy_plane,dz_plane)
     dx_rot = np.dot(MatMesh,np.array([dx_plane,dy_plane,dz_plane]))
-    print('dx-dy-dz rot')
-    print(dx_rot[0],dx_rot[1],dx_rot[2])
     coord_file.write('{:>10},{:>15},{:>15},{:>15}\n'.format('N','X','Y','Z'))
-    for j in np.arange(NW):
-        for i in np.arange(NL):
+    for j in np.arange(nW):
+        for i in np.arange(nL):
             n = n+ 1
             # Rotasyon uyguluyorum
             coord = np.array([xgrid[i,j], ygrid[i,j], depth[i,j]])
@@ -199,26 +254,28 @@ if __name__=='__main__':
             coord_file.write('{:>10d},{:>15.5f},{:>15.5f},{:>15.5f}\n'.format(\
                 n,xgrid[i,j],ygrid[i,j],depth[i,j]))
     coord_file.close()
-    exit()
 
-    if plot_figure:
-        ### PLOTTING ###
-        fig = plt.figure(figsize=(12,10))
+    if plot:
+        clr = sns.color_palette("cool",nL*nW)
+        fig = plt.figure(figsize=(10,5))
         sns.set_style('whitegrid')
         ax  = fig.add_subplot(111)
-
-        # ax.set_xlim([0,1])
+        for i in range(0, nL):
+            for j in range(0, nW):
+                ax.plot(time,Moment[i,j,:],label='Point '+str(i+1),
+                        color=clr[nW*i+j])
         # #
-        for i in range(0, NL):
-            for j in range(0, NW):
-                ax.plot(time, Moment[i,j,:], label='Point '+str(i+1),color='Gray')
-        # #
-        ax.set_xlabel('Time [s]'    ,fontsize=20)
-        ax.set_ylabel('Moment [Nm]' ,fontsize=20)
+        ax.set_xlabel(r'$t$ [s]'   ,fontsize=20)
+        ax.set_ylabel(r'$M_0$ [Nm]',fontsize=20)
+        plt.gca().spines["top"].set_alpha(0)
+        plt.gca().spines["bottom"].set_alpha(.3)
+        plt.gca().spines["right"].set_alpha(0)
+        plt.gca().spines["left"].set_alpha(.3)
         # ax.legend()
-        plt.show()
-        fig.savefig(figurename,dpi=300)
-
+        fig.savefig("{:>s}_moment_ths.png".format(fg),dpi=500,bbox_inches='tight')
+        fig.savefig("{:>s}_moment_ths.eps".format(fg),dpi=500,bbox_inches='tight',
+                format='eps')
+        plt.close()
     # Fermeture des fichiers hdf5
-    kinefile_out.close()
-    slipfile_out.close()
+    kfo.close()
+    sfo.close()

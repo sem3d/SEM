@@ -265,9 +265,7 @@ contains
                 if (capteur%type == CPT_INTERP) then
                     call sortieGrandeurCapteur_interp(Tdomain, capteur)
                 else if (capteur%type == CPT_ENERGY) then
-                    !print*, "BEFORE sortieGrandeurCapteur_energy"
                     call sortieGrandeurCapteur_energy(Tdomain, capteur)
-                    !print*, "AFTER sortieGrandeurCapteur_energy"
                 end if
                 if (capteur%icache==NCAPT_CACHE) do_flush = .true.
             end if
@@ -500,10 +498,10 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: dUdX
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real(fpp), dimension(:,:,:,:,:), allocatable :: fieldUder
         real(fpp), dimension(:), allocatable :: GLLc
         logical :: nl_flag
         integer :: nComp
@@ -526,17 +524,16 @@ contains
         allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! tot energy 5
+        allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
         allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
         allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-        ! dudx 9
-        allocate(fieldUder(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2))
-
         allocate(outx(0:ngll-1))
         allocate(outy(0:ngll-1))
         allocate(outz(0:ngll-1))
         allocate(doutx(0:ngll-1))
         allocate(douty(0:ngll-1))
         allocate(doutz(0:ngll-1))
+        
         do i = 0,ngll - 1
             call  pol_lagrange(ngll,GLLc,i,capteur%xi,outx(i))
             call  pol_lagrange(ngll,GLLc,i,capteur%eta,outy(i))
@@ -567,10 +564,10 @@ contains
             case (DM_SOLID)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-                nl_flag, eps_dev_pl, fieldUder)
+                dUdX, nl_flag, eps_dev_pl)
             case (DM_FLUID)
               call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
             case (DM_SOLID_PML)
               call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -628,6 +625,12 @@ contains
                         grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*S_energy(i,j,k)
                     end if
 
+                    if (out_variables(OUT_DUDX) == 1) then
+                        ioff = offset(OUT_DUDX)
+                        nComp = OUT_VAR_DIMS_3D(OUT_DUDX)-1
+                        grandeur (ioff:ioff+nComp) = grandeur (ioff:ioff+nComp)+weight*dUdX(i,j,k,:)
+                    end if
+
                     if (out_variables(OUT_EPS_VOL) == 1) then
                         ioff = offset(OUT_EPS_VOL)
                         nComp = OUT_VAR_DIMS_3D(OUT_EPS_VOL)-1
@@ -653,14 +656,6 @@ contains
                         + (/weight*sig_dev(i,j,k,0), weight*sig_dev(i,j,k,1), weight*sig_dev(i,j,k,2), &
                             weight*sig_dev(i,j,k,3), weight*sig_dev(i,j,k,4), weight*sig_dev(i,j,k,5)/)
                     end if
-                    if (out_variables(OUT_DUDX) == 1) then
-                        ioff = offset(OUT_DUDX)
-                        do d=0,2
-                            grandeur(ioff+d+0) = grandeur(ioff+d+0) + weight*fieldUder(i,j,k,d,0)
-                            grandeur(ioff+d+3) = grandeur(ioff+d+3) + weight*fieldUder(i,j,k,d,1)
-                            grandeur(ioff+d+6) = grandeur(ioff+d+6) + weight*fieldUder(i,j,k,d,2)
-                        end do
-                    end if
                 enddo
             enddo
         enddo
@@ -684,7 +679,7 @@ contains
         deallocate(eps_dev_pl)
         deallocate(sig_dev)
         deallocate(grandeur)
-        deallocate(fieldUder)
+        deallocate(dUdX)
         deallocate(outx)
         deallocate(outy)
         deallocate(outz)

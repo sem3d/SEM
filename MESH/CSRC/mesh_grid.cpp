@@ -101,8 +101,8 @@ void RectMesh::read_params_old(FILE* fparam)
         if (pml_W)      pmls.W = true;
     }
 
-    getData_line(&buffer, &n, fparam);
-    sscanf(buffer, "%d", &ngll_pml);
+    //getData_line(&buffer, &n, fparam);
+    // sscanf(buffer, "%d", &ngll_pml);
 
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &elem_shape);

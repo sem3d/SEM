@@ -1,5 +1,12 @@
 .. -*- coding: utf-8; mode:rst -*-
 
+Version 2020.03.0
+-----------------
+
+- Nombre de GLL enlev√ des fichiers mat.dat et mater.in
+
+- ngll defini dans input.spec (un seul valeur)
+
 Version 2016.11.0
 -----------------
 

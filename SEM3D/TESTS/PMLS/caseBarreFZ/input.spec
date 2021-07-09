@@ -7,6 +7,7 @@ mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 dim=3;
 fmax=1.0;
+ngll=5;
 
 snapshots {
     save_snap = true;

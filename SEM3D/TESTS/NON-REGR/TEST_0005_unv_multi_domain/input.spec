@@ -12,6 +12,8 @@ save_snap = true;
 snap_interval = 0.02;
 };
 
+ngll=5;
+
 # Description des capteurs
 save_traces = true;
 station_file = "capteurs.dat";

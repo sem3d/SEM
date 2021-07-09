@@ -872,10 +872,10 @@ void Mesh3DPart::output_local_mesh(hid_t fid)
     for(unsigned k=0;k<tmpi1.size();++k) {
         elem_doms[tmpi1[k]]++;
     }
-    if (m_mesh.has_mrrs) {
-        get_local_mirrors(tmpi);
-        h5h_write_dset(fid, "mirror_pos", n_elems(), &tmpi[0]);
-    }
+    //if (m_mesh.has_mrrs) {
+    //    get_local_mirrors(tmpi);
+    //    h5h_write_dset(fid, "mirror_pos", n_elems(), &tmpi[0]);
+    //}
     //
     convert_indexes(m_elems_faces, tmpi);
     h5h_write_dset_2d(fid, "faces", n_elems(), 6, tmpi.data());
@@ -1011,18 +1011,17 @@ void Mesh3DPart::output_mesh_part()
         output_comm(gid, it->second, it->first);
     }
 
+    output_mirror(fid);
     H5Fclose(fid);
-
-    output_mirror();
 }
 
-void Mesh3DPart::output_mirror() const
+void Mesh3DPart::output_mirror(hid_t fid) const
 {
     unsigned int nb_pts = m_mirror_xyz.size()/3;
     printf("%04d : number of mirror points = %ld\n", m_proc, nb_pts);
     char fname[2048];
-    snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
-    hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    // snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
+    // hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if (nb_pts == 0){
@@ -1043,7 +1042,7 @@ void Mesh3DPart::output_mirror() const
         vector<index_t> id; //for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
         h5h_write_dset_empty(rid, "ID", id); // Only needed for XMF
         H5Gclose(rid);
-        H5Fclose(fid);
+        //H5Fclose(fid);
         return;
     };
     h5h_write_dset(rid, "E", m_mirror_e);
@@ -1055,7 +1054,7 @@ void Mesh3DPart::output_mirror() const
     vector<index_t> id; for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
     h5h_write_dset(rid, "ID", id); // Only needed for XMF
     H5Gclose(rid);
-    H5Fclose(fid);
+    //H5Fclose(fid);
 }
 
 void Mesh3DPart::output_comm(hid_t gid, const MeshPartComm& comm, int dest)
@@ -1255,12 +1254,12 @@ void Mesh3DPart::output_xmf_mirror()
     fprintf(f, "    <Grid Name=\"mirror.%04d\">\n", m_proc);
     fprintf(f, "      <Topology Type=\"Polyvertex\">\n");
     fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%ld\">\n", nb_pts);
-    fprintf(f, "mesh4spec.%04d.mirror.h5:/Mirror/ID\n",m_proc);
+    fprintf(f, "mesh4spec.%04d.h5:/Mirror/ID\n",m_proc);
     fprintf(f, "        </DataItem>\n");
     fprintf(f, "      </Topology>\n");
     fprintf(f, "      <Geometry Type=\"XYZ\">\n");
     fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%ld 3\">\n", nb_pts);
-    fprintf(f, "mesh4spec.%04d.mirror.h5:/Mirror/XYZ\n", m_proc);
+    fprintf(f, "mesh4spec.%04d.h5:/Mirror/XYZ\n", m_proc);
     fprintf(f, "        </DataItem>\n");
     fprintf(f, "      </Geometry>\n");
     fprintf(f, "    </Grid>\n");

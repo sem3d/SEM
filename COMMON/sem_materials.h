@@ -32,6 +32,13 @@ typedef enum {
     MD_HOOKE,
     MD_NLKP_VS_RHO,
     MD_NU_VS_RHO,
+    MD_VP_VS_RHO_D,
+    MD_YOUNG_POISSON_RHO_D,
+    MD_LAMBDA_MU_RHO_D,
+    MD_KAPPA_MU_RHO_D,
+    MD_HOOKE_D,
+    MD_NLKP_VS_RHO_D,
+    MD_NU_VS_RHO_D,    
 } material_descr_t;
 
 typedef enum {
@@ -44,28 +51,24 @@ typedef struct sem_material_t {
     int domain;     // material_type_t
     int deftype;    // Describe the kind of variables used to describe this material
     int defspatial; // How the material varies spatially (constant or interpolated from file)
-
     double rho;
     double Vp;
     double Vs;
-    double E, nu;
+    double E;
+    double nu;
     double lambda;
     double kappa;
     double mu;
     char* filename0;
     char* filename1;
     char* filename2;
-
-    // Description of random parameters
-    // TODO
-
-    // Description of NL parameters
-    // double syld;
-    // double ckin;
-    // double kkin;
+    char* filename3;
+    char* filename4;
     double nlkp;
     double rinf;
     double biso;
+    double Qp;
+    double Qs;
 
     struct sem_material_t* next;
 } sem_material_t;

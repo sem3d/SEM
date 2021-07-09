@@ -76,6 +76,7 @@ contains
     subroutine read_material_spec(Tdomain)
         use sdomain
         use semdatafiles
+        use iso_c_binding, only: c_loc, c_associated
         implicit none
         type(domain), intent(inout)                  :: Tdomain
         !
@@ -96,6 +97,13 @@ contains
                 Tdomain%sSubdomain(num)%pf(1)%propFilePath = trim(fromcstr(matdesc%filename0))
                 Tdomain%sSubdomain(num)%pf(2)%propFilePath = trim(fromcstr(matdesc%filename1))
                 Tdomain%sSubdomain(num)%pf(3)%propFilePath = trim(fromcstr(matdesc%filename2))
+                select case(matdesc%deftype)
+                case(MATDEF_VP_VS_RHO_D,MATDEF_E_NU_RHO_D,MATDEF_LAMBDA_MU_RHO_D,&
+                    MATDEF_KAPPA_MU_RHO_D,MATDEF_HOOKE_RHO_D,MATDEF_NLKP_VS_RHO_D,&
+                    MATDEF_NU_VS_RHO_D)
+                    Tdomain%sSubdomain(num)%pf(4)%propFilePath = trim(fromcstr(matdesc%filename3))
+                    Tdomain%sSubdomain(num)%pf(5)%propFilePath = trim(fromcstr(matdesc%filename4))
+                end select
             end select
             Tdomain%sSubdomain(num)%deftype  = matdesc%deftype
             Tdomain%sSubdomain(num)%Ddensity = matdesc%rho
@@ -109,6 +117,8 @@ contains
             Tdomain%sSubdomain(num)%DRinf    = matdesc%rinf
             Tdomain%sSubdomain(num)%DBiso    = matdesc%biso
             Tdomain%sSubdomain(num)%DNlkp    = matdesc%nlkp
+            Tdomain%sSubdomain(num)%Qp       = matdesc%Qp
+            Tdomain%sSubdomain(num)%Qs       = matdesc%Qs
 
             !!! TODO Add Qp/Qmu, PML
             call c_f_pointer(matdesc%next, matdesc)
@@ -159,11 +169,10 @@ contains
                 Tdomain%sSubDomain(i)%Pspeed,               &
                 Tdomain%sSubDomain(i)%Sspeed,               &
                 Tdomain%sSubDomain(i)%dDensity,             &
-                NGLL,                                       &
                 Tdomain%sSubDomain(i)%Qpression,            &
                 Tdomain%sSubDomain(i)%Qmu
 
-            Tdomain%sSubDomain(i)%NGLL = NGLL
+            Tdomain%sSubDomain(i)%NGLL = Tdomain%ngll
             Tdomain%sSubDomain(i)%dom = domain_from_type_char(material_type)
             Tdomain%sSubdomain(i)%material_definition = MATERIAL_CONSTANT
             Tdomain%sSubDomain(i)%deftype = MATDEF_VP_VS_RHO
@@ -726,6 +735,8 @@ contains
             call create_sem_extended_sources(Tdomain, Tdomain%config)
         endif
 
+        ! NGLL points
+        Tdomain%ngll = Tdomain%config%ngll
         ! Mirror
         Tdomain%use_mirror = .false.
         if (Tdomain%config%use_mirror/=0) Tdomain%use_mirror = .true.

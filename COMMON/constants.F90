@@ -91,6 +91,14 @@ MODULE constants
     integer, parameter :: MATDEF_HOOKE_RHO     = 4
     integer, parameter :: MATDEF_NLKP_VS_RHO   = 5
     integer, parameter :: MATDEF_NU_VS_RHO     = 6
+    ! Heterogeneous damping
+    integer, parameter :: MATDEF_VP_VS_RHO_D     = 7
+    integer, parameter :: MATDEF_E_NU_RHO_D      = 8
+    integer, parameter :: MATDEF_LAMBDA_MU_RHO_D = 9
+    integer, parameter :: MATDEF_KAPPA_MU_RHO_D  = 10
+    integer, parameter :: MATDEF_HOOKE_RHO_D     = 11
+    integer, parameter :: MATDEF_NLKP_VS_RHO_D   = 12
+    integer, parameter :: MATDEF_NU_VS_RHO_D     = 13
 
     ! DOMAINS (par ordre de priorite pour les sauvegardes)
     integer, parameter :: DM_SOLID = 4
@@ -111,7 +119,9 @@ MODULE constants
     integer, parameter :: OUT_TOTAL_ENERGY = 9
     integer, parameter :: OUT_EPS_DEV_PL   = 10
     integer, parameter :: OUT_DUDX         = 11
-    integer, parameter :: OUT_LAST=11  ! Numero de la derniere variable
+    integer, parameter :: OUT_GRAD_LA      = 12
+    integer, parameter :: OUT_GRAD_MU      = 13
+    integer, parameter :: OUT_LAST=13  ! Numero de la derniere variable
     character(len=10), dimension(0:OUT_LAST) :: OUT_VAR_NAMES = (/ &
         "EnergyP   ", &
         "EnergyS   ", &
@@ -124,8 +134,10 @@ MODULE constants
         "Stress Dev", &
         "Tot_Energy", &
         "Eps Dev Pl", &
-        "DUDX      " /)
-    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9/)
+        "DUDX      ", &
+        "GradLambda", &
+        "GradMu    " /)
+    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9, 3, 3/)
 
     integer, parameter :: CPT_INTERP = 0
     integer, parameter :: CPT_ENERGY = 1

@@ -8,6 +8,8 @@ Set of subroutines to post-process RIK output
 # Required modules
 #=======================================================================
 import os 
+from os.path import join as opj
+import argparse
 import sys
 import numpy as np
 import math
@@ -28,8 +30,13 @@ from   matplotlib.cm import ScalarMappable
 from   matplotlib import ticker
 from   matplotlib.colors import LogNorm
 from   matplotlib.image import NonUniformImage
-from   matplotlib.ticker import LogFormatter
+from   matplotlib.ticker import LogFormatter, FormatStrFormatter
 from   matplotlib.patches import Circle
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from matplotlib import cm,rc
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
+rc('text', usetex=True)
 import seaborn as sns
 from   collections import OrderedDict 
 
@@ -45,6 +52,34 @@ __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
 
+def start_rik():
+    parser = argparse.ArgumentParser(prefix_chars='@')
+    parser.add_argument('@wkd',type=str,default="./",help="Working directory")
+    parser.add_argument('@plot',action='store_true',help="plot?")
+    parser.add_argument('@tag',type=str,default='slip',help="tag")
+    parser.add_argument('@L',type=float,default=15.,help="fault length [km]")
+    parser.add_argument('@W',type=float,default=15.,help="fault width [km]")
+    parser.add_argument('@nL',type=int,default=294,help="Number of grids along fault length")
+    parser.add_argument('@nW',type=int,default=213,help="Number of grids along fault width")
+    parser.add_argument('@nt',type=int,default=480,help="Number of time steps")
+    parser.add_argument('@dt',type=float,default=0.025,help="Time step [s]")
+    parser.add_argument('@hL',type=float,default=12.5,help="Hypocenter along-length coordinate [km]")
+    parser.add_argument('@hW',type=float,default=0.0,help="Hypocenter along-width coordinate [km]")
+    parser.add_argument('@hE',type=float,default=0.0,help="Hypocenter east coordinate [m]")
+    parser.add_argument('@hN',type=float,default=0.0,help="Hypocenter north coordinate [m]")
+    parser.add_argument('@hZ',type=float,default=0.0,help="Hypocenter elevation coordinate [m]")
+    parser.add_argument('@strike',type=float,default=45.0,help="Strike")
+    parser.add_argument('@dip',type=float,default=60.0,help="Dip")
+    parser.add_argument('@rake',type=float,default=108.0,help="Rake")
+    parser.add_argument('@sf',type=str,default="slipdistribution.dat",help="Filename of slip distributions")
+    parser.add_argument('@fg',type=str,default="xxx.png",help="Figure file name")
+    parser.add_argument('@mf',type=str,default='napa2014_moment.h5',help='Moment rate tensor file')
+    parser.add_argument('@kf',type=str,default='napa2014_kine.h5',help='Fault parameters file')
+    parser.add_argument('@ct',nargs='*',default = ['moment'],help='Fault parameters file')
+    parser.add_argument('@snapshots',type=float,default=10.,help='Time interval between snapshots')
+    parser.set_defaults(plot=True)
+    opt = parser.parse_args().__dict__
+    return opt
 
 def get_rotation_tensor(aS,aD):
     r'''From [N,E,D] et to [E,N,Z]
@@ -82,9 +117,9 @@ def vecteurs(aD,aS,aR,output):
     de glissement Vslip dans le repere de reference et les attribuer dans le fichier 
     output de hdf5 '''
     # En supposant que (puisque l'on multiplie avec MatMesh)
-    # x ----> EST
-    # y ----> NORD
-    # z ----> UP
+    # x @--> EST
+    # y @--> NORD
+    # z @--> UP
     Vnormal = np.array([+np.sin(aD)*np.cos(aS),\
                         -np.sin(aD)*np.sin(aS),\
                         +np.cos(aD)])
@@ -109,7 +144,6 @@ def read_moment_rate_RIK(dosya,dim):
     l'assigner a l'array de dimension dim '''
     
     Mrate = np.zeros((dim[0]*dim[1], dim[2]))
-    print('Reading moment rate of all points...')
     f = open (dosya, 'r')
     # Pour tous les points
     for i in np.arange(dim[0] * dim[1]):
@@ -146,8 +180,6 @@ def readhypo(filename):
 def read_subsources (filename):
 
     f = open (filename, 'r')
-    print('Reading the file {}'.format(filename))
-    print('...')
     xgrid     = np.genfromtxt(filename, usecols=0)
     ygrid     = np.genfromtxt(filename, usecols=1)
     ssources  = np.genfromtxt(filename, usecols=2)
@@ -159,8 +191,6 @@ def readfileslip (NSR, filename):
     ygrid = np.zeros((NSR))
     slip  = np.zeros((NSR))
     f = open (filename, 'r')
-    print('Reading the file {}'.format(filename))
-    print('...')
     for i in np.arange(NSR):
         string   = f.readline()
         degerler = [float(j) for j in string.split()]
@@ -170,45 +200,52 @@ def readfileslip (NSR, filename):
     return xgrid, ygrid, slip
 
 def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
+    print('\n\n')
     print('Plotting max-slip distribution')
+    print(nrows,ncols,LF,WF)
     # Making a colormap
-    c    = mcolors.ColorConverter().to_rgb
-    cc = ['#ffffff', '#dfe6ff', '#a5b5da', '#516b8e', '#c5ce9b',
-          '#fcab6c', '#f50000']
-    cc1 = np.linspace(0,1,6)
-    cmap = make_colormap([c(cc[0]), c(cc[1]), cc1[0],
-                          c(cc[1]), c(cc[2]), cc1[1],
-                          c(cc[2]), c(cc[3]), cc1[2],
-                          c(cc[3]), c(cc[4]), cc1[3],
-                          c(cc[4]), c(cc[5]), cc1[4],
-                          c(cc[5]), c(cc[6]), cc1[5],
-                          c(cc[6])])
+#    c    = mcolors.ColorConverter().to_rgb
+#    cc = ['#ffffff', '#dfe6ff', '#a5b5da', '#516b8e', '#c5ce9b',
+#          '#fcab6c', '#f50000']
+#    cc1 = np.linspace(0,1,6)
+#    cmap = make_colormap([c(cc[0]), c(cc[1]), cc1[0],
+#                          c(cc[1]), c(cc[2]), cc1[1],
+#                          c(cc[2]), c(cc[3]), cc1[2],
+#                          c(cc[3]), c(cc[4]), cc1[3],
+#                          c(cc[4]), c(cc[5]), cc1[4],
+#                          c(cc[5]), c(cc[6]), cc1[5],
+#                          c(cc[6])])
     sns.set_style('whitegrid')
+    cmap = cm.RdBu_r
+
     fig = p.figure(figsize=(18,10))
     p.subplots_adjust(hspace=0.35)
     ax = fig.add_subplot(111)
-    ax.set_xlabel('Along strike [km]', fontsize=17)
-    ax.set_ylabel('Along up-dip [km]', fontsize=17)
+    ax.set_xlabel(r'$x$ Along strike [km]', fontsize=17)
+    ax.set_ylabel(r'$y$ Along up-dip [km]', fontsize=17)
     
-    ax.set_xlim([0,1.1*LF])
-    ax.set_ylim([-0.2,1.1*WF])
+    ax.set_xlim([0.,LF])
+    ax.set_ylim([0.,WF])
     vmin = slip.min()
     vmax = slip.max()
-    print('min and max of slip:')
-    print(vmin,vmax)
+    print('Slip: min {:>.1f} - max {:>.1f}\n'.format(vmin,vmax))
     grid = slip.reshape((nrows, ncols))
-    im = plt.imshow(grid, extent=(0.0,1.1*LF,0.0,1.1*WF), interpolation='bilinear', cmap=cmap, origin='lower')
-    formatter = LogFormatter(10, labelOnlyBase=False)
-    cb = fig.colorbar(im, shrink=0.5, aspect=10, pad=0.01, ticks=np.arange(vmin,vmax,1), format=formatter)
-    cb.set_label('Slip [m]', labelpad=20, y=0.5, rotation=90, fontsize=17)
+    im = plt.imshow(grid, extent=(0.0,LF,0.0,WF),interpolation='bilinear',cmap=cmap,origin='lower')
+    formatter = FormatStrFormatter('%.1f') #LogFormatter(10,labelOnlyBase=False)
+    #norm = mpl.colors.Normalize(vmin=vmin,vmax=vmax)
+    cb = fig.colorbar(im,shrink=0.5,aspect=10,pad=0.01,
+            ticks=np.linspace(vmin,vmax,11),format=formatter)
+    cb.set_label(r'$\Delta u$ [m]',labelpad=20,y=0.5,rotation=90,fontsize=17)
     p.setp(cb.ax.yaxis.get_ticklabels(), fontsize=16)
-    ax.plot(nucx,nucy, marker='*', color='red',markersize=20)
+    ax.plot(nucx,nucy, marker='*',color='red',markersize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
-    topname  = 'Max slip [m] = '+ '% .4f' % max(slip)
-    plt.title(topname+'\n', fontsize=20)
+    topname  = r"$\max\Delta u$ = {{:>.2f}} m".format(max(slip))
+    plt.title(topname,fontsize=20)
     if kaydet:
-        fig.savefig(figname, dpi=300)
+        print("{:>s}_slipmax.png".format(figname))
+        plt.savefig("{:>s}_slipmax.png".format(figname),dpi=500,bbox_inches='tight')
+        plt.close()
     else:
         plt.show()
 
