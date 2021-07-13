@@ -9,6 +9,7 @@
 */
 
 #include "metislib.h"
+#include "macros.h"
 
 /*************************************************************************
 * This function is the entry poidx_t of the bisection balancing algorithms.

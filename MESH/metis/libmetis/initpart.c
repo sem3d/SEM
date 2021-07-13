@@ -12,6 +12,7 @@
  */
 
 #include "metislib.h"
+#include "macros.h"
 
 /*************************************************************************/
 /*! This function computes the initial bisection of the coarsest graph */
