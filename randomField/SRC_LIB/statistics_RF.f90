@@ -270,7 +270,7 @@ contains
         double complex  , dimension(:,:)  , pointer :: Sk_2D
         double complex  , dimension(:,:,:), pointer :: Sk_3D
         integer*8 plan
-        integer(kind=8) :: sizeDir, i, j, k
+        integer(kind=8) :: sizeDir, i, j, k, sizeDir1
 
         SkVec = (randFieldVec - avg)/stdDev; !Field normalization
 
@@ -391,7 +391,8 @@ contains
 
         !Reverting FFT
         !write(*,*) "Reverting FFT"
-        call dfftw_plan_dft_1d(plan, size(SkVec(1:xNStep(dir))), SkVec(1:xNStep(dir)), SkVec(1:xNStep(dir)), &
+        sizeDir1 = size(SkVec(1:xNStep(dir))) 
+        call dfftw_plan_dft_1d(plan, sizeDir1, SkVec(1:xNStep(dir)), SkVec(1:xNStep(dir)), &
             FFTW_BACKWARD, FFTW_ESTIMATE)
         call dfftw_execute_dft(plan, SkVec(1:xNStep(dir)), SkVec(1:xNStep(dir)))
         call dfftw_destroy_plan(plan)

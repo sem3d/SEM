@@ -108,9 +108,13 @@ contains
         case(13)
             !Double-M wavelet (Al Shaer et al 2008)
             CompSource = DM(time, Sour%tau_b,Sour%Q,Sour%X,Sour%Y,Sour%L,Sour%v,Sour%d,Sour%a)
-
+        case(15)
+            !Extended source - modified 22/03/17 by Filippo and Elif
+            CompSource = Source_File (time,Sour)
         end select
         CompSource = CompSource*Sour%amplitude_factor
+        
+
         return
     end function CompSource
 
@@ -134,6 +138,9 @@ contains
         s = ((time-Sour%ts)/T)**k
 
         Source_Spice_Bench = (1-(1+s)*exp(-s))
+
+       ! write(99,*) time, Source_Spice_Bench
+         
         return
     end function Source_Spice_Bench
 
@@ -272,9 +279,11 @@ contains
         call h5fopen_f(Sour%time_file, H5F_ACC_RDONLY_F, fid, hdferr)
 
         ! Lecture du dataset
-        call read_subset_3d_real(fid, 'slip', imin, imax, data)
+        ! MODIFICATION 1
+        call read_subset_3d_real(fid, 'moment', imin, imax, data)
         call read_dset_1d_real(fid, 'time', dataT)
 
+        
         ! Historique de l'amplitude du Slip
         allocate(Sour%ampli(0:Sour%Nt-1))
         allocate(Sour%time(0:Sour%Nt-1))

@@ -3,16 +3,17 @@
 #include <cassert>
 #include <vector>
 #include <algorithm>
+#include <cmath> // sqrt
 #include "mesh.h"
 #include "meshpart.h"
+#include "sem_gll.h"
 
 using std::vector;
-
-
 
 void Mesh3DPart::compute_part()
 {
     /// Handle all elements on this node and those that touches it
+    compute_gll();
     for(size_t k=0;k<m_mesh.n_elems();++k) {
         if (m_mesh.elem_part(k)==m_proc) {
             bool border = is_border_element(k);
@@ -27,6 +28,7 @@ void Mesh3DPart::compute_part()
     std::map<std::string, Surface*>::const_iterator it;
     for(it=m_mesh.m_surfaces.begin();it!=m_mesh.m_surfaces.end();++it) {
         handle_surface(it->second);
+        if (m_surfaces.back()->name() == "mirror") handle_mirror_surf(m_surfaces.back());
     }
     printf("Created %ld facets\n", m_face_to_id.size());
 }
@@ -341,6 +343,225 @@ index_t Mesh3DPart::add_node(index_t v0)
     return nv;
 }
 
+void Mesh3DPart::shape8_local2global(double const vco[3][8],
+                                     double xi, double eta, double zeta,
+                                     double& x, double& y, double& z) const
+{
+    x = 0.125 * (vco[0][0]*(1-xi)*(1-eta)*(1-zeta) + vco[0][1]*(1+xi)*(1-eta)*(1-zeta) +
+                 vco[0][2]*(1+xi)*(1+eta)*(1-zeta) + vco[0][3]*(1-xi)*(1+eta)*(1-zeta) +
+                 vco[0][4]*(1-xi)*(1-eta)*(1+zeta) + vco[0][5]*(1+xi)*(1-eta)*(1+zeta) +
+                 vco[0][6]*(1+xi)*(1+eta)*(1+zeta) + vco[0][7]*(1-xi)*(1+eta)*(1+zeta));
+    y = 0.125 * (vco[1][0]*(1-xi)*(1-eta)*(1-zeta) + vco[1][1]*(1+xi)*(1-eta)*(1-zeta) +
+                 vco[1][2]*(1+xi)*(1+eta)*(1-zeta) + vco[1][3]*(1-xi)*(1+eta)*(1-zeta) +
+                 vco[1][4]*(1-xi)*(1-eta)*(1+zeta) + vco[1][5]*(1+xi)*(1-eta)*(1+zeta) +
+                 vco[1][6]*(1+xi)*(1+eta)*(1+zeta) + vco[1][7]*(1-xi)*(1+eta)*(1+zeta));
+    z = 0.125 * (vco[2][0]*(1-xi)*(1-eta)*(1-zeta) + vco[2][1]*(1+xi)*(1-eta)*(1-zeta) +
+                 vco[2][2]*(1+xi)*(1+eta)*(1-zeta) + vco[2][3]*(1-xi)*(1+eta)*(1-zeta) +
+                 vco[2][4]*(1-xi)*(1-eta)*(1+zeta) + vco[2][5]*(1+xi)*(1-eta)*(1+zeta) +
+                 vco[2][6]*(1+xi)*(1+eta)*(1+zeta) + vco[2][7]*(1-xi)*(1+eta)*(1+zeta));
+}
+
+void Mesh3DPart::compute_gll()
+{
+    if (!m_cfg || !m_cfg->use_mirror) return;
+
+    calcul_gll(m_cfg->ngll-1, m_gll);
+}
+
+void Mesh3DPart::handle_mirror_implicit_surf(index_t el, index_t elnum)
+{
+    if (!m_cfg || !m_cfg->use_mirror) return;
+
+    implicit_surf* is = NULL;
+    if (m_cfg->mirror_impl_surf_type == 1) is = new sphere(m_cfg);
+    else if (m_cfg->mirror_impl_surf_type == 2) is = new box(m_cfg);
+    else return; // Not implemented.
+
+    double vco[3][8];
+    index_t e0 = m_mesh.m_elems_offs[el];
+    for(int vt=0;vt<8;++vt) {
+        index_t gv = m_mesh.m_elems[e0 + vt];
+        vco[0][vt] = m_mesh.m_xco[gv];
+        vco[1][vt] = m_mesh.m_yco[gv];
+        vco[2][vt] = m_mesh.m_zco[gv];
+    }
+
+    bool tag_pos = false;
+    bool tag_nul = false;
+    std::vector<index_t> mirror_e;
+    std::vector<index_t> mirror_ijk;
+    std::vector<double>  mirror_xyz;
+    std::vector<double>  mirror_w;
+    std::vector<double> mirror_inside;
+    std::vector<double> mirror_outnormal;
+    for(int k=0;k<m_cfg->ngll;++k) {
+        for(int j=0;j<m_cfg->ngll;++j) {
+            for(int i=0;i<m_cfg->ngll;++i) {
+                double x, y, z;
+                shape8_local2global(vco, m_gll[i], m_gll[j], m_gll[k], x, y, z);
+
+                double win = 0.;
+                double f = is->f(x, y, z, &win);
+
+                if (f >= 0.) {
+                    tag_pos = true;
+                } else {
+                    tag_nul = true;
+                }
+                // In case explicit or recalc we need to store all gll points
+                if (m_cfg->mirror_expl || m_cfg->mirror_recalc || f >= 0.) {
+                    mirror_e.push_back(elnum);
+                    mirror_ijk.push_back(i);
+                    mirror_ijk.push_back(j);
+                    mirror_ijk.push_back(k);
+                    mirror_xyz.push_back(x);
+                    mirror_xyz.push_back(y);
+                    mirror_xyz.push_back(z);
+                    mirror_w.push_back(m_gll[i]);
+                    mirror_w.push_back(m_gll[j]);
+                    mirror_w.push_back(m_gll[k]);
+                    mirror_inside.push_back(win);
+                    double nx, ny, nz;
+                    is->n(x, y, z, nx, ny, nz);
+                    mirror_outnormal.push_back(nx);
+                    mirror_outnormal.push_back(ny);
+                    mirror_outnormal.push_back(nz);
+                }
+            }
+        }
+    }
+    delete is;
+    // We only keep the mirror data if we cross the mirror surface (ie f is both pos and neg within the element).
+    if (tag_pos && tag_nul) {
+        m_mirror_e.insert  (m_mirror_e.end(),   mirror_e.begin(),   mirror_e.end()  );
+        m_mirror_ijk.insert(m_mirror_ijk.end(), mirror_ijk.begin(), mirror_ijk.end());
+        m_mirror_xyz.insert(m_mirror_xyz.end(), mirror_xyz.begin(), mirror_xyz.end());
+        m_mirror_w.insert  (m_mirror_w.end(),   mirror_w.begin(),   mirror_w.end()  );
+        m_mirror_inside.insert(m_mirror_inside.end(), mirror_inside.begin(), mirror_inside.end());
+        m_mirror_outnormal.insert(m_mirror_outnormal.end(), mirror_outnormal.begin(), mirror_outnormal.end());
+    }
+}
+
+void Mesh3DPart::handle_mirror_surf(const Surface* smirror)
+{
+    if (!smirror) return;
+    if (!m_cfg || !m_cfg->use_mirror) return;
+    if (m_cfg->mirror_impl_surf_type != 2) return;
+
+    // Loop over faces of mirror surface
+
+    std::set<tuple<index_t, int, int>> sp; // Surface points
+    face_map_t::const_iterator itfound, it;
+    for(it=smirror->m_faces.begin();it!=smirror->m_faces.end();++it) {
+        const PFace& fc = it->first;
+
+        // Get elements connected to the face
+
+        std::set<index_t> elemset;
+        m_mesh.get_neighbour_elements(4, fc.n, elemset);
+        std::set<index_t>::const_iterator it;
+        for(it=elemset.begin();it!=elemset.end();++it) {
+            if (m_mesh.elem_part(*it)==m_proc) continue;
+
+            // Get faces of each element
+
+            index_t el = *it;
+            index_t e0 = m_mesh.m_elems_offs[el];
+            int dom = m_mesh.get_elem_domain(el);
+            for(int f=0;f<6;++f) {
+                index_t n[4];
+                for(int p=0;p<4;++p) n[p] = m_mesh.m_elems[e0 + RefFace[f].v[p]];
+                PFace efc(n, dom);
+
+                // Check if surface face = element face
+
+                if (efc.eq_geom(fc)) {
+                    // Mark face as mirror face
+
+                    double ebc[3] = {0., 0., 0.}; // Element barycenter
+                    double vco[3][8];
+                    for(int vt=0;vt<8;++vt) {
+                        index_t gv = m_mesh.m_elems[e0 + vt];
+                        vco[0][vt] = m_mesh.m_xco[gv];
+                        vco[1][vt] = m_mesh.m_yco[gv];
+                        vco[2][vt] = m_mesh.m_zco[gv];
+
+                        ebc[0] += vco[0][vt];
+                        ebc[1] += vco[1][vt];
+                        ebc[2] += vco[2][vt];
+                    }
+                    ebc[0] /= 8; ebc[1] /= 8; ebc[2] /= 8;
+
+                    int k = 0;
+                    for(int j=0;j<m_cfg->ngll;++j) {
+                        for(int i=0;i<m_cfg->ngll;++i) {
+                            tuple<index_t, int, int> fp = tuple<index_t, int, int>(el, i, j);
+                            if (sp.find(fp) != sp.end()) continue; // Skip double points
+                            sp.insert(fp);
+
+                            double x, y, z;
+                            shape8_local2global(vco, m_gll[i], m_gll[j], m_gll[k], x, y, z);
+
+                            m_mirror_e.push_back(el);
+                            m_mirror_ijk.push_back(i);
+                            m_mirror_ijk.push_back(j);
+                            m_mirror_ijk.push_back(k);
+                            m_mirror_xyz.push_back(x);
+                            m_mirror_xyz.push_back(y);
+                            m_mirror_xyz.push_back(z);
+                            m_mirror_w.push_back(m_gll[i]);
+                            m_mirror_w.push_back(m_gll[j]);
+                            m_mirror_w.push_back(m_gll[k]);
+
+                            bool elem_in_box = true;
+                            if (ebc[0] < m_cfg->mirror_impl_surf_box[0] ||
+                                ebc[0] > m_cfg->mirror_impl_surf_box[1]) elem_in_box = false;
+                            if (ebc[1] < m_cfg->mirror_impl_surf_box[2] ||
+                                ebc[1] > m_cfg->mirror_impl_surf_box[3]) elem_in_box = false;
+                            if (ebc[2] < m_cfg->mirror_impl_surf_box[4] ||
+                                ebc[2] > m_cfg->mirror_impl_surf_box[5]) elem_in_box = false;
+                            m_mirror_inside.push_back(elem_in_box ? 1. : 0.);
+
+                            double fdiag1[3];
+                            fdiag1[0] = vco[0][RefFace[f].v[2]] - vco[0][RefFace[f].v[0]];
+                            fdiag1[1] = vco[1][RefFace[f].v[2]] - vco[1][RefFace[f].v[0]];
+                            fdiag1[2] = vco[2][RefFace[f].v[2]] - vco[2][RefFace[f].v[0]];
+                            double fdiag2[3];
+                            fdiag2[0] = vco[0][RefFace[f].v[3]] - vco[0][RefFace[f].v[1]];
+                            fdiag2[1] = vco[1][RefFace[f].v[3]] - vco[1][RefFace[f].v[1]];
+                            fdiag2[2] = vco[2][RefFace[f].v[3]] - vco[2][RefFace[f].v[1]];
+                            double fnorm[3];
+                            fnorm[0] = fdiag1[1]*fdiag2[2] - fdiag1[2]*fdiag2[1];
+                            fnorm[1] = fdiag1[2]*fdiag2[0] - fdiag1[0]*fdiag2[2];
+                            fnorm[2] = fdiag1[0]*fdiag2[1] - fdiag1[1]*fdiag2[0];
+                            double fn = sqrt(fnorm[0]*fnorm[0] + fnorm[1]*fnorm[1] + fnorm[2]*fnorm[2]);
+                            fnorm[0] /= fn; fnorm[1] /= fn; fnorm[2] /= fn;
+                            double fbc[3] = {0., 0., 0.}; // Face barycenter
+                            for(int vt=0;vt<4;++vt) {
+                                fbc[0] += vco[0][RefFace[f].v[vt]];
+                                fbc[1] += vco[1][RefFace[f].v[vt]];
+                                fbc[2] += vco[2][RefFace[f].v[vt]];
+                            }
+                            fbc[0] /= 4; fbc[1] /= 4; fbc[2] /= 4;
+                            double out[3];
+                            out[0] = elem_in_box ? fbc[0] - ebc[0] : ebc[0] - fbc[0];
+                            out[1] = elem_in_box ? fbc[1] - ebc[1] : ebc[1] - fbc[1];
+                            out[2] = elem_in_box ? fbc[2] - ebc[2] : ebc[2] - fbc[2];
+                            double sprod = fnorm[0]*out[0] + fnorm[1]*out[1] + fnorm[2]*out[2];
+                            if (sprod < 0.) {fnorm[0] *= -1.; fnorm[1] *= -1.; fnorm[2] *= -1.;}
+                            m_mirror_outnormal.push_back(fnorm[0]);
+                            m_mirror_outnormal.push_back(fnorm[1]);
+                            m_mirror_outnormal.push_back(fnorm[2]);
+                        }
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void Mesh3DPart::handle_local_element(index_t el, bool is_border)
 {
     index_t e0 = m_mesh.m_elems_offs[el];
@@ -351,6 +572,7 @@ void Mesh3DPart::handle_local_element(index_t el, bool is_border)
 
     if ((dom0==false)&&(it==m_mesh.surfelem.end())){
 
+        index_t lid = m_elems.size();
         m_elems.push_back(el);
         // Assign all 6 faces
         for(int fc=0;fc<6;++fc) {
@@ -380,6 +602,7 @@ void Mesh3DPart::handle_local_element(index_t el, bool is_border)
             index_t gid = m_mesh.m_elems[e0 + vx];
             add_node(gid);
         }
+        handle_mirror_implicit_surf(el, lid);
     }
 }
 
@@ -649,10 +872,10 @@ void Mesh3DPart::output_local_mesh(hid_t fid)
     for(unsigned k=0;k<tmpi1.size();++k) {
         elem_doms[tmpi1[k]]++;
     }
-    if (m_mesh.has_mrrs) {
-        get_local_mirrors(tmpi);
-        h5h_write_dset(fid, "mirror_pos", n_elems(), &tmpi[0]);
-    }
+    //if (m_mesh.has_mrrs) {
+    //    get_local_mirrors(tmpi);
+    //    h5h_write_dset(fid, "mirror_pos", n_elems(), &tmpi[0]);
+    //}
     //
     convert_indexes(m_elems_faces, tmpi);
     h5h_write_dset_2d(fid, "faces", n_elems(), 6, tmpi.data());
@@ -788,9 +1011,51 @@ void Mesh3DPart::output_mesh_part()
         output_comm(gid, it->second, it->first);
     }
 
+    output_mirror(fid);
     H5Fclose(fid);
 }
 
+void Mesh3DPart::output_mirror(hid_t fid) const
+{
+    unsigned int nb_pts = m_mirror_xyz.size()/3;
+    printf("%04d : number of mirror points = %ld\n", m_proc, nb_pts);
+    char fname[2048];
+    // snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.h5", m_proc);
+    // hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+    hid_t rid = H5Gcreate(fid, "Mirror", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (nb_pts == 0){
+        printf("processor with empty mirror: %d\n",m_proc);
+        std::vector<index_t> empty_mirror_e;
+        std::vector<index_t> empty_mirror_ijk;
+        std::vector<double>  empty_mirror_xyz;
+        std::vector<double>  empty_mirror_w;
+        std::vector<double>  empty_mirror_inside;
+        std::vector<double>  empty_mirror_outnormal;
+
+        h5h_write_dset_empty(rid, "E", empty_mirror_e);
+        h5h_write_dset_2d_empty(rid, "IJK", 3, empty_mirror_ijk);
+        h5h_write_dset_2d_empty(rid, "XYZ", 3, empty_mirror_xyz);
+        h5h_write_dset_2d_empty(rid, "W", 3, empty_mirror_w);
+        h5h_write_dset_empty(rid, "inside", empty_mirror_inside);
+        h5h_write_dset_2d_empty(rid, "outnormal", 3, empty_mirror_outnormal);
+        vector<index_t> id; //for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
+        h5h_write_dset_empty(rid, "ID", id); // Only needed for XMF
+        H5Gclose(rid);
+        //H5Fclose(fid);
+        return;
+    };
+    h5h_write_dset(rid, "E", m_mirror_e);
+    h5h_write_dset_2d(rid, "IJK", 3, m_mirror_ijk);
+    h5h_write_dset_2d(rid, "XYZ", 3, m_mirror_xyz);
+    h5h_write_dset_2d(rid, "W", 3, m_mirror_w);
+    h5h_write_dset(rid, "inside", m_mirror_inside);
+    h5h_write_dset_2d(rid, "outnormal", 3, m_mirror_outnormal);
+    vector<index_t> id; for(index_t i = 0; i < nb_pts; i++) id.push_back(i);
+    h5h_write_dset(rid, "ID", id); // Only needed for XMF
+    H5Gclose(rid);
+    //H5Fclose(fid);
+}
 
 void Mesh3DPart::output_comm(hid_t gid, const MeshPartComm& comm, int dest)
 {
@@ -979,40 +1244,24 @@ void Mesh3DPart::output_xmf_faces()
 
 void Mesh3DPart::output_xmf_mirror()
 {
+    unsigned int nb_pts = m_mirror_xyz.size()/3;
+    if (nb_pts == 0) return;
+
     char fname[2048];
-    FILE* f;
-
-    int n_faces_mirror = 0;
-    for(unsigned k=0;k<m_surfaces.size();++k) {
-        if (m_surfaces[k]->name()=="mirror") {
-            n_faces_mirror = m_surfaces[k]->m_faces.size();
-            break;
-        }
-    }
-
     snprintf(fname, sizeof(fname), "mesh4spec.%04d.mirror.xmf", m_proc);
-    f = fopen(fname,"w");
+    FILE* f = fopen(fname,"w");
     output_xmf_header(f);
-    fprintf(f, "    <Grid Name=\"faces.%04d\">\n", m_proc);
-    fprintf(f, "      <Topology Type=\"Quadrilateral\" NumberOfElements=\"%ld\">\n", n_faces());
-    fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%ld 4\">\n", n_faces());
-    fprintf(f, "mesh4spec.%04d.h5:/faces_def\n",m_proc);
+    fprintf(f, "    <Grid Name=\"mirror.%04d\">\n", m_proc);
+    fprintf(f, "      <Topology Type=\"Polyvertex\">\n");
+    fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%ld\">\n", nb_pts);
+    fprintf(f, "mesh4spec.%04d.h5:/Mirror/ID\n",m_proc);
     fprintf(f, "        </DataItem>\n");
     fprintf(f, "      </Topology>\n");
     fprintf(f, "      <Geometry Type=\"XYZ\">\n");
-    fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%ld 3\">\n", n_nodes());
-    fprintf(f, "mesh4spec.%04d.h5:/local_nodes\n", m_proc);
+    fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%ld 3\">\n", nb_pts);
+    fprintf(f, "mesh4spec.%04d.h5:/Mirror/XYZ\n", m_proc);
     fprintf(f, "        </DataItem>\n");
     fprintf(f, "      </Geometry>\n");
-    output_int_scalar(f, 6, "FDom", "Cell", n_faces(), "/faces_dom");
-    fprintf(f, "    </Grid>\n");
-    fprintf(f, "    <Grid Name=\"surface.%04d\" GridType=\"Subset\" Section=\"DataItem\">\n", m_proc);
-    fprintf(f, "      <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d\">\n", n_faces_mirror);
-    fprintf(f, "mesh4spec.%04d.h5:/Surfaces/mirror/sl_faces\n",m_proc);
-    fprintf(f, "      </DataItem>\n");
-    fprintf(f, "      <Grid Name=\"Target\" Reference=\"XML\">\n");
-    fprintf(f, "/Xdmf/Domain/Grid[@Name=\"faces.%04d\"]\n", m_proc);
-    fprintf(f, "      </Grid>\n");
     fprintf(f, "    </Grid>\n");
     output_xmf_footer(f);
     fclose(f);

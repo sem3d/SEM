@@ -421,15 +421,18 @@ Les résultats de simulation peuvent être obtenus sous deux formes :
 
 Les champs disponibles sont :
 
-============= ====== ======== ========
-Champ         Milieu Snapshot Capteurs
-============= ====== ======== ========
-Déplacement   S      Oui      Oui
-Vitesse       S/F    Oui      Oui
-Accélération  S/F    Oui      Non
-Pression      S/F    Oui      Non
-============= ====== ======== ========
-
+=============   ====== ======== ========
+Champ           Milieu Snapshot Capteurs
+=============   ====== ======== ========
+Déplacement    S      Oui      Oui
+Vitesse         S/F    Oui      Oui
+Accélération  S/F    Oui      Oui 
+Pression        S/F    Oui      Oui 
+Contrainte Dev  S      Oui      Oui 
+Deform. Vol     S      Oui      Oui 
+Deform. Dev     S      Oui      Oui 
+Deform. Dev Pl  S      Oui      Oui 
+=============   ===== ========= ========
 
 Pour les instantanés, il existe un mécanisme de sélection de mailles
 qui permet de ne sauvegarder qu'une partie du maillage. Cependant on
@@ -662,17 +665,14 @@ La description de chaque fichier est la suivante:
    automatique. Ce fichier doit contenir ::
 
      3   # nombre de couches
-     F  6300.00    00.00    1.0  5   5    5  0.000005 630. 250.
-     S  6300.00  2500.00   2800. 5   5    5  0.000005 630. 250.
-     S  5000.00  2000.00   2000. 5   5    5  0.000005 630. 250.
-     # Type de milieu, Vp, Vs, Rho, N-GLLx, N-GLLy, N-GLLz, dt, Qk, Qmu
+     F  6300.00    00.00    1.0  630. 250.
+     S  6300.00  2500.00   2800. 630. 250.
+     S  5000.00  2000.00   2000. 630. 250.
+     # Type de milieu, Vp, Vs, Rho, Qk, Qmu
 
      # Type de milieu : (S:Solide, F:Fluide)
      # Vp et Vs : Vitesse de propagation des ondes P et S
      # Rho : Masse Volumique
-     # N-GLLx, N-GLLy, N-GLLz : Nombre de points GLL dans les 
-     #                    trois directions (N-GLLy est ignoré en 2D)
-     # dt : Pas de temps (pour l'instant, il est ignoré)
      # Qk et Qmu : Facteurs de qualité d'atténuation des ondes P et S
 
 4) :file:`material.input` : Ce fichier va être créé par le :program:`mesher` au moment de
@@ -691,7 +691,7 @@ La description de chaque fichier est la suivante:
      mesh_file = "mesh4spec"; # input mesh file
      mat_file = "material.input";
      dim=3;
-
+     ngll=5;
      snapshots {
          save_snap = true;
          snap_interval = 0.01;

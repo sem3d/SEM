@@ -59,6 +59,8 @@ module sem_c_config
        !! Output Variables
        integer(C_INT), dimension(OUT_LAST+1) :: out_variables
        integer(C_INT) :: nl_flag
+       integer(C_INT) :: use_avg
+       integer(C_INT) :: prot_at_time
 
        !! Protection reprise
        integer(C_INT) :: prorep
@@ -78,6 +80,14 @@ module sem_c_config
        integer(C_INT) :: mirror_type
        real(C_DOUBLE) :: mirror_fmax
        integer(C_INT) :: mirror_nspl
+       real(C_DOUBLE) :: mirror_offset
+       integer(C_INT) :: mirror_expl
+       integer(C_INT) :: mirror_recalc
+       integer(kind=C_INT) :: mirror_impl_surf_type;
+       real(C_DOUBLE) :: mirror_impl_surf_radius;
+       real(C_DOUBLE), dimension(3) :: mirror_impl_surf_center;
+       real(C_DOUBLE), dimension(6) :: mirror_impl_surf_box;
+       integer(C_INT) :: mirror_smooth_window
 
        !! PML informations
        integer(C_INT) :: pml_type
@@ -139,9 +149,7 @@ module sem_c_config
        type(C_PTR) :: next
        type(C_PTR) :: kine_file
        type(C_PTR) :: slip_file
-       real(C_DOUBLE) :: dip
-       real(C_DOUBLE) :: strike
-       real(C_DOUBLE) :: rake
+       integer(C_INT) :: is_force
     end type sem_extended_source
 
     ! ce type doit correspondre au type station_def_t de sem_input.h **a l'ordre pres**
@@ -213,13 +221,15 @@ module sem_c_config
        type(C_PTR)    :: filename0
        type(C_PTR)    :: filename1
        type(C_PTR)    :: filename2
+       type(C_PTR)    :: filename3
+       type(C_PTR)    :: filename4
        !
-!       real(C_DOUBLE) :: syld
-!       real(C_DOUBLE) :: ckin
-!       real(C_DOUBLE) :: kkin
        real(C_DOUBLE) :: nlkp
        real(C_DOUBLE) :: rinf
        real(C_DOUBLE) :: biso
+       !
+       real(C_DOUBLE) :: Qp
+       real(C_DOUBLE) :: Qs
        !
        type(C_PTR)    :: next
     end type sem_material
@@ -263,8 +273,8 @@ contains
         use semdatafiles
         type(c_ptr), intent(in) :: cstr
         character(Len=MAX_FILE_SIZE) :: fromcstr
-        character,pointer,dimension(:) :: ctemp
-        integer, dimension(1) :: clen
+        character(kind=c_char),pointer,dimension(:) :: ctemp
+        integer(kind=c_size_t), dimension(1) :: clen
         integer :: i
         clen(1) = strlen(cstr)
         call c_f_pointer(cstr, ctemp, clen)

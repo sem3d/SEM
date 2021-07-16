@@ -39,9 +39,9 @@ contains
 
         call stat_starttick(STAT_WAIT)
         do i = 0,vector%ncomm-1
-            dest = vector%Data(i)%dest
-            src = vector%Data(i)%src
             if (vector%Data(i)%ndata>0) then
+                dest = vector%Data(i)%dest
+                src = vector%Data(i)%src
                 call MPI_Isend(vector%Data(i)%Give, vector%Data(i)%ndata, &
                     MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
                     vector%send_reqs(i), ierr)

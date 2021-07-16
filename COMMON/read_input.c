@@ -108,7 +108,7 @@ const keyword_t kw_source_func[] = {
     { 12, "hsf" },
     { 13, "dm" },
     { 14, "analytic", },
-    { 15, NULL },
+    { 15, "fault_file" },
 };
 
 const keyword_t kw_mirror_type[] = {
@@ -178,9 +178,7 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 void init_extended_source(extended_source_t* extended_source)
 {
     memset(extended_source, 0, sizeof(extended_source_t));
-    extended_source->dip    = 0.;
-    extended_source->strike = 0.;
-    extended_source->rake   = 0.;
+    extended_source->is_force = 0; 
 }
 
 int expect_extended_source(yyscan_t scanner, sem_config_t* config)
@@ -203,10 +201,7 @@ int expect_extended_source(yyscan_t scanner, sem_config_t* config)
 	if (tok!=K_ID) break;
 	if      (cmp(scanner,"kine_file")) err=expect_eq_string(scanner, &extended_source->kine_file,1);
 	else if (cmp(scanner,"slip_file")) err=expect_eq_string(scanner, &extended_source->slip_file,1);
-	else if (cmp(scanner,"dip")) err=expect_eq_float(scanner, &extended_source->dip, 1);
-	else if (cmp(scanner,"strike")) err=expect_eq_float(scanner, &extended_source->strike, 1);
-	else if (cmp(scanner,"rake")) err=expect_eq_float(scanner, &extended_source->rake, 1);
-
+	else if (cmp(scanner,"is_force")) err=expect_eq_int(scanner, &extended_source->is_force, 1);
 	if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -219,7 +214,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err, k;
 
-    for(k=0;k<12;++k) {
+    for(k=0;k<14;++k) {
         config->out_variables[k] = 0;
     }
     tok = skip_blank(scanner);
@@ -241,6 +236,8 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         else if (cmp(scanner,"eTotal")) err=expect_eq_int(scanner, &(config->out_variables[9]),1);
         else if (cmp(scanner,"edevpl")) err=expect_eq_int(scanner, &(config->out_variables[10]),1);
         else if (cmp(scanner,"dudx")) err=expect_eq_int(scanner, &(config->out_variables[11]),1);
+        else if (cmp(scanner,"gradla")) err=expect_eq_int(scanner, &(config->out_variables[12]),1);
+        else if (cmp(scanner,"gradmu")) err=expect_eq_int(scanner, &(config->out_variables[13]),1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -299,6 +296,35 @@ int expect_amortissement(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+int expect_impl_surf(yyscan_t scanner, sem_config_t* config)
+{
+    int tok, err;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+        tok = skip_blank(scanner);
+        if (tok!=K_ID) break;
+
+        if (cmp(scanner,"center")) err=expect_eq_float(scanner,  config->mirror_impl_surf_center, 3);
+        if (cmp(scanner,"radius")) {
+            err=expect_eq_float(scanner, &config->mirror_impl_surf_radius, 1);
+            config->mirror_impl_surf_type = 1;
+        }
+        if (cmp(scanner,"box")) {
+            err=expect_eq_float(scanner, config->mirror_impl_surf_box, 6); // xmin, xmax, ymin, ymax, zmin, zmax
+            config->mirror_impl_surf_type = 2;
+        }
+        if (cmp(scanner,"smooth_window")) err=expect_eq_bool(scanner, &config->mirror_smooth_window, 1);
+
+        if (err<=0) return 0;
+        if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+
+    return 1;
+}
+
 int expect_mirror(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err;
@@ -313,6 +339,10 @@ int expect_mirror(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"type")) err=expect_eq_keyword(scanner, kw_mirror_type, &config->mirror_type);
         if (cmp(scanner,"fmax")) err=expect_eq_float(scanner, &config->mirror_fmax,1);
         if (cmp(scanner,"nspl")) err=expect_eq_int(scanner, &config->mirror_nspl,1);
+        if (cmp(scanner,"impl_surf")) err=expect_impl_surf(scanner, config);
+        if (cmp(scanner,"offset")) err=expect_eq_float(scanner, &config->mirror_offset,1);
+        if (cmp(scanner,"expl_form")) err=expect_eq_bool(scanner, &config->mirror_expl, 1);
+        if (cmp(scanner,"recalc")) err=expect_eq_bool(scanner, &config->mirror_recalc, 1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -823,6 +853,8 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
 	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
 	else if (cmp(scanner,"nonlinear")) err=expect_eq_int(scanner, &config->nl_flag,1);
+	else if (cmp(scanner,"use_avg")) err=expect_eq_int(scanner, &config->use_avg,1);
+	else if (cmp(scanner,"prot_at_time")) err=expect_eq_int(scanner, &config->prot_at_time,1);
         else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
 	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
@@ -859,6 +891,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 
 void init_sem_config(sem_config_t* cfg)
 {
+    int i;
     memset(cfg, 0, sizeof(sem_config_t));
     // Valeurs par defaut
     cfg->courant = 0.2;
@@ -880,6 +913,9 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[8]  = 0; // Contrainte Dev
     cfg->out_variables[9]  = 0; // Total Energy (EnP, EnS, En Residual_PS, En Cinetique, En_Total
     cfg->out_variables[10] = 0; // Deformation Dev Pl
+    cfg->out_variables[11] = 0; // dUdX
+    cfg->out_variables[12] = 0; // Grad Lambda
+    cfg->out_variables[13] = 0; // Grad Mu
     cfg->nl_flag = 0; // calcul nonlineaire
 
     // CPML
@@ -894,6 +930,16 @@ void init_sem_config(sem_config_t* cfg)
     cfg->mirror_type = 0;
     cfg->mirror_fmax = 0.;
     cfg->mirror_nspl = 5;
+    cfg->mirror_offset = 0.;
+    cfg->mirror_expl = 0;
+    cfg->mirror_recalc = 0;
+    cfg->mirror_smooth_window = 0;
+    cfg->mirror_impl_surf_type = 0;
+    cfg->mirror_impl_surf_radius = 1.;
+    cfg->mirror_impl_surf_center[0] = 0.;
+    cfg->mirror_impl_surf_center[1] = 0.;
+    cfg->mirror_impl_surf_center[2] = 0.;
+    for (i = 0; i < 6; i++) cfg->mirror_impl_surf_box[i] = 0.;
 }
 
 
@@ -922,12 +968,32 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
+    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
            cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
            cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
            cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
-           cfg->out_variables[9], cfg->out_variables[10]);
+           cfg->out_variables[9], cfg->out_variables[10],cfg->out_variables[11],\
+           cfg->out_variables[12],cfg->out_variables[13]);
     printf("Nonlinear analysis : %d\n",cfg->nl_flag);
+    printf("Mirror : use %d\n", cfg->use_mirror);
+    if (cfg->use_mirror) {
+        printf("Mirror : type %d, fmax %f, nspl %d\n", cfg->mirror_type, cfg->mirror_fmax, cfg->mirror_nspl);
+        printf("Mirror : explicit form %d, force recalc %d\n", cfg->mirror_expl, cfg->mirror_recalc);
+        if (cfg->mirror_impl_surf_type == 1) {
+            printf("Mirror : impl_surf type %d, impl_surf_radius %f, impl_surf_center %f %f %f\n",
+                   cfg->mirror_impl_surf_type,
+                   cfg->mirror_impl_surf_radius,
+                   cfg->mirror_impl_surf_center[0], cfg->mirror_impl_surf_center[1], cfg->mirror_impl_surf_center[2]);
+        }
+        if (cfg->mirror_impl_surf_type == 2) {
+            printf("Mirror : impl_surf type %d, impl_surf_box %f %f %f %f %f %f\n",
+                   cfg->mirror_impl_surf_type,
+                   cfg->mirror_impl_surf_box[0], cfg->mirror_impl_surf_box[1], cfg->mirror_impl_surf_box[2],
+                   cfg->mirror_impl_surf_box[3], cfg->mirror_impl_surf_box[4], cfg->mirror_impl_surf_box[5]);
+        }
+        printf("Mirror : smooth_window %d\n", cfg->mirror_smooth_window);
+    }
+    fflush(stdout);
 }
 
 

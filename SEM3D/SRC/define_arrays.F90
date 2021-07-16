@@ -36,7 +36,6 @@ contains
 
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg, bnum, ee
-        logical :: find
 
         ! Copy Idom from element to domain_XXX
         ! Note : this must be done first as CPLM domain needs dom%Idom_ to build M, K, ...
@@ -115,18 +114,7 @@ contains
         endif
 
         ! Mirror
-        if (Tdomain%mirror_type>=0) then
-        !!! GB if (Tdomain%use_mirror) then
-            find = .false.
-            do n = 0,size(Tdomain%sSurfaces)-1
-                if (trim(Tdomain%sSurfaces(n)%name)=="mirror") then
-                    call init_mirror(Tdomain, Tdomain%sSurfaces(n))
-                    find = .true.
-                    exit
-                endif
-            enddo
-            if (.not.find) stop "no mirror in mesh file"
-        endif
+        if (Tdomain%use_mirror) call init_mirror(Tdomain)
 
         do n = 0,Tdomain%n_elem-1
             if(allocated(Tdomain%specel(n)%Idom)) &
@@ -454,36 +442,40 @@ contains
         type(element), intent(inout) :: specel
         type(subdomain), intent(in) :: mat
         !
-        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu, nlkp
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: lambda, mu, rho, nu, nlkp
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Qp,Qs
         real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
         logical :: aniso
         ! integration de la prise en compte du gradient de proprietes
         aniso = .false.
+        Qp = mat%Qpression
+        Qs = mat%Qmu
         select case(mat%material_definition)
             case(MATERIAL_CONSTANT)
                 !    on copie toujours le materiau de base
                 !    si le flag gradient est actif alors on peut changer les proprietes
                 rho = mat%Ddensity
                 select case(mat%deftype)
-                case(MATDEF_VP_VS_RHO)
+                case(MATDEF_VP_VS_RHO,MATDEF_VP_VS_RHO_D)
                     v0 = mat%Pspeed
                     v1 = mat%Sspeed
-                case(MATDEF_E_NU_RHO)
+                case(MATDEF_E_NU_RHO,MATDEF_E_NU_RHO_D)
                     v0 = mat%DE
                     v1 = mat%DNU
-                case(MATDEF_LAMBDA_MU_RHO)
+                case(MATDEF_LAMBDA_MU_RHO,MATDEF_LAMBDA_MU_RHO_d)
                     v0 = mat%DLambda
                     v1 = mat%DMu
-                case(MATDEF_KAPPA_MU_RHO)
+                case(MATDEF_KAPPA_MU_RHO,MATDEF_KAPPA_MU_RHO_D)
                     v0 = mat%DKappa
                     v1 = mat%DMu
-                case(MATDEF_HOOKE_RHO)
+                case(MATDEF_HOOKE_RHO,MATDEF_HOOKE_RHO_D)
                     aniso = .true.
                     ! XXX TODO REQUIRED ATTENTION
-                case(MATDEF_NLKP_VS_RHO)
+                case(MATDEF_NLKP_VS_RHO,MATDEF_NLKP_VS_RHO_D)
                     v0 = mat%DNlkp
                     v1 = mat%Sspeed
-                case(MATDEF_NU_VS_RHO)
+                case(MATDEF_NU_VS_RHO,MATDEF_NU_VS_RHO_D)
                     v0 = mat%DNu
                     v1 = mat%Sspeed
                 end select
@@ -492,45 +484,52 @@ contains
                 call interpolate_elem_field(Tdomain, specel, mat, mat%pf(1), v0)
                 call interpolate_elem_field(Tdomain, specel, mat, mat%pf(2), v1)
                 call interpolate_elem_field(Tdomain, specel, mat, mat%pf(3), rho)
+                select case(mat%deftype)
+                case(MATDEF_VP_VS_RHO_D,MATDEF_E_NU_RHO_D,MATDEF_LAMBDA_MU_RHO_D,&
+                    MATDEF_KAPPA_MU_RHO_D,MATDEF_HOOKE_RHO_D,MATDEF_NLKP_VS_RHO_D,&
+                    MATDEF_NU_VS_RHO_D)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%pf(4), Qp)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%pf(5), Qs)
+                end select
         end select
 
         select case(mat%deftype)
-        case(MATDEF_VP_VS_RHO)
+        case(MATDEF_VP_VS_RHO,MATDEF_VP_VS_RHO_D)
             nlkp = 1.0d40
             mu = rho * v1**2
             lambda = rho*(v0**2 - 2d0 *v1**2)
-        case(MATDEF_E_NU_RHO)
+        case(MATDEF_E_NU_RHO,MATDEF_E_NU_RHO_D)
             nlkp = 1.0d40
             lambda = v0*v1/((1d0+v1)*(1d0-2d0*v1))
             mu = v0/(2d0*(1d0+v1))
-        case(MATDEF_LAMBDA_MU_RHO)
+        case(MATDEF_LAMBDA_MU_RHO,MATDEF_LAMBDA_MU_RHO_D)
             nlkp = 1.0d40
             lambda = v0
             mu = v1
-        case(MATDEF_KAPPA_MU_RHO)
+        case(MATDEF_KAPPA_MU_RHO,MATDEF_KAPPA_MU_RHO_D)
             nlkp = 1.0d40
             mu = v1
             lambda = v0 - 2d0*mu/3d0
-        case(MATDEF_HOOKE_RHO)
+        case(MATDEF_HOOKE_RHO,MATDEF_HOOKE_RHO_D)
             ! XXX TODO
             Cij = 0
-        case(MATDEF_NLKP_VS_RHO)
+        case(MATDEF_NLKP_VS_RHO,MATDEF_NLKP_VS_RHO_D)
             nu = mat%DNu
             mu = rho*v1**2
-            lambda = 2.0d0*nu*v1/(1.0d0-2.0d0*nu)
+            lambda = 2.0d0*nu*(rho*v1**2)/(1.0d0-2.0d0*nu)
             nlkp = v0
-        case(MATDEF_NU_VS_RHO)
+        case(MATDEF_NU_VS_RHO,MATDEF_NU_VS_RHO_D)
             nu = v0
             mu = rho*v1**2
-            lambda = 2.0d0*nu*v1/(1.0d0-2.0d0*nu)
+            lambda = 2.0d0*nu*(rho*v1**2)/(1.0d0-2.0d0*nu)
             nlkp = 1.0d40
         end select
 
         select case (specel%domain)
         case (DM_SOLID)
-            call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,nlkp,Tdomain%nl_flag)
+            call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,nlkp,Tdomain%nl_flag,Qp,Qs)
         case (DM_FLUID)
-            call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
+            call init_material_properties_fluid(Tdomain%fdom,specel%lnum,rho,lambda)
         case (DM_SOLID_PML)
             call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,mat,rho,lambda,mu)
         case (DM_FLUID_PML)

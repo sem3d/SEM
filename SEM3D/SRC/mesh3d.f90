@@ -182,6 +182,8 @@ contains
         type(domain), intent(inout) :: Tdomain
         !
         integer :: i, j, k, mat, nod
+        logical :: pml
+        real :: Coord_local
         !
         do i = 0, Tdomain%n_mat-1
             Tdomain%sSubDomain(i)%MinBound_loc = MAX_DOUBLE
@@ -192,16 +194,23 @@ contains
         do i = 0, Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
             Tdomain%sSubDomain(mat)%present = .true.
+            pml = is_pml(Tdomain%sSubdomain(mat))
 
             do j = 0, Tdomain%n_nodes-1
                 nod = Tdomain%specel(i)%Control_Nodes(j)
-                do k = 0, 2
+                do k = 0,2
+                    Coord_local = Tdomain%Coord_nodes(k, nod)
+                    if (pml) then
+                         if (Tdomain%sSubDomain(mat)%pml_width(k) /= 0) then
+                            Coord_local = Tdomain%sSubDomain(mat)%pml_pos(k)
+                         end if
+                    end if
                     !Max
-                    if(Tdomain%Coord_nodes(k, nod) > Tdomain%sSubDomain(mat)%MaxBound_loc(k)) &
-                        Tdomain%sSubDomain(mat)%MaxBound_loc(k) = Tdomain%Coord_nodes(k, nod)
+                    if(Coord_local > Tdomain%sSubDomain(mat)%MaxBound_loc(k)) &
+                        Tdomain%sSubDomain(mat)%MaxBound_loc(k) = Coord_local
                     !Min
-                    if(Tdomain%Coord_nodes(k, nod) < Tdomain%sSubDomain(mat)%MinBound_loc(k)) &
-                        Tdomain%sSubDomain(mat)%MinBound_loc(k) = Tdomain%Coord_nodes(k, nod)
+                    if(Coord_local < Tdomain%sSubDomain(mat)%MinBound_loc(k)) &
+                        Tdomain%sSubDomain(mat)%MinBound_loc(k) = Coord_local
                 end do
             end do
         end do

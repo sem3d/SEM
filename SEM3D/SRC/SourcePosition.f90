@@ -50,20 +50,26 @@ subroutine SourcePosition (Tdomain)
 
         ! On trouve les elements autour de la source
         nmax = NMAXEL
-        call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc)
+        !call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
+        call find_location_centroid(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
         n_el = -1
+
         do i=1,nmax
             inside = .true.
             xi   = coordloc(0,i)
             eta  = coordloc(1,i)
             zeta = coordloc(2,i)
+
             if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
             if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
+
             if (inside) then
                 n_el = elems(i)
                 exit
             end if
         end do
+
+
         ! On ignore une source fluide dans le domaine solide
         if (n_el/=-1) then
             if(Tdomain%sSource(n_src)%i_type_source == 3 .and. Tdomain%specel(elems(i))%domain/=DM_FLUID) n_el = -1
@@ -85,6 +91,9 @@ subroutine SourcePosition (Tdomain)
                 write(*,*) "The source at (", xs, ys, zs, ") doesn't appear to be on any processor"
                 write(*,*) "Please verify that the source location is within the computation domain"
                 write(*,*) "And the source type (solid, or fluid) is in accordance with its location"
+
+                write(*,*) "ALSO PRINTING n_el and proc   ", n_el, Tdomain%sSource(n_src)%proc
+
             end if
             stop 1
         endif
@@ -148,4 +157,3 @@ end subroutine SourcePosition
 !! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent :
-

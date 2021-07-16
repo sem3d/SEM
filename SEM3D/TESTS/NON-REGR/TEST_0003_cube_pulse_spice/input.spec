@@ -13,6 +13,8 @@ snapshots {
     select all;
 };
 
+ngll=5;
+
 # Description des capteurs
 save_traces = true;
 station_file = "capteurs.dat";

@@ -26,7 +26,7 @@ class Capteur:
         _M = self.data.max(axis=0)
         _a = self.data.mean(axis=0)
         for comp in 1,2,3:
-            print self.name, " XYZ"[comp], ":", _m[comp], " < ", _a[comp], " < ", _M[comp]
+            print("{} XYZ {} : {} < {} < {}".format(self.name,[comp],_m[comp],_a[comp],_M[comp]))
 
     def dt(self):
         # on ne prend pas [1]-[0] car certains filtres decalent le T0

@@ -14,6 +14,9 @@
 #include "reader_abaqus.h"
 #include "reader_ideas.h"
 #include "mesh_common.h"
+#include "read_input.h"
+#include "sem_input.h"
+#include "earth_mesh.h"
 
 void handle_on_the_fly(Mesh3D& mesh)
 {
@@ -75,6 +78,34 @@ void handle_earth_chunk(Mesh3D& mesh)
 {
 }
 
+void handle_full_earth(Mesh3D& mesh)
+{
+    /* earth.dat format:
+NLAYERS  Z0 N0 MAT0
+z Z1 mat div NDIV
+z Z2 mat raf 1
+z Z3 mat div 5
+s surfname mat div 6
+
+z: indicate a fixed scalar value
+s: interpolate surface depth from surfname=h5file/dataset 
+mat: material number
+N0 : number of cell of center cube across one edge
+MAT0: material of the center cube
+div/raf either divide the layer or refine
+Z is distance from center and should appear in increasing order
+Z0<Z1<Z2<Z3<surf
+
+The center cube has Nc= Ninit*Ninit*Ninit cells.
+    */
+    FILE* fparams;
+    EarthMesh earth(mesh);
+    fparams = fopen("earth.dat","r");
+    earth.read_params(fparams);
+    fclose(fparams);
+    earth.init_earth();
+}
+
 /// Emulates old mesher interface
 
 int main(int argc, char**argv)
@@ -106,8 +137,6 @@ int main(int argc, char**argv)
     sscanf(buffer,"%d", &NPROCS);
 
     printf("             %d processor(s)\n", NPROCS);
-
-
     printf(" \n\n");
     printf("  --> Which Initial Mesh?\n");
     printf("      1- On the fly\n");
@@ -115,6 +144,7 @@ int main(int argc, char**argv)
     printf("      3- Ideas (.unv) files\n");
     printf("      4- HDF5 Hex8 files\n");
     printf("      5- Earth Chunk\n");
+    printf("      6- Full earth\n");
 
     getData_line(&buffer, &linesize, stdin);
 
@@ -122,19 +152,23 @@ int main(int argc, char**argv)
     printf("            Your choice is %d \n", choice);
     printf(" \n\n");
 
+    sem_config_t config;
+    int err;
+    read_sem_config(&config, 0, 3, "input.spec", &err);
+    dump_config(&config);
 
     switch(choice) {
     case 1:
-    	mesh.read_materials("mater.in");
+        mesh.read_materials("mater.in");
         handle_on_the_fly(mesh);
         mesh.write_materials("material.input");
-	break;
+        break;
     case 2:
         mesh.read_materials("material.input");
         handle_abaqus_file(mesh);
-	break;
+        break;
     case 3:
-    	mesh.read_materials("material.input");
+        mesh.read_materials("material.input");
         handle_ideas_file(mesh);
         break;
     case 4:
@@ -144,6 +178,9 @@ int main(int argc, char**argv)
     case 5:
         handle_earth_chunk(mesh);
         break;
+    case 6:
+        handle_full_earth(mesh);
+        break;
     default:
         break;
     };
@@ -151,7 +188,7 @@ int main(int argc, char**argv)
     //mesh.write_materials("material.input");
     mesh.define_associated_materials();
 
-    mesh.generate_output(NPROCS);
+    mesh.generate_output(NPROCS, &config);
     return 0;
 }
 

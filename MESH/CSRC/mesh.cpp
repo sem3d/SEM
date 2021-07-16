@@ -183,7 +183,6 @@ int Mesh3D::read_materials_v2(const std::string& str)
     char *buffer=NULL;
     size_t linesize=0;
     double  vs,vp,rho;
-    int         ngllx;
     double    Qp, Qmu;
     int npmls;
     vector<int> pml_nums;
@@ -199,13 +198,13 @@ int Mesh3D::read_materials_v2(const std::string& str)
 
     for(int k=0;k<nmats;++k)  {
         getData_line(&buffer, &linesize, f);
-        sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
-               &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
+        sscanf(buffer, "%c %lf %lf %lf %lf %lf",
+               &type, &vp, &vs, &rho, &Qp, &Qmu);
 
-        printf("mat=%2ld : t=%c vp=%lf vs=%lf rho=%lf ngll=%d Qp=%lf Qmu=%lf\n", m_materials.size(),
-               type, vp, vs, rho, ngllx, Qp, Qmu);
+        printf("mat=%2ld : t=%c vp=%lf vs=%lf rho=%lf Qp=%lf Qmu=%lf\n", m_materials.size(),
+               type, vp, vs, rho, Qp, Qmu);
 
-        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu));
         if (type=='P' || type=='L') {
             npmls++;
             pml_nums.push_back(m_materials.size()-1);
@@ -275,10 +274,9 @@ void Mesh3D::write_materials_v2(const std::string& str)
     fprintf(f, "%d\n", nmats);
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
-        fprintf(f, "%c %lf %lf %lf %d %lf %lf\n",
+        fprintf(f, "%c %lf %lf %lf %lf %lf\n",
                 mat.cinitial_type,
                 mat.Pspeed, mat.Sspeed, mat.rho,
-                mat.m_ngll,
                 mat.Qpression, mat.Qmu);
     }
 
@@ -657,7 +655,7 @@ void Mesh3D::compute_pml_free_surface()
     printf("Found %d free faces\n\n", count);
 }
 
-void Mesh3D::generate_output(int nprocs)
+void Mesh3D::generate_output(int nprocs, const sem_config_t* config)
 {
     build_vertex_to_elem_map();
     save_bbox();
@@ -669,7 +667,7 @@ void Mesh3D::generate_output(int nprocs)
     // build_sf_interface();
 
     for(int part=0;part<nprocs;++part) {
-        Mesh3DPart loc(*this, part);
+        Mesh3DPart loc(*this, part, config);
 
         loc.compute_part();
         loc.output_mesh_part();

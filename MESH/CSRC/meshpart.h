@@ -8,9 +8,11 @@
 
 #include "meshbase.h"
 #include "mesh.h"
+#include "sem_input.h" // sem_config_t
 #include <vector>
 #include <map>
 #include <set>
+#include <cmath> // sqrt
 
 template<typename T0, typename T1>
 T1 get(const std::map<T0,T1>& m, const T0& key, const T1& def)
@@ -82,12 +84,106 @@ public:
     }
 };
 
+/** Manages implicit surfaces */
+class implicit_surf {
+public:
+    virtual double f(double x, double y, double z, double* win = NULL) const = 0;
+    virtual void n(double x, double y, double z, double& nx, double& ny, double& nz) const = 0;
+};
+class sphere: public implicit_surf {
+public:
+    sphere(const sem_config_t* config) {
+        r  = config ? config->mirror_impl_surf_radius    : 1.;
+        xc = config ? config->mirror_impl_surf_center[0] : 0.;
+        yc = config ? config->mirror_impl_surf_center[1] : 0.;
+        zc = config ? config->mirror_impl_surf_center[2] : 0.;
+        smooth_win = config ? config->mirror_smooth_window : 0;
+    }
+    virtual double f(double x, double y, double z, double* win = NULL) const {
+        double dx = x-xc, dy = y-yc, dz = z-zc;
+        double f = r*r - (dx*dx + dy*dy + dz*dz);
+        compute_window(win, f);
+        return f;
+    };
+    virtual void n(double x, double y, double z, double& nx, double& ny, double& nz) const {
+        double dx = x-xc, dy = y-yc, dz = z-zc;
+        double norm = sqrt(dx*dx + dy*dy + dz*dz);
+        nx = dx/norm; ny = dy/norm; dz = dz/norm;
+    };
+    void compute_window(double* win, double f) const {
+        if (!win) return;
+        if (!smooth_win) *win = f >= 0. ? 1. : 0.;
+        else {
+            // TODO
+        }
+    };
+private:
+    double r;
+    double xc, yc, zc;
+    int smooth_win;
+};
+class box: public implicit_surf {
+public:
+    box(const sem_config_t* config) {
+        xmin = config ? config->mirror_impl_surf_box[0] : -1.;
+        xmax = config ? config->mirror_impl_surf_box[1] :  1.;
+        ymin = config ? config->mirror_impl_surf_box[2] : -1.;
+        ymax = config ? config->mirror_impl_surf_box[3] :  1.;
+        zmin = config ? config->mirror_impl_surf_box[4] : -1.;
+        zmax = config ? config->mirror_impl_surf_box[5] :  1.;
+        smooth_win = config ? config->mirror_smooth_window : 0;
+    }
+//    GB GB
+//    virtual double f(double x, double y, double z, double* win = NULL) const {
+//        double fx = -1.; if (fabs(x - xmin) < 1.e-12 || fabs(x - xmax) < 1.e-12) fx = 0.; if (xmin < x && x < xmax) fx = 1.;
+//        double fy = -1.; if (fabs(y - ymin) < 1.e-12 || fabs(y - ymax) < 1.e-12) fy = 0.; if (ymin < y && y < ymax) fy = 1.;
+//        double fz = -1.; if (fabs(z - zmin) < 1.e-12 || fabs(z - zmax) < 1.e-12) fz = 0.; if (zmin < z && z < zmax) fz = 1.;
+//        double f = fx*fy*fz;
+//        compute_window(win, f);
+//        return f;
+//    };
+    virtual double f(double x, double y, double z, double* win = NULL) const {
+        double xeps = (xmax-xmin)*1.e-12;
+        double yeps = (ymax-ymin)*1.e-12;
+        double zeps = (zmax-zmin)*1.e-12;
+        double f = -1.;
+        if (   (xmin-x) < xeps && (x-xmax) < xeps
+            && (ymin-y) < yeps && (y-ymax) < yeps
+            && (zmin-z) < zeps && (z-zmax) < zeps ){
+            f = 1.;
+            if (fabs(x - xmin) < xeps || fabs(x - xmax) < xeps) f = 0.;
+            if (fabs(y - ymin) < yeps || fabs(y - ymax) < yeps) f = 0.;
+            if (fabs(z - zmin) < zeps || fabs(z - zmax) < zeps) f = 0.;
+        }
+        compute_window(win, f);
+        return f;
+    };
+//    GB GB
+    virtual void n(double x, double y, double z, double& nx, double& ny, double& nz) const {
+        nx = ny = nz = 0.;
+        if (fabs(x - xmin) < 1.e-12) nx = -1.; if (fabs(x - xmax) < 1.e-12) nx = 1.;
+        if (fabs(y - ymin) < 1.e-12) ny = -1.; if (fabs(y - ymax) < 1.e-12) ny = 1.;
+        if (fabs(z - zmin) < 1.e-12) nz = -1.; if (fabs(z - zmax) < 1.e-12) nz = 1.;
+    };
+    void compute_window(double* win, double f) const {
+        if (!win) return;
+        if (!smooth_win) *win = f >= 0. ? 1. : 0.;
+        else {
+            // TODO
+        }
+    };
+private:
+    double xmin, xmax, ymin, ymax, zmin, zmax;
+    int smooth_win;
+};
+
 /** Manages a part of the mesh on a specific processor */
 class Mesh3DPart {
 public:
-    Mesh3DPart(const Mesh3D& mesh, int proc):
+    Mesh3DPart(const Mesh3D& mesh, int proc, const sem_config_t* config):
         m_mesh(mesh),
-        m_proc(proc) {}
+        m_proc(proc),
+        m_cfg(config) {}
 
 
     void compute_part();
@@ -136,6 +232,7 @@ public:
 protected:
     const Mesh3D& m_mesh;
     int m_proc;
+    const sem_config_t* m_cfg;
 
     std::vector<index_t> m_elems; // Local elements
     std::vector<index_t> m_elems_faces; // local face number of each local element
@@ -153,6 +250,21 @@ protected:
     std::map<int,MeshPartComm> m_comm;
     node_id_map_t m_nodes_to_id;
 
+    // Mirror
+    std::vector<index_t> m_mirror_e;
+    std::vector<index_t> m_mirror_ijk;
+    std::vector<double> m_mirror_xyz;
+    std::vector<double> m_mirror_w;
+    std::vector<double> m_mirror_inside; // Inside <=> window [0., 1.]
+    std::vector<double> m_mirror_outnormal;
+    std::vector<double> m_gll;
+    void compute_gll();
+    void handle_mirror_implicit_surf(index_t el, index_t elnum);
+    void handle_mirror_surf(const Surface* smirror);
+    void shape8_local2global(double const vco[3][8],
+                             double xi, double eta, double zeta,
+                             double& x, double& y, double& z) const;
+
     void handle_local_element(index_t el, bool is_border);
     void handle_neighbouring_face(index_t lnf, const PFace& fc, index_t el);
     void handle_neighbouring_edge(index_t lne, const PEdge& ed, index_t el);
@@ -161,6 +273,7 @@ protected:
     void output_mesh_attributes(hid_t fid);
     void output_local_mesh(hid_t fid);
     void output_surface(hid_t fid, const Surface* surf);
+    void output_mirror(hid_t fid) const;
     void output_comm(hid_t gid, const MeshPartComm& comm, int dest);
 
     void write_surface_dom(hid_t gid, const Surface* surf, const char* pfx, int dom);

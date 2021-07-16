@@ -1753,16 +1753,16 @@ contains
     end subroutine barycentre
     !--------------------------------------------------------------------
     !--------------------------------------------------------------------
-    subroutine write_mater_ondafly(nmat,mattab,vp,vs,rho,ngll,qp,qs,pml_bool,pml_t,pml_b,ngll_PML)
+    subroutine write_mater_ondafly(nmat,mattab,vp,vs,rho,ngll,qp,qs,pml_bool,pml_t,pml_b)
         !- construction of the "material.input" file directly used in SEM3D
         integer, intent(in)   :: nmat
         character, dimension(0:), intent(in)   :: mattab
         real, dimension(0:nmat-1), intent(in)  :: vp,vs,rho,qp,qs
         integer, dimension(0:nmat-1), intent(in)  :: ngll
-        integer, intent(in),optional     :: pml_bool,pml_t,pml_b,ngll_PML
+        integer, intent(in),optional     :: pml_bool,pml_t,pml_b
         integer                 :: i,icount
         real  :: tr
-        character(len=*), parameter  :: FMT1="(a1,2x,f9.3,2x,f9.3,2x,f9.3,2x,3(i2,2x),f8.5,2x,f8.3,2x,f8.3)"
+        character(len=*), parameter  :: FMT1="(a1,2x,f9.3,2x,f9.3,2x,f9.3,2x,f8.5,2x,f8.5)"
         character(len=*), parameter  :: FMT2="(l1,1x,i2,1x,f5.2,1x,6(l1,1x),f5.2,i3)"
         real, parameter  :: a = 10d0, k =0d0
         integer, parameter  :: n = 2
@@ -1780,8 +1780,7 @@ contains
         write(10,*) size(mattab)
         !  physical layers
         do i = 0,nmat-1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
-                ngll(i),tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
         end do
 
@@ -1789,29 +1788,21 @@ contains
         if(present(pml_bool)) then
         if (pml_bool == 1) then
             do i = 0,nmat-1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                    ngll(i),tr,qp(i),qs(i)
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
                 icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                    ngll(i),tr,qp(i),qs(i)
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
                 icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                    ngll(i),tr,qp(i),qs(i)
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
                 icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                    ngll(i),tr,qp(i),qs(i)
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
                 icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                    ngll(i),tr,qp(i),qs(i)
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
                 icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                    ngll(i),tr,qp(i),qs(i)
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
                 icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                    ngll(i),tr,qp(i),qs(i)
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
                 icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                    ngll(i),tr,qp(i),qs(i)
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
                 icount = icount+1
             end do
         end if
@@ -1819,63 +1810,45 @@ contains
         ! bottom PMLs
         if(present(pml_b) .and. pml_b == 1)then
             i = nmat-1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
         end if
         ! top PMLs
         if(present(pml_t) .and. pml_t == 1)then
             i = 0
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
-            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
-                ngll_PML,tr,qp(i),qs(i)
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),qp(i),qs(i)
             icount = icount+1
         end if
 

@@ -54,6 +54,7 @@ Le fichier suivant correspond à celui d'un cas test : ::
   mesh_file = "mesh4spec"; # input mesh file
   mat_file = "material.input";
   dim = 3;
+  ngll = 5;
 
   snapshots {
     save_snap = true;
@@ -128,7 +129,7 @@ Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  ================================================================
 amortissement     section  n/a                Description de l'amortissement
 fmax              réel     1Hz                Fréquence max attendue du signal (utilisé pour vérifications)
-ngll              entier   5                  (futur) nombre de points de gauss par maille
+ngll              entier   5                  nombre de points de gauss par maille
 dim               entier   obligatoire        Spécifie si le calcul est 2D ou 3D.
 mat_file          chaîne   "material.input"   Nom du fichier de description des matériaux
 mesh_file         chaîne   "mesh4spec"        Nom de base des fichiers maillage
@@ -388,7 +389,7 @@ Les fonctions temporelles sont:
 
   .. math::
 
-     f(t) = \frac{Q*Y}{2}*(X^{\frac{v*(t-t_0)-a}{d^2}}+X^{\frac{v*(t-t_0)-a-L}{d^2}})
+     f(t) = \frac{Q*Y}{2}*(X^{\left(\frac{v*(t-t_0)-a}{d}\right)^2}+X^{\left(\frac{v*(t-t_0)-a-L}{d}\right)^2})
 
 
 Section ``snapshots``
@@ -512,6 +513,7 @@ acc               bool     0                  vecteur des accélérations
 edev              bool     0                  tenseur des déformations déviatoriques
 sdev              bool     0                  tenseur des contraintes déviatoriques
 eTotal            bool     0                  energies de l'ensemble des domaines (sauf PML). Energie P, Energie S, Residu PS, Energie Cinetique, Somme des Energies
+dudx              bool     0                  Gradient des déplacements (dux/dx, dux/dy, ..., duz/dz)
 ================  =======  =================  =================================================================
 
 

@@ -23,6 +23,7 @@ module champs_fluid
     type :: time_mirror_fl
         integer :: n_glltot, n_gll
         integer, dimension(:,:,:,:), allocatable :: map
+        real(fpp), dimension(:,:), allocatable :: coords
         real(fpp), dimension(:,:), allocatable :: fields
         real(fpp), dimension(:), allocatable :: winfunc
     end type time_mirror_fl

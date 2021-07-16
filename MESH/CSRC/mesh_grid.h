@@ -43,7 +43,7 @@ struct RectMesh {
     double zheight;
     double *thickness;
     int    *nsteps;
-    int ngll_pml;
+    //int ngll_pml;
     int elem_shape;
 
     void read_params(FILE* fparam);

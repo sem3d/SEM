@@ -12,9 +12,9 @@
 #include <string>
 #include <cstdlib>
 #include <cassert>
+#include "sem_types.h"
 
 // type for global indexes
-typedef int64_t  index_t;
 constexpr index_t invalid_index = (index_t)(-1);
 // type for local indexes (to each cpu partition inmem)
 typedef int32_t  loc_index_t;

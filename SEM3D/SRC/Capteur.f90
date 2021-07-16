@@ -65,6 +65,7 @@ contains
         integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out
         real(fpp), allocatable, dimension(:,:) :: coordl
         integer :: periodeRef
+        logical :: flag
 
 
         station_next = Tdomain%config%stations
@@ -78,6 +79,7 @@ contains
             traces_h5_created = .true.
         endif
 
+        Tdomain%has_station = .false. !Stations other than Total Energy
 
 
         do while (C_ASSOCIATED(station_next))
@@ -86,7 +88,10 @@ contains
             yc = station_ptr%coords(2)
             zc = station_ptr%coords(3)
             numproc = -1
-            call trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta)
+            flag = .false.
+            nom = fromcstr(station_ptr%name)
+            if (trim(nom(1:20))=="UU_18872") flag = .true.
+            call trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta, flag)
             ! Cas ou le capteur est dans le maillage
             if (n_el/=-1) then
                 numproc = Tdomain%rank
@@ -124,6 +129,8 @@ contains
                     write(*,*) "Please verify that the station location is within the computation domain"
                 end if
                 stop 1
+            else
+                if(numproc_max==Tdomain%rank) Tdomain%has_station = .true.
             end if
 
 
@@ -258,9 +265,7 @@ contains
                 if (capteur%type == CPT_INTERP) then
                     call sortieGrandeurCapteur_interp(Tdomain, capteur)
                 else if (capteur%type == CPT_ENERGY) then
-                    !print*, "BEFORE sortieGrandeurCapteur_energy"
                     call sortieGrandeurCapteur_energy(Tdomain, capteur)
-                    !print*, "AFTER sortieGrandeurCapteur_energy"
                 end if
                 if (capteur%icache==NCAPT_CACHE) do_flush = .true.
             end if
@@ -327,13 +332,19 @@ contains
         integer(HID_T) :: tid, dsetid, spaceid
         integer :: hdferr
         character(len=12), dimension(:), allocatable :: varnames
+        character(len=12), dimension(6) :: energy_varnames = ["Time       1", &
+                                                              "Eng_P      1", &
+                                                              "Eng_S      1", &
+                                                              "Eng_Resid  1", &
+                                                              "Eng_Cine   1", &
+                                                              "Eng_Total  1"]
         character(len=12) :: temp
         integer :: d,k,dim,dimtot
         integer(HSIZE_T), dimension(1) :: dims
 
         dimtot = Tdomain%nReqOut
         allocate(varnames(0:dimtot))
-        varnames(0) = "Time"
+        varnames(0) = "Time       1"
         d = 1
         do k=0,dimtot-1
             if (Tdomain%out_variables(k)==1) then
@@ -345,16 +356,30 @@ contains
                 end do
             end if
         end do
-        dims(1) = d
-        call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
-        call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
-        call H5Screate_simple_f(1, dims, spaceid, hdferr)
-        call H5Dcreate_f(fid, "Variables", tid, spaceid, dsetid, hdferr)
-        call H5Dwrite_f(dsetid, tid, varnames, dims, hdferr, spaceid, spaceid)
-        call H5Dclose_f(dsetid, hdferr)
-        call H5Sclose_f(spaceid, hdferr)
-        call H5Tclose_f(tid, hdferr)
         !
+        if(Tdomain%has_station) then
+            dims(1) = d
+            call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
+            call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
+            call H5Screate_simple_f(1, dims, spaceid, hdferr)
+            call H5Dcreate_f(fid, "Variables", tid, spaceid, dsetid, hdferr)
+            call H5Dwrite_f(dsetid, tid, varnames, dims, hdferr, spaceid, spaceid)
+            call H5Dclose_f(dsetid, hdferr)
+            call H5Sclose_f(spaceid, hdferr)
+            call H5Tclose_f(tid, hdferr)
+        end if
+        !
+        if(Tdomain%out_variables(OUT_TOTAL_ENERGY) == 1) then
+            dims(1) = size(energy_varnames)
+            call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
+            call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
+            call H5Screate_simple_f(1, dims, spaceid, hdferr)
+            call H5Dcreate_f(fid, "En_PS_Variables", tid, spaceid, dsetid, hdferr)
+            call H5Dwrite_f(dsetid, tid, energy_varnames, dims, hdferr, spaceid, spaceid)
+            call H5Dclose_f(dsetid, hdferr)
+            call H5Sclose_f(spaceid, hdferr)
+            call H5Tclose_f(tid, hdferr)
+        end if
     end subroutine create_capteur_descriptions
     
     subroutine append_traces_h5(Tdomain)
@@ -473,6 +498,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: dUdX
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
@@ -498,16 +524,16 @@ contains
         allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! tot energy 5
+        allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
         allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
         allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-        ! dudx 9
-
         allocate(outx(0:ngll-1))
         allocate(outy(0:ngll-1))
         allocate(outz(0:ngll-1))
         allocate(doutx(0:ngll-1))
         allocate(douty(0:ngll-1))
         allocate(doutz(0:ngll-1))
+        
         do i = 0,ngll - 1
             call  pol_lagrange(ngll,GLLc,i,capteur%xi,outx(i))
             call  pol_lagrange(ngll,GLLc,i,capteur%eta,outy(i))
@@ -538,10 +564,10 @@ contains
             case (DM_SOLID)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-                nl_flag, eps_dev_pl)
+                dUdX, nl_flag, eps_dev_pl)
             case (DM_FLUID)
               call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
             case (DM_SOLID_PML)
               call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -599,6 +625,12 @@ contains
                         grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*S_energy(i,j,k)
                     end if
 
+                    if (out_variables(OUT_DUDX) == 1) then
+                        ioff = offset(OUT_DUDX)
+                        nComp = OUT_VAR_DIMS_3D(OUT_DUDX)-1
+                        grandeur (ioff:ioff+nComp) = grandeur (ioff:ioff+nComp)+weight*dUdX(i,j,k,:)
+                    end if
+
                     if (out_variables(OUT_EPS_VOL) == 1) then
                         ioff = offset(OUT_EPS_VOL)
                         nComp = OUT_VAR_DIMS_3D(OUT_EPS_VOL)-1
@@ -624,17 +656,6 @@ contains
                         + (/weight*sig_dev(i,j,k,0), weight*sig_dev(i,j,k,1), weight*sig_dev(i,j,k,2), &
                             weight*sig_dev(i,j,k,3), weight*sig_dev(i,j,k,4), weight*sig_dev(i,j,k,5)/)
                     end if
-                    if (out_variables(OUT_DUDX) == 1) then
-                        ioff = offset(OUT_DUDX)
-                        do d=0,2
-                            dUkdX = fieldU(i,j,k,d)*doutx(i)*outy(j)*outz(k)
-                            dUkdY = fieldU(i,j,k,d)*outx(i)*douty(j)*outz(k)
-                            dUkdZ = fieldU(i,j,k,d)*outx(i)*outy(j)*doutz(k)
-                            grandeur(ioff+d+0) = grandeur(ioff+d+0) + dUkdX
-                            grandeur(ioff+d+3) = grandeur(ioff+d+3) + dUkdY
-                            grandeur(ioff+d+6) = grandeur(ioff+d+6) + dUkdY
-                        end do
-                    end if
                 enddo
             enddo
         enddo
@@ -658,6 +679,7 @@ contains
         deallocate(eps_dev_pl)
         deallocate(sig_dev)
         deallocate(grandeur)
+        deallocate(dUdX)
         deallocate(outx)
         deallocate(outy)
         deallocate(outz)
@@ -778,15 +800,20 @@ contains
 
         enddo
 
-        !TOTO, take out this part and put only local values (total values on post-processing)
-        call MPI_ALLREDUCE(local_sum_S_energy, global_sum_S_energy, 1, MPI_DOUBLE_PRECISION, &
-                           MPI_SUM, Tdomain%communicateur_global, ierr)
-        call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
-                           MPI_SUM, Tdomain%communicateur_global, ierr)
-        call MPI_ALLREDUCE(local_sum_R_energy, global_sum_R_energy, 1, MPI_DOUBLE_PRECISION, &
-                           MPI_SUM, Tdomain%communicateur_global, ierr)
-        call MPI_ALLREDUCE(local_sum_C_energy, global_sum_C_energy, 1, MPI_DOUBLE_PRECISION, &
-                           MPI_SUM, Tdomain%communicateur_global, ierr)
+        ! !TOTO, take out this part and put only local values (total values on post-processing)
+        ! call MPI_ALLREDUCE(local_sum_S_energy, global_sum_S_energy, 1, MPI_DOUBLE_PRECISION, &
+        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+        ! call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
+        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+        ! call MPI_ALLREDUCE(local_sum_R_energy, global_sum_R_energy, 1, MPI_DOUBLE_PRECISION, &
+        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+        ! call MPI_ALLREDUCE(local_sum_C_energy, global_sum_C_energy, 1, MPI_DOUBLE_PRECISION, &
+        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+
+        global_sum_P_energy = local_sum_P_energy
+        global_sum_S_energy = local_sum_S_energy
+        global_sum_R_energy = local_sum_R_energy
+        global_sum_C_energy = local_sum_C_energy
 
         ! Sauvegarde des valeurs dans le capteur.
         i = capteur%icache+1
@@ -813,7 +840,7 @@ contains
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
     !! alors le capteur est sur une face, arete ou sur un sommet
     !!
-    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta)
+    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta, flag)
         use mshape8
         use mshape27
         use mlocations3d
@@ -822,17 +849,19 @@ contains
         real(fpp), intent(in) :: xc, yc, zc
         integer, intent(out) :: n_el, n_eln
         real(fpp), intent(out) :: xi, eta, zeta
+        logical, intent(in) :: flag
         !
         integer :: i
         logical :: inside
         integer :: nmax
-        integer, parameter :: NMAXEL=20
+        integer, parameter :: NMAXEL=100
         integer, dimension(NMAXEL) :: elems
         real(fpp), dimension(0:2,NMAXEL) :: coordloc
         real(fpp), parameter :: EPS = 1D-13, EPSN = 0.1D0
 
         nmax = NMAXEL
-        call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
+        !call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
+        call find_location_centroid(Tdomain, xc, yc, zc, nmax, elems, coordloc)
         n_el = -1
         n_eln = -1
         ! Cas ou la station est dans le maillage

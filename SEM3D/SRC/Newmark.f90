@@ -162,18 +162,29 @@ contains
         if (Tdomain%logicD%surfBC) then
             call add_surface_force(Tdomain,0,1)
         endif
+#ifdef CPML
+        if(Tdomain%logicD%SF_local_present)then
+            call StoF_coupling(Tdomain,0,1)
+            !- fluid -> solid coupling (pressure times velocity)
+            call FtoS_coupling(Tdomain,0,1)
+        end if
+        !- correction phase
+        call Newmark_Corrector_F(Tdomain)
         !- solid -> fluid coupling (normal dot velocity)
         call Newmark_Corrector_S(Tdomain)
+#else
         if(Tdomain%logicD%SF_local_present)then
             call StoF_coupling(Tdomain,0,1)
         end if
-
         !- correction phase
         call Newmark_Corrector_F(Tdomain)
         if(Tdomain%logicD%SF_local_present)then
             !- fluid -> solid coupling (pressure times velocity)
             call FtoS_coupling(Tdomain,0,1)
         end if
+        !- solid -> fluid coupling (normal dot velocity)
+        call Newmark_Corrector_S(Tdomain)
+#endif
 
         if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
@@ -419,16 +430,34 @@ contains
             call stat_starttick(STAT_FSOL)
             ! Mirror Record
             if (Tdomain%mirror_type==0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
-                do n = 0,Tdomain%sdom%nblocks-1
-                    call forces_int_solid_mirror_dump(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
-                enddo
+                if (Tdomain%mirror_expl) then
+                    do n = 0,Tdomain%sdom%nblocks-1
+                        call forces_int_solid_mirror_dump_expl(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                    enddo
+                else
+                    do n = 0,Tdomain%sdom%nblocks-1
+                        call forces_int_solid_mirror_dump(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                    enddo
+                endif
                 call dump_mirror_sl(Tdomain%sdom,ntime)
             ! Mirror Forward/Backward
             elseif (Tdomain%mirror_type>0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
                 call load_mirror_sl(Tdomain%sdom,ntime)
-                do n = 0,Tdomain%sdom%nblocks-1
-                    call forces_int_solid_mirror_load(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
-                enddo
+                if (Tdomain%mirror_recalc) then
+                    do n = 0,Tdomain%sdom%nblocks-1
+                        call forces_int_solid_mirror_load_recalc(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                    enddo
+                else
+                    if (Tdomain%mirror_expl) then
+                        do n = 0,Tdomain%sdom%nblocks-1
+                            call forces_int_solid_mirror_load_expl(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                        enddo
+                    else
+                        do n = 0,Tdomain%sdom%nblocks-1
+                            call forces_int_solid_mirror_load(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                        enddo
+                    endif
+                endif
             ! Without Mirror
             else
                 do n = 0,Tdomain%sdom%nblocks-1

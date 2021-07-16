@@ -36,9 +36,7 @@ typedef struct extended_source {
     struct extended_source* next;
     char* kine_file;
     char* slip_file;
-    double dip;
-    double strike;
-    double rake;
+    int  is_force;
 } extended_source_t;
 
 // Structure decrivant les condition de selection des elements a inclure
@@ -167,8 +165,10 @@ typedef struct {
     int comp_energ;
 
     // Output Variables
-    int out_variables[12];
+    int out_variables[14];
     int nl_flag;
+    int use_avg;
+    int prot_at_time;
 
     // Protection reprise
     int prorep;
@@ -188,6 +188,14 @@ typedef struct {
     int mirror_type;
     double mirror_fmax;
     int mirror_nspl;
+    double mirror_offset;
+    int mirror_expl;
+    int mirror_recalc;
+    int mirror_impl_surf_type;
+    double mirror_impl_surf_radius;
+    double mirror_impl_surf_center[3];
+    double mirror_impl_surf_box[6];
+    int mirror_smooth_window;
 
     // PML informations
     int pml_type;

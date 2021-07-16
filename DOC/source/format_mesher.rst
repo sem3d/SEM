@@ -27,7 +27,6 @@ sont facultatifs) ::
              ... from upper layer, 1 element is created backwards over 100. m => zmin = -200
   1        # PMLs on X / Y ? 0: no, 1: yes => PML on X and Y (at left and rigth for each direction)
   1 1      # PMLs on Z     ? on top ? at the bottom ? (0: no, 1: yes)
-  5        # nb of GLL nodes in the PML
   1        # 8 or 27 control points for elements (1 or 2)
 
 Note : après la ligne qui définit le nombre de couches, il doit y avoir autant de lignes que de couches.
@@ -62,7 +61,6 @@ Voici un second exemple de fichier mat.dat qui spécifie 3 couches de PML dans l
              ... from upper layer, 1 element is created backwards over 100. m => zmin = -200
   3        # Number of extra PML layers (0=no pmls)
   2 1 0 0 0 1 1   # PMLs on U/D/N/S/E/W
-  5        # nb of GLL nodes in the PML
   1        # 8 or 27 control points for elements (1 or 2)
   
 
@@ -72,27 +70,26 @@ Format de mater.in
 Le fichier ``mater.in`` décrit combien de matériaux sont utilisés dans le modèle :: 
 
   1
-  S  6300.00  2500.00   2800. 5   5    5  0.000005 630. 250.
+  S  6300.00  2500.00   2800. 630. 250.
 
  `1` est le nombre de matériaux dans le modèle.
 
 La deuxième ligne décrit le type de matériau (``S`` matériau solide et
 ``F`` matériau fluide). Pour chaque matériau, on déclare
 successivement, la vitesse de propagation de l'onde de pression,
-vitesse de l'onde de cisaillement, la densité du matériau, le nombre
-de GLLs dans les trois directions( ``x``, ``y`` et ``z``), le pas de
-temps (ignoré dans la version actuelle) et les paramètres :math:`Q_\kappa` et :math:`Q_\mu`
+vitesse de l'onde de cisaillement, la densité du matériau, 
+et les paramètres :math:`Q_\kappa` et :math:`Q_\mu`
 pour l'atténuation des ondes P et S.
 
 
-Format de material.input
-========================
+Format de material.input (version obsolète)
+===========================================
 
 **Dans une future version le contenu de ce fichier sera intégré au fichier input.spec**
 
 Le fichier ``material.input`` est créé automatiquement pour le cas avec un maillage automatique.
 
-Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
+Pour le cas où le maillage n'est pas automatique, le fichier a par exemple l'allure suivante ::
 
   22
   P 0380 150 1900 05 05 07 0.000005 0 0
@@ -174,25 +171,99 @@ Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
 
 
 
-Format de material.input V2
-===========================
+Format de material.input (nouvelle version)
+===========================================
 
+Le format de ``material.input`` a été modifié. 
+Voici un exemple de sa nouvelle présentation, suivi d'explications sur les paramètres qui interviennent : ::
 
-::
+    21
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    S 630.000000 250.000000 1800.000000 0.000000 0.000000
+    S 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    P 630.000000 250.000000 1800.000000 0.000000 0.000000
+    # PML properties
+    # npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
+    2 10. -2.450000 0.000000 0.000000 0.000000 6.000000 -5.000000 7
+    2 10. -5.000000 0.000000 -5.000000 0.000000 6.000000 -5.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 0.000000 6.000000 -5.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 -5.000000 6.000000 -5.000000 8
+    2 10. -5.000000 0.000000 -5.000000 -5.000000 6.000000 -5.000000 8
+    2 10. 5.000000 5.000000 -5.000000 -5.000000 6.000000 -5.000000 8
+    2 10. 5.000000 5.000000 -5.000000 0.000000 6.000000 -5.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 0.000000 6.000000 0.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 -5.000000 6.000000 0.000000 8
+    2 10. -5.000000 0.000000 -5.000000 -5.000000 6.000000 0.000000 8
+    2 10. 5.000000 5.000000 -5.000000 -5.000000 6.000000 0.000000 8
+    2 10. 5.000000 5.000000 -5.000000 0.000000 6.000000 0.000000 8
+    2 10. -2.450000 0.000000 0.000000 0.000000 26.000000 5.000000 7
+    2 10. -5.000000 0.000000 0.000000 0.000000 26.000000 5.000000 8
+    2 10. -5.000000 -5.000000 0.000000 0.000000 26.000000 5.000000 8
+    2 10. -5.000000 -5.000000 -5.000000 -5.000000 26.000000 5.000000 8
+    2 10. -5.000000 0.000000 -5.000000 -5.000000 26.000000 5.000000 8
+    2 10. 5.000000 5.000000 -5.000000 -5.000000 26.000000 5.000000 8
+    2 10. 5.000000 5.000000 -5.000000 0.000000 26.000000 5.000000 8
 
-   Nmat
-   Type  Pspeed  Sspeed Density  NGLL  Qp  Qmu
-   # Two lines skipped after Nmat material lines
-   # The second line
-   npow  Apow  posX  widthX  posY widthY posZ widthZ  mat
+Plus précisément, ce fichier doit contenir :
+  
+- Le nombre de milieux décrits sur la première ligne ;
+  
+- Une ligne par milieu, contenant :
+  
+  - Le type de milieu :
+        
+        - Solide : noté S
+        
+        - Fluide : noté F
+        
+        - PML solide : noté P
+        
+        - PML fluide : noté L
+  
+  - Les vitesses d'ondes P et S (en m/s)
+  
+  - La densité (en kg/m^3)
+  
+  - Les coefficients attenuations d'ondes P et S.
+  
+- 2 lignes de commentaires
+  
+- Pour chaque milieu de type PML (donc P ou L), une ligne permettant de paramétrer les directions d'atténuation :
+  
+  - Les paramètres n et A pour les PML filtrantes ;
+  
+  - Les coordonnées (posX, posY, posZ) d'un point à la frontière entre le PML et la matériau solide/liquide adjacent ;
+  
+  - La taille de l'extrusion suivant la direction de l'espace (widthX, widthY, widthZ). Elle peut être positive ou négative suivant le sens donné aux axes (X,Y,Z). Une inversion du signe occasionnera une amplification au lieu d'une atténuation !
+  
+  - Le numéro attributé au matériau solide/liquide adjacent au PML. Attention ! la numérotation commence à 0. Ainsi les deux matériaux solides décrits dans l'exemple ci-dessus sont bien numérotés 7 et 8 (et non 8 et 9).
 
+**Remarque :** pour l'extrusion, trois types de figure sont à distinguer, suivant la nature de la surface de contact PML-solide/liquide :
 
-Description des paramètres : comme le format V1 sauf :
-
-- posX, widthX : position du début de la couche PML sur l'axe X. Si widthX == 0, alors
-  pas de PML en X. Le signe de widthX donne sa direction : la pml
-  se trouve entre (posX) et (posX+widthX)
-
+- Surface de contact : l'extrusion se fait uniquement dans la direction normale à la surface de contact. On mettra 0 dans les deux autres directions.
+   
+- Arête en contact : l'extrusion se fait dans les deux directions normales à l'arête uniquement.
+   
+- Coin en contact : si seul un point fait le contact entre le PML et le milieu adjacent, l'extrusion se fait dans les trois dimensions de l'espace.
+   
+  
    
 Format de material.spec
 =======================

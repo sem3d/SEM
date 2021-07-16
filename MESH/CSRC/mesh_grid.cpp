@@ -16,32 +16,29 @@ void RectMesh::read_params_old(FILE* fparam)
 {
     char* buffer=NULL;
     size_t n=0;
+    int count;
 
-    //getline(&buffer, &n, fparam);
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &xmin);
-    //getline(&buffer, &n, fparam);
+
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &xmax);
-    //getline(&buffer, &n, fparam);
+
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &xstep);
 
-    //getline(&buffer, &n, fparam);
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &ymin);
-    //getline(&buffer, &n, fparam);
+
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &ymax);
-    //getline(&buffer, &n, fparam);
+
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &ystep);
 
-    //getline(&buffer, &n, fparam);
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%lf", &zmax);
 
-    //getline(&buffer, &n, fparam);
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &nlayers);
     // Sanity checks
@@ -53,12 +50,11 @@ void RectMesh::read_params_old(FILE* fparam)
     nsteps    = (int*)   malloc(nlayers*sizeof(int));
     zmin = zmax;
     for(int k=0;k<nlayers;++k) {
-        //getline(&buffer, &n, fparam);
     	getData_line(&buffer, &n, fparam);
     	sscanf(buffer, "%lf %d", &thickness[k], &nsteps[k]);
         zmin = zmin-thickness[k];
     }
-    //getline(&buffer, &n, fparam);
+
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &has_pml);
     if (has_pml<0) {
@@ -81,11 +77,19 @@ void RectMesh::read_params_old(FILE* fparam)
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &pml_top);
     if (pml_top==2) {
-        sscanf(buffer, "%d %d %d %d %d %d %d", &flag,
+        count = sscanf(buffer, "%d %d %d %d %d %d %d", &flag,
                &pml_top, &pml_bottom, &pml_N, &pml_S, &pml_E, &pml_W);
+        if (count!=7) {
+            printf("Error in file format for pml description (c=%d)\n", count);
+            exit(1);
+        }
     } else {
-        sscanf(buffer, "%d %d", &pml_top, &pml_bottom);
+        count = sscanf(buffer, "%d %d", &pml_top, &pml_bottom);
         pml_N = pml_S = pml_E = pml_W = 1;
+        if (count!=2) {
+            printf("Error in file format for pml description\n");
+            exit(1);
+        }
     }
 
     if (has_pml) {
@@ -97,8 +101,8 @@ void RectMesh::read_params_old(FILE* fparam)
         if (pml_W)      pmls.W = true;
     }
 
-    getData_line(&buffer, &n, fparam);
-    sscanf(buffer, "%d", &ngll_pml);
+    //getData_line(&buffer, &n, fparam);
+    // sscanf(buffer, "%d", &ngll_pml);
 
     getData_line(&buffer, &n, fparam);
     sscanf(buffer, "%d", &elem_shape);
@@ -119,20 +123,32 @@ void RectMesh::read_params_old(FILE* fparam)
     // spherical shell top transf
     getData_line(&buffer, &n, fparam);
     has_sph=0;
-    sscanf(buffer, "%d", &has_sph);
+    count = sscanf(buffer, "%d", &has_sph);
+    if (count!=1) {
+        printf("Warning no shell flag\n");
+        has_sph=0;
+    } else {
+        printf("SPH mode=%d count=%d\n", has_sph, count);
+    }
 
     // mirrors options
     getData_line(&buffer, &n, fparam);
     has_mirrors=0;
     sscanf(buffer, "%d", &has_mirrors);
+    if (count!=1) {
+        printf("Warning no mirror flag\n");
+        has_mirrors=0;
+    } else {
+        printf("Mirror mode=%d count=%d\n", has_mirrors, count);
+    }
 
-    if (has_mirrors<0 || has_mirrors>1) {
+    if (has_mirrors<0 || has_mirrors>2) {
         printf("Check your parameter file : we read has_mirros=%d instead of 0 or 1\n", has_mirrors);
         exit(1);
     }
 
     int m_W, m_E, m_S, m_N, m_D, m_U;
-    if (has_mirrors) {
+    if (has_mirrors == 1) {
         getData_line(&buffer, &n, fparam);
         sscanf(buffer, "%d %d %d %d %d %d", &m_W, &m_E, &m_S, &m_N, &m_D, &m_U);
         mrrs.W = mrrs.E = mrrs.S = mrrs.N = mrrs.D = mrrs.U = true;
@@ -147,7 +163,6 @@ void RectMesh::read_params_old(FILE* fparam)
             mrrs.nU = -1;
         }
     }
-
 }
 
 int RectMesh::pointidx(int i, int j, int k)

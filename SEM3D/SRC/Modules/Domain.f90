@@ -66,22 +66,29 @@ module sdomain
        type(extended_source) , dimension (:), allocatable :: sExtendSource
 
        logical :: aniso
-       logical :: any_Random, any_PropOnFile
+       logical :: has_station
        logical :: nl_flag
-       integer :: nRandom
+       logical :: use_avg
+       integer :: prot_at_time
+       double precision :: time_0
+       logical :: first_prot=.true.
+       integer :: time_now_s
        integer :: n_source, n_extsource, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
        integer :: n_hexa_local !< Nombre de subelements hexa dans le proc(division aux GLLs)
+       integer :: ngll
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
        logical :: any_sdom, any_fdom, any_spml, any_fpml
+
+       real(fpp) :: dxmax
 
        real(fpp) :: T1_att, T2_att, T0_modele
        real(fpp), dimension (0:2,0:2) :: rot
        real(fpp), dimension (:,:), allocatable:: Coord_nodes
        real(fpp), dimension (:,:), pointer:: GlobCoord ! No allocate, use pointer: enable pointing to coord (avoid allocate + copy)
        ! Mirror
-       logical :: use_mirror
+       logical :: use_mirror,mirror_expl,mirror_recalc
        integer :: mirror_type
 
        integer :: traces_format

@@ -48,8 +48,10 @@ class XdmfWriter(object):
         self.xdmf.tail = "\n"
 
     def write(self, f):
-        f.write(XDMF_HEADER)
-        self.root.write(f, xml_declaration=False)
+        with open(f,"w") as fid:
+            fid.write(XDMF_HEADER)
+        with open(f,"wb") as fid:
+            self.root.write(fid, xml_declaration=False)
 
     def uniform_grid(self, parent, name):
         return ET.SubElement(parent, "Grid", attrib={"Name":name, "GridType":"Uniform" })
@@ -174,9 +176,8 @@ def write_xdmf(fname, glob_nodes, groups, node_fields, temporal=False):
             typ, name = dname.split("_",1)
             attr = w.attribute(grid, name, dset, attr_type="Node")
             itm = w.data_item(attr, fname, dname, dset)
-            
-        
-    w.write(file(fname+".xmf","w"))
+    
+    w.write(fname+".xmf")
 
 
 def create_xdmf_structure(fname, temporal=False):
@@ -198,7 +199,7 @@ def create_xdmf_structure(fname, temporal=False):
             if typ.match_group(grp):
                 break
         else:
-            print "Group", grpname, "doesn't contain cell information"
+            print("Group {} doesn't contain cell information".format(grpname))
             # Does not contain any cell description leave it...
             continue
         elems = typ.from_group(grp)

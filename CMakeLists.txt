@@ -46,8 +46,8 @@ include_directories(${PROJECT_BINARY_DIR}/libs/common)
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
-    include_directories(${MPI_INCLUDE_PATH})
-    set(GLOBAL_LINK_FLAGS ${MPI_LINK_FLAGS} ${GLOBAL_LINK_FLAGS})
+    include_directories(${MPI_C_INCLUDE_PATH} ${MPI_CXX_INCLUDE_PATH} ${MPI_Fortran_INCLUDE_PATH})
+    set(GLOBAL_LINK_FLAGS ${MPI_C_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS} ${MPI_Fortran_FLAGS} ${GLOBAL_LINK_FLAGS})
 endif (OPT_MPI OR HDF5_IS_PARALLEL)
 
 
@@ -55,6 +55,10 @@ if (OPT_MPI)
   # Separate in case one wants to build non-mpi version of SEM against MPI enabled HDF5 library
   add_definitions(-D__MPI)
 endif (OPT_MPI)
+
+# We use c99 and c++11
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # FLAGS ifort :
@@ -95,6 +99,7 @@ set(SEM_SRC
   ${SEMCOMMON}/blas.F90
   ${SEMCOMMON}/leastsq.f90
   ${SEMCOMMON}/intset.F90
+  ${SEMCOMMON}/invariants.f90
 )
 
 set(SEM_SRC_C
@@ -137,7 +142,7 @@ set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 if(OPT_MPI OR HDF5_IS_PARALLEL)
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
 # c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES} ${MPI_Fortran_LIBRARIES})
 else(OPT_MPI OR HDF5_IS_PARALLEL)
 set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
 endif(OPT_MPI OR HDF5_IS_PARALLEL)

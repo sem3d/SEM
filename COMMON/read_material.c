@@ -23,6 +23,13 @@ const keyword_t str_mat_descrs[] = {
     {4, "Hooke" },
     {5, "Nlkp_Vs_Rho" },
     {6, "Nu_Vs_Rho" },
+    {7, "Vp_Vs_Rho_D" },
+    {8, "Young_Poisson_D" },
+    {9, "Lambda_Mu_D" },
+    {10, "Kappa_Mu_Rho_D" },
+    {11, "Hooke_D" },
+    {12, "Nlkp_Vs_Rho_D" },
+    {13, "Nu_Vs_Rho_D" },
 };
 
 const keyword_t str_mat_spatial[] = {
@@ -45,15 +52,17 @@ void matcpy(sem_material_t* dst, sem_material_t* src)
     dst->lambda = src->lambda;
     dst->kappa = src->kappa;
     dst->mu = src->mu;
-    //dst->syld = src->syld;
-    //dst->ckin = src->ckin;
-    //dst->kkin = src->kkin;
     dst->nlkp = src->nlkp;
     dst->rinf = src->rinf;
     dst->biso = src->biso;
-    dst->filename0 = strdup(src->filename0);
-    dst->filename1 = strdup(src->filename1);
-    dst->filename2 = strdup(src->filename2);
+    dst->Qp = src->Qp;
+    dst->Qs = src->Qs;
+
+    dst->filename0 = src->filename0;
+    dst->filename1 = src->filename1;
+    dst->filename2 = src->filename2;
+    dst->filename3 = src->filename3;
+    dst->filename4 = src->filename4;
 }
 
 int expect_material(yyscan_t scanner, sem_material_list_t* mats)
@@ -74,31 +83,35 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
     mat->next = mats->head;
     mats->head = mat;
     do {
-	tok = skip_blank(scanner);
-	if (tok!=K_ID) break;
-	if (cmp(scanner,"domain"))      err=expect_eq_keyword(scanner, str_domains, &mat->domain);
-	if (cmp(scanner,"deftype"))     err=expect_eq_keyword(scanner, str_mat_descrs, &mat->deftype);
-	if (cmp(scanner,"spacedef"))    err=expect_eq_keyword(scanner, str_mat_spatial, &mat->defspatial);
-	if (cmp(scanner,"filename")) {
+        tok = skip_blank(scanner);
+        if (tok!=K_ID) break;
+        if (cmp(scanner,"domain"))      err=expect_eq_keyword(scanner, str_domains, &mat->domain);
+        if (cmp(scanner,"deftype"))     err=expect_eq_keyword(scanner, str_mat_descrs, &mat->deftype);
+        if (cmp(scanner,"spacedef"))    err=expect_eq_keyword(scanner, str_mat_spatial, &mat->defspatial);
+        if (cmp(scanner,"filename")) {
             err=expect_eq_string(scanner, &mat->filename0, 1);
             mat->filename1 = strdup(mat->filename0);
             mat->filename2 = strdup(mat->filename0);
-        }
-	if (cmp(scanner,"filename0"))   err=expect_eq_string(scanner, &mat->filename0, 1);
-	if (cmp(scanner,"filename1"))   err=expect_eq_string(scanner, &mat->filename1, 1);
-	if (cmp(scanner,"filename2"))   err=expect_eq_string(scanner, &mat->filename2, 1);
-	if (cmp(scanner,"rho"))         err=expect_eq_float(scanner, &mat->rho, 1);
-	if (cmp(scanner,"vp"))          err=expect_eq_float(scanner, &mat->Vp, 1);
-	if (cmp(scanner,"vs"))          err=expect_eq_float(scanner, &mat->Vs, 1);
-	if (cmp(scanner,"young"))       err=expect_eq_float(scanner, &mat->E, 1);
-	if (cmp(scanner,"poisson"))     err=expect_eq_float(scanner, &mat->nu, 1);
-	if (cmp(scanner,"lambda"))      err=expect_eq_float(scanner, &mat->lambda, 1);
-	if (cmp(scanner,"kappa"))       err=expect_eq_float(scanner, &mat->kappa, 1);
-        if (cmp(scanner,"mu"))          err=expect_eq_float(scanner, &mat->mu, 1);
-        if (cmp(scanner,"nlkp"))        err=expect_eq_float(scanner, &mat->nlkp, 1);
-	
-    if (cmp(scanner,"copy")) {
-            printf("Enter: copy material");
+            mat->filename3 = strdup(mat->filename3);
+            mat->filename4 = strdup(mat->filename4);
+        } 
+        if (cmp(scanner,"filename0")) err=expect_eq_string(scanner, &mat->filename0, 1);
+        if (cmp(scanner,"filename1")) err=expect_eq_string(scanner, &mat->filename1, 1);
+        if (cmp(scanner,"filename2")) err=expect_eq_string(scanner, &mat->filename2, 1);
+        if (cmp(scanner,"filename3")) err=expect_eq_string(scanner, &mat->filename3, 1);
+        if (cmp(scanner,"filename4")) err=expect_eq_string(scanner, &mat->filename4, 1);
+        if (cmp(scanner,"rho"))       err=expect_eq_float(scanner, &mat->rho, 1);
+        if (cmp(scanner,"vp"))        err=expect_eq_float(scanner, &mat->Vp, 1);
+        if (cmp(scanner,"vs"))        err=expect_eq_float(scanner, &mat->Vs, 1);
+        if (cmp(scanner,"young"))     err=expect_eq_float(scanner, &mat->E, 1);
+        if (cmp(scanner,"poisson"))   err=expect_eq_float(scanner, &mat->nu, 1);
+        if (cmp(scanner,"lambda"))    err=expect_eq_float(scanner, &mat->lambda, 1);
+        if (cmp(scanner,"kappa"))     err=expect_eq_float(scanner, &mat->kappa, 1);
+        if (cmp(scanner,"mu"))        err=expect_eq_float(scanner, &mat->mu, 1);
+        if (cmp(scanner,"nlkp"))      err=expect_eq_float(scanner, &mat->nlkp, 1);
+        if (cmp(scanner,"Qp"))        err=expect_eq_float(scanner, &mat->Qp, 1);
+        if (cmp(scanner,"Qs"))        err=expect_eq_float(scanner, &mat->Qs, 1);
+        if (cmp(scanner,"copy")) {
             err=expect_eq_int(scanner, &nmat, 1);
             if (err<=0) {
                 printf("COPY FAILED");
@@ -112,7 +125,7 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
         }
     if (err<=0) return err;
 
-	if (!expect_eos(scanner)) { return 0; }
+    if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
     return 1;
@@ -122,15 +135,15 @@ int parse_materials_spec(yyscan_t scanner, sem_material_list_t* mats)
 {
     int tok, err;
     do {
-	tok = skip_blank(scanner);
-	if (!tok) break;
-	if (tok!=K_ID) {
-	    msg_err(scanner, "Expected identifier");
-	    return 0;
-	}
-	if (cmp(scanner,"material")) err=expect_material(scanner, mats);
-	if (err==0) { printf("ERR01\n"); return 0;}
-	if (!expect_eos(scanner)) { return 0; }
+        tok = skip_blank(scanner);
+        if (!tok) break;
+        if (tok!=K_ID) {
+            msg_err(scanner, "Expected identifier");
+            return 0;
+        }
+        if (cmp(scanner,"material")) err=expect_material(scanner, mats);
+        if (err==0) { printf("ERR01\n"); return 0;}
+        if (!expect_eos(scanner)) { return 0; }
     } while(1);
     return 1;
 }
@@ -141,7 +154,7 @@ void read_sem_materials(sem_material_list_t* materials, int rank, const char* ma
     FILE* input;
     yyscan_t scanner;
 
-    int tok;
+    //int tok;
     *err = 1;
 
     materials->count = 0;
@@ -149,11 +162,11 @@ void read_sem_materials(sem_material_list_t* materials, int rank, const char* ma
     input = fopen(mater_in, "r");
 
     if (input==NULL) {
-	if (rank==0) {
-	    fprintf(stderr, "Error opening file : '%s'\n", mater_in);
-	    fprintf(stderr, "error: %d - %s\n", errno, strerror(errno));
-	}
-	return ; // Not critical
+        if (rank==0) {
+            fprintf(stderr, "Error opening file : '%s'\n", mater_in);
+            fprintf(stderr, "error: %d - %s\n", errno, strerror(errno));
+        }
+        return ; // Not critical
     }
     clear_scan(&info);
 
@@ -161,11 +174,11 @@ void read_sem_materials(sem_material_list_t* materials, int rank, const char* ma
     yyset_in(input, scanner);
     *err = parse_materials_spec(scanner, materials);
     if (*err<=0) {
-	int lineno = yyget_lineno(scanner);
-    printf("Error: %s after '%s' while parsing file %s line %d\n",
-	       info.msgerr, yyget_text(scanner), mater_in, lineno);
-	fclose(input);
-	return ;
+        int lineno = yyget_lineno(scanner);
+        printf("Error: %s after '%s' while parsing file %s line %d\n",
+               info.msgerr, yyget_text(scanner), mater_in, lineno);
+        fclose(input);
+        return ;
     }
     yylex_destroy ( scanner );
     fclose(input);

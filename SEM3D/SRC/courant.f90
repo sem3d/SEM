@@ -51,13 +51,21 @@ contains
         integer :: lnum
         real(fpp) :: dxmin,courant,courant_max
         real(fpp) :: dt_min, dt, dt_loc
-        real(fpp) :: floc_max, dxmax, f_max
-        real(fpp) :: pspeed, maxPspeed
+        real(fpp) :: dxmax
+        real(fpp) :: pspeed, maxPspeed, sumPspeed
+        real(fpp), dimension(0:Tdomain%n_mat-1) :: avgPspeed_mat, dxmin_mat, dt_loc_mat
+        integer, dimension(0:Tdomain%n_mat-1) :: ngll_mat
+        logical :: use_average
+
 
         courant = Tdomain%TimeD%courant
         courant_max = 0
         dt_loc = huge(1.)
-        floc_max  = huge(1.)
+        dxmin_mat = huge(1.)
+        avgPspeed_mat = 0d0
+        ngll_mat = 0
+        use_average = Tdomain%use_avg
+
         do n = 0, Tdomain%n_elem -1
             dxmin = 1e10
             dxmax = 0
@@ -87,6 +95,7 @@ contains
             enddo
             ! Compute max Pspeed on the cell
             maxPspeed = 0d0
+            sumPspeed = 0d0
             lnum = Tdomain%specel(n)%lnum
             do k = 0, ngll-1
                 do j = 0, ngll-1
@@ -103,6 +112,7 @@ contains
                             Pspeed = fluidpml_pspeed(Tdomain%fpmldom, lnum, i, j, k)
                         end select
                         if (Pspeed>maxPspeed) maxPspeed = Pspeed
+                        sumPspeed = sumPspeed + Pspeed
                     end do
                 end do
             end do
@@ -111,14 +121,24 @@ contains
             mat = Tdomain%specel(n)%mat_index
             dt_loc = min(dt_loc, dxmin/maxPspeed)
             dxmax = sqrt(dxmax)
-            floc_max  = min(floc_max,  Tdomain%sSubdomain(mat)%Sspeed/30/dxmax)
+            ngll_mat(mat) = ngll_mat(mat) + (ngll*ngll*ngll)
+            avgPspeed_mat(mat) = avgPspeed_mat(mat) + sumPspeed
+            dxmin_mat(mat) = min(dxmin, dxmin_mat(mat))
         enddo
+        Tdomain%dxmax = dxmax
 
-        if(rg==0) write(*,*) 'dt_loc',dt_loc
+        if(use_average) then
+            if(rg==0) write(*,*) 'WARNING!!using average'
+            dt_loc_mat = huge(1.)
+            where(ngll_mat > 0) 
+                    avgPspeed_mat = avgPspeed_mat/dble(ngll_mat)
+                    dt_loc_mat = dxmin_mat/avgPspeed_mat
+            end where
+            dt_loc = minval(dt_loc_mat)
+        end if
+
         call MPI_AllReduce (dt_loc, dt_min, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
-
-        call MPI_AllReduce (floc_max, f_max, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
-        if(rg==0) write(*,*) 'f_max',f_max
+        if(rg==0) write(*,*) 'dt_min',dt_min
 
         dt = courant * dt_min
 

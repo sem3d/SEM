@@ -46,6 +46,8 @@ time_scheme {
     courant=0.2;
 };
 
+ngll=5;
+
 amortissement {
     nsolids = 0;           # number of solids for attenuation (0 if no attenuation)
     atn_band = 10  0.05;   # attenuation period band

@@ -11,7 +11,7 @@ def find_mesh_files(pattern):
     proc = 0
     while True:
         fname = pattern % proc
-        print "Trying:", fname
+        print("Trying:", fname)
         if not os.path.exists(fname):
             break
         files.append((proc,fname))
