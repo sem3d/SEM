@@ -858,8 +858,7 @@ contains
         real(fpp), parameter :: EPS = 1D-13, EPSN = 0.1D0
 
         nmax = NMAXEL
-        !call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
-        call find_location_centroid(Tdomain, xc, yc, zc, nmax, elems, coordloc)
+        call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
         n_el = -1
         n_eln = -1
         ! Cas ou la station est dans le maillage

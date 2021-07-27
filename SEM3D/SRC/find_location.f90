@@ -16,6 +16,15 @@ module mlocations3d
     use mindex
     implicit none
 contains
+    subroutine find_location(Tdomain, x0,y0,z0, nmax, elems, localcoord, nsrc)
+        type(domain), intent(in) :: Tdomain
+        real(fpp), intent(in) :: x0, y0, z0
+        integer, intent(inout) :: nmax
+        integer, dimension(nmax), intent(inout) :: elems
+        real(fpp), dimension(0:2,nmax), intent(inout) :: localcoord
+        integer, intent(in), optional :: nsrc
+        call find_location_centroid(Tdomain, x0, y0, z0, nmax, elems, localcoord, nsrc)
+    end subroutine find_location
 
     ! Finds the element(s) containing the point (x0,y0,z0)
     ! returns xi,eta,zeta coordinates within each elements
@@ -24,12 +33,12 @@ contains
     ! multiple elements are returned only if the point lies on elements boudaries
     ! The local coords are always within the element except when the point is outside
     ! the mesh in which case nmax is -1 on return and only one candidate is selected
-    subroutine find_location(Tdomain, x0,y0,z0, nmax, elems, localcoord, nsrc)
+    subroutine find_location_closest(Tdomain, x0,y0,z0, nmax, elems, localcoord, nsrc)
         type(domain), intent(in) :: Tdomain
         real(fpp), intent(in) :: x0, y0, z0
         integer, intent(inout) :: nmax
-        integer, dimension(nmax) :: elems
-        real(fpp), dimension(0:2,nmax) :: localcoord
+        integer, dimension(nmax), intent(inout) :: elems
+        real(fpp), dimension(0:2,nmax), intent(inout) :: localcoord
         integer, intent(in), optional :: nsrc
         !
         integer :: n, nnodes, i, j, k
@@ -84,18 +93,18 @@ contains
         !!
         if (k<=nmax) nmax = k
         deallocate(coord)
-    end subroutine find_location
+    end subroutine find_location_closest
 
 
     subroutine find_location_centroid(Tdomain, x0,y0,z0, nmax, elems, localcoord, nsrc)
         type(domain), intent(in) :: Tdomain
         real(fpp), intent(in) :: x0, y0, z0
         integer, intent(inout) :: nmax
-        integer, dimension(nmax) :: elems
-        real(fpp), dimension(0:2,nmax) :: localcoord
+        integer, dimension(nmax), intent(inout) :: elems
+        real(fpp), dimension(0:2,nmax), intent(inout) :: localcoord
         integer, intent(in), optional :: nsrc
         integer :: n, nnodes, i, j, k
-        real(fpp) :: mindist, distance,dist_elem,dist_faces,dist_edges,dist_nodes
+        real(fpp) :: distance, dist_elem,dist_faces, dist_edges, dist_nodes
         real(fpp), dimension(0:2) :: p
         real(fpp) :: xi, eta, zeta
         real(fpp), allocatable, dimension(:,:) :: coord
