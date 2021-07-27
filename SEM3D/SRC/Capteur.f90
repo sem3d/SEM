@@ -486,9 +486,9 @@ contains
         type(domain)   :: TDomain
         type(tCapteur) :: capteur
         !
-        integer                                    :: i, j, k, ioff, d
+        integer                                    :: i, j, k, ioff
         integer                                    :: n_el, ngll
-        real(fpp)                                  :: weight, dUkdX, dUkdY, dUkdZ
+        real(fpp)                                  :: weight
         ! Evaluation of lagrange polynomial at xi/eta/zeta capteur
         real(fpp), dimension(:), allocatable       :: outx, outy, outz
         ! Evaluation of derivative of lagrange polynomial d/dx at xi, d/dy at eta d/dz at zeta
@@ -709,8 +709,6 @@ contains
         real(fpp) :: elem_P_En, elem_S_En, elem_R_En, elem_C_En
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
-        integer :: ierr
-
 
         ! Verification : is an Energy Captor?
         if(capteur%type /= CPT_ENERGY) return

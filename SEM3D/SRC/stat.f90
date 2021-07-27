@@ -135,7 +135,6 @@ contains
     subroutine stat_starttick(step)
         implicit none
         integer, intent(in) :: step
-        integer*8 :: clk
 
         call system_clock(count=statStart(step))
 

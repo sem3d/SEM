@@ -1383,7 +1383,6 @@ contains
         integer :: i, j, k, n, lnum, nnodes_tot, bnum, ee
         integer :: domain_type, imat
         integer :: nnodes, ncells
-        logical :: flag_grad
 
         nnodes = outputs%nnodes
         ncells = outputs%ncells
