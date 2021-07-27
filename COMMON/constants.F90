@@ -185,11 +185,11 @@ MODULE constants
 
     ! 3D INVARIANT CONSTANTS
     ! projection vector to get isotropic stress
-    real, dimension(0:2,0:2), parameter   :: Mmatrix(0:2,0:2) = one
-    real, dimension(0:5),     parameter   :: Mvector  = (/one,one,one,zero,zero,zero/)
-    real, dimension(0:5),     parameter   :: Avector  = (/one,one,one,two,two,two/)
-    real, dimension(0:5),     parameter   :: A1vector = (/one,one,one,half,half,half/)
-    real*8, parameter, dimension(0:5,0:5) :: &
+    real(fpp), dimension(0:2,0:2), parameter   :: Mmatrix(0:2,0:2) = one
+    real(fpp), dimension(0:5),     parameter   :: Mvector  = (/one,one,one,zero,zero,zero/)
+    real(fpp), dimension(0:5),     parameter   :: Avector  = (/one,one,one,two,two,two/)
+    real(fpp), dimension(0:5),     parameter   :: A1vector = (/one,one,one,half,half,half/)
+    real(fpp), parameter, dimension(0:5,0:5) :: &
         Amatrix  = reshape((/ &
         one , zero, zero, zero, zero, zero,&
         zero, one , zero, zero, zero, zero, &

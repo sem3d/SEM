@@ -275,7 +275,7 @@ contains
         character(Len=MAX_FILE_SIZE) :: fromcstr
         character(kind=c_char),pointer,dimension(:) :: ctemp
         integer(kind=c_size_t), dimension(1) :: clen
-        integer :: i
+        integer(kind=c_size_t) :: i
         clen(1) = strlen(cstr)
         call c_f_pointer(cstr, ctemp, clen)
         fromcstr=''
