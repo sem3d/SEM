@@ -469,7 +469,7 @@ contains
         type(Extended_source), intent(in)      :: extsrc
         integer(HID_T), intent(in)             :: fid
         integer, intent(inout)                 :: nsrc
-        real(fpp)                         	   :: dS
+        real(fpp)                              :: dS
         real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn, dirvec
         real(fpp), dimension(0:2,0:2)          :: Moment
         real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp
