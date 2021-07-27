@@ -622,6 +622,7 @@ contains
         logical                      :: logic_scheme
         integer                      :: rg
         integer                      :: i
+        integer                      :: outflag
 
         rg = Tdomain%rank
 
@@ -659,12 +660,21 @@ contains
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
-        Tdomain%out_variables(:)=Tdomain%config%out_variables
-
         Tdomain%nReqOut = 0
-        do i = 0, size(Tdomain%out_variables)-1
-            Tdomain%nReqOut = Tdomain%nReqOut + Tdomain%out_variables(i)*OUT_VAR_DIMS_3D(i)
+        do i = 0, OUT_LAST
+            outflag = Tdomain%config%out_variables(i+1)
+            Tdomain%out_var_snap(i) = 0
+            if (outflag==1 .or. outflag==3) then
+                ! For snapshots
+                Tdomain%out_var_snap(i) = 1
+            endif
+            if (outflag==1 .or. outflag==2) then
+                ! For traces
+                Tdomain%out_var_capt(i) = 1
+                Tdomain%nReqOut = Tdomain%nReqOut + OUT_VAR_DIMS_3D(i)
+            endif
         end do
+
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)

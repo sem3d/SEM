@@ -177,7 +177,7 @@ contains
         if(periodeRef < 1) periodeRef = 1
 
         ! Energy outputs
-        if(Tdomain%out_variables(OUT_TOTAL_ENERGY) == 1) then
+        if(Tdomain%out_var_capt(OUT_TOTAL_ENERGY) == 1) then
 
             if(Tdomain%rank == 0) write(*,*) "CREATING ENERGY SENSORS"
 
@@ -347,7 +347,7 @@ contains
         varnames(0) = "Time       1"
         d = 1
         do k=0,dimtot-1
-            if (Tdomain%out_variables(k)==1) then
+            if (Tdomain%out_var_capt(k)==1) then
                 if(k == OUT_TOTAL_ENERGY) cycle
                 do dim=1,OUT_VAR_DIMS_3D(k)
                     write(temp,"(A,I2)") OUT_VAR_NAMES(k),dim
@@ -369,7 +369,7 @@ contains
             call H5Tclose_f(tid, hdferr)
         end if
         !
-        if(Tdomain%out_variables(OUT_TOTAL_ENERGY) == 1) then
+        if(Tdomain%out_var_capt(OUT_TOTAL_ENERGY) == 1) then
             dims(1) = size(energy_varnames)
             call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
             call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
@@ -494,7 +494,7 @@ contains
         ! Evaluation of derivative of lagrange polynomial d/dx at xi, d/dy at eta d/dz at zeta
         real(fpp), dimension(:), allocatable       :: doutx, douty, doutz
         real(fpp), dimension(:), allocatable       :: grandeur
-        integer, dimension(0:size(Tdomain%out_variables)-1):: out_variables, offset
+        integer, dimension(0:OUT_LAST)             :: out_variables, offset
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
@@ -547,7 +547,7 @@ contains
         allocate(grandeur(0:Tdomain%nReqOut-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
-        out_variables(:) = Tdomain%out_variables(:)
+        out_variables(:) = Tdomain%out_var_capt(:)
         nl_flag = Tdomain%nl_flag
         offset = 0
         do i = 0,size(out_variables)-2
