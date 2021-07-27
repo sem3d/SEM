@@ -238,10 +238,10 @@ contains
         real(fpp), dimension(0:2), intent(inout) :: Traction_i
         real(fpp), dimension(0:2), intent(in)    :: Btn, Veloc, coord
         real(fpp),                 intent(in)    :: time, dt
-        real(fpp), dimension(0:2)                :: vel_i, voloc_0
+        real(fpp), dimension(0:2)                :: vel_i, veloc_0
         real(fpp)                                :: S11, S22 ,S33, S12, S13, S23
 
-        call PlaneWaveDerive(Param,coord,time,PWSpeed,vel_i, voloc_0)
+        call PlaneWaveDerive(Param,coord,time,PWSpeed,vel_i, veloc_0)
 
         S11 = (Coef_lambda+2.d0*Coef_mu)*vel_i(0)*Param%dir(0)+Coef_lambda*(vel_i(1)*Param%dir(1)+vel_i(2)*Param%dir(2))
         S22 = (Coef_lambda+2.d0*Coef_mu)*vel_i(1)*Param%dir(1)+Coef_lambda*(vel_i(0)*Param%dir(0)+vel_i(2)*Param%dir(2))
@@ -272,7 +272,7 @@ contains
         real(fpp)                                :: VV
 
         Nm = Btn
-        V  = Veloc - voloc_0
+        V  = Veloc - voloc_0 !!! XXXX BUG voloc_0 not initialized, but this subroutine is never called...
         VV = Nm(0)*V(0) + Nm(1)*V(1) + Nm(2)*V(2)
 
         force =  Velocity_S*rho*V + (Velocity_P-Velocity_S)*rho*VV*Nm
