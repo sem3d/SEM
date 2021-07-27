@@ -481,6 +481,7 @@ contains
             firstloc = n_dcm-1
         else
             write(*,*) "STOP, unauthorized action",rnk
+            STOP "Mirror type unknown"
         endif
 
         if (n_dcm==1) then
@@ -576,6 +577,7 @@ contains
             firstloc = n_dcm-1
         else
             write(*,*) "STOP, unauthorized action",rnk
+            STOP "Mirror type unknown"
         endif
 
         if (n_dcm==1) then

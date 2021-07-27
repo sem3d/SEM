@@ -938,7 +938,7 @@ contains
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
             if (.not. el%OUTPUT ) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
-            if (ngll/=oldngll) then
+            if (ngll/=oldngll .or. oldngll==0) then
                 ! Allocate everything here, it simpler and not that costly...
                 if (oldngll/=0) then
                     deallocate(fieldP,fieldU,fieldV,fieldA)

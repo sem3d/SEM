@@ -138,7 +138,7 @@ contains
         type(domain), intent(inout)   :: Tdomain
         character(Len=MAX_FILE_SIZE)  :: fnamef, buffer
         integer                       :: i, n_aus, npml
-        integer                       :: rg, NGLL, fid, assocMat
+        integer                       :: rg, fid, assocMat
         character                     :: material_type
 
         rg = Tdomain%rank
@@ -341,12 +341,6 @@ contains
         type(Extended_source), intent(inout) :: extsrc
         integer(HID_T), intent(in)        :: fid
         integer, intent(inout)            :: nsrc
-        real(fpp)                         :: dS
-        real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn
-        real(fpp), dimension(0:2,0:2)          :: Moment
-        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
-        integer :: i, j
-
 
         if (.NOT.  extsrc%is_force) &
             call create_point_sources_from_fault_moment(Tdomain, extsrc, fid, nsrc)
@@ -371,10 +365,9 @@ contains
         type(Extended_source), intent(inout) :: extsrc
         integer(HID_T), intent(in)        :: fid
         integer, intent(inout)            :: nsrc
-        real(fpp)                         :: dS
         real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn
         real(fpp), dimension(0:2,0:2)          :: Moment
-        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
+        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp
         integer :: i, j
 
 
@@ -469,9 +462,7 @@ contains
         type(Extended_source), intent(in)      :: extsrc
         integer(HID_T), intent(in)             :: fid
         integer, intent(inout)                 :: nsrc
-        real(fpp)                              :: dS
-        real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn, dirvec
-        real(fpp), dimension(0:2,0:2)          :: Moment
+        real(fpp), dimension(0:2)              :: v1, v2, dSn, dirvec
         real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp
         integer :: i, j
 
