@@ -2,28 +2,28 @@
 *
 *  =========== DOCUMENTATION ===========
 *
-* Online html documentation available at 
-*            http://www.netlib.org/lapack/explore-html/ 
+* Online html documentation available at
+*            http://www.netlib.org/lapack/explore-html/
 *
 *> \htmlonly
-*> Download IPARMQ + dependencies 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/iparmq.f"> 
-*> [TGZ]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/iparmq.f"> 
-*> [ZIP]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/iparmq.f"> 
+*> Download IPARMQ + dependencies
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/iparmq.f">
+*> [TGZ]</a>
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/iparmq.f">
+*> [ZIP]</a>
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/iparmq.f">
 *> [TXT]</a>
-*> \endhtmlonly 
+*> \endhtmlonly
 *
 *  Definition:
 *  ===========
 *
 *       INTEGER FUNCTION IPARMQ( ISPEC, NAME, OPTS, N, ILO, IHI, LWORK )
-* 
+*
 *       .. Scalar Arguments ..
 *       INTEGER            IHI, ILO, ISPEC, LWORK, N
 *       CHARACTER          NAME*( * ), OPTS*( * )
-*  
+*
 *
 *> \par Purpose:
 *  =============
@@ -31,8 +31,9 @@
 *> \verbatim
 *>
 *>      This program sets problem and machine dependent parameters
-*>      useful for xHSEQR and its subroutines. It is called whenever 
-*>      ILAENV is called with 12 <= ISPEC <= 16
+*>      useful for xHSEQR and related subroutines for eigenvalue
+*>      problems. It is called whenever
+*>      IPARMQ is called with 12 <= ISPEC <= 16
 *> \endverbatim
 *
 *  Arguments:
@@ -40,7 +41,7 @@
 *
 *> \param[in] ISPEC
 *> \verbatim
-*>          ISPEC is integer scalar
+*>          ISPEC is INTEGER
 *>              ISPEC specifies which tunable parameter IPARMQ should
 *>              return.
 *>
@@ -59,7 +60,7 @@
 *>                        invest in an (expensive) multi-shift QR sweep.
 *>                        If the aggressive early deflation subroutine
 *>                        finds LD converged eigenvalues from an order
-*>                        NW deflation window and LD.GT.(NW*NIBBLE)/100,
+*>                        NW deflation window and LD > (NW*NIBBLE)/100,
 *>                        then the next QR sweep is skipped and early
 *>                        deflation is applied immediately to the
 *>                        remaining active diagonal block.  Setting
@@ -75,41 +76,52 @@
 *>
 *>              ISPEC=16: (IACC22) IPARMQ is set to 0, 1 or 2 with the
 *>                        following meanings.
-*>                        0:  During the multi-shift QR sweep,
-*>                            xLAQR5 does not accumulate reflections and
-*>                            does not use matrix-matrix multiply to
-*>                            update the far-from-diagonal matrix
-*>                            entries.
-*>                        1:  During the multi-shift QR sweep,
-*>                            xLAQR5 and/or xLAQRaccumulates reflections and uses
-*>                            matrix-matrix multiply to update the
+*>                        0:  During the multi-shift QR/QZ sweep,
+*>                            blocked eigenvalue reordering, blocked
+*>                            Hessenberg-triangular reduction,
+*>                            reflections and/or rotations are not
+*>                            accumulated when updating the
 *>                            far-from-diagonal matrix entries.
-*>                        2:  During the multi-shift QR sweep.
-*>                            xLAQR5 accumulates reflections and takes
-*>                            advantage of 2-by-2 block structure during
-*>                            matrix-matrix multiplies.
+*>                        1:  During the multi-shift QR/QZ sweep,
+*>                            blocked eigenvalue reordering, blocked
+*>                            Hessenberg-triangular reduction,
+*>                            reflections and/or rotations are
+*>                            accumulated, and matrix-matrix
+*>                            multiplication is used to update the
+*>                            far-from-diagonal matrix entries.
+*>                        2:  During the multi-shift QR/QZ sweep,
+*>                            blocked eigenvalue reordering, blocked
+*>                            Hessenberg-triangular reduction,
+*>                            reflections and/or rotations are
+*>                            accumulated, and 2-by-2 block structure
+*>                            is exploited during matrix-matrix
+*>                            multiplies.
 *>                        (If xTRMM is slower than xGEMM, then
 *>                        IPARMQ(ISPEC=16)=1 may be more efficient than
 *>                        IPARMQ(ISPEC=16)=2 despite the greater level of
 *>                        arithmetic work implied by the latter choice.)
+*>
+*>              ISPEC=17: (ICOST) An estimate of the relative cost of flops
+*>                        within the near-the-diagonal shift chase compared
+*>                        to flops within the BLAS calls of a QZ sweep.
 *> \endverbatim
 *>
 *> \param[in] NAME
 *> \verbatim
-*>          NAME is character string
+*>          NAME is CHARACTER string
 *>               Name of the calling subroutine
 *> \endverbatim
 *>
 *> \param[in] OPTS
 *> \verbatim
-*>          OPTS is character string
+*>          OPTS is CHARACTER string
 *>               This is a concatenation of the string arguments to
 *>               TTQRE.
 *> \endverbatim
 *>
 *> \param[in] N
 *> \verbatim
-*>          N is integer scalar
+*>          N is INTEGER
 *>               N is the order of the Hessenberg matrix H.
 *> \endverbatim
 *>
@@ -127,21 +139,19 @@
 *>
 *> \param[in] LWORK
 *> \verbatim
-*>          LWORK is integer scalar
+*>          LWORK is INTEGER
 *>               The amount of workspace available.
 *> \endverbatim
 *
 *  Authors:
 *  ========
 *
-*> \author Univ. of Tennessee 
-*> \author Univ. of California Berkeley 
-*> \author Univ. of Colorado Denver 
-*> \author NAG Ltd. 
+*> \author Univ. of Tennessee
+*> \author Univ. of California Berkeley
+*> \author Univ. of Colorado Denver
+*> \author NAG Ltd.
 *
-*> \date November 2011
-*
-*> \ingroup auxOTHERauxiliary
+*> \ingroup OTHERauxiliary
 *
 *> \par Further Details:
 *  =====================
@@ -176,8 +186,8 @@
 *>                        This depends on ILO, IHI and NS, the
 *>                        number of simultaneous shifts returned
 *>                        by IPARMQ(ISPEC=15).  The default for
-*>                        (IHI-ILO+1).LE.500 is NS.  The default
-*>                        for (IHI-ILO+1).GT.500 is 3*NS/2.
+*>                        (IHI-ILO+1) <= 500 is NS.  The default
+*>                        for (IHI-ILO+1) > 500 is 3*NS/2.
 *>
 *>       IPARMQ(ISPEC=14) Nibble crossover point.  Default: 14.
 *>
@@ -209,15 +219,18 @@
 *>       IPARMQ(ISPEC=16) Select structured matrix multiply.
 *>                        (See ISPEC=16 above for details.)
 *>                        Default: 3.
+*>
+*>       IPARMQ(ISPEC=17) Relative cost heuristic for blocksize selection.
+*>                        Expressed as a percentage.
+*>                        Default: 10.
 *> \endverbatim
 *>
 *  =====================================================================
       INTEGER FUNCTION IPARMQ( ISPEC, NAME, OPTS, N, ILO, IHI, LWORK )
 *
-*  -- LAPACK auxiliary routine (version 3.4.0) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2011
 *
 *     .. Scalar Arguments ..
       INTEGER            IHI, ILO, ISPEC, LWORK, N
@@ -225,17 +238,19 @@
 *
 *  ================================================================
 *     .. Parameters ..
-      INTEGER            INMIN, INWIN, INIBL, ISHFTS, IACC22
+      INTEGER            INMIN, INWIN, INIBL, ISHFTS, IACC22, ICOST
       PARAMETER          ( INMIN = 12, INWIN = 13, INIBL = 14,
-     $                   ISHFTS = 15, IACC22 = 16 )
-      INTEGER            NMIN, K22MIN, KACMIN, NIBBLE, KNWSWP
+     $                   ISHFTS = 15, IACC22 = 16, ICOST = 17 )
+      INTEGER            NMIN, K22MIN, KACMIN, NIBBLE, KNWSWP, RCOST
       PARAMETER          ( NMIN = 75, K22MIN = 14, KACMIN = 14,
-     $                   NIBBLE = 14, KNWSWP = 500 )
+     $                   NIBBLE = 14, KNWSWP = 500, RCOST = 10 )
       REAL               TWO
       PARAMETER          ( TWO = 2.0 )
 *     ..
 *     .. Local Scalars ..
       INTEGER            NH, NS
+      INTEGER            I, IC, IZ
+      CHARACTER          SUBNAM*6
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          LOG, MAX, MOD, NINT, REAL
@@ -305,12 +320,81 @@
 *        .     by making this choice dependent also upon the
 *        .     NH=IHI-ILO+1.
 *
-         IPARMQ = 0
-         IF( NS.GE.KACMIN )
-     $      IPARMQ = 1
-         IF( NS.GE.K22MIN )
-     $      IPARMQ = 2
 *
+*        Convert NAME to upper case if the first character is lower case.
+*
+         IPARMQ = 0
+         SUBNAM = NAME
+         IC = ICHAR( SUBNAM( 1: 1 ) )
+         IZ = ICHAR( 'Z' )
+         IF( IZ.EQ.90 .OR. IZ.EQ.122 ) THEN
+*
+*           ASCII character set
+*
+            IF( IC.GE.97 .AND. IC.LE.122 ) THEN
+               SUBNAM( 1: 1 ) = CHAR( IC-32 )
+               DO I = 2, 6
+                  IC = ICHAR( SUBNAM( I: I ) )
+                  IF( IC.GE.97 .AND. IC.LE.122 )
+     $               SUBNAM( I: I ) = CHAR( IC-32 )
+               END DO
+            END IF
+*
+         ELSE IF( IZ.EQ.233 .OR. IZ.EQ.169 ) THEN
+*
+*           EBCDIC character set
+*
+            IF( ( IC.GE.129 .AND. IC.LE.137 ) .OR.
+     $          ( IC.GE.145 .AND. IC.LE.153 ) .OR.
+     $          ( IC.GE.162 .AND. IC.LE.169 ) ) THEN
+               SUBNAM( 1: 1 ) = CHAR( IC+64 )
+               DO I = 2, 6
+                  IC = ICHAR( SUBNAM( I: I ) )
+                  IF( ( IC.GE.129 .AND. IC.LE.137 ) .OR.
+     $                ( IC.GE.145 .AND. IC.LE.153 ) .OR.
+     $                ( IC.GE.162 .AND. IC.LE.169 ) )SUBNAM( I:
+     $                I ) = CHAR( IC+64 )
+               END DO
+            END IF
+*
+         ELSE IF( IZ.EQ.218 .OR. IZ.EQ.250 ) THEN
+*
+*           Prime machines:  ASCII+128
+*
+            IF( IC.GE.225 .AND. IC.LE.250 ) THEN
+               SUBNAM( 1: 1 ) = CHAR( IC-32 )
+               DO I = 2, 6
+                  IC = ICHAR( SUBNAM( I: I ) )
+                  IF( IC.GE.225 .AND. IC.LE.250 )
+     $               SUBNAM( I: I ) = CHAR( IC-32 )
+               END DO
+            END IF
+         END IF
+*
+         IF( SUBNAM( 2:6 ).EQ.'GGHRD' .OR.
+     $       SUBNAM( 2:6 ).EQ.'GGHD3' ) THEN
+            IPARMQ = 1
+            IF( NH.GE.K22MIN )
+     $         IPARMQ = 2
+         ELSE IF ( SUBNAM( 4:6 ).EQ.'EXC' ) THEN
+            IF( NH.GE.KACMIN )
+     $         IPARMQ = 1
+            IF( NH.GE.K22MIN )
+     $         IPARMQ = 2
+         ELSE IF ( SUBNAM( 2:6 ).EQ.'HSEQR' .OR.
+     $             SUBNAM( 2:5 ).EQ.'LAQR' ) THEN
+            IF( NS.GE.KACMIN )
+     $         IPARMQ = 1
+            IF( NS.GE.K22MIN )
+     $         IPARMQ = 2
+         END IF
+*
+      ELSE IF( ISPEC.EQ.ICOST ) THEN
+*
+*        === Relative cost of near-the-diagonal chase vs
+*            BLAS updates ===
+*
+         IPARMQ = RCOST
       ELSE
 *        ===== invalid value of ispec =====
          IPARMQ = -1

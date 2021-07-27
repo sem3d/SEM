@@ -2,24 +2,24 @@
 *
 *  =========== DOCUMENTATION ===========
 *
-* Online html documentation available at 
-*            http://www.netlib.org/lapack/explore-html/ 
+* Online html documentation available at
+*            http://www.netlib.org/lapack/explore-html/
 *
 *> \htmlonly
-*> Download DLARFT + dependencies 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dlarft.f"> 
-*> [TGZ]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dlarft.f"> 
-*> [ZIP]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dlarft.f"> 
+*> Download DLARFT + dependencies
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dlarft.f">
+*> [TGZ]</a>
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dlarft.f">
+*> [ZIP]</a>
+*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dlarft.f">
 *> [TXT]</a>
-*> \endhtmlonly 
+*> \endhtmlonly
 *
 *  Definition:
 *  ===========
 *
 *       SUBROUTINE DLARFT( DIRECT, STOREV, N, K, V, LDV, TAU, T, LDT )
-* 
+*
 *       .. Scalar Arguments ..
 *       CHARACTER          DIRECT, STOREV
 *       INTEGER            K, LDT, LDV, N
@@ -27,7 +27,7 @@
 *       .. Array Arguments ..
 *       DOUBLE PRECISION   T( LDT, * ), TAU( * ), V( LDV, * )
 *       ..
-*  
+*
 *
 *> \par Purpose:
 *  =============
@@ -125,12 +125,10 @@
 *  Authors:
 *  ========
 *
-*> \author Univ. of Tennessee 
-*> \author Univ. of California Berkeley 
-*> \author Univ. of Colorado Denver 
-*> \author NAG Ltd. 
-*
-*> \date September 2012
+*> \author Univ. of Tennessee
+*> \author Univ. of California Berkeley
+*> \author Univ. of Colorado Denver
+*> \author NAG Ltd.
 *
 *> \ingroup doubleOTHERauxiliary
 *
@@ -163,10 +161,9 @@
 *  =====================================================================
       SUBROUTINE DLARFT( DIRECT, STOREV, N, K, V, LDV, TAU, T, LDT )
 *
-*  -- LAPACK auxiliary routine (version 3.4.2) --
+*  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     September 2012
 *
 *     .. Scalar Arguments ..
       CHARACTER          DIRECT, STOREV
@@ -221,13 +218,13 @@
                   END DO
                   DO J = 1, I-1
                      T( J, I ) = -TAU( I ) * V( I , J )
-                  END DO   
+                  END DO
                   J = MIN( LASTV, PREVLASTV )
 *
 *                 T(1:i-1,i) := - tau(i) * V(i:j,1:i-1)**T * V(i:j,i)
 *
-                  CALL DGEMV( 'Transpose', J-I, I-1, -TAU( I ), 
-     $                        V( I+1, 1 ), LDV, V( I+1, I ), 1, ONE, 
+                  CALL DGEMV( 'Transpose', J-I, I-1, -TAU( I ),
+     $                        V( I+1, 1 ), LDV, V( I+1, I ), 1, ONE,
      $                        T( 1, I ), 1 )
                ELSE
 *                 Skip any trailing zeros.
@@ -236,7 +233,7 @@
                   END DO
                   DO J = 1, I-1
                      T( J, I ) = -TAU( I ) * V( J , I )
-                  END DO   
+                  END DO
                   J = MIN( LASTV, PREVLASTV )
 *
 *                 T(1:i-1,i) := - tau(i) * V(1:i-1,i:j) * V(i,i:j)**T
@@ -280,7 +277,7 @@
                      END DO
                      DO J = I+1, K
                         T( J, I ) = -TAU( I ) * V( N-K+I , J )
-                     END DO   
+                     END DO
                      J = MAX( LASTV, PREVLASTV )
 *
 *                    T(i+1:k,i) = -tau(i) * V(j:n-k+i,i+1:k)**T * V(j:n-k+i,i)
@@ -295,7 +292,7 @@
                      END DO
                      DO J = I+1, K
                         T( J, I ) = -TAU( I ) * V( J, N-K+I )
-                     END DO   
+                     END DO
                      J = MAX( LASTV, PREVLASTV )
 *
 *                    T(i+1:k,i) = -tau(i) * V(i+1:k,j:n-k+i) * V(i,j:n-k+i)**T

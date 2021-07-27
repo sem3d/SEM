@@ -9,7 +9,7 @@ ${PRJ}/blas/dcopy.f
 ${PRJ}/blas/dgemm.f
 ${PRJ}/blas/dgemv.f
 ${PRJ}/blas/dger.f
-${PRJ}/blas/dnrm2.f
+${PRJ}/blas/dnrm2.f90
 ${PRJ}/blas/drot.f
 ${PRJ}/blas/dscal.f
 ${PRJ}/blas/dswap.f
@@ -20,7 +20,10 @@ ${PRJ}/blas/lsame.f
 ${PRJ}/blas/xerbla.f
 )
 set(NETLIB_LAPACK_SOURCES
+${PRJ}/lapack/la_constants.f90
+${PRJ}/lapack/la_xisnan.F90
 ${PRJ}/lapack/dbdsqr.f
+${PRJ}/lapack/dcombssq.f
 ${PRJ}/lapack/dgebd2.f
 ${PRJ}/lapack/dgebrd.f
 ${PRJ}/lapack/dgelq2.f
@@ -41,7 +44,7 @@ ${PRJ}/lapack/dlarf.f
 ${PRJ}/lapack/dlarfb.f
 ${PRJ}/lapack/dlarfg.f
 ${PRJ}/lapack/dlarft.f
-${PRJ}/lapack/dlartg.f
+${PRJ}/lapack/dlartg.f90
 ${PRJ}/lapack/dlas2.f
 ${PRJ}/lapack/dlascl.f
 ${PRJ}/lapack/dlaset.f
@@ -53,7 +56,7 @@ ${PRJ}/lapack/dlasq5.f
 ${PRJ}/lapack/dlasq6.f
 ${PRJ}/lapack/dlasr.f
 ${PRJ}/lapack/dlasrt.f
-${PRJ}/lapack/dlassq.f
+${PRJ}/lapack/dlassq.f90
 ${PRJ}/lapack/dlasv2.f
 ${PRJ}/lapack/dorg2r.f
 ${PRJ}/lapack/dorgbr.f
@@ -71,7 +74,6 @@ ${PRJ}/lapack/iladlc.f
 ${PRJ}/lapack/iladlr.f
 ${PRJ}/lapack/ilaenv.f
 ${PRJ}/lapack/iparmq.f
-${PRJ}/lapack/lsame.f
 ${PRJ}/lapack/xerbla.f
 )
 
