@@ -498,7 +498,19 @@ Description des type de capteurs :
 Section ``out_variables``
 =========================
 
-Chaque mot-clé est associé à un domaine spécifique requis comme sortie (snapshots / traces). Champs de sortie par défaut (lorsque tous les mots clés sont mis à 0) sont ceux de pression et de vitesse.
+Chaque mot-clé est associé à un domaine spécifique requis comme sortie
+(snapshots / traces). Champs de sortie par défaut (lorsque tous les
+mots clés sont mis à 0) sont ceux de pression et de vitesse.
+
+Chaque mot-clé peut prendre les valeurs 0, 1, 2 ou 3 avec pour signification :
+
+- 0 : pas de sorties,
+
+- 1 : sortie pour capteur et snapshots,
+
+- 2 : sortie pour capteur uniquement,
+
+- 3 : sortie pour snapshots uniquement.
 
 ================  =======  =================  =================================================================
 Mot-clef          Type     Valeur par défaut  Description

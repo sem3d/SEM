@@ -2,7 +2,7 @@
 # en standalone (hors mka3d)
 PROJECT(SEM)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
@@ -57,7 +57,7 @@ if (OPT_MPI)
 endif (OPT_MPI)
 
 # We use c99 and c++11
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
@@ -69,8 +69,8 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   set(USE_MKL TRUE)
 else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # Assume gfortran
-#  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -ffree-line-length-0")
+  # -fdefault-real-8 -fdefault-double-8
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -Wno-unused-dummy-argument -ffree-line-length-0")
   set(USE_MKL FALSE)
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (NOT BUILD_WITH_MKA)
@@ -131,18 +131,20 @@ endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
 
 set(SEM_EXTRA_LIBS)
+set(SEM_CPP_LIBS ${HDF5_C_LIBRARIES})
 
 # NETLIB/MKL
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} netlib)
 
 # HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_Fortran_LIBRARIES})
 
 # MPI
 if(OPT_MPI OR HDF5_IS_PARALLEL)
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
 # c++ et ne link pas semx.exe
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES} ${MPI_Fortran_LIBRARIES})
+set(SEM_CPP_LIBS ${SEM_CPP_LIBS} ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES})
 else(OPT_MPI OR HDF5_IS_PARALLEL)
 set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
 endif(OPT_MPI OR HDF5_IS_PARALLEL)

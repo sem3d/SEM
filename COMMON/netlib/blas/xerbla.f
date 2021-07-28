@@ -2,29 +2,19 @@
 *
 *  =========== DOCUMENTATION ===========
 *
-* Online html documentation available at 
-*            http://www.netlib.org/lapack/explore-html/ 
-*
-*> \htmlonly
-*> Download XERBLA + dependencies 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/xerbla.f"> 
-*> [TGZ]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/xerbla.f"> 
-*> [ZIP]</a> 
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/xerbla.f"> 
-*> [TXT]</a>
-*> \endhtmlonly 
+* Online html documentation available at
+*            http://www.netlib.org/lapack/explore-html/
 *
 *  Definition:
 *  ===========
 *
 *       SUBROUTINE XERBLA( SRNAME, INFO )
-* 
+*
 *       .. Scalar Arguments ..
 *       CHARACTER*(*)      SRNAME
 *       INTEGER            INFO
 *       ..
-*  
+*
 *
 *> \par Purpose:
 *  =============
@@ -58,22 +48,19 @@
 *  Authors:
 *  ========
 *
-*> \author Univ. of Tennessee 
-*> \author Univ. of California Berkeley 
-*> \author Univ. of Colorado Denver 
-*> \author NAG Ltd. 
+*> \author Univ. of Tennessee
+*> \author Univ. of California Berkeley
+*> \author Univ. of Colorado Denver
+*> \author NAG Ltd.
 *
-*> \date November 2011
-*
-*> \ingroup auxOTHERauxiliary
+*> \ingroup aux_blas
 *
 *  =====================================================================
       SUBROUTINE XERBLA( SRNAME, INFO )
 *
-*  -- LAPACK auxiliary routine (version 3.4.0) --
-*  -- LAPACK is a software package provided by Univ. of Tennessee,    --
+*  -- Reference BLAS level1 routine --
+*  -- Reference BLAS is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
-*     November 2011
 *
 *     .. Scalar Arguments ..
       CHARACTER*(*)      SRNAME

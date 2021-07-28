@@ -114,7 +114,7 @@ contains
 
         deltaTick = stopFullTick-startFullTick
         if (deltaTick < 0) deltaTick = deltaTick+maxPeriod
-        fullTime = real(deltaTick)/clockRate
+        fullTime = real(deltaTick,fpp)/real(clockRate,fpp)
 
         statTimes(STAT_FULL) = fullTime
         call MPI_Comm_Rank (MPI_COMM_WORLD, rank, ierr)
@@ -139,7 +139,6 @@ contains
     subroutine stat_starttick(step)
         implicit none
         integer, intent(in) :: step
-        integer*8 :: clk
 
         call system_clock(count=statStart(step))
 
@@ -157,7 +156,7 @@ contains
         if (log_traces) call add_stop_trace(step)
         deltaTick = statStop(step)-statStart(step)
         if (deltaTick < 0) deltaTick = deltaTick+maxPeriod
-        time = real(deltaTick)/clockRate
+        time = real(deltaTick,fpp)/real(clockRate,fpp)
         statTimes(step) = statTimes(step) + time
     end subroutine stat_stoptick
 

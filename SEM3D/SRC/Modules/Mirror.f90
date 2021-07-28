@@ -470,17 +470,18 @@ contains
         real(fpp) :: t,tnt,tmp
         
         if (dom%mirror_type==1) then
-            ntimecur = ntime+(t_offset/d_t)
+            ntimecur = ntime+int(t_offset/d_t)
             ntimeloc = mod(ntime,n_dcm)
             first = 0
             firstloc = 0
         elseif (dom%mirror_type==2) then
-            ntimecur = n_t-1-(ntime+(t_offset/d_t))
+            ntimecur = n_t-1-(ntime+int(t_offset/d_t))
             ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
             first = n_t-1
             firstloc = n_dcm-1
         else
             write(*,*) "STOP, unauthorized action",rnk
+            STOP "Mirror type unknown"
         endif
 
         if (n_dcm==1) then
@@ -565,17 +566,18 @@ contains
         real(fpp) :: t,tnt,tmp
 
         if (dom%mirror_type==1) then
-            ntimecur = ntime+(t_offset/d_t)
+            ntimecur = ntime+int(t_offset/d_t)
             ntimeloc = mod(ntime,n_dcm)
             first = 0
             firstloc = 0
         elseif (dom%mirror_type==2) then
-            ntimecur = n_t-1-(ntime+(t_offset/d_t))
+            ntimecur = n_t-1-(ntime+int(t_offset/d_t))
             ntimeloc = ntimecur-int(ntimecur/n_dcm)*n_dcm
             first = n_t-1
             firstloc = n_dcm-1
         else
             write(*,*) "STOP, unauthorized action",rnk
+            STOP "Mirror type unknown"
         endif
 
         if (n_dcm==1) then

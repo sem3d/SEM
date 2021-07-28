@@ -111,11 +111,11 @@ contains
                 dom%epsilondev_xy_(:,:,:,:,:) = 0
                 dom%epsilondev_xz_(:,:,:,:,:) = 0
                 dom%epsilondev_yz_(:,:,:,:,:) = 0
-                allocate (dom%R_xx_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                allocate (dom%R_yy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                allocate (dom%R_xy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                allocate (dom%R_xz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                allocate (dom%R_yz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_xx_ (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_yy_ (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_xy_ (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_xz_ (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_yz_ (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 !
                 allocate (dom%omega_tau_s     (0:n_solid-1))
                 allocate (dom%agamma_mu_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
@@ -819,17 +819,17 @@ contains
         use m_calcul_forces_atn
         use m_calcul_forces_nl
         use sdomain
-
+        !
         type(domain_solid),intent(inout) :: dom
         type(champssolid),intent(inout) :: champs1
         integer,intent(in) :: bnum
         logical :: aniso
-        integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
-
+        integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
+        !
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
-        integer :: code
+        !
         n_solid = dom%n_sls
         aniso = dom%aniso
         ngll = dom%ngll
@@ -899,7 +899,7 @@ contains
         type(champssolid),intent(inout) :: champs1
         integer,intent(in) :: bnum
         logical :: aniso
-        integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
+        integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
 !!!        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_ex,Foy_ex,Foz_ex
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
@@ -1037,7 +1037,7 @@ contains
         type(champssolid),intent(inout) :: champs1
         integer,intent(in) :: bnum
         logical :: aniso
-        integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
+        integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
         !real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
@@ -1118,9 +1118,8 @@ contains
         type(champssolid),intent(inout) :: champs1
         integer,intent(in) :: bnum
         logical :: aniso
-        integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
+        integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
-        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_ex,Foy_ex,Foz_ex
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
 
         n_solid = dom%n_sls
@@ -1191,7 +1190,7 @@ contains
         type(champssolid),intent(inout) :: champs1
         integer,intent(in) :: bnum
         logical :: aniso
-        integer :: lnum,n_solid,ngll,i,j,k,i_dir,e,ee,idx,idx_m
+        integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_m,Foy_m,Foz_m
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla

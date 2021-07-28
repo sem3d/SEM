@@ -1,6 +1,6 @@
 PROJECT(mesher)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-ENABLE_LANGUAGE(Fortran)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
+ENABLE_LANGUAGE(C CXX Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
 set(BASE ${CMAKE_SOURCE_DIR})
 add_subdirectory(metis)
@@ -44,6 +44,7 @@ add_library(mesh3d
   ${PRJ}/CSRC/mesh_common.cpp
   ${PRJ}/CSRC/reader_abaqus.cpp
   ${PRJ}/CSRC/reader_ideas.cpp
+  ${SEM_SRC_C}
   )
 #set_property(SOURCE ${SEMCOMMON}/read_unv.cpp ${PRJ}/CSRC/reader_ideas.cpp PROPERTY CXX_STANDARD 11) # set_property C++11 KO...
 set_source_files_properties(${SEMCOMMON}/read_unv.cpp ${PRJ}/CSRC/reader_ideas.cpp PROPERTIES COMPILE_FLAGS "-std=c++11") # Bypass qui devrait marcher dans 99% des cas (gnu, intel)...
@@ -64,8 +65,8 @@ set_source_files_properties(${PRJ}/CSRC/main_mesher.cpp PROPERTIES COMPILE_FLAGS
 
 include_directories(BEFORE ${PRJ}/CSRC ${PRJ}/metis/include)
 include_directories(${BASE}/COMMON)
-target_link_libraries(sem_part_grid mesh3d metis ${SEM_EXTRA_LIBS})
-target_link_libraries(sem_part_h5 mesh3d metis ${SEM_EXTRA_LIBS})
-target_link_libraries(mesher mesh3d metis ${SEM_EXTRA_LIBS})
+target_link_libraries(sem_part_grid mesh3d metis ${SEM_CPP_LIBS})
+target_link_libraries(sem_part_h5 mesh3d metis ${SEM_CPP_LIBS})
+target_link_libraries(mesher mesh3d metis ${SEM_CPP_LIBS})
 
 install(TARGETS sem_part_grid sem_part_h5 mesher DESTINATION bin)

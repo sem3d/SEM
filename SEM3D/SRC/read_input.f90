@@ -138,7 +138,7 @@ contains
         type(domain), intent(inout)   :: Tdomain
         character(Len=MAX_FILE_SIZE)  :: fnamef, buffer
         integer                       :: i, n_aus, npml
-        integer                       :: rg, NGLL, fid, assocMat
+        integer                       :: rg, fid, assocMat
         character                     :: material_type
 
         rg = Tdomain%rank
@@ -341,12 +341,6 @@ contains
         type(Extended_source), intent(inout) :: extsrc
         integer(HID_T), intent(in)        :: fid
         integer, intent(inout)            :: nsrc
-        real(fpp)                         :: dS
-        real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn
-        real(fpp), dimension(0:2,0:2)          :: Moment
-        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
-        integer :: i, j
-
 
         if (.NOT.  extsrc%is_force) &
             call create_point_sources_from_fault_moment(Tdomain, extsrc, fid, nsrc)
@@ -371,10 +365,9 @@ contains
         type(Extended_source), intent(inout) :: extsrc
         integer(HID_T), intent(in)        :: fid
         integer, intent(inout)            :: nsrc
-        real(fpp)                         :: dS
         real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn
         real(fpp), dimension(0:2,0:2)          :: Moment
-        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp, MUtemp
+        real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp
         integer :: i, j
 
 
@@ -469,9 +462,7 @@ contains
         type(Extended_source), intent(in)      :: extsrc
         integer(HID_T), intent(in)             :: fid
         integer, intent(inout)                 :: nsrc
-        real(fpp)                         	   :: dS
-        real(fpp), dimension(0:2)              :: normal, U, v1, v2, dSn, dirvec
-        real(fpp), dimension(0:2,0:2)          :: Moment
+        real(fpp), dimension(0:2)              :: v1, v2, dSn, dirvec
         real(fpp), allocatable, dimension(:,:) :: tmp, Xtemp, Ytemp, Ztemp
         integer :: i, j
 
@@ -631,6 +622,7 @@ contains
         logical                      :: logic_scheme
         integer                      :: rg
         integer                      :: i
+        integer                      :: outflag
 
         rg = Tdomain%rank
 
@@ -668,12 +660,21 @@ contains
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
-        Tdomain%out_variables(:)=Tdomain%config%out_variables
-
         Tdomain%nReqOut = 0
-        do i = 0, size(Tdomain%out_variables)-1
-            Tdomain%nReqOut = Tdomain%nReqOut + Tdomain%out_variables(i)*OUT_VAR_DIMS_3D(i)
+        do i = 0, OUT_LAST
+            outflag = Tdomain%config%out_variables(i+1)
+            Tdomain%out_var_snap(i) = 0
+            if (outflag==1 .or. outflag==3) then
+                ! For snapshots
+                Tdomain%out_var_snap(i) = 1
+            endif
+            if (outflag==1 .or. outflag==2) then
+                ! For traces
+                Tdomain%out_var_capt(i) = 1
+                Tdomain%nReqOut = Tdomain%nReqOut + OUT_VAR_DIMS_3D(i)
+            endif
         end do
+
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)

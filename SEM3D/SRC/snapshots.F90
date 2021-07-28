@@ -551,7 +551,7 @@ contains
 
         call write_elem_connectivity(Tdomain, fid, outputs)
 
-        call allocate_fields(outputs, Tdomain%out_variables, Tdomain%nl_flag)
+        call allocate_fields(outputs, Tdomain%out_var_snap, Tdomain%nl_flag)
 
         call write_constant_fields(Tdomain, fid, outputs)
 
@@ -904,14 +904,14 @@ contains
         real(fpp), dimension(:), allocatable :: GLLc ! GLLw
         real(fpp), dimension(:,:,:), allocatable :: jac
 
-        integer, dimension(0:size(Tdomain%out_variables)-1) :: out_variables
+        integer, dimension(0:OUT_LAST) :: out_variables
         logical :: nl_flag
 
         integer :: cell_start
 
         nl_flag=Tdomain%nl_flag
         nnodes = outputs%nnodes
-        out_variables(:) = Tdomain%out_variables(:)
+        out_variables(:) = Tdomain%out_var_snap(:)
         call create_dir_sorties(Tdomain, isort)
         allocate(valence(0:nnodes-1))
 
@@ -938,7 +938,7 @@ contains
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
             if (.not. el%OUTPUT ) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
-            if (ngll/=oldngll) then
+            if (ngll/=oldngll .or. oldngll==0) then
                 ! Allocate everything here, it simpler and not that costly...
                 if (oldngll/=0) then
                     deallocate(fieldP,fieldU,fieldV,fieldA)
@@ -1326,14 +1326,14 @@ contains
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mu" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                 '">geometry',group,'.h5:/Mu</DataItem>'
             write(61,"(a)") '</Attribute>'
-            if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
+            if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
                 ! GRAD LAMBDA
                 write(61,"(a)") '<Attribute Name="GradLa_gll" Center="Node" AttributeType="Vector">'
                 write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="GradLa_gll" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                     ' 3">geometry',group,'.h5:/GradLa_gll</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-            if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
+            if (Tdomain%out_var_snap(OUT_GRAD_MU) == 1) then
                 ! GRAD MU
                 write(61,"(a)") '<Attribute Name="GradMu_gll" Center="Node" AttributeType="Vector">'
                 write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="GradMu_gll" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
@@ -1383,7 +1383,6 @@ contains
         integer :: i, j, k, n, lnum, nnodes_tot, bnum, ee
         integer :: domain_type, imat
         integer :: nnodes, ncells
-        logical :: flag_grad
 
         nnodes = outputs%nnodes
         ncells = outputs%ncells
@@ -1394,11 +1393,11 @@ contains
         allocate(mu(0:nnodes-1))
         allocate(kappa(0:nnodes-1))
 
-        if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
+        if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
             allocate(grad_La_n(0:2,0:nnodes-1))
             grad_La_n = 0d0
         end if 
-        if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
+        if (Tdomain%out_var_snap(OUT_GRAD_MU) == 1) then
             allocate(grad_Mu_n(0:2,0:nnodes-1))
             grad_Mu_n = 0d0
         end if
@@ -1590,7 +1589,7 @@ contains
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-            if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
+            if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
                 allocate(grad_La(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                 call get_solid_dom_grad_lambda(Tdomain%sdom, Tdomain%specel(n)%lnum, grad_La)
             end if
@@ -1601,7 +1600,7 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
                                 lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
-                                if (Tdomain%out_variables(OUT_GRAD_LA) == 1) grad_La_n(0:2,idx) = grad_La(i,j,k,0:2)
+                                if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) grad_La_n(0:2,idx) = grad_La(i,j,k,0:2)
                             case (DM_SOLID_PML)
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
                             case (DM_FLUID)
@@ -1623,7 +1622,7 @@ contains
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-            if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
+            if (Tdomain%out_var_snap(OUT_GRAD_MU) == 1) then
                 allocate(grad_Mu(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                 call get_solid_dom_grad_mu(Tdomain%sdom, Tdomain%specel(n)%lnum, grad_Mu)
             end if
@@ -1634,7 +1633,7 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
                                 mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
-                                if (Tdomain%out_variables(OUT_GRAD_MU) == 1) grad_Mu_n(0:2,idx) = grad_Mu(i,j,k,0:2)
+                                if (Tdomain%out_var_snap(OUT_GRAD_MU) == 1) grad_Mu_n(0:2,idx) = grad_Mu(i,j,k,0:2)
                             case (DM_SOLID_PML)
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
                             case (DM_FLUID)
@@ -1691,11 +1690,11 @@ contains
         call grp_write_real_1d(outputs, fid, "Mu", nnodes, mu, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Kappa", nnodes, kappa, nnodes_tot)
         ! GRAD LAMBDA
-        if (Tdomain%out_variables(OUT_GRAD_LA) == 1) then
+        if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
             call grp_write_real_2d(outputs, fid, "GradLa_gll", 3, nnodes, grad_La_n, nnodes_tot)
         end if
         ! GRAD MU
-        if (Tdomain%out_variables(OUT_GRAD_MU) == 1) then
+        if (Tdomain%out_var_snap(OUT_GRAD_MU) == 1) then
             call grp_write_real_2d(outputs, fid, "GradMu_gll", 3, nnodes, grad_Mu_n, nnodes_tot)
         end if
 

@@ -90,10 +90,10 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
         if (cmp(scanner,"spacedef"))    err=expect_eq_keyword(scanner, str_mat_spatial, &mat->defspatial);
         if (cmp(scanner,"filename")) {
             err=expect_eq_string(scanner, &mat->filename0, 1);
-            mat->filename1 = strdup(mat->filename0);
-            mat->filename2 = strdup(mat->filename0);
-            mat->filename3 = strdup(mat->filename3);
-            mat->filename4 = strdup(mat->filename4);
+            mat->filename1 = strndup(mat->filename0, 2048);
+            mat->filename2 = strndup(mat->filename0, 2048);
+            mat->filename3 = strndup(mat->filename0, 2048);
+            mat->filename4 = strndup(mat->filename0, 2048);
         } 
         if (cmp(scanner,"filename0")) err=expect_eq_string(scanner, &mat->filename0, 1);
         if (cmp(scanner,"filename1")) err=expect_eq_string(scanner, &mat->filename1, 1);

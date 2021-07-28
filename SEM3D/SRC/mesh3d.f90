@@ -183,7 +183,7 @@ contains
         !
         integer :: i, j, k, mat, nod
         logical :: pml
-        real :: Coord_local
+        real(fpp) :: Coord_local
         !
         do i = 0, Tdomain%n_mat-1
             Tdomain%sSubDomain(i)%MinBound_loc = MAX_DOUBLE
