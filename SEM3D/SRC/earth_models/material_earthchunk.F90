@@ -46,7 +46,7 @@ subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
                 yr = RotMat(2,1)*x + RotMat(2,2)*y + RotMat(2,3)*z
                 zr = RotMat(3,1)*x + RotMat(3,2)*y + RotMat(3,3)*z
 
-                call cart2sph(xr, yr, zr, r, theta, phi)
+                call cart2sph_ML(xr, yr, zr, r, theta, phi)
 
                 lon = phi/Pi180
                 lat = 90-0-theta/Pi180
@@ -74,10 +74,9 @@ subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
                     enddo
                 enddo
 
-                if(elem%domain==DM_SOLID_PML) then
-                    lambda(i,j,k) = lambda_from_Cij(Cij)
-                    mu(i,j,k) = mu_from_Cij(Cij)
-                else if(elem%domain==DM_SOLID) then
+                lambda(i,j,k) = lambda_from_Cij(Cij)
+                mu(i,j,k) = mu_from_Cij(Cij)
+                if(elem%domain==DM_SOLID) then
                     call c_4tensor(Cij,theta,phi)
                     call rot_4tensor(Cij,transpose(RotMat))
                 endif
@@ -89,7 +88,7 @@ subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
         call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,mat,&
             rho,lambda,mu)
     else if(elem%domain==DM_SOLID) then
-        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,gCij)
+        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,lambda,mu,gCij)
     else
         stop "initialize earthchunk material KO"
     endif

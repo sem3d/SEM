@@ -39,7 +39,7 @@ subroutine  initialize_material_prem(Tdomain, mat, elem, coorPt, npts)
                 y = coorPt(1,idef)
                 z = coorPt(2,idef)
 
-                call cart2sph(x, y, z, r, theta, phi)
+                call cart2sph_ML(x, y, z, r, theta, phi)
 
                 call get_value_prem (r, rho(i,j,k),A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
@@ -65,10 +65,9 @@ subroutine  initialize_material_prem(Tdomain, mat, elem, coorPt, npts)
                 enddo
 
 
-                if(elem%domain==DM_SOLID_PML) then
-                    lambda(i,j,k) = lambda_from_Cij(Cij)
-                    mu(i,j,k) = mu_from_Cij(Cij)
-                else if(elem%domain==DM_SOLID) then
+                lambda(i,j,k) = lambda_from_Cij(Cij)
+                mu(i,j,k) = mu_from_Cij(Cij)
+                if(elem%domain==DM_SOLID) then
                     call c_4tensor(Cij,theta,phi)
                 endif
                 gCij(:,:,i,j,k) = Cij
@@ -79,7 +78,7 @@ subroutine  initialize_material_prem(Tdomain, mat, elem, coorPt, npts)
         call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,mat,&
             rho,lambda,mu)
     else if(elem%domain==DM_SOLID) then
-        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,gCij)
+        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,lambda,mu,gCij)
     else
         stop "initialize material prem KO"
     endif
