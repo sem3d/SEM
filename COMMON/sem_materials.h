@@ -44,6 +44,7 @@ typedef struct sem_material_t {
     int domain;     // material_type_t
     int deftype;    // Describe the kind of variables used to describe this material
     int defspatial; // How the material varies spatially (constant or interpolated from file)
+    int is_sph; // the model is in spherical coordinates, need projection
 
     double rho;
     double Vp;
@@ -52,6 +53,11 @@ typedef struct sem_material_t {
     double lambda;
     double kappa;
     double mu;
+
+    // spherical material
+    double lat_center;
+    double lon_center;
+
     char* filename0;
     char* filename1;
     char* filename2;
