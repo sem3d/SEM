@@ -111,7 +111,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
 
-    call stat_init(rg, nb_procs, .true.)
+    call stat_init(rg, nb_procs, .false.)
     call stat_starttick(STAT_FULL)
     call stat_starttick(STAT_START)
 
