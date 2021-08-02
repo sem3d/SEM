@@ -268,6 +268,7 @@ contains
                     ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
                     ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
                     dp = abs(Tdomain%GlobCoord(:,ip0)- Tdomain%GlobCoord(:,ip1))
+                    dp = dp/Tdomain%dxmax
                     if (dp(0)>xeps.or.dp(1)>xeps.or.dp(2)>xeps) then
                         !write(*,*) "IF ERROR:", Tdomain%GlobCoord(:,ip0), Tdomain%GlobCoord(:,ip1), dp
                         bad = .true.
