@@ -426,7 +426,16 @@ void Mesh3D::findelem(const std::vector<int>& elems, std::vector<int>& element, 
 
 void Mesh3D::read_mesh_hexa27(hid_t file_id)
 {
+    int nel, nnodes;
+    h5h_read_dset_2d(file_id, "/Sem3D/Hexa27", nel, nnodes, m_elems);
     set_control_nodes(27);
+    if (nnodes!=27) {
+        printf("Error: dataset /Sem/Hexa27 is not of size NEL*27\n");
+        exit(1);
+    }
+    for(int k=0;k<nel;++k) {
+        m_elems_offs.push_back(27*(k+1));
+    }
 }
 
 void Mesh3D::build_vertex_to_elem_map()
