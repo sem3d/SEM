@@ -23,6 +23,7 @@ const keyword_t str_mat_descrs[] = {
     {4, "Hooke" },
     {5, "Nlkp_Vs_Rho" },
     {6, "Nu_Vs_Rho" },
+    {7, "VTI_Aniso" },
 };
 
 const keyword_t str_mat_spatial[] = {
@@ -37,6 +38,7 @@ void matcpy(sem_material_t* dst, sem_material_t* src)
     dst->domain = src->domain;
     dst->deftype = src->deftype;
     dst->defspatial = src->defspatial;
+    dst->is_sph = src->is_sph;
     dst->rho = src->rho;
     dst->Vp = src->Vp;
     dst->Vs = src->Vs;
@@ -54,6 +56,8 @@ void matcpy(sem_material_t* dst, sem_material_t* src)
     dst->filename0 = strdup(src->filename0);
     dst->filename1 = strdup(src->filename1);
     dst->filename2 = strdup(src->filename2);
+    dst->lat_center = src->lat_center;
+    dst->lon_center = src->lon_center;
 }
 
 int expect_material(yyscan_t scanner, sem_material_list_t* mats)
@@ -79,6 +83,7 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
 	if (cmp(scanner,"domain"))      err=expect_eq_keyword(scanner, str_domains, &mat->domain);
 	if (cmp(scanner,"deftype"))     err=expect_eq_keyword(scanner, str_mat_descrs, &mat->deftype);
 	if (cmp(scanner,"spacedef"))    err=expect_eq_keyword(scanner, str_mat_spatial, &mat->defspatial);
+        if (cmp(scanner,"is_sph"))      err=expect_eq_bool(scanner, &mat->is_sph, 1);
 	if (cmp(scanner,"filename")) {
             err=expect_eq_string(scanner, &mat->filename0, 1);
             mat->filename1 = strdup(mat->filename0);
@@ -96,6 +101,9 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
 	if (cmp(scanner,"kappa"))       err=expect_eq_float(scanner, &mat->kappa, 1);
         if (cmp(scanner,"mu"))          err=expect_eq_float(scanner, &mat->mu, 1);
         if (cmp(scanner,"nlkp"))        err=expect_eq_float(scanner, &mat->nlkp, 1);
+        if (cmp(scanner,"lat_center"))  err=expect_eq_float(scanner, &mat->lat_center, 1);
+        if (cmp(scanner,"lon_center"))  err=expect_eq_float(scanner, &mat->lon_center, 1);
+
 	
     if (cmp(scanner,"copy")) {
             err=expect_eq_int(scanner, &nmat, 1);
