@@ -84,13 +84,14 @@ MODULE constants
     integer, parameter :: MATERIAL_FILE       = 6
 
     ! Material definition
-    integer, parameter :: MATDEF_VP_VS_RHO     = 0
-    integer, parameter :: MATDEF_E_NU_RHO      = 1
-    integer, parameter :: MATDEF_LAMBDA_MU_RHO = 2
-    integer, parameter :: MATDEF_KAPPA_MU_RHO  = 3
-    integer, parameter :: MATDEF_HOOKE_RHO     = 4
-    integer, parameter :: MATDEF_NLKP_VS_RHO   = 5
-    integer, parameter :: MATDEF_NU_VS_RHO     = 6
+    integer, parameter :: MATDEF_VP_VS_RHO       = 0
+    integer, parameter :: MATDEF_E_NU_RHO        = 1
+    integer, parameter :: MATDEF_LAMBDA_MU_RHO   = 2
+    integer, parameter :: MATDEF_KAPPA_MU_RHO    = 3
+    integer, parameter :: MATDEF_HOOKE_RHO       = 4
+    integer, parameter :: MATDEF_NLKP_VS_RHO     = 5
+    integer, parameter :: MATDEF_NU_VS_RHO       = 6
+    integer, parameter :: MATDEF_VTI_ANISO       = 7
 
     ! DOMAINS (par ordre de priorite pour les sauvegardes)
     integer, parameter :: DM_SOLID = 4
