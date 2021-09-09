@@ -67,8 +67,9 @@ contains
 
         call system_clock(COUNT_RATE=clockRate)
         call system_clock(COUNT_MAX=maxPeriod)
-
         call system_clock(count=startFullTick)
+
+        log_traces = dotraces
         statStart(STAT_FULL)=startFullTick
         if (log_traces) call add_start_trace(STAT_FULL)
 
@@ -76,7 +77,6 @@ contains
         statStart(:) = 0d0
         statStop(:) = 0d0
 
-        log_traces = dotraces
         rank = rg
 
         if (log_traces) then
