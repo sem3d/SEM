@@ -742,8 +742,8 @@ subroutine START_SEM(rg)
     ! Ce fichier sert d'indicateur de fin de calcul
     ! Si en fin de run on trouve :
     !   -1 : il y a eu un crash/stop ou erreur avant la fin
-    !    0 : le calcul s'est bien passe et est fini
-    !    1 : le calcul doit repartir en reprise pour continuer
+    !    1 : le calcul s'est bien passe et est fini
+    !    0 : le calcul doit repartir en reprise pour continuer
     !
     if (rg==0) then
         open (111,file = "fin_sem", status="REPLACE")
