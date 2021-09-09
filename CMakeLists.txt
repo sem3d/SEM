@@ -112,6 +112,7 @@ set(SEM_SRC_C
 )
 
 find_library(CEAUSER cea_user PATHS /usr/local/sr/lib)
+find_library(CEASHER cea_sherpa PATHS /usr/local/sr/lib)
 
 if(CEAUSER STREQUAL "CEAUSER-NOTFOUND")
 set(SEM_SRC ${SEM_SRC}
@@ -152,7 +153,7 @@ endif(OPT_MPI OR HDF5_IS_PARALLEL)
 
 if (CEAUSER)
 add_definitions(-DHAVE_TREMAIN)
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${CEAUSER})
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${CEAUSER} ${CEASHER})
 endif(CEAUSER)
 
 message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
