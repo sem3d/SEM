@@ -590,12 +590,14 @@ contains
 
     end subroutine init_material_properties_solid
 
-    subroutine init_material_tensor_solid(dom, lnum, mat, density, Cij)
+    subroutine init_material_tensor_solid(dom, lnum, mat, density, lambda, mu, Cij)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
         type (subdomain), intent(in) :: mat
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
         real(fpp), dimension(1:6,1:6,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: Cij
 
         integer :: idef, ii, jj
@@ -604,6 +606,10 @@ contains
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
+
+        dom%Density_(:,:,:,bnum,ee) = density
+        dom%Lambda_ (:,:,:,bnum,ee) = lambda
+        dom%Mu_     (:,:,:,bnum,ee) = mu
 
         do i=0,dom%ngll-1
             do j=0,dom%ngll-1
@@ -618,7 +624,6 @@ contains
                 enddo
             enddo
         enddo
-        dom%Density_(:,:,:,bnum,ee) = density
     end subroutine init_material_tensor_solid
 
     subroutine init_local_mass_solid(dom,specel,i,j,k,ind,Whei)

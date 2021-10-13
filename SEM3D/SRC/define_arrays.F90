@@ -418,6 +418,13 @@ contains
         logical :: isfile
 
         do mat = 0, Tdomain%n_mat-1
+            ! compute rotation matrix if needed
+            if (Tdomain%sSubdomain(mat)%is_sph) then
+                call get_rotation_to_pole(Tdomain%sSubdomain(mat)%sph_args%theta_chk, &
+                                          Tdomain%sSubdomain(mat)%sph_args%phi_chk, &
+                                          Tdomain%sSubdomain(mat)%sph_args%R_to_pole_chk)
+                Tdomain%sSubdomain(mat)%sph_args%R_from_pole_chk=transpose(Tdomain%sSubdomain(mat)%sph_args%R_to_pole_chk)
+            end if
             isfile = Tdomain%sSubdomain(mat)%material_definition == MATERIAL_FILE
             if (isfile) then
                 call init_prop_file(Tdomain%sSubdomain(mat))
@@ -438,15 +445,17 @@ contains
 
     subroutine init_material_properties(Tdomain, specel, mat)
         use build_prop_files
+        use tensor_util
         type(domain), intent(inout) :: Tdomain
         type(element), intent(inout) :: specel
         type(subdomain), intent(in) :: mat
         !
         real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu, nlkp
-        real(fpp), dimension(0:20, 0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
-        logical :: aniso
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0h, v1h, eta, A, C, F, L, M
+        real(fpp), dimension(1:6,1:6,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
+        real(fpp), dimension(0:2) :: xx,xxr
+        integer :: i,j,k,n,idef
         ! integration de la prise en compte du gradient de proprietes
-        aniso = .false.
         select case(mat%material_definition)
             case(MATERIAL_CONSTANT)
                 !    on copie toujours le materiau de base
@@ -466,7 +475,6 @@ contains
                     v0 = mat%DKappa
                     v1 = mat%DMu
                 case(MATDEF_HOOKE_RHO)
-                    aniso = .true.
                     ! XXX TODO REQUIRED ATTENTION
                 case(MATDEF_NLKP_VS_RHO)
                     v0 = mat%DNlkp
@@ -477,9 +485,18 @@ contains
                 end select
             case( MATERIAL_FILE )
                 ! XXX interpolate rho/v0/v1 from file
-                call interpolate_elem_field(Tdomain, specel, mat, mat%pf(1), v0)
-                call interpolate_elem_field(Tdomain, specel, mat, mat%pf(2), v1)
-                call interpolate_elem_field(Tdomain, specel, mat, mat%pf(3), rho)
+                if (mat%deftype==MATDEF_VTI_ANISO) then
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), v0)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), v0h)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3), v1)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), v1h)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), eta)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), rho)
+                else
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), v0)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), v1)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3), rho)
+                end if
         end select
 
         select case(mat%deftype)
@@ -512,11 +529,59 @@ contains
             mu = rho*v1**2
             lambda = 2.0d0*nu*(rho*v1**2)/(1.0d0-2.0d0*nu)
             nlkp = 1.0d40
+        case(MATDEF_VTI_ANISO)
+            A = rho*v0h**2
+            C = rho*v0**2
+            L = rho*v1**2
+            M = rho*v1h**2
+            F = eta*(A-2.d0*L)
+            !!! elastic tensor Cij in mandel notation
+            Cij = 0.d0
+            Cij(1,1,:,:,:) = C
+            Cij(2,2,:,:,:) = A
+            Cij(3,3,:,:,:) = A
+            Cij(1,2,:,:,:) = F
+            Cij(1,3,:,:,:) = F
+            Cij(2,3,:,:,:) = A-2.d0*M
+            Cij(4,4,:,:,:) = 2.d0*M
+            Cij(5,5,:,:,:) = 2.d0*L
+            Cij(6,6,:,:,:) = 2.d0*L
+            do i = 2,6
+                do j = 1,i-1
+                    Cij(i,j,:,:,:) = Cij(j,i,:,:,:)
+                end do
+            end do
+            do k = 0,mat%NGLL-1
+                do j = 0,mat%NGLL-1
+                    do i = 0,mat%NGLL-1
+                        lambda(i,j,k)=lambda_from_Cij(Cij(:,:,i,j,k))
+                        mu(i,j,k)=mu_from_Cij(Cij(:,:,i,j,k))
+                    end do
+                end do
+            end do
+            if (mat%is_sph) then
+                do k = 0,mat%NGLL-1
+                    do j = 0,mat%NGLL-1
+                        do i = 0,mat%NGLL-1
+                            idef = specel%Iglobnum(i,j,k)
+                            do n=0,2
+                                xx(n) = Tdomain%GlobCoord(n,idef)
+                            end do
+                            call cart2sph(xx,xxr,.false.)
+                            call c_4tensor(Cij(:,:,i,j,k),xxr(1),xxr(2))
+                        end do
+                    end do
+                end do
+            end if
         end select
 
         select case (specel%domain)
         case (DM_SOLID)
-            call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,nlkp,Tdomain%nl_flag)
+            if (mat%deftype==MATDEF_VTI_ANISO) then
+                call init_material_tensor_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Cij)
+            else
+                call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,nlkp,Tdomain%nl_flag)
+            end if
         case (DM_FLUID)
             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
         case (DM_SOLID_PML)

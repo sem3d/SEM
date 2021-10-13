@@ -80,7 +80,7 @@ contains
         type(domain), intent(inout)                  :: Tdomain
         !
         type(sem_material), pointer :: matdesc
-        integer :: code, num
+        integer :: i, code, num
 
         call read_sem_materials(Tdomain%material_list, Tdomain%rank, "material.spec"//C_NULL_CHAR, code)
 
@@ -93,9 +93,29 @@ contains
                 Tdomain%sSubdomain(num)%material_definition = MATERIAL_CONSTANT
             case (1) ! FILE
                 Tdomain%sSubdomain(num)%material_definition = MATERIAL_FILE
-                Tdomain%sSubdomain(num)%pf(1)%propFilePath = trim(fromcstr(matdesc%filename0))
-                Tdomain%sSubdomain(num)%pf(2)%propFilePath = trim(fromcstr(matdesc%filename1))
-                Tdomain%sSubdomain(num)%pf(3)%propFilePath = trim(fromcstr(matdesc%filename2))
+                ! check for spherical material
+                Tdomain%sSubdomain(num)%is_sph = .false.
+                if (matdesc%is_sph) then
+                    Tdomain%sSubdomain(num)%is_sph = .true.
+                    Tdomain%sSubdomain(num)%sph_args%theta_chk = 90.0_fpp-matdesc%lat_center
+                    Tdomain%sSubdomain(num)%sph_args%phi_chk = matdesc%lon_center
+                end if
+                ! check for properties number
+                Tdomain%sSubdomain(num)%n_prop=3
+                if (matdesc%deftype==MATDEF_VTI_ANISO) then
+                    Tdomain%sSubdomain(num)%n_prop=6
+                    Tdomain%aniso=.true.
+                end if
+                allocate(Tdomain%sSubdomain(num)%prop_field(Tdomain%sSubdomain(num)%n_prop))
+                if (Tdomain%sSubdomain(num)%n_prop>3) then
+                    do i = 1,Tdomain%sSubdomain(num)%n_prop
+                        Tdomain%sSubdomain(num)%prop_field(i)%propFilePath = trim(fromcstr(matdesc%filename0))
+                    end do
+                else !!! to stay compatible with the filename0,1,2 type
+                    Tdomain%sSubdomain(num)%prop_field(1)%propFilePath = trim(fromcstr(matdesc%filename0))
+                    Tdomain%sSubdomain(num)%prop_field(2)%propFilePath = trim(fromcstr(matdesc%filename1))
+                    Tdomain%sSubdomain(num)%prop_field(3)%propFilePath = trim(fromcstr(matdesc%filename2))
+                end if
             end select
             Tdomain%sSubdomain(num)%deftype  = matdesc%deftype
             Tdomain%sSubdomain(num)%Ddensity = matdesc%rho
@@ -147,10 +167,11 @@ contains
             stop "Incompatibility between the mesh file and the material file for n_mat"
         endif
 
-        if (Tdomain%aniso) then
-            print *,"The code can't put anisotropy in a homogeneous media"
-            stop
-        endif
+        !!! GB GB
+        !!! if (Tdomain%aniso) then
+        !!!     print *,"The code can't put anisotropy in a homogeneous media"
+        !!!     stop
+        !!! endif
 
         do i = 0,Tdomain%n_mat-1
 
@@ -192,7 +213,6 @@ contains
                 endif
             enddo
         endif
-
 
         close(13)
 
