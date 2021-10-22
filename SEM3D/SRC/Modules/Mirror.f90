@@ -187,7 +187,7 @@ contains
         integer :: hdferr
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
-        integer, dimension(:,:), allocatable :: mirror_XYZ
+        real, dimension(:,:), allocatable :: mirror_XYZ
         integer :: e, i, j, k, gel, idx, idx_m
         real :: x,y,z
 
@@ -195,7 +195,7 @@ contains
         call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
         call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
         call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
-        call read_dset_2d_int(fid, "/Mirror/XYZ", mirror_XYZ, 0)
+        call read_dset_2d_real(fid, "/Mirror/XYZ", mirror_XYZ, 0)
         call read_dset_1d_real(fid, "/Mirror/inside", winf_sl, 0)
         call h5fclose_f(fid, hdferr)
 
@@ -245,7 +245,7 @@ contains
         integer :: hdferr
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
-        integer, dimension(:,:), allocatable :: mirror_XYZ
+        real, dimension(:,:), allocatable :: mirror_XYZ
         integer :: e, i, j, k, gel, idx, idx_m
         real :: x,y,z
 
@@ -253,7 +253,7 @@ contains
         call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
         call read_dset_1d_int(fid, "/Mirror/E", mirror_E, 0)
         call read_dset_2d_int(fid, "/Mirror/IJK", mirror_IJK, 0)
-        call read_dset_2d_int(fid, "/Mirror/XYZ", mirror_XYZ, 0)
+        call read_dset_2d_real(fid, "/Mirror/XYZ", mirror_XYZ, 0)
         call read_dset_1d_real(fid, "/Mirror/inside", winf_fl, 0)
         call h5fclose_f(fid, hdferr)
 
