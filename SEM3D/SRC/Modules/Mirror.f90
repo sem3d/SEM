@@ -187,9 +187,9 @@ contains
         integer :: hdferr
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
-        real, dimension(:,:), allocatable :: mirror_XYZ
+        real(fpp), dimension(:,:), allocatable :: mirror_XYZ
         integer :: e, i, j, k, gel, idx, idx_m
-        real :: x,y,z
+        real(fpp) :: x,y,z
 
         fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".h5"
         call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
@@ -245,9 +245,9 @@ contains
         integer :: hdferr
         integer, dimension(:), allocatable :: mirror_E
         integer, dimension(:,:), allocatable :: mirror_IJK
-        real, dimension(:,:), allocatable :: mirror_XYZ
+        real(fpp), dimension(:,:), allocatable :: mirror_XYZ
         integer :: e, i, j, k, gel, idx, idx_m
-        real :: x,y,z
+        real(fpp) :: x,y,z
 
         fname = "sem/mesh4spec."//trim(adjustl(strrank(rnk)))//".h5"
         call h5fopen_f(fname, H5F_ACC_RDONLY_F, fid, hdferr)
