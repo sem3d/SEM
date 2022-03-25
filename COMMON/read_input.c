@@ -395,6 +395,7 @@ const keyword_t kw_station_type[] = {
     { 2, "line" },
     { 3, "plane" },
     { 4, "single" },
+    { 5, "named_points" },
     { 5, NULL },
 };
 
@@ -638,7 +639,7 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
-int generate_stations_points(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+int generate_stations_points(yyscan_t scanner, sem_config_t* config, station_section_t* stations, int named)
 {
     FILE* f;
     station_def_t *old, *stat;
@@ -658,15 +659,29 @@ int generate_stations_points(yyscan_t scanner, sem_config_t* config, station_sec
     double x[3] = {0.,0.,0.};
     int lstat = strlen(stations->section_name);
     int dim = config->dim;
+    char tmpname[256];
     while(1) {
 	int count;
 	if (dim==2) count = fscanf(f, "%lf %lf\n", &x[0], &x[1]);
-	else count = fscanf(f, "%lf %lf %lf\n", &x[0], &x[1], &x[2]);
+	else if (named) {
+            memset(tmpname, 0, 256);
+            count = fscanf(f, "%255s %lf %lf %lf\n", tmpname, &x[0], &x[1], &x[2]);
+            count -= 1;
+        } else {
+            count = fscanf(f, "%lf %lf %lf\n", &x[0], &x[1], &x[2]);
+        }
 	if (count!=dim) break;
 	stat = (station_def_t*)malloc(sizeof(station_def_t));
 	for(i=0;i<3;++i) stat->coords[i] = x[i];
-	stat->name = (char*)malloc( lstat+10 );
-	snprintf(stat->name, lstat+10, "%s_%04d", stations->section_name, k);
+        if (named) {
+            tmpname[255] = 0;
+            int lname = strlen(tmpname);
+            stat->name = (char*)malloc( lname+1 );
+            strcpy(stat->name, tmpname);
+        } else {
+            stat->name = (char*)malloc( lstat+10 );
+	    snprintf(stat->name, lstat+10, "%s_%04d", stations->section_name, k);
+        }
 	stat->period = stations->period;
 	stat->next = config->stations;
 	config->stations = stat;
@@ -772,7 +787,8 @@ int expect_capteurs(yyscan_t scanner, sem_config_t* config)
 
     switch(stations.type) {
     case 1:
-	return generate_stations_points(scanner, config, &stations);
+    case 5:
+	return generate_stations_points(scanner, config, &stations, stations.type==5);
     case 2:
 	return generate_stations_line(scanner, config, &stations);
     case 3:
