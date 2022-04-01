@@ -61,9 +61,11 @@ contains
         type(sem_station), pointer :: station_ptr
         character(Len=MAX_FILE_SIZE) :: nom
         real(fpp) :: xc, yc, zc, xi, eta, zeta
+        real(fpp) :: xc0, yc0, zc0
         character(len=MAX_FILE_SIZE) :: fnamef
         integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out
-        real(fpp), allocatable, dimension(:,:) :: coordl
+        real(fpp) :: dmin, glob_dmin
+        real(fpp), dimension(0:2, 0:Tdomain%n_nodes-1) :: coordl
         integer :: periodeRef
         logical :: flag
 
@@ -90,65 +92,58 @@ contains
             numproc = -1
             flag = .false.
             nom = fromcstr(station_ptr%name)
-            if (trim(nom(1:20))=="UU_18872") flag = .true.
-            call trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta, flag)
+            if (trim(nom(1:20))=="04x29") flag = .true.
+            call trouve_capteur(Tdomain, xc, yc, zc, n_el, dmin, xi, eta, zeta, flag)
             ! Cas ou le capteur est dans le maillage
-            if (n_el/=-1) then
+            call MPI_AllReduce(dmin, glob_dmin, 1, MPI_DOUBLE, &
+                MPI_MIN, Tdomain%communicateur, ierr)
+            if (dmin==glob_dmin) then
                 numproc = Tdomain%rank
             end if
             call MPI_AllReduce(numproc, numproc_max, 1, MPI_INTEGER, &
                 MPI_MAX, Tdomain%communicateur, ierr)
-            ! Cas ou le capteur est en dehors du maillage mais < abs(1.1)
-            if (numproc_max==-1) then
-                n_el = n_eln
-                if (n_el/=-1) then
-                    numproc = Tdomain%rank
-                end if
-                call MPI_AllReduce(numproc, numproc_max, 1, MPI_INTEGER, &
-                    MPI_MAX, Tdomain%communicateur, ierr)
-                ! Re-calcul des coordonnees globales de la station apres
-                ! modification des coordonnes locales
-                if (n_el/=-1) then
-                    allocate(coordl(0:2, 0:Tdomain%n_nodes-1))
-                    do i = 0, Tdomain%n_nodes-1
-                        coordl(0:2, i) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n_el)%Control_Nodes(i))
-                    enddo
-                    if (Tdomain%n_nodes==8) then
-                        call shape8_local2global(coordl, xi, eta, zeta, xc, yc, zc)
-                    else
-                        call shape27_local2global(coordl, xi, eta, zeta, xc, yc, zc)
-                    end if
-                    deallocate(coordl)
-                end if
-            end if
             ! Cas ou le capteur est completement en dehors du maillage
             if (numproc_max==-1) then
                 if (Tdomain%rank==0) then
                     nom = fromcstr(station_ptr%name)
+                    write(*,*) "Something wrong happened..."
                     write(*,*) "The station ", trim(nom), " doesn't appear to be on any processor"
                     write(*,*) "Please verify that the station location is within the computation domain"
                 end if
                 stop 1
-            else
-                if(numproc_max==Tdomain%rank) Tdomain%has_station = .true.
             end if
 
 
             ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
-
+                Tdomain%has_station = .true.
                 n_out = Tdomain%nReqOut
                 if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
 
+                if (glob_dmin>0) then
+                    do i = 0, Tdomain%n_nodes-1
+                        coordl(0:2, i) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n_el)%Control_Nodes(i))
+                    enddo
+                    if (Tdomain%n_nodes==8) then
+                        call shape8_local2global(coordl, xi, eta, zeta, xc0, yc0, zc0)
+                    else
+                        call shape27_local2global(coordl, xi, eta, zeta, xc0, yc0, zc0)
+                    end if
+                    write(*,*) "The station",trim(nom)," is outside. Moved from ", xc, yc, zc, " to ", xc0, yc0, zc0
+                else
+                    xc0 = xc
+                    yc0 = yc
+                    zc0 = zc
+                end if
                 nom = fromcstr(station_ptr%name)
                 capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
                 capteur%type = CPT_INTERP
                 capteur%periode = station_ptr%period
                 periodeRef = capteur%periode
-                capteur%coord(1) = xc
-                capteur%coord(2) = yc
-                capteur%coord(3) = zc
+                capteur%coord(1) = xc0
+                capteur%coord(2) = yc0
+                capteur%coord(3) = zc0
                 capteur%xi = xi
                 capteur%eta = eta
                 capteur%zeta = zeta
@@ -346,7 +341,7 @@ contains
         allocate(varnames(0:dimtot))
         varnames(0) = "Time       1"
         d = 1
-        do k=0,dimtot-1
+        do k=0,OUT_LAST
             if (Tdomain%out_var_capt(k)==1) then
                 if(k == OUT_TOTAL_ENERGY) cycle
                 do dim=1,OUT_VAR_DIMS_3D(k)
@@ -838,64 +833,71 @@ contains
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
     !! alors le capteur est sur une face, arete ou sur un sommet
     !!
-    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta, flag)
+    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, dmin, xi, eta, zeta, flag)
         use mshape8
         use mshape27
         use mlocations3d
         implicit none
         type (domain), INTENT(INOUT)  :: Tdomain
         real(fpp), intent(in) :: xc, yc, zc
-        integer, intent(out) :: n_el, n_eln
-        real(fpp), intent(out) :: xi, eta, zeta
+        integer, intent(out) :: n_el
+        real(fpp), intent(out) :: xi, eta, zeta, dmin
         logical, intent(in) :: flag
         !
-        integer :: i
+        integer :: i, iel, emin, j
         logical :: inside
         integer :: nmax
         integer, parameter :: NMAXEL=100
         integer, dimension(NMAXEL) :: elems
         real(fpp), dimension(0:2,NMAXEL) :: coordloc
         real(fpp), parameter :: EPS = 1D-13, EPSN = 0.1D0
+        real(fpp), dimension(0:2, 0:Tdomain%n_nodes-1) :: coordl
+        real(fpp) :: dist, xc0, yc0, zc0
 
         nmax = NMAXEL
         call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
         n_el = -1
-        n_eln = -1
-        ! Cas ou la station est dans le maillage
+        ! On calcule la distance entre la station et la maille (0 si interieur)
+        dmin = 1e20
+        emin = -1
         do i=1,nmax
+            xi   = coordloc(0,i)
+            eta  = coordloc(1,i)
+            zeta = coordloc(2,i)
+            iel = elems(i)
+            do j = 0, Tdomain%n_nodes-1
+                coordl(0:2, j) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(iel)%Control_Nodes(j))
+            enddo
             inside = .true.
-            xi   = coordloc(0,i)
-            eta  = coordloc(1,i)
-            zeta = coordloc(2,i)
-            if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
-            if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
-            if (inside) then
-                n_el = elems(i)
-                return
+            if ((xi<-1_fpp) .or. eta<(-1_fpp) .or. zeta<(-1_fpp)) inside = .false.
+            if ((xi>+1_fpp) .or. eta>(+1_fpp) .or. zeta>(+1_fpp)) inside = .false.
+            ! On projette sur le bord de l'element si besoin
+            if (xi<-1D0) xi = -1D0
+            if (xi>+1D0) xi = +1D0
+            if (eta<-1D0) eta = -1D0
+            if (eta>+1D0) eta = +1D0
+            if (zeta<-1D0) zeta = -1D0
+            if (zeta>+1D0) zeta = +1D0
+            ! calcule less coord du nouveau pts
+            if (.not. inside) then
+                if (Tdomain%n_nodes==8) then
+                    call shape8_local2global(coordl, xi, eta, zeta, xc0, yc0, zc0)
+                else
+                    call shape27_local2global(coordl, xi, eta, zeta, xc0, yc0, zc0)
+                end if
+                dist = (xc-xc0)**2 + (yc-yc0)**2 + (zc-zc0)**2
+            else
+                dist = 0.
+            endif
+            if (dist<dmin) then
+                dmin = dist
+                emin = iel
+            endif
+            if (flag .and. Tdomain%rank<40) then
+                write(*,*) "CPT:", i, Tdomain%rank, xi, eta, zeta, inside, dist
             end if
         end do
-        ! Cas ou la station est en dehors du maillage mais < abs(1.1)
-        do i=1,nmax
-            xi   = coordloc(0,i)
-            eta  = coordloc(1,i)
-            zeta = coordloc(2,i)
-            if (abs(xi)<(1+EPS) .and. abs(eta)<(1+EPS) .and. abs(zeta)<(1+EPSN)) then
-                if (zeta<0) zeta = -1.D0
-                if (zeta>0) zeta = 1.D0
-                n_eln = elems(i)
-                return
-            else if (abs(xi)<(1+EPS) .and. abs(eta)<(1+EPSN) .and. abs(zeta)<(1+EPS)) then
-                if (eta<0) eta = -1.D0
-                if (eta>0) eta = 1.D0
-                n_eln = elems(i)
-                return
-            else if (abs(xi)<(1+EPSN) .and. abs(eta)<(1+EPS) .and. abs(zeta)<(1+EPS)) then
-                if (xi<0) xi = -1.D0
-                if (xi>0) xi = 1.D0
-                n_eln = elems(i)
-                return
-            end if
-        end do
+        n_el = emin
         return
     end subroutine trouve_capteur
 
