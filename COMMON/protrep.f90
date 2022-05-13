@@ -34,7 +34,6 @@ contains
             ! copie du repertoire des sorties capteurs sem dans le rep de resultats
             !! Suppression du repertoire existant
             call semname_dir_capteurs(dir_capteurs)
-            !call semname_couplage_commanderm(fnamec)
             commande="rm -Rf "//trim(adjustl(dir_capteurs))
             call system(commande)
             !! Copie du repertoire des protections vers le repertoire dest

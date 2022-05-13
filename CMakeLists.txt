@@ -25,8 +25,6 @@ if (${OPT_VEC}>1)
   set(EXTRA_GFORT_FLAGS "-fopenmp")
 endif(${OPT_VEC}>1)
 
-if (NOT BUILD_WITH_MKA)
-# Hors mka il faut chercher MPI et HDF5 ici
 option(OPT_MPI "Compilation en mode MPI" ON)
 
 # Obligatoire mais le flag n'est pas supprime partout
@@ -73,9 +71,6 @@ else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -Wno-unused-dummy-argument -ffree-line-length-0")
   set(USE_MKL FALSE)
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-endif (NOT BUILD_WITH_MKA)
-
-add_definitions(-DMKA3D)
 
 message(STATUS "${CMAKE_CXX_FLAGS}")
 

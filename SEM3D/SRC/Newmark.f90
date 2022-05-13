@@ -65,9 +65,6 @@ contains
     subroutine Newmark(Tdomain,ntime)
         ! Predictor-MultiCorrector Newmark Velocity Scheme within a
         ! Time staggered Stress-Velocity formulation inside PML
-#ifdef COUPLAGE
-        use sCouplage
-#endif
         use mcapteur
         use mpi
         use scomm, only : exchange_sem_var, comm_give_data, comm_take_data
@@ -81,9 +78,6 @@ contains
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: ntime
         integer, parameter :: etiquette = 100
-#ifdef COUPLAGE
-        integer :: i,j
-#endif
 
         ! Predictor-MultiCorrector Newmark Velocity Scheme within a
         ! Time staggered Stress-Velocity formulation inside PML
@@ -103,49 +97,6 @@ contains
             call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime, 1)
             call stat_stoptick(STAT_FEXT)
         end if
-
-#ifdef COUPLAGE
-#if 0
-        if (ntime>0) then
-            call calcul_couplage_force(Tdomain, ntime)
-        endif
-
-        !Gsa Ipsis (tout le passage)
-        ! AJOUT DES FORCES de couplage
-
-        ! Les forces de couplage correspondent a la contrainte multiplie par la surface
-        ! du point de gauss correspondant sur un meme proc la somme est
-        ! deja faite par contre lorsqu un vertex est partage sur plusieurs
-        ! proc alors chaque proc n a qu une partie de la somme il faut
-        ! donc lui ajouter les contributions des autres proc pour prendre
-        ! en compte les forces imposee lors du couplage avec mka sur les
-        ! points de gauss internes aux faces
-        do nf = 0, Tdomain%n_face-1
-            ngll1 = Tdomain%sFace(nf)%ngll1
-            ngll2 = Tdomain%sFace(nf)%ngll2
-            do j=1,ngll2-2
-                do i=1,ngll1-2
-                    Tdomain%sFace(nf)%Forces(i,j,0:2) = Tdomain%sFace(nf)%ForcesExt(i,j,0:2) + Tdomain%sFace(nf)%Forces(i,j,0:2)
-                enddo
-            enddo
-
-        enddo
-
-        ! aretes
-        do nf = 0, Tdomain%n_edge-1
-            ngll = Tdomain%sEdge(nf)%ngll
-            do i=1,ngll-2
-                Tdomain%sEdge(nf)%Forces(i,0:2) = Tdomain%sEdge(nf)%ForcesExt(i,0:2) + Tdomain%sEdge(nf)%Forces(i,0:2)
-            enddo
-        enddo
-
-        ! pour prendre en compte les forces imposee lors du couplage avec mka sur les points de gauss des vertex
-        do nv = 0, Tdomain%n_vertex-1
-            Tdomain%sVertex(nv)%Forces(0:2) = Tdomain%sVertex(nv)%ForcesExt(0:2) + Tdomain%sVertex(nv)%Forces(0:2)
-        enddo
-#endif
-#endif
-
 
         ! MPI communications
         call comm_forces(Tdomain,1)

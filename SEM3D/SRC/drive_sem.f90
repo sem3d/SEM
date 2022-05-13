@@ -26,9 +26,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     use semconfig !< pour config C
     use sem_c_bindings
     use stat, only : stat_starttick, stat_stoptick, stat_init, stat_finalize, STAT_FULL, STAT_START
-#ifdef COUPLAGE
-    use scouplage
-#endif
 
     implicit none
 
@@ -39,16 +36,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer :: rg, nb_procs, ntime
     integer :: isort, ierr
     real(kind=8), parameter :: max_time_left=900
-#ifdef COUPLAGE
-    integer :: global_rank, global_nb_proc, worldgroup, intergroup
-    integer :: m_localComm, comm_super_mka
-    integer :: n
-    integer :: tag
-    integer, dimension (MPI_STATUS_SIZE) :: status
-    integer :: getpid, pid
-    integer, dimension(3) :: tab
-    integer :: min_rank_glob_sem
-#endif
 
     call MPI_Init (ierr)
     Tdomain%time_0 = MPI_Wtime();
@@ -57,57 +44,13 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !------------------------------------    COMMUNICATORS  ---------------------------------------!
 !----------------------------------------------------------------------------------------------!
 
-#ifdef COUPLAGE
-    pid = getpid()
-    write(*,*) "SEM3D[", pid, "] : Demarrage."
-    call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
-    call MPI_Comm_size(MPI_COMM_WORLD, global_nb_proc, ierr)
-    call MPI_Comm_split(MPI_COMM_WORLD, 2, rg, m_localComm, ierr)
-    call MPI_Comm_Rank (m_localComm, rg, ierr)
-    call MPI_Comm_size(m_localComm, nb_procs, ierr)
-
-    Tdomain%communicateur=m_localComm
-    Tdomain%communicateur_global=MPI_COMM_WORLD
-    Tdomain%master_superviseur=0
-
-    !! Reception des infos du superviseur
-    tag=8000000+global_rank
-    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    !! Reception des infos de mka
-    tag=8100000+global_rank
-    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    !! On cherche le global rank minimal des procs sem
-    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm, ierr)
-
-    !! Envoi des infos de couplage
-    if (rg == 0) then
-        tab(1) = global_rank
-        tab(2) = nb_procs
-        tab(3) = min_rank_glob_sem
-
-        do n=1, global_nb_proc
-            tag=8200000+n
-            call MPI_Send(tab, 3, MPI_INTEGER, n-1, tag, MPI_COMM_WORLD, ierr)
-        enddo
-    endif
-
-    !! Reception des infos de sem
-    tag=8200000+global_rank+1
-    call MPI_Recv(tab, 3, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    call MPI_Comm_group(MPI_COMM_WORLD, worldgroup, ierr)
-    call MPI_Group_incl(worldgroup, 2, tab, intergroup, ierr)
-    call MPI_Comm_create(MPI_COMM_WORLD, intergroup, comm_super_mka, ierr)
-#else
     Tdomain%communicateur = communicateur
     Tdomain%communicateur_global = communicateur_global
     Tdomain%master_superviseur = master_superviseur
 
     call MPI_Comm_Rank (Tdomain%communicateur, rg, ierr)
     call MPI_Comm_Size (Tdomain%communicateur, nb_procs, ierr)
-#endif
+
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
 
@@ -185,9 +128,6 @@ subroutine RUN_PREPARED(Tdomain)
     use msource_excit
     use mondelette
     use surface_input
-#ifdef COUPLAGE
-    use scouplage
-#endif
 
     implicit none
     type(domain), intent(inout) :: Tdomain
@@ -313,9 +253,6 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
     use semconfig !< pour config C
     use sem_c_bindings
     use smirror
-#ifdef COUPLAGE
-    use scouplage
-#endif
 
     implicit none
 
@@ -341,11 +278,6 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
     if(rg == 0) print*
 
     isort = 1   ! index for snapshots outputs
-
-!- coupling with other codes: initialization (only Mka3d for the time being)
-#ifdef COUPLAGE
-    call INIT_COUPLING_MKA(Tdomain)
-#endif
 
 
 !- eventual restarting from a previous run (checkpoint)
@@ -391,43 +323,6 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
 end subroutine RUN_INIT_INTERACT
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
-#ifdef COUPLAGE
-subroutine INIT_COUPLING_MKA(Tdomain)
-
-    use sdomain
-    use mCapteur
-    use semdatafiles
-    use mpi
-    use msnapshots
-    use semconfig !< pour config C
-    use sem_c_bindings
-    use scouplage
-
-    implicit none
-
-    type(domain), intent(inout)  :: Tdomain
-    integer                      :: finSem,MaxNgParDir
-
-    if (Tdomain%rank == 0) then
-        write(6,'(A)') 'Methode de couplage Mka3D/SEM3D 4: Peigne de points d''interpolation,', &
-            ' en vitesses, systeme lineaire sur la vitesse,', &
-            ' contraintes discontinues pour les ddl de couplage'
-    endif
-    call initialisation_couplage(Tdomain, MaxNgParDir)
-    finSem = 0
-
-    !- new max. number of iterations
-    Tdomain%TimeD%ntimeMax = int(Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
-    if (Tdomain%TimeD%ntimeMax <= 0) stop "ERROR : nb of time step <= 0 as duration < dt"
-    ! this block placed here - is it ok, or not?
-    call reception_surface_part_mka(Tdomain)
-    call reception_nouveau_pdt_sem(Tdomain)
-
-
-end subroutine INIT_COUPLING_MKA
-#endif
-!-----------------------------------------------------------------------------------
-!-----------------------------------------------------------------------------------
 subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use sdomain
     use mCapteur
@@ -439,9 +334,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use semconfig !< pour config C
     use sem_c_bindings
     use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO
-#ifdef COUPLAGE
-    use scouplage
-#endif
 
     implicit none
 
@@ -457,11 +349,9 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     logical :: sortie_capteur
     double precision :: time_now
     integer :: time_now_s
-#ifdef COUPLAGE
-#else
     real(kind=8) :: remaining_time
     integer :: code
-#endif
+
     rg = Tdomain%rank
     nb_procs = Tdomain%nb_procs
 
@@ -524,10 +414,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- OUTPUTS AND INTERACTIONS SEM -> OTHERS
 !---------------------------------------------------------!
-#ifdef COUPLAGE
-    !- CODE COUPLING: Mka3d (SEM -> Mka)
-        call MKA_COUPLING_OUT(Tdomain,ntime,interrupt,protection,i_snap)
-#else
     !- Checkpoint restart
         if(Tdomain%logicD%save_restart)then
             ! protection for a future restart?
@@ -568,7 +454,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 
     !- snapshotting
         if(Tdomain%logicD%save_snapshots) i_snap = mod(ntime, Tdomain%TimeD%nsnap)
-#endif
 
     !- Ici, on a une info globale pour interrupt, protection, i_snap
         if(interrupt > 0) protection = 1
@@ -617,63 +502,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 end subroutine TIME_STEPPING
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
-#ifdef COUPLAGE
-subroutine MKA_COUPLING_OUT(Tdomain,ntime,interrupt,protection,i_snap)
-    use sdomain
-    use mCapteur
-    use semdatafiles
-    use mpi
-    use msnapshots
-    use semconfig !< pour config C
-    use sem_c_bindings
-    use scouplage
-
-    implicit none
-
-    type(domain) :: Tdomain
-    integer, intent(in)  :: ntime
-    integer, intent(inout) :: interrupt,protection,i_snap
-
-    integer :: code, n
-    integer, dimension(3) :: flags_synchro ! fin/protection/sortie
-
-    call ENVOI_VITESSE_MKA(Tdomain, ntime) !! syst. lineaire vitesse
-
-    !- traitement de l arret
-    !  comm entre le master_sem et le Tdomain%master_superviseur : reception de la valeur de l interruption
-
-    flags_synchro(1) = interrupt
-    flags_synchro(2) = 0      ! SEM ne declenche pas les protections
-    flags_synchro(3) = 0
-
-    call MPI_ALLREDUCE(MPI_IN_PLACE, flags_synchro, 3, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, code)
-
-    interrupt = flags_synchro(1)
-    protection = flags_synchro(2)
-    if(flags_synchro(3) /= 0) then
-        i_snap = 0
-    else
-        i_snap = 1
-    end if
-    !- reinitializations of coupling fields
-    ! remise a zero dans tous les cas des forces Mka sur les faces
-    do n = 0, Tdomain%n_face-1
-        Tdomain%sFace(n)%ForcesExt = 0.
-    enddo
-    ! remise a zero dans tous les cas des forces Mka sur les vertex
-    do n = 0, Tdomain%n_vertex-1
-        Tdomain%sVertex(n)%ForcesExt = 0.
-    enddo
-    ! remise a zero dans tous les cas des forces Mka sur les Edges
-    do n = 0, Tdomain%n_edge-1
-        Tdomain%sEdge(n)%ForcesExt = 0.
-    enddo
-
-end subroutine MKA_COUPLING_OUT
-#endif
-
-!-----------------------------------------------------------------------------------
-!-----------------------------------------------------------------------------------
 subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
     use sdomain
     use semdatafiles
@@ -703,7 +531,6 @@ subroutine END_SEM(Tdomain,ntime)
     use semdatafiles
     use semconfig !< pour config C
     use sem_c_bindings
-    use scouplage
 
     implicit none
 
@@ -727,9 +554,6 @@ subroutine END_SEM(Tdomain,ntime)
 
     if (rg == 0) write (*,*) "--> DEALLOCATING DOMAIN."
     call deallocate_domain (Tdomain)
-#ifdef COUPLAGE
-    close(50)
-#endif
 
     if (Tdomain%logicD%save_snapshots)  then
         call MPI_Comm_free(Tdomain%SnapData%comm, ierr)

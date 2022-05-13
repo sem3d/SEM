@@ -125,43 +125,29 @@ endif(OPT_CPML)
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F})
 
-# Sources qui dependent du flag COUPLAGE
-set(SEM3D_SOURCES_CPL
-    ${PRJ}/SRC/Modules/Couplage.f90
+set(SEM3D_SOURCES_MAIN
     ${PRJ}/SRC/Newmark.f90
     ${PRJ}/SRC/deallocate_domain.f90
     ${PRJ}/SRC/allocate_domain.f90
     ${PRJ}/SRC/drive_sem.f90
     ${PRJ}/SRC/main.F90
     )
+
 if(OPT_MPI)
   #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
   # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
   # c++ et ne link pas semx.exe
-
-#  add_executable(sem3d_cpl ${SEM3D_SOURCES_CPL})
-#  target_link_libraries(sem3d_cpl sem3dcommon ${SEM_EXTRA_LIBS})
-#  set_target_properties(sem3d_cpl PROPERTIES
-#                                  COMPILE_DEFINITIONS COUPLAGE
-#				  COMPILE_FLAGS "-I${SEMLIBDIR}/cpl3d -I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
-#				  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/cpl3d)
 else(OPT_MPI)
   set(SEM3D_SOURCES ${SEM3D_SOURCES} ${FTM_SOURCES})
 endif(OPT_MPI)
 
 include_directories(${PRJ}/SRC)
-add_library(sem3dcommon ${SEM3D_SOURCES})
-add_dependencies(sem3dcommon semcommon)
-set_target_properties(sem3dcommon PROPERTIES
-				  COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
-                                  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)
 
-
-add_executable(sem3d.exe  ${SEM3D_SOURCES_CPL})
-target_link_libraries(sem3d.exe sem3dcommon ${SEM_EXTRA_LIBS})
-set_target_properties(sem3d.exe PROPERTIES 
-				COMPILE_FLAGS "-I${SEMLIBDIR}/ncpl3d -I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
-                                Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/ncpl3d)
+add_executable(sem3d.exe  ${SEM3D_SOURCES} ${SEM3D_SOURCES_MAIN} )
+target_link_libraries(sem3d.exe ${SEM_EXTRA_LIBS})
+set_target_properties(sem3d.exe PROPERTIES
+  COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
+  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
 
 

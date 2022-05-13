@@ -37,11 +37,6 @@ program test_sem_path
     write(*,*) "==========="
     call test_path()
 
-    call init_mka3d_path()
-    write(*,*) "CHEMINS MKA3D"
-    write(*,*) "============="
-    call test_path()
-
 end program test_sem_path
 
 !! Local Variables:

@@ -217,82 +217,6 @@ contains
         DEBUG(fnamef)
     end subroutine semname_protection_iter_dir_capteurs
 
-    subroutine semname_couplage_commandecpt(fnamer,fnamef)
-        !SEMFILE * C XXX/temps_sem.dat ./Resultats/temps_sem.dat
-        implicit none
-        character(Len=*),intent(in) :: fnamer
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,a)") trim(adjustl(fnamer)),"/temps_sem.dat ./Resultats/temps_sem.dat"
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_commandecpt
-
-    subroutine semname_couplage_listepts (rank,fnamef)
-        !SEMFILE 75 W liste_pts_interp.dat.III
-        implicit none
-        integer,intent(in) :: rank
-        !character(Len=20) :: crank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        !write(crank,"(I20)") rank
-        write(fnamef,"(a,I1)")"liste_pts_interp.dat.",rank
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_listepts
-
-    subroutine semname_couplage_listeproj (rank,fnamef)
-        !SEMFILE 77 W liste_proj_mka.dat.III
-        implicit none
-        integer,intent(in) :: rank
-        !character(Len=20) :: crank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        !write(crank,"(I20)") rank
-        write(fnamef,"(a,I1)")"liste_proj_mka.dat.",rank
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_listeproj
-
-    subroutine semname_couplage_verif1 (rank,fnamef)
-        !SEMFILE 85 W verifW.dat.III
-        implicit none
-        character(Len=*),intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        write(fnamef,"(a,a1,a)")"verifW.dat",'.',trim(adjustl(rank))
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_verif1
-
-    subroutine semname_couplage_verifglob (fnamef)
-        !SEMFILE 93 W verif_mka_glob.dat
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        write(fnamef,"(a18)")"verif_mka_glob.dat"
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_verifglob
-
-    subroutine semname_couplage_NCdat (fnamef) !3d
-        !SEMFILE 51 W tableau_NC.dat
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        write(fnamef,"(a)")"tableau_NC.dat"
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_NCdat
-
-    subroutine semname_couplage_imatdat (fnamef) !3d
-        !SEMFILE 58 W tableau_imat.dat
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        write(fnamef,"(a)")"tableau_imat.dat"
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_imatdat
-    !!end fichier couplage 2d 3d
-
     !!fichier define_fault_properties 2d
     subroutine semname_define_fault_data (domain,fnamef)
         !SEMFILE 24 R ./data/sem/XXX (MKA) & XXX (NOMKA)
@@ -347,18 +271,6 @@ contains
         fnamef = pjoin(path_param, file)
     end subroutine semname_define_planew_properties_file
     !!end fichier define_planew_properties
-
-    !!fichier main 2d
-    subroutine semname_couplage_dat (fnamef)
-        !SEMFILE 50 R data/sem/couplage.dat (COUPLAGE)
-        ! main 2d, driver_sem3d
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        write(fnamef,"(a)")"Parametrage/voronoi/couplage.dat"
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_dat
 
     subroutine semname_results_temps_sem(fnamef)
         implicit none

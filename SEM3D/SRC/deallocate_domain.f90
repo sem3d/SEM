@@ -59,20 +59,6 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%sSource)
     endif
 
-#ifdef COUPLAGE
-    !purge - fuites memoire
-    do n = 0, Tdomain%n_face-1
-        deallocate (Tdomain%sFace(n)%ForcesExt)
-        deallocate (Tdomain%sFace(n)%tsurfsem)
-    enddo
-    do n = 0, Tdomain%n_edge-1
-        deallocate (Tdomain%sEdge(n)%ForcesExt)
-        deallocate (Tdomain%sEdge(n)%tsurfsem)
-    enddo
-    do n = 0, Tdomain%n_vertex-1
-        deallocate (Tdomain%sVertex(n)%ForcesExt)
-    enddo
-#endif
     deallocate (Tdomain%specel)
     deallocate (Tdomain%sFace)
     deallocate (Tdomain%sEdge)
