@@ -65,7 +65,7 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # -fpp : preprocesseur
   # -allow nofpp_comments : indique au preprocesseur de ne pas traiter specialement les commentaires fortran
   #                         ceci permet de caser des directives openmp dans des macros
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -r8 -fpp -mkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -mkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
   set(USE_MKL TRUE)
 else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # Assume gfortran
