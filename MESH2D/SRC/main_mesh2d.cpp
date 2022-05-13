@@ -156,7 +156,7 @@ public:
     vector<double> m_px;
     vector<double> m_py;
     vector<Quad*> m_quads;
-    vector<int>  m_procs;
+    vector<idx_t> m_procs;
     vector<int>  m_mat1;
     vector<int>  m_mat2;
 private:

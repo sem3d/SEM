@@ -456,9 +456,9 @@ subroutine save_deformation (Tdomain,it,i_snap,sortie_capteur_deformation)
         open (72,file=fnamef,status="unknown",form="formatted")
 
 #else
-        call semname_save_deformation_epsilonp(rank,it,fnamef)
+        call semname_save_deformation_epsilonp(Tdomain%MPI_var%my_rank,it,fnamef)
         open (71,file=fnamef,status="unknown",form="formatted")
-        call semname_save_deformation_epsilonp(rank,it,fnamef)
+        call semname_save_deformation_epsilonp(Tdomain%MPI_var%my_rank,it,fnamef)
         open (72,file=fnamef,status="unknown",form="formatted")
 #endif
 

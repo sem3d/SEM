@@ -19,7 +19,6 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/communicating_wall.F90
     ${PRJ}/SRC/Domain.F90
     ${PRJ}/SRC/orientation.F90
-    ${PRJ}/SRC/Couplage.F90
     ${PRJ}/SRC/Newmark.F90
     ${PRJ}/SRC/Midpoint.F90
     ${PRJ}/SRC/PML_def.F90
@@ -63,30 +62,18 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/wall_transfer.F90
 )
 
-add_library(sem2dcommon ${SEM2D_SOURCES})
-set_target_properties(sem2dcommon PROPERTIES
-				  COMPILE_FLAGS "-I${SEMLIBDIR}/common -I${SEMLIBDIR}/sem2d"
-                                  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem2d)
-
 
 if(OPT_MPI)
-  add_executable(sem2d_cpl ${PRJ}/SRC/main.F90 ${SEM2D_SOURCES})
-  target_link_libraries(sem2d_cpl sem2dcommon ${SEM_EXTRA_LIBS})
-  set_target_properties(sem2d_cpl PROPERTIES
-                                  COMPILE_DEFINITIONS COUPLAGE
-				  COMPILE_FLAGS "-I${SEMLIBDIR}/cpl2d -I${SEMLIBDIR}/common -I${SEMLIBDIR}/sem2d"
-                              	  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/cpl2d)
-  install(TARGETS sem2d_cpl DESTINATION bin)
 else(OPT_MPI)
   set(SEM2D_SOURCES ${SEM2D_SOURCES} ${FTM_SOURCES})
 endif(OPT_MPI)
 
 add_executable(sem2d.exe ${PRJ}/SRC/main.F90 ${SEM2D_SOURCES})
-target_link_libraries(sem2d.exe sem2dcommon ${SEM_EXTRA_LIBS})
+target_link_libraries(sem2d.exe ${SEM_EXTRA_LIBS})
 
 set_target_properties(sem2d.exe PROPERTIES
-				COMPILE_FLAGS "-I${SEMLIBDIR}/ncpl2d -I${SEMLIBDIR}/common -I${SEMLIBDIR}/sem2d"
-                              	Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/ncpl2d)
+				COMPILE_FLAGS "-I${SEMLIBDIR}/common -I${SEMLIBDIR}/sem2d"
+                              	Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem2d)
 
 install(TARGETS sem2d.exe DESTINATION bin)
 

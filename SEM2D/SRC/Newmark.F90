@@ -13,7 +13,6 @@
 
 module snewmark
     use sdomain
-    use scouplage
     use mpi
     implicit none
 contains
@@ -175,37 +174,6 @@ subroutine Newmark (Tdomain)
 
 
         enddo
-
-
-
-
-        ! AJOUT DES FORCES MKA3D
-if (Tdomain%couplage) then
-        if (Tdomain%TimeD%ntime>0) then
-            call calcul_couplage_force(Tdomain,Tdomain%TimeD%ntime)
-        endif
-
-        ! la ForcesMka corespond a la contrainte multiplie par la surface du point de gauss correspondant
-        ! sur un meme proc la somme est deja faite
-        ! par contre lorsqu un vertex est partage sur plusieurs proc alors chaque proc n a qu une partie de la somme
-        ! il faut donc lui ajouter les contributions des autres proc
-        ! pour prendre en compte les forces imposee lors du couplage avec mka sur les points de gauss internes aux faces
-        do nf = 0, Tdomain%n_face-1
-            ngll = Tdomain%sFace(nf)%ngll
-            do i=1,ngll-2
-                Tdomain%sFace(nf)%Forces(i,0:1) = Tdomain%sFace(nf)%ForcesMka(i,0:1) + Tdomain%sFace(nf)%Forces(i,0:1)
-            enddo
-
-        enddo
-
-
-        ! pour prendre en compte les forces imposee lors du couplage avec mka sur les points de gauss des vertex
-        do nv = 0, Tdomain%n_vertex-1
-            Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%ForcesMka(0:1) + Tdomain%sVertex(nv)%Forces(0:1)
-        enddo
-
-endif
-
 
 
 

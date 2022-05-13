@@ -11,7 +11,6 @@
 
 module srungekutta
     use sdomain
-    use scouplage
     use mpi
     use constants
     use smidpoint

@@ -11,7 +11,6 @@
 
 module smidpoint
     use sdomain
-    use scouplage
     use constants
     use mpi
     implicit none

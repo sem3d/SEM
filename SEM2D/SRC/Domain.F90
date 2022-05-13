@@ -36,7 +36,6 @@ module sdomain
        ! Communicateurs utilises uniquement pour le couplage
        integer :: communicateur_global
        integer :: master_superviseur
-       logical :: couplage
        !
        integer :: n_elem, n_face, n_vertex, n_source, n_glob_nodes, n_line ,n_receivers, n_mortar
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
