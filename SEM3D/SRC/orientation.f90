@@ -92,14 +92,6 @@ contains
             end do
         end do
 
-       ! if (Tdomain%logicD%neumann_local_present) then
-       !      do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
-       !          do ed = 0,Tdomain%Neumann%NeuSurface(k)%Neu_n_edges-1
-       !             ne = Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%Edge
-       !             Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%ngll=Tdomain%sEdge(ne)%ngll
-       !          enddo
-       !      enddo
-       !  endif
     end subroutine apply_mat_to_edges
 
     subroutine apply_mat_to_vertices(Tdomain)

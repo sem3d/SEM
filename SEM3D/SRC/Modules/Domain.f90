@@ -92,9 +92,8 @@ module sdomain
        integer :: mirror_type
 
        integer :: traces_format
-       character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &
-           Super_object_file,neumann_file,neumann_dat,check_mesh_file
-       character (len=1)  :: Super_object_type
+       character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,material_file
+
 
        integer, dimension(0:OUT_LAST) :: out_var_capt
        integer, dimension(0:OUT_LAST) :: out_var_snap

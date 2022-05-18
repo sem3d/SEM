@@ -51,7 +51,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/define_arrays.F90
     ${PRJ}/SRC/define_Neumann_properties.f90
-    ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/mesh3d.f90
     ${PRJ}/SRC/read_input.f90

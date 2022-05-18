@@ -154,13 +154,8 @@ subroutine RUN_PREPARED(Tdomain)
     if(rg == 0) write(*,*) "--> READING INPUT PARAMETERS AND DATA"
     call read_input(Tdomain, code)
 
- !- eventual plane wave (transmission process: Bielak & Cristiano 1984)
-    if (Tdomain%logicD%super_object_local_present) then
-        if (Tdomain%super_object_type == "P") then
-            if(rg == 0) write(*,*) "--> DEFINING PLANE WAVE PROPERTIES"
-            call define_planew_properties(Tdomain)
-        endif
-    endif
+    !- eventual plane wave (transmission process: Bielak & Cristiano 1984)
+    ! XXX
 
  !- eventual Neumann boundary conditions
     !if (Tdomain%logicD%neumann_local_present) then
