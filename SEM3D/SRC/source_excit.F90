@@ -166,32 +166,15 @@ contains
 
         type(domain), intent(inout) :: Tdomain
         integer, intent(in)  :: rank
-        integer :: nsour,nels,ngll
+        integer :: nsour,nels,ngll,dom
         real(fpp), dimension(:), allocatable :: GLLc
 
         do nsour = 0, Tdomain%n_source -1
             if(Tdomain%sSource(nsour)%proc == rank)then
                 nels = Tdomain%sSource(nsour)%elem
-                select case (Tdomain%specel(nels)%domain)
-                case (DM_SOLID)
-                    ngll = Tdomain%sdom%ngll
-                    allocate(GLLc(0:ngll-1))
-                    GLLc = Tdomain%sdom%GLLc
-                case (DM_FLUID)
-                    ngll = Tdomain%fdom%ngll
-                    allocate(GLLc(0:ngll-1))
-                    GLLc = Tdomain%fdom%GLLc
-                case (DM_SOLID_PML)
-                    ngll = Tdomain%spmldom%ngll
-                    allocate(GLLc(0:ngll-1))
-                    GLLc = Tdomain%spmldom%GLLc
-                case (DM_FLUID_PML)
-                    ngll = Tdomain%fpmldom%ngll
-                    allocate(GLLc(0:ngll-1))
-                    GLLc = Tdomain%fpmldom%GLLc
-                case default
-                    stop "unknown domain"
-                end select
+                dom = Tdomain%specel(nels)%domain
+                call domain_gllc(Tdomain, dom, GLLc)
+                ngll = domain_ngll(Tdomain, dom)
 
                 ! pulse in a solid (in a given direction) or fluid (isotropic pressure source term)
                 if(Tdomain%sSource(nsour)%i_type_source == 1) then
