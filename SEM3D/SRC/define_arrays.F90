@@ -45,13 +45,13 @@ contains
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
-            if      (Tdomain%specel(n)%domain==DM_SOLID    ) then
+            if      (Tdomain%specel(n)%domain==DM_SOLID_CG    ) then
                 Tdomain%sdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
+            else if (Tdomain%specel(n)%domain==DM_SOLID_CG_PML) then
                 Tdomain%spmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_FLUID    ) then
+            else if (Tdomain%specel(n)%domain==DM_FLUID_CG    ) then
                 Tdomain%fdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
+            else if (Tdomain%specel(n)%domain==DM_FLUID_CG_PML) then
                 Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else
                 stop "unknown domain"
@@ -76,10 +76,10 @@ contains
             ! Compute MassMat
             call init_local_mass(Tdomain, Tdomain%specel(n))
             ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is
-            if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
+            if (Tdomain%specel(n)%domain==DM_SOLID_CG_PML) then
                 call init_solidpml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             end if
-            if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
+            if (Tdomain%specel(n)%domain==DM_FLUID_CG_PML) then
                 call init_fluidpml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             end if
         enddo
@@ -526,13 +526,13 @@ contains
         end select
 
         select case (specel%domain)
-        case (DM_SOLID)
+        case (DM_SOLID_CG)
             call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,nlkp,Tdomain%nl_flag,Qp,Qs)
-        case (DM_FLUID)
+        case (DM_FLUID_CG)
             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,rho,lambda)
-        case (DM_SOLID_PML)
+        case (DM_SOLID_CG_PML)
             call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,mat,rho,lambda,mu)
-        case (DM_FLUID_PML)
+        case (DM_FLUID_CG_PML)
             call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,mat,rho,lambda)
         case default
             stop "unknown domain"
@@ -566,13 +566,13 @@ contains
                     Whei = GLLw(i)*GLLw(j)*GLLw(k)
                     ind = specel%Idom(i,j,k)
                     select case (specel%domain)
-                        case (DM_SOLID)
+                        case (DM_SOLID_CG)
                             call init_local_mass_solid(Tdomain%sdom,specel,i,j,k,ind,Whei)
-                        case (DM_SOLID_PML)
+                        case (DM_SOLID_CG_PML)
                             call init_local_mass_solidpml(Tdomain%spmldom,specel,i,j,k,ind,Whei)
-                        case (DM_FLUID)
+                        case (DM_FLUID_CG)
                             call init_local_mass_fluid(Tdomain%fdom,specel,i,j,k,ind,Whei)
-                        case (DM_FLUID_PML)
+                        case (DM_FLUID_CG_PML)
                             call init_local_mass_fluidpml(Tdomain%fpmldom,specel,i,j,k,ind,Whei)
                         case default
                             stop "unknown domain"

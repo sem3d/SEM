@@ -39,13 +39,13 @@ contains
                     do n = 0,size(Tdomain%sSurfaces)-1
                         if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(:len_trim(char)))) then
                             select case (Tdomain%sSurfaces(n)%domain)
-                            case(DM_SOLID)
+                            case(DM_SOLID_CG)
                                 call surface_force(f0, f1, Tdomain%sSurfaces(n)%surf_sl, &
                                     Tdomain%nsurfsource(n2), Tdomain%sSurfaces(n),Tdomain)
-                            case(DM_FLUID)
+                            case(DM_FLUID_CG)
                                 call surface_force(f0, f1, Tdomain%sSurfaces(n)%surf_fl, &
                                     Tdomain%nsurfsource(n2), Tdomain%sSurfaces(n),Tdomain)
-                            case(DM_SOLID_PML,DM_FLUID_PML)
+                            case(DM_SOLID_CG_PML,DM_FLUID_CG_PML)
                                 stop "Neumann condition should not be used on PML surface"
                             end select
                             exit
@@ -65,12 +65,12 @@ contains
                     do n = 0,size(Tdomain%sSurfaces)-1
                         if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(:len_trim(char)))) then
                             select case (Tdomain%sSurfaces(n)%domain)
-                            case(DM_SOLID)
+                            case(DM_SOLID_CG)
                                 Tdomain%sdom%PlaneW%Exist = .true.
                                 call surface_force(f0, f1, Tdomain%sSurfaces(n)%surf_sl, &
                                     Tdomain%nsurfsource(n2), Tdomain%sSurfaces(n), &
                                     Tdomain, Tdomain%sdom%champs(f0)%Veloc)
-                            case(DM_SOLID_PML,DM_FLUID_PML,DM_FLUID)
+                            case(DM_SOLID_CG_PML,DM_FLUID_CG_PML,DM_FLUID_CG)
                                 stop "Plane wave problem is implemented only for solid domains"
                             endselect
                             exit
@@ -177,9 +177,9 @@ contains
             endif
 
             select case (surf_norm%domain)
-            case (DM_SOLID)
+            case (DM_SOLID_CG)
                 Tdomain%sdom%champs(f1)%Forces(idx,:) = Tdomain%sdom%champs(f1)%Forces(idx,:) + force
-            case (DM_FLUID)
+            case (DM_FLUID_CG)
 
             case default
                 stop "surface force computation, only solid domain is implemented "

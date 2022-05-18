@@ -561,17 +561,17 @@ contains
         ! On recupere les variables de l'element associe au capteur.
         
         select case(Tdomain%specel(n_el)%domain)
-            case (DM_SOLID)
+            case (DM_SOLID_CG)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
                 dUdX, nl_flag, eps_dev_pl)
-            case (DM_FLUID)
+            case (DM_FLUID_CG)
               call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
-            case (DM_SOLID_PML)
+            case (DM_SOLID_CG_PML)
               call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
-            case (DM_FLUID_PML)
+            case (DM_FLUID_CG_PML)
               call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case default
@@ -727,13 +727,13 @@ contains
             domain_type = el%domain
 
             select case(domain_type)
-                case (DM_SOLID_PML)
+                case (DM_SOLID_CG_PML)
                   cycle !We don't want the energy on PMLs
-                case (DM_FLUID_PML)
+                case (DM_FLUID_CG_PML)
                   cycle !We don't want the energy on PMLs
-                case (DM_SOLID)
+                case (DM_SOLID_CG)
                     !We continue calculations
-                case (DM_FLUID)
+                case (DM_FLUID_CG)
                     !We continue calculations
                 case default
                     stop "unknown domain"
@@ -757,7 +757,7 @@ contains
             !print *, "END allocated(jac) = ", allocated(jac)
 
             select case (domain_type)
-                case (DM_SOLID)
+                case (DM_SOLID_CG)
                     do k = 0, ngll-1
                         do j = 0, ngll-1
                             do i = 0, ngll-1
@@ -770,7 +770,7 @@ contains
                                                    P_energy, S_energy, &
                                                    R_energy, C_energy)
 
-                case (DM_FLUID)
+                case (DM_FLUID_CG)
                     do k = 0, ngll-1
                         do j = 0, ngll-1
                             do i = 0, ngll-1

@@ -1366,7 +1366,7 @@ contains
             end do
             PWspeed = Tdomain%sSurfaces(ss)%Elastic%PWspeed
             select case (dom)
-            case (DM_SOLID)
+            case (DM_SOLID_CG)
                 ngll     = Tdomain%sdom%ngll
                 do k=0,ngll-1
                     do j=0,ngll-1
@@ -1380,7 +1380,7 @@ contains
                         enddo
                     enddo
                 enddo
-            case(DM_FLUID)
+            case(DM_FLUID_CG)
                 ! pas encore implémenté
             end select
         enddo

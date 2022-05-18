@@ -16,10 +16,10 @@ filename = "field1.h5";
 */
 
 typedef enum {
-    DM_SOLID = 4,
-    DM_SOLID_PML = 2,
-    DM_FLUID = 3,
-    DM_FLUID_PML = 1
+    DM_SOLID_CG = 4,
+    DM_SOLID_CG_PML = 2,
+    DM_FLUID_CG = 3,
+    DM_FLUID_CG_PML = 1
 } material_type_t;
 
 // Indicates what type of variables are used to describe the material

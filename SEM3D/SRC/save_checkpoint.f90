@@ -83,19 +83,19 @@ contains
         do n = 0,Tdomain%n_elem-1
             ngllx = 0; nglly = 0; ngllz = 0;
             select case (Tdomain%specel(n)%domain)
-            case (DM_SOLID)
+            case (DM_SOLID_CG)
                 ngllx = Tdomain%sdom%ngll
                 nglly = Tdomain%sdom%ngll
                 ngllz = Tdomain%sdom%ngll
-            case (DM_FLUID)
+            case (DM_FLUID_CG)
                 ngllx = Tdomain%fdom%ngll
                 nglly = Tdomain%fdom%ngll
                 ngllz = Tdomain%fdom%ngll
-            case (DM_SOLID_PML)
+            case (DM_SOLID_CG_PML)
                 ngllx = Tdomain%spmldom%ngll
                 nglly = Tdomain%spmldom%ngll
                 ngllz = Tdomain%spmldom%ngll
-            case (DM_FLUID_PML)
+            case (DM_FLUID_CG_PML)
                 ngllx = Tdomain%fpmldom%ngll
                 nglly = Tdomain%fpmldom%ngll
                 ngllz = Tdomain%fpmldom%ngll
@@ -106,7 +106,7 @@ contains
             ngll2 = ngllx*nglly*ngllz
 
             select case (Tdomain%specel(n)%domain)
-            case (DM_SOLID)
+            case (DM_SOLID_CG)
                 ! pour Veloc : 1
                 offset(1) = offset(1) + ngll*3
                 ! Veloc1, Veloc2, Veloc3 : 2
@@ -164,7 +164,7 @@ contains
                     ! for plastic strain
                     offset(13) = offset(13)+0
                 endif
-            case (DM_SOLID_PML)
+            case (DM_SOLID_CG_PML)
                 ! pour Veloc : 1
                 offset(1) = offset(1) + ngll*3
                 ! Veloc1, Veloc2, Veloc3 : 2
@@ -182,7 +182,7 @@ contains
                 ! pour Stress : 8
                 offset(8) = offset(8) + ngll2*18
 
-            case (DM_FLUID)
+            case (DM_FLUID_CG)
                 ! pour VelPhi : 9
                 offset(9) = offset(9) + ngll
                 ! VelPhi1, VelPhi2, VelPhi3 : 10
@@ -191,7 +191,7 @@ contains
                 offset(11) = offset(11) + ngll
                 ! pour Veloc : 12
                 offset(12) = offset(12) + 0
-            case (DM_FLUID_PML)
+            case (DM_FLUID_CG_PML)
                 ! pour VelPhi : 9
                 offset(9) = offset(9) + ngll
                 ! VelPhi1, VelPhi2, VelPhi3 : 10
@@ -207,7 +207,7 @@ contains
     end subroutine compute_save_offsets
 
     subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -233,7 +233,7 @@ contains
         n_solid = Tdomain%n_sls
 
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -262,7 +262,7 @@ contains
     end subroutine write_EpsilonVol
 
     subroutine write_Rvol(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -288,7 +288,7 @@ contains
         n_solid = Tdomain%n_sls
 
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -319,7 +319,7 @@ contains
     end subroutine write_Rvol
 
     subroutine write_Rxyz(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -358,7 +358,7 @@ contains
         n_solid = Tdomain%n_sls
 
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -398,7 +398,7 @@ contains
     end subroutine write_Rxyz
 
     subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -436,7 +436,7 @@ contains
         n_solid = Tdomain%n_sls
 
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -474,7 +474,7 @@ contains
     end subroutine write_EpsilonDev
 
     subroutine write_Stress(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID_PML, fpp
+        use constants, only : DM_SOLID_CG_PML, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -499,7 +499,7 @@ contains
         dims(1) = nmax
         idx = 1
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG_PML) cycle
             ngll = Tdomain%spmldom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -546,7 +546,7 @@ contains
     end subroutine write_Stress
 
     subroutine write_Stress_nl(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -571,7 +571,7 @@ contains
         dims(1) = nmax
         idx = 1
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -601,7 +601,7 @@ contains
     end subroutine write_Stress_nl
     !
     subroutine write_Strain_nl(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -626,7 +626,7 @@ contains
         dims(1) = nmax
         idx = 1
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -656,7 +656,7 @@ contains
     end subroutine write_Strain_nl
     !
     subroutine write_Pstrain_nl(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -681,7 +681,7 @@ contains
         dims(1) = nmax
         idx = 1
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -711,7 +711,7 @@ contains
     end subroutine write_Pstrain_nl
     !
     subroutine write_Center_nl(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -736,7 +736,7 @@ contains
         dims(1) = nmax
         idx = 1
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -766,7 +766,7 @@ contains
     end subroutine write_Center_nl
     !
     subroutine write_Radius_nl(Tdomain, nmax, elem_id)
-        use constants, only : DM_SOLID, fpp
+        use constants, only : DM_SOLID_CG, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -791,7 +791,7 @@ contains
         dims(1) = nmax
         idx = 1
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if(Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = Tdomain%sdom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -816,7 +816,7 @@ contains
     end subroutine write_Radius_nl
     !
     subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
-        use constants, only : DM_FLUID_PML, fpp
+        use constants, only : DM_FLUID_CG_PML, fpp
         use sdomain, only : domain
         use sem_hdf5, only : create_dset
         use HDF5
@@ -841,7 +841,7 @@ contains
         dims(1) = nmax
         idx = 1
         do n = 0,Tdomain%n_elem-1
-            if(Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
+            if(Tdomain%specel(n)%domain/=DM_FLUID_CG_PML) cycle
             ngll = Tdomain%fpmldom%ngll
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)

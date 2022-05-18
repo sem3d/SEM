@@ -137,13 +137,13 @@ contains
         integer :: domain_from_type_char
         select case(ch)
         case('S')
-            domain_from_type_char = DM_SOLID
+            domain_from_type_char = DM_SOLID_CG
         case('P')
-            domain_from_type_char = DM_SOLID_PML
+            domain_from_type_char = DM_SOLID_CG_PML
         case('F')
-            domain_from_type_char = DM_FLUID
+            domain_from_type_char = DM_FLUID_CG
         case('L')
-            domain_from_type_char = DM_FLUID_PML
+            domain_from_type_char = DM_FLUID_CG_PML
         case default
             stop "Unknown material type"
         end select
@@ -156,13 +156,13 @@ contains
         integer :: domain_nglltot
         domain_nglltot = 0
         select case(dom)
-        case(DM_SOLID)
+        case(DM_SOLID_CG)
             domain_nglltot = Tdomain%sdom%nglltot
-        case(DM_FLUID)
+        case(DM_FLUID_CG)
             domain_nglltot = Tdomain%fdom%nglltot
-        case(DM_SOLID_PML)
+        case(DM_SOLID_CG_PML)
             domain_nglltot = Tdomain%spmldom%nglltot
-        case(DM_FLUID_PML)
+        case(DM_FLUID_CG_PML)
             domain_nglltot = Tdomain%fpmldom%nglltot
         case default
             stop "Unknown Domain"
@@ -176,13 +176,13 @@ contains
         integer :: domain_ngll
         domain_ngll = 0
         select case(dom)
-        case(DM_SOLID)
+        case(DM_SOLID_CG)
             domain_ngll = Tdomain%sdom%ngll
-        case(DM_FLUID)
+        case(DM_FLUID_CG)
             domain_ngll = Tdomain%fdom%ngll
-        case(DM_SOLID_PML)
+        case(DM_SOLID_CG_PML)
             domain_ngll = Tdomain%spmldom%ngll
-        case(DM_FLUID_PML)
+        case(DM_FLUID_CG_PML)
             domain_ngll = Tdomain%fpmldom%ngll
         case default
             stop "Unknown Domain"
@@ -196,19 +196,19 @@ contains
         !
         integer :: ngll
         select case (dom)
-        case (DM_SOLID)
+        case (DM_SOLID_CG)
             ngll = Tdomain%sdom%ngll
             allocate(GLLc(0:ngll-1))
             GLLc = Tdomain%sdom%GLLc
-        case (DM_FLUID)
+        case (DM_FLUID_CG)
             ngll = Tdomain%fdom%ngll
             allocate(GLLc(0:ngll-1))
             GLLc = Tdomain%fdom%GLLc
-        case (DM_SOLID_PML)
+        case (DM_SOLID_CG_PML)
             ngll = Tdomain%spmldom%ngll
             allocate(GLLc(0:ngll-1))
             GLLc = Tdomain%spmldom%GLLc
-        case (DM_FLUID_PML)
+        case (DM_FLUID_CG_PML)
             ngll = Tdomain%fpmldom%ngll
             allocate(GLLc(0:ngll-1))
             GLLc = Tdomain%fpmldom%GLLc
@@ -224,19 +224,19 @@ contains
         !
         integer :: ngll
         select case (dom)
-        case (DM_SOLID)
+        case (DM_SOLID_CG)
             ngll = Tdomain%sdom%ngll
             allocate(gllw(0:ngll-1))
             gllw = Tdomain%sdom%GLLw
-        case (DM_FLUID)
+        case (DM_FLUID_CG)
             ngll = Tdomain%fdom%ngll
             allocate(gllw(0:ngll-1))
             gllw = Tdomain%fdom%GLLw
-        case (DM_SOLID_PML)
+        case (DM_SOLID_CG_PML)
             ngll = Tdomain%spmldom%ngll
             allocate(gllw(0:ngll-1))
             gllw = Tdomain%spmldom%GLLw
-        case (DM_FLUID_PML)
+        case (DM_FLUID_CG_PML)
             ngll = Tdomain%fpmldom%ngll
             allocate(gllw(0:ngll-1))
             gllw = Tdomain%fpmldom%GLLw
@@ -316,7 +316,7 @@ contains
         integer :: nel
 
         ! Use like that :
-        !call get_surface_numbering(Tdomain, Tdomain%SF%intSolFluPml%surf0, DM_FLUID_PML, renum)
+        !call get_surface_numbering(Tdomain, Tdomain%SF%intSolFluPml%surf0, DM_FLUID_CG_PML, renum)
         !call map_surface_faces_to_elem(Tdomain, dom%ngll, Tdomain%SF%intSolFluPml%surf0, renum, dom%sf_map)
 
          allocate(map(0:surf%n_faces-1, 0:ngll-1,0:ngll-1, 6)) ! 6=lnum,i,j,k,idom,imap

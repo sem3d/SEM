@@ -19,7 +19,7 @@
 !-------------------------------------------------------------------
 module attenuation
     use sdomain
-    use constants, only : M_PI, DM_SOLID, fpp
+    use constants, only : M_PI, DM_SOLID_CG, fpp
     implicit none
 #include "index.h"
 
@@ -79,7 +79,7 @@ contains
             bnum = lnum/VCHUNK
             ee = mod(lnum,VCHUNK)
 
-            if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if (Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
 
             ! a faire dans PMLs...
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)

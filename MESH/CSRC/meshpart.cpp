@@ -965,10 +965,10 @@ void Mesh3DPart::output_surface(hid_t fid, const Surface* surf)
 {
     std::vector<int> faces, orient, asso_material;
     hid_t gid = H5Gcreate(fid, surf->name().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    write_surface_dom(gid, surf, "sl", DM_SOLID);
-    write_surface_dom(gid, surf, "fl", DM_FLUID);
-    write_surface_dom(gid, surf, "spml", DM_SOLID_PML);
-    write_surface_dom(gid, surf, "fpml", DM_FLUID_PML);
+    write_surface_dom(gid, surf, "sl", DM_SOLID_CG);
+    write_surface_dom(gid, surf, "fl", DM_FLUID_CG);
+    write_surface_dom(gid, surf, "spml", DM_SOLID_CG_PML);
+    write_surface_dom(gid, surf, "fpml", DM_FLUID_CG_PML);
 
     H5Gclose(gid);
 }
@@ -995,10 +995,10 @@ void Mesh3DPart::output_mesh_part()
 
     // Now write out inter-domain coupling
     // Couplage Solide-fluide :
-    write_coupling_interface(fid, "sf", DM_SOLID, DM_FLUID);
-    write_coupling_interface(fid, "sfpml", DM_SOLID_PML, DM_FLUID_PML);
-    write_coupling_interface(fid, "fpml", DM_FLUID, DM_FLUID_PML);
-    write_coupling_interface(fid, "spml", DM_SOLID, DM_SOLID_PML);
+    write_coupling_interface(fid, "sf", DM_SOLID_CG, DM_FLUID_CG);
+    write_coupling_interface(fid, "sfpml", DM_SOLID_CG_PML, DM_FLUID_CG_PML);
+    write_coupling_interface(fid, "fpml", DM_FLUID_CG, DM_FLUID_CG_PML);
+    write_coupling_interface(fid, "spml", DM_SOLID_CG, DM_SOLID_CG_PML);
 
     // Write processors communications
     h5h_create_attr(fid, "tot_comm_proc", (int)m_comm.size());

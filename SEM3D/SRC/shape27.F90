@@ -55,16 +55,16 @@ contains
                         call shape27_local2jacob(coord, xi, eta, zeta, LocInvGrad)
                         call invert_3d (LocInvGrad, Jac)
                         select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID)
+                            case (DM_SOLID_CG)
                                 Tdomain%sdom%Jacob_     (        i,j,k,bnum,ee) = Jac
                                 Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
-                            case (DM_FLUID)
+                            case (DM_FLUID_CG)
                                 Tdomain%fdom%Jacob_     (        i,j,k,bnum,ee) = Jac
                                 Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
-                            case (DM_SOLID_PML)
+                            case (DM_SOLID_CG_PML)
                                 Tdomain%spmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
                                 Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
-                            case (DM_FLUID_PML)
+                            case (DM_FLUID_CG_PML)
                                 Tdomain%fpmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
                                 Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case default

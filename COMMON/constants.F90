@@ -101,10 +101,10 @@ MODULE constants
     integer, parameter :: MATDEF_NU_VS_RHO_D     = 13
 
     ! DOMAINS (par ordre de priorite pour les sauvegardes)
-    integer, parameter :: DM_SOLID = 4
-    integer, parameter :: DM_SOLID_PML = 2
-    integer, parameter :: DM_FLUID = 3
-    integer, parameter :: DM_FLUID_PML = 1
+    integer, parameter :: DM_SOLID_CG = 4
+    integer, parameter :: DM_SOLID_CG_PML = 2
+    integer, parameter :: DM_FLUID_CG = 3
+    integer, parameter :: DM_FLUID_CG_PML = 1
 
     ! VARIABLES DE SORTIES
     integer, parameter :: OUT_ENERGYP      = 0

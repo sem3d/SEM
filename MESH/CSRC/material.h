@@ -47,19 +47,19 @@ public:
         {
             switch (type) {
             case 'P':
-                m_type = DM_SOLID_PML;
+                m_type = DM_SOLID_CG_PML;
                 break;
             case 'S':
-        	m_type = DM_SOLID;
+        	m_type = DM_SOLID_CG;
         	break;
             case 'F':
-                m_type = DM_FLUID;
+                m_type = DM_FLUID_CG;
                 break;
             case 'L':
-                m_type = DM_FLUID_PML;
+                m_type = DM_FLUID_CG_PML;
                 break;
             default:
-                m_type = DM_SOLID;
+                m_type = DM_SOLID_CG;
                 break;
             }
             m_pml_num.resize(64,-1);
@@ -94,13 +94,13 @@ public:
 
     char material_char() const {
         switch (m_type) {
-        case DM_SOLID:
+        case DM_SOLID_CG:
             return 'S';
-        case DM_SOLID_PML:
+        case DM_SOLID_CG_PML:
             return 'P';
-        case DM_FLUID:
+        case DM_FLUID_CG:
             return 'F';
-        case DM_FLUID_PML:
+        case DM_FLUID_CG_PML:
             return 'L';
         default:
             return 'X';

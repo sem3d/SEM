@@ -203,7 +203,7 @@ contains
         n_glltot_sl = 0
         do idx = 0,size(mirror_E)-1
             gel = mirror_E(idx)
-            if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
+            if (Tdomain%specel(gel)%domain /= DM_SOLID_CG) cycle
             e = Tdomain%specel(gel)%lnum
             n_glltot_sl = n_glltot_sl+1
             i = mirror_IJK(0,idx)
@@ -215,7 +215,7 @@ contains
             allocate(coords_sl(3,n_glltot_sl))
             do idx = 0,size(mirror_E)-1
                 gel = mirror_E(idx)
-                if (Tdomain%specel(gel)%domain /= DM_SOLID) cycle
+                if (Tdomain%specel(gel)%domain /= DM_SOLID_CG) cycle
                 e = Tdomain%specel(gel)%lnum
                 i = mirror_IJK(0,idx)
                 j = mirror_IJK(1,idx)
@@ -261,7 +261,7 @@ contains
         n_glltot_fl = 0
         do idx = 0,size(mirror_E)-1
             gel = mirror_E(idx)
-            if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
+            if (Tdomain%specel(gel)%domain /= DM_FLUID_CG) cycle
             e = Tdomain%specel(gel)%lnum
             n_glltot_fl = n_glltot_fl+1
             i = mirror_IJK(0,idx)
@@ -273,7 +273,7 @@ contains
             allocate(coords_fl(3,n_glltot_fl))
             do idx = 0,size(mirror_E)-1
                 gel = mirror_E(idx)
-                if (Tdomain%specel(gel)%domain /= DM_FLUID) cycle
+                if (Tdomain%specel(gel)%domain /= DM_FLUID_CG) cycle
                 e = Tdomain%specel(gel)%lnum
                 i = mirror_IJK(0,idx)
                 j = mirror_IJK(1,idx)

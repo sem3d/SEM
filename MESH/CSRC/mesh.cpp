@@ -119,16 +119,16 @@ void Mesh3D::partition_mesh(index_t n_parts)
     for(int k=0;k<ne;++k) {
         const Material& mat = m_materials[m_mat[k]];
         switch(mat.m_type) {
-        case DM_SOLID:
+        case DM_SOLID_CG:
             vwgt[k] = 3;
             break;
-        case DM_FLUID:
+        case DM_FLUID_CG:
             vwgt[k] = 1;
             break;
-        case DM_SOLID_PML:
+        case DM_SOLID_CG_PML:
             vwgt[k] = 9;
             break;
-        case DM_FLUID_PML:
+        case DM_FLUID_CG_PML:
             vwgt[k] = 3;
             break;
         default:
@@ -457,8 +457,8 @@ void Mesh3D::build_sf_interface()
             index_t neighbour = m_adjncy[k];
             int dom1 = get_elem_domain(neighbour);
             // Make sure the face normal points inside fluid or fluidpml domain
-            if ((dom0==DM_FLUID && dom1==DM_SOLID) ||
-                (dom0==DM_FLUID_PML && dom1==DM_SOLID_PML))
+            if ((dom0==DM_FLUID_CG && dom1==DM_SOLID_CG) ||
+                (dom0==DM_FLUID_CG_PML && dom1==DM_SOLID_CG_PML))
             {
                 if (get_common_face(el, neighbour, fc)) {
                     fc.set_domain(dom0);
@@ -468,8 +468,8 @@ void Mesh3D::build_sf_interface()
                     sf->add_face(fc,0);
                 }
             }
-            if ((dom1==DM_FLUID && dom0==DM_SOLID) ||
-                (dom1==DM_FLUID_PML && dom0==DM_SOLID_PML))
+            if ((dom1==DM_FLUID_CG && dom0==DM_SOLID_CG) ||
+                (dom1==DM_FLUID_CG_PML && dom0==DM_SOLID_CG_PML))
             {
                 if (get_common_face(neighbour, el, fc)) {
                     fc.set_domain(dom1);
@@ -579,7 +579,7 @@ void Mesh3D::compute_pml_free_surface()
         double fcN[3], fc1[3], fc2[3];
         int mat = m_mat[el];
 
-        if (dom==DM_SOLID || dom==DM_FLUID) {
+        if (dom==DM_SOLID_CG || dom==DM_FLUID_CG) {
             continue;
         }
         if ((m_xadj[el+1]-m_xadj[el])==6) {

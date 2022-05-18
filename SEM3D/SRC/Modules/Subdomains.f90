@@ -105,13 +105,13 @@ contains
 
         is_pml = .false.
         select case (mat%dom)
-        case(DM_SOLID)
+        case(DM_SOLID_CG)
             is_pml = .false.
-        case(DM_SOLID_PML)
+        case(DM_SOLID_CG_PML)
             is_pml = .true.
-        case(DM_FLUID)
+        case(DM_FLUID_CG)
             is_pml = .false.
-        case(DM_FLUID_PML)
+        case(DM_FLUID_CG_PML)
             is_pml = .true.
         end select
     end function is_pml

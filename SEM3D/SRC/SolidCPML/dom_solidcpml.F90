@@ -47,7 +47,7 @@ contains
 
         ngll   = dom%ngll
         if (ngll == 0) return ! Domain doesn't exist anywhere
-        call cpml_reorder_elements(Tdomain, dom, DM_SOLID_PML)
+        call cpml_reorder_elements(Tdomain, dom, DM_SOLID_CG_PML)
         nbelem = dom%nbelem
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
@@ -406,7 +406,7 @@ contains
         real(fpp) :: fmax
 
 
-        call copy_cpml_coordinates(Tdomain, dom, DM_SOLID_PML)
+        call copy_cpml_coordinates(Tdomain, dom, DM_SOLID_CG_PML)
 
         ! Store dt for ADE equations
         dom%dt = Tdomain%TimeD%dtmin
@@ -573,7 +573,7 @@ contains
         ind = dom%Idom_(i,j,k,bnum,ee)
         mi = specel%mat_index
         ndir = 1
-        if (.not. dom%sSubDomain(mi)%dom == DM_SOLID_PML) &
+        if (.not. dom%sSubDomain(mi)%dom == DM_SOLID_CG_PML) &
             stop "init_geometric_properties_solidpml : material is not a PML material"
 
         ! Compute alpha, beta, kappa
@@ -754,9 +754,9 @@ contains
         integer :: ngll, el, i, j, k, idxsf, ee, bnum
 
         ngll = dom%ngll
-        call get_surface_numbering(Tdomain, Tdomain%SF%intSolFluPML%surf0, DM_SOLID_PML, renum)
+        call get_surface_numbering(Tdomain, Tdomain%SF%intSolFluPML%surf0, DM_SOLID_CG_PML, renum)
         do el=0,Tdomain%n_elem-1
-            if (Tdomain%specel(el)%domain /= DM_SOLID_PML) cycle
+            if (Tdomain%specel(el)%domain /= DM_SOLID_CG_PML) cycle
             do i=0,ngll-1
                 do j=0,ngll-1
                     do k=0,ngll-1

@@ -100,11 +100,11 @@ contains
 
         ! fluid case
         lambda = 0.
-        if(Tdomain%specel(nels)%domain==DM_FLUID) then
+        if(Tdomain%specel(nels)%domain==DM_FLUID_CG) then
             lambda = interp_lag(Tdomain%fdom%ngll,Tdomain%fdom%GLLc,xi,eta,zeta,&
                 Tdomain%fdom%Lambda_(:,:,:,bnum,ee))
         end if
-        if(Tdomain%specel(nels)%domain==DM_FLUID_PML) then
+        if(Tdomain%specel(nels)%domain==DM_FLUID_CG_PML) then
             lambda = interp_lag(Tdomain%fpmldom%ngll,Tdomain%fpmldom%GLLc,xi,eta,zeta,&
                 Tdomain%fpmldom%Lambda_(:,:,:,bnum,ee))
         end if

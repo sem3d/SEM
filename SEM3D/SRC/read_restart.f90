@@ -43,7 +43,7 @@ contains
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
-            if ( Tdomain%specel(n)%domain==DM_SOLID ) then
+            if ( Tdomain%specel(n)%domain==DM_SOLID_CG ) then
                 do k = 0,ngll-1
                     do j = 0,ngll-1
                         do i = 0,ngll-1
@@ -104,7 +104,7 @@ contains
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
-            if ( Tdomain%specel(n)%domain == DM_SOLID ) then
+            if ( Tdomain%specel(n)%domain == DM_SOLID_CG ) then
                 do k = 0,ngll-1
                     do j = 0,ngll-1
                         do i = 0,ngll-1
@@ -145,7 +145,7 @@ contains
         idx = 1
         n_solid = Tdomain%n_sls
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
+            if (Tdomain%specel(n)%domain/=DM_SOLID_CG_PML) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -202,7 +202,7 @@ contains
         idx = 1
         n_solid = Tdomain%n_sls
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if (Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -242,7 +242,7 @@ contains
         idx = 1
         n_solid = Tdomain%n_sls
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if (Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -282,7 +282,7 @@ contains
         idx = 1
         n_solid = Tdomain%n_sls
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if (Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -322,7 +322,7 @@ contains
         idx = 1
         n_solid = Tdomain%n_sls
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if (Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -362,7 +362,7 @@ contains
         idx = 1
         n_solid = Tdomain%n_sls
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+            if (Tdomain%specel(n)%domain/=DM_SOLID_CG) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -393,7 +393,7 @@ contains
         call read_dset_1d_real(elem_id, "Veloc_Fl_PML", veloc)
         idx = 1
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
+            if (Tdomain%specel(n)%domain/=DM_FLUID_CG_PML) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)

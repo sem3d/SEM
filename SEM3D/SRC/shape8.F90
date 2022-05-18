@@ -74,16 +74,16 @@ contains
                         call shape8_local2jacob(coord, xi, eta, zeta, LocInvGrad)
                         call invert_3d(LocInvGrad,Jac)
                         select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID)
+                            case (DM_SOLID_CG)
                                 Tdomain%sdom%Jacob_     (        i,j,k,bnum,ee) = Jac
                                 Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
-                            case (DM_FLUID)
+                            case (DM_FLUID_CG)
                                 Tdomain%fdom%Jacob_     (        i,j,k,bnum,ee) = Jac
                                 Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
-                            case (DM_SOLID_PML)
+                            case (DM_SOLID_CG_PML)
                                 Tdomain%spmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
                                 Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
-                            case (DM_FLUID_PML)
+                            case (DM_FLUID_CG_PML)
                                 Tdomain%fpmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
                                 Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case default
@@ -99,20 +99,20 @@ contains
         if (Tdomain%logicD%surfBC) then
             do i_surf=0,size(Tdomain%sSurfaces)-1
                select case (Tdomain%sSurfaces(i_surf)%domain)
-                  case (DM_SOLID)
-                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sl, DM_SOLID, Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                  case (DM_SOLID_CG)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sl, DM_SOLID_CG, Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_sl,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
                      call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_sl%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
-                  case (DM_FLUID)
-                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fl, DM_FLUID, Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                  case (DM_FLUID_CG)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fl, DM_FLUID_CG, Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_fl,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
                      call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_fl%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
-                  case (DM_SOLID_PML)
-                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_spml, DM_SOLID_PML,Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                  case (DM_SOLID_CG_PML)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_spml, DM_SOLID_CG_PML,Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_spml,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
                      call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_spml%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
-                  case (DM_FLUID_PML)
-                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fpml, DM_FLUID_PML,Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                  case (DM_FLUID_CG_PML)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fpml, DM_FLUID_CG_PML,Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_fpml,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
                      call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_fpml%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
                 end select
@@ -121,8 +121,8 @@ contains
 
         ! Solid-Fluid interfaces : normal vectors
         if(Tdomain%logicD%SF_local_present)then
-            call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, DM_FLUID, Tdomain%SF%SF_BtN)
-            call compute_normals(Tdomain, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_PML, Tdomain%SF%SFpml_BtN)
+            call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, DM_FLUID_CG, Tdomain%SF%SF_BtN)
+            call compute_normals(Tdomain, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_CG_PML, Tdomain%SF%SFpml_BtN)
 !            call dump_sf_btn(Tdomain,"BEFORE  ")
             call exchange_sf_normals(Tdomain)
 !            call dump_sf_btn(Tdomain,"AFTER   ")
@@ -144,11 +144,11 @@ contains
         !
         integer :: nf, i, j, idx, idom, iglob, ngll
         real(kind=fpp) :: nx, ny, nz, px, py, pz
-        call get_surface_numbering(Tdomain,Tdomain%SF%intSolFlu%surf1, DM_FLUID, renum)
+        call get_surface_numbering(Tdomain,Tdomain%SF%intSolFlu%surf1, DM_FLUID_CG, renum)
 
         do nf=0,Tdomain%n_face-1
             ngll = Tdomain%sFace(nf)%ngll
-            if (Tdomain%sFace(nf)%domain/=DM_FLUID) cycle
+            if (Tdomain%sFace(nf)%domain/=DM_FLUID_CG) cycle
             do j=0,ngll-1
                 do i=0,ngll-1
                     idom = Tdomain%sFace(nf)%Idom(i,j)

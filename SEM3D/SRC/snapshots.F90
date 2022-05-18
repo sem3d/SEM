@@ -961,24 +961,24 @@ contains
             endif
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
-                case (DM_SOLID)
+                case (DM_SOLID_CG)
                     if (Tdomain%sdom%PlaneW%Exist) then
                         call compute_planeW_Exafield(el%lnum,Tdomain%TimeD%rtime,Tdomain,0)
                     end if
                     call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,    &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
                         eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
-                case (DM_FLUID)
+                case (DM_FLUID_CG)
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, &
                         sig_dev, dUdX)
-                case (DM_SOLID_PML)
+                case (DM_SOLID_CG_PML)
                     call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
 #ifdef CPML
                     call get_solidpml_rfields(Tdomain, Tdomain%spmldom, n, el%lnum, outputs)
 #endif
-                case (DM_FLUID_PML)
+                case (DM_FLUID_CG_PML)
                     call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
                     fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
 #ifdef CPML
@@ -998,13 +998,13 @@ contains
                         ind = outputs%irenum(el%Iglobnum(i,j,k))
                         valence(ind) = valence(ind)+1
                         select case (domain_type)
-                            case (DM_SOLID)
+                            case (DM_SOLID_CG)
                                 jac(i,j,k) = Tdomain%sdom%Jacob_   (i,j,k,bnum,ee)
-                            case (DM_SOLID_PML)
+                            case (DM_SOLID_CG_PML)
                                 jac(i,j,k) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
-                            case (DM_FLUID)
+                            case (DM_FLUID_CG)
                                 jac(i,j,k) = Tdomain%fdom%Jacob_   (i,j,k,bnum,ee)
-                            case (DM_FLUID_PML)
+                            case (DM_FLUID_CG_PML)
                                 jac(i,j,k) = Tdomain%fpmldom%Jacob_(i,j,k,bnum,ee)
                             case default
                                 stop "unknown domain"
@@ -1426,7 +1426,7 @@ contains
 
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
-            case (DM_SOLID)
+            case (DM_SOLID_CG)
                 do k = 0,ngll-1
                     do j = 0,ngll-1
                         do i = 0,ngll-1
@@ -1437,7 +1437,7 @@ contains
                         end do
                     end do
                 end do
-            case (DM_SOLID_PML)
+            case (DM_SOLID_CG_PML)
                 do k = 0,ngll-1
                     do j = 0,ngll-1
                         do i = 0,ngll-1
@@ -1475,7 +1475,7 @@ contains
                         end do
                     end do
                 end do
-            case (DM_FLUID)
+            case (DM_FLUID_CG)
                 do k = 0,ngll-1
                     do j = 0,ngll-1
                         do i = 0,ngll-1
@@ -1486,7 +1486,7 @@ contains
                         end do
                     end do
                 end do
-            case (DM_FLUID_PML)
+            case (DM_FLUID_CG_PML)
                 do k = 0,ngll-1
                     do j = 0,ngll-1
                         do i = 0,ngll-1
@@ -1536,13 +1536,13 @@ contains
                     do i = 0,ngll-1
                         idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID)
+                            case (DM_SOLID_CG)
                                 jac(idx) = Tdomain%sdom%Jacob_   (i,j,k,bnum,ee)
-                            case (DM_SOLID_PML)
+                            case (DM_SOLID_CG_PML)
                                 jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
-                            case (DM_FLUID)
+                            case (DM_FLUID_CG)
                                 jac(idx) = Tdomain%fdom%Jacob_   (i,j,k,bnum,ee)
-                            case (DM_FLUID_PML)
+                            case (DM_FLUID_CG_PML)
                                 jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,bnum,ee)
                             case default
                                 stop "unknown domain"
@@ -1563,13 +1563,13 @@ contains
                     do i = 0,ngll-1
                         idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID)
+                            case (DM_SOLID_CG)
                                 dens(idx) = Tdomain%sdom%Density_        (i,j,k,bnum,ee)
-                            case (DM_SOLID_PML)
+                            case (DM_SOLID_CG_PML)
                                 dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
-                            case (DM_FLUID)
+                            case (DM_FLUID_CG)
                                 dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
-                            case (DM_FLUID_PML)
+                            case (DM_FLUID_CG_PML)
 #ifdef CPML
                                 dens(idx) = 0. ! Tdomain%fpmldom%Density_(i,j,k,bnum,ee) ! TODO
 #else
@@ -1598,14 +1598,14 @@ contains
                     do i = 0,ngll-1
                         idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID)
+                            case (DM_SOLID_CG)
                                 lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
                                 if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) grad_La_n(0:2,idx) = grad_La(i,j,k,0:2)
-                            case (DM_SOLID_PML)
+                            case (DM_SOLID_CG_PML)
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
-                            case (DM_FLUID)
+                            case (DM_FLUID_CG)
                                 lamb(idx) = Tdomain%fdom%Lambda_        (i,j,k,bnum,ee)
-                            case (DM_FLUID_PML)
+                            case (DM_FLUID_CG_PML)
                                 lamb(idx) = Tdomain%fpmldom%Lambda_     (i,j,k,bnum,ee)
                             case default
                                 stop "unknown domain"
@@ -1631,14 +1631,14 @@ contains
                     do i = 0,ngll-1
                         idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID)
+                            case (DM_SOLID_CG)
                                 mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
                                 if (Tdomain%out_var_snap(OUT_GRAD_MU) == 1) grad_Mu_n(0:2,idx) = grad_Mu(i,j,k,0:2)
-                            case (DM_SOLID_PML)
+                            case (DM_SOLID_CG_PML)
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
-                            case (DM_FLUID)
+                            case (DM_FLUID_CG)
                                 mu(idx) = -1d0
-                            case (DM_FLUID_PML)
+                            case (DM_FLUID_CG_PML)
                                 mu(idx) = -1d0
                             case default
                                 stop "unknown domain"
@@ -1660,13 +1660,13 @@ contains
                     do i = 0,ngll-1
                         idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID)
+                            case (DM_SOLID_CG)
                                 kappa(idx) = Tdomain%sdom%Kappa_(i,j,k,bnum,ee)
-                            case (DM_SOLID_PML)
+                            case (DM_SOLID_CG_PML)
                                 kappa(idx) = -1d0
-                            case (DM_FLUID)
+                            case (DM_FLUID_CG)
                                 kappa(idx) = -1d0
-                            case (DM_FLUID_PML)
+                            case (DM_FLUID_CG_PML)
                                 kappa(idx) = -1d0
                             case default
                                 stop "unknown domain"

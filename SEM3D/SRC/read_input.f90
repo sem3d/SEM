@@ -37,16 +37,16 @@ contains
         do mat = 0, Tdomain%n_mat-1
             dom = Tdomain%sSubDomain(mat)%dom
             select case (dom)
-            case (DM_SOLID)
+            case (DM_SOLID_CG)
                 Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_sdom = .true.
-            case (DM_FLUID)
+            case (DM_FLUID_CG)
                 Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_fdom = .true.
-            case (DM_SOLID_PML)
+            case (DM_SOLID_CG_PML)
                 Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_spml = .true.
-            case (DM_FLUID_PML)
+            case (DM_FLUID_CG_PML)
                 Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_fpml = .true.
             case default
@@ -62,14 +62,14 @@ contains
         call apply_mat_to_faces(Tdomain)
         call apply_mat_to_edges(Tdomain)
         call apply_mat_to_vertices(Tdomain)
-        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .false.)
-        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .false.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .false.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .false.)
-        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .true.)
-        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .true.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .true.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID_CG, DM_SOLID_CG_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID_CG, DM_FLUID_CG_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_CG_PML, DM_FLUID_CG_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID_CG, DM_SOLID_CG_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID_CG, DM_FLUID_CG_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .true.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_CG_PML, DM_FLUID_CG_PML, .true.)
 
     end subroutine read_material_file
 

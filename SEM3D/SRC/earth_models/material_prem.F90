@@ -3,7 +3,7 @@
 !! Copyright CEA, ECP, IPGP
 !!
 subroutine  initialize_material_prem(Tdomain, mat, elem, coorPt, npts)
-    use constants, only : DM_SOLID_PML, fpp
+    use constants, only : DM_SOLID_CG_PML, fpp
     use selement
     use ssubdomains
     use model_prem
@@ -65,20 +65,20 @@ subroutine  initialize_material_prem(Tdomain, mat, elem, coorPt, npts)
                 enddo
 
 
-                if(elem%domain==DM_SOLID_PML) then
+                if(elem%domain==DM_SOLID_CG_PML) then
                     lambda(i,j,k) = lambda_from_Cij(Cij)
                     mu(i,j,k) = mu_from_Cij(Cij)
-                else if(elem%domain==DM_SOLID) then
+                else if(elem%domain==DM_SOLID_CG) then
                     call c_4tensor(Cij,theta,phi)
                 endif
                 gCij(:,:,i,j,k) = Cij
             end do
         end do
     end do
-    if(elem%domain==DM_SOLID_PML) then
+    if(elem%domain==DM_SOLID_CG_PML) then
         call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,mat,&
             rho,lambda,mu)
-    else if(elem%domain==DM_SOLID) then
+    else if(elem%domain==DM_SOLID_CG) then
         call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,gCij)
     else
         stop "initialize material prem KO"

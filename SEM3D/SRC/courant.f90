@@ -102,13 +102,13 @@ contains
                     do i = 0, ngll-1
                         Pspeed = 0d0
                         select case(Tdomain%specel(n)%domain)
-                        case (DM_SOLID)
+                        case (DM_SOLID_CG)
                             Pspeed = solid_pspeed(Tdomain%sdom, lnum, i, j, k)
-                        case (DM_SOLID_PML)
+                        case (DM_SOLID_CG_PML)
                             Pspeed = solidpml_pspeed(Tdomain%spmldom, lnum, i, j, k)
-                        case (DM_FLUID)
+                        case (DM_FLUID_CG)
                             Pspeed = fluid_pspeed(Tdomain%fdom, lnum, i, j, k)
-                        case (DM_FLUID_PML)
+                        case (DM_FLUID_CG_PML)
                             Pspeed = fluidpml_pspeed(Tdomain%fpmldom, lnum, i, j, k)
                         end select
                         if (Pspeed>maxPspeed) maxPspeed = Pspeed
