@@ -664,6 +664,7 @@ contains
         do i = 0, OUT_LAST
             outflag = Tdomain%config%out_variables(i+1)
             Tdomain%out_var_snap(i) = 0
+            Tdomain%out_var_capt(i) = 0
             if (outflag==1 .or. outflag==3) then
                 ! For snapshots
                 Tdomain%out_var_snap(i) = 1
