@@ -16,6 +16,9 @@ filename = "field1.h5";
 */
 
 typedef enum {
+    DM_MAX = 6,
+    DM_FLUID_DG = 6,
+    DM_SOLID_DG = 5,
     DM_SOLID_CG = 4,
     DM_SOLID_CG_PML = 2,
     DM_FLUID_CG = 3,

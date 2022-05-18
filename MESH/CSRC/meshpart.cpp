@@ -851,14 +851,25 @@ static void convert_indexes(const std::vector<index_t>& src, std::vector<int>& d
     for(size_t k=0;k<src.size();++k) dst[k] = src[k];
 }
 
+static void dump_mesh_info(const char* label, int proc, long count, int doms[DM_MAX+1])
+{
+    printf("%04d : number of %s = (tot=%ld/fpml=%d/spml=%d/fl=%d/sol=%d/sdg=%d/fdg=%d)\n", proc, label,
+           count, doms[1], doms[2], doms[3], doms[4], doms[5], doms[6]);
+}
+
 void Mesh3DPart::output_local_mesh(hid_t fid)
 {
-    int elem_doms[5] = {0,0,0,0,0};
-    int face_doms[5] = {0,0,0,0,0};
-    int edge_doms[5] = {0,0,0,0,0};
-    int vert_doms[5] = {0,0,0,0,0};
+    int elem_doms[DM_MAX+1];
+    int face_doms[DM_MAX+1];
+    int edge_doms[DM_MAX+1];
+    int vert_doms[DM_MAX+1];
     vector<double> tmpd;
     vector<int> tmpi, tmpi1;
+
+    memset(elem_doms, 0, sizeof(elem_doms));
+    memset(face_doms, 0, sizeof(face_doms));
+    memset(edge_doms, 0, sizeof(edge_doms));
+    memset(vert_doms, 0, sizeof(vert_doms));
 
     get_local_nodes(tmpd);
     h5h_write_dset_2d(fid, "local_nodes", n_nodes(), 3, &tmpd[0]);
@@ -902,14 +913,10 @@ void Mesh3DPart::output_local_mesh(hid_t fid)
         vert_doms[tmpi[k]]++;
     }
     //
-    printf("%04d : number of elements = (tot=%ld/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_elems(),
-           elem_doms[1],elem_doms[2],elem_doms[3],elem_doms[4]);
-    printf("%04d : number of faces    = (tot=%ld/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_faces(),
-           face_doms[1],face_doms[2],face_doms[3],face_doms[4]);
-    printf("%04d : number of edges    = (tot=%ld/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_edges(),
-           edge_doms[1],edge_doms[2],edge_doms[3],edge_doms[4]);
-    printf("%04d : number of vertices = (tot=%ld/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_vertices(),
-           vert_doms[1],vert_doms[2],vert_doms[3],vert_doms[4]);
+    dump_mesh_info("elements", m_proc, n_elems(), elem_doms);
+    dump_mesh_info("faces   ", m_proc, n_faces(), face_doms);
+    dump_mesh_info("edges   ", m_proc, n_edges(), edge_doms);
+    dump_mesh_info("vertices", m_proc, n_vertices(), vert_doms);
 }
 
 void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* pfx, int dom)
@@ -967,6 +974,8 @@ void Mesh3DPart::output_surface(hid_t fid, const Surface* surf)
     hid_t gid = H5Gcreate(fid, surf->name().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     write_surface_dom(gid, surf, "sl", DM_SOLID_CG);
     write_surface_dom(gid, surf, "fl", DM_FLUID_CG);
+    write_surface_dom(gid, surf, "sld", DM_SOLID_DG);
+    write_surface_dom(gid, surf, "fld", DM_FLUID_DG);
     write_surface_dom(gid, surf, "spml", DM_SOLID_CG_PML);
     write_surface_dom(gid, surf, "fpml", DM_FLUID_CG_PML);
 
@@ -995,6 +1004,7 @@ void Mesh3DPart::output_mesh_part()
 
     // Now write out inter-domain coupling
     // Couplage Solide-fluide :
+    write_coupling_interface(fid, "sfd", DM_SOLID_DG, DM_FLUID_DG);
     write_coupling_interface(fid, "sf", DM_SOLID_CG, DM_FLUID_CG);
     write_coupling_interface(fid, "sfpml", DM_SOLID_CG_PML, DM_FLUID_CG_PML);
     write_coupling_interface(fid, "fpml", DM_FLUID_CG, DM_FLUID_CG_PML);

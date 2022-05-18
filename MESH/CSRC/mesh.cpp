@@ -131,6 +131,12 @@ void Mesh3D::partition_mesh(index_t n_parts)
         case DM_FLUID_CG_PML:
             vwgt[k] = 3;
             break;
+        case DM_SOLID_DG:
+            vwgt[k] = 3;
+            break;
+        case DM_FLUID_DG:
+            vwgt[k] = 1;
+            break;
         default:
             vwgt[k] = 1;
 
@@ -579,9 +585,8 @@ void Mesh3D::compute_pml_free_surface()
         double fcN[3], fc1[3], fc2[3];
         int mat = m_mat[el];
 
-        if (dom==DM_SOLID_CG || dom==DM_FLUID_CG) {
-            continue;
-        }
+        if (not is_dm_pml(dom)) continue;
+
         if ((m_xadj[el+1]-m_xadj[el])==6) {
             // This element has 6 neighbours, so no free surface
             continue;

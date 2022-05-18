@@ -10,9 +10,6 @@
 #include <vector>
 #include "sem_materials.h"
 
-//#define DM_MAX 4
-#define DM_MAX 4 
-
 class Material {
 public:
     Material()
@@ -58,6 +55,12 @@ public:
             case 'L':
                 m_type = DM_FLUID_CG_PML;
                 break;
+            case 'D':
+                m_type = DM_SOLID_DG;
+                break;
+            case 'E':
+                m_type = DM_FLUID_DG;
+                break;
             default:
                 m_type = DM_SOLID_CG;
                 break;
@@ -102,6 +105,10 @@ public:
             return 'F';
         case DM_FLUID_CG_PML:
             return 'L';
+        case DM_SOLID_DG:
+            return 'D';
+        case DM_FLUID_DG:
+            return 'E';
         default:
             return 'X';
         };
@@ -152,6 +159,17 @@ public:
 
     std::vector<int> m_pml_num;
 };
+
+
+static inline bool is_dm_pml(int dom) {
+    switch(dom) {
+    case DM_SOLID_CG_PML:
+    case DM_FLUID_CG_PML:
+        return true;
+    default:
+        return false;
+    }
+}
 
 #endif
 

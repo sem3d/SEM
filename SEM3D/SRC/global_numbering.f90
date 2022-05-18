@@ -71,8 +71,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
     ! Counts PML glls with abs flag in solid or fluid
     integer :: solid_abs_count, fluid_abs_count
     ! A counter for each domain (0: global)
-    integer, dimension(0:4) :: icount ! nombre de glls    par domaine
-    integer, dimension(0:4) :: ecount ! nombre d'elements par domaine
+    integer, dimension(0:DM_MAX) :: icount ! nombre de glls    par domaine
+    integer, dimension(0:DM_MAX) :: ecount ! nombre d'elements par domaine
     integer :: ngll
     integer, dimension(0:3) :: elface
     integer, dimension(0:1) :: eledge
