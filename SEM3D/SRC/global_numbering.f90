@@ -896,7 +896,7 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
         case (DM_SOLID)
             allocate(comm_data%Data(n)%IGiveS(0:count-1))
             comm_data%Data(n)%IGiveS = igive
-            comm_data%Data(n)%nsolpml = count
+            comm_data%Data(n)%nsol = count
         case (DM_FLUID)
             allocate(comm_data%Data(n)%IGiveF(0:count-1))
             comm_data%Data(n)%IGiveF = igive
