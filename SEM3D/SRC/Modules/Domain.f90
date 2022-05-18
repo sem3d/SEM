@@ -137,8 +137,6 @@ contains
         character, intent(in) :: ch
         integer :: domain_from_type_char
         select case(ch)
-        case('R')
-            domain_from_type_char = DM_SOLID
         case('S')
             domain_from_type_char = DM_SOLID
         case('P')

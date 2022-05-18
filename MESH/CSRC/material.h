@@ -13,13 +13,6 @@
 //#define DM_MAX 4
 #define DM_MAX 4 
 
-typedef enum {
-    DM_SOLID_MASK      = 1<<DM_SOLID,
-    DM_SOLID_PML_MASK  = 1<<DM_SOLID_PML,
-    DM_FLUID_MASK      = 1<<DM_FLUID,
-    DM_FLUID_PML_MASK  = 1<<DM_FLUID_PML
-} material_mask_t;
-
 class Material {
 public:
     Material()
