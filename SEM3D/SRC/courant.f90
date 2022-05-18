@@ -39,6 +39,7 @@ contains
         use sdomain
         use constants
         use dom_solid
+        use dom_solid_dg
         use dom_fluid
         use dom_solidpml
         use dom_fluidpml
@@ -104,6 +105,8 @@ contains
                         select case(Tdomain%specel(n)%domain)
                         case (DM_SOLID_CG)
                             Pspeed = solid_pspeed(Tdomain%sdom, lnum, i, j, k)
+                        case (DM_SOLID_DG)
+                            Pspeed = solid_pspeed_dg(Tdomain%sdomdg, lnum, i, j, k)
                         case (DM_SOLID_CG_PML)
                             Pspeed = solidpml_pspeed(Tdomain%spmldom, lnum, i, j, k)
                         case (DM_FLUID_CG)

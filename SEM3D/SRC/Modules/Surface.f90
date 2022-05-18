@@ -45,6 +45,7 @@ module ssurf
         type(surf_num) :: surf_fl
         type(surf_num) :: surf_spml
         type(surf_num) :: surf_fpml
+        type(surf_num) :: surf_sldg
         type(elastic_) :: Elastic
         character(len=100) :: name
         integer            :: domain

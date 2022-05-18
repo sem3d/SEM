@@ -10,6 +10,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/dombase.F90
     ${PRJ}/SRC/snapdata.F90
     ${PRJ}/SRC/Solid/champs_solid.f90
+    ${PRJ}/SRC/SolidDG/champs_solid_dg.f90
     ${PRJ}/SRC/Fluid/champs_fluid.f90
     ${PRJ}/SRC/Modules/Element.f90
     ${PRJ}/SRC/Modules/Face.f90
@@ -47,6 +48,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Solid/dom_solid.F90
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90
+    ${PRJ}/SRC/SolidDG/calcul_forces_solid_dg.F90
+    ${PRJ}/SRC/SolidDG/dom_solid_dg.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/define_arrays.F90

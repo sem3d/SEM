@@ -16,6 +16,7 @@ module mdefinitions
     use scomm
     use constants
     use dom_solid
+    use dom_solid_dg
     use dom_fluid
     use dom_solidpml
     use dom_fluidpml
@@ -53,6 +54,8 @@ contains
                 Tdomain%fdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID_CG_PML) then
                 Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_SOLID_DG) then
+                Tdomain%sdomdg%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else
                 stop "unknown domain"
             end if
@@ -191,6 +194,19 @@ contains
                Tdomain%sdom%dirich = surf%surf_sl%map
             endif
         end if
+        Tdomain%sdomdg%n_dirich = surf%surf_sldg%nbtot
+        if (Tdomain%sdomdg%n_dirich/=0) then
+            if (allocated(Tdomain%sdomdg%dirich)) then
+                allocate(dummy(0:size(Tdomain%sdomdg%dirich)-1))
+                dummy=Tdomain%sdomdg%dirich
+                deallocate(Tdomain%sdomdg%dirich)
+                call dirichlet_gll_map((/dummy, surf%surf_sldg%map/),Tdomain%sdomdg%dirich)
+                Tdomain%sdomdg%n_dirich = size(Tdomain%sdomdg%dirich)
+            else
+               allocate(Tdomain%sdomdg%dirich(0:surf%surf_sldg%nbtot-1))
+               Tdomain%sdomdg%dirich = surf%surf_sldg%map
+            endif
+        end if
         Tdomain%fdom%n_dirich = surf%surf_fl%nbtot
         if (Tdomain%fdom%n_dirich/=0) then
             if (allocated(Tdomain%fdom%dirich)) then
@@ -243,6 +259,11 @@ contains
         if (Tdomain%sdom%n_dirich/=0) then
             allocate(Tdomain%sdom%dirich(0:surf%surf_sl%nbtot-1))
             Tdomain%sdom%dirich = surf%surf_sl%map
+        end if
+        Tdomain%sdomdg%n_dirich = surf%surf_sldg%nbtot
+        if (Tdomain%sdomdg%n_dirich/=0) then
+            allocate(Tdomain%sdomdg%dirich(0:surf%surf_sldg%nbtot-1))
+            Tdomain%sdomdg%dirich = surf%surf_sldg%map
         end if
         Tdomain%fdom%n_dirich = surf%surf_fl%nbtot
         if (Tdomain%fdom%n_dirich/=0) then
@@ -394,8 +415,9 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         !
 
-        if (Tdomain%sdom%nglltot    /= 0)    Tdomain%sdom%MassMat(:) = 1d0/Tdomain%sdom%MassMat(:)
-        if (Tdomain%fdom%nglltot    /= 0)    Tdomain%fdom%MassMat(:) = 1d0/Tdomain%fdom%MassMat(:)
+        if (Tdomain%sdom%nglltot    /= 0) Tdomain%sdom%MassMat(:) = 1d0/Tdomain%sdom%MassMat(:)
+        if (Tdomain%sdomdg%nglltot  /= 0) Tdomain%sdomdg%MassMat(:) = 1d0/Tdomain%sdomdg%MassMat(:)
+        if (Tdomain%fdom%nglltot    /= 0) Tdomain%fdom%MassMat(:) = 1d0/Tdomain%fdom%MassMat(:)
         if (Tdomain%spmldom%nglltot /= 0) Tdomain%spmldom%MassMat(:) = 1d0/Tdomain%spmldom%MassMat(:)
         if (Tdomain%fpmldom%nglltot /= 0) Tdomain%fpmldom%MassMat(:) = 1d0/Tdomain%fpmldom%MassMat(:)
 
@@ -528,6 +550,8 @@ contains
         select case (specel%domain)
         case (DM_SOLID_CG)
             call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,nlkp,Tdomain%nl_flag,Qp,Qs)
+        case (DM_SOLID_DG)
+            call init_material_properties_solid_dg(Tdomain%sdomdg,specel%lnum,mat,rho,lambda,mu)
         case (DM_FLUID_CG)
             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,rho,lambda)
         case (DM_SOLID_CG_PML)
@@ -568,6 +592,8 @@ contains
                     select case (specel%domain)
                         case (DM_SOLID_CG)
                             call init_local_mass_solid(Tdomain%sdom,specel,i,j,k,ind,Whei)
+                        case (DM_SOLID_DG)
+                            call init_local_mass_solid_dg(Tdomain%sdomdg,specel,i,j,k,ind,Whei)
                         case (DM_SOLID_CG_PML)
                             call init_local_mass_solidpml(Tdomain%spmldom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID_CG)

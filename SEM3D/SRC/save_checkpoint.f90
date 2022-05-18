@@ -87,6 +87,10 @@ contains
                 ngllx = Tdomain%sdom%ngll
                 nglly = Tdomain%sdom%ngll
                 ngllz = Tdomain%sdom%ngll
+            case (DM_SOLID_DG)
+                ngllx = Tdomain%sdomdg%ngll
+                nglly = Tdomain%sdomdg%ngll
+                ngllz = Tdomain%sdomdg%ngll
             case (DM_FLUID_CG)
                 ngllx = Tdomain%fdom%ngll
                 nglly = Tdomain%fdom%ngll
@@ -164,6 +168,11 @@ contains
                     ! for plastic strain
                     offset(13) = offset(13)+0
                 endif
+            case (DM_SOLID_DG)
+                ! pour Veloc : 1
+                offset(1) = offset(1) + ngll*3
+                ! pour Displ : 3
+                offset(3) = offset(3) + ngll*3
             case (DM_SOLID_CG_PML)
                 ! pour Veloc : 1
                 offset(1) = offset(1) + ngll*3

@@ -351,6 +351,7 @@ contains
             Tdomain%sSurfaces(i)%name = surfname
             Tdomain%sSurfaces(i)%cond_type = COND_NONE
             call read_one_surface(Tdomain%sSurfaces(i)%surf_sl  , "sl"  , surf_id)
+            call read_one_surface(Tdomain%sSurfaces(i)%surf_sldg, "sldg", surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fl  , "fl"  , surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_spml, "spml", surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fpml, "fpml", surf_id)

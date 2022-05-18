@@ -58,6 +58,9 @@ contains
                             case (DM_SOLID_CG)
                                 Tdomain%sdom%Jacob_     (        i,j,k,bnum,ee) = Jac
                                 Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
+                            case (DM_SOLID_DG)
+                                Tdomain%sdomdg%Jacob_   (        i,j,k,bnum,ee) = Jac
+                                Tdomain%sdomdg%InvGrad_ (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID_CG)
                                 Tdomain%fdom%Jacob_     (        i,j,k,bnum,ee) = Jac
                                 Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)

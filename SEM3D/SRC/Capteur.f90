@@ -478,6 +478,7 @@ contains
     subroutine sortieGrandeurCapteur_interp(Tdomain, capteur)
         use constants
         use dom_solid
+        use dom_solid_dg
         use dom_fluid
         use dom_solidpml
         use dom_fluidpml
@@ -561,6 +562,10 @@ contains
         ! On recupere les variables de l'element associe au capteur.
         
         select case(Tdomain%specel(n_el)%domain)
+            case (DM_SOLID_DG)
+              call get_solid_dg_dom_var(Tdomain%sdomdg, Tdomain%specel(n_el)%lnum, out_variables, &
+                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
+                dUdX)
             case (DM_SOLID_CG)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &

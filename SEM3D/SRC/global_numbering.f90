@@ -48,6 +48,7 @@ subroutine global_numbering(Tdomain)
     end if
     do k=0,size(Tdomain%sSurfaces)-1
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_sl, DM_SOLID_CG)
+        call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_sldg, DM_SOLID_DG)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_fl, DM_FLUID_CG)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_spml, DM_SOLID_CG_PML)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_fpml, DM_FLUID_CG_PML)
@@ -108,6 +109,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
         enddo
     enddo
     Tdomain%sdom%nbelem = ecount(DM_SOLID_CG)
+    Tdomain%sdomdg%nbelem = ecount(DM_SOLID_DG)
     Tdomain%fdom%nbelem = ecount(DM_FLUID_CG)
     Tdomain%spmldom%nbelem = ecount(DM_SOLID_CG_PML)
     Tdomain%fpmldom%nbelem = ecount(DM_FLUID_CG_PML)
@@ -158,6 +160,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
     ! total number of GLL points (= degrees of freedom)
     Tdomain%n_glob_points = icount(0)
     Tdomain%sdom%nglltot    = icount(DM_SOLID_CG)
+    Tdomain%sdomdg%nglltot    = icount(DM_SOLID_DG)
     Tdomain%fdom%nglltot    = icount(DM_FLUID_CG)
     Tdomain%spmldom%nglltot = icount(DM_SOLID_CG_PML)
     Tdomain%fpmldom%nglltot = icount(DM_FLUID_CG_PML)
@@ -519,7 +522,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
 
-    integer :: n,ncomm,nsol,nsolpml,nflu,nflupml
+    integer :: n,ncomm,nsol,nsolpml,nflu,nflupml,nsoldg
     integer :: i,j,k,nf,ne,nv,idx
 
     ! Remplissage des IGive et ITake
@@ -533,6 +536,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
     do n = 0,Comm_data%ncomm-1
         ncomm = Comm_data%Data(n)%ncomm
         nsol = 0
+        nsoldg = 0
         nsolpml = 0
         nflu = 0
         nflupml = 0
@@ -548,6 +552,9 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                     case (DM_SOLID_CG)
                         Comm_data%Data(n)%IGiveS(nsol) = idx
                         nsol = nsol + 1
+                    case (DM_SOLID_DG)
+                        Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
+                        nsoldg = nsoldg + 1
                     case (DM_FLUID_CG)
                         Comm_data%Data(n)%IGiveF(nflu) = idx
                         nflu = nflu + 1
@@ -573,6 +580,9 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                 case (DM_SOLID_CG)
                     Comm_data%Data(n)%IGiveS(nsol) = idx
                     nsol = nsol + 1
+                case (DM_SOLID_DG)
+                    Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
+                    nsoldg = nsoldg + 1
                 case (DM_FLUID_CG)
                     Comm_data%Data(n)%IGiveF(nflu) = idx
                     nflu = nflu + 1
@@ -596,6 +606,9 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
             case (DM_SOLID_CG)
                 Comm_data%Data(n)%IGiveS(nsol) = idx
                 nsol = nsol + 1
+            case (DM_SOLID_DG)
+                Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
+                nsoldg = nsoldg + 1
             case (DM_FLUID_CG)
                 Comm_data%Data(n)%IGiveF(nflu) = idx
                 nflu = nflu + 1
@@ -619,7 +632,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
-    integer :: n_data, n_comm, nsol, nsolpml, nflu, nflupml
+    integer :: n_data, n_comm, nsol, nsolpml, nflu, nflupml, nsoldg
     integer :: n, nf, ne, nv, i, temp
 
     n_comm = 0
@@ -644,6 +657,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
 
         nsolpml = 0
         nsol = 0
+        nsoldg = 0
         nflupml = 0
         nflu = 0
 
@@ -656,6 +670,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsolpml = nsolpml + temp
             case (DM_SOLID_CG)
                 nsol = nsol + temp
+            case (DM_SOLID_DG)
+                nsoldg = nsoldg + temp
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + temp
             case (DM_FLUID_CG)
@@ -673,6 +689,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsolpml = nsolpml + temp
             case (DM_SOLID_CG)
                 nsol = nsol + temp
+            case (DM_SOLID_DG)
+                nsoldg = nsoldg + temp
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + temp
             case (DM_FLUID_CG)
@@ -689,6 +707,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsolpml = nsolpml + 1
             case (DM_SOLID_CG)
                 nsol = nsol + 1
+            case (DM_SOLID_DG)
+                nsoldg = nsoldg + 1
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + 1
             case (DM_FLUID_CG)
@@ -703,7 +723,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         ! eg: DumpMass and MassMatSolPml acount for 6 real, compared to 9 for forcesPml
         ! for fluid we need only 4 during computation but 6 for mass exchange (but only
         ! to simplify code since 2 are really needed)
-        n_data = 3*nsol+9*nsolpml+1*nflu+6*nflupml
+        n_data = 3*nsol+3*nsoldg + 9*nsolpml+1*nflu+6*nflupml
         ! Initialisation et allocation de Comm_vector_DumpMassAndMMSP
         Comm_data%Data(n_comm)%src = Tdomain%rank
         Comm_data%Data(n_comm)%dest = Tdomain%sComm(n)%dest
@@ -716,6 +736,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         allocate(Comm_data%Data(n_comm)%Give(0:n_data-1))
         allocate(Comm_data%Data(n_comm)%Take(0:n_data-1))
         allocate(Comm_data%Data(n_comm)%IGiveS(0:nsol-1))
+        allocate(Comm_data%Data(n_comm)%IGiveSDG(0:nsoldg-1))
         allocate(Comm_data%Data(n_comm)%IGiveSPML(0:nsolpml-1))
         allocate(Comm_data%Data(n_comm)%IGiveF(0:nflu-1))
         allocate(Comm_data%Data(n_comm)%IGiveFPML(0:nflupml-1))
@@ -897,6 +918,10 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
             allocate(comm_data%Data(n)%IGiveS(0:count-1))
             comm_data%Data(n)%IGiveS = igive
             comm_data%Data(n)%nsol = count
+        case (DM_SOLID_DG)
+            allocate(comm_data%Data(n)%IGiveSDG(0:count-1))
+            comm_data%Data(n)%IGiveSDG = igive
+            comm_data%Data(n)%nsoldg = count
         case (DM_FLUID_CG)
             allocate(comm_data%Data(n)%IGiveF(0:count-1))
             comm_data%Data(n)%IGiveF = igive

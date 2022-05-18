@@ -29,7 +29,9 @@ contains
         Tdomain%any_fdom = .false.
         Tdomain%any_spml = .false.
         Tdomain%any_fpml = .false.
+        Tdomain%any_sdomdg = .false.
         Tdomain%sdom%ngll    = 0
+        Tdomain%sdomdg%ngll  = 0
         Tdomain%fdom%ngll    = 0
         Tdomain%spmldom%ngll = 0
         Tdomain%fpmldom%ngll = 0
@@ -40,6 +42,9 @@ contains
             case (DM_SOLID_CG)
                 Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_sdom = .true.
+            case (DM_SOLID_DG)
+                Tdomain%sdomdg%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_sdomdg = .true.
             case (DM_FLUID_CG)
                 Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_fdom = .true.
@@ -768,6 +773,7 @@ contains
             Tdomain%earthchunk_isInit=1
 
         endif
+
 
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input

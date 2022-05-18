@@ -876,6 +876,7 @@ contains
     subroutine save_field_h5(Tdomain, isort, outputs)
         use sdomain
         use dom_solid
+        use dom_solid_dg
         use dom_fluid
         use dom_solidpml
         use dom_fluidpml
@@ -968,6 +969,10 @@ contains
                     call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,    &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
                         eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
+                case (DM_SOLID_DG)
+                    call get_solid_dg_dom_var(Tdomain%sdomdg, el%lnum, out_variables,    &
+                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
+                        eps_dev, sig_dev, dUdX)
                 case (DM_FLUID_CG)
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, &
@@ -1000,6 +1005,8 @@ contains
                         select case (domain_type)
                             case (DM_SOLID_CG)
                                 jac(i,j,k) = Tdomain%sdom%Jacob_   (i,j,k,bnum,ee)
+                            case (DM_SOLID_DG)
+                                jac(i,j,k) = Tdomain%sdomdg%Jacob_ (i,j,k,bnum,ee)
                             case (DM_SOLID_CG_PML)
                                 jac(i,j,k) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
@@ -1437,6 +1444,17 @@ contains
                         end do
                     end do
                 end do
+            case (DM_SOLID_DG)
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                            if (outputs%domains(idx)==domain_type) then
+                                mass(idx) = Tdomain%sdomdg%MassMat(Tdomain%sdomdg%Idom_(i,j,k,bnum,ee))
+                            endif
+                        end do
+                    end do
+                end do
             case (DM_SOLID_CG_PML)
                 do k = 0,ngll-1
                     do j = 0,ngll-1
@@ -1538,6 +1556,8 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID_CG)
                                 jac(idx) = Tdomain%sdom%Jacob_   (i,j,k,bnum,ee)
+                            case (DM_SOLID_DG)
+                                jac(idx) = Tdomain%sdomdg%Jacob_ (i,j,k,bnum,ee)
                             case (DM_SOLID_CG_PML)
                                 jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
@@ -1565,6 +1585,8 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID_CG)
                                 dens(idx) = Tdomain%sdom%Density_        (i,j,k,bnum,ee)
+                            case (DM_SOLID_DG)
+                                dens(idx) = Tdomain%sdomdg%Density_      (i,j,k,bnum,ee)
                             case (DM_SOLID_CG_PML)
                                 dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
@@ -1601,6 +1623,8 @@ contains
                             case (DM_SOLID_CG)
                                 lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
                                 if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) grad_La_n(0:2,idx) = grad_La(i,j,k,0:2)
+                            case (DM_SOLID_DG)
+                                lamb(idx) = Tdomain%sdomdg%Lambda_      (i,j,k,bnum,ee)
                             case (DM_SOLID_CG_PML)
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
@@ -1634,6 +1658,8 @@ contains
                             case (DM_SOLID_CG)
                                 mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
                                 if (Tdomain%out_var_snap(OUT_GRAD_MU) == 1) grad_Mu_n(0:2,idx) = grad_Mu(i,j,k,0:2)
+                            case (DM_SOLID_DG)
+                                mu(idx) = Tdomain%sdomdg%Mu_(i,j,k,bnum,ee)
                             case (DM_SOLID_CG_PML)
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
@@ -1662,6 +1688,8 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID_CG)
                                 kappa(idx) = Tdomain%sdom%Kappa_(i,j,k,bnum,ee)
+                            case (DM_SOLID_DG)
+                                kappa(idx) = -1d0
                             case (DM_SOLID_CG_PML)
                                 kappa(idx) = -1d0
                             case (DM_FLUID_CG)

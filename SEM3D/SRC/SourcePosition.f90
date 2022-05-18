@@ -27,14 +27,14 @@ subroutine SourcePosition (Tdomain)
     real(fpp), dimension(0:2,0:2) :: LocInvGrad
     real(fpp), dimension(:,:), allocatable :: coord
     real(fpp) :: R
-    integer :: src_proc, nmax, n_el, nb_src_inproc
+    integer :: src_proc, nmax, n_el, nb_src_inproc, dom
     integer, parameter :: NMAXEL=20
     integer, dimension(NMAXEL) :: elems
     real(fpp), dimension(0:2,NMAXEL) :: coordloc
     real(fpp), parameter :: EPS = 1D-13
     type(source), dimension(:), allocatable :: ssource_temp
     logical, dimension(:), allocatable :: src_inproc
-    logical :: inside
+    logical :: inside, is_fluid, is_solid
 
     rg = Tdomain%rank
     nb_src_inproc = 0
@@ -68,11 +68,18 @@ subroutine SourcePosition (Tdomain)
             end if
         end do
 
-
+        dom = Tdomain%specel(elems(i))%domain
+        if (dom==DM_SOLID_CG .or. dom==DM_SOLID_DG .or. dom==DM_SOLID_CG_PML) then
+            is_fluid = .false.
+            is_solid = .true.
+        else
+            is_fluid = .true.
+            is_solid = .false.
+        end if
         ! On ignore une source fluide dans le domaine solide
         if (n_el/=-1) then
-            if(Tdomain%sSource(n_src)%i_type_source == 3 .and. Tdomain%specel(elems(i))%domain/=DM_FLUID_CG) n_el = -1
-            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. Tdomain%specel(elems(i))%domain/=DM_SOLID_CG) n_el = -1
+            if(Tdomain%sSource(n_src)%i_type_source == 3 .and. is_solid) n_el = -1
+            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. is_fluid) n_el = -1
         endif
 
         Tdomain%Ssource(n_src)%elem = n_el

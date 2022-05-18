@@ -19,6 +19,7 @@
 module sdomain_alloc
     use sdomain
     use dom_solid
+    use dom_solid_dg
     use dom_solidpml
     use dom_fluid
     use dom_fluidpml
@@ -37,10 +38,11 @@ subroutine allocate_domain (Tdomain)
         write(*,*) "Tdomain%any_spml = ", Tdomain%any_spml
         write(*,*) "Tdomain%any_fpml = ", Tdomain%any_fpml
     end if
-    if(Tdomain%any_sdom) call allocate_dom_solid   (Tdomain, Tdomain%sdom)
-    if(Tdomain%any_fdom) call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
-    if(Tdomain%any_spml) call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
-    if(Tdomain%any_fpml) call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
+    if(Tdomain%any_sdom)   call allocate_dom_solid   (Tdomain, Tdomain%sdom)
+    if(Tdomain%any_sdomdg) call allocate_dom_solid_dg(Tdomain, Tdomain%sdomdg)
+    if(Tdomain%any_fdom)   call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
+    if(Tdomain%any_spml)   call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
+    if(Tdomain%any_fpml)   call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
 
     do n = 0,Tdomain%n_elem-1
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)

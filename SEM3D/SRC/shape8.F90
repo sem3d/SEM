@@ -77,6 +77,9 @@ contains
                             case (DM_SOLID_CG)
                                 Tdomain%sdom%Jacob_     (        i,j,k,bnum,ee) = Jac
                                 Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
+                            case (DM_SOLID_DG)
+                                Tdomain%sdomdg%Jacob_     (        i,j,k,bnum,ee) = Jac
+                                Tdomain%sdomdg%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID_CG)
                                 Tdomain%fdom%Jacob_     (        i,j,k,bnum,ee) = Jac
                                 Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
@@ -103,6 +106,10 @@ contains
                      call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sl, DM_SOLID_CG, Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_sl,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
                      call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_sl%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
+                  case (DM_SOLID_DG)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sldg, DM_SOLID_DG, Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                     call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_sldg,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                     call surfaceSource(Tdomain%sSurfaces(i_surf)%surf_sldg%nbtot,Tdomain,Tdomain%sSurfaces(i_surf))
                   case (DM_FLUID_CG)
                      call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fl, DM_FLUID_CG, Tdomain%sSurfaces(i_surf)%Surf_BtN)
                      call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_fl,Tdomain, Tdomain%sSurfaces(i_surf)%coord)

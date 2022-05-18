@@ -42,7 +42,7 @@ module ssubdomains
     end type PropertyField
 
     type Subdomain
-        integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML
+        integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML/...DG
         integer          :: material_definition
         integer          :: deftype
         logical          :: present ! true if an element with this mat exists on this cpu
@@ -105,6 +105,10 @@ contains
 
         is_pml = .false.
         select case (mat%dom)
+        case(DM_SOLID_DG)
+            is_pml = .false.
+        case(DM_FLUID_DG)
+            is_pml = .false.
         case(DM_SOLID_CG)
             is_pml = .false.
         case(DM_SOLID_CG_PML)

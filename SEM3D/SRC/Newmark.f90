@@ -236,8 +236,9 @@ contains
         use dom_fluid
         use dom_fluidpml
         use dom_solid
+        use dom_solid_dg
         use dom_solidpml
-        use stat, only : stat_starttick, stat_stoptick, STAT_FSOL, STAT_FFLU, STAT_PSOL, STAT_PFLU
+        use stat, only : stat_starttick, stat_stoptick, STAT_FSOL, STAT_FFLU, STAT_PSOL, STAT_PFLU, STAT_FSOL_DG
         implicit none
 
         type(domain), intent(inout)   :: Tdomain
@@ -247,6 +248,13 @@ contains
             call stat_starttick(STAT_FSOL)
             call newmark_predictor_solid(Tdomain%sdom,0,1)
             call stat_stoptick(STAT_FSOL)
+        endif
+
+        ! Elements solide  DG
+        if (Tdomain%sdomdg%nglltot /= 0) then
+            call stat_starttick(STAT_FSOL_DG)
+            call newmark_predictor_solid_dg(Tdomain%sdomdg,0,1)
+            call stat_stoptick(STAT_FSOL_DG)
         endif
 
         ! Elements fluide
@@ -304,8 +312,9 @@ contains
     !-----------------------------------------------------------------------------
     subroutine Newmark_Corrector_S(Tdomain)
         use dom_solid
+        use dom_solid_dg
         use dom_solidpml
-        use stat, only : stat_starttick, stat_stoptick, STAT_PSOL, STAT_FSOL
+        use stat, only : stat_starttick, stat_stoptick, STAT_PSOL, STAT_FSOL, STAT_FSOL_DG
         implicit none
 
         type(domain), intent(inout)   :: Tdomain
@@ -326,6 +335,13 @@ contains
             call newmark_corrector_solid(Tdomain%sdom, dt, 0, 1)
             call stat_stoptick(STAT_FSOL)
         endif
+
+        ! Si il existe des éléments solides DG
+        if (Tdomain%sdomdg%nglltot /= 0) then
+            call stat_starttick(STAT_FSOL_DG)
+            call newmark_corrector_solid_dg(Tdomain%sdomdg, dt, 0, 1)
+            call stat_stoptick(STAT_FSOL_DG)
+        endif
         return
     end subroutine Newmark_Corrector_S
     !-----------------------------------------------------------------------------
@@ -333,11 +349,12 @@ contains
     subroutine internal_forces(Tdomain, i0, i1, ntime)
         ! volume forces - depending on rheology
         use dom_solid
+        use dom_solid_dg
         use dom_solidpml
         use dom_fluid
         use dom_fluidpml
         use smirror
-        use stat, only : stat_starttick, stat_stoptick, STAT_FFLU, STAT_PFLU, STAT_FSOL, STAT_PSOL
+        use stat, only : stat_starttick, stat_stoptick, STAT_FFLU, STAT_PFLU, STAT_FSOL, STAT_PSOL, STAT_FSOL_DG
         implicit none
 
         type(domain), intent(inout)  :: Tdomain
@@ -417,6 +434,14 @@ contains
             endif
             call stat_stoptick(STAT_FSOL)
         endif
+        !! DOMAIN SOLID DG
+        if (Tdomain%sdomdg%nbelem>0) then
+            call stat_starttick(STAT_FSOL_DG)
+            do n = 0,Tdomain%sdomdg%nblocks-1
+                call forces_int_solid_dg(Tdomain%sdomdg,Tdomain%sdomdg%champs(i1),n)
+            enddo
+            call stat_stoptick(STAT_FSOL_DG)
+        endif
         ! DOMAIN PML SOLID
         if (Tdomain%spmldom%nbelem>0) then
             call stat_starttick(STAT_PSOL)
@@ -473,7 +498,7 @@ contains
         integer, intent(in)  :: ntime
         real(kind=fpp), intent(in)  :: timer
         integer, intent(in) :: i1
-        integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntimecur
+        integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntimecur, dom
         real(kind=fpp) :: t, ft, val, timercur
 
         if (Tdomain%mirror_type==1) return
@@ -490,7 +515,8 @@ contains
             if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
                 nel = Tdomain%Ssource(ns)%elem
                 lnum = Tdomain%specel(nel)%lnum
-                ngll = domain_ngll(Tdomain, Tdomain%specel(nel)%domain)
+                dom = Tdomain%specel(nel)%domain
+                ngll = domain_ngll(Tdomain, dom)
                 bnum = lnum/VCHUNK
                 ee = mod(lnum,VCHUNK)
 
@@ -511,9 +537,15 @@ contains
                         do k = 0,ngll-1
                             do j = 0,ngll-1
                                 do i = 0,ngll-1
-                                    idx = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
-                                    val = Tdomain%sdom%champs(i1)%Forces(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
-                                    Tdomain%sdom%champs(i1)%Forces(idx, i_dir) = val
+                                    if (dom==DM_SOLID_CG) then
+                                        idx = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
+                                        val = Tdomain%sdom%champs(i1)%Forces(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                                        Tdomain%sdom%champs(i1)%Forces(idx, i_dir) = val
+                                    else if (dom==DM_SOLID_DG) then
+                                        idx = Tdomain%sdomdg%Idom_(i,j,k,bnum,ee)
+                                        val = Tdomain%sdomdg%champs(i1)%Forces(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                                        Tdomain%sdomdg%champs(i1)%Forces(idx, i_dir) = val
+                                    end if
                                 enddo
                             enddo
                         enddo
