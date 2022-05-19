@@ -88,9 +88,13 @@ contains
         class(dombase), intent(inout) :: bz
         !
         integer :: nbelem, ngll, nblocks
-        !
+        ! Set by caller (also nglltot)
         ngll   = bz%ngll
         nbelem = bz%nbelem
+        ! Initialize everything else with sensible default values...
+        bz%n_dirich = 0
+        ! so far...
+
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call compute_gll_data(ngll, bz%gllc, bz%gllw, bz%hprime, bz%htprime)
