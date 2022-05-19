@@ -12,13 +12,12 @@ module logical_input
     implicit none
     type :: Logical_array
 
-       logical :: save_trace,save_snapshots,save_energy,plot_grid,save_restart,run_restart
-       logical :: run_exec, run_debug, run_echo
+       logical :: save_trace,save_snapshots,save_restart,run_restart
        logical :: any_source
-       logical :: Neumann, Neumann_local_present,Save_Surface
+       logical :: Neumann, Neumann_local_present
        logical :: surfBC
        ! solid-fluid
-       logical :: solid_fluid, all_fluid, SF_local_present
+       logical :: SF_local_present
        ! MPML
        logical :: MPML
     end type Logical_array

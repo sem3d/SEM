@@ -47,7 +47,9 @@ module sdomain
        ! En mode couplage : Rg du superviseur dans le communicateur global
        integer :: master_superviseur
        !
+       ! Number of procs per snapshot groups (should be the number of MPI processes per node)
        integer :: ngroup
+       ! Holds temp memory used to gather outputs for each group
        type(output_var_t)  :: SnapData
        type(time)          :: TimeD
        type(logical_array) :: logicD

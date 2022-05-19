@@ -331,13 +331,6 @@ contains
         fnamef = pjoin(path_param, "input.spec")
     end subroutine semname_file_input_spec
 
-    subroutine semname_read_input_spec (fnamef)
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        fnamef = pjoin(path_logs, "input_spec_echo")
-    end subroutine semname_read_input_spec
-
     subroutine semname_read_input_meshfile (rg,meshfile,fnamef)
         !SEMFILE 12 R ./data/sem/XXX.III (MKA)
         implicit none
@@ -375,16 +368,6 @@ contains
         fnamef = pjoin(path_data, temp)
 #endif
     end subroutine semname_read_mesh_rank
-
-    subroutine semname_read_mesh_echo (rank,fnamef)
-        !SEMFILE 92 W ./data/sem/mesh_echoIII (MKA) & mesh_echoIII (NOMKA)
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-        write(temp,*) "mesh_echo.",rank
-        fnamef = pjoin(path_data, temp)
-    end subroutine semname_read_mesh_echo
 
     subroutine semname_read_mesh_material_echo (fnamef)
         !SEMFILE 93 W ./data/sem/material_echo (MKA) & material_echo (NOMKA)

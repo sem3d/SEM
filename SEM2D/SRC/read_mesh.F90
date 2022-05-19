@@ -12,7 +12,7 @@
 !<
 
 !>
-!! \brief Assure la lecture du maillage (mesh_file) et lecture des caractéristiques des matériaux.
+!! \brief Assure la lecture du maillage (mesh_file) et lecture des caractÃ©ristiques des matÃ©riaux.
 !!
 !! Ecriture de data/sem/mesh_echo
 !! La racine du nom du maillage doit etre saisie dans Parametrage/sem/input.spec
@@ -162,93 +162,6 @@ subroutine read_mesh(tDomain)
         read(12,*)
     enddo
     close (12)
-
-    if (Tdomain%logicD%run_echo) then
-
-        call semname_read_mesh_echo(Tdomain%Mpi_var%my_rank,fnamef)
-
-        open(92,file=fnamef, form="formatted", status="unknown")
-        write (92,*) Tdomain%n_glob_nodes, "Number of global nodes"
-        do i = 0,Tdomain%n_glob_nodes-1
-            write (92,*) (Tdomain%Coord_nodes(j,i), j=0,1)
-        enddo
-        write (92,*) Tdomain%n_mat, " Number of subdomains"
-        write (92,*) Tdomain%n_line, "  Number of lines"
-        do i = 0, Tdomain%n_line -1
-            write (92,*) Tdomain%Name_line(i)
-        enddo
-        write (92,*) Tdomain%n_elem, "Number of elements"
-        write (92,*) Tdomain%n_nodes, "Number of nodes"
-
-        j = Tdomain%n_nodes + 5
-        do i = 0,  Tdomain%n_elem - 1
-            write (92,*) Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1),  &
-                Tdomain%specel(i)%Near_Face(0:3),  Tdomain%specel(i)%Near_Vertex(0:3), Tdomain%specel(i)%mat_index
-        enddo
-        write (92,*) "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        write (92,*) Tdomain%n_face, "Number of faces"
-        do i = 0, Tdomain%n_face-1
-            write(92,*) Tdomain%sface(i)%Near_element(0:1), Tdomain%sface(i)%Which_face(0:1), Tdomain%sface(i)%Near_Vertex(0:1)
-        enddo
-        write (92,*) "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        write (92,*) Tdomain%n_vertex, "Number of Vertices"
-        do i = 0, Tdomain%n_vertex-1
-            write(92,*) Tdomain%svertex(i)%Glob_numbering
-        enddo
-
-    endif
-
-    if (Tdomain%logicD%super_object) then
-        write(92,*) " !!!!!!!!!! Here a super object"
-        do i = 0, Tdomain%n_fault-1
-            write (92,*) "Here we have a fault"
-            if (Tdomain%logicD%super_object_local_present) then
-                write (92,*) Tdomain%sFault(i)%n_face, "    # Number of faces"
-                do j = 0, Tdomain%sFault(i)%n_face -1
-                    write(92,*)  Tdomain%sFault(i)%fFace(j)%Face_UP, Tdomain%sFault(i)%fFace(j)%Face_DOWN, &
-                        Tdomain%sFault(i)%fFace(j)%Face_to_Vertex(0:1), Tdomain%sFault(i)%fFace(j)%Coherency
-                enddo
-                write (92,*) Tdomain%sFault(i)%n_vertex, "    # Number of vertices"
-                do j = 0, Tdomain%sFault(i)%n_vertex -1
-                    write(92,*)  Tdomain%sFault(i)%fVertex(j)%Vertex_UP,Tdomain%sFault(i)%fVertex(j)%Vertex_DOWN
-                enddo
-            else
-                write (92,*) "But not in this processor"
-            endif
-
-        enddo
-    endif
-
-    write (92,*)
-    write (92,*)
-    write (92,*) Tdomain%MPi_var%n_proc,  "Number of total processors"
-    write (92,*) Tdomain%n_communications,  " Number  of effective communications"
-    do j = 0, Tdomain%n_communications-1
-        write (92,*) Tdomain%Communication_List(j), "Number of processor"
-        write (92,*) " !!!!!!!!!!"
-        write (92,*)  " Define faces"
-        write (92,*) Tdomain%sWall(j)%n_faces,  "number of faces"
-        do i = 0, Tdomain%sWall(j)%n_faces-1
-            write (92,*) Tdomain%sWall(j)%Face_List(i)
-        enddo
-        write (92,*)" !!!!!!!!!!"
-        write (92,*)  " Define vertices"
-        write (92,*) Tdomain%sWall(j)%n_vertices
-        do i = 0, Tdomain%sWall(j)%n_vertices-1
-            write (92,*) Tdomain%sWall(j)%Vertex_List(i)
-        enddo
-        write (92,*) " !!!!!!!!!!!!!!"
-        if (Tdomain%logicD%super_object) then
-            write (92,*) " Number of super object vertices to communicate "
-            write (92,*) Tdomain%sWall(j)%n_vertex_superobject, "Number of super Vertices"
-            do i = 0, Tdomain%sWall(j)%n_vertex_superobject - 1
-                write (92,*) Tdomain%sWall(j)%Vertex_SuperObject_List(i)
-            enddo
-            write (92,*) " !!!!!!!!!!!!!!"
-        endif
-    enddo
-    close (92)
-
 
     ! Define a coherency for the face ordering and numbering
     do i =0, Tdomain%n_face-1

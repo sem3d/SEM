@@ -16,8 +16,7 @@ module logical_input
     ! Modified by Gaetano 07/04/05
 
     type :: Logical_array
-       logical :: save_trace,save_snapshots,save_energy,plot_grid, save_deformation, save_fault_trace
-       logical :: run_exec, run_debug, run_echo
+       logical :: save_trace,save_snapshots,save_deformation, save_fault_trace
        logical :: run_restart, save_restart
        logical :: any_source, super_object, super_object_local_present
        logical :: compEnerg, Lamb_test, post_proc

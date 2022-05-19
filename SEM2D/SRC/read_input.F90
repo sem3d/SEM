@@ -131,35 +131,9 @@ subroutine read_input (Tdomain)
 
     call create_sem2d_sources(Tdomain, config)
 
-    Tdomain%logicD%run_echo = .false.
     Tdomain%logicD%super_object = .false.
     Tdomain%logicD%super_object_local_present = .false.
     Tdomain%logicD%save_deformation = .false.
-    !read (11,*) Tdomain%logicD%save_deformation
-    !read (11,*) Tdomain%logicD%save_energy
-
-    !read (11,*) Tdomain%logicD%run_exec
-    !read (11,*) Tdomain%logicD%run_debug
-    !read (11,*) Tdomain%logicD%run_echo
-    !if (Tdomain%logicD%save_trace) then
-    !    read (11,*) Tdomain%station_file
-    !else
-    !    read( 11,*)
-    !endif
-
-    !if (Tdomain%logicD%save_snapshots .or.Tdomain%logicD%save_deformation) then
-    !    read (11,*) Tdomain%TimeD%time_snapshots
-    !else
-    !    read( 11,*)
-    !endif
-
-    !logic_scheme = (Tdomain%TimeD%acceleration_scheme .or. Tdomain%TimeD%velocity_scheme) .and. &
-    !    ((.not. Tdomain%TimeD%acceleration_scheme) .or. ( .not. Tdomain%TimeD%velocity_scheme))
-    !
-    !if (.not. logic_scheme) then
-    !    write (*,*) "No compatible acceleration and velocity schemes"
-    !    stop
-    !endif
 
 !! TODO
     Tdomain%logicD%super_object = .false.
@@ -197,71 +171,6 @@ subroutine read_input (Tdomain)
     !close (11)
 
     ! If echo modality write the read parameter in a file
-
-    if (Tdomain%logicD%run_echo .and. Tdomain%Mpi_var%my_rank == 0) then
-
-        call semname_read_input_spec(fnamef)
-        open(91,file=fnamef, form="formatted", status="unknown")
-
-        write (91,*) Tdomain%Title_simulation
-        write (91,*) Tdomain%TimeD%acceleration_scheme
-        write (91,*) Tdomain%TimeD%velocity_scheme
-        write (91,*) Tdomain%TimeD%duration
-        write (91,*) Tdomain%TimeD%alpha
-        write (91,*) Tdomain%TimeD%beta
-        write (91,*) Tdomain%TimeD%gamma
-        write (91,*) Tdomain%mesh_file
-        write (91,*) Tdomain%material_file
-        write (91,*) Tdomain%logicD%save_trace
-        write (91,*) Tdomain%logicD%save_snapshots
-        write (91,*) Tdomain%logicD%save_energy
-        write (91,*) Tdomain%logicD%plot_grid
-        write (91,*) Tdomain%logicD%run_exec
-        write (91,*) Tdomain%logicD%run_debug
-        write (91,*) Tdomain%logicD%run_echo
-
-        if (Tdomain%logicD%save_trace) then
-            write (91,*) Tdomain%station_file
-        else
-            write (91,*) " No parameter need here"
-        endif
-
-        if (Tdomain%logicD%save_snapshots) then
-            write (91,*) Tdomain%TimeD%time_snapshots
-        else
-            write (91,*) " No parameter need here"
-        endif
-
-        if (Tdomain%logicD%super_object) then
-            write (91,*) Tdomain%n_super_object
-            do i = 0, Tdomain%n_super_object-1
-                write (91,*) Tdomain%Super_object_type(i),"   ", Tdomain%super_object_file(i)
-            enddo
-        else
-            write (91,*) "no super objects present"
-        endif
-
-        if (Tdomain%logicD%any_source) then
-            write (91,*) Tdomain%n_source
-            do i = 0, Tdomain%n_source - 1
-                write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Zsource
-                write (91,*) Tdomain%Ssource(i)%i_type_source
-                if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                    write (91,*) Tdomain%Ssource(i)%dir
-                else
-                    write (91,*) "No parameter need here"
-                endif
-                write (91,*) Tdomain%Ssource(i)%i_time_function
-                write (91,*) Tdomain%Ssource(i)%tau_b
-                write (91,*) Tdomain%Ssource(i)%cutoff_freq
-            enddo
-        else
-            write (91,*)  "No available sources "
-        endif
-        write (91,*) "All right, runner ?"
-        close (91)
-
-    endif
 
     ! Define Super_Object properties: for the moment the only proper definition is the fault
     Tdomain%n_fault = 0 !Ajout Gsa  pour variables non initialisees??

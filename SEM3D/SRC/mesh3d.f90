@@ -391,8 +391,6 @@ contains
         call h5fopen_f(trim(fname), H5F_ACC_RDONLY_F, fid, hdferr)
         !
         !-- Reading mesh properties
-        Tdomain%logicD%solid_fluid = .false.
-        Tdomain%logicD%all_fluid = .false.
         neumann_log = .false.
         Tdomain%logicD%Neumann_local_present = .false.
         !
@@ -450,15 +448,6 @@ contains
 
         end do
 
-        if(rg == 0)then
-            if(Tdomain%logicD%solid_fluid)then
-                write(*,*) "  --> Propagation in solid-fluid media."
-            else if(Tdomain%logicD%all_fluid)then
-                write(*,*) "  --> Propagation in fluid media."
-            else
-                write(*,*) "  --> Propagation in solid media."
-            end if
-        end if
         allocate(nb_elems_per_proc(0:8*((Tdomain%nb_procs-1)/8+1)))
         nb_elems_per_proc = 0
         call MPI_Gather(Tdomain%n_elem, 1, MPI_INTEGER, nb_elems_per_proc, 1, MPI_INTEGER, 0, Tdomain%communicateur, ierr)
