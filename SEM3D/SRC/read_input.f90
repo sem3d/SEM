@@ -754,6 +754,9 @@ contains
         Tdomain%mirror_recalc = .false.
         if (Tdomain%config%mirror_recalc/=0) Tdomain%mirror_recalc = .true.
 
+        ! XXX Unused flags
+        Tdomain%logicD%Neumann = .false.
+
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
 
