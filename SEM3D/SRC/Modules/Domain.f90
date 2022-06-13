@@ -280,7 +280,7 @@ contains
         do nif=0,inter%surf0%n_faces-1
             nf0 = inter%surf0%if_faces(nif)
             nf1 = inter%surf1%if_faces(nif)
-            ngll = Tdomain%sFace(nf0)%ngll
+            ngll = domain_ngll(Tdomain, Tdomain%sFace(nf0)%domain)
             bad = .false.
             do j=0,ngll-1
                 do i=0,ngll-1

@@ -51,7 +51,6 @@ contains
             do j = 0,5
                 nf = Tdomain%specel(i)%Near_Faces(j)
                 Tdomain%sFace(nf)%orphan = .false.
-                Tdomain%sFace(nf)%ngll = ngll
                 if (Tdomain%sFace(nf)%domain /= dom) then
                     write(*,*) "Error: inconsistency detected in apply_mat_to_faces"
                     stop 1
@@ -84,7 +83,6 @@ contains
                 do k=0,1
                     eledge(k) = Tdomain%specel(i)%Control_nodes(edge_def(k,j))
                 end do
-                Tdomain%sEdge(ne)%ngll = ngll
                 if (Tdomain%sEdge(ne)%domain /= dom) then
                     write(*,*) "Error: inconsistency detected in apply_mat_to_edges"
                     stop 1
@@ -133,43 +131,22 @@ contains
         do k=0,inter%surf0%n_faces-1
             i0 = inter%surf0%if_faces(k)
             i1 = inter%surf1%if_faces(k)
-            interface_ok = 0
-            if (Tdomain%sFace(i0)%ngll == 0) then
-                Tdomain%sFace(i0)%ngll = Tdomain%sFace(i1)%ngll
-                interface_ok = interface_ok + 1
-            end if
-            if (Tdomain%sFace(i1)%ngll == 0) then
-                Tdomain%sFace(i1)%ngll = Tdomain%sFace(i0)%ngll
-                interface_ok = interface_ok + 1
-            endif
             if (.not.check) cycle
-            if ((Tdomain%sFace(i0)%domain /= d0).or.(Tdomain%sFace(i1)%domain /= d1).or.&
-                (interface_ok==2)) then
+            if ((Tdomain%sFace(i0)%domain /= d0).or.(Tdomain%sFace(i1)%domain /= d1)) then
                 write(*,*) "Inconsistency detected, unhandled interface (face)"
-                write(*,*) "Face0:", i0, "domain=", Tdomain%sFace(i0)%domain, &
-                    "expected:", d0, "ngll:", Tdomain%sFace(i0)%ngll
-                write(*,*) "Face1:", i1, "domain=", Tdomain%sFace(i1)%domain, &
-                    "expected:", d1, "ngll:", Tdomain%sFace(i1)%ngll
+                write(*,*) "Face0:", i0, "domain=", Tdomain%sFace(i0)%domain, "expected:", d0
+                write(*,*) "Face1:", i1, "domain=", Tdomain%sFace(i1)%domain, "expected:", d1
                 stop 1
             end if
         end do
         do k=0,inter%surf0%n_edges-1
             i0 = inter%surf0%if_edges(k)
             i1 = inter%surf1%if_edges(k)
-            if (Tdomain%sEdge(i0)%ngll == 0) then
-                Tdomain%sEdge(i0)%ngll = Tdomain%sEdge(i1)%ngll
-            end if
-            if (Tdomain%sEdge(i1)%ngll == 0) then
-                Tdomain%sEdge(i1)%ngll = Tdomain%sEdge(i0)%ngll
-            endif
             if (.not.check) cycle
-            if ((Tdomain%sEdge(i0)%domain /= d0).or.(Tdomain%sEdge(i1)%domain /= d1).or.&
-                (interface_ok==2).or.((Tdomain%sEdge(i0)%ngll==0).and.(Tdomain%sEdge(i1)%ngll==0))) then
+            if ((Tdomain%sEdge(i0)%domain /= d0).or.(Tdomain%sEdge(i1)%domain /= d1)) then
                 write(*,*) "Inconsistency detected, unhandled interface (edge)"
-                write(*,*) "Edge0:", i0, "domain=", Tdomain%sEdge(i0)%domain, &
-                    "expected:", d0, "ngll:", Tdomain%sEdge(i0)%ngll
-                write(*,*) "Edge1:", i1, "domain=", Tdomain%sEdge(i1)%domain, &
-                    "expected:", d1, "ngll:", Tdomain%sEdge(i1)%ngll
+                write(*,*) "Edge0:", i0, "domain=", Tdomain%sEdge(i0)%domain, "expected:", d0
+                write(*,*) "Edge1:", i1, "domain=", Tdomain%sEdge(i1)%domain, "expected:", d1
                 stop 1
             end if
         end do
@@ -179,10 +156,8 @@ contains
             if (.not.check) cycle
             if ((Tdomain%sVertex(i0)%domain /= d0).or.(Tdomain%sVertex(i1)%domain /= d1)) then
                 write(*,*) "Inconsistency detected, unhandled interface (vertex)"
-                write(*,*) "Vertex0:", i0, "domain=", Tdomain%sVertex(i0)%domain, &
-                    "expected:", d0
-                write(*,*) "Vertex1:", i1, "domain=", Tdomain%sVertex(i1)%domain, &
-                    "expected:", d1
+                write(*,*) "Vertex0:", i0, "domain=", Tdomain%sVertex(i0)%domain, "expected:", d0
+                write(*,*) "Vertex1:", i1, "domain=", Tdomain%sVertex(i1)%domain, "expected:", d1
                 stop 1
             end if
         end do

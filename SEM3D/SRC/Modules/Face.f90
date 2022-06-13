@@ -14,7 +14,6 @@ module sfaces
     ! If two elements of a different domain share a geometric face
     ! then two faces exists.
     type :: face
-        integer :: ngll
         integer :: domain
         integer :: lnum ! domain-local face number
         !
@@ -38,7 +37,6 @@ contains
     subroutine init_face(fc)
         type(Face), intent(inout) :: fc
         fc%domain = -1
-        fc%ngll = 0
     end subroutine init_face
 
 end module sfaces

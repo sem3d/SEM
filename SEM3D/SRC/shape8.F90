@@ -149,13 +149,14 @@ contains
         integer, allocatable, dimension(:) :: renum
         character(len=8),intent(in) :: s
         !
-        integer :: nf, i, j, idx, idom, iglob, ngll
+        integer :: nf, i, j, idx, idom, iglob, ngll, dom
         real(kind=fpp) :: nx, ny, nz, px, py, pz
         call get_surface_numbering(Tdomain,Tdomain%SF%intSolFlu%surf1, DM_FLUID_CG, renum)
 
         do nf=0,Tdomain%n_face-1
-            ngll = Tdomain%sFace(nf)%ngll
-            if (Tdomain%sFace(nf)%domain/=DM_FLUID_CG) cycle
+            dom = Tdomain%sFace(nf)%domain
+            ngll = domain_ngll(Tdomain, dom)
+            if (dom/=DM_FLUID_CG) cycle
             do j=0,ngll-1
                 do i=0,ngll-1
                     idom = Tdomain%sFace(nf)%Idom(i,j)

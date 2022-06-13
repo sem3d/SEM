@@ -97,14 +97,15 @@ contains
         type(domain), intent(in)                  :: Tdomain
         type(surf_num), intent(in)                :: surf
         integer                                   :: ngll_if, nv, ne,  nf, nfs
-        integer                                   :: idx0, nes, nvs, i, j, ngll
+        integer                                   :: idx0, nes, nvs, i, j, ngll, dom
 
         ngll_if = 0
         allocate(Coord(0:surf%nbtot-1,0:2))
         ! FACES
         do nf=0,surf%n_faces-1
             nfs = surf%if_faces(nf)
-            ngll = Tdomain%sFace(nfs)%ngll
+            dom = Tdomain%sFace(nfs)%domain
+            ngll = domain_ngll(Tdomain, dom)
 
             do j=1,ngll-2
                 do i=1,ngll-2
@@ -117,7 +118,8 @@ contains
         ! EDGES
         do ne=0,surf%n_edges-1
             nes = surf%if_edges(ne)
-            ngll = Tdomain%sEdge(nes)%ngll
+            dom = Tdomain%sEdge(nes)%domain
+            ngll = domain_ngll(Tdomain, dom)
             do i=1,ngll-2
                 idx0 = Tdomain%sEdge(nes)%Iglobnum_Edge(i)
                 Coord(ngll_if,:)  = Tdomain%GlobCoord(:,idx0)
