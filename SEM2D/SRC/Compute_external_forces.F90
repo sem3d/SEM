@@ -31,7 +31,7 @@ subroutine Compute_external_forces (Tdomain,timelocal)
             if (Tdomain%sSource(n)%i_type_source  == 6) then ! Special sources on the strain equation.
                 do j = 0,ngllz-1
                     do i = 0,ngllx-1
-                        do np = 0,2
+                        do np = 0,1
                             Fext(np) = CompSource (Tdomain%sSource(n),timelocal) &
                                      * Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
                             Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) + Fext(np)
