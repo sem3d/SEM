@@ -336,33 +336,6 @@ subroutine read_material_file(Tdomain)
         enddo
     endif
 
-    if (Tdomain%logicD%run_echo .and. Tdomain%MPI_var%my_rank ==0) then
-
-        call semname_read_mesh_material_echo(fnamef)
-        open(93,file=fnamef, form="formatted", status="unknown")
-
-        write (93,*) "Material properties"
-        write (93,*) Tdomain%n_mat, "   Number of material"
-        write (93,*) "Type, Pspeed, Sspeed, Density, Dt, NGLLx, NGLLz"
-        do i = 0, Tdomain%n_mat-1
-            write (93,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
-                Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%DDensity, &
-                Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLz
-        enddo
-        if (Tdomain%any_PML ) then
-            write (93,*) "Definition of some PML conditions"
-            write (93,*) " Filtering,  np-power,A-power, x-direction, left increase, z-direction, down-increase, cut-off frequency"
-            do i = 0,Tdomain%n_mat-1
-                if (Tdomain%sSubdomain(i)%material_type == "P" ) then
-                    write (93,*)  Tdomain%sSubdomain(i)%Filtering,  Tdomain%sSubdomain(i)%npow, Tdomain%sSubdomain(i)%Apow, &
-                        Tdomain%sSubdomain(i)%Px, Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Pz,  &
-                        Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq,Tdomain%sSubdomain(i)%k
-                endif
-            enddo
-            close (93)
-        endif
-    endif
-
     do i = 0, Tdomain%n_mat-1
         if (Tdomain%sSubdomain(i)%material_type == "P" &
             .and. Tdomain%sSubdomain(i)%Filtering &
