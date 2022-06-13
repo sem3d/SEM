@@ -74,6 +74,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
     ! A counter for each domain (0: global)
     integer, dimension(0:DM_MAX) :: icount ! nombre de glls    par domaine
     integer, dimension(0:DM_MAX) :: ecount ! nombre d'elements par domaine
+    integer, dimension(0:DM_MAX) :: fcount ! nombre de faces par domaine
     integer :: ngll
     integer, dimension(0:3) :: elface
     integer, dimension(0:1) :: eledge
@@ -84,6 +85,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
 
     icount = 0
     ecount = 0
+    fcount = 0
     solid_abs_count = 0
     fluid_abs_count = 0
 
@@ -108,9 +110,9 @@ subroutine renumber_global_gll_nodes(Tdomain)
             enddo
         enddo
     enddo
-    Tdomain%sdom%nbelem = ecount(DM_SOLID_CG)
-    Tdomain%sdomdg%nbelem = ecount(DM_SOLID_DG)
-    Tdomain%fdom%nbelem = ecount(DM_FLUID_CG)
+    Tdomain%sdom   %nbelem = ecount(DM_SOLID_CG)
+    Tdomain%sdomdg %nbelem = ecount(DM_SOLID_DG)
+    Tdomain%fdom   %nbelem = ecount(DM_FLUID_CG)
     Tdomain%spmldom%nbelem = ecount(DM_SOLID_CG_PML)
     Tdomain%fpmldom%nbelem = ecount(DM_FLUID_CG_PML)
 
@@ -118,6 +120,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
     do n = 0,Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
         dom   = Tdomain%sFace(n)%domain
+        Tdomain%sFace(n)%lnum = fcount(dom)
+        fcount(dom) = fcount(dom)+1
         allocate(Tdomain%sFace(n)%Iglobnum_Face(0:ngll-1,0:ngll-1))
         allocate(Tdomain%sFace(n)%Idom         (0:ngll-1,0:ngll-1))
         Tdomain%sFace(n)%Iglobnum_Face = -1
@@ -131,6 +135,11 @@ subroutine renumber_global_gll_nodes(Tdomain)
             enddo
         enddo
     enddo
+    Tdomain%sdom   %nbface = fcount(DM_SOLID_CG)
+    Tdomain%sdomdg %nbface = fcount(DM_SOLID_DG)
+    Tdomain%fdom   %nbface = fcount(DM_FLUID_CG)
+    Tdomain%spmldom%nbface = fcount(DM_SOLID_CG_PML)
+    Tdomain%fpmldom%nbface = fcount(DM_FLUID_CG_PML)
 
     !Edges Inner GLL points
     do n = 0,Tdomain%n_edge-1
@@ -158,9 +167,9 @@ subroutine renumber_global_gll_nodes(Tdomain)
     enddo
 
     ! total number of GLL points (= degrees of freedom)
-    Tdomain%n_glob_points = icount(0)
+    Tdomain%n_glob_points   = icount(0)
     Tdomain%sdom%nglltot    = icount(DM_SOLID_CG)
-    Tdomain%sdomdg%nglltot    = icount(DM_SOLID_DG)
+    Tdomain%sdomdg%nglltot  = icount(DM_SOLID_DG)
     Tdomain%fdom%nglltot    = icount(DM_FLUID_CG)
     Tdomain%spmldom%nglltot = icount(DM_SOLID_CG_PML)
     Tdomain%fpmldom%nglltot = icount(DM_FLUID_CG_PML)

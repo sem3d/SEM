@@ -24,6 +24,9 @@ module mdombase
         ! Nombre d'elements dans le domaine
         integer :: nbelem
 
+        ! Nombre de faces dans le domaine
+        integer :: nbface
+
         ! Nombre d'elements alloues dans le domaine (>=nbelem)
         integer :: nblocks ! nbelem_alloc == nblocks*VCHUNK
 
@@ -47,7 +50,8 @@ module mdombase
         integer, dimension(:), allocatable :: dirich
 
         ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
+        integer, dimension (:,:,:,:,:), allocatable :: m_Idom   ! Idom copied from element
+
     end type dombase
 
     type, extends(dombase) :: dombase_cpml

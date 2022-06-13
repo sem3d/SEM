@@ -10,9 +10,13 @@
 
 module sfaces
     implicit none
+    ! Faces are unique between elements of the same domain.
+    ! If two elements of a different domain share a geometric face
+    ! then two faces exists.
     type :: face
         integer :: ngll
         integer :: domain
+        integer :: lnum ! domain-local face number
         !
         integer :: elem, elem_0, elem_1
         ! True if this face doesn't have an associated element on this cpu
