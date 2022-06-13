@@ -16,8 +16,9 @@ module sfaces
     type :: face
         integer :: domain
         integer :: lnum ! domain-local face number
-        !
-        integer :: elem, elem_0, elem_1
+        ! (proc)local number of element on either side. elem_0 face is always oriented the
+        ! same as the face. one of them is -1 if the face is on a domain interface
+        integer :: elem_0, elem_1
         ! True if this face doesn't have an associated element on this cpu
         logical :: orphan
         ! Index dans Tdomain%GlobalCoord des coordonnees du pt de gauss

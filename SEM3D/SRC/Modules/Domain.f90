@@ -344,8 +344,10 @@ contains
          do idxf = 0, surf%n_faces-1
              nnf = surf%if_faces(idxf)
              if (Tdomain%sFace(nnf)%orphan) cycle
-             ! Since it's an interface face, there's only one element can be associated
-             nel = Tdomain%sFace(nnf)%elem
+             ! Since it's an interface face, there's only one element that can be associated
+             nel = Tdomain%sFace(nnf)%elem_0
+             if (nel==-1) nel = Tdomain%sFace(nnf)%elem_1
+
              ! We have a face, need to know which face we are
              do nf=0,5
                  if (nnf == Tdomain%specel(nel)%Near_Faces(nf)) exit

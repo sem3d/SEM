@@ -102,12 +102,12 @@ contains
                     return
                 end if
                 node = -1
-                dir = -1
+                dir = 0
                 return
             end if
         end do
         node = -1
-        dir = -1
+        dir = 0
     end subroutine rel_orient
 
     ! Return for an element with ngll(0:2) glls and its face nf, the arrays idxi, idxj, idxk

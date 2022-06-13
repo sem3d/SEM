@@ -34,9 +34,11 @@ contains
     subroutine apply_mat_to_faces(Tdomain)
         type(domain), intent(inout) :: Tdomain
         !
-        integer :: i, j
+        integer :: i, j, k
         integer :: ngll
         integer :: nf, mat, dom
+        integer :: node, dir
+        integer, dimension(0:3) :: elface
 
         do i = 0,Tdomain%n_face-1
             Tdomain%sFace(i)%orphan = .true.
@@ -55,12 +57,20 @@ contains
                     write(*,*) "Error: inconsistency detected in apply_mat_to_faces"
                     stop 1
                 end if
-                if (j==0.or.j==1.or.j==4) then
+                do k=0,3
+                    elface(k) = Tdomain%specel(i)%Control_nodes(face_def(k,j))
+                end do
+
+                call rel_orient(Tdomain%sFace(nf)%inodes, elface, node, dir)
+                if (node==-1) then
+                    write(*,*) "Error: faces orientation inconsistency in apply_mat_to_faces"
+                    stop 1
+                end if
+                if (dir==1) then
                     Tdomain%sFace(nf)%elem_0 = i
                 else
                     Tdomain%sFace(nf)%elem_1 = i
                 endif
-                Tdomain%sFace(nf)%elem = i
             end do
         end do
     end subroutine apply_mat_to_faces
