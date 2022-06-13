@@ -14,12 +14,15 @@ contains
     subroutine allocate_champs_solid_dg(dom, i)
         type(domain_solid_dg), intent (INOUT) :: dom
         integer, intent(in) :: i
-
+        integer :: ngll
+        ngll = dom%ngll
         ! Allocate ONE more gll than necessary to use as a dummy target for
         ! indirections for fake elements.
         allocate(dom%champs(i)%Forces(0:dom%nglltot,0:2))
         allocate(dom%champs(i)%Depla (0:dom%nglltot,0:2))
         allocate(dom%champs(i)%Veloc (0:dom%nglltot,0:2))
+        ! Traces (last face==dummy)
+        allocate(dom%champs(i)%tr_Veloc(0:ngll-1,0:ngll-1,0:2,0:dom%nbface))
 
         dom%champs(i)%Forces = 0d0
         dom%champs(i)%Depla = 0d0
@@ -51,7 +54,10 @@ contains
             allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            ! 0:9 0: face, 1-3 : I0 4-6: DI 7-9:DJ  face(i,j) = elem(I0+i*DI+j*DJ)m 10: side
+            allocate(dom%Itrace_     (0:5,0:10,0:nblocks-1, 0:VCHUNK-1))
         end if
+        call compute_trace_numbering(Tdomain, dom)
         ! Allocation et initialisation de champs0 et champs1 pour les solides
         if (dom%nglltot /= 0) then
             call allocate_champs_solid_dg(dom, 0)
@@ -60,6 +66,61 @@ contains
         if(Tdomain%rank==0) write(*,*) "INFO - solid DG domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid_dg
 
+    subroutine compute_trace_numbering (Tdomain, dom)
+        use sdomain
+        use mindex
+        implicit none
+        type(domain), intent(INOUT) :: TDomain
+        type(domain_solid_dg), intent (INOUT) :: dom
+        !
+        integer :: n, nf, lnum, eb, ec, side, k, ngll, nnf
+        integer, dimension(0:3) :: elface
+        integer, dimension(0:2) :: i0, di, dj
+        
+        !
+        !Recollecting at the element level, from faces, edges and vertices.
+        do n = 0,Tdomain%n_elem-1
+            lnum = Tdomain%specel(n)%lnum
+            eb = lnum/VCHUNK
+            ec = mod(lnum,VCHUNK)
+            !Taking information from faces
+            do nf = 0,5
+                nnf = Tdomain%specel(n)%Near_Faces(nf)
+                do k=0,3
+                    elface(k) = Tdomain%specel(n)%Control_nodes(face_def(k,nf))
+                end do
+                call ind_elem_face(ngll, nf, Tdomain%sFace(nnf)%inodes, elface, i0, di, dj)
+
+                if (Tdomain%sFace(nnf)%elem_0==n) then
+                    side = 0
+                else if (Tdomain%sFace(nnf)%elem_1==n) then
+                    side = 1
+                else
+                    write(*,*) "Inconsistency in compute_trace_numbering"
+                    stop 1
+                endif
+                dom%Itrace_(nf, 0, ec, eb) = Tdomain%sFace(nnf)%lnum
+                dom%Itrace_(nf, 1:3, ec, eb) = i0
+                dom%Itrace_(nf, 4:6, ec, eb) = di
+                dom%Itrace_(nf, 7:9, ec, eb) = dj
+                dom%Itrace_(nf, 10, ec, eb)  = side
+
+                ! How to use i0,di,dj
+!                do i=1,Tdomain%sFace(nnf)%ngll-2
+!                    do j=1,Tdomain%sFace(nnf)%ngll-2
+!                        idxi = i0(0)+i*di(0)+j*dj(0)
+!                        idxj = i0(1)+i*di(1)+j*dj(1)
+!                        idxk = i0(2)+i*di(2)+j*dj(2)
+!                        ind = Tdomain%sFace(nnf)%Iglobnum_Face(i,j)
+!                        Tdomain%specel(n)%Iglobnum(idxi,idxj,idxk) = ind
+!                        ind = Tdomain%sFace(nnf)%Idom(i,j)
+!                        Tdomain%specel(n)%Idom(idxi,idxj,idxk) = ind
+!                    end do
+!                end do
+            end do
+        end do
+    end subroutine compute_trace_numbering
+    
     subroutine deallocate_dom_solid_dg (dom)
         implicit none
         type(domain_solid_dg), intent (INOUT) :: dom
@@ -353,6 +414,7 @@ contains
         type(domain_solid_dg), intent(inout) :: dom
 
         dom%dt = Tdomain%TimeD%dtmin
+        dom%n_dirich = 0
     end subroutine init_domain_solid_dg
 
     subroutine init_material_properties_solid_dg(dom, lnum, mat, density, lambda, mu)

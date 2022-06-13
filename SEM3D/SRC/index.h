@@ -30,13 +30,14 @@
 #endif
 
 
-#define IND_IJKE(i,j,k,eb,ec)           ec,i,j,k,eb
+#define IND_IJKE(i,j,k,eb,ec)        ec,i,j,k,eb
 #define IND_MNE(m,n,eb,ec)           ec,m,n,eb
-#define IND_DIJKE(m,i,j,k,eb,ec)      ec,m,i,j,k,eb
-#define IND_MNIJKE(m,n,i,j,k,eb,ec) ec,m,n,i,j,k,eb
-#define IND_IJKNE(i,j,k,n,eb,ec)      ec,n,i,j,k,eb
-#define IND_IJKE(i,j,k,eb,ec)           ec,i,j,k,eb
-#define IND_NIJKE(n,i,j,k,eb,ec)      ec,n,i,j,k,eb
+#define IND_NE(n,eb,ec)              ec,n,eb
+#define IND_DIJKE(m,i,j,k,eb,ec)     ec,m,i,j,k,eb
+#define IND_MNIJKE(m,n,i,j,k,eb,ec)  ec,m,n,i,j,k,eb
+#define IND_IJKNE(i,j,k,n,eb,ec)     ec,n,i,j,k,eb
+#define IND_IJKE(i,j,k,eb,ec)        ec,i,j,k,eb
+#define IND_NIJKE(n,i,j,k,eb,ec)     ec,n,i,j,k,eb
 
 #if VCHUNK>1
 #define SUBELEM_LOOP_DIR  !dir$ simd
@@ -55,6 +56,7 @@
 #define       Kappa_(i,j,k,eb,ec)       m_Kappa(IND_IJKE(i,j,k,eb,ec))
 #define       Jacob_(i,j,k,eb,ec)       m_Jacob(IND_IJKE(i,j,k,eb,ec))
 #define        Idom_(i,j,k,eb,ec)        m_Idom(IND_IJKE(i,j,k,eb,ec))
+#define        Itrace_(i,j,eb,ec)        m_Itrace(IND_MNE(i,j,eb,ec))
 
 #define        syld_(i,j,k,eb,ec)        m_syld(IND_IJKE(i,j,k,eb,ec))
 #define        ckin_(i,j,k,eb,ec)        m_ckin(IND_IJKE(i,j,k,eb,ec))

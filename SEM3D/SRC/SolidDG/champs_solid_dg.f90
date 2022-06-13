@@ -20,6 +20,8 @@ module champs_solid_dg
         !!real(fpp), dimension(:,:,:,:,:), allocatable :: Depla
         !!real(fpp), dimension(:,:,:,:,:), allocatable :: Veloc
         
+        ! DIM : I, J, B, F : B: 0 ou 1
+        real(fpp), dimension(:,:,:,:), allocatable :: tr_Veloc
 
     end type champssolid_dg
 
@@ -31,6 +33,16 @@ module champs_solid_dg
 
         ! Champs
         type(champssolid_dg), dimension(0:1) :: champs
+
+        ! VCHUNK,F,N,EB) : N: 0:
+        ! N:
+        ! 0: domain-local face number,
+        ! 1-3 : I0
+        ! 4-6: DI
+        ! 7-9: DJ  face(i,j) = elem(I0+i*DI+j*DJ)
+        ! 10: side: 0 or 1
+        integer, dimension (:,:,:,:), allocatable :: m_Itrace ! Itrace copied from element
+
     end type domain_solid_dg
 
     contains
