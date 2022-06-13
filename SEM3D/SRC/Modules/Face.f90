@@ -28,7 +28,6 @@ module sfaces
         ! Index dans Tdomain%Coord_nodes des 4 sommets de la face (y compris pour les Hex27)
         integer, dimension(0:3) :: inodes
         !
-        logical                              :: PML
     end type face
 
 contains

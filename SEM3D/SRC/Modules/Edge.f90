@@ -15,7 +15,6 @@ module sedges
         integer, dimension (:), allocatable :: Iglobnum_Edge
         integer, dimension (:), allocatable :: Idom
         integer, dimension(0:1) :: inodes
-        logical                            :: PML
     end type edge
 
 contains
