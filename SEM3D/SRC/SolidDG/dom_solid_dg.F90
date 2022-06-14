@@ -542,5 +542,30 @@ contains
         Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
     end function solid_Pspeed_dg
 
+        subroutine lddrk_init_solid_dg(dom, f0)
+        type(domain_solid_dg), intent (INOUT) :: dom
+        integer, intent(in) :: f0
+
+        dom%champs(f0)%Forces = 0d0
+    end subroutine lddrk_init_solid_dg
+
+    subroutine lddrk_update_solid_dg(dom, f0, f1, dt, cb, cg)
+        type(domain_solid_dg), intent (INOUT) :: dom
+        integer, intent(in) :: f0, f1
+        real(fpp), intent(in) :: cb, cg, dt
+        integer :: i, n
+
+        ! Only solid for starters
+        do i = 0,2
+            do n = 0,dom%nglltot-1
+                dom%champs(f0)%Forces(n,i) = dom%champs(f0)%Forces(n,i) * dom%MassMat(n)
+                dom%champs(f1)%Veloc(n,i) = cb*dom%champs(f1)%Veloc(n,i) + dt*dom%champs(f0)%Forces(n,i)
+                dom%champs(f1)%Depla(n,i) = cb*dom%champs(f1)%Depla(n,i) + dt*dom%champs(f0)%Veloc(n,i)
+                dom%champs(f0)%Depla(n,i) = dom%champs(f0)%Depla(n,i) + cg*dom%champs(f1)%Depla(n,i)
+                dom%champs(f0)%Veloc(n,i) = dom%champs(f0)%Veloc(n,i) + cg*dom%champs(f1)%Veloc(n,i)
+            end do
+        end do
+    end subroutine lddrk_update_solid_dg
+
 
 end module dom_solid_dg

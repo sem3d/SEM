@@ -42,6 +42,7 @@ contains
 
     subroutine Timestep_LDDRK(Tdomain,ntime)
         use dom_solid
+        use dom_solid_dg
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: ntime
         !
@@ -56,10 +57,12 @@ contains
             t = t0 + cc*dt
 
             call lddrk_init_solid(Tdomain%sdom, 0)
+            call lddrk_init_solid_dg(Tdomain%sdomdg, 0)
             call internal_forces(Tdomain, 0, 0, ntime)
             call external_forces(Tdomain, t, ntime, 0)
             call comm_forces(Tdomain, 0)
             call lddrk_update_solid(Tdomain%sdom, 0, 1, dt, cb, cg)
+            call lddrk_update_solid_dg(Tdomain%sdomdg, 0, 1, dt, cb, cg)
         end do
     end subroutine Timestep_LDDRK
     !
