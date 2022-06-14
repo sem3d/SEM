@@ -242,130 +242,6 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
-#if 0
-    subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
-        use sdomain
-        type(domain_solidpml), intent(inout) :: dom
-        type(champssolidpml), intent(inout) :: champs1
-        integer :: bnum
-        type (domain), intent (INOUT), target :: Tdomain ! Needed for compilation compatibility with SolidCPML
-        !
-        integer :: ngll
-        integer :: i, j, k, l, ind, e, ee
-        real(fpp) :: sum_vx, sum_vy, sum_vz, acoeff
-        real(fpp), dimension(0:VCHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
-
-        ngll = dom%ngll
-
-        Forces1 = 0d0
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i=0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
-#endif
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    sum_vx = 0d0
-                    sum_vy = 0d0
-                    sum_vz = 0d0
-                    do l = 0,ngll-1
-                        acoeff = - dom%hprime(i,l)*dom%GLLw(l)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(l,j,k,bnum,ee)
-                        sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,bnum,ee)*dom%Diagonal_Stress_(l,j,k,0,bnum,ee)
-                        sum_vx = sum_vx + acoeff*dom%InvGrad_(1,0,l,j,k,bnum,ee)*dom%Residual_Stress_(l,j,k,0,bnum,ee)
-                        sum_vx = sum_vx + acoeff*dom%InvGrad_(2,0,l,j,k,bnum,ee)*dom%Residual_Stress_(l,j,k,1,bnum,ee)
-
-                        sum_vy = sum_vy + acoeff*dom%InvGrad_(0,0,l,j,k,bnum,ee)*dom%Residual_Stress_(l,j,k,0,bnum,ee)
-                        sum_vy = sum_vy + acoeff*dom%InvGrad_(1,0,l,j,k,bnum,ee)*dom%Diagonal_Stress_(l,j,k,1,bnum,ee)
-                        sum_vy = sum_vy + acoeff*dom%InvGrad_(2,0,l,j,k,bnum,ee)*dom%Residual_Stress_(l,j,k,2,bnum,ee)
-
-                        sum_vz = sum_vz + acoeff*dom%InvGrad_(0,0,l,j,k,bnum,ee)*dom%Residual_Stress_(l,j,k,1,bnum,ee)
-                        sum_vz = sum_vz + acoeff*dom%InvGrad_(1,0,l,j,k,bnum,ee)*dom%Residual_Stress_(l,j,k,2,bnum,ee)
-                        sum_vz = sum_vz + acoeff*dom%InvGrad_(2,0,l,j,k,bnum,ee)*dom%Diagonal_Stress_(l,j,k,2,bnum,ee)
-                    end do
-                    Forces1(ee,0,i,j,k) = sum_vx
-                    Forces1(ee,1,i,j,k) = sum_vy
-                    Forces1(ee,2,i,j,k) = sum_vz
-                    END_SUBELEM_LOOP()
-                end do
-            end do
-        end do
-
-        Forces2 = 0d0
-        do k = 0,ngll-1
-            do l = 0,ngll-1
-                do j = 0,ngll-1
-                    do i=0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
-#endif
-                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                        acoeff = - dom%hprime(j,l)*dom%GLLw(i)*dom%GLLw(l)*dom%GLLw(k)*dom%Jacob_(i,l,k,bnum,ee)
-                        sum_vx = acoeff*(dom%InvGrad_(0,1,i,l,k,bnum,ee)*dom%Diagonal_Stress_(i,l,k,0,bnum,ee) + &
-                                         dom%InvGrad_(1,1,i,l,k,bnum,ee)*dom%Residual_Stress_(i,l,k,0,bnum,ee) + &
-                                         dom%InvGrad_(2,1,i,l,k,bnum,ee)*dom%Residual_Stress_(i,l,k,1,bnum,ee))
-
-                        sum_vy = acoeff*(dom%InvGrad_(0,1,i,l,k,bnum,ee)*dom%Residual_Stress_(i,l,k,0,bnum,ee) + &
-                                         dom%InvGrad_(1,1,i,l,k,bnum,ee)*dom%Diagonal_Stress_(i,l,k,1,bnum,ee) + &
-                                         dom%InvGrad_(2,1,i,l,k,bnum,ee)*dom%Residual_Stress_(i,l,k,2,bnum,ee))
-
-                        sum_vz = acoeff*(dom%InvGrad_(0,1,i,l,k,bnum,ee)*dom%Residual_Stress_(i,l,k,1,bnum,ee) + &
-                                         dom%InvGrad_(1,1,i,l,k,bnum,ee)*dom%Residual_Stress_(i,l,k,2,bnum,ee) + &
-                                         dom%InvGrad_(2,1,i,l,k,bnum,ee)*dom%Diagonal_Stress_(i,l,k,2,bnum,ee))
-                        Forces2(ee,0,i,j,k) = Forces2(ee,0,i,j,k) + sum_vx
-                        Forces2(ee,1,i,j,k) = Forces2(ee,1,i,j,k) + sum_vy
-                        Forces2(ee,2,i,j,k) = Forces2(ee,2,i,j,k) + sum_vz
-                        END_SUBELEM_LOOP()
-                    end do
-                end do
-            end do
-        end do
-
-        ! TODO reorder loops ?
-        Forces3 = 0
-        do l = 0,ngll-1
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i=0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
-#endif
-                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                        acoeff = - dom%hprime(k,l)*dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(l)*dom%Jacob_(i,j,l,bnum,ee)
-                        sum_vx = acoeff*(dom%InvGrad_(0,2,i,j,l,bnum,ee)*dom%Diagonal_Stress_(i,j,l,0,bnum,ee) + &
-                                         dom%InvGrad_(1,2,i,j,l,bnum,ee)*dom%Residual_Stress_(i,j,l,0,bnum,ee) + &
-                                         dom%InvGrad_(2,2,i,j,l,bnum,ee)*dom%Residual_Stress_(i,j,l,1,bnum,ee))
-
-                        sum_vy = acoeff*(dom%InvGrad_(0,2,i,j,l,bnum,ee)*dom%Residual_Stress_(i,j,l,0,bnum,ee) + &
-                                         dom%InvGrad_(1,2,i,j,l,bnum,ee)*dom%Diagonal_Stress_(i,j,l,1,bnum,ee) + &
-                                         dom%InvGrad_(2,2,i,j,l,bnum,ee)*dom%Residual_Stress_(i,j,l,2,bnum,ee))
-
-                        sum_vz = acoeff*(dom%InvGrad_(0,2,i,j,l,bnum,ee)*dom%Residual_Stress_(i,j,l,1,bnum,ee) + &
-                                         dom%InvGrad_(1,2,i,j,l,bnum,ee)*dom%Residual_Stress_(i,j,l,2,bnum,ee) + &
-                                         dom%InvGrad_(2,2,i,j,l,bnum,ee)*dom%Diagonal_Stress_(i,j,l,2,bnum,ee))
-                        Forces3(ee,0,i,j,k) = Forces3(ee,0,i,j,k) + sum_vx
-                        Forces3(ee,1,i,j,k) = Forces3(ee,1,i,j,k) + sum_vy
-                        Forces3(ee,2,i,j,k) = Forces3(ee,2,i,j,k) + sum_vz
-                        END_SUBELEM_LOOP()
-                    end do
-                end do
-            end do
-        end do
-
-        ! Assemblage
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    ind = dom%Idom_(i,j,k,bnum,ee)
-                    champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(ee,:,i,j,k)
-                    champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(ee,:,i,j,k)
-                    champs1%ForcesPML(ind,:,2) = champs1%ForcesPML(ind,:,2) + Forces3(ee,:,i,j,k)
-                    END_SUBELEM_LOOP()
-                enddo
-            enddo
-        enddo
-    end subroutine forces_int_sol_pml
-#else
     subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
         use sdomain
         type(domain_solidpml), intent(inout) :: dom
@@ -384,7 +260,7 @@ contains
             call forces_int_sol_pml_n(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
                 dom%m_Diagonal_Stress, dom%m_Residual_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
         end select
-        
+
     end subroutine forces_int_sol_pml
 
 #define NGLLVAL 5
@@ -400,8 +276,6 @@ contains
 #define PROCNAME forces_int_sol_pml_n
 #include "calcul_forces_int_pml.inc"
 
-
-#endif
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
         implicit none
