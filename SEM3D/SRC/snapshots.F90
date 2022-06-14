@@ -15,6 +15,7 @@ module msnapshots
     implicit none
 #include "index.h"
 contains
+#define DEBUG_CPML
 #ifdef SINGLEPRECISION
 #define MPI_REAL_FPP MPI_FLOAT
 #else
@@ -232,20 +233,22 @@ contains
         end if
 
 #ifdef CPML
+#ifdef DEBUG_CPML
 !        write(*,*) "R1X:", maxval(outputs%R1_x), shape(outputs%R1_x), outputs%nnodes
-        !call write_2d_var_vecn(outputs, parent_id, "R1_0", outputs%R1_0)
-        !call write_2d_var_vecn(outputs, parent_id, "R1_1", outputs%R1_1)
-        !call write_2d_var_vecn(outputs, parent_id, "R1_2", outputs%R1_2)
-
-        !call write_2d_var_vecn(outputs, parent_id, "R2_0_dX", outputs%R2_0_dX)
-        !call write_2d_var_vecn(outputs, parent_id, "R2_0_dY", outputs%R2_0_dY)
-        !call write_2d_var_vecn(outputs, parent_id, "R2_0_dZ", outputs%R2_0_dZ)
-        !call write_2d_var_vecn(outputs, parent_id, "R2_1_dX", outputs%R2_1_dX)
-        !call write_2d_var_vecn(outputs, parent_id, "R2_1_dY", outputs%R2_1_dY)
-        !call write_2d_var_vecn(outputs, parent_id, "R2_1_dZ", outputs%R2_1_dZ)
-        !call write_2d_var_vecn(outputs, parent_id, "R2_2_dX", outputs%R2_2_dX)
-        !call write_2d_var_vecn(outputs, parent_id, "R2_2_dY", outputs%R2_2_dY)
-        !call write_2d_var_vecn(outputs, parent_id, "R2_2_dZ", outputs%R2_2_dZ)
+        call write_2d_var_vecn(outputs, parent_id, "R1_0", outputs%R1_0)
+        call write_2d_var_vecn(outputs, parent_id, "R1_1", outputs%R1_1)
+        call write_2d_var_vecn(outputs, parent_id, "R1_2", outputs%R1_2)
+        call write_2d_var_vecn(outputs, parent_id, "R2_0_dX", outputs%R2_0_dX)
+        call write_2d_var_vecn(outputs, parent_id, "R2_0_dY", outputs%R2_0_dY)
+        call write_2d_var_vecn(outputs, parent_id, "R2_0_dZ", outputs%R2_0_dZ)
+        call write_2d_var_vecn(outputs, parent_id, "R2_1_dX", outputs%R2_1_dX)
+        call write_2d_var_vecn(outputs, parent_id, "R2_1_dY", outputs%R2_1_dY)
+        call write_2d_var_vecn(outputs, parent_id, "R2_1_dZ", outputs%R2_1_dZ)
+        call write_2d_var_vecn(outputs, parent_id, "R2_2_dX", outputs%R2_2_dX)
+        call write_2d_var_vecn(outputs, parent_id, "R2_2_dY", outputs%R2_2_dY)
+        call write_2d_var_vecn(outputs, parent_id, "R2_2_dZ", outputs%R2_2_dZ)
+! DEBUG_CPML
+#endif
 
         !call write_2d_var_vecn(outputs, parent_id, "FDump", outputs%FDump)
         !call write_2d_var_vecn(outputs, parent_id, "FMasU", outputs%FMasU)
@@ -1175,7 +1178,7 @@ contains
         integer, dimension(0:), intent(in) :: out_variables
         !
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, nn, ne, group
+        integer :: i, j, nn, ne, group
         real(fpp) :: time
         character(len=11), dimension(0:8) :: R2label, R2data
 
@@ -1285,26 +1288,28 @@ contains
                 '">geometry',group,'.h5:/Mass</DataItem>'
             write(61,"(a)") '</Attribute>'
 #ifdef CPML
-!            write(61,"(a)") '<Attribute Name="Alpha_PML" Center="Node" AttributeType="Vector">'
-!            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Alpha_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
-!                '">geometry',group,'.h5:/Alpha_PML</DataItem>'
-!            write(61,"(a)") '</Attribute>'
-!            write(61,"(a)") '<Attribute Name="Kappa_PML" Center="Node" AttributeType="Vector">'
-!            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
-!                '">geometry',group,'.h5:/Kappa_PML</DataItem>'
-!            write(61,"(a)") '</Attribute>'
-!            write(61,"(a)") '<Attribute Name="Dxi_K_PML" Center="Node" AttributeType="Vector">'
-!            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dxi_K_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
-!                '">geometry',group,'.h5:/Dxi_K_PML</DataItem>'
-!            write(61,"(a)") '</Attribute>'
-!
-!            call write_xdmf_attr_vector_nodes("R1o0", nn, i, group, "R1_0")
-!            call write_xdmf_attr_vector_nodes("R1o1", nn, i, group, "R1_1")
-!            call write_xdmf_attr_vector_nodes("R1o2", nn, i, group, "R1_2")
-!
-!            do j = 0, 8
-!                call write_xdmf_attr_vector_nodes(trim(R2label(j)), nn, i, group, trim(R2data(j)))
-!            end do
+#ifdef DEBUG_CPML
+            write(61,"(a)") '<Attribute Name="Alpha_PML" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Alpha_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
+               '">geometry',group,'.h5:/Alpha_PML</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="Kappa_PML" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
+                '">geometry',group,'.h5:/Kappa_PML</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="Dxi_K_PML" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dxi_K_PML" Format="HDF" NumberType="Float" Precision="4" Dimensions="3 ',nn, &
+                '">geometry',group,'.h5:/Dxi_K_PML</DataItem>'
+            write(61,"(a)") '</Attribute>'
+
+            call write_xdmf_attr_vector_nodes("R1o0", nn, i, group, "R1_0")
+            call write_xdmf_attr_vector_nodes("R1o1", nn, i, group, "R1_1")
+            call write_xdmf_attr_vector_nodes("R1o2", nn, i, group, "R1_2")
+
+            do j = 0, 8
+                call write_xdmf_attr_vector_nodes(trim(R2label(j)), nn, i, group, trim(R2data(j)))
+            end do
+#endif
 !
 #else
             ! ALPHA/DUMPSX
@@ -1706,9 +1711,11 @@ contains
 
         call grp_write_real_1d(outputs, fid, "Mass", nnodes, mass, nnodes_tot)
 #ifdef CPML
-!        call grp_write_real_1d(outputs, fid, "Alpha_PML", 3*nnodes, alpha_pml, nnodes_tot)
-!        call grp_write_real_1d(outputs, fid, "Kappa_PML", 3*nnodes, kappa_pml, nnodes_tot)
-!        call grp_write_real_1d(outputs, fid, "Dxi_K_PML", 3*nnodes, dxi_k_pml, nnodes_tot)
+#ifdef DEBUG_CPML
+        call grp_write_real_1d(outputs, fid, "Alpha_PML", 3*nnodes, alpha_pml, nnodes_tot)
+        call grp_write_real_1d(outputs, fid, "Kappa_PML", 3*nnodes, kappa_pml, nnodes_tot)
+        call grp_write_real_1d(outputs, fid, "Dxi_K_PML", 3*nnodes, dxi_k_pml, nnodes_tot)
+#endif
 #else
         call grp_write_real_1d(outputs, fid, "Alpha", nnodes, dumpsx, nnodes_tot)
 #endif
