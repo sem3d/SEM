@@ -80,9 +80,10 @@ const keyword_t kw_source_dir[] = {
 const keyword_t kw_type_integration[] = {
     { 0, "Newmark" },
     { 1, "RK4" },
-    { 2, "Midpoint" },
-    { 3, "Midpoint_iter" },
-    { 4, NULL },
+    { 2, "LDDRK64" },
+    { 3, "Midpoint" },
+    { 4, "Midpoint_iter" },
+    { 5, NULL },
 };
 
 const keyword_t kw_type_implicitness[] = {

@@ -32,7 +32,7 @@ contains
         type(domain) :: TDomain
         type(domain_solid), intent (INOUT) :: dom
         !
-        integer :: nbelem, nblocks, ngll, n_solid
+        integer :: nbelem, nblocks, ngll, n_solid, i
         logical :: aniso,nl_flag
         !
 
@@ -130,8 +130,10 @@ contains
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les solides
         if (dom%nglltot /= 0) then
-            call allocate_champs_solid(dom, 0)
-            call allocate_champs_solid(dom, 1)
+            allocate(dom%champs(0:Tdomain%TimeD%nsubsteps))
+            do i=0,Tdomain%TimeD%nsubsteps
+                call allocate_champs_solid(dom, i)
+            end do
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid

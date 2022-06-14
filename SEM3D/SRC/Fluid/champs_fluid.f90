@@ -38,7 +38,7 @@ module champs_fluid
         type(time_mirror_fl) :: mirror_fl
 
         ! Champs
-        type(champsfluid), dimension(0:1) :: champs
+        type(champsfluid), dimension(:), allocatable :: champs
     end type domain_fluid
 
     contains

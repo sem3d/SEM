@@ -41,7 +41,7 @@ module champs_solidpml
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champssolidpml), dimension(0:1) :: champs ! Etat courant
+        type(champssolidpml), dimension(:), allocatable :: champs ! Etat courant
 
         ! Convolutional terms R
         ! First dimension : 0, 1, 2 <=> u, t*u, t^2*u

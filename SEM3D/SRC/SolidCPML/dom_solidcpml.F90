@@ -42,7 +42,7 @@ contains
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
         !
-        integer nbelem, ngll, nblocks, dir1_count, dir2_count, nbtot_SF
+        integer nbelem, ngll, nblocks, dir1_count, dir2_count, nbtot_SF, i
         !
 
         ngll   = dom%ngll
@@ -105,8 +105,10 @@ contains
 
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
-            call allocate_champs_solidcpml(dom, 0)
-            call allocate_champs_solidcpml(dom, 1)
+            allocate(dom%champs(0:Tdomain%TimeD%nsubsteps))
+            do i=0,Tdomain%TimeD%nsubsteps
+                call allocate_champs_solidcpml(dom, i)
+            end do
 
             ! Allocation de DumpMat pour les PML solides
             allocate(dom%DumpMat(0:dom%nglltot))

@@ -34,7 +34,7 @@ contains
         type(domain), intent(inout) :: TDomain
         type(domain_fluidpml), intent(inout) :: dom
         !
-        integer :: nbelem, ngll, nblocks
+        integer :: nbelem, ngll, nblocks, i
         !
 
         nbelem = dom%nbelem
@@ -67,8 +67,10 @@ contains
 
         ! Allocation et initialisation de champs0 pour les PML fluides
         if (dom%nglltot /= 0) then
-            call allocate_champs_fluidpml(dom, 0)
-            call allocate_champs_fluidpml(dom, 1)
+            allocate(dom%champs(0:Tdomain%TimeD%nsubsteps))
+            do i=0,Tdomain%TimeD%nsubsteps
+                call allocate_champs_fluidpml(dom, i)
+            end do
             allocate(dom%DumpV (0:dom%nglltot,0:1,0:2))
             allocate(dom%DumpMass(0:dom%nglltot,0:2))
             dom%DumpV = 0d0

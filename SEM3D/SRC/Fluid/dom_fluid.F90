@@ -32,7 +32,7 @@ contains
         type(domain) :: TDomain
         type(domain_fluid), intent (INOUT) :: dom
         !
-        integer :: nbelem, ngll, nblocks
+        integer :: nbelem, ngll, nblocks, i
         !
 
         ngll   = dom%ngll
@@ -56,8 +56,10 @@ contains
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
-            call allocate_champs_fluid(dom, 0)
-            call allocate_champs_fluid(dom, 1)
+            allocate(dom%champs(0:Tdomain%TimeD%nsubsteps))
+            do i=0,Tdomain%TimeD%nsubsteps
+                call allocate_champs_fluid(dom, i)
+            end do
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - fluid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluid

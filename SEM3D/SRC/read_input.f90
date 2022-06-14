@@ -649,6 +649,18 @@ contains
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
         Tdomain%TimeD%fmax                = Tdomain%config%fmax
         Tdomain%TimeD%type_timeinteg      = Tdomain%config%type_timeinteg
+        select case(Tdomain%TimeD%type_timeinteg)
+        case (0)  ! Newmark
+            Tdomain%TimeD%nsubsteps = 1
+        case (1) ! RK4
+            Tdomain%TimeD%nsubsteps = 5
+        case (2) ! LDDRK64
+            Tdomain%TimeD%nsubsteps = 2
+        case (3) ! Unused
+            Tdomain%TimeD%nsubsteps = 1
+        case (4) ! Unused
+            Tdomain%TimeD%nsubsteps = 1
+        end select
         Tdomain%nl_flag = .false.
         Tdomain%use_avg = .false.
         Tdomain%prot_at_time = Tdomain%config%prot_at_time

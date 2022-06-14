@@ -29,7 +29,7 @@ module champs_fluidpml
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champsfluidpml), dimension(0:1) :: champs
+        type(champsfluidpml), dimension(:), allocatable :: champs
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLVeloc
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSx
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSy

@@ -32,7 +32,7 @@ contains
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
         !
-        integer :: nbelem, ngll, nblocks
+        integer :: nbelem, ngll, nblocks, i
         !
 
         ngll   = dom%ngll
@@ -79,8 +79,10 @@ contains
         end if
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
-            call allocate_champs_solidpml(dom, 0)
-            call allocate_champs_solidpml(dom, 1)
+            allocate(dom%champs(0:Tdomain%TimeD%nsubsteps))
+            do i=0,Tdomain%TimeD%nsubsteps
+                call allocate_champs_solidpml(dom, i)
+            end do
             allocate(dom%DumpV(0:dom%nglltot,0:1,0:2))
             allocate(dom%DumpMass(0:dom%nglltot,0:2))
             dom%DumpV = 0d0

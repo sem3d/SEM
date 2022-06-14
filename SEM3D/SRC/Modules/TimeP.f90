@@ -17,6 +17,8 @@ module stimeparam
        real(fpp) :: alpha, beta, gamma, duration, Time_snapshots, dtmin, rtime
        integer :: iter_reprise
        integer :: type_timeinteg
+       ! number of (sub)timestep for the integrator needed (0 always contains Field at Tn)
+       integer :: nsubsteps
        integer :: prot_m0, prot_m1, prot_m2
        real(fpp) :: courant, fmax
     end type time

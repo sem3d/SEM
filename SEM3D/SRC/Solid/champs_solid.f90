@@ -60,7 +60,7 @@ module champs_solid
         type(time_mirror_sl) :: mirror_sl
 
         ! Champs
-        type(champssolid), dimension(0:1) :: champs
+        type(champssolid), dimension(:), allocatable :: champs
         ! Attenuation
         integer :: n_sls
 

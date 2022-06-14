@@ -29,7 +29,7 @@ module champs_solidpml
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champssolidpml), dimension(0:1) :: champs
+        type(champssolidpml), dimension(:), allocatable :: champs
 
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress1
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress2
