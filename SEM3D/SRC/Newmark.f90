@@ -15,7 +15,8 @@ module mtimestep
     use constants
     use sdomain
     implicit none
-
+    ! From Berland, 2007 : doi:10.1016/j.compfluid.2005.04.003
+    ! 
     real(fpp), dimension(6), parameter :: LDDRK_beta = (/ &
         0.0_fpp, &
         -0.737101392796_fpp, &
