@@ -48,8 +48,9 @@ MODULE constants
     ! Parametres algorithmes & code
     integer, parameter :: TIME_INTEG_NEWMARK=0
     integer, parameter :: TIME_INTEG_RK4=1
-    integer, parameter :: TIME_INTEG_MIDPOINT=2
-    integer, parameter :: TIME_INTEG_MIDPOINT_ITER=3
+    integer, parameter :: TIME_INTEG_LDDRK64=2
+    integer, parameter :: TIME_INTEG_MIDPOINT=3
+    integer, parameter :: TIME_INTEG_MIDPOINT_ITER=4
     integer, parameter :: TIME_INTEG_EXPLICIT=0
     integer, parameter :: TIME_INTEG_SEMI_IMPLICIT=1
     integer, parameter :: TIME_INTEG_IMPLICIT=2

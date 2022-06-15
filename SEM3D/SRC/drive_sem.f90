@@ -393,7 +393,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         select case(Tdomain%TimeD%type_timeinteg)
         case (TIME_INTEG_NEWMARK)
             call Newmark(Tdomain, ntime)
-        case (TIME_INTEG_RK4)
+        case (TIME_INTEG_LDDRK64)
             call Timestep_LDDRK(Tdomain, ntime)
         end select
         if (Tdomain%rank==0 .and. mod(ntime,20)==0) then
