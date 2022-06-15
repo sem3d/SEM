@@ -396,6 +396,9 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         case (TIME_INTEG_RK4)
             call Timestep_LDDRK(Tdomain, ntime)
         end select
+        if (Tdomain%rank==0 .and. mod(ntime,20)==0) then
+            print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
+        end if
 
 !---------------------------------------------------------!
     !- logical end of run

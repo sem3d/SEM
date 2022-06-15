@@ -141,8 +141,6 @@ contains
         call Newmark_Corrector_S(Tdomain)
 #endif
 
-        if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
-
         return
     end subroutine Newmark
     !---------------------------------------------------------------------------------------
