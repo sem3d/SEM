@@ -546,6 +546,7 @@ contains
         type(domain_solid_dg), intent (INOUT) :: dom
         integer, intent(in) :: f0
 
+        if (dom%nglltot==0) return
         dom%champs(f0)%Forces = 0d0
     end subroutine lddrk_init_solid_dg
 
@@ -555,6 +556,7 @@ contains
         real(fpp), intent(in) :: cb, cg, dt
         integer :: i, n
 
+        if (dom%nglltot==0) return
         ! Only solid for starters
         do i = 0,2
             do n = 0,dom%nglltot-1
