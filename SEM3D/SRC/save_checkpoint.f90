@@ -495,7 +495,7 @@ contains
 
 #ifndef CPML
         integer(HID_T) :: dset_id
-        integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
+        integer :: n,ngll,idx,i,j,k,l,hdferr,bnum,ee
         real(fpp), allocatable, dimension(:) :: data
         integer(HSIZE_T), dimension(1) :: dims
 
@@ -520,30 +520,12 @@ contains
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,bnum,ee)
-                        data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,bnum,ee)
-                        data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,bnum,ee)
-                        idx = idx + 3
-                        data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,bnum,ee)
-                        data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,bnum,ee)
-                        data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,bnum,ee)
-                        idx = idx + 3
-                        data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,bnum,ee)
-                        data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,bnum,ee)
-                        data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,bnum,ee)
-                        idx = idx + 3
-                        data(idx+ 0) = Tdomain%spmldom%Residual_Stress1_(i,j,k,0,bnum,ee)
-                        data(idx+ 1) = Tdomain%spmldom%Residual_Stress1_(i,j,k,1,bnum,ee)
-                        data(idx+ 2) = Tdomain%spmldom%Residual_Stress1_(i,j,k,2,bnum,ee)
-                        idx = idx + 3
-                        data(idx+ 0) = Tdomain%spmldom%Residual_Stress2_(i,j,k,0,bnum,ee)
-                        data(idx+ 1) = Tdomain%spmldom%Residual_Stress2_(i,j,k,1,bnum,ee)
-                        data(idx+ 2) = Tdomain%spmldom%Residual_Stress2_(i,j,k,2,bnum,ee)
-                        idx = idx + 3
-                        data(idx+ 0) = Tdomain%spmldom%Residual_Stress3_(i,j,k,0,bnum,ee)
-                        data(idx+ 1) = Tdomain%spmldom%Residual_Stress3_(i,j,k,1,bnum,ee)
-                        data(idx+ 2) = Tdomain%spmldom%Residual_Stress3_(i,j,k,2,bnum,ee)
-                        idx = idx + 3
+                        do l=0,5
+                            data(idx+l+ 0) = Tdomain%spmldom%Stress1_(i,j,k,l,bnum,ee)
+                            data(idx+l+ 6) = Tdomain%spmldom%Stress2_(i,j,k,l,bnum,ee)
+                            data(idx+l+12) = Tdomain%spmldom%Stress3_(i,j,k,l,bnum,ee)
+                        end do
+                        idx = idx + 18
                     enddo
                 enddo
             enddo

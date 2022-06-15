@@ -31,14 +31,10 @@ module champs_solidpml
         ! Champs
         type(champssolidpml), dimension(:), allocatable :: champs
 
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress1
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress2
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress3
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Residual_Stress1
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Residual_Stress2
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Residual_Stress3
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Residual_Stress
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Stress1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Stress2
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Stress3
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Stress
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSx
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSy
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSz

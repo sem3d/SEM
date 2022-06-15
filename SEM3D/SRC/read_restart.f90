@@ -138,7 +138,7 @@ contains
 #ifndef CPML
         real(fpp), allocatable, dimension(:) :: stress
         integer :: idx, ngll, bnum, ee
-        integer :: n, i, j, k
+        integer :: n, i, j, k, l
         integer :: n_solid
 
         call read_dset_1d_real(elem_id, "Stress", stress)
@@ -153,30 +153,12 @@ contains
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
-                        Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,bnum,ee) = stress(idx+0)
-                        Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,bnum,ee) = stress(idx+1)
-                        Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,bnum,ee) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,bnum,ee) = stress(idx+0)
-                        Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,bnum,ee) = stress(idx+1)
-                        Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,bnum,ee) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,bnum,ee) = stress(idx+0)
-                        Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,bnum,ee) = stress(idx+1)
-                        Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,bnum,ee) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%spmldom%Residual_Stress1_(i,j,k,0,bnum,ee) = stress(idx+0)
-                        Tdomain%spmldom%Residual_Stress1_(i,j,k,1,bnum,ee) = stress(idx+1)
-                        Tdomain%spmldom%Residual_Stress1_(i,j,k,2,bnum,ee) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%spmldom%Residual_Stress2_(i,j,k,0,bnum,ee) = stress(idx+0)
-                        Tdomain%spmldom%Residual_Stress2_(i,j,k,1,bnum,ee) = stress(idx+1)
-                        Tdomain%spmldom%Residual_Stress2_(i,j,k,2,bnum,ee) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%spmldom%Residual_Stress3_(i,j,k,0,bnum,ee) = stress(idx+0)
-                        Tdomain%spmldom%Residual_Stress3_(i,j,k,1,bnum,ee) = stress(idx+1)
-                        Tdomain%spmldom%Residual_Stress3_(i,j,k,2,bnum,ee) = stress(idx+2)
-                        idx = idx + 3
+                        do l=0,5
+                            Tdomain%spmldom%Stress1_(i,j,k,l,bnum,ee) = stress(idx+ 0+l)
+                            Tdomain%spmldom%Stress2_(i,j,k,l,bnum,ee) = stress(idx+ 6+l)
+                            Tdomain%spmldom%Stress3_(i,j,k,l,bnum,ee) = stress(idx+12+l)
+                        end do
+                        idx = idx + 18
                     end do
                 end do
             end do

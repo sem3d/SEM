@@ -53,22 +53,14 @@ contains
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1,0:VCHUNK-1))
 
             if(Tdomain%TimeD%velocity_scheme)then
-                allocate(dom%Diagonal_Stress_ (0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-                allocate(dom%Diagonal_Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-                allocate(dom%Diagonal_Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-                allocate(dom%Diagonal_Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-                allocate(dom%Residual_Stress_ (0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-                allocate(dom%Residual_Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-                allocate(dom%Residual_Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-                allocate(dom%Residual_Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-                dom%Diagonal_Stress_ (:,:,:,:,:,:) = 0d0
-                dom%Diagonal_Stress1_(:,:,:,:,:,:) = 0d0
-                dom%Diagonal_Stress2_(:,:,:,:,:,:) = 0d0
-                dom%Diagonal_Stress3_(:,:,:,:,:,:) = 0d0
-                dom%Residual_Stress_ (:,:,:,:,:,:) = 0d0
-                dom%Residual_Stress1_(:,:,:,:,:,:) = 0d0
-                dom%Residual_Stress2_(:,:,:,:,:,:) = 0d0
-                dom%Residual_Stress3_(:,:,:,:,:,:) = 0d0
+                allocate(dom%Stress_ (0:ngll-1,0:ngll-1,0:ngll-1,0:5,0:nblocks-1,0:VCHUNK-1))
+                allocate(dom%Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:5,0:nblocks-1,0:VCHUNK-1))
+                allocate(dom%Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:5,0:nblocks-1,0:VCHUNK-1))
+                allocate(dom%Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:5,0:nblocks-1,0:VCHUNK-1))
+                dom%Stress_ (:,:,:,:,:,:) = 0d0
+                dom%Stress1_(:,:,:,:,:,:) = 0d0
+                dom%Stress2_(:,:,:,:,:,:) = 0d0
+                dom%Stress3_(:,:,:,:,:,:) = 0d0
                 allocate(dom%PMLDumpSx_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nblocks-1,0:VCHUNK-1))
                 allocate(dom%PMLDumpSy_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nblocks-1,0:VCHUNK-1))
                 allocate(dom%PMLDumpSz_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nblocks-1,0:VCHUNK-1))
@@ -101,14 +93,10 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
-        if(allocated(dom%m_Diagonal_Stress )) deallocate(dom%m_Diagonal_Stress )
-        if(allocated(dom%m_Diagonal_Stress1)) deallocate(dom%m_Diagonal_Stress1)
-        if(allocated(dom%m_Diagonal_Stress2)) deallocate(dom%m_Diagonal_Stress2)
-        if(allocated(dom%m_Diagonal_Stress3)) deallocate(dom%m_Diagonal_Stress3)
-        if(allocated(dom%m_Residual_Stress )) deallocate(dom%m_Residual_Stress )
-        if(allocated(dom%m_Residual_Stress1)) deallocate(dom%m_Residual_Stress1)
-        if(allocated(dom%m_Residual_Stress2)) deallocate(dom%m_Residual_Stress2)
-        if(allocated(dom%m_Residual_Stress3)) deallocate(dom%m_Residual_Stress3)
+        if(allocated(dom%m_Stress )) deallocate(dom%m_Stress )
+        if(allocated(dom%m_Stress1)) deallocate(dom%m_Stress1)
+        if(allocated(dom%m_Stress2)) deallocate(dom%m_Stress2)
+        if(allocated(dom%m_Stress3)) deallocate(dom%m_Stress3)
         if(allocated(dom%m_PMLDumpSx  ))      deallocate(dom%m_PMLDumpSx  )
         if(allocated(dom%m_PMLDumpSy  ))      deallocate(dom%m_PMLDumpSy  )
         if(allocated(dom%m_PMLDumpSz  ))      deallocate(dom%m_PMLDumpSz  )
@@ -253,13 +241,13 @@ contains
         select case(dom%ngll)
         case(5)
             call forces_int_sol_pml_5(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                dom%m_Diagonal_Stress, dom%m_Residual_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+                dom%m_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
         case(6)
             call forces_int_sol_pml_6(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                dom%m_Diagonal_Stress, dom%m_Residual_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+                dom%m_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
          case default
             call forces_int_sol_pml_n(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                dom%m_Diagonal_Stress, dom%m_Residual_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+                dom%m_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
         end select
 
     end subroutine forces_int_sol_pml
@@ -336,57 +324,54 @@ contains
                     dumpsz0 = dom%PMLDumpSz_(i,j,k,0,bnum,ee)
                     dumpsz1 = dom%PMLDumpSz_(i,j,k,1,bnum,ee)
                     ! Stress_xx
-                    dom%Diagonal_Stress1_(i,j,k,0,bnum,ee) = dumpsx0*dom%Diagonal_Stress1_(i,j,k,0,bnum,ee) + &
+                    dom%Stress1_(i,j,k,0,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,0,bnum,ee) + &
                                                        dumpsx1*Dt*(lambda+2*mu)*dVx_dx
-                    dom%Diagonal_Stress2_(i,j,k,0,bnum,ee) = dumpsy0*dom%Diagonal_Stress2_(i,j,k,0,bnum,ee) + &
+                    dom%Stress2_(i,j,k,0,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,0,bnum,ee) + &
                                                        dumpsy1*Dt*(lambda)*dVy_dy
-                    dom%Diagonal_Stress3_(i,j,k,0,bnum,ee) = dumpsz0*dom%Diagonal_Stress3_(i,j,k,0,bnum,ee) + &
+                    dom%Stress3_(i,j,k,0,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,0,bnum,ee) + &
                                                        dumpsz1*Dt*(lambda)*dVz_dz
 
                     ! Stress_yy
-                    dom%Diagonal_Stress1_(i,j,k,1,bnum,ee) = dumpsx0*dom%Diagonal_Stress1_(i,j,k,1,bnum,ee) + &
+                    dom%Stress1_(i,j,k,1,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,1,bnum,ee) + &
                                                        dumpsx1*Dt*(lambda)*dVx_dx
-                    dom%Diagonal_Stress2_(i,j,k,1,bnum,ee) = dumpsy0*dom%Diagonal_Stress2_(i,j,k,1,bnum,ee) + &
+                    dom%Stress2_(i,j,k,1,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,1,bnum,ee) + &
                                                        dumpsy1*Dt*(lambda+2*mu)*dVy_dy
-                    dom%Diagonal_Stress3_(i,j,k,1,bnum,ee) = dumpsz0*dom%Diagonal_Stress3_(i,j,k,1,bnum,ee) + &
+                    dom%Stress3_(i,j,k,1,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,1,bnum,ee) + &
                                                        dumpsz1*Dt*(lambda)*dVz_dz
 
                     ! Stress_zz
-                    dom%Diagonal_Stress1_(i,j,k,2,bnum,ee) = dumpsx0*dom%Diagonal_Stress1_(i,j,k,2,bnum,ee) + &
+                    dom%Stress1_(i,j,k,2,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,2,bnum,ee) + &
                                                        dumpsx1*Dt*(lambda)*dVx_dx
-                    dom%Diagonal_Stress2_(i,j,k,2,bnum,ee) = dumpsy0*dom%Diagonal_Stress2_(i,j,k,2,bnum,ee) + &
+                    dom%Stress2_(i,j,k,2,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,2,bnum,ee) + &
                                                        dumpsy1*Dt*(lambda)*dVy_dy
-                    dom%Diagonal_Stress3_(i,j,k,2,bnum,ee) = dumpsz0*dom%Diagonal_Stress3_(i,j,k,2,bnum,ee) + &
+                    dom%Stress3_(i,j,k,2,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,2,bnum,ee) + &
                                                        dumpsz1*Dt*(lambda+2*mu)*dVz_dz
 
-                    dom%Diagonal_Stress_(i,j,k,:,bnum,ee) = dom%Diagonal_Stress1_(i,j,k,:,bnum,ee) + &
-                                                      dom%Diagonal_Stress2_(i,j,k,:,bnum,ee) + &
-                                                      dom%Diagonal_Stress3_(i,j,k,:,bnum,ee)
-
                     ! Stress_xy
-                    dom%Residual_Stress1_(i,j,k,0,bnum,ee) = dumpsx0*dom%Residual_Stress1_(i,j,k,0,bnum,ee) + &
+                    dom%Stress1_(i,j,k,3,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,3,bnum,ee) + &
                                                        dumpsx1*Dt*(mu)*dVy_dx
-                    dom%Residual_Stress2_(i,j,k,0,bnum,ee) = dumpsy0*dom%Residual_Stress2_(i,j,k,0,bnum,ee) + &
+                    dom%Stress2_(i,j,k,3,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,3,bnum,ee) + &
                                                        dumpsy1*Dt*(mu)*dVx_dy
-                    dom%Residual_Stress3_(i,j,k,0,bnum,ee) = dumpsz0*dom%Residual_Stress3_(i,j,k,0,bnum,ee)
+                    dom%Stress3_(i,j,k,3,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,3,bnum,ee)
 
                     ! Stress_xz
-                    dom%Residual_Stress1_ (i,j,k,1,bnum,ee) = dumpsx0*dom%Residual_Stress1_(i,j,k,1,bnum,ee) + &
+                    dom%Stress1_ (i,j,k,4,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,4,bnum,ee) + &
                                                         dumpsx1*Dt*(mu)*dVz_dx
-                    dom%Residual_Stress2_ (i,j,k,1,bnum,ee) = dumpsy0*dom%Residual_Stress2_(i,j,k,1,bnum,ee)
-                    dom%Residual_Stress3_ (i,j,k,1,bnum,ee) = dumpsz0*dom%Residual_Stress3_(i,j,k,1,bnum,ee) + &
+                    dom%Stress2_ (i,j,k,4,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,4,bnum,ee)
+                    dom%Stress3_ (i,j,k,4,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,4,bnum,ee) + &
                                                         dumpsz1*Dt*(mu)*dVx_dz
 
                     ! Stress_yz
-                    dom%Residual_Stress1_ (i,j,k,2,bnum,ee) = dumpsx0*dom%Residual_Stress1_(i,j,k,2,bnum,ee)
-                    dom%Residual_Stress2_ (i,j,k,2,bnum,ee) = dumpsy0*dom%Residual_Stress2_(i,j,k,2,bnum,ee) + &
+                    dom%Stress1_ (i,j,k,5,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,5,bnum,ee)
+                    dom%Stress2_ (i,j,k,5,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,5,bnum,ee) + &
                                                         dumpsy1*Dt*(mu)*dVz_dy
-                    dom%Residual_Stress3_ (i,j,k,2,bnum,ee) = dumpsz0*dom%Residual_Stress3_(i,j,k,2,bnum,ee) + &
+                    dom%Stress3_ (i,j,k,5,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,5,bnum,ee) + &
                                                         dumpsz1*Dt*(mu)*dVy_dz
 
-                    dom%Residual_Stress_(i,j,k,:,bnum,ee) = dom%Residual_Stress1_(i,j,k,:,bnum,ee) + &
-                                                      dom%Residual_Stress2_(i,j,k,:,bnum,ee) + &
-                                                      dom%Residual_Stress3_(i,j,k,:,bnum,ee)
+                    dom%Stress_(i,j,k,:,bnum,ee) = dom%Stress1_(i,j,k,:,bnum,ee) + &
+                        dom%Stress2_(i,j,k,:,bnum,ee) + &
+                        dom%Stress3_(i,j,k,:,bnum,ee)
+
                     END_SUBELEM_LOOP()
                 enddo
             enddo
