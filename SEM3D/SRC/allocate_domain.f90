@@ -38,6 +38,11 @@ subroutine allocate_domain (Tdomain)
         write(*,*) "Tdomain%any_spml = ", Tdomain%any_spml
         write(*,*) "Tdomain%any_fpml = ", Tdomain%any_fpml
     end if
+    allocate(Tdomain%sdom     %champs(0:Tdomain%TimeD%nsubsteps))
+    allocate(Tdomain%sdomdg   %champs(0:Tdomain%TimeD%nsubsteps))
+    allocate(Tdomain%spmldom  %champs(0:Tdomain%TimeD%nsubsteps))
+    allocate(Tdomain%fdom     %champs(0:Tdomain%TimeD%nsubsteps))
+    allocate(Tdomain%fpmldom  %champs(0:Tdomain%TimeD%nsubsteps))
     if(Tdomain%any_sdom)   call allocate_dom_solid   (Tdomain, Tdomain%sdom)
     if(Tdomain%any_sdomdg) call allocate_dom_solid_dg(Tdomain, Tdomain%sdomdg)
     if(Tdomain%any_fdom)   call allocate_dom_fluid   (Tdomain, Tdomain%fdom)

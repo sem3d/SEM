@@ -36,7 +36,7 @@ contains
         type(domain) :: TDomain
         type(domain_solid_dg), intent (INOUT) :: dom
         !
-        integer :: nbelem, nblocks, ngll
+        integer :: nbelem, nblocks, ngll, i
         !
 
         ngll    = dom%ngll
@@ -60,8 +60,9 @@ contains
         call compute_trace_numbering(Tdomain, dom)
         ! Allocation et initialisation de champs0 et champs1 pour les solides
         if (dom%nglltot /= 0) then
-            call allocate_champs_solid_dg(dom, 0)
-            call allocate_champs_solid_dg(dom, 1)
+            do i=0,Tdomain%TimeD%nsubsteps
+                call allocate_champs_solid_dg(dom, i)
+            end do
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid DG domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid_dg

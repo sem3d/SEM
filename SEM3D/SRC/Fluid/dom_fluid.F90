@@ -56,7 +56,6 @@ contains
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs(0:Tdomain%TimeD%nsubsteps))
             do i=0,Tdomain%TimeD%nsubsteps
                 call allocate_champs_fluid(dom, i)
             end do

@@ -32,7 +32,7 @@ module champs_solid_dg
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
 
         ! Champs
-        type(champssolid_dg), dimension(0:1) :: champs
+        type(champssolid_dg), dimension(:), allocatable :: champs
 
         ! VCHUNK,F,N,EB) : N: 0:
         ! N:
