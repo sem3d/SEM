@@ -454,12 +454,13 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
     ngll     = domain_ngll(Tdomain, dom0)
     ngll1    = domain_ngll(Tdomain, dom1)
 
-    if (ngll1/=ngll) then
+    allocate(renum0(0:nglltot0-1))
+    allocate(renum1(0:nglltot1-1))
+
+    if (ngll1/=ngll .and. inter%surf0%nbtot>0) then
         write(*,*) "Error incompatible domains ", dom0, ngll, dom1, ngll1
         stop 1
     end if
-    allocate(renum0(0:nglltot0-1))
-    allocate(renum1(0:nglltot1-1))
 
     do i=0,inter%surf0%nbtot-1
         idx = inter%surf0%map(i)
