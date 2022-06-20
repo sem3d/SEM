@@ -448,7 +448,6 @@ contains
         if (Tdomain%spmldom%nbelem>0) then
             call stat_starttick(STAT_PSOL)
             do n = 0,Tdomain%spmldom%nblocks-1
-                call pred_sol_pml(Tdomain%spmldom, Tdomain%TimeD%dtmin, Tdomain%spmldom%champs(i1), n)
                 call forces_int_sol_pml(Tdomain%spmldom, Tdomain%spmldom%champs(i1), n, Tdomain)
             end do
             call stat_stoptick(STAT_PSOL)

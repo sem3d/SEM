@@ -53,11 +53,9 @@ contains
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1,0:VCHUNK-1))
 
             if(Tdomain%TimeD%velocity_scheme)then
-                allocate(dom%Stress_ (0:ngll-1,0:ngll-1,0:ngll-1,0:5,0:nblocks-1,0:VCHUNK-1))
                 allocate(dom%Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:5,0:nblocks-1,0:VCHUNK-1))
                 allocate(dom%Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:5,0:nblocks-1,0:VCHUNK-1))
                 allocate(dom%Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:5,0:nblocks-1,0:VCHUNK-1))
-                dom%Stress_ (:,:,:,:,:,:) = 0d0
                 dom%Stress1_(:,:,:,:,:,:) = 0d0
                 dom%Stress2_(:,:,:,:,:,:) = 0d0
                 dom%Stress3_(:,:,:,:,:,:) = 0d0
@@ -93,7 +91,6 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
-        if(allocated(dom%m_Stress )) deallocate(dom%m_Stress )
         if(allocated(dom%m_Stress1)) deallocate(dom%m_Stress1)
         if(allocated(dom%m_Stress2)) deallocate(dom%m_Stress2)
         if(allocated(dom%m_Stress3)) deallocate(dom%m_Stress3)
@@ -197,6 +194,7 @@ contains
         type(domain_solidpml), intent(inout) :: dom
         !
         ! TODO : useless, kill this method, needed for build compatibility SolidPML / SolidCPML
+        dom%dt = Tdomain%TimeD%dtmin
     end subroutine init_domain_solidpml
 
     subroutine init_material_properties_solidpml(dom, lnum, mat, density, lambda, mu)
@@ -238,16 +236,19 @@ contains
         integer :: bnum
         type (domain), intent (INOUT), target :: Tdomain ! Needed for compilation compatibility with SolidCPML
         !
+        real(fpp), dimension (0:VCHUNK-1,0:5,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Stress
+        !
+        call pred_sol_pml(dom, dom%dt, champs1, bnum, Stress)
         select case(dom%ngll)
         case(5)
             call forces_int_sol_pml_5(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                dom%m_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+                Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
         case(6)
             call forces_int_sol_pml_6(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                dom%m_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+                Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
          case default
             call forces_int_sol_pml_n(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                dom%m_Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+                Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
         end select
 
     end subroutine forces_int_sol_pml
@@ -266,11 +267,12 @@ contains
 #include "calcul_forces_int_pml.inc"
 
 
-    subroutine pred_sol_pml(dom, dt, champs1, bnum)
+    subroutine pred_sol_pml(dom, dt, champs1, bnum, Stress)
         implicit none
 
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
+        real(fpp), intent(out), dimension (0:VCHUNK-1,0:5,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Stress
         real(fpp), intent(in) :: dt
         integer :: bnum
         !
@@ -368,7 +370,7 @@ contains
                     dom%Stress3_ (i,j,k,5,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,5,bnum,ee) + &
                                                         dumpsz1*Dt*(mu)*dVy_dz
 
-                    dom%Stress_(i,j,k,:,bnum,ee) = dom%Stress1_(i,j,k,:,bnum,ee) + &
+                    Stress(ee,:,i,j,k) = dom%Stress1_(i,j,k,:,bnum,ee) + &
                         dom%Stress2_(i,j,k,:,bnum,ee) + &
                         dom%Stress3_(i,j,k,:,bnum,ee)
 

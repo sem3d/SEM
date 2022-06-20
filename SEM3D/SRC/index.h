@@ -111,7 +111,6 @@
 #define         Stress1_(i,j,k,n,eb,ec)         m_Stress1(IND_IJKNE(i,j,k,n,eb,ec))
 #define         Stress2_(i,j,k,n,eb,ec)         m_Stress2(IND_IJKNE(i,j,k,n,eb,ec))
 #define         Stress3_(i,j,k,n,eb,ec)         m_Stress3(IND_IJKNE(i,j,k,n,eb,ec))
-#define          Stress_(i,j,k,n,eb,ec)         m_Stress (IND_IJKNE(i,j,k,n,eb,ec))
 #define        PMLDumpSx_(i,j,k,n,eb,ec)        m_PMLDumpSx(IND_IJKNE(i,j,k,n,eb,ec))
 #define        PMLDumpSy_(i,j,k,n,eb,ec)        m_PMLDumpSy(IND_IJKNE(i,j,k,n,eb,ec))
 #define        PMLDumpSz_(i,j,k,n,eb,ec)        m_PMLDumpSz(IND_IJKNE(i,j,k,n,eb,ec))

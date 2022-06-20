@@ -34,7 +34,6 @@ module champs_solidpml
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Stress1
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Stress2
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Stress3
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Stress
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSx
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSy
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSz
