@@ -163,6 +163,9 @@ contains
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                     Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
 
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%champs(f1)%Veloc, k)
+
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
@@ -200,6 +203,9 @@ contains
                 k = 0
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                     Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
+
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%champs(f1)%Veloc, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then

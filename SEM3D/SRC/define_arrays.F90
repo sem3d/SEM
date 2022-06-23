@@ -324,6 +324,9 @@ contains
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                     Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%MassMat, k)
 
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%MassMat, k)
+
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
 #ifndef CPML
@@ -370,6 +373,9 @@ contains
                 k = 0
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                     Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%MassMat, k)
+
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%MassMat, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then

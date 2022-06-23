@@ -760,6 +760,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         Comm_data%Data(n_comm)%ncomm = n
         Comm_data%Data(n_comm)%ndata = n_data
         Comm_data%Data(n_comm)%nsol = nsol
+        Comm_data%Data(n_comm)%nsoldg = nsoldg
         Comm_data%Data(n_comm)%nsolpml = nsolpml
         Comm_data%Data(n_comm)%nflu = nflu
         Comm_data%Data(n_comm)%nflupml = nflupml
