@@ -323,11 +323,11 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         do j = 0,2
 #ifdef CPML
             ! Le potentiel Phi est tel que d2Phi/dt2 = -p
-            Tdomain%sdom%champs(f1)%Forces(idxS,j) = Tdomain%sdom%champs(f1)%Forces(idxS,j) &
+            Tdomain%sdom%champs(f1)%Veloc(idxS,j) = Tdomain%sdom%champs(f1)%Veloc(idxS,j) &
                                                      - (BtN(j) * Tdomain%fdom%champs(f0)%ForcesFl(idxF))
 #else
             ! Le potentiel Phi est tel que dPhi/dt = -p
-            Tdomain%sdom%champs(f1)%Forces(idxS,j) = Tdomain%sdom%champs(f1)%Forces(idxS,j) &
+            Tdomain%sdom%champs(f1)%Veloc(idxS,j) = Tdomain%sdom%champs(f1)%Veloc(idxS,j) &
                                                      - (BtN(j) * Tdomain%fdom%champs(f0)%VelPhi(idxF))
 #endif
         enddo

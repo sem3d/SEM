@@ -180,7 +180,7 @@ contains
 
             select case (surf_norm%domain)
             case (DM_SOLID_CG)
-                Tdomain%sdom%champs(f1)%Forces(idx,:) = Tdomain%sdom%champs(f1)%Forces(idx,:) + force
+                Tdomain%sdom%champs(f1)%Veloc(idx,:) = Tdomain%sdom%champs(f1)%Veloc(idx,:) + force
             case (DM_FLUID_CG)
 
             case default

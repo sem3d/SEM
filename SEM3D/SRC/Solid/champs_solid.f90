@@ -18,12 +18,9 @@ module champs_solid
     end type PWfield
 
     type :: champssolid
-
         !! Solide
-        real(fpp), dimension(:,:), allocatable :: Forces
         real(fpp), dimension(:,:), allocatable :: Depla
         real(fpp), dimension(:,:), allocatable :: Veloc
-
     end type champssolid
 
     type :: lmc_param ! LAMAITRE & CHABOCHE NONLINEAR PARAMETERS

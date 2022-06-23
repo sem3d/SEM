@@ -17,11 +17,9 @@ contains
 
         ! Allocate ONE more gll than necessary to use as a dummy target for
         ! indirections for fake elements.
-        allocate(dom%champs(i)%Forces(0:dom%nglltot,0:2))
         allocate(dom%champs(i)%Depla (0:dom%nglltot,0:2))
         allocate(dom%champs(i)%Veloc (0:dom%nglltot,0:2))
 
-        dom%champs(i)%Forces = 0d0
         dom%champs(i)%Depla = 0d0
         dom%champs(i)%Veloc = 0d0
     end subroutine allocate_champs_solid
@@ -167,8 +165,7 @@ contains
         if(allocated(dom%m_R_xz           )) deallocate (dom%m_R_xz           )
         if(allocated(dom%m_R_yz           )) deallocate (dom%m_R_yz           )
 
-        do i=0,1
-            if(allocated(dom%champs(i)%Forces)) deallocate(dom%champs(i)%Forces)
+        do i=0,size(dom%champs)-1
             if(allocated(dom%champs(i)%Depla )) deallocate(dom%champs(i)%Depla )
             if(allocated(dom%champs(i)%Veloc )) deallocate(dom%champs(i)%Veloc )
         end do
@@ -354,7 +351,7 @@ contains
                         end if
                     end if
                     if (out_variables(OUT_VITESSE) == 1) fieldV(i,j,k,:) = dom%champs(0)%Veloc(ind,:)
-                    if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs(0)%Forces(ind,:)
+                    if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs(1)%Veloc(ind,:)
                     if (flag_gradU .and. .not. nl_flag) then
                         ! PRESSION
                         if (out_variables(OUT_PRESSION) == 1) then
@@ -724,13 +721,14 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
 
-    subroutine forces_int_solid(dom, champs1, bnum, nl_flag)
+    subroutine forces_int_solid(dom, var, dvdt, bnum, nl_flag)
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
 
         type(domain_solid), intent (INOUT) :: dom
-        type(champssolid), intent(inout) :: champs1
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
         integer, intent(in) :: bnum
         !
         logical,    intent(in) :: nl_flag
@@ -753,7 +751,7 @@ contains
                         do i = 0,ngll-1
                             do ee = 0, VCHUNK-1
                                 idx = dom%Idom_(i,j,k,bnum,ee)
-                                Depla(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
+                                Depla(ee,i,j,k,i_dir) = var%Veloc(idx,i_dir)
                             enddo
                         enddo
                     enddo
@@ -767,7 +765,7 @@ contains
                         do i = 0,ngll-1
                             do ee = 0, VCHUNK-1
                                 idx = dom%Idom_(i,j,k,bnum,ee)
-                                Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                                Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
                             enddo
                         enddo
                     enddo
@@ -806,23 +804,24 @@ contains
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
                     enddo
                enddo
             enddo
         enddo
     end subroutine forces_int_solid
 
-    subroutine forces_int_solid_mirror_dump(dom,champs1,bnum)
+    subroutine forces_int_solid_mirror_dump(dom,var,dvdt,bnum)
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
         use sdomain
         !
         type(domain_solid),intent(inout) :: dom
-        type(champssolid),intent(inout) :: champs1
+        type(champssolid),intent(inout) :: var
+        type(champssolid),intent(inout) :: dvdt
         integer,intent(in) :: bnum
         logical :: aniso
         integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
@@ -842,8 +841,8 @@ contains
                         do ee = 0,VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(ee+lnum,i,j,k)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
-                            Veloc(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
+                            Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
+                            Veloc(ee,i,j,k,i_dir) = var%Veloc(idx,i_dir)
                             if (idx_m>0) then
                                 dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
                                 dom%mirror_sl%fields(i_dir+7,idx_m) = Veloc(ee,i,j,k,i_dir)
@@ -881,9 +880,9 @@ contains
                             dom%mirror_sl%fields(5,idx_m) = Foy(ee,i,j,k)
                             dom%mirror_sl%fields(6,idx_m) = Foz(ee,i,j,k)
                         endif
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -891,13 +890,14 @@ contains
     end subroutine forces_int_solid_mirror_dump
 
 
-    subroutine forces_int_solid_mirror_dump_expl(dom,champs1,bnum)
+    subroutine forces_int_solid_mirror_dump_expl(dom,var, dvdt, bnum)
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
 
         type(domain_solid),intent(inout) :: dom
-        type(champssolid),intent(inout) :: champs1
+        type(champssolid),intent(in) :: var
+        type(champssolid),intent(inout) :: dvdt
         integer,intent(in) :: bnum
         logical :: aniso
         integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
@@ -917,7 +917,7 @@ contains
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
                             if (idx_m>=0) dom%mirror_sl%fields(i_dir+1,idx_m) = Depla(ee,i,j,k,i_dir)
                         enddo
                     enddo
@@ -947,9 +947,9 @@ contains
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -982,9 +982,9 @@ contains
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
                         if (idx_m>=0) then
-                            Depla(ee,i,j,k,0) = champs1%Depla(idx,0)*dom%mirror_sl%winfunc(idx_m)
-                            Depla(ee,i,j,k,1) = champs1%Depla(idx,1)*dom%mirror_sl%winfunc(idx_m)
-                            Depla(ee,i,j,k,2) = champs1%Depla(idx,2)*dom%mirror_sl%winfunc(idx_m)
+                            Depla(ee,i,j,k,0) = var%Depla(idx,0)*dom%mirror_sl%winfunc(idx_m)
+                            Depla(ee,i,j,k,1) = var%Depla(idx,1)*dom%mirror_sl%winfunc(idx_m)
+                            Depla(ee,i,j,k,2) = var%Depla(idx,2)*dom%mirror_sl%winfunc(idx_m)
                         endif
                     enddo
                 enddo
@@ -1029,13 +1029,14 @@ contains
     end subroutine forces_int_solid_mirror_dump_expl
 
 
-    subroutine forces_int_solid_mirror_load(dom,champs1,bnum)
+    subroutine forces_int_solid_mirror_load(dom, var, dvdt, bnum)
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
 
         type(domain_solid),intent(inout) :: dom
-        type(champssolid),intent(inout) :: champs1
+        type(champssolid),intent(in)     :: var
+        type(champssolid),intent(inout)  :: dvdt
         integer,intent(in) :: bnum
         logical :: aniso
         integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
@@ -1054,7 +1055,7 @@ contains
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
                             !Veloc(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
                             if (idx_m>0)then
                                 Depla(ee,i,j,k,i_dir) = Depla(ee,i,j,k,i_dir) &
@@ -1099,9 +1100,9 @@ contains
                             Foy(ee,i,j,k) = Foy(ee,i,j,k)-dom%mirror_sl%fields(5,idx_m)*dom%mirror_sl%winfunc(idx_m)
                             Foz(ee,i,j,k) = Foz(ee,i,j,k)-dom%mirror_sl%fields(6,idx_m)*dom%mirror_sl%winfunc(idx_m)
                         endif
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -1110,13 +1111,14 @@ contains
     end subroutine forces_int_solid_mirror_load
 
 
-    subroutine forces_int_solid_mirror_load_expl(dom,champs1,bnum)
+    subroutine forces_int_solid_mirror_load_expl(dom,var, dvdt, bnum)
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
 
         type(domain_solid),intent(inout) :: dom
-        type(champssolid),intent(inout) :: champs1
+        type(champssolid),intent(in) :: var
+        type(champssolid),intent(inout) :: dvdt
         integer,intent(in) :: bnum
         logical :: aniso
         integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
@@ -1135,7 +1137,7 @@ contains
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
                         enddo
                     enddo
                 enddo
@@ -1171,9 +1173,9 @@ contains
                             Foy(ee,i,j,k) = Foy(ee,i,j,k)+dom%mirror_sl%fields(5,idx_m)
                             Foz(ee,i,j,k) = Foz(ee,i,j,k)+dom%mirror_sl%fields(6,idx_m)
                         endif
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -1182,13 +1184,14 @@ contains
     end subroutine forces_int_solid_mirror_load_expl
 
 
-    subroutine forces_int_solid_mirror_load_recalc(dom,champs1,bnum)
+    subroutine forces_int_solid_mirror_load_recalc(dom,var,dvdt,bnum)
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
 
         type(domain_solid),intent(inout) :: dom
-        type(champssolid),intent(inout) :: champs1
+        type(champssolid),intent(in) :: var
+        type(champssolid),intent(inout) :: dvdt
         integer,intent(in) :: bnum
         logical :: aniso
         integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
@@ -1208,7 +1211,7 @@ contains
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
                         enddo
                     enddo
                 enddo
@@ -1321,9 +1324,9 @@ contains
                             Foy(ee,i,j,k) = Foy(ee,i,j,k)+Foy_m(ee,i,j,k)
                             Foz(ee,i,j,k) = Foz(ee,i,j,k)+Foz_m(ee,i,j,k)
                         endif
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -1334,67 +1337,67 @@ contains
 
 
 
-    ! XXX WTF?
-    subroutine compute_planeW_Exafield(lnum,ctime,Tdomain,f)
-        use sdomain
-        use Surface_prbl_type
-
-        implicit none
-        type(domain),            intent(inout) :: Tdomain
-        real(fpp),               intent(in  )  :: ctime
-        integer,                 intent(in   ) :: lnum
-        integer,                 intent(in)    :: f
-        !
-        real(fpp), dimension(0:2):: coord, displ, veloc, accel
-        real(fpp)                :: PWspeed
-        character(len=20)           :: char
-        integer                     :: ns, im, i, j, k, dom, ipw, ngll
-        integer                     :: bnum, ee, ind, ss
-
-        bnum = lnum/VCHUNK
-        ee = mod(lnum,VCHUNK)
-
-        do ns=1,size(Tdomain%list_PWBC)
-            ipw     = Tdomain%list_PWBC(ns)
-            im      = Tdomain%nsurfsource(ipw)%mat_index
-            dom     = Tdomain%sSubDomain(im)%dom
-            ngll     = Tdomain%sSubDomain(im)%NGLL
-            write(char,*) Tdomain%nsurfsource(ipw)%index(1)
-
-            do ss=0,size(Tdomain%sSurfaces)-1
-                if (Tdomain%sSurfaces(ss)%name=="surface"//adjustl(char(:len_trim(char)))) &
-                    exit
-            end do
-            PWspeed = Tdomain%sSurfaces(ss)%Elastic%PWspeed
-            select case (dom)
-            case (DM_SOLID_CG)
-                ngll     = Tdomain%sdom%ngll
-                do k=0,ngll-1
-                    do j=0,ngll-1
-                        do i=0,ngll-1
-                            ind = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
-                            coord = Tdomain%GlobCoord(:,ind)-Tdomain%nsurfsource(ipw)%scoord(:)
-                            call PlaneWavedispl(Tdomain%nsurfsource(ipw),coord,ctime,PWspeed, displ,veloc,accel)
-                            Tdomain%sdom%champs(f)%Depla(ind,:)  = Tdomain%sdom%champs(f)%Depla(ind,:) + displ
-                            Tdomain%sdom%champs(f)%Veloc(ind,:)  = Tdomain%sdom%champs(f)%Veloc(ind,:) + veloc
-                            Tdomain%sdom%champs(f)%Forces(ind,:) = Tdomain%sdom%champs(f)%Forces(ind,:) + accel
-                        enddo
-                    enddo
-                enddo
-            case(DM_FLUID_CG)
-                ! pas encore implémenté
-            end select
-        enddo
-
-    end subroutine compute_planeW_Exafield
+!!    ! XXX WTF?
+!!    subroutine compute_planeW_Exafield(lnum,ctime,Tdomain,f)
+!!        use sdomain
+!!        use Surface_prbl_type
+!!
+!!        implicit none
+!!        type(domain),            intent(inout) :: Tdomain
+!!        real(fpp),               intent(in  )  :: ctime
+!!        integer,                 intent(in   ) :: lnum
+!!        integer,                 intent(in)    :: f
+!!        !
+!!        real(fpp), dimension(0:2):: coord, displ, veloc, accel
+!!        real(fpp)                :: PWspeed
+!!        character(len=20)           :: char
+!!        integer                     :: ns, im, i, j, k, dom, ipw, ngll
+!!        integer                     :: bnum, ee, ind, ss
+!!
+!!        bnum = lnum/VCHUNK
+!!        ee = mod(lnum,VCHUNK)
+!!
+!!        do ns=1,size(Tdomain%list_PWBC)
+!!            ipw     = Tdomain%list_PWBC(ns)
+!!            im      = Tdomain%nsurfsource(ipw)%mat_index
+!!            dom     = Tdomain%sSubDomain(im)%dom
+!!            ngll     = Tdomain%sSubDomain(im)%NGLL
+!!            write(char,*) Tdomain%nsurfsource(ipw)%index(1)
+!!
+!!            do ss=0,size(Tdomain%sSurfaces)-1
+!!                if (Tdomain%sSurfaces(ss)%name=="surface"//adjustl(char(:len_trim(char)))) &
+!!                    exit
+!!            end do
+!!            PWspeed = Tdomain%sSurfaces(ss)%Elastic%PWspeed
+!!            select case (dom)
+!!            case (DM_SOLID_CG)
+!!                ngll     = Tdomain%sdom%ngll
+!!                do k=0,ngll-1
+!!                    do j=0,ngll-1
+!!                        do i=0,ngll-1
+!!                            ind = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
+!!                            coord = Tdomain%GlobCoord(:,ind)-Tdomain%nsurfsource(ipw)%scoord(:)
+!!                            call PlaneWavedispl(Tdomain%nsurfsource(ipw),coord,ctime,PWspeed, displ,veloc,accel)
+!!                            Tdomain%sdom%champs(f)%Depla(ind,:)  = Tdomain%sdom%champs(f)%Depla(ind,:) + displ
+!!                            Tdomain%sdom%champs(f)%Veloc(ind,:)  = Tdomain%sdom%champs(f)%Veloc(ind,:) + veloc
+!!                            Tdomain%sdom%champs(f)%Forces(ind,:) = Tdomain%sdom%champs(f)%Forces(ind,:) + accel
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!            case(DM_FLUID_CG)
+!!                ! pas encore implémenté
+!!            end select
+!!        enddo
+!!
+!!    end subroutine compute_planeW_Exafield
 
     subroutine newmark_predictor_solid(dom, f0, f1)
         type(domain_solid), intent (INOUT) :: dom
         integer :: f0, f1
         !
-        dom%champs(f1)%Depla = dom%champs(f0)%Depla
-        dom%champs(f1)%Veloc = dom%champs(f0)%Veloc
-        dom%champs(f1)%Forces = 0d0
+        !dom%champs(f1)%Depla = dom%champs(f0)%Depla
+        !dom%champs(f1)%Depla = dom%champs(f0)%Veloc
+        dom%champs(f1)%Veloc = 0d0
     end subroutine newmark_predictor_solid
 
     subroutine newmark_corrector_solid(dom, dt, f0, f1)
@@ -1405,14 +1408,14 @@ contains
         integer :: i_dir, n, indpml
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs(f0)%Forces(indpml,:) = 0.
-            !dom%champs(f0)%Veloc(indpml,:) = 0.
+            dom%champs(f1)%Veloc(indpml,:) = 0.
+            !dom%champs(f1)%Depla(indpml,:) = 0.
         enddo
         do i_dir = 0,2
 !$omp simd linear(n)
             do n = 0,dom%nglltot-1
-                dom%champs(f0)%Forces(n,i_dir) = dom%champs(f1)%Forces(n,i_dir) * dom%MassMat(n)
-                dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f0)%Forces(n,i_dir)
+                dom%champs(f1)%Veloc(n,i_dir) = dom%champs(f1)%Veloc(n,i_dir) * dom%MassMat(n)
+                dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f1)%Veloc(n,i_dir)
                 dom%champs(f0)%Depla(n,i_dir) = dom%champs(f0)%Depla(n,i_dir) + dt * dom%champs(f0)%Veloc(n,i_dir)
             end do
         enddo
@@ -1435,24 +1438,27 @@ contains
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: f0
 
-        dom%champs(f0)%Forces = 0d0
+        dom%champs(f0)%Veloc = 0d0 ! XXX
     end subroutine lddrk_init_solid
 
-    subroutine lddrk_update_solid(dom, f0, f1, dt, cb, cg)
+    subroutine lddrk_update_solid(dom, f0, f1, f2, dt, cb, cg)
         type(domain_solid), intent (INOUT) :: dom
-        integer, intent(in) :: f0, f1
+        integer, intent(in) :: f0, f1, f2
         real(fpp), intent(in) :: cb, cg, dt
         integer :: i, n
-
+        ! f2  contains forces computation  ie f2 = dU/dt
+        ! f1 : w(n+1) = cb*w(n) + dt*dU/dt
+        ! f0 : U(n+1) = U(n) + cg*w(n+1)
         ! Only solid for starters
         do i = 0,2
             do n = 0,dom%nglltot-1
-                dom%champs(f0)%Forces(n,i) = dom%champs(f0)%Forces(n,i) * dom%MassMat(n)
-                dom%champs(f1)%Veloc(n,i) = cb*dom%champs(f1)%Veloc(n,i) + dt*dom%champs(f0)%Forces(n,i)
+                dom%champs(f2)%Veloc(n,i) = dom%champs(f2)%Veloc(n,i) * dom%MassMat(n)
+                dom%champs(f1)%Veloc(n,i) = cb*dom%champs(f1)%Veloc(n,i) + dt*dom%champs(f2)%Veloc(n,i)
                 dom%champs(f1)%Depla(n,i) = cb*dom%champs(f1)%Depla(n,i) + dt*dom%champs(f0)%Veloc(n,i)
                 dom%champs(f0)%Depla(n,i) = dom%champs(f0)%Depla(n,i) + cg*dom%champs(f1)%Depla(n,i)
                 dom%champs(f0)%Veloc(n,i) = dom%champs(f0)%Veloc(n,i) + cg*dom%champs(f1)%Veloc(n,i)
             end do
         end do
+        !write(*,*) "V=", dom%champs(f0)%Veloc(1,0)
     end subroutine lddrk_update_solid
 end module dom_solid

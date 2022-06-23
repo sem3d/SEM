@@ -966,9 +966,9 @@ contains
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
                 case (DM_SOLID_CG)
-                    if (Tdomain%sdom%PlaneW%Exist) then
-                        call compute_planeW_Exafield(el%lnum,Tdomain%TimeD%rtime,Tdomain,0)
-                    end if
+!                    if (Tdomain%sdom%PlaneW%Exist) then
+!                        call compute_planeW_Exafield(el%lnum,Tdomain%TimeD%rtime,Tdomain,0)
+!                    end if
                     call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,    &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
                         eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)

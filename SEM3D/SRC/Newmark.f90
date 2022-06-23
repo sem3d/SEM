@@ -56,12 +56,12 @@ contains
             cc = LDDRK_c(i)
             t = t0 + cc*dt
 
-            call lddrk_init_solid(Tdomain%sdom, 0)
+            call lddrk_init_solid(Tdomain%sdom, 2)
             call lddrk_init_solid_dg(Tdomain%sdomdg, 0)
-            call internal_forces(Tdomain, 0, 0, ntime)
-            call external_forces(Tdomain, t, ntime, 0)
-            call comm_forces(Tdomain, 0)
-            call lddrk_update_solid(Tdomain%sdom, 0, 1, dt, cb, cg)
+            call internal_forces(Tdomain, 0, 2, ntime)
+            call external_forces(Tdomain, t, ntime, 2)
+            call comm_forces(Tdomain, 2)
+            call lddrk_update_solid(Tdomain%sdom, 0, 1, 2, dt, cb, cg)
             call lddrk_update_solid_dg(Tdomain%sdomdg, 0, 1, dt, cb, cg)
         end do
     end subroutine Timestep_LDDRK
@@ -161,7 +161,7 @@ contains
                 ! Domain SOLID
                 k = 0
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Forces, k)
+                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
@@ -199,7 +199,7 @@ contains
                 ! Domain SOLID
                 k = 0
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Forces, k)
+                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
@@ -402,11 +402,13 @@ contains
             if (Tdomain%mirror_type==0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
                 if (Tdomain%mirror_expl) then
                     do n = 0,Tdomain%sdom%nblocks-1
-                        call forces_int_solid_mirror_dump_expl(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                        call forces_int_solid_mirror_dump_expl(Tdomain%sdom, &
+                            Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
                     enddo
                 else
                     do n = 0,Tdomain%sdom%nblocks-1
-                        call forces_int_solid_mirror_dump(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                        call forces_int_solid_mirror_dump(Tdomain%sdom, &
+                            Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
                     enddo
                 endif
                 call dump_mirror_sl(Tdomain%sdom,ntime)
@@ -415,23 +417,27 @@ contains
                 call load_mirror_sl(Tdomain%sdom,ntime)
                 if (Tdomain%mirror_recalc) then
                     do n = 0,Tdomain%sdom%nblocks-1
-                        call forces_int_solid_mirror_load_recalc(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                        call forces_int_solid_mirror_load_recalc(Tdomain%sdom, &
+                            Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
                     enddo
                 else
                     if (Tdomain%mirror_expl) then
                         do n = 0,Tdomain%sdom%nblocks-1
-                            call forces_int_solid_mirror_load_expl(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                            call forces_int_solid_mirror_load_expl(Tdomain%sdom, &
+                                Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
                         enddo
                     else
                         do n = 0,Tdomain%sdom%nblocks-1
-                            call forces_int_solid_mirror_load(Tdomain%sdom,Tdomain%sdom%champs(i1),n)
+                            call forces_int_solid_mirror_load(Tdomain%sdom, &
+                                Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
                         enddo
                     endif
                 endif
             ! Without Mirror
             else
                 do n = 0,Tdomain%sdom%nblocks-1
-                    call forces_int_solid(Tdomain%sdom,Tdomain%sdom%champs(i1),n,Tdomain%nl_flag)
+                    call forces_int_solid(Tdomain%sdom, &
+                        Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n,Tdomain%nl_flag)
                 enddo
             endif
             call stat_stoptick(STAT_FSOL)
@@ -458,7 +464,7 @@ contains
             do n = 0,Tdomain%intSolPml%surf0%nbtot-1
                 indsol = Tdomain%intSolPml%surf0%map(n)
                 indpml = Tdomain%intSolPml%surf1%map(n)
-                Tdomain%sdom%champs(i1)%Forces(indsol,:) = Tdomain%sdom%champs(i1)%Forces(indsol,:) + &
+                Tdomain%sdom%champs(i1)%Veloc(indsol,:) = Tdomain%sdom%champs(i1)%Veloc(indsol,:) + &
 #ifdef CPML
                     Tdomain%spmldom%champs(i1)%Forces(indpml,:) &
                     - Tdomain%spmldom%DumpMat(indpml)*Tdomain%spmldom%champs(i0)%Veloc(indpml,:) &
@@ -540,8 +546,8 @@ contains
                                 do i = 0,ngll-1
                                     if (dom==DM_SOLID_CG) then
                                         idx = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
-                                        val = Tdomain%sdom%champs(i1)%Forces(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
-                                        Tdomain%sdom%champs(i1)%Forces(idx, i_dir) = val
+                                        val = Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                                        Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) = val
                                     else if (dom==DM_SOLID_DG) then
                                         idx = Tdomain%sdomdg%Idom_(i,j,k,bnum,ee)
                                         val = Tdomain%sdomdg%champs(i1)%Forces(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
