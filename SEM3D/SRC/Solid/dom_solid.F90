@@ -1438,6 +1438,7 @@ contains
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: f0
 
+        if (dom%nglltot==0) return
         dom%champs(f0)%Veloc = 0d0 ! XXX
     end subroutine lddrk_init_solid
 
