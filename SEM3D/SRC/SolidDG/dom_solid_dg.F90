@@ -18,13 +18,11 @@ contains
         ngll = dom%ngll
         ! Allocate ONE more gll than necessary to use as a dummy target for
         ! indirections for fake elements.
-        allocate(dom%champs(i)%Forces(0:dom%nglltot,0:2))
         allocate(dom%champs(i)%Depla (0:dom%nglltot,0:2))
         allocate(dom%champs(i)%Veloc (0:dom%nglltot,0:2))
         ! Traces (last face==dummy)
         allocate(dom%champs(i)%tr_Veloc(0:ngll-1,0:ngll-1,0:2,0:dom%nbface))
 
-        dom%champs(i)%Forces = 0d0
         dom%champs(i)%Depla = 0d0
         dom%champs(i)%Veloc = 0d0
     end subroutine allocate_champs_solid_dg
@@ -131,8 +129,7 @@ contains
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
 
-        do i=0,1
-            if(allocated(dom%champs(i)%Forces)) deallocate(dom%champs(i)%Forces)
+        do i=0,size(dom%champs)-1
             if(allocated(dom%champs(i)%Depla )) deallocate(dom%champs(i)%Depla )
             if(allocated(dom%champs(i)%Veloc )) deallocate(dom%champs(i)%Veloc )
         end do
@@ -228,7 +225,7 @@ contains
                         end if
                     end if
                     if (out_variables(OUT_VITESSE) == 1) fieldV(i,j,k,:) = dom%champs(0)%Veloc(ind,:)
-                    if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs(0)%Forces(ind,:)
+                    if (out_variables(OUT_ACCEL) == 1) fieldA(i,j,k,:) = dom%champs(1)%Veloc(ind,:) ! dV/dt
                     if (flag_gradU) then
                         ! PRESSION
                         if (out_variables(OUT_PRESSION) == 1) then
@@ -454,11 +451,12 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid_dg
 
-    subroutine forces_int_solid_dg(dom, champs1, bnum)
+    subroutine forces_int_solid_dg(dom, var, dvdt, bnum)
         use m_calcul_forces_dg
 
         type(domain_solid_dg), intent (INOUT) :: dom
-        type(champssolid_dg), intent(inout) :: champs1
+        type(champssolid_dg), intent(in)    :: var
+        type(champssolid_dg), intent(inout) :: dvdt
         integer, intent(in) :: bnum
         !
         integer :: ngll,i,j,k,i_dir,ee,idx
@@ -474,7 +472,7 @@ contains
                     do i = 0,ngll-1
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
                         enddo
                     enddo
                 enddo
@@ -492,9 +490,9 @@ contains
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
                     enddo
                enddo
             enddo
@@ -505,9 +503,7 @@ contains
         type(domain_solid_dg), intent (INOUT) :: dom
         integer :: f0, f1
         !
-        dom%champs(f1)%Depla = dom%champs(f0)%Depla
-        dom%champs(f1)%Veloc = dom%champs(f0)%Veloc
-        dom%champs(f1)%Forces = 0d0
+        dom%champs(f1)%Veloc = 0d0
     end subroutine newmark_predictor_solid_dg
 
     subroutine newmark_corrector_solid_dg(dom, dt, f0, f1)
@@ -518,14 +514,13 @@ contains
         integer :: i_dir, n, indpml
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs(f0)%Forces(indpml,:) = 0.
-            !dom%champs(f0)%Veloc(indpml,:) = 0.
+            dom%champs(f1)%Veloc(indpml,:) = 0.
         enddo
         do i_dir = 0,2
 !$omp simd linear(n)
             do n = 0,dom%nglltot-1
-                dom%champs(f0)%Forces(n,i_dir) = dom%champs(f1)%Forces(n,i_dir) * dom%MassMat(n)
-                dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f0)%Forces(n,i_dir)
+                dom%champs(f1)%Veloc(n,i_dir) = dom%champs(f1)%Veloc(n,i_dir) * dom%MassMat(n)
+                dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f1)%Veloc(n,i_dir)
                 dom%champs(f0)%Depla(n,i_dir) = dom%champs(f0)%Depla(n,i_dir) + dt * dom%champs(f0)%Veloc(n,i_dir)
             end do
         enddo
@@ -543,31 +538,47 @@ contains
         Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
     end function solid_Pspeed_dg
 
-        subroutine lddrk_init_solid_dg(dom, f0)
+    subroutine lddrk_init_solid_dg(dom, f2)
         type(domain_solid_dg), intent (INOUT) :: dom
-        integer, intent(in) :: f0
+        integer, intent(in) :: f2
 
         if (dom%nglltot==0) return
-        dom%champs(f0)%Forces = 0d0
+        dom%champs(f2)%Veloc = 0d0
     end subroutine lddrk_init_solid_dg
 
-    subroutine lddrk_update_solid_dg(dom, f0, f1, dt, cb, cg)
+    subroutine lddrk_update_solid_dg(dom, f0, f1, f2, dt, cb, cg)
         type(domain_solid_dg), intent (INOUT) :: dom
-        integer, intent(in) :: f0, f1
+        integer, intent(in) :: f0, f1, f2
         real(fpp), intent(in) :: cb, cg, dt
         integer :: i, n
 
+        ! f2  contains forces computation  ie f2 = dU/dt
+        ! f1 : w(n+1) = cb*w(n) + dt*dU/dt
+        ! f0 : U(n+1) = U(n) + cg*w(n+1)
         if (dom%nglltot==0) return
         ! Only solid for starters
         do i = 0,2
             do n = 0,dom%nglltot-1
-                dom%champs(f0)%Forces(n,i) = dom%champs(f0)%Forces(n,i) * dom%MassMat(n)
-                dom%champs(f1)%Veloc(n,i) = cb*dom%champs(f1)%Veloc(n,i) + dt*dom%champs(f0)%Forces(n,i)
+                dom%champs(f2)%Veloc(n,i) = dom%champs(f2)%Veloc(n,i) * dom%MassMat(n)
+                dom%champs(f1)%Veloc(n,i) = cb*dom%champs(f1)%Veloc(n,i) + dt*dom%champs(f2)%Veloc(n,i)
                 dom%champs(f1)%Depla(n,i) = cb*dom%champs(f1)%Depla(n,i) + dt*dom%champs(f0)%Veloc(n,i)
                 dom%champs(f0)%Depla(n,i) = dom%champs(f0)%Depla(n,i) + cg*dom%champs(f1)%Depla(n,i)
                 dom%champs(f0)%Veloc(n,i) = dom%champs(f0)%Veloc(n,i) + cg*dom%champs(f1)%Veloc(n,i)
             end do
         end do
+
+!        do n = 0,dom%nglltot-1
+!            dom%champs(f2)%Veloc(n,:) = dom%champs(f2)%Veloc(n,:) * dom%MassMat(n)
+!            dom%champs(f2)%Eps(n,:)   = dom%champs(f2)%Eps  (n,:) * dom%MassMat(n)
+!        end do
+!        do n = 0,dom%nglltot-1
+!            dom%champs(f1)%Veloc(n,:) = cb*dom%champs(f1)%Veloc(n,:) + dt*dom%champs(f2)%Veloc(n,:)
+!            dom%champs(f1)%Eps(n,:)   = cb*dom%champs(f1)%Eps(n,:) + dt*dom%champs(f2)%Eps(n,:)
+!        end do
+!        do n = 0,dom%nglltot-1
+!            dom%champs(f0)%Veloc(n,:) = dom%champs(f0)%Veloc(n,:) + cg*dom%champs(f1)%Veloc(n,:)
+!            dom%champs(f0)%Eps(n,:)   = dom%champs(f0)%Eps  (n,:) + cg*dom%champs(f1)%Eps  (n,:)
+!        end do
     end subroutine lddrk_update_solid_dg
 
 

@@ -12,7 +12,6 @@ module champs_solid_dg
 
     type :: champssolid_dg
         !! Solide CG
-        real(fpp), dimension(:,:), allocatable :: Forces
         real(fpp), dimension(:,:), allocatable :: Depla
         real(fpp), dimension(:,:), allocatable :: Veloc
         !! Solide DG

@@ -57,12 +57,12 @@ contains
             t = t0 + cc*dt
 
             call lddrk_init_solid(Tdomain%sdom, 2)
-            call lddrk_init_solid_dg(Tdomain%sdomdg, 0)
+            call lddrk_init_solid_dg(Tdomain%sdomdg, 2)
             call internal_forces(Tdomain, 0, 2, ntime)
             call external_forces(Tdomain, t, ntime, 2)
             call comm_forces(Tdomain, 2)
             call lddrk_update_solid(Tdomain%sdom, 0, 1, 2, dt, cb, cg)
-            call lddrk_update_solid_dg(Tdomain%sdomdg, 0, 1, dt, cb, cg)
+            call lddrk_update_solid_dg(Tdomain%sdomdg, 0, 1, 2, dt, cb, cg)
         end do
     end subroutine Timestep_LDDRK
     !
@@ -446,7 +446,8 @@ contains
         if (Tdomain%sdomdg%nbelem>0) then
             call stat_starttick(STAT_FSOL_DG)
             do n = 0,Tdomain%sdomdg%nblocks-1
-                call forces_int_solid_dg(Tdomain%sdomdg,Tdomain%sdomdg%champs(i1),n)
+                call forces_int_solid_dg(Tdomain%sdomdg, &
+                    Tdomain%sdomdg%champs(i0),Tdomain%sdomdg%champs(i1),n)
             enddo
             call stat_stoptick(STAT_FSOL_DG)
         endif
@@ -506,7 +507,7 @@ contains
         real(kind=fpp), intent(in)  :: timer
         integer, intent(in) :: i1
         integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntimecur, dom
-        real(kind=fpp) :: t, ft, val, timercur
+        real(kind=fpp) :: t, ft, val, force, timercur
 
         if (Tdomain%mirror_type==1) return
         !!!if (Tdomain%mirror_type>=1) return
@@ -546,12 +547,12 @@ contains
                                 do i = 0,ngll-1
                                     if (dom==DM_SOLID_CG) then
                                         idx = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
-                                        val = Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
-                                        Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) = val
+                                        force = Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                                        Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) = force
                                     else if (dom==DM_SOLID_DG) then
                                         idx = Tdomain%sdomdg%Idom_(i,j,k,bnum,ee)
-                                        val = Tdomain%sdomdg%champs(i1)%Forces(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
-                                        Tdomain%sdomdg%champs(i1)%Forces(idx, i_dir) = val
+                                        force = Tdomain%sdomdg%champs(i1)%Veloc(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                                        Tdomain%sdomdg%champs(i1)%Veloc(idx, i_dir) = force
                                     end if
                                 enddo
                             enddo
