@@ -455,8 +455,8 @@ contains
             endif
         end if
         if (Tdomain%sdomdg%nglltot.gt.0) then
-            call read_dataset(elem_id, "sldg_Veloc", Tdomain%sdomdg%champs(0)%Veloc, ibase=0)
-            call read_dataset(elem_id, "sldg_Displ", Tdomain%sdomdg%champs(0)%Depla, ibase=0)
+            call read_dataset(elem_id, "sldg_Veloc", Tdomain%sdomdg%Qasm, ibase=0)
+            call read_dataset(elem_id, "sldg_Displ", Tdomain%sdomdg%Qasm, ibase=0)
         end if
         if (Tdomain%fdom%nglltot.gt.0) then
             call read_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs(0)%VelPhi, ibase=0)

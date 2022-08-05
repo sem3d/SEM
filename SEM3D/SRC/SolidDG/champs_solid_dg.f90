@@ -11,17 +11,8 @@ module champs_solid_dg
     implicit none
 
     type :: champssolid_dg
-        !! Solide CG
-        real(fpp), dimension(:,:), allocatable :: Depla
-        real(fpp), dimension(:,:), allocatable :: Veloc
-        !! Solide DG
-        !!real(fpp), dimension(:,:,:,:,:), allocatable :: Forces
-        !!real(fpp), dimension(:,:,:,:,:), allocatable :: Depla
-        !!real(fpp), dimension(:,:,:,:,:), allocatable :: Veloc
-        
-        ! DIM : I, J, B, F : B: 0 ou 1
-        real(fpp), dimension(:,:,:,:), allocatable :: tr_Veloc
-
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: Q       ! VCH*N*N*N*9*(NE/VCH)       
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: trace_Q ! VCH*N*N*9*(NF/VCH)
     end type champssolid_dg
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
@@ -32,7 +23,8 @@ module champs_solid_dg
 
         ! Champs
         type(champssolid_dg), dimension(:), allocatable :: champs
-
+        real(fpp), dimension(:,:), allocatable :: Qasm ! NN*9        
+        
         ! VCHUNK,F,N,EB) : N: 0:
         ! N:
         ! 0: domain-local face number,

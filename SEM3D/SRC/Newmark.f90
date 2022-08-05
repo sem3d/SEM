@@ -12,11 +12,13 @@
 #include "index.h"
 
 module mtimestep
+
     use constants
     use sdomain
     implicit none
+
     ! From Berland, 2007 : doi:10.1016/j.compfluid.2005.04.003
-    ! 
+    !
     real(fpp), dimension(6), parameter :: LDDRK_beta = (/ &
         0.0_fpp, &
         -0.737101392796_fpp, &
@@ -38,34 +40,140 @@ module mtimestep
         0.466911705055_fpp, &
         0.582030414044_fpp, &
         0.847252983783_fpp /)
+
 contains
 
     subroutine Timestep_LDDRK(Tdomain,ntime)
+
         use dom_solid
         use dom_solid_dg
+
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: ntime
-        !
-        real(fpp) :: cb, cg, cc, t0, t, dt
-        integer :: i
+
+        real(fpp) :: cb, cg, cc, t0, t, dt, bnum
+        integer :: l, i, ngll, ii, j, k, ee, n
+
         t0 = Tdomain%TimeD%rtime
         dt = Tdomain%TimeD%dtmin
-        do i=1,6
-            cb = LDDRK_beta(i)
-            cg = LDDRK_gamma(i)
-            cc = LDDRK_c(i)
-            t = t0 + cc*dt
+        ngll = Tdomain%sdomdg%ngll
+
+        do l = 1,6
+
+            cb = LDDRK_beta(l)
+            cg = LDDRK_gamma(l)
+            cc = LDDRK_c(l)
+
+            t  = t0 + cc*dt
 
             call lddrk_init_solid(Tdomain%sdom, 2)
             call lddrk_init_solid_dg(Tdomain%sdomdg, 2)
             call internal_forces(Tdomain, 0, 2, ntime)
-            call external_forces(Tdomain, t, ntime, 2)
+            !call external_forces(Tdomain, t, ntime, 2)
+
+            call assemble_forces(Tdomain, Tdomain%sdomdg, 2)
             call comm_forces(Tdomain, 2)
+            call deassemble_forces(Tdomain, Tdomain%sdomdg,2)
+
             call lddrk_update_solid(Tdomain%sdom, 0, 1, 2, dt, cb, cg)
             call lddrk_update_solid_dg(Tdomain%sdomdg, 0, 1, 2, dt, cb, cg)
-        end do
+
+         end do
+        !ngll = Tdomain%sdomdg%ngll
+        !do n = 0,Tdomain%n_elem-1
+        !    bnum = Tdomain%specel(n)%lnum/VCHUNK
+        !    ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+        !    do k = 0,ngll-1
+        !        do j = 0,ngll-1
+        !            do ii = 0,ngll-1
+        !                do ee = 0, VCHUNK-1
+        !
+        !                    write(*,*) "ee = ", ee, " i = ", ii, " j = ", j, " k = ", k
+        !                    write(*,*) ii,j,k,"E11 = ", Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,0,:)
+        !                    write(*,*) "E22 = ", Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,1,:)
+        !                    write(*,*) "E33 = ", Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,2,:)
+        !                    write(*,*) "E12 = ", Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,3,:)
+        !                    write(*,*) "E13 = ", Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,4,:)
+        !                    write(*,*) "E23 = ", Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,5,:)
+        !                    write(*,*) ii,j,k,"Vx = ",  Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,6,:)
+        !                    write(*,*) i,j,k,"Vy = ",  Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,7,:)
+        !                    write(*,*) i,j,k,"Vz = " , Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,8,:)
+        !
+        !                enddo
+        !            enddo
+        !        enddo
+        !    enddo
+        !enddo
+
     end subroutine Timestep_LDDRK
-    !
+
+    subroutine assemble_forces(Tdomain, dom, f1)
+
+        implicit none
+
+        type(domain), intent(inout) :: Tdomain
+        type(domain_solid_dg),intent(inout)       :: dom
+        integer, intent(in)         :: f1
+        integer                     :: nbelem, ngll
+        integer                     :: n,i,j,k,ee,idx, bnum
+
+        nbelem = dom%nbelem
+        ngll   = dom%ngll
+
+        dom%Qasm(:,:) = 0.d0
+
+        do n = 0,Tdomain%n_elem-1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee   = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        dom%Qasm(idx,:) = dom%Qasm(idx,:) + dom%champs(f1)%Q(ee,i,j,k,:,bnum)
+!                        if (idx>=4888 .and. idx<=4891) then
+!                            write(*,*) bnum,i,j,k,idx
+!                        endif
+!                        if (idx>=4863 .and. idx<=4866) then
+!                            write(*,*) bnum,i,j,k,idx
+!                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+
+    end subroutine assemble_forces
+
+    subroutine deassemble_forces(Tdomain, dom, f1)
+
+        implicit none
+
+        type(domain), intent(inout) :: Tdomain
+        type(domain_solid_dg),intent(inout)       :: dom
+        integer, intent(in)         :: f1
+        integer                     :: ngll
+        integer                     :: n,i,j,k,ee, bnum, idx
+        real(fpp), dimension(0:8)   :: val
+
+        ngll   = dom%ngll
+
+        do n = 0,Tdomain%n_elem-1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dom%champs(f1)%Q(ee,i,j,k,0:5,bnum) = dom%Qasm(idx,0:5) * dom%MassMat(idx)*2800.d0
+                            dom%champs(f1)%Q(ee,i,j,k,6:8,bnum) = dom%Qasm(idx,6:8) * dom%MassMat(idx)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+    end subroutine deassemble_forces
+
     subroutine Newmark(Tdomain,ntime)
         ! Predictor-MultiCorrector Newmark Velocity Scheme within a
         ! Time staggered Stress-Velocity formulation inside PML
@@ -164,7 +272,7 @@ contains
                     Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
 
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%champs(f1)%Veloc, k)
+                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%Qasm, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
@@ -203,9 +311,9 @@ contains
                 k = 0
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                     Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
-
+                ! Domain SOLID DG
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%champs(f1)%Veloc, k)
+                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%Qasm, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
@@ -260,9 +368,9 @@ contains
 
         ! Elements solide  DG
         if (Tdomain%sdomdg%nglltot /= 0) then
-            call stat_starttick(STAT_FSOL_DG)
-            call newmark_predictor_solid_dg(Tdomain%sdomdg,0,1)
-            call stat_stoptick(STAT_FSOL_DG)
+            !call stat_starttick(STAT_FSOL_DG)
+            !call newmark_predictor_solid_dg(Tdomain%sdomdg,0,1)
+            !call stat_stoptick(STAT_FSOL_DG)
         endif
 
         ! Elements fluide
@@ -346,14 +454,16 @@ contains
 
         ! Si il existe des éléments solides DG
         if (Tdomain%sdomdg%nglltot /= 0) then
-            call stat_starttick(STAT_FSOL_DG)
-            call newmark_corrector_solid_dg(Tdomain%sdomdg, dt, 0, 1)
-            call stat_stoptick(STAT_FSOL_DG)
+            !call stat_starttick(STAT_FSOL_DG)
+            !call newmark_corrector_solid_dg(Tdomain%sdomdg, dt, 0, 1)
+            !call stat_stoptick(STAT_FSOL_DG)
         endif
         return
     end subroutine Newmark_Corrector_S
+
     !-----------------------------------------------------------------------------
     !-----------------------------------------------------------------------------
+
     subroutine internal_forces(Tdomain, i0, i1, ntime)
         ! volume forces - depending on rheology
         use dom_solid
@@ -452,9 +562,9 @@ contains
         if (Tdomain%sdomdg%nbelem>0) then
             call stat_starttick(STAT_FSOL_DG)
             do n = 0,Tdomain%sdomdg%nblocks-1
-                call forces_int_solid_dg(Tdomain%sdomdg, &
-                    Tdomain%sdomdg%champs(i0),Tdomain%sdomdg%champs(i1),n)
+                call forces_int_solid_dg(Tdomain%sdomdg, Tdomain%sdomdg%champs(i0), Tdomain%sdomdg%champs(i1),n)
             enddo
+
             call stat_stoptick(STAT_FSOL_DG)
         endif
         ! DOMAIN PML SOLID
@@ -542,8 +652,10 @@ contains
                 !   on rajoute le 1/2 pas de temps qui correspond au fait que la
                 !    exterieure doive etre prise a t_(n+1/2)
                 t = timercur+Tdomain%TimeD%dtmin/2_fpp
+
                 ! TAG_SOURCE
                 ft = CompSource(Tdomain%sSource(ns), t, ntimecur)
+
                 if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
                     ! collocated force in solid
                     !
@@ -552,13 +664,12 @@ contains
                             do j = 0,ngll-1
                                 do i = 0,ngll-1
                                     if (dom==DM_SOLID_CG) then
-                                        idx = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
+                                        idx   = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
                                         force = Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
                                         Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) = force
                                     else if (dom==DM_SOLID_DG) then
-                                        idx = Tdomain%sdomdg%Idom_(i,j,k,bnum,ee)
-                                        force = Tdomain%sdomdg%champs(i1)%Veloc(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
-                                        Tdomain%sdomdg%champs(i1)%Veloc(idx, i_dir) = force
+                                        force = Tdomain%sdomdg%champs(i1)%Q(ee,i,j,k,6+i_dir,bnum) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                                        Tdomain%sdomdg%champs(i1)%Q(ee,i,j,k,6+i_dir,bnum) = force
                                     end if
                                 enddo
                             enddo
@@ -571,7 +682,6 @@ contains
                                 idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
                                 val = Tdomain%fdom%champs(i1)%ForcesFl(idx)
                                 val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
-                                !write(*,*) ntimecur,nel,i,j,k,val
                                 Tdomain%fdom%champs(i1)%ForcesFl(idx) = val
                             enddo
                         enddo

@@ -14,42 +14,38 @@
 #define ngllvar ngll0
 #endif
 
-#define USE_LOCAL_MEM
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
+subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
+
     use champs_solid_dg
     implicit none
 
     type(domain_solid_dg), intent (INOUT) :: dom
     integer, intent(in) :: bnum
     integer, intent(in) :: ngllvar
+
 #ifdef NGLLVAL
-    integer, parameter :: ngll=NGLLVAL
-#endif
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
-    integer :: i,j,k,l,e,ee
-    real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
-    real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    !!real(fpp), parameter :: zero = 0.
-#ifdef USE_LOCAL_MEM
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
-    ! Les indices sont reordonnes, probablement pour la localite memoire
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
-    real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
-    real(fpp) :: F1,F2,F3
+    integer, parameter :: ngll = NGLLVAL
 #endif
 
-    real(fpp) :: xla2mu, xla
-    real(fpp) :: xmu
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:8), intent(out) :: dQdt
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:8), intent(in)  :: Q
 
+    integer   :: i, j, k, l, e, ee
+    real(fpp) :: xmu, xla, tr_eps
+    real(fpp) :: JAC, ww, hp
+    real(fpp) :: dE11dt, dE22dt, dE33dt
+    real(fpp) :: dE12dt, dE13dt, dE23dt
+    real(fpp) :: dVxdt, dVydt, dVzdt
+    real(fpp) :: E11, E22, E33,a
+    real(fpp) :: E12, E13, E23
+    real(fpp) :: S11, S22, S33
+    real(fpp) :: S12, S13, S23
+    real(fpp) :: Vx, Vy, Vz, tmp
     if (ngll/=ngllvar) stop 1
 
+    dQdt = 0.d0
+    
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
@@ -57,228 +53,217 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
-                END_SUBELEM_LOOP()
-            end do
-        end do
-    end do
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee)
-#endif
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                local_deriv_ijke(Depla,1,dUy_dxi(ee,i,j,k),dUy_deta(ee,i,j,k),dUy_dzeta(ee,i,j,k))
-                END_SUBELEM_LOOP()
-            end do
-        end do
-    end do
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee)
-#endif
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                local_deriv_ijke(Depla,2,dUz_dxi(ee,i,j,k),dUz_deta(ee,i,j,k),dUz_dzeta(ee,i,j,k))
-                END_SUBELEM_LOOP()
-            end do
-        end do
-    end do
-
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee)
-#endif
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-#define JXX dom%InvGrad_(0,0,i,j,k,bnum,ee)
-#define JXY dom%InvGrad_(0,1,i,j,k,bnum,ee)
-#define JXZ dom%InvGrad_(0,2,i,j,k,bnum,ee)
-#define JYX dom%InvGrad_(1,0,i,j,k,bnum,ee)
-#define JYY dom%InvGrad_(1,1,i,j,k,bnum,ee)
-#define JYZ dom%InvGrad_(1,2,i,j,k,bnum,ee)
-#define JZX dom%InvGrad_(2,0,i,j,k,bnum,ee)
-#define JZY dom%InvGrad_(2,1,i,j,k,bnum,ee)
-#define JZZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
-
-                dxx=dUx_dxi(ee,i,j,k)*JXX + dUx_deta(ee,i,j,k)*JXY + dUx_dzeta(ee,i,j,k)*JXZ
-                dxy=dUx_dxi(ee,i,j,k)*JYX + dUx_deta(ee,i,j,k)*JYY + dUx_dzeta(ee,i,j,k)*JYZ
-                dxz=dUx_dxi(ee,i,j,k)*JZX + dUx_deta(ee,i,j,k)*JZY + dUx_dzeta(ee,i,j,k)*JZZ
-
-                dyx=dUy_dxi(ee,i,j,k)*JXX + dUy_deta(ee,i,j,k)*JXY + dUy_dzeta(ee,i,j,k)*JXZ
-                dyy=dUy_dxi(ee,i,j,k)*JYX + dUy_deta(ee,i,j,k)*JYY + dUy_dzeta(ee,i,j,k)*JYZ
-                dyz=dUy_dxi(ee,i,j,k)*JZX + dUy_deta(ee,i,j,k)*JZY + dUy_dzeta(ee,i,j,k)*JZZ
-
-                dzx=dUz_dxi(ee,i,j,k)*JXX + dUz_deta(ee,i,j,k)*JXY + dUz_dzeta(ee,i,j,k)*JXZ
-                dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
-                dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
+#define JXX_(i,j,k) dom%InvGrad_(0,0,i,j,k,bnum,ee)
+#define JXY_(i,j,k) dom%InvGrad_(0,1,i,j,k,bnum,ee)
+#define JXZ_(i,j,k) dom%InvGrad_(0,2,i,j,k,bnum,ee)
+#define JYX_(i,j,k) dom%InvGrad_(1,0,i,j,k,bnum,ee)
+#define JYY_(i,j,k) dom%InvGrad_(1,1,i,j,k,bnum,ee)
+#define JYZ_(i,j,k) dom%InvGrad_(1,2,i,j,k,bnum,ee)
+#define JZX_(i,j,k) dom%InvGrad_(2,0,i,j,k,bnum,ee)
+#define JZY_(i,j,k) dom%InvGrad_(2,1,i,j,k,bnum,ee)
+#define JZZ_(i,j,k) dom%InvGrad_(2,2,i,j,k,bnum,ee)
 
 
-                ! LINEAR ELASTIC ISOTROPE
-                xmu = dom%Mu_    (i,j,k,bnum,ee)
+                JAC = dom%Jacob_(i,j,k,bnum,ee)
+                xmu = dom%Mu_(i,j,k,bnum,ee)
                 xla = dom%Lambda_(i,j,k,bnum,ee)
-                xla2mu = xla + 2. * xmu
-                sxx = xla2mu * DXX + xla * ( DYY + DZZ )
-                sxy = xmu * ( DXY + DYX )
-                sxz = xmu * ( DXZ + DZX )
-                syy = xla2mu * DYY + xla * ( DXX + DZZ )
-                syz = xmu * ( DYZ + DZY )
-                szz = xla2mu * DZZ + xla * ( DXX + DYY )
 
-                !
-                !=====================
-                !       FX
-                !=====================
-                !
-                xt1 = sxx*JXX+sxy*JYX+sxz*JZX
-                xt2 = sxx*JXY+sxy*JYY+sxz*JZY
-                xt3 = sxx*JXZ+sxy*JYZ+sxz*JZZ
-                !
-                !=====================
-                !       FY
-                !=====================
-                !
-                xt5 = syy*JYX+sxy*JXX+syz*JZX
-                xt6 = syy*JYY+sxy*JXY+syz*JZY
-                xt7 = syy*JYZ+sxy*JXZ+syz*JZZ
-                !
-                !=====================
-                !       FZ
-                !=====================
-                !
-                xt8 = szz*JZX+sxz*JXX+syz*JYX
-                xt9 = szz*JZY+sxz*JXY+syz*JYY
-                xt10= szz*JZZ+sxz*JXZ+syz*JYZ
+                ! TESTS
+                !xla = 0.d0
 
-                !
-                !- Multiplication par le Jacobien et le poids d'integration
-                !
-                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(i)
-                xt1  =  xt1 * t4
-                xt5  =  xt5 * t4
-                xt8  =  xt8 * t4
+                dE11dt = 0.d0
+                dE22dt = 0.d0
+                dE33dt = 0.d0
+                dE12dt = 0.d0
+                dE13dt = 0.d0
+                dE23dt = 0.d0
+                dVxdt  = 0.d0
+                dVydt  = 0.d0
+                dVzdt  = 0.d0
+                ww = JAC*dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(k)
 
-                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(j)
-                xt2  =  xt2 * t4
-                xt6  =  xt6 * t4
-                xt9  =  xt9 * t4
+                tmp = 0
+                do L = 0, ngll-1
+#define JXX JXX_(L,j,k)
+#define JXY JXY_(L,j,k)
+#define JXZ JXZ_(L,j,k)
+#define JYX JYX_(L,j,k)
+#define JYY JYY_(L,j,k)
+#define JYZ JYZ_(L,j,k)
+#define JZX JZX_(L,j,k)
+#define JZY JZY_(L,j,k)
+#define JZZ JZZ_(L,j,k)
 
-                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(k)
-                xt3  =  xt3 * t4
-                xt7  =  xt7 * t4
-                xt10 = xt10 * t4
-#ifdef USE_LOCAL_MEM
-                t1(ee,i,j,k) = xt1
-                t5(ee,i,j,k) = xt5
-                t8(ee,i,j,k) = xt8
+                    E11 = Q(ee,L,j,k,0)
+                    E22 = Q(ee,L,j,k,1)
+                    E33 = Q(ee,L,j,k,2)
+                    E12 = Q(ee,L,j,k,3)
+                    E13 = Q(ee,L,j,k,4)
+                    E23 = Q(ee,L,j,k,5)
+                    Vx  = Q(ee,L,j,k,6)
+                    Vy  = Q(ee,L,j,k,7)
+                    Vz  = Q(ee,L,j,k,8)
+                   
+                    tr_eps = E11 + E22 + E33
+                    S11 = xla*tr_eps + 2d0*xmu*E11
+                    S22 = xla*tr_eps + 2d0*xmu*E22
+                    S33 = xla*tr_eps + 2d0*xmu*E33
+                    S12 = 2d0*xmu*E12
+                    S13 = 2d0*xmu*E13
+                    S23 = 2d0*xmu*E23
+                    hp = dom%hprime(L,i)
 
-                t2(ee,j,i,k) = xt2
-                t6(ee,j,i,k) = xt6
-                t9(ee,j,i,k) = xt9
+                    dE11dt = dE11dt + Vx*JXX*hp
+                    dE22dt = dE22dt + Vy*JXY*hp
+                    dE33dt = dE33dt + Vz*JXZ*hp
+                    
+                    dE12dt = dE12dt + 0.5d0*(Vy*JXX + Vx*JXY)*hp
+                    dE13dt = dE13dt + 0.5d0*(Vz*JXX + Vx*JXZ)*hp
+                    dE23dt = dE23dt + 0.5d0*(Vz*JXY + Vy*JXZ)*hp
 
-                t3 (ee,k,i,j) = xt3
-                t7 (ee,k,i,j) = xt7
-                t10(ee,k,i,j) = xt10
-#else
-                DO L = 0, ngll-1
-                    Fox(ee,L,j,k) = Fox(ee,L,j,k) + dom%hprime(L,I)*xt1*dom%GLLw(j) * dom%GLLw(k)
-                    Foy(ee,L,j,k) = Foy(ee,L,j,k) + dom%hprime(L,I)*xt5*dom%GLLw(j) * dom%GLLw(k)
-                    Foz(ee,L,j,k) = Foz(ee,L,j,k) + dom%hprime(L,I)*xt8*dom%GLLw(j) * dom%GLLw(k)
-                END DO
-                DO L = 0, ngll-1
-                    Fox(ee,i,L,k) = Fox(ee,i,L,k) + dom%hprime(L,J)*xt2*dom%GLLw(i) * dom%GLLw(k)
-                    Foy(ee,i,L,k) = Foy(ee,i,L,k) + dom%hprime(L,J)*xt6*dom%GLLw(i) * dom%GLLw(k)
-                    Foz(ee,i,L,k) = Foz(ee,i,L,k) + dom%hprime(L,J)*xt9*dom%GLLw(i) * dom%GLLw(k)
-                END DO
-                DO L = 0, ngll-1
-                    Fox(ee,i,j,L) = Fox(ee,i,j,L) + dom%hprime(L,K)*xt3*dom%GLLw(i) * dom%GLLw(j)
-                    Foy(ee,i,j,L) = Foy(ee,i,j,L) + dom%hprime(L,K)*xt7*dom%GLLw(i) * dom%GLLw(j)
-                    Foz(ee,i,j,L) = Foz(ee,i,j,L) + dom%hprime(L,K)*xt10*dom%GLLw(i) * dom%GLLw(j)
-                END DO
-#endif
-                END_SUBELEM_LOOP()
-            enddo
-        enddo
-    enddo
-    !
-    !- Multiplication par la matrice de derivation puis par les poids
-    !
-#ifdef USE_LOCAL_MEM
+                    dVxdt = dVxdt + ( S11*JXX + S12*JXY + S13*JXZ )*hp
+                    dVydt = dVydt + ( S12*JXX + S22*JXY + S23*JXZ )*hp
+                    dVzdt = dVzdt + ( S13*JXX + S23*JXY + S33*JXZ )*hp                 
+
+                end do
+
+#undef JXX
+#undef JXY
+#undef JXZ
+#undef JYX
+#undef JYY
+#undef JYZ
+#undef JZX
+#undef JZY
+#undef JZZ
+
+                do L = 0, ngll-1
+#define JXX JXX_(i,L,k)
+#define JXY JXY_(i,L,k)
+#define JXZ JXZ_(i,L,k)
+#define JYX JYX_(i,L,k)
+#define JYY JYY_(i,L,k)
+#define JYZ JYZ_(i,L,k)
+#define JZX JZX_(i,L,k)
+#define JZY JZY_(i,L,k)
+#define JZZ JZZ_(i,L,k)
+
+                    E11 = Q(ee,i,L,k,0)
+                    E22 = Q(ee,i,L,k,1)
+                    E33 = Q(ee,i,L,k,2)
+                    E12 = Q(ee,i,L,k,3)
+                    E13 = Q(ee,i,L,k,4)
+                    E23 = Q(ee,i,L,k,5)
+                    Vx  = Q(ee,i,L,k,6)
+                    Vy  = Q(ee,i,L,k,7)
+                    Vz  = Q(ee,i,L,k,8)
+                   
+                    tr_eps = E11 + E22 + E33
+                    S11 = xla*tr_eps + 2d0*xmu*E11
+                    S22 = xla*tr_eps + 2d0*xmu*E22
+                    S33 = xla*tr_eps + 2d0*xmu*E33
+                    S12 = 2d0*xmu*E12
+                    S13 = 2d0*xmu*E13
+                    S23 = 2d0*xmu*E23
+                    hp = dom%hprime(L,j)
+                    
+                    dE11dt = dE11dt + Vx*JYX*hp 
+                    dE22dt = dE22dt + Vy*JYY*hp
+                    dE33dt = dE33dt + Vz*JYZ*hp
+
+                    dE12dt = dE12dt + 0.5d0*(Vy*JYX + Vx*JYY)*hp
+                    dE13dt = dE13dt + 0.5d0*(Vz*JYX + Vx*JYZ)*hp
+                    dE23dt = dE23dt + 0.5d0*(Vz*JYY + Vy*JYZ)*hp
+                    
+
+                    dVxdt = dVxdt + ( S11*JYX + S12*JYY + S13*JYZ )*hp 
+                    dVydt = dVydt + ( S12*JYX + S22*JYY + S23*JYZ )*hp
+                    dVzdt = dVzdt + ( S13*JYX + S23*JYY + S33*JYZ )*hp
+
+                    
+                end do
+#undef JXX
+#undef JXY
+#undef JXZ
+#undef JYX
+#undef JYY
+#undef JYZ
+#undef JZX
+#undef JZY
+#undef JZZ
+
+                tmp = 0
+                do L = 0, ngll-1
+#define JXX JXX_(i,j,L)
+#define JXY JXY_(i,j,L)
+#define JXZ JXZ_(i,j,L)
+#define JYX JYX_(i,j,L)
+#define JYY JYY_(i,j,L)
+#define JYZ JYZ_(i,j,L)
+#define JZX JZX_(i,j,L)
+#define JZY JZY_(i,j,L)
+#define JZZ JZZ_(i,j,L)
+
+                    E11 = Q(ee,i,j,L,0)
+                    E22 = Q(ee,i,j,L,1)
+                    E33 = Q(ee,i,j,L,2)
+                    E12 = Q(ee,i,j,L,3)
+                    E13 = Q(ee,i,j,L,4)
+                    E23 = Q(ee,i,j,L,5)
+                    Vx  = Q(ee,i,j,L,6)
+                    Vy  = Q(ee,i,j,L,7)
+                    Vz  = Q(ee,i,j,L,8)
+                    
+                    tr_eps = E11 + E22 + E33
+                    S11 = xla*tr_eps + 2d0*xmu*E11
+                    S22 = xla*tr_eps + 2d0*xmu*E22
+                    S33 = xla*tr_eps + 2d0*xmu*E33
+                    S12 = 2d0*xmu*E12
+                    S13 = 2d0*xmu*E13
+                    S23 = 2d0*xmu*E23
+                    hp = dom%hprime(L,k)
+
+                    dE11dt = dE11dt + Vx*JZX*hp
+                    dE22dt = dE22dt + Vy*JZY*hp
+                    dE33dt = dE33dt + Vz*JZZ*hp
+
+                    dE12dt = dE12dt + 0.5d0*(Vy*JZX + Vx*JZY)*hp
+                    dE13dt = dE13dt + 0.5d0*(Vz*JZX + Vx*JZZ)*hp
+                    dE23dt = dE23dt + 0.5d0*(Vz*JZY + Vy*JZZ)*hp
+                    
+                    dVxdt = dVxdt + ( S11*JZX + S12*JZY + S13*JZZ )*hp
+                    dVydt = dVydt + ( S12*JZX + S22*JZY + S23*JZZ )*hp
+                    dVzdt = dVzdt + ( S13*JZX + S23*JZY + S33*JZZ )*hp
+
+                    tmp = tmp + hp
+                    
+                end do
+                
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dE11dt = ", dE11dt
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dE22dt = ", dE22dt
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dE33dt = ", dE33dt
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dE12dt = ", dE12dt
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dE13dt = ", dE13dt
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dE23dt = ", dE23dt
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dVxdt  =  ", dVxdt
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dVydt  = ", dVydt
+                !write(*,*) "i = ", i, " j = ", j, " k = ", k, "dVzdt  = ", dVzdt
+                
+                dQdt(ee,i,j,k,0) = dE11dt*ww
+                dQdt(ee,i,j,k,1) = dE22dt*ww
+                dQdt(ee,i,j,k,2) = dE33dt*ww
+                dQdt(ee,i,j,k,3) = dE12dt*ww
+                dQdt(ee,i,j,k,4) = dE13dt*ww
+                dQdt(ee,i,j,k,5) = dE23dt*ww
+                dQdt(ee,i,j,k,6) = dVxdt*ww
+                dQdt(ee,i,j,k,7) = dVydt*ww
+                dQdt(ee,i,j,k,8) = dVzdt*ww
+                
+            END DO
+        END DO
+    END DO
     !=-=-=-=-=-=-=-=-=-=-
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i = 0,ngll-1
-#if VCHUNK>1
-                !dir$ simd
-                !dir$ vector aligned
-!$omp simd linear(e,ee)
-#endif
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                !=-=-=-=-=-=-=-=-=-=-
-                !
-                t11 = dom%GLLw(j) * dom%GLLw(k)
-                t12 = dom%GLLw(i) * dom%GLLw(k)
-                t13 = dom%GLLw(i) * dom%GLLw(j)
-                !
-                t41 = zero
-                t42 = zero
-                t43 = zero
-                t51 = zero
-                t52 = zero
-                t53 = zero
-                t61 = zero
-                t62 = zero
-                t63 = zero
-                !
-                do l = 0,ngll-1
-                    t41 = t41 + dom%htprime(l,i) * t1(ee,l,j,k)
-                    t42 = t42 + dom%htprime(l,i) * t5(ee,l,j,k)
-                    t43 = t43 + dom%htprime(l,i) * t8(ee,l,j,k)
-                enddo
 
-                do l = 0,ngll-1
-                    t51 = t51 + dom%htprime(l,j) * t2(ee,l,i,k)
-                    t52 = t52 + dom%htprime(l,j) * t6(ee,l,i,k)
-                    t53 = t53 + dom%htprime(l,j) * t9(ee,l,i,k)
-                enddo
-                ! FX
-                F1 = t41*t11 + t51*t12
-                ! FY
-                F2 = t42*t11 + t52*t12
-                ! FZ
-                F3 = t43*t11 + t53*t12
-                !
-                !
-                do l = 0,ngll-1
-                    t61 = t61 + dom%htprime(l,k) * t3 (ee,l,i,j)
-                    t62 = t62 + dom%htprime(l,k) * t7 (ee,l,i,j)
-                    t63 = t63 + dom%htprime(l,k) * t10(ee,l,i,j)
-                enddo
-
-                ! FX
-                F1 = F1 + t61*t13
-                ! FY
-                F2 = F2 + t62*t13
-                ! FZ
-                F3 = F3 + t63*t13
-                !
-                Fox(ee,i,j,k) = F1
-                Foy(ee,i,j,k) = F2
-                Foz(ee,i,j,k) = F3
-
-                END_SUBELEM_LOOP()
-                !=-=-=-=-=-=-=-=-=-=-
-            enddo
-        enddo
-    enddo
-    !=-=-=-=-=-=-=-=-=-=-
-#endif
 end subroutine PROCNAME
 
 #undef JXX
@@ -301,4 +286,4 @@ end subroutine PROCNAME
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :
+!! vim: set sw=4 ts=8 et tw=80 smartindent :e

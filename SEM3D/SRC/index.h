@@ -140,3 +140,4 @@
             dS_deta  = dS_deta +Var(ee,I,L,K,d)*dom%hprime(L,J); \
             dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); \
         END DO;
+        

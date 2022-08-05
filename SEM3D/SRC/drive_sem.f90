@@ -31,7 +31,8 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     ! Hors couplage on doit avoir -1 MPI_COMM_WORLD, MPI_COMM_WORLD
     integer, intent(in) :: communicateur, communicateur_global, master_superviseur
-
+    integer :: ee, ii, j, k, n, ngll
+    real(fpp) :: bnum
     type(domain) :: Tdomain
     integer :: rg, nb_procs, ntime
     integer :: isort, ierr
@@ -76,7 +77,22 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
-    call TIME_STEPPING(Tdomain,isort,ntime)
+        ngll = Tdomain%sdomdg%ngll           
+        do n = 0,Tdomain%n_elem-1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do ii = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,:,:) = 0.d0
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+        
+        call TIME_STEPPING(Tdomain,isort,ntime)
 
  !---------------------------------------------------------------------------------------------!
  !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!

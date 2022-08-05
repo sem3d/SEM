@@ -895,7 +895,7 @@ contains
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
         integer :: ngll, oldngll
-        integer :: i, j, k, n, m, ind
+        integer :: i, j, k, n, nn, m, ind
         integer :: nnodes
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
@@ -973,9 +973,8 @@ contains
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
                         eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
                 case (DM_SOLID_DG)
-                    call get_solid_dg_dom_var(Tdomain%sdomdg, el%lnum, out_variables,    &
-                        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol,&
-                        eps_dev, sig_dev, dUdX)
+                    call get_solid_dg_dom_var(Tdomain%sdomdg, el%lnum, out_variables, &
+                        fieldV, fieldA, eps_vol, eps_dev)
                 case (DM_FLUID_CG)
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, &
@@ -1025,6 +1024,10 @@ contains
                         if (out_variables(OUT_VITESSE)  == 1) outputs%veloc(0:2,ind) = fieldV(i,j,k,0:2)
                         if (out_variables(OUT_ACCEL)    == 1) outputs%accel(0:2,ind) = fieldA(i,j,k,0:2)
                         if (out_variables(OUT_PRESSION) == 1) outputs%press_n(ind)   = fieldP(i,j,k)
+!                        if (domain_type==DM_SOLID_DG) then
+!                            if (out_variables(OUT_EPS_VOL)    == 1) outputs%eps_vol(ind) = eps_vol(i,j,k)
+!                            if (out_variables(OUT_EPS_DEV)    == 1) outputs%eps_dev(0:5,ind) = eps_dev(i,j,k,0:5)
+!                        end if
                     enddo
                 enddo
             enddo
@@ -1041,10 +1044,10 @@ contains
             if (out_variables(OUT_ENERGYS) == 1) then
                 call evaluate_cell_centers(ngll, GLLc, cell_start, S_energy, outputs%S_energy)
             endif
-            if (out_variables(OUT_EPS_VOL) == 1) then
+            if (out_variables(OUT_EPS_VOL) == 1) then !  .and. domain_type/=DM_SOLID_DG
                 call evaluate_cell_centers(ngll, GLLc, cell_start, eps_vol, outputs%eps_vol)
             endif
-            if (out_variables(OUT_EPS_DEV) == 1) then
+            if (out_variables(OUT_EPS_DEV) == 1) then !  .and. domain_type/=DM_SOLID_DG
                 do m = 0,OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1
                     call evaluate_cell_centers(ngll, GLLc, cell_start, eps_dev(:,:,:,m), outputs%eps_dev(m,:))
                 end do

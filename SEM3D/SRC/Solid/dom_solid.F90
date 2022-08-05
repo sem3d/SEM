@@ -1443,23 +1443,25 @@ contains
     end subroutine lddrk_init_solid
 
     subroutine lddrk_update_solid(dom, f0, f1, f2, dt, cb, cg)
+        
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: f0, f1, f2
         real(fpp), intent(in) :: cb, cg, dt
         integer :: i, n
+        
         ! f2  contains forces computation  ie f2 = dU/dt
         ! f1 : w(n+1) = cb*w(n) + dt*dU/dt
         ! f0 : U(n+1) = U(n) + cg*w(n+1)
         ! Only solid for starters
         do i = 0,2
             do n = 0,dom%nglltot-1
-                dom%champs(f2)%Veloc(n,i) = dom%champs(f2)%Veloc(n,i) * dom%MassMat(n)
+                dom%champs(f2)%Veloc(n,i) =    dom%champs(f2)%Veloc(n,i) * dom%MassMat(n)
                 dom%champs(f1)%Veloc(n,i) = cb*dom%champs(f1)%Veloc(n,i) + dt*dom%champs(f2)%Veloc(n,i)
                 dom%champs(f1)%Depla(n,i) = cb*dom%champs(f1)%Depla(n,i) + dt*dom%champs(f0)%Veloc(n,i)
-                dom%champs(f0)%Depla(n,i) = dom%champs(f0)%Depla(n,i) + cg*dom%champs(f1)%Depla(n,i)
-                dom%champs(f0)%Veloc(n,i) = dom%champs(f0)%Veloc(n,i) + cg*dom%champs(f1)%Veloc(n,i)
+                dom%champs(f0)%Depla(n,i) =    dom%champs(f0)%Depla(n,i) + cg*dom%champs(f1)%Depla(n,i)
+                dom%champs(f0)%Veloc(n,i) =    dom%champs(f0)%Veloc(n,i) + cg*dom%champs(f1)%Veloc(n,i)
             end do
         end do
-        !write(*,*) "V=", dom%champs(f0)%Veloc(1,0)
+        
     end subroutine lddrk_update_solid
 end module dom_solid
