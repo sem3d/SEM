@@ -73,6 +73,8 @@ contains
             mat%prop_field(4)%propName = "Vsh"
             mat%prop_field(5)%propName = "Eta"
             mat%prop_field(6)%propName = "Rho"
+            mat%prop_field(7)%propName = "Qkappa"
+            mat%prop_field(8)%propName = "Qmu"
         end select
 
         do i = 1,mat%n_prop
@@ -150,10 +152,20 @@ contains
             pf%imin(k) = gindex(min_bound_loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
             pf%imax(k) = gindex(max_bound_loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))+1
             pf%step(k) = (pf%MaxBound(k)-pf%MinBound(k))/(pf%NN(k)-1)
-            if (pf%imin(k)<0) pf%imin(k) = 0
-            if (pf%imax(k)<pf%imin(k)) pf%imax(k) = pf%imin(k)
-            if (pf%imax(k)>=pf%NN(k)) pf%imax(k) = pf%NN(k)-1
-            if (pf%imin(k)>pf%imax(k)) pf%imin(k) = pf%imax(k)
+            if ((pf%imax(k)-pf%imin(k))<1) pf%imin(k) = pf%imax(k)-1
+            if (pf%imin(k)<0) then
+                pf%imin(k) = 0
+                if (pf%imax(k)<1) pf%imax(k) = 1
+            endif
+            if (pf%imax(k)>=pf%NN(k)) then
+                pf%imax(k) = pf%NN(k)-1
+                if (pf%imin(k)>(pf%imax(k)-1)) pf%imin(k) = pf%imax(k)-1
+            endif
+            if ((pf%imax(k)-pf%imin(k))<1) pf%imax(k) = pf%imin(k)
+            !!!if (pf%imin(k)<0) pf%imin(k) = 0
+            !!!if (pf%imax(k)<pf%imin(k)) pf%imax(k) = pf%imin(k)
+            !!!if (pf%imax(k)>=pf%NN(k)) pf%imax(k) = pf%NN(k)-1
+            !!!if (pf%imin(k)>pf%imax(k)) pf%imin(k) = pf%imax(k)
             !!! spherical material :: force full model read for all procs
             if (mat%is_sph) then
                 pf%imin(k)=0
@@ -195,6 +207,7 @@ contains
         integer :: n
         integer, dimension(0:2) :: ii  ! index of x,y,z inside material domain
         logical :: pml
+
 
         pml = is_pml(mat)
         do k = 0,mat%ngll-1
