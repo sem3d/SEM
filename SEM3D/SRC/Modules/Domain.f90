@@ -166,7 +166,7 @@ contains
         case(DM_FLUID_PML)
             domain_nglltot = Tdomain%fpmldom%nglltot
         case default
-            stop "Unknown Domain"
+            stop "Unknown Domain, nglltot"
         end select
     end function domain_nglltot
 
@@ -186,7 +186,7 @@ contains
         case(DM_FLUID_PML)
             domain_ngll = Tdomain%fpmldom%ngll
         case default
-            stop "Unknown Domain"
+            stop "Unknown Domain, ngll"
         end select
     end function domain_ngll
 
@@ -214,7 +214,7 @@ contains
             allocate(GLLc(0:ngll-1))
             GLLc = Tdomain%fpmldom%GLLc
         case default
-            stop "Unknown Domain"
+            stop "Unknown Domain, gllc"
         end select
     end subroutine domain_gllc
 
@@ -242,7 +242,7 @@ contains
             allocate(gllw(0:ngll-1))
             gllw = Tdomain%fpmldom%GLLw
         case default
-            stop "Unknown Domain"
+            stop "Unknown Domain, gllw"
         end select
     end subroutine domain_gllw
 
