@@ -103,7 +103,7 @@ contains
                 ! check for properties number
                 Tdomain%sSubdomain(num)%n_prop=3
                 if (matdesc%deftype==MATDEF_VTI_ANISO) then
-                    Tdomain%sSubdomain(num)%n_prop=6
+                    Tdomain%sSubdomain(num)%n_prop=8
                     Tdomain%aniso=.true.
                 end if
                 allocate(Tdomain%sSubdomain(num)%prop_field(Tdomain%sSubdomain(num)%n_prop))
