@@ -48,15 +48,23 @@ contains
                     do j = 0,ngll-1
                         do i = 0,ngll-1
                             if (n_solid>0) then
-                                if (Tdomain%aniso) then
-                                else
-                                    Tdomain%sdom%epsilonvol_(i,j,k,bnum,ee) = epsilonVol(idx1)
-                                    idx1 = idx1 + 1
-                                    do i_sls = 0, n_solid-1
-                                        Tdomain%sdom%R_vol_(i_sls,i,j,k,bnum,ee) = rvol(idx2+i_sls)
-                                    end do
-                                    idx2 = idx2 + n_solid
-                                end if
+                                !!! <GB> temporary modif
+                                !!! if (Tdomain%aniso) then
+                                !!! else
+                                !!!     Tdomain%sdom%epsilonvol_(i,j,k,bnum,ee) = epsilonVol(idx1)
+                                !!!     idx1 = idx1 + 1
+                                !!!     do i_sls = 0, n_solid-1
+                                !!!         Tdomain%sdom%R_vol_(i_sls,i,j,k,bnum,ee) = rvol(idx2+i_sls)
+                                !!!     end do
+                                !!!     idx2 = idx2 + n_solid
+                                !!! end if
+                                Tdomain%sdom%epsilonvol_(i,j,k,bnum,ee) = epsilonVol(idx1)
+                                idx1 = idx1 + 1
+                                do i_sls = 0, n_solid-1
+                                    Tdomain%sdom%R_vol_(i_sls,i,j,k,bnum,ee) = rvol(idx2+i_sls)
+                                end do
+                                idx2 = idx2 + n_solid
+                                !!! <\GB> temporary modif
                                 do i_sls = 0, n_solid-1
                                     Tdomain%sdom%R_xx_(i_sls,i,j,k,bnum,ee) = rxx(idx3+i_sls)
                                     Tdomain%sdom%R_yy_(i_sls,i,j,k,bnum,ee) = ryy(idx3+i_sls)
