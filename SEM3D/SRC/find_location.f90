@@ -86,6 +86,83 @@ contains
         deallocate(coord)
     end subroutine find_location
 
+    subroutine find_location_bbox(Tdomain, x0, y0, z0, nmax, elems, localcoord, nsrc)
+        type(domain), intent(in) :: Tdomain
+        real(fpp), intent(in) :: x0, y0, z0
+        integer, intent(inout) :: nmax
+        integer, dimension(nmax) :: elems
+        real(fpp), dimension(0:2,nmax) :: localcoord
+        integer, intent(in), optional :: nsrc
+        integer :: n, nnodes, i, j, k
+        real(fpp) :: xi, eta, zeta
+        logical :: ok
+        integer :: n_elems
+        integer, dimension(nmax+1) :: i_elems
+
+        real(fpp), allocatable, dimension(:, :) :: control_coords
+        real(fpp), dimension(0:5) :: bbox
+
+
+        nnodes = Tdomain%n_nodes
+
+        i_elems = -1
+        n_elems = 0
+
+        allocate(control_coords(0:2, 0:nnodes-1))
+
+        !!! loop on all elements
+
+        do n = 0, Tdomain%n_elem-1
+
+            !!! compute element bounding box
+            do j = 0,nnodes-1
+                control_coords(0:2, j) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n)%Control_Nodes(j))
+            enddo
+            bbox = 0.0_fpp
+            do j = 0,2
+                bbox(j*2) = minval(control_coords(j, :))
+                bbox(j*2+1) = maxval(control_coords(j, :))
+            enddo
+
+            if (x0 >= bbox(0) .and. x0 <= bbox(1) &
+                .and. y0 >= bbox(2) .and. y0 <= bbox(3) &
+                .and. z0 >= bbox(4) .and. z0 <= bbox(5)) then
+                n_elems = n_elems+1
+                i_elems(n_elems) = n
+                if (n_elems == nmax) stop "reach maximum number of elements bbox in find_location"
+            endif
+        enddo
+        nmax = n_elems
+
+        !!! compute local coordinates for source in selected elems
+
+        do i = 1,n_elems
+            n = i_elems(i)
+            do j = 0,nnodes-1
+                control_coords(0:2, j) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(i_elems(i))%Control_Nodes(j))
+            enddo
+            if (nnodes == 8) then
+                call shape8_global2local(control_coords, x0, y0, z0, xi, eta, zeta, ok)
+            else
+                call shape27_global2local(control_coords, x0, y0, z0, xi, eta, zeta, ok)
+            endif
+
+            if (.not. ok) then
+                write(*,*) "find_location failed:",xi,eta,zeta,ok
+                write(*,*) "find_location for location at :",x0,y0,z0
+                stop
+            endif
+
+            elems(i) = n
+            localcoord(0, i) = xi
+            localcoord(1, i) = eta
+            localcoord(2, i) = zeta
+        enddo
+
+        deallocate(control_coords)
+
+    end subroutine find_location_bbox
+
 
     subroutine find_location_centroid(Tdomain, x0,y0,z0, nmax, elems, localcoord, nsrc)
         type(domain), intent(in) :: Tdomain
@@ -164,14 +241,6 @@ contains
             if (j<nmax) n_elems=n_elems+1
         enddo
         if (n_elems>nmax) n_elems=nmax
-
-        !!! remove (except one) elements through dxmax criterion
-        !!!do i=2,nmax
-        !!!    if (d_elems(i)>Tdomain%dxmax) then
-        !!!        n_elems=i
-        !!!        exit
-        !!!    endif
-        !!!enddo
 
         !!! compute local coordinates for source in nearest elems
         allocate(coord(0:2,0:nnodes-1))
