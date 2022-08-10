@@ -75,6 +75,7 @@ contains
             mat = Tdomain%specel(n)%mat_index
             ! Compute MassMat
             call init_local_mass(Tdomain, Tdomain%specel(n))
+
             ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is
             if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
                 call init_solidpml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
@@ -83,6 +84,7 @@ contains
                 call init_fluidpml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             end if
         enddo
+
         ! Here we have local mass matrix (not assembled) on elements and
         ! each of faces, edges, vertices containing assembled (on local processor only) mass matrix
         if( Tdomain%earthchunk_isInit/=0) then
@@ -297,6 +299,7 @@ contains
         enddo
 
         if(Tdomain%Comm_data%ncomm > 0)then
+
             do n = 0,Tdomain%Comm_data%ncomm-1
                 ! Domain SOLID
                 k = 0
@@ -418,6 +421,7 @@ contains
         logical :: isfile
 
         do mat = 0, Tdomain%n_mat-1
+
             ! compute rotation matrix if needed
             if (Tdomain%sSubdomain(mat)%is_sph) then
                 call get_rotation_to_pole(Tdomain%sSubdomain(mat)%sph_args%theta_chk, &
@@ -451,7 +455,7 @@ contains
         type(subdomain), intent(in) :: mat
         !
         real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0, v1, lambda, mu, rho, nu, nlkp
-        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0h, v1h, eta, A, C, F, L, M
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: v0h, v1h, eta, A, C, F, L, M, Qk, Qm
         real(fpp), dimension(1:6,1:6,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
         real(fpp), dimension(0:2) :: xx,xxr
         integer :: i,j,k,n,idef
@@ -492,6 +496,8 @@ contains
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), v1h)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), eta)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), rho)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), Qk)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(8), Qm)
                 else
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), v0)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), v1)
@@ -578,7 +584,7 @@ contains
         select case (specel%domain)
         case (DM_SOLID)
             if (mat%deftype==MATDEF_VTI_ANISO) then
-                call init_material_tensor_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Cij)
+                call init_material_tensor_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Qk,Qm,Cij)
             else
                 call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,nlkp,Tdomain%nl_flag)
             end if
@@ -613,7 +619,6 @@ contains
         ngll = domain_ngll(Tdomain, specel%domain)
         call domain_gllw(Tdomain, specel%domain, GLLw)
 
-        !- general (element) weighting: tensorial property..
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
