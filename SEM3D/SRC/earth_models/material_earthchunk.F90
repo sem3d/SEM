@@ -88,7 +88,7 @@ subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
         call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,mat,&
             rho,lambda,mu)
     else if(elem%domain==DM_SOLID) then
-        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,lambda,mu,gCij)
+        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,lambda,mu,lambda,mu,gCij)
     else
         stop "initialize earthchunk material KO"
     endif
