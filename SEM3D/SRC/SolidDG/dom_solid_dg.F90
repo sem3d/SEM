@@ -395,7 +395,8 @@ contains
 
         !dom%champs(f2)%Q(:,:,:,:,:,:) = 0.d0
         !dom%champs(0)%Q(:,:,:,:,:,:) = 0.d0
-        dom%champs(0)%Q(:,0,:,:,6,:) = 1.d0
+        !dom%champs(0)%Q(:,0,:,:,6,:) = 1.d0
+        !dom%champs(0)%Q(:,1:5,:,:,0,:) = 0.d0
         
       end subroutine lddrk_init_solid_dg
 

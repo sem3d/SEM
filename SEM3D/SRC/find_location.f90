@@ -23,7 +23,7 @@ contains
         integer, dimension(nmax), intent(inout) :: elems
         real(fpp), dimension(0:2,nmax), intent(inout) :: localcoord
         integer, intent(in), optional :: nsrc
-        call find_location_centroid(Tdomain, x0, y0, z0, nmax, elems, localcoord, nsrc)
+        call find_location_closest(Tdomain, x0, y0, z0, nmax, elems, localcoord, nsrc)
     end subroutine find_location
 
     ! Finds the element(s) containing the point (x0,y0,z0)

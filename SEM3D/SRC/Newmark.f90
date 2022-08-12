@@ -69,7 +69,7 @@ contains
             call lddrk_init_solid(Tdomain%sdom, 2)
             call lddrk_init_solid_dg(Tdomain%sdomdg, 2)
             call internal_forces(Tdomain, 0, 2, ntime)
-            !call external_forces(Tdomain, t, ntime, 2)
+            call external_forces(Tdomain, t, ntime, 2)
 
             call assemble_forces(Tdomain, Tdomain%sdomdg, 2)
             call comm_forces(Tdomain, 2)
@@ -129,13 +129,7 @@ contains
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        dom%Qasm(idx,:) = dom%Qasm(idx,:) + dom%champs(f1)%Q(ee,i,j,k,:,bnum)
-!                        if (idx>=4888 .and. idx<=4891) then
-!                            write(*,*) bnum,i,j,k,idx
-!                        endif
-!                        if (idx>=4863 .and. idx<=4866) then
-!                            write(*,*) bnum,i,j,k,idx
-!                        endif
+                        dom%Qasm(idx,6:8) = dom%Qasm(idx,6:8) + dom%champs(f1)%Q(ee,i,j,k,6:8,bnum)
                     enddo
                 enddo
             enddo
@@ -153,18 +147,20 @@ contains
         integer                     :: ngll
         integer                     :: n,i,j,k,ee, bnum, idx
         real(fpp), dimension(0:8)   :: val
+        real(fpp)                   :: wh
 
         ngll   = dom%ngll
-
+ 
         do n = 0,Tdomain%n_elem-1
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
+                        wh = dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(k)
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
-                            dom%champs(f1)%Q(ee,i,j,k,0:5,bnum) = dom%Qasm(idx,0:5) * dom%MassMat(idx)*2800.d0
+                            dom%champs(f1)%Q(ee,i,j,k,0:5,bnum) = dom%champs(f1)%Q(ee,i,j,k,0:5,bnum) / (wh*dom%Jacob_(i,j,k,bnum,ee))
                             dom%champs(f1)%Q(ee,i,j,k,6:8,bnum) = dom%Qasm(idx,6:8) * dom%MassMat(idx)
                         enddo
                     enddo
