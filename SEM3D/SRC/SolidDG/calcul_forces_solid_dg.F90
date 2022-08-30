@@ -29,36 +29,34 @@ module m_calcul_forces_dg ! wrap subroutine in module to get arg type check at b
 contains
 
     subroutine calcul_forces_solid_dg_iso(dom,bnum,Q,dQdt)
-
         use champs_solid_dg
         use deriv3d
         implicit none
-
         type(domain_solid_dg), intent (INOUT) :: dom
         integer, intent(in) :: bnum
-
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8), intent(out) :: dQdt
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8), intent(in)  :: Q
-        
+
         select case(dom%ngll)
-            case(4)
-                call calcul_forces_solid_dg_iso_4(dom,dom%ngll,bnum,Q,dQdt) 
-            case(5)
-                call calcul_forces_solid_dg_iso_5(dom,dom%ngll,bnum,Q,dQdt)
-            case (6)
-                call calcul_forces_solid_dg_iso_6(dom,dom%ngll,bnum,Q,dQdt)
-            case (7)
-                call calcul_forces_solid_dg_iso_7(dom,dom%ngll,bnum,Q,dQdt)
-            case (8)
-                call calcul_forces_solid_dg_iso_8(dom,dom%ngll,bnum,Q,dQdt)
-            case (9)
-                call calcul_forces_solid_dg_iso_9(dom,dom%ngll,bnum,Q,dQdt)
-            case default
-                call calcul_forces_solid_dg_iso_n(dom,dom%ngll,bnum,Q,dQdt)
+        case(4)
+            call calcul_forces_solid_dg_iso_4(dom,dom%ngll,bnum,Q,dQdt)
+        case(5)
+            call calcul_forces_solid_dg_iso_5(dom,dom%ngll,bnum,Q,dQdt)
+        case (6)
+            call calcul_forces_solid_dg_iso_6(dom,dom%ngll,bnum,Q,dQdt)
+        case (7)
+            call calcul_forces_solid_dg_iso_7(dom,dom%ngll,bnum,Q,dQdt)
+        case (8)
+            call calcul_forces_solid_dg_iso_8(dom,dom%ngll,bnum,Q,dQdt)
+        case (9)
+            call calcul_forces_solid_dg_iso_9(dom,dom%ngll,bnum,Q,dQdt)
+        case default
+            call calcul_forces_solid_dg_iso_n(dom,dom%ngll,bnum,Q,dQdt)
         end select
     end subroutine calcul_forces_solid_dg_iso
 
 #undef ATTENUATION
+#undef PROCNAME
 #define NGLLVAL 4
 #define PROCNAME calcul_forces_solid_dg_iso_4
 #include "calcul_forces_solid_dg.inc"
