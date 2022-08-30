@@ -46,7 +46,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
 
     dQdt = 0.d0
     ! hprime : indice 1 fct de base, 2eme indei gll
-    
+
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
@@ -99,7 +99,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
 #define JZX JZX_(i,j,k)
 #define JZY JZY_(i,j,k)
 #define JZZ JZZ_(i,j,k)
-                
+
                 do L = 0, ngll-1
                     Vx = Q(ee,L,j,k,6)
                     Vy = Q(ee,L,j,k,7)
@@ -161,7 +161,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
                 dQdt(ee,i,j,k,3) = dE12dt*ww
                 dQdt(ee,i,j,k,4) = dE13dt*ww
                 dQdt(ee,i,j,k,5) = dE23dt*ww
-                
+
                 ! Calcul de dV/dt : IPP dans la formulation
                 !###############################################################################
                 !###############################################################################
@@ -183,7 +183,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
                     E12 = Q(ee,L,j,k,3)
                     E13 = Q(ee,L,j,k,4)
                     E23 = Q(ee,L,j,k,5)
-                   
+
                     tr_eps = E11 + E22 + E33
                     S11 = xla*tr_eps + 2d0*xmu*E11
                     S22 = xla*tr_eps + 2d0*xmu*E22
@@ -192,11 +192,11 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
                     S13 = 2d0*xmu*E13
                     S23 = 2d0*xmu*E23
                     ww = JAC*dom%GLLw(L)*dom%GLLw(j)*dom%GLLw(k)
-                    hp = dom%hprime(i,L) ! le point de gauss qui varie "L" 
+                    hp = dom%hprime(i,L) ! le point de gauss qui varie "L"
 
                     dVxdt = dVxdt - ( S11*JXX + S12*JXY + S13*JXZ )*hp*ww
                     dVydt = dVydt - ( S12*JXX + S22*JXY + S23*JXZ )*hp*ww
-                    dVzdt = dVzdt - ( S13*JXX + S23*JXY + S33*JXZ )*hp*ww              
+                    dVzdt = dVzdt - ( S13*JXX + S23*JXY + S33*JXZ )*hp*ww
 
                 end do
 
@@ -221,14 +221,14 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
 #define JZY JZY_(i,L,k)
 #define JZZ JZZ_(i,L,k)
 
-                   
+
                     E11 = Q(ee,i,L,k,0)
                     E22 = Q(ee,i,L,k,1)
                     E33 = Q(ee,i,L,k,2)
                     E12 = Q(ee,i,L,k,3)
                     E13 = Q(ee,i,L,k,4)
                     E23 = Q(ee,i,L,k,5)
-                    
+
                     tr_eps = E11 + E22 + E33
                     S11 = xla*tr_eps + 2.d0*xmu*E11
                     S22 = xla*tr_eps + 2.d0*xmu*E22
@@ -243,7 +243,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
                     dVydt = dVydt - ( S12*JYX + S22*JYY + S23*JYZ )*hp*ww
                     dVzdt = dVzdt - ( S13*JYX + S23*JYY + S33*JYZ )*hp*ww
 
-                    
+
                 end do
 #undef JXX
 #undef JXY
@@ -266,14 +266,14 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
 #define JZY JZY_(i,j,L)
 #define JZZ JZZ_(i,j,L)
 
-                    
+
                     E11 = Q(ee,i,j,L,0)
                     E22 = Q(ee,i,j,L,1)
                     E33 = Q(ee,i,j,L,2)
                     E12 = Q(ee,i,j,L,3)
                     E13 = Q(ee,i,j,L,4)
                     E23 = Q(ee,i,j,L,5)
-                    
+
                     tr_eps = E11 + E22 + E33
                     S11 = xla*tr_eps + 2.d0*xmu*E11
                     S22 = xla*tr_eps + 2.d0*xmu*E22
@@ -283,17 +283,18 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
                     S23 = 2.d0*xmu*E23
                     hp = dom%hprime(k,L)
                     ww = JAC*dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(L)
-                    
+
                     dVxdt = dVxdt - ( S11*JZX + S12*JZY + S13*JZZ )*hp*ww
                     dVydt = dVydt - ( S12*JZX + S22*JZY + S23*JZZ )*hp*ww
                     dVzdt = dVzdt - ( S13*JZX + S23*JZY + S33*JZZ )*hp*ww
-                    
+
                 end do
-                
+
                 dQdt(ee,i,j,k,6) = dVxdt
                 dQdt(ee,i,j,k,7) = dVydt
                 dQdt(ee,i,j,k,8) = dVzdt
-                
+
+                END_SUBELEM_LOOP()
             END DO
         END DO
     END DO
