@@ -55,7 +55,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
 
-    call stat_init(rg, nb_procs, .true.)
+    call stat_init(communicateur, rg, nb_procs, .false.)
     call stat_starttick(STAT_FULL)
     call stat_starttick(STAT_START)
 
@@ -580,8 +580,8 @@ subroutine START_SEM(rg)
     ! Ce fichier sert d'indicateur de fin de calcul
     ! Si en fin de run on trouve :
     !   -1 : il y a eu un crash/stop ou erreur avant la fin
-    !    0 : le calcul s'est bien passe et est fini
-    !    1 : le calcul doit repartir en reprise pour continuer
+    !    1 : le calcul s'est bien passe et est fini
+    !    0 : le calcul doit repartir en reprise pour continuer
     !
     if (rg==0) then
         open (111,file = "fin_sem", status="REPLACE")

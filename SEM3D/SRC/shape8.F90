@@ -8,7 +8,7 @@
 !!
 !<
 module mshape8
-    use constants, only : fpp
+    use constants, only : fpp, deps
     use sdomain
     implicit none
 #include "index.h"
@@ -388,6 +388,10 @@ contains
             call shape8_local2global(nodes, xout(0), xout(1), xout(2), xa, ya, za)
             call shape8_local2jacob(nodes, xout(0), xout(1), xout(2), Jac)
             call invert_3d (Jac, Det)
+            if (abs(Det)<deps) then
+                nit = niter
+                return
+            end if
             xa = xref(0)-xa
             ya = xref(1)-ya
             za = xref(2)-za
@@ -418,10 +422,16 @@ contains
         xref(1) = ya
         xref(2) = za
         call simple_newton_8(coord, xref, xin, xout, niter)
-        if (niter==1000 .or. niter<0) ok=.false.
-        xi = xout(0)
-        eta = xout(1)
-        zeta = xout(2)
+        if (niter==1000 .or. niter<0) then
+            ok=.false.
+            xi = 0.
+            eta = 0.
+            zeta = 0.
+        else
+            xi = xout(0)
+            eta = xout(1)
+            zeta = xout(2)
+        end if
     end subroutine shape8_global2local
 end module mshape8
 

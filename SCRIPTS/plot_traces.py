@@ -20,6 +20,7 @@ def plot_dataset(fig, name, capt, data):
     v = data[:,4:7]
     a = data[:,7:10]
     p = data[:,10]
+    dudx = data[:,11]
     ax = fig.add_subplot(3,1,1)
     ax.set_title( "Depla: %s - %s" % (name, capt) )
     ax.plot(t, u[:,0], label="Ux (%s)" % (name,))
@@ -34,7 +35,7 @@ def plot_dataset(fig, name, capt, data):
     ax.legend()
     ax = fig.add_subplot(3,1,3)
     ax.set_title( "Press: %s - %s" % (name, capt) )
-    ax.plot(t, p[:], label="P (%s)" % (name,))
+    ax.plot(t, dudx[:], label="P (%s)" % (name,))
     ax.legend()
 
 file_descs = read_files(files)
@@ -66,7 +67,7 @@ def compare_to_ref(file_descs):
             refs[capt] = data
     figs = {}
     for name, capt, data in file_descs:
-        if name=="ref":
+        if name!="ref":
             continue
         fig = figs.get(capt)
         if fig is None:
@@ -79,4 +80,5 @@ def compare_to_ref(file_descs):
 
 plot_by_capt(file_descs)
 compare_to_ref(file_descs)
+savefig("fig.pdf")
 show()

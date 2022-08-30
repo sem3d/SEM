@@ -20,6 +20,8 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         integer, intent(in) :: f
         !
+        ! Allocate ONE more gll than necessary to use as a dummy target for
+        ! indirections for fake elements.
         allocate(dom%champs(f)%ForcesPML(0:dom%nglltot,0:2,0:2))
         allocate(dom%champs(f)%VelocPML (0:dom%nglltot,0:2,0:2))
         dom%champs(f)%ForcesPML = 0d0
@@ -504,12 +506,17 @@ contains
         real(fpp), intent(in) :: dt, t
         integer, intent(in) :: f0, f1
         !
-        integer  :: n, i_dir, indpml
+        integer  :: n, id, indpml, jp
 
-        do i_dir = 0,2
-            dom%champs(f0)%VelocPML(:,i_dir,:) = dom%DumpV(:,0,:) * dom%champs(f0)%VelocPML(:,i_dir,:) + &
-                                              dt * dom%DumpV(:,1,:) * dom%champs(f1)%ForcesPML(:,i_dir,:)
-        enddo
+        do jp = 0,2
+            do id = 0,2
+                !$omp simd linear(n)
+                do n = 0,dom%nglltot-1
+                    dom%champs(f0)%VelocPML(n,id,jp) = dom%DumpV(n,0,jp) * dom%champs(f0)%VelocPML(n,id,jp) + &
+                        dt * dom%DumpV(n,1,jp) * dom%champs(f1)%ForcesPML(n,id,jp)
+                end do
+            end do
+        end do
         !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)

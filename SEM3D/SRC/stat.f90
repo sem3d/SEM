@@ -58,17 +58,19 @@ contains
         end if
     end subroutine add_stop_trace
 
-    subroutine stat_init(rg, nprocs, dotraces)
+    subroutine stat_init(comm, rg, nprocs, dotraces)
+        use mpi
         implicit none
-        integer, intent(in) :: rg, nprocs
+        integer, intent(in) :: comm, rg, nprocs
         logical, intent(in) :: dotraces
         character(Len=1000) :: fname
         integer :: ierr
 
         call system_clock(COUNT_RATE=clockRate)
         call system_clock(COUNT_MAX=maxPeriod)
-
         call system_clock(count=startFullTick)
+
+        log_traces = dotraces
         statStart(STAT_FULL)=startFullTick
         if (log_traces) call add_start_trace(STAT_FULL)
 
@@ -76,13 +78,15 @@ contains
         statStart(:) = 0d0
         statStop(:) = 0d0
 
-        log_traces = dotraces
         rank = rg
 
         if (log_traces) then
             ntraces = 2000
             itrace = 1
-            ierr = sem_mkdir("timings")
+            if (rg==0) then
+                ierr = sem_mkdir("timings")
+            end if
+            call MPI_Barrier(comm, ierr)
             write(fname,"(A,I6.6,A)") "timings/type.", rank,".bin"
             open(124, file=trim(adjustl(fname)),form="unformatted", access="stream")
             write(fname,"(A,I6.6,A)") "timings/time.", rank,".bin"

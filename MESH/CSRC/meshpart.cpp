@@ -1176,11 +1176,11 @@ void Mesh3DPart::output_int_constant(FILE* f, int indent, const char* aname, con
 void Mesh3DPart::output_mesh_part_xmf()
 {
     output_xmf_elements();
-    output_xmf_faces();
-    output_xmf_edges();
-    output_xmf_vertices();
-    output_xmf_mirror();
-    output_xmf_comms();
+    // output_xmf_faces();
+    // output_xmf_edges();
+    // output_xmf_vertices();
+    // output_xmf_mirror();
+    // output_xmf_comms();
 }
 
 void Mesh3DPart::output_xmf_header(FILE* f)
