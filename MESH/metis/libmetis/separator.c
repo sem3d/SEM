@@ -13,6 +13,7 @@
  */
 
 #include "metislib.h"
+#include "macros.h"
 
 /*************************************************************************
 * This function takes a bisection and constructs a minimum weight vertex 

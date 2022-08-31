@@ -25,11 +25,11 @@ subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
     real(fpp) :: xr, yr, zr, x, y, z, A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi, lon, lat
     real(fpp), dimension(1:6,1:6) :: Cij
     real(fpp), dimension(1:6,1:6,0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: gCij
-    real(fpp), dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: lambda, mu, rho
+    real(fpp), dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: lambda, mu, rho, dummy
     real(fpp), dimension(3,3) :: RotMat
 
     ngll = Tdomain%sdom%ngll
-
+    dummy = 0
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
@@ -46,7 +46,7 @@ subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
                 yr = RotMat(2,1)*x + RotMat(2,2)*y + RotMat(2,3)*z
                 zr = RotMat(3,1)*x + RotMat(3,2)*y + RotMat(3,3)*z
 
-                call cart2sph(xr, yr, zr, r, theta, phi)
+                call cart2sph_ML(xr, yr, zr, r, theta, phi)
 
                 lon = phi/Pi180
                 lat = 90-0-theta/Pi180
@@ -74,10 +74,9 @@ subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
                     enddo
                 enddo
 
-                if(elem%domain==DM_SOLID_CG_PML) then
-                    lambda(i,j,k) = lambda_from_Cij(Cij)
-                    mu(i,j,k) = mu_from_Cij(Cij)
-                else if(elem%domain==DM_SOLID_CG) then
+                lambda(i,j,k) = lambda_from_Cij(Cij)
+                mu(i,j,k) = mu_from_Cij(Cij)
+                if(elem%domain==DM_SOLID_CG) then
                     call c_4tensor(Cij,theta,phi)
                     call rot_4tensor(Cij,transpose(RotMat))
                 endif
@@ -89,7 +88,7 @@ subroutine  initialize_material_earthchunk(Tdomain, mat, elem, coorPt, npts)
         call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,mat,&
             rho,lambda,mu)
     else if(elem%domain==DM_SOLID_CG) then
-        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,gCij)
+        call init_material_tensor_solid(Tdomain%sdom,elem%lnum,mat,rho,lambda,mu,dummy,dummy,gCij)
     else
         stop "initialize earthchunk material KO"
     endif

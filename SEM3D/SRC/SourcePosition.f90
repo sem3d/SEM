@@ -68,16 +68,16 @@ subroutine SourcePosition (Tdomain)
             end if
         end do
 
-        dom = Tdomain%specel(elems(i))%domain
-        if (dom==DM_SOLID_CG .or. dom==DM_SOLID_DG .or. dom==DM_SOLID_CG_PML) then
-            is_fluid = .false.
-            is_solid = .true.
-        else
-            is_fluid = .true.
-            is_solid = .false.
-        end if
         ! On ignore une source fluide dans le domaine solide
         if (n_el/=-1) then
+            dom = Tdomain%specel(n_el)%domain
+            if (dom==DM_SOLID_CG .or. dom==DM_SOLID_DG .or. dom==DM_SOLID_CG_PML) then
+                is_fluid = .false.
+                is_solid = .true.
+            else
+                is_fluid = .true.
+                is_solid = .false.
+            end if
             if(Tdomain%sSource(n_src)%i_type_source == 3 .and. is_solid) n_el = -1
             if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. is_fluid) n_el = -1
         endif

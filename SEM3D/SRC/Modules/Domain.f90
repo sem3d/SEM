@@ -175,7 +175,7 @@ contains
         case(DM_SOLID_DG)
             domain_nglltot = Tdomain%sdomdg%nglltot
         case default
-            stop "Unknown Domain"
+            stop "Unknown Domain, nglltot"
         end select
     end function domain_nglltot
 
@@ -197,7 +197,7 @@ contains
         case(DM_SOLID_DG)
             domain_ngll = Tdomain%sdomdg%ngll
         case default
-            stop "Unknown Domain"
+            stop "Unknown Domain, ngll"
         end select
     end function domain_ngll
 
@@ -229,7 +229,7 @@ contains
             allocate(GLLc(0:ngll-1))
             GLLc = Tdomain%sdomdg%GLLc
         case default
-            stop "Unknown Domain"
+            stop "Unknown Domain, gllc"
         end select
     end subroutine domain_gllc
 
@@ -261,7 +261,7 @@ contains
             allocate(gllw(0:ngll-1))
             gllw = Tdomain%sdomdg%GLLw
         case default
-            stop "Unknown Domain"
+            stop "Unknown Domain, gllw"
         end select
     end subroutine domain_gllw
 
@@ -287,6 +287,7 @@ contains
                     ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
                     ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
                     dp = abs(Tdomain%GlobCoord(:,ip0)- Tdomain%GlobCoord(:,ip1))
+                    dp = dp/Tdomain%dxmax
                     if (dp(0)>xeps.or.dp(1)>xeps.or.dp(2)>xeps) then
                         !write(*,*) "IF ERROR:", Tdomain%GlobCoord(:,ip0), Tdomain%GlobCoord(:,ip1), dp
                         bad = .true.
@@ -294,7 +295,7 @@ contains
                 end do
             end do
             if (bad) then
-                write(*,*) "BAD INTERFACE:"
+                write(*,*) "BAD INTERFACE:", dp, Tdomain%dxmax
                 write(*,*) "IF0: INODES", nf0, "[", Tdomain%sFace(nf0)%inodes, "]"
                 write(*,*) "IF1: INODES", nf1, "[", Tdomain%sFace(nf1)%inodes, "]"
                 write(*,*) "IF0: IGLOBN", nf0, "[", Tdomain%sFace(nf0)%Iglobnum_Face, "]"
@@ -314,7 +315,7 @@ contains
                         else
                             x1 = 0.
                         end if
-                        write(*,*) "dx:", nf0, nf1, i,j, ":", x0, x1
+                        write(*,*) "dx:", nf0, nf1, i,j, ":", x0, x1, x1-x0
                     end do
                 end do
             end if

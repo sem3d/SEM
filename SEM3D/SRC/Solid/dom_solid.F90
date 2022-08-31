@@ -87,17 +87,27 @@ contains
                 allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             endif
             if (n_solid>0) then
-                if (aniso) then
-                    allocate (dom%Q_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                else
-                    allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                    allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                    allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                    allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                    dom%epsilonvol_(:,:,:,:,:) = 0
-                    allocate (dom%R_vol_       (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                    dom%R_vol_(:,:,:,:,:,:) = 0
-                endif
+                !!! <GB> temporary modif
+                !!!
+                !!! if (aniso) then
+                !!!     allocate (dom%Q_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                !!! else
+                !!!     allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                !!!     allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                !!!     allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                !!!     allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                !!!     dom%epsilonvol_(:,:,:,:,:) = 0
+                !!!     allocate (dom%R_vol_       (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                !!!     dom%R_vol_(:,:,:,:,:,:) = 0
+                !!! endif
+                allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                dom%epsilonvol_(:,:,:,:,:) = 0
+                allocate (dom%R_vol_       (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                dom%R_vol_(:,:,:,:,:,:) = 0
+                !!! </GB>
                 allocate (dom%onemSbeta_     (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%epsilondev_xx_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%epsilondev_yy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
@@ -147,7 +157,6 @@ contains
         if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
 
         if(allocated(dom%m_Cij            )) deallocate (dom%m_Cij            )
-        if(allocated(dom%m_Q              )) deallocate (dom%m_Q              )
         if(allocated(dom%m_Qs             )) deallocate (dom%m_Qs             )
         if(allocated(dom%m_Qp             )) deallocate (dom%m_Qp             )
         if(allocated(dom%m_onemPbeta      )) deallocate (dom%m_onemPbeta      )
@@ -622,7 +631,8 @@ contains
         dom%dt = Tdomain%TimeD%dtmin
     end subroutine init_domain_solid
 
-    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, nlkp, nl_flag, Qp, Qs)
+    subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, &
+        Qkappa, Qmu, nlkp, nl_flag)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -630,8 +640,8 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
-        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Qp
-        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Qs
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Qkappa
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Qmu
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: nlkp
         logical, intent(in) :: nl_flag
         real(fpp),parameter :: gamma_el = 1.0d-5
@@ -656,29 +666,28 @@ contains
                 dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = gamma_el*nlkp*sqrt(3.0d0)
                 dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = nlkp
                 dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1.0d0/(sqrt(3.0d0)*(nlkp-gamma_el))
-                dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = 0.0D0 
+                dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = 0.0D0
                 dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = 0.0D0
             endif
         endif
 
         if (dom%n_sls>0)  then
             dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
-            if (dom%aniso) then
-                dom%Q_(:,:,:,bnum,ee) = mat%Qmu
-            else
-                dom%Qs_(:,:,:,bnum,ee) = Qs
-                dom%Qp_(:,:,:,bnum,ee) = Qp
-            endif
+            dom%Qs_(:,:,:,bnum,ee) = Qmu
+            dom%Qp_(:,:,:,bnum,ee) = Qkappa
         endif
 
     end subroutine init_material_properties_solid
 
-    subroutine init_material_tensor_solid(dom, lnum, mat, density, Cij)
+    subroutine init_material_tensor_solid(dom, lnum, mat, density, lambda, mu, Qkappa, Qmu, Cij)
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
         type (subdomain), intent(in) :: mat
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mu
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Qkappa, Qmu
         real(fpp), dimension(1:6,1:6,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: Cij
 
         integer :: idef, ii, jj
@@ -687,6 +696,10 @@ contains
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
+
+        dom%Density_(:,:,:,bnum,ee) = density
+        dom%Lambda_ (:,:,:,bnum,ee) = lambda
+        dom%Mu_     (:,:,:,bnum,ee) = mu
 
         do i=0,dom%ngll-1
             do j=0,dom%ngll-1
@@ -701,7 +714,21 @@ contains
                 enddo
             enddo
         enddo
-        dom%Density_(:,:,:,bnum,ee) = density
+
+        if (dom%n_sls>0)  then
+            dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
+            !!! <GB> uniform cover of att
+            dom%Qs_(:,:,:,bnum,ee) = Qmu
+            dom%Qp_(:,:,:,bnum,ee) = Qkappa
+            !!!if (dom%aniso) then
+            !!!    dom%Q_(:,:,:,bnum,ee) = Qmu
+            !!!else
+            !!!    dom%Qs_(:,:,:,bnum,ee) = Qmu
+            !!!    dom%Qp_(:,:,:,bnum,ee) = Qkappa
+            !!!endif
+            !!! <GB>
+        endif
+
     end subroutine init_material_tensor_solid
 
     subroutine init_local_mass_solid(dom,specel,i,j,k,ind,Whei)

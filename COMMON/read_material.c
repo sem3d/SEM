@@ -30,6 +30,7 @@ const keyword_t str_mat_descrs[] = {
     {11, "Hooke_D" },
     {12, "Nlkp_Vs_Rho_D" },
     {13, "Nu_Vs_Rho_D" },
+    {14, "VTI_Aniso" },
 };
 
 const keyword_t str_mat_spatial[] = {
@@ -44,6 +45,7 @@ void matcpy(sem_material_t* dst, sem_material_t* src)
     dst->domain = src->domain;
     dst->deftype = src->deftype;
     dst->defspatial = src->defspatial;
+    dst->is_sph = src->is_sph;
     dst->rho = src->rho;
     dst->Vp = src->Vp;
     dst->Vs = src->Vs;
@@ -63,6 +65,9 @@ void matcpy(sem_material_t* dst, sem_material_t* src)
     dst->filename2 = src->filename2;
     dst->filename3 = src->filename3;
     dst->filename4 = src->filename4;
+
+    dst->lat_center = src->lat_center;
+    dst->lon_center = src->lon_center;
 }
 
 int expect_material(yyscan_t scanner, sem_material_list_t* mats)
@@ -88,13 +93,14 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
         if (cmp(scanner,"domain"))      err=expect_eq_keyword(scanner, str_domains, &mat->domain);
         if (cmp(scanner,"deftype"))     err=expect_eq_keyword(scanner, str_mat_descrs, &mat->deftype);
         if (cmp(scanner,"spacedef"))    err=expect_eq_keyword(scanner, str_mat_spatial, &mat->defspatial);
+        if (cmp(scanner,"is_sph"))      err=expect_eq_bool(scanner, &mat->is_sph, 1);
         if (cmp(scanner,"filename")) {
             err=expect_eq_string(scanner, &mat->filename0, 1);
             mat->filename1 = strndup(mat->filename0, 2048);
             mat->filename2 = strndup(mat->filename0, 2048);
             mat->filename3 = strndup(mat->filename0, 2048);
             mat->filename4 = strndup(mat->filename0, 2048);
-        } 
+        }
         if (cmp(scanner,"filename0")) err=expect_eq_string(scanner, &mat->filename0, 1);
         if (cmp(scanner,"filename1")) err=expect_eq_string(scanner, &mat->filename1, 1);
         if (cmp(scanner,"filename2")) err=expect_eq_string(scanner, &mat->filename2, 1);
@@ -111,6 +117,8 @@ int expect_material(yyscan_t scanner, sem_material_list_t* mats)
         if (cmp(scanner,"nlkp"))      err=expect_eq_float(scanner, &mat->nlkp, 1);
         if (cmp(scanner,"Qp"))        err=expect_eq_float(scanner, &mat->Qp, 1);
         if (cmp(scanner,"Qs"))        err=expect_eq_float(scanner, &mat->Qs, 1);
+        if (cmp(scanner,"lat_center"))  err=expect_eq_float(scanner, &mat->lat_center, 1);
+        if (cmp(scanner,"lon_center"))  err=expect_eq_float(scanner, &mat->lon_center, 1);
         if (cmp(scanner,"copy")) {
             err=expect_eq_int(scanner, &nmat, 1);
             if (err<=0) {

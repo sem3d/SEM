@@ -41,14 +41,14 @@ contains
 
     end subroutine getRotMat_loc2glob
 
-    subroutine cart2sph(x, y, z, r, theta, phi)
+    subroutine cart2sph_ML(x, y, z, r, theta, phi)
         real(fpp), intent(in) :: x, y, z
         real(fpp), intent(out) :: r, theta, phi
 
         r = sqrt(x*x+y*y+z*z)
         theta = acos(z/r)
         phi = atan2(y,x)
-    end subroutine cart2sph
+    end subroutine cart2sph_ML
 
 
 

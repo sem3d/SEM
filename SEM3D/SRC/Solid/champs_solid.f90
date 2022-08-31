@@ -61,7 +61,6 @@ module champs_solid
         ! Attenuation
         integer :: n_sls
 
-        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Q
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Qs
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Qp
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_epsilonvol

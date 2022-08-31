@@ -974,8 +974,8 @@ void Mesh3DPart::output_surface(hid_t fid, const Surface* surf)
     hid_t gid = H5Gcreate(fid, surf->name().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     write_surface_dom(gid, surf, "sl", DM_SOLID_CG);
     write_surface_dom(gid, surf, "fl", DM_FLUID_CG);
-    write_surface_dom(gid, surf, "sld", DM_SOLID_DG);
-    write_surface_dom(gid, surf, "fld", DM_FLUID_DG);
+    write_surface_dom(gid, surf, "sldg", DM_SOLID_DG);
+    write_surface_dom(gid, surf, "fldg", DM_FLUID_DG);
     write_surface_dom(gid, surf, "spml", DM_SOLID_CG_PML);
     write_surface_dom(gid, surf, "fpml", DM_FLUID_CG_PML);
 

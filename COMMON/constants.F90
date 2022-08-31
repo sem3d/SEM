@@ -69,7 +69,6 @@ MODULE constants
     integer, parameter :: DG_BC_REFL=2
     logical, parameter :: COMPUTE_VHAT=.true.
     logical, parameter :: NOT_COMPUTE_VHAT=.false.
-    integer, parameter :: nProp = 3
 
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100
@@ -92,6 +91,7 @@ MODULE constants
     integer, parameter :: MATDEF_HOOKE_RHO     = 4
     integer, parameter :: MATDEF_NLKP_VS_RHO   = 5
     integer, parameter :: MATDEF_NU_VS_RHO     = 6
+    integer, parameter :: MATDEF_VTI_ANISO     = 14
     ! Heterogeneous damping
     integer, parameter :: MATDEF_VP_VS_RHO_D     = 7
     integer, parameter :: MATDEF_E_NU_RHO_D      = 8

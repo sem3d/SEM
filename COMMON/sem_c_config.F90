@@ -208,6 +208,7 @@ module sem_c_config
        integer(C_INT) :: domain
        integer(C_INT) :: deftype
        integer(C_INT) :: defspatial
+       integer(C_INT) :: is_sph
        !
        real(C_DOUBLE) :: rho
        real(C_DOUBLE) :: Vp
@@ -217,6 +218,9 @@ module sem_c_config
        real(C_DOUBLE) :: lambda
        real(C_DOUBLE) :: kappa
        real(C_DOUBLE) :: mu
+       !
+       real(C_DOUBLE) :: lat_center
+       real(C_DOUBLE) :: lon_center
        !
        type(C_PTR)    :: filename0
        type(C_PTR)    :: filename1

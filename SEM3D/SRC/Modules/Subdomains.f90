@@ -41,6 +41,11 @@ module ssubdomains
         type(nl_properties) :: nl_prop
     end type PropertyField
 
+    type SphericalArgs
+        real(fpp) :: theta_chk,phi_chk
+        real(fpp), dimension(0:2,0:2) :: R_to_pole_chk,R_from_pole_chk
+    end type SphericalArgs
+
     type Subdomain
         integer          :: dom ! The computation domain SOLID/FLUID/SPML/FPML/...DG
         integer          :: material_definition
@@ -78,7 +83,12 @@ module ssubdomains
         ! depending on material_definition we can have
         ! Vp(v1) Vs(v2) Rho(v3)
         ! Lambda(v1) Mu(v2) Rho(v3) ...
-        type(PropertyField), dimension(5) :: pf
+        integer :: n_prop
+        type(PropertyField), dimension(:), allocatable :: prop_field
+
+        !! spherical material, need to be projected
+        logical :: is_sph
+        type(SphericalArgs) :: sph_args
 
     end type Subdomain
 

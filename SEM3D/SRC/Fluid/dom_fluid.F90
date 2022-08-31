@@ -283,9 +283,10 @@ contains
         dom%dt = Tdomain%TimeD%dtmin
     end subroutine init_domain_fluid
 
-    subroutine init_material_properties_fluid(dom, lnum, density, lambda)
+    subroutine init_material_properties_fluid(dom, lnum, mat, density, lambda)
         type(domain_fluid), intent(inout) :: dom
         integer, intent(in) :: lnum
+        type (subdomain), intent(in) :: mat
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: density
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
         !

@@ -101,6 +101,7 @@ contains
                             Q_kappa_old = Q_kappa
                         end if
 
+
                         !- getting the values of the relaxed moduli
                         Tdomain%sdom%Mu_(i,j,k,bnum,ee) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)*   &
                             get_relaxed_modulus(n_solid,Q_mu,f_ref,   &
@@ -122,6 +123,7 @@ contains
                         dt = Tdomain%TimeD%dtmin
                         Tdomain%sdom%agamma_mu_(:,i,j,k,bnum,ee) = agamma_mu
                         Tdomain%sdom%agamma_kappa_(:,i,j,k,bnum,ee) = agamma_kappa
+
                     enddo
                 enddo
             enddo
@@ -156,8 +158,10 @@ contains
         f_ref = 1d0/Tdomain%T0_modele
 
         !- f_ref must be in the attenuation band
-        if((f_ref < f_min) .or. (f_ref > f_max))  &
-            stop "  --> In set_attenuation_param.f90 : Bad value of T0_modele, which is not in the attenuation band"
+        !!! <GB> comment for PREM attenuation model (fref = 1Hz)
+        !!!if((f_ref < f_min) .or. (f_ref > f_max))  &
+        !!!    stop "  --> In set_attenuation_param.f90 : Bad value of T0_modele, which is not in the attenuation band"
+        !!! <GB>
 
         !- frequency sampling for 1/stress relaxation times (1/tau_s)
         allocate(omega_tau_s(0:n_solid-1))

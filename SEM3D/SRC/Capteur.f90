@@ -69,7 +69,7 @@ contains
         integer :: periodeRef
         logical :: flag
 
-
+        flag = .false.
         station_next = Tdomain%config%stations
         nullify(listeCapteur)
         periodeRef = -1
@@ -90,9 +90,8 @@ contains
             yc = station_ptr%coords(2)
             zc = station_ptr%coords(3)
             numproc = -1
-            flag = .false.
             nom = fromcstr(station_ptr%name)
-            if (trim(nom(1:20))=="04x29") flag = .true.
+            !if (trim(nom(1:20))=="04x29") flag = .true.
             call trouve_capteur(Tdomain, xc, yc, zc, n_el, dmin, xi, eta, zeta, flag)
             ! Cas ou le capteur est dans le maillage
             call MPI_AllReduce(dmin, glob_dmin, 1, MPI_DOUBLE, &

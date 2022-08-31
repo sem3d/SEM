@@ -77,7 +77,6 @@
 #define PMLDumpSy_(i,j,k,n,eb,ec) m_PMLDumpSy(IND_IJKNE(i,j,k,n,eb,ec))
 #define PMLDumpSz_(i,j,k,n,eb,ec) m_PMLDumpSz(IND_IJKNE(i,j,k,n,eb,ec))
 
-#define                 Q_(i,j,k,eb,ec)                  m_Q(IND_IJKE(i,j,k,eb,ec))
 #define                Qs_(i,j,k,eb,ec)                 m_Qs(IND_IJKE(i,j,k,eb,ec))
 #define                Qp_(i,j,k,eb,ec)                 m_Qp(IND_IJKE(i,j,k,eb,ec))
 #define        epsilonvol_(i,j,k,eb,ec)         m_epsilonvol(IND_IJKE(i,j,k,eb,ec))
