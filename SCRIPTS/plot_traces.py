@@ -3,7 +3,11 @@
 from pylab import *
 import h5py
 import sys
-files = sys.argv[1:]
+import argparse
+
+
+VARIABLES = ["Time", "Displ",
+             "Veloc", "Accel", "Pressure", "DUDX" ]
 
 def read_files(files):
     res = []
@@ -38,18 +42,6 @@ def plot_dataset(fig, name, capt, data):
     ax.plot(t, dudx[:], label="P (%s)" % (name,))
     ax.legend()
 
-file_descs = read_files(files)
-
-
-def plot_by_capt(file_descs):
-    figs = {}
-    for name, capt, data in file_descs:
-        fig = figs.get(capt)
-        if fig is None:
-            fig = figure()
-            figs[capt] = fig
-        plot_dataset(fig, name, capt, data)
-
 
 def plot_by_capt(file_descs):
     figs = {}
@@ -76,9 +68,10 @@ def compare_to_ref(file_descs):
         datref = array(data, copy=True)
         datref[:,1:] -= refs[capt][:,1:]
         plot_dataset(fig, name+"-ref", capt, datref)
-    
 
-plot_by_capt(file_descs)
-compare_to_ref(file_descs)
-savefig("fig.pdf")
-show()
+if __name__=="__main__":
+    file_descs = read_files(files)
+    plot_by_capt(file_descs)
+    compare_to_ref(file_descs)
+    savefig("fig.pdf")
+    show()
