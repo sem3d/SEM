@@ -68,13 +68,36 @@ contains
             mat%prop_field(3)%propName = "Rho"
         case(MATDEF_VTI_ANISO)
             mat%prop_field(1)%propName = "Vpv"
-            mat%prop_field(2)%propName = "Vph"
-            mat%prop_field(3)%propName = "Vsv"
-            mat%prop_field(4)%propName = "Vsh"
-            mat%prop_field(5)%propName = "Eta"
-            mat%prop_field(6)%propName = "Rho"
+            mat%prop_field(2)%propName = "Vsv"
+            mat%prop_field(3)%propName = "Rho"
+            mat%prop_field(4)%propName = "Vph"
+            mat%prop_field(5)%propName = "Vsh"
+            mat%prop_field(6)%propName = "Eta"
             mat%prop_field(7)%propName = "Qkappa"
             mat%prop_field(8)%propName = "Qmu"
+        case(MATDEF_HOOKE_ANISO)
+            mat%prop_field(1)%propName = "C11"
+            mat%prop_field(2)%propName = "C22"
+            mat%prop_field(3)%propName = "C33"
+            mat%prop_field(4)%propName = "C44"
+            mat%prop_field(5)%propName = "C55"
+            mat%prop_field(6)%propName = "C66"
+            mat%prop_field(7)%propName = "C12"
+            mat%prop_field(8)%propName = "C13"
+            mat%prop_field(9)%propName = "C14"
+            mat%prop_field(10)%propName = "C15"
+            mat%prop_field(11)%propName = "C16"
+            mat%prop_field(12)%propName = "C23"
+            mat%prop_field(13)%propName = "C24"
+            mat%prop_field(14)%propName = "C25"
+            mat%prop_field(15)%propName = "C26"
+            mat%prop_field(16)%propName = "C34"
+            mat%prop_field(17)%propName = "C35"
+            mat%prop_field(18)%propName = "C36"
+            mat%prop_field(19)%propName = "C45"
+            mat%prop_field(20)%propName = "C46"
+            mat%prop_field(21)%propName = "C56"
+            mat%prop_field(22)%propName = "Rho"
         end select
 
         select case(mat%deftype)
@@ -132,11 +155,11 @@ contains
         subgrp = prop_check_var(file_id, pf%propName, grp_id)
         if (.not. subgrp) then
             grp_id = file_id
+            write(*,*) "Missing properties in h5file",pf%propName !! MC
         end if
         call read_attr_real_vec(grp_id, "xMinGlob", pf%MinBound)
         call read_attr_real_vec(grp_id, "xMaxGlob", pf%MaxBound)
         call read_dims(grp_id, "samples", dims)
-
         pf%NN = int(dims)
         ! On va calculer les indices i0,i1 j0,j1,k0,k1 tels que
         ! i0 plus grand entier tel que x(i0)<MinBound_loc(0), 
@@ -182,7 +205,6 @@ contains
         end do
 
         call read_subset_3d_real(grp_id, "samples", pf%imin, pf%imax, pf%var)
-
         if (subgrp) call H5Gclose_f(grp_id, hdferr)
         call H5Fclose_f(file_id, hdferr)
     end subroutine init_prop_file_field

@@ -108,7 +108,7 @@ contains
                 case (MATDEF_VTI_ANISO)
                     Tdomain%aniso=.true.
                     nprop = 8
-                case (MATDEF_HOOKE_RHO,MATDEF_HOOKE_RHO_D)
+                case (MATDEF_HOOKE_ANISO)
                     nprop = 22
                     Tdomain%aniso=.true.
                 end select
@@ -122,16 +122,25 @@ contains
                 end if
                 Tdomain%sSubdomain(num)%n_prop = nprop
                 allocate(Tdomain%sSubdomain(num)%prop_field(nprop))
-                Tdomain%sSubdomain(num)%prop_field(1)%propFilePath = trim(fromcstr(matdesc%filename0))
-                Tdomain%sSubdomain(num)%prop_field(2)%propFilePath = trim(fromcstr(matdesc%filename1))
-                Tdomain%sSubdomain(num)%prop_field(3)%propFilePath = trim(fromcstr(matdesc%filename2))
-                if (nprop>=5) then
+                if (nprop==3) then
+                    Tdomain%sSubdomain(num)%prop_field(1)%propFilePath = trim(fromcstr(matdesc%filename0))
+                    Tdomain%sSubdomain(num)%prop_field(2)%propFilePath = trim(fromcstr(matdesc%filename1))
+                    Tdomain%sSubdomain(num)%prop_field(3)%propFilePath = trim(fromcstr(matdesc%filename2))
+                elseif (nprop==5) then
+                    Tdomain%sSubdomain(num)%prop_field(1)%propFilePath = trim(fromcstr(matdesc%filename0))
+                    Tdomain%sSubdomain(num)%prop_field(2)%propFilePath = trim(fromcstr(matdesc%filename1))
+                    Tdomain%sSubdomain(num)%prop_field(3)%propFilePath = trim(fromcstr(matdesc%filename2))
                     Tdomain%sSubdomain(num)%prop_field(4)%propFilePath = trim(fromcstr(matdesc%filename3))
                     Tdomain%sSubdomain(num)%prop_field(5)%propFilePath = trim(fromcstr(matdesc%filename4))
+                elseif (nprop>5) then
+                    do i = 1,nprop
+                        Tdomain%sSubdomain(num)%prop_field(i)%propFilePath = trim(fromcstr(matdesc%filename0))
+                    end do
                 endif
-                do i = 6,nprop
-                    Tdomain%sSubdomain(num)%prop_field(i)%propFilePath = trim(fromcstr(matdesc%filename0))
-                end do
+               !MC MC
+               ! do i = 6,nprop
+               !     Tdomain%sSubdomain(num)%prop_field(i)%propFilePath = trim(fromcstr(matdesc%filename0))
+               ! end do
             end select
             Tdomain%sSubdomain(num)%deftype  = matdesc%deftype
             Tdomain%sSubdomain(num)%Ddensity = matdesc%rho

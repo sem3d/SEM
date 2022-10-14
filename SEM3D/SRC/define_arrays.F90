@@ -535,12 +535,37 @@ contains
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), Qk)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), Qm)
                 case (MATDEF_VTI_ANISO)
-                    ! v0, v1, rho +
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), v0h)
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), v1h)
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), eta)
+                    ! v0, v1, rho call dans le commun 
+                    aniso=.true.
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), v0h)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), v1h)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), eta)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), Qk)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(8), Qm)
+                case (MATDEF_HOOKE_ANISO)
+                    aniso=.true.
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1),Cij(1,1,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2),Cij(2,2,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3),Cij(3,3,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4),Cij(4,4,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5),Cij(5,5,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6),Cij(6,6,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7),Cij(1,2,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(8),Cij(1,3,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(9),Cij(1,4,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(10),Cij(1,5,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(11),Cij(1,6,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(12),Cij(2,3,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(13),Cij(2,4,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(14),Cij(2,5,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(15),Cij(2,6,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(16),Cij(3,4,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(17),Cij(3,5,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(18),Cij(3,6,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(19),Cij(4,5,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(20),Cij(4,6,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(21),Cij(5,6,:,:,:))
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(22), rho)
                 end select
         end select
 
@@ -618,11 +643,26 @@ contains
                     end do
                 end do
             end if
+        case(MATDEF_HOOKE_ANISO)
+            !Cij definis au moment lecture fichier material.spec
+            do i = 2,6
+                do j = 1,i-1
+                    Cij(i,j,:,:,:) = Cij(j,i,:,:,:)
+                end do
+            end do
+            do k = 0,mat%NGLL-1
+                do j = 0,mat%NGLL-1
+                    do i = 0,mat%NGLL-1
+                        lambda(i,j,k)=lambda_from_Cij(Cij(:,:,i,j,k))
+                        mu(i,j,k)=mu_from_Cij(Cij(:,:,i,j,k))
+                    end do
+                end do
+            end do
         end select
 
         select case (specel%domain)
         case (DM_SOLID_CG)
-            if (mat%deftype==MATDEF_VTI_ANISO) then
+            if (mat%deftype==MATDEF_VTI_ANISO .or. mat%deftype==MATDEF_HOOKE_ANISO) then
                 call init_material_tensor_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Qk,Qm,Cij)
             else
                 call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Qk,Qm,nlkp,Tdomain%nl_flag)
