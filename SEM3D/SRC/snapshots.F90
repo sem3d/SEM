@@ -1024,7 +1024,9 @@ contains
                         if (out_variables(OUT_VITESSE)  == 1) outputs%veloc(0:2,ind) = fieldV(i,j,k,0:2)
                         if (out_variables(OUT_ACCEL)    == 1) outputs%accel(0:2,ind) = fieldA(i,j,k,0:2)
                         if (out_variables(OUT_PRESSION) == 1) outputs%press_n(ind)   = fieldP(i,j,k)
-!                        if (domain_type==DM_SOLID_DG) then
+                        if (out_variables(OUT_DUDX) == 1) outputs%dUdX(0:8,ind) = dUdX(i,j,k,0:8)
+!                       ajout dUdX
+                        !if (domain_type==DM_SOLID_DG) then
 !                            if (out_variables(OUT_EPS_VOL)    == 1) outputs%eps_vol(ind) = eps_vol(i,j,k)
 !                            if (out_variables(OUT_EPS_DEV)    == 1) outputs%eps_dev(0:5,ind) = eps_dev(i,j,k,0:5)
 !                        end if
@@ -1232,6 +1234,8 @@ contains
             if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_nodes("Press_gll",  nn, i, group, "press_gll" )
             if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_cells("Press_elem", ne, i, group, "press_elem")
             if (out_variables(OUT_EPS_VOL)  == 1) call write_xdmf_attr_scalar_cells("eps_vol",    ne, i, group, "eps_vol"   )
+            !plus propre de faire passer DUDX en attribut vecteur ou equiv (mais
+            !write_attr_vector pas adapté, dim forcé à 3?)
             if (out_variables(OUT_DUDX) == 1) then
                 call write_xdmf_attr_scalar_nodes("dUxdx", nn, i, group, "dUxdx")
                 call write_xdmf_attr_scalar_nodes("dUxdy", nn, i, group, "dUxdy")
@@ -1360,6 +1364,13 @@ contains
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                 '">geometry',group,'.h5:/Kappa</DataItem>'
             write(61,"(a)") '</Attribute>'
+            !C11 MC
+            if (Tdomain%aniso .EQV. .true.) then
+                write(61,"(a)") '<Attribute Name="C11" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C11" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C11</DataItem>'
+                write(61,"(a)") '</Attribute>'
+            end if
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar">'
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" NumberType="Int"  Dimensions="',nn, &
@@ -1390,7 +1401,7 @@ contains
         real(fpp), dimension(:),allocatable :: dumpsx
         real(fpp) :: dx, dy, dz, dt
 #endif
-        real(fpp), dimension(:),allocatable :: dens, lamb, mu, kappa
+        real(fpp), dimension(:),allocatable :: dens, lamb, mu, kappa, C11
         real(fpp), dimension(:,:,:,:), allocatable :: grad_La
         real(fpp), dimension(:,:,:,:), allocatable :: grad_Mu
         real(fpp), dimension(:,:),allocatable :: grad_La_n,grad_Mu_n 
@@ -1407,7 +1418,9 @@ contains
         allocate(lamb(0:nnodes-1))
         allocate(mu(0:nnodes-1))
         allocate(kappa(0:nnodes-1))
-
+        if (Tdomain%aniso .EQV. .true.) then 
+            allocate(C11(0:nnodes-1))
+        end if
         if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
             allocate(grad_La_n(0:2,0:nnodes-1))
             grad_La_n = 0d0
@@ -1711,7 +1724,36 @@ contains
                 end do
             end do
         end do
-
+        !!! C11 (faisable pour tout Cii)
+        if (Tdomain%aniso .EQV. .true.) then
+            do n = 0,Tdomain%n_elem-1
+                if (.not. Tdomain%specel(n)%OUTPUT) cycle
+                ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+                bnum = Tdomain%specel(n)%lnum/VCHUNK
+                ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+                do k = 0,ngll-1
+                        do j = 0,ngll-1
+                                do i = 0,ngll-1
+                                        idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                                        select case (Tdomain%specel(n)%domain)
+                                           case (DM_SOLID_CG)
+                                                C11(idx) = Tdomain%sdom%Cij_(0,i,j,k,bnum,ee)
+                                           case (DM_SOLID_DG)
+                                                C11(idx) = -1d0
+                                           case (DM_SOLID_CG_PML)
+                                                C11(idx) = -1d0
+                                           case (DM_FLUID_CG)
+                                                C11(idx) = -1d0
+                                           case (DM_FLUID_CG_PML)
+                                                C11(idx) = -1d0
+                                           case default
+                                                stop "unknown domain"
+                                         end select
+                                  end do
+                         end do
+                end do
+            end do
+        end if
         call grp_write_real_1d(outputs, fid, "Mass", nnodes, mass, nnodes_tot)
 #ifdef CPML
 #ifdef DEBUG_CPML
@@ -1722,11 +1764,15 @@ contains
 #else
         call grp_write_real_1d(outputs, fid, "Alpha", nnodes, dumpsx, nnodes_tot)
 #endif
+        
         call grp_write_real_1d(outputs, fid, "Jac", nnodes, jac, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Dens", nnodes, dens, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Lamb", nnodes, lamb, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Mu", nnodes, mu, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Kappa", nnodes, kappa, nnodes_tot)
+        if (Tdomain%aniso .EQV. .true.) then
+            call grp_write_real_1d(outputs, fid, "C11", nnodes, C11, nnodes_tot)
+        end if
         ! GRAD LAMBDA
         if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
             call grp_write_real_2d(outputs, fid, "GradLa_gll", 3, nnodes, grad_La_n, nnodes_tot)
@@ -1743,6 +1789,7 @@ contains
         if(allocated(grad_Mu)) deallocate(grad_Mu)
         if(allocated(grad_La_n)) deallocate(grad_La_n)
         if(allocated(grad_Mu_n)) deallocate(grad_Mu_n)
+        if(allocated(C11)) deallocate(C11)
 #ifdef CPML
 
         deallocate(alpha_pml)
