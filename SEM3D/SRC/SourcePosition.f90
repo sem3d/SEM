@@ -31,7 +31,8 @@ subroutine SourcePosition (Tdomain)
     integer, parameter :: NMAXEL=20
     integer, dimension(NMAXEL) :: elems
     real(fpp), dimension(0:2,NMAXEL) :: coordloc
-    real(fpp), parameter :: EPS = 1D-13
+    real(fpp), parameter :: EPSD = 1D-10
+    real(fpp) :: EPS
     type(source), dimension(:), allocatable :: ssource_temp
     logical, dimension(:), allocatable :: src_inproc
     logical :: inside, is_fluid, is_solid
@@ -42,7 +43,7 @@ subroutine SourcePosition (Tdomain)
     allocate(coord(0:2, 0:nnodes-1))
     allocate(src_inproc(0:Tdomain%n_source-1))
     src_inproc = .false.
-
+    EPS=EPSD*Tdomain%dxmax
     do n_src = 0, Tdomain%n_source-1
         xs = Tdomain%Ssource(n_src)%Xsource
         ys = Tdomain%Ssource(n_src)%Ysource
@@ -52,7 +53,7 @@ subroutine SourcePosition (Tdomain)
         nmax = NMAXEL
         call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
         n_el = -1
-
+ 
         do i=1,nmax
             inside = .true.
             xi   = coordloc(0,i)
@@ -61,7 +62,6 @@ subroutine SourcePosition (Tdomain)
 
             if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
             if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
-
             if (inside) then
                 n_el = elems(i)
                 exit

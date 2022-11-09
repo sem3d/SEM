@@ -854,10 +854,12 @@ contains
         integer, parameter :: NMAXEL=100
         integer, dimension(NMAXEL) :: elems
         real(fpp), dimension(0:2,NMAXEL) :: coordloc
-        real(fpp), parameter :: EPS = 1D-13, EPSN = 0.1D0
+        real(fpp), parameter :: EPSD = 1D-10, EPSN = 0.1D0
+        real(fpp) :: EPS
         real(fpp), dimension(0:2, 0:Tdomain%n_nodes-1) :: coordl
         real(fpp) :: dist, xc0, yc0, zc0
 
+        EPS=EPSD*Tdomain%dxmax
         nmax = NMAXEL
         call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
         n_el = -1
