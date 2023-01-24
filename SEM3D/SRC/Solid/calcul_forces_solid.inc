@@ -118,7 +118,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         do j = 0,ngll-1
             do i = 0,ngll-1
 #if VCHUNK>1
-!$omp simd linear(e,ee)
+!$omp simd linear(ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
 #define JXX dom%InvGrad_(0,0,i,j,k,bnum,ee)
@@ -346,7 +346,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #if VCHUNK>1
                 !dir$ simd
                 !dir$ vector aligned
-!$omp simd linear(e,ee)
+!$omp simd linear(ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 !=-=-=-=-=-=-=-=-=-=-

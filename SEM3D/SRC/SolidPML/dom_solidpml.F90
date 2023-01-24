@@ -294,7 +294,7 @@ contains
                 do j = 0,ngll-1
                     do i = 0,ngll-1
 #if VCHUNK>1
-!$omp simd linear(e,ee)
+!$omp simd linear(ee)
 #endif
                         BEGIN_SUBELEM_LOOP(e,ee,bnum)
                         ind = dom%Idom_(i,j,k,bnum,ee)
@@ -311,7 +311,7 @@ contains
             do j = 0,ngll-1
                 do i = 0,ngll-1
 #if VCHUNK>1
-!$omp simd linear(e,ee)
+!$omp simd linear(ee)
 #endif
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     ! partial of velocity components with respect to xi,eta,zeta

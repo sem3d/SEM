@@ -491,7 +491,6 @@ contains
         call h5gclose_f(elem_id, hdferr)
         call h5fclose_f(fid, hdferr)
 
-        call clean_prot(Tdomain%TimeD%prot_m0, rg)
         return
     end subroutine read_restart
 end module mloadcheckpoint

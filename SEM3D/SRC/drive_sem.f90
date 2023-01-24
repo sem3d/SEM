@@ -274,7 +274,6 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
 
     integer :: code,ierr
     integer :: info_capteur
-    character(Len=MAX_FILE_SIZE) :: fnamef
 
     rg = Tdomain%rank
     nb_procs = Tdomain%nb_procs
@@ -293,20 +292,17 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
 
 
 !- eventual restarting from a previous run (checkpoint)
-    call semname_results_temps_sem(fnamef)
     if (Tdomain%logicD%run_restart) then
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
         call MPI_Barrier(Tdomain%communicateur,code)
         if(rg == 0) then
             write (*,*) "--> RESTARTING ON ALL CPUs"
-            open(78,file=fnamef,status="unknown",position="append")
         end if
     else
         ! on supprime tous les fichiers et repertoire de protection
         if(rg == 0) then
             ! Sauvegarde des donnees de post-traitement
-            open(78,file=fnamef,status="unknown",position="rewind")
             call system('rm -Rf '//path_prot)
             ierr = sem_mkdir(path_prot)
         end if

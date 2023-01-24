@@ -114,24 +114,6 @@ contains
         fname = pjoin(path_mirror,temp)
     end subroutine semname_mirrorfile_h5
 
-    subroutine semname_mirrorfile_nodes_sl(rank, fname)
-        implicit none
-        integer, intent(in) :: rank
-        character(Len=MAX_FILE_SIZE), intent(out) :: fname
-        character(Len=MAX_FILE_SIZE) :: temp
-        write(temp,"(a7,I4.4,a13)") "mirror.",rank,".nodes_sl.txt"
-        fname = pjoin(path_mirror,temp)
-    end subroutine semname_mirrorfile_nodes_sl
-
-    subroutine semname_mirrorfile_nodes_fl(rank, fname)
-        implicit none
-        integer, intent(in) :: rank
-        character(Len=MAX_FILE_SIZE), intent(out) :: fname
-        character(Len=MAX_FILE_SIZE) :: temp
-        write(temp,"(a7,I4.4,a13)") "mirror.",rank,".nodes_fl.txt"
-        fname = pjoin(path_mirror,temp)
-    end subroutine semname_mirrorfile_nodes_fl
-
     subroutine semname_read_capteurs(file,fnamef)
         implicit none
         character(Len=*),intent(in) :: file
@@ -156,18 +138,8 @@ contains
         fname = pjoin(path_traces,temp)
     end subroutine semname_tracefile_h5
 
-    !!fichier capteur 2d 3d
-    subroutine semname_capteur_pos (name,fnamef)
-        !SEMFILE 98 RW ./Capteurs/sem/capteurs_XXX.position (MKA) & "capteur_XXX.position (NOMKA)
-        implicit none
-        character(Len=*),intent(in) :: name
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        fnamef = pjoin(path_traces, "capteurs_"//trim(adjustl(name))//".position")
-    end subroutine semname_capteur_pos
 
     subroutine semname_capteur_type (name,type,fnamef)
-        !SEMFILE 99 W ./Capteurs/sem/XXX_YYY (MKA) & XXX_YYY (NOMKA)
         implicit none
         character(Len=*), intent(in) :: name
         character(Len=*),intent(in) :: type
@@ -249,28 +221,6 @@ contains
         fnamef = pjoin(path_results, temp)
     end subroutine semname_define_fault_rankn
     !!end fichier define_fault_properties 2d
-
-    !!fichier define_neu_properties
-    subroutine semname_define_neu_properties_file (file,fnamef)
-        !SEMFILE 24 R XXX
-        implicit none
-        character(Len=*),intent(in) :: file
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        fnamef = pjoin(path_param, file)
-    end subroutine semname_define_neu_properties_file
-    !!end fichier define_neu_properties
-
-    !!fichier define_planew_properties
-    subroutine semname_define_planew_properties_file (file,fnamef)
-        !SEMFILE 24 R XXX
-        implicit none
-        character(Len=*),intent(in) :: file
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        fnamef = pjoin(path_param, file)
-    end subroutine semname_define_planew_properties_file
-    !!end fichier define_planew_properties
 
     subroutine semname_results_temps_sem(fnamef)
         implicit none
@@ -385,21 +335,6 @@ contains
         fnamef = pjoin(path_data, "station_file_echo")
     end subroutine semname_read_mesh_station_echo
 
-    subroutine semname_save_checkpoint_cp(fnamer,fnamef)
-        character(Len=*),intent(in) :: fnamer
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,a,a)") "./Capteurs/sem ",trim(adjustl(fnamer)),"/Capteurs"
-
-        DEBUG(fnamef)
-    end subroutine semname_save_checkpoint_cp
-
-    subroutine semname_save_checkpoint_cp2(fnamer,fnamef)
-        character(Len=*),intent(in) :: fnamer
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,a,a,a)")trim(adjustl(fnamer)),";cp -r ./Capteurs/sem ",trim(adjustl(fnamer)),"/Capteurs"
-
-        DEBUG(fnamef)
-    end subroutine semname_save_checkpoint_cp2
     subroutine semname_read_restart_commandedl(sit,fnamef)
         character(Len=*),intent(in) :: sit
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
@@ -628,43 +563,6 @@ contains
 
 
 !------ Fichiers pour posttraitement -------------
-    subroutine semname_posptg (rank,fnamef)
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE)  :: temp
-        write(temp,"(a,I4.4)")"posPtG.",rank
-        fnamef = pjoin(path_results, temp)
-        DEBUG(fnamef)
-    end subroutine semname_posptg
-
-    subroutine semname_post_data (rank,fnamef)
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE)  :: temp
-        write(temp,"(a,I4.4,a)")"post_data.",rank,".h5"
-        fnamef = pjoin(path_results,temp)
-        DEBUG(fnamef)
-    end subroutine semname_post_data
-
-    subroutine semname_connecptg (rank,fnamef)
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE)  :: temp
-        write(temp,"(a,I4.4)")"connecPtG.",rank
-        fnamef = pjoin(path_results, temp)
-        DEBUG(fnamef)
-    end subroutine semname_connecptg
-
-    subroutine semname_file_temps_sem(fnamef)
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        fnamef = pjoin(path_results, "temps_sem.dat")
-    end subroutine semname_file_temps_sem
-
     subroutine semname_xdmf(isort, fnamef)
         implicit none
         integer, intent(in) :: isort

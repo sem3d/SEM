@@ -10,7 +10,7 @@ subroutine test_path()
         
     call semname_dir_capteurs(fnamef)
     write(*,*) "dir capteurs='", trim(adjustl(fnamef)),"'"
-    call semname_capteur_pos("cap00", fnamef)
+    call semname_capteur_type("cap00", ".vel", fnamef)
     write(*,*) "capteur_pos:", trim(adjustl(fnamef))
         
 end subroutine test_path
