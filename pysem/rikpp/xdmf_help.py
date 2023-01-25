@@ -54,6 +54,25 @@ def write_geometry(fid,h5f,tfm,nel=1,nnd=1,tag='Box',gtp='XYZ'):
               '''</Geometry>\n''')
     return
 
+def write_hexa_geometry_static(fid,h5f,nel=1,nnd=1,tag='Box',gtp='XYZ'):
+    fid.write('''<?xml version="1.0" ?>\n<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">\n'''+
+    '''<Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">\n'''+
+    '''<Domain>\n''')
+    fid.write('''<Grid Name="{}">\n'''.format(tag))
+    fid.write('''<Topology TopologyType="Hexahedron" NumberOfElements="{:>d}">\n'''.format(nel))
+    fid.write('''<DataItem Format="HDF" NumberType="Int" Dimensions="{:>d}  8">\n'''.format(nel))
+    fid.write('''{}:/Elements\n'''.format(h5f))
+    fid.write('''</DataItem>\n''')
+    fid.write('''</Topology>\n''')
+    fid.write('''<Geometry GeometryType="{}">\n'''.format(gtp))
+    fid.write('''<DataItem Format="HDF" NumberType="Float" Precision="4"'''+
+              ''' Dimensions=" {:>15} 3">\n'''.format(nnd)+
+              '''{}:/Nodes\n'''.format(h5f)+
+              '''</DataItem>\n'''+
+              '''</Geometry>\n''')
+    fid.write('''</Grid>\n</Domain>\n</Xdmf>\n''')
+    return
+
 def write_attributes(fid,h5f,attrs):
     for a in attrs:
         for k,v in a.items():

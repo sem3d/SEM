@@ -3,10 +3,10 @@
 """
 Script to parse and post-process SEM3D traces
     
-    Ex. : parse hdf5 traces called Uobs, for all directions x y z, monitor 0 and 1 (in stations.txt) 
+    Ex. : Parse hdf5 traces called Uobs, for all directions x y z, monitor 0 and 1 (in stations.txt) 
         and plot them
         
-        python3 parse_h5_traces.py @@wkd ./traces/ @@fmt h5 @@nam Uobs @@var Displ @@rdr x y z @@mon 0 1 2 @@plt
+        python3 ParseSEM3DH5Traces_h5_traces.py @@wkd ./traces/ @@fmt h5 @@nam Uobs @@var Displ @@rdr x y z @@mon 0 1 2 @@plt
 """
 
 # Required modules
@@ -38,7 +38,7 @@ components = {
 units = {'Displ':'m','Veloc':'m/s','Accel':'m/s^2',
          'Pressure':'Pa','StressDev':'Pa','EpsDev':'1','EpsDevPl':'1'}
 
-class Capteur(object):
+class SEM3DMonitor(object):
     def __init__(self, name, fmt, data={}, \
                  nt = 0,nc = 0, dTime=0.,\
                  var=OrderedDict({}), \
@@ -93,14 +93,14 @@ class Capteur(object):
             try:
                 self.nt = self.Time.size
             except:
-                raise('Time vector not parsed!')
+                raise('Time vector not ParseSEM3DH5Tracesd!')
             
     def set_dTime(self):
         if self.fmt=='h5' and 'Time' in self.var.keys():
             try:
                 self.dTime = self.Time[-1]-self.Time[-2]
             except:
-                raise('Time vector not parsed!')
+                raise('Time vector not ParseSEM3DH5Tracesd!')
             
         else:
             # on ne prend pas [1]-[0] car certains filtres decalent le T0
@@ -146,9 +146,9 @@ class Capteur(object):
                             else:
                                 return plt.gcf()
                         else:
-                            raise ValueError('Component '+c+' not parsed!')
+                            raise ValueError('Component '+c+' not ParseSEM3DH5Tracesd!')
                 else:
-                    raise ValueError('Variable '+v+' not parsed!')
+                    raise ValueError('Variable '+v+' not ParseSEM3DH5Tracesd!')
             
 
     def filt_low_pass(self, fmax, fband=2.0):
@@ -218,7 +218,7 @@ class Capteur(object):
                 cpt.data[v] = f(cpt.Time)
         return cpt
 
-def parse(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**kwargs):    
+def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**kwargs):    
     if fmt == 'h5':
         fls = glob.glob(osj(wkd,'*.h5'))
         fn = fls[0]
@@ -252,17 +252,17 @@ def parse(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**kwargs):
             nam = [c for c in nam]
         cpts = {}
         for n in nam:
-            cpt = Capteur(name=n,fmt=fmt,var=var_ok,var_avl=var_avl,comp=cmp_ok)
+            cpt = SEM3DMonitor(name=n,fmt=fmt,var=var_ok,var_avl=var_avl,comp=cmp_ok)
             flag=False
             for ds in f.items():
                 if 'Variables' not in ds[0]:
                     if 'pos' not in ds[0] :
-                        # parse time vector and construct time properties
+                        # ParseSEM3DH5Traces time vector and construct time properties
                         if not flag: 
                             cpt.set_time(ds[1][...][:,0])
                             flag=True
             f.close()
-            # parse h5 files to find total number of capteurs
+            # ParseSEM3DH5Traces h5 files to find total number of capteurs
             idx = {}
             nc = 0
             for fn in fls:
@@ -291,37 +291,41 @@ def parse(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**kwargs):
             cpts[n]=cpt
         return cpts
 
-def save_object(obj, filename):
+def ExportPickle(obj, filename):
     with open(filename, 'wb') as output:  # Overwrites any existing file.
         pickle.dump(obj, output, -1)# pickle.HIGHEST_PROTOCOL)
     output.close()
-    
+
+def ParseOptions():
+    OptionParser = argparse.ArgumentParser(prefix_chars='@')
+    OptionParser.add_argument('@w','@@wkd',type=str,default='../test/traces/',help='Database main directory')
+    OptionParser.add_argument('@f','@@fmt',type=str,default='h5',help='Database format')
+    OptionParser.add_argument('@n','@@nam',type=str,nargs='+',default=['all'],help = 'Name of the set(s) of monitors')
+    OptionParser.add_argument('@v','@@var',type=str,nargs='+',default=['Displ','Veloc','Accel'],help='Output variables')
+    OptionParser.add_argument('@r','@@rdr',type=str,nargs='+',default=['x','y','z'],help='Motion components')
+    OptionParser.add_argument('@m','@@mon',type=int,nargs='+',default=[0],help='SEM3DMonitor number')
+    OptionParser.add_argument('@p','@@plt',action='store_true',default=True,help='Plot?')
+    options = OptionParser.parse_args().__dict__
+    return options
+
 if __name__=='__main__':
-    parser = argparse.ArgumentParser(prefix_chars='@')
-    parser.add_argument('@w','@@wkd',type=str,default='../test/traces/',help='Database main directory')
-    parser.add_argument('@f','@@fmt',type=str,default='h5',help='Database format')
-    parser.add_argument('@n','@@nam',type=str,nargs='+',default=['all'],help = 'Name of the set(s) of monitors')
-    parser.add_argument('@v','@@var',type=str,nargs='+',default=['Displ','Veloc','Accel'],help='Output variables')
-    parser.add_argument('@r','@@rdr',type=str,nargs='+',default=['x','y','z'],help='Motion components')
-    parser.add_argument('@m','@@mon',type=int,nargs='+',default=[0],help='Monitor number')
-    parser.add_argument('@p','@@plt',action='store_true',default=True,help='Plot?')
-    opt = parser.parse_args().__dict__
     
+    options = ParseOptions()
     
-    print("Parse {} database ({}*.{})\nVariables: {}-Comp: {}".format(opt['nam'],opt['wkd'],opt['fmt'],
-                                                              opt['var'],opt['rdr']))
+    print("Parse {} database ({}*.{})\nVariables: {}-Comp: {}".format(options['nam'],options['wkd'],options['fmt'],
+                                                              options['var'],options['rdr']))
     
-    # parse database
-    stream = parse(**opt)
-    print("Database parsed!\n")
+    # ParseSEM3DH5Traces database
+    stream = ParseSEM3DH5Traces(**options)
+    print("Database ParseSEM3DH5Traces!\n")
 
     # Plot traces
-    if opt['plt']:
+    if options['plt']:
         if 'all' in stream:
-            stream['all'].plot(**opt,svf='plot.png')
+            stream['all'].plot(**options,svf='plot.png')
         else:
-            for n in opt['nam']:
-                stream[n].plot(**opt,svf='plot.png')
+            for n in options['nam']:
+                stream[n].plot(**options,svf='plot.png')
     
     # Compute total stresses if present
     try:
