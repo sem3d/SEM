@@ -8,6 +8,8 @@ SEM is a French software and it has been developed by:
 - [CentraleSupélec (FKA École Centrale Paris)](https://www.centralesupelec.fr/)
 - [Centre national de la recherche scientifique](https://www.cnrs.fr)
 
+CEA, CentraleSupélec, IPGP and CNRS. SEM3D Ver 2017.04 Registered at French Agency for Protection of Programs (Dépôt APP). IDDN.FR.001.400009.000.S.P.2018.000.31235, 2017.
+
 based on the original work of D. Komatitsch:
 - Komatitsch, D. __Méthodes Spectrales et Éléments Spectraux Pour l’équation de l’élastodynamique 2D et 3D En Milieu Hétérogène (Spectral and Spectral-Element Methods for the 2D and 3D Elastodynamics Equations in Heterogeneous Media)__. PhD Thesis, Institut de Physique du Globe, Paris, France, 1997. [url](https://theses.hal.science/tel-00007568)
 - Komatitsch, D.; Vilotte, J.-P. __The Spectral Element Method: An Efficient Tool to Simulate the Seismic Response of 2D and 3D Geological Structures__. Bulletin of the Seismological Society of America 1998, 88 (2), 368-392 [doi](https://doi.org/10.1785/BSSA0880020368)
