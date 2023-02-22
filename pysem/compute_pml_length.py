@@ -19,8 +19,8 @@ import numpy as np
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2020, CentraleSupélec (MSSMat UMR CNRS 8579)"
 __credits__ = ["Filippo Gatti"]
-__license__ = "GPL"
-__version__ = "1.0.1"
+__license__ = "Cecill-C"
+__version__ = "1.0"
 __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
@@ -84,14 +84,42 @@ class pml(object):
 if __name__=="__main__":
     
     parser = argparse.ArgumentParser(prefix_chars='@')
-    parser.add_argument('@@cp',type=float,nargs='+',default=[ 700.,1385.,1732.,3500.],help="P-wave speed in each layer")
-    parser.add_argument('@@cs',type=float,nargs='+',default=[ 300., 800.,1000.,2000.],help="S-wave speed in each layer")
-    parser.add_argument('@@fl',type=float,nargs='+',default=[0.01,30.],help="Frequency limits")
-    parser.add_argument('@@RCdb',type=float,default=-60.,help="Reflection Coefficient in db")
-    parser.add_argument('@p',type=int,default=2,help="Polynomial order")
-    parser.add_argument('@@Ax',type=float,default=None,help="Ax or d0 coefficient")
-    parser.add_argument('@@PML_lengths',type=float,nargs='+',default=None,help="PML length")
-    parser.add_argument('@@PML_type',type=str,default="PML",help="PML type [PML|CPML]")
+    parser.add_argument('@@cp',
+                        type=float,
+                        nargs='+',
+                        default=[ 700.,1385.,1732.,3500.],
+                        help="P-wave speed in each layer")
+    parser.add_argument('@@cs',
+                        type=float,
+                        nargs='+',
+                        default=[ 300., 800.,1000.,2000.],
+                        help="S-wave speed in each layer")
+    parser.add_argument('@@fl',
+                        type=float,
+                        nargs='+',
+                        default=[0.01,30.],
+                        help="Frequency limits")
+    parser.add_argument('@@RCdb',
+                        type=float,
+                        default=-60.,
+                        help="Reflection Coefficient in db")
+    parser.add_argument('@p',
+                        type=int,
+                        default=2,
+                        help="Polynomial order")
+    parser.add_argument('@@Ax',
+                        type=float,
+                        default=None,
+                        help="Ax or d0 coefficient")
+    parser.add_argument('@@PML_lengths',
+                        type=float,
+                        nargs='+',
+                        default=None,
+                        help="PML length")
+    parser.add_argument('@@PML_type',
+                        type=str,
+                        default="PML",
+                        help="PML type [PML|CPML]")
     opt = parser.parse_args().__dict__
     
     p = pml(**opt)    
