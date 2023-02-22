@@ -9,13 +9,14 @@ Example:
 
 
 """
-u'''Required modules'''
+# Required modules
 from rik_pp_lib import *
 from scipy.integrate import cumtrapz
 from scipy.spatial import Voronoi,Delaunay,voronoi_plot_2d
-u'''General informations'''
+
+# General informations
 __author__ = "Filippo Gatti and Elif Oral"
-__copyright__ = "Copyright 2018, MSSMat UMR CNRS 8579 - CentraleSupélec"
+__copyright__ = "Copyright 2018, MSSMat UMR CNRS 8579, CentraleSupélec"
 __credits__ = ["Filippo Gatti", "Elif Oral"]
 __license__ = "Cecill-C"
 __version__ = "1.0"

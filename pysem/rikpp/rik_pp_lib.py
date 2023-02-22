@@ -3,7 +3,7 @@
 """
 Set of subroutines to post-process RIK output
 """
-u'''Required modules'''
+# Required modules
 import os 
 from os.path import join as opj
 import argparse
@@ -37,9 +37,9 @@ rc('text', usetex=True)
 import seaborn as sns
 from   collections import OrderedDict 
 
-u'''General informations'''
+# General informations
 __author__ = "Filippo Gatti, Elif Oral"
-__copyright__ = "Copyright 2023, LMPS UMR 9026 - CentraleSupélec"
+__copyright__ = "Copyright 2023, LMPS UMR 9026, CentraleSupélec"
 __credits__ = ["Filippo Gatti", "Elif Oral"]
 __license__ = "Cecill-C"
 __version__ = "1.0"

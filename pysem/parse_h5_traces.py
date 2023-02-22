@@ -24,6 +24,16 @@ from scipy.signal import kaiserord, firwin, lfilter, convolve, medfilt, decimate
 import glob
 import copy
 
+# General informations
+__author__ = "Filippo Gatti"
+__copyright__ = "Copyright 2023, LMPS UMR CNRS 9026, CentraleSupélec"
+__credits__ = ["Filippo Gatti"]
+__license__ = "Cecill-C"
+__version__ = "1.0"
+__maintainer__ = "Filippo Gatti"
+__email__ = "filippo.gatti@centralesupelec.fr"
+__status__ = "Beta"
+
 cmp_dict = [{'p':0}]
 cmp_dict.append({'x':0,'y':1,'z':2})
 cmp_dict.append({'xx':0,'yy':1,'zz':2,'xy':3,'xz':4,'yz':5})

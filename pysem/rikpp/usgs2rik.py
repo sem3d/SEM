@@ -18,7 +18,14 @@ from itertools import groupby
 from matplotlib import cm
 from matplotlib.colors import LightSource
 import matplotlib.pyplot as plt
-
+__author__ = "Filippo Gatti"
+__copyright__ = "Copyright 2023, LMPS UMR CNRS 9026 - CentraleSupélec"
+__credits__ = ["Filippo Gatti"]
+__license__ = "Cecill-C"
+__version__ = "1.0"
+__maintainer__ = "Filippo Gatti"
+__email__ = "filippo.gatti@centralesupelec.fr"
+__status__ = "Beta"
 
 class USGSFiniteFault(object):
     def __init__(self, **kwargs):

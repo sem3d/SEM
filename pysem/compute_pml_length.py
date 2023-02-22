@@ -17,7 +17,7 @@ import numpy as np
 
 # General informations
 __author__ = "Filippo Gatti"
-__copyright__ = "Copyright 2020, CentraleSupélec (MSSMat UMR CNRS 8579)"
+__copyright__ = "Copyright 2020, MSSMat UMR CNRS 8579, CentraleSupélec"
 __credits__ = ["Filippo Gatti"]
 __license__ = "Cecill-C"
 __version__ = "1.0"
