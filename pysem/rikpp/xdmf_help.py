@@ -3,20 +3,14 @@
 """
 XDMF helper
 """
-#===============================================================================
-# Required modules
-#===============================================================================
-# General modules
-from __future__ import division
+u'''Required modules'''
 import warnings
 warnings.filterwarnings("ignore")
 import os.path as osp
 import argparse
 import numpy as np
 import h5py
-#===============================================================================
-# General informations
-#===============================================================================
+u'''General informations'''
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2018, CentraleSupélec (MSSMat UMR CNRS 8579)"
 __credits__ = ["Filippo Gatti"]

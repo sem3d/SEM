@@ -15,16 +15,22 @@ u'''General informations'''
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2018, CentraleSupélec (MSSMat UMR CNRS 8579)"
 __credits__ = ["Filippo Gatti"]
-__license__ = "GPL"
-__version__ = "1.0.1"
+__license__ = "Cecill-C"
+__version__ = "1.0"
 __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
 
 
-def write_fault_xdmf(filename,Name_of_h5,c,tEnd,dtm,nel,nnd):
+def write_fault_xdmf(filename, 
+                     Name_of_h5, 
+                     c, 
+                     tEnd, 
+                     dtm, 
+                     nel, 
+                     nnd):
     fid = open(filename, 'w')
-    
+
     # Header for xml file
     xdmf.write_header(fid)
     t=0
@@ -35,9 +41,17 @@ def write_fault_xdmf(filename,Name_of_h5,c,tEnd,dtm,nel,nnd):
     elif c=='srate':
         pfx = 'sra'
     while t <= tEnd:
-        attr = [{'{}_{:>d}'.format(pfx,t):(c,'Node','Scalar',(nnd,))}]
-        xdmf.write_geometry(fid,Name_of_h5,t*dtm,nel=nel,nnd=nnd,tag='fault',gtp='XYZ')
-        xdmf.write_attributes(fid,Name_of_h5,attr)
+        attr = [{'{}_{:>d}'.format(pfx, t):(c,'Node','Scalar',(nnd,))}]
+        xdmf.write_geometry(fid, 
+                            Name_of_h5, 
+                            t*dtm, 
+                            nel=nel, 
+                            nnd=nnd, 
+                            tag='fault', 
+                            gtp='XYZ')
+        xdmf.write_attributes(fid, 
+                              Name_of_h5,
+                              attr)
         fid.write('''</Grid>\n''')
         t = t + 1
     xdmf.write_close(fid)
@@ -47,11 +61,16 @@ class cfault2xmf(object):
     def __init__(self,opt):
        self.opt=opt 
     def convert(self):
-        mf = opj(self.opt['wkd'],self.opt['mf'])
-        kf = opj(self.opt['wkd'],self.opt['kf'])
+        mf = opj(self.opt['wkd'],
+                 self.opt['mf'])
+        kf = opj(self.opt['wkd'],
+                 self.opt['kf'])
 
-        dic = {'moment':mf,'slip':kf,'srate':kf}
-        Name_of_h5 = opj(self.opt['wkd'],mf.split('/')[-1].split('.')[0].split('_')[0])
+        dic = {'moment':mf, 
+               'slip':kf, 
+               'srate':kf}
+        Name_of_h5 = opj(self.opt['wkd'],
+                         mf.split('/')[-1].split('.')[0].split('_')[0])
         
         with h5py.File(mf,"r+") as mf, h5py.File(kf,"r+") as kf:
             # Fault grid
@@ -68,7 +87,13 @@ class cfault2xmf(object):
     
             for c in self.opt['ct']:
                 filename = '{0}_{1}.xmf'.format(Name_of_h5,c)
-                write_fault_xdmf(filename,dic[c],c,Nt,dt,nel,nnd)
+                write_fault_xdmf(filename,
+                                 dic[c],
+                                 c,
+                                 Nt,
+                                 dt,
+                                 nel,
+                                 nnd)
     
 if __name__=='__main__':
     opt = start_rik()

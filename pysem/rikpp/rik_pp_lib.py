@@ -3,10 +3,7 @@
 """
 Set of subroutines to post-process RIK output
 """
-
-#=======================================================================
-# Required modules
-#=======================================================================
+u'''Required modules'''
 import os 
 from os.path import join as opj
 import argparse
@@ -23,15 +20,15 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
 import matplotlib.lines as mlines
 import matplotlib.colors as mcolors
-from   matplotlib.patches import Polygon
-from   matplotlib.collections import PatchCollection
-from   matplotlib.colors import LinearSegmentedColormap, Normalize
-from   matplotlib.cm import ScalarMappable
-from   matplotlib import ticker
-from   matplotlib.colors import LogNorm
-from   matplotlib.image import NonUniformImage
-from   matplotlib.ticker import LogFormatter, FormatStrFormatter
-from   matplotlib.patches import Circle
+from matplotlib.patches import Polygon
+from matplotlib.collections import PatchCollection
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.cm import ScalarMappable
+from matplotlib import ticker
+from matplotlib.colors import LogNorm
+from matplotlib.image import NonUniformImage
+from matplotlib.ticker import LogFormatter, FormatStrFormatter
+from matplotlib.patches import Circle
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm,rc
@@ -40,30 +37,28 @@ rc('text', usetex=True)
 import seaborn as sns
 from   collections import OrderedDict 
 
-#=======================================================================
-# General informations
-#=======================================================================
-__author__ = "Filippo Gatti"
-__copyright__ = "Copyright 2018, MSSMat UMR CNRS 8579 - CentraleSupélec"
-__credits__ = ["Filippo Gatti"]
-__license__ = "GPL"
-__version__ = "1.0.1"
+u'''General informations'''
+__author__ = "Filippo Gatti, Elif Oral"
+__copyright__ = "Copyright 2023, LMPS UMR 9026 - CentraleSupélec"
+__credits__ = ["Filippo Gatti", "Elif Oral"]
+__license__ = "Cecill-C"
+__version__ = "1.0"
 __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
 
 def start_rik():
     parser = argparse.ArgumentParser(prefix_chars='@')
-    parser.add_argument('@wkd',type=str,default="./",help="Working directory")
-    parser.add_argument('@plot',action='store_true',help="plot?")
-    parser.add_argument('@tag',type=str,default='slip',help="tag")
-    parser.add_argument('@L',type=float,default=15.,help="fault length [km]")
-    parser.add_argument('@W',type=float,default=15.,help="fault width [km]")
-    parser.add_argument('@nL',type=int,default=294,help="Number of grids along fault length")
-    parser.add_argument('@nW',type=int,default=213,help="Number of grids along fault width")
-    parser.add_argument('@nt',type=int,default=480,help="Number of time steps")
-    parser.add_argument('@dt',type=float,default=0.025,help="Time step [s]")
-    parser.add_argument('@hL',type=float,default=12.5,help="Hypocenter along-length coordinate [km]")
+    parser.add_argument('@wkd', type=str, default="./", help="Working directory")
+    parser.add_argument('@plot', action='store_true', help="plot?")
+    parser.add_argument('@tag', type=str,default='slip', help="tag")
+    parser.add_argument('@L', type=float,default=15., help="fault length [km]")
+    parser.add_argument('@W', type=float,default=15., help="fault width [km]")
+    parser.add_argument('@nL', type=int,default=294, help="Number of grids along fault length")
+    parser.add_argument('@nW', type=int,default=213, help="Number of grids along fault width")
+    parser.add_argument('@nt', type=int,default=480, help="Number of time steps")
+    parser.add_argument('@dt', type=float,default=0.025, help="Time step [s]")
+    parser.add_argument('@hL', type=float,default=12.5, help="Hypocenter along-length coordinate [km]")
     parser.add_argument('@hW',type=float,default=0.0,help="Hypocenter along-width coordinate [km]")
     parser.add_argument('@hE',type=float,default=0.0,help="Hypocenter east coordinate [m]")
     parser.add_argument('@hN',type=float,default=0.0,help="Hypocenter north coordinate [m]")
@@ -105,12 +100,6 @@ def moment_computation(M0,time,f,ts,gamma):
             s = ((t-ts)/T)**gamma
             moment[i] = M0* (1.0- (1.0+s)*math.e**(-s))
     return moment
-
-def yeni_data_seti (data,dim,chunk, attrib,output):
-    ''' Attribuer un set de data de dimension dim
-    comme attribut de attrib dans un fichier output de hdf5 '''
-    dataset = output.create_dataset(attrib, dim, chunks=chunk)
-    dataset = data
 
 def vecteurs(aD,aS,aR,output):
     ''' Calcul du vecteur normal Vnormal sur le plan de faille, et du vecteur unitaire

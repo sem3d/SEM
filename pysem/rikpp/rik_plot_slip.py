@@ -13,13 +13,9 @@ Example:
     python3 rik_plot_slip.py @wkd ./ @nL 140 @nW 80 @sf ./slipdistribution.dat @hL 3.66 @hW 3.15 @L 7.0 @W 4.0 @tag teil
 
 '''
-#=======================================================================
-# Required modules
-#=======================================================================
+u'''Required modules'''
 from rik_pp_lib import *
-#=======================================================================
-# General informations
-#=======================================================================
+u'''General informations'''
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2020, CentraleSupélec (MSSMat UMR CNRS 8579)"
 __credits__ = ["Filippo Gatti"]
