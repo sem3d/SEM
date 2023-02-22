@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+"""
+Script to parse the USGS finite fault files (.fsp) and extract the 
+slip patch in a csv file (per segment)
+
+
+Ex.1 : Parse and plot the generic complete_inversion.fsp file from USGS website
+        
+        python3 usgs2rik.py @p
+"""
 import argparse
 import pdb
 import os
@@ -27,11 +38,11 @@ class USGSFiniteFault(object):
         parser = argparse.ArgumentParser(prefix_chars='@')
         parser.add_argument("@w","@@workingdir",
                             type=str,
-                            default=r"/home/kltpk89/Downloads/Turkey2023",
+                            default=r"./",
                             help='Workin directory')
         parser.add_argument("@f","@@filename", 
                             type=str,
-                            default=r"complete_inversion_75.fsp",
+                            default=r"complete_inversion.fsp",
                             help='Complete inversion filename')
         parser.add_argument("@n","@name",
                             type=str,
