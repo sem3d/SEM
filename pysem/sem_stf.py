@@ -111,21 +111,58 @@ def spice_bench(vtm,ts,wd,k,tag=None,plot=False):
 
 if __name__== '__main__':
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--btm',type=float,default=0.0,help="Begin time step")
-    parser.add_argument('--ftm',type=float,default=0.2,help="Final time step")
-    parser.add_argument('--npt',type=int,default=10000,help="Number of time steps")
-    parser.add_argument('--model',type=str,nargs="*",default=["spice_bench"],help="Wavelet model")
-    parser.add_argument('--ts',type=float,nargs="*",default=[0.2],help="Time shift")
-    parser.add_argument('--wd',type=float,nargs="*",default=[0.0002],help="Pulse width")
-    parser.add_argument('--fc',type=float,nargs="*",default=[35.250],help="Dominant frequency")
-    parser.add_argument('--k',type=int,nargs="*",default=[1],help="Dominant frequency")
-    parser.add_argument('--ps',action='store_true',default=False,help='Plot single?')
-    parser.add_argument('--pc',action='store_true',default=False,help='Plot comparison?')
+    parser = argparse.ArgumentParser(prefix_chars='@')
+    parser.add_argument("@b", "@@btm",
+                        type=float,
+                        default=0.0,
+                        help="Begin time step")
+    parser.add_argument("@e", "@@ftm",
+                        type=float,
+                        default=0.2,
+                        help="Final time step")
+    parser.add_argument("@n", "@@npt",
+                        type=int,
+                        default=10000,
+                        help="Number of time steps")
+    parser.add_argument("@m", "@@model",
+                        type=str,
+                        nargs="*",
+                        default=["spice_bench"],
+                        help="Wavelet model")
+    parser.add_argument("@t", "@@ts", 
+                        type=float,
+                        nargs="*",
+                        default=[0.2],
+                        help="Time shift")
+    parser.add_argument("@w", "@@wd", 
+                        type=float,
+                        nargs="*",
+                        default=[0.0002],
+                        help="Pulse width")
+    parser.add_argument("@f", "@@fc", 
+                        type=float,
+                        nargs="*",
+                        default=[35.250],
+                        help="Dominant frequency")
+    parser.add_argument("@k", "@@k",
+                        type=int,
+                        nargs="*",
+                        default=[1],
+                        help="Dominant frequency")
+    parser.add_argument("@s", "@@ps",
+                        action='store_true',
+                        default=False,
+                        help='Plot single?')
+    parser.add_argument("@c", "@@pc",
+                        action='store_true',
+                        default=False,
+                        help='Plot comparison?')
 
     opt = parser.parse_args().__dict__
      
-    vtm = np.linspace(opt['btm'],opt['ftm'],opt['npt']+1).reshape(-1,1)
+    vtm = np.linspace(opt['btm'],
+                      opt['ftm'],
+                      opt['npt']+1).reshape(-1,1)
     
     stf={}
     sff={}
@@ -141,13 +178,26 @@ if __name__== '__main__':
         tag = "md={}-ts={:>5.2f}s-fc={:>5.2f}Hz".format(md,round(ts,2),round(fc,2))
         if 'gaussian' in md:
             wd = 1./fc
-            stf[tag],sff[tag]=gaussian(vtm,ts,wd,tag,opt['ps'])
+            stf[tag],sff[tag]=gaussian(vtm,
+                                       ts,
+                                       wd,
+                                       tag,
+                                       opt['ps'])
         elif 'ricker' in md:
             wd = -1./(np.pi**2*fc**2)
-            stf[tag],sff[tag]=ricker(vtm,ts,wd,tag,opt['ps'])
+            stf[tag],sff[tag]=ricker(vtm,
+                                     ts,
+                                     wd,
+                                     tag,
+                                     opt['ps'])
         elif 'spice_bench' in md:
             wd = 1./fc
-            stf[tag],sff[tag]=spice_bench(vtm,ts,wd,k,tag,opt['ps'])
+            stf[tag],sff[tag]=spice_bench(vtm,
+                                          ts,
+                                          wd,
+                                          k,
+                                          tag,
+                                          opt['ps'])
     
     if opt['pc']:
         plt.figure(figsize=(12,5))
