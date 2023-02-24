@@ -18,6 +18,8 @@ from itertools import groupby
 from matplotlib import cm
 from matplotlib.colors import LightSource
 import matplotlib.pyplot as plt
+
+# General information
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2023, LMPS UMR CNRS 9026 - CentraleSupélec"
 __credits__ = ["Filippo Gatti"]
