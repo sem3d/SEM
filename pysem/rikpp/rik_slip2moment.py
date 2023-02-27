@@ -27,16 +27,16 @@ __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
 
 class mesh(object):
-    def __init__(self,**args):
-        if len(args.keys())==1:
-            self.xg = args['xg']
-        if len(args.keys())==2:
-            self.xg = args['xg']
-            self.yg = args['yg']
-        if len(args.keys())==3:
-            self.xg = args['xg']
-            self.yg = args['yg']
-            self.zg = args['zg']
+    def __init__(self, **kwargs) -> None:
+        if len(kwargs.keys())==1:
+            self.xg = kwargs['xg']
+        if len(kwargs.keys())==2:
+            self.xg = kwargs['xg']
+            self.yg = kwargs['yg']
+        if len(kwargs.keys())==3:
+            self.xg = kwargs['xg']
+            self.yg = kwargs['yg']
+            self.zg = kwargs['zg']
         if self.xg.size:
             self.nW = self.xg.shape[0]
             self.nL = self.xg.shape[1]
@@ -46,10 +46,10 @@ class mesh(object):
             except:
                 self.genmesh2d()
                
-    def __call__(self,**args):
-        self.__init__(**args)
+    def __call__(self, **kwargs) -> None:
+        self.__init__(**kwargs)
     
-    def plot_3d_geo(self):
+    def plot_3d_geo(self) -> None:
         fig = plt.figure()
         ax = fig.gca(projection='3d')
         surf = ax.plot_surface(self.xg, 
@@ -65,16 +65,16 @@ class mesh(object):
         fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.show()
     
-    def genmesh2d(self):
+    def genmesh2d(self) -> None:
         p2d = np.array([self.xg.T.reshape(-1,),\
-                        self.yg.T.reshape(-1,)],dtype=np.float64).T
+                        self.yg.T.reshape(-1,)],
+                       dtype=np.float64).T
         self.msh = Delaunay(p2d)
         self.msh.nodes = np.zeros((self.msh.points.shape[0],
                                    self.msh.points.shape[1]+1))
-        self.msh.nodes[:,:-1]=self.msh.points
-        return 
+        self.msh.nodes[:,:-1] = self.msh.points
     
-    def genmesh3d(self):
+    def genmesh3d(self) -> None:
         p2d = np.array([self.xg.T.reshape(-1,),\
                         self.yg.T.reshape(-1,)],
                        dtype=np.float64).T
@@ -83,12 +83,14 @@ class mesh(object):
         self.msh.nodes = np.zeros((self.msh.points.shape[0],\
                                    self.msh.points.shape[1]+1),\
                                    dtype=np.float64)
-        self.msh.nodes[:,:-1]=self.msh.points 
+        self.msh.nodes[:,:-1] = self.msh.points 
         for s in self.msh.simplices:
             self.msh.nodes[s,-1] = zg[s]
-        return
     
-    def RotTransMesh2d(self,φs,δ,hyp):
+    def RotTransMesh2d(self,
+                       φs: float, 
+                       δ: float,
+                       hyp: list[float]) -> None:
         Q_φδλ = get_rotation_tensor(φs, δ)
         trs = np.dot(Q_φδλ,hyp[0])
         trs = hyp[1]-trs
@@ -99,34 +101,22 @@ class mesh(object):
                                                              np.array([0.],
                                                                       dtype=np.float64))))
             
-    def RotTransMesh3d(self,φs,δ,hyp):
+    def RotTransMesh3d(self, 
+                       φs: float, 
+                       δ: float, 
+                       hyp: list[float]) -> None:
         Q_φδλ = get_rotation_tensor(φs, δ)
-        trs = np.dot(Q_φδλ,hyp[0])
+        trs = np.dot(Q_φδλ, hyp[0])
         trs = hyp[1]-trs
         for i,p in enumerate(self.msh.nodes):
-            self.msh.nodes[i,:] = trs+np.dot(Q_φδλ,
-                                             p.flatten())
+            self.msh.nodes[i,:] = trs + np.dot(Q_φδλ,
+                                               p.flatten())
             
     def write_mesh2h5(self,fid):
         fid.create_dataset(name='Nodes', 
                            data=self.msh.nodes)
         fid.create_dataset(name='Elements', 
                            data=self.msh.simplices)
-
-
-# class classproperty(object):
-#     def __init__(self, fget):
-#         self.fget = classmethod(fget)
-
-#     def __get__(self, obj, owner):
-#         return self.fget.__get__(None, owner)()
-
-# class MyCalculatedClassAttrsMeta(type):
-#     def __new__(cls, name, bases, dct):
-#         c = super().__new__(cls, name, bases, dct)
-#         c.__nSegments += 1
-#         return c
-
 
 class SEM3Dfault(object):
     __nSegments = 0
@@ -149,11 +139,8 @@ class SEM3Dfault(object):
     @classproperty
     def UpdateNumberOfSegments(cls):
         cls.__nSegments += 1
-    
-    # def GetNumberOfSegments(self):
-    #     return SEM3Dfault.__nSegments
-    
-    def SetHypoCoords(SEM3Dfault, hypocenter):
+        
+    def SetHypoCoords(SEM3Dfault, hypocenter: dict):
         for k in sorted(hypocenter, 
                         key=hypocenter.get, 
                         reverse=True):
@@ -172,7 +159,7 @@ class SEM3Dfault(object):
         return cls.__M0
     
     @M0.setter
-    def SetM0(cls, M0):
+    def SetM0(cls, M0: float):
         cls.__M0 = M0
         
     @classproperty
@@ -180,7 +167,7 @@ class SEM3Dfault(object):
         return cls.__nSegments
     
     @nSegments.setter
-    def SetnSegments(cls, count):
+    def SetnSegments(cls, count: int):
         cls.__nSegments += count
 
 class FaultSegment(SEM3Dfault):
@@ -197,14 +184,14 @@ class FaultSegment(SEM3Dfault):
         self.__sdr = np.empty((3,))
         self.__nv = np.empty((3,))
         self.__dv = np.empty((3,))
-        self.__Mv = np.empty((3,3))
-        self.set = False
-        if strike and dip and rake:
-            self.__φs = strike*np.pi/180.0
-            self.__δ = dip*np.pi/180.0
-            self.__λ = rake*np.pi/180.0
-            self.__sdr = np.array([strike, dip, rake])*np.pi/180
-            self.set = True
+        self.__Mm = np.empty((3,3))
+        self.__Q_φδλ = np.empty((3,3))
+        self.sdr_set = False
+        
+        if (strike is not None) and (dip is not None) and (rake is not None):
+            self.SetStrikeDipRake = (strike, dip, rake)
+            self.SetFaultVectors = (strike, dip, rake)
+            self.SetRotationTensor = (strike, dip, rake)
             
     @property
     def SegmentId(self):
@@ -230,58 +217,82 @@ class FaultSegment(SEM3Dfault):
     def FaultVectors(self):
         return self.__ndM
     
+    @property
+    def RotationTensor(self):
+        return self.__Qφδλ
+    
+    @property
+    def Mesh(self):
+        self.__mesh
+    
     @StrikeDipRake.setter
-    def SetStrikeDipRake(self, sdr):
+    def SetStrikeDipRake(self, sdr: tuple[float]) -> None:
         strike, dip, rake = sdr
         print("Strike: {} Dip: {} Rake: {}".format(strike, dip, rake))
         self.__φs = strike*np.pi/180.0
         self.__δ = dip*np.pi/180.0
         self.__λ = rake*np.pi/180.0
-        self.__sdr = np.array([strike, dip, rake])*np.pi/180
-        self.set = True
-        self.__ndM = compute_seismic_moment_vectors(strike=self.__φs,
-                                                    dip=self.__δ,
-                                                    rake=self.__λ)
-        self.__nv, self.__dv, self.__Mm = self.__ndM
+        self.__sdr = np.array([strike, dip, rake])*np.pi/180.0
+        self.sdr_set = True
+        # self.__ndM = compute_seismic_moment_vectors(strike=self.__φs,
+        #                                             dip=self.__δ,
+        #                                             rake=self.__λ)
+        # self.__nv, self.__dv, self.__Mm = self.__ndM
     
     @NormalVector.setter
-    def SetNormalVector(self, sdr):
-        if not self.set:
-            self.SetStrikeDipRake(strike, dip, rake)
-        ndM = compute_seismic_moment_vectors(strike=self.__φs,
-                                             dip=self.__δ,
-                                             rake=self.__λ)
-        self.__nv = ndM[0]        
+    def SetNormalVector(self, nv: list[float]) -> None:
+        self.__nv = nv
     
     @SlipVector.setter
-    def SetSlipVector(self, sdr = None):
-        if not self.set:
-            self.SetStrikeDipRake(strike, dip, rake)
-        ndM = compute_seismic_moment_vectors(strike=self.__φs,
-                                             dip=self.__δ,
-                                             rake=self.__λ)
-        self.__dv = ndM[1]
+    def SetSlipVector(self, dv: list[float]):
+        self.__dv = dv
         
     @MomentUnitTensor.setter
-    def SetMomentUnitTensor(self, sdr):
-        if not self.set:
-            self.SetStrikeDipRake(strike, dip, rake)
-        ndM = compute_seismic_moment_vectors(strike=self.__φs,
-                                             dip=self.__δ,
-                                             rake=self.__λ)
-        self.__Mm = ndM[2]
+    def SetMomentUnitTensor(self, Mm: list[float]):
+        self.__Mm = Mm
 
     @FaultVectors.setter
-    def SetFaultVectors(self, sdr):
-        if not self.set:
+    def SetFaultVectors(self, sdr: tuple[float]):
+        """
+        Compute normal/slip vectors and unit norm Moment tensor
+        
+            Parameters:
+            
+            sdr (tuple): (strike, dip, rake)
+        """
+        strike, dip, rake = sdr
+        if not self.sdr_set:
             self.SetStrikeDipRake(strike, dip, rake)
         self.__ndM = compute_seismic_moment_vectors(strike=self.__φs,
                                                     dip=self.__δ,
                                                     rake=self.__λ)
-        nv, dv, Mm = self.__ndM
-        self.SetNormalVector(nv)
-        self.SetSlipVector(dv)
-        self.MomentUnitTensor(Mm)
+        self.__nv, self.__dv, self.__Mm = self.__ndM        
+        
+    @RotationTensor.setter
+    def SetRotationTensor(self, sdr: tuple[float]):
+        """
+        Compute the fault plane rotation tensor [N,E,D] et to [E,N,Z]
+        
+            Parameters:
+            
+            sdr (tuple): (strike, dip, rake)
+        """
+        strike, dip, rake = sdr
+        if not self.sdr_set:
+            self.SetStrikeDipRake(strike, dip, rake)
+        self.__Qφδλ = get_rotation_tensor(strike, dip)
+    
+    @Mesh.setter
+    def SetMesh(self, faultmesh: mesh) -> None:
+        self.__mesh = faultmesh
+    # def get_segment_Lidx(x): return int(x/L*nL)
+    # # def get_segment_Widx(x): return int(x/W*nW)
+
+    # nLxSegment = list(map(get_segment_Lidx, segL))
+    # nWxSegment = [nW]*nSegments
+
+    # SegmentEdgesL = np.cumsum(np.array([0]+nLxSegment))
+    # SegmentEdgesW = np.array([0]+nWxSegment)
         
         
 class RIK_source(object):
@@ -323,16 +334,22 @@ if __name__=='__main__':
     
     nSegments = len(strike)
     print("Number of segments: {:d}".format(nSegments))
+    for (i, s), d, r in zip(enumerate(strike), dip, rake):
+        print("Segment {:d}:".format(i+1),
+              "strike: {: > .1f},".format(s),
+              "dip: {: > .1f},".format(d),
+              "rake: {: > .1f}\n".format(r)
+              )
     
-    
+    # Define SEM source per segment
     SEMsource = SEM3Dfault(moment=M0)
     SEMsource.HypoCoords = {'ew': hE, 'ns': hN, 'ud': hZ}
-    import pdb
-    pdb.set_trace()
+    
     SEMsegments = []
     for i, (φs, δ, λ) in enumerate(zip(strike, dip, rake)):
         SEMsegments.append(FaultSegment(strike=φs, dip=δ, rake=λ))
-    
+    import pdb
+    pdb.set_trace()
     
     
     # Location of the hypocenter
@@ -348,22 +365,17 @@ if __name__=='__main__':
     RIK_xcoord = np.genfromtxt(RIKslipFilename, usecols=1)
     RIK_ycoord = np.genfromtxt(RIKslipFilename, usecols=0)
 
-    for (i,s), d, r in zip(enumerate(strike), dip, rake):
-        print("Segment {:d}:".format(i+1),
-              "strike: {: > .1f},".format(s),
-              "dip: {: > .1f},".format(d),
-              "rake: {: > .1f}\n".format(r)
-              )
+    
 
     # # convert strike, dip, rake into radians
     # φs, δ, λ = map(lambda xx: [np.pi/180.0*x for x in xx], 
     #                (strike, dip, rake))
     
-    # # Compute normal and slip vectors
+    # 
     # nv, dv, Mm = list(map(compute_seismic_moment_vectors, δ, φs, λ))
     
     # # Get rotation tensor per segment
-    # Q_φδλ = list(map(get_rotation_tensor, φs, δ))
+    #  = list(map(get_rotation_tensor, φs, δ))
     
     #  Parse rate files from RIKsrf
     RIKmoment, RIKslip = map(parseRIKrates, 
@@ -372,14 +384,6 @@ if __name__=='__main__':
     RIK_moment = cumtrapz(RIKmoment, dx=dt, initial=0., axis=-1)
     RIK_slip = cumtrapz(RIKslip, dx=dt, initial=0., axis=-1)
     
-    def get_segment_Lidx(x): return int(x/L*nL)
-    # def get_segment_Widx(x): return int(x/W*nW)
-    
-    nLxSegment = list(map(get_segment_Lidx, segL))
-    nWxSegment = [nW]*nSegments
-    
-    SegmentEdgesL = np.cumsum(np.array([0]+nLxSegment))
-    SegmentEdgesW = np.array([0]+nWxSegment)
     
     # Create HDF5 files for SEM
     for nLs, nWs, i in zip(nLxSegment,

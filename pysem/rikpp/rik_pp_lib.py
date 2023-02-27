@@ -205,14 +205,15 @@ def start_rik():
 
     return opt
 
-def get_rotation_tensor(aS,aD):
-    r'''From [N,E,D] et to [E,N,Z]
-    '''
+def get_rotation_tensor(strike: float, dip: float) -> float:
+    """
+    Compute Rotation tensor from [N,E,D] et to [E,N,Z]
+    """
     MatMesh = np.zeros((3,3))
-    MatMesh[0,0] = -np.cos(aS)* np.cos(aD)
-    MatMesh[0,1] = +np.sin(aS)
-    MatMesh[1,0] = +np.sin(aS)* np.cos(aD)
-    MatMesh[1,1] = +np.cos(aS)
+    MatMesh[0,0] = -np.cos(strike)* np.cos(dip)
+    MatMesh[0,1] = +np.sin(strike)
+    MatMesh[1,0] = +np.sin(strike)* np.cos(dip)
+    MatMesh[1,1] = +np.cos(strike)
     MatMesh[2,2] =  -1
     for i in np.arange(3):
         for j in np.arange(3):
@@ -231,7 +232,9 @@ def moment_computation(M0,time,f,ts,gamma):
     return moment
 
 
-def compute_seismic_moment_vectors(strike: float, dip: float, rake: float) -> float:
+def compute_seismic_moment_vectors(strike: float, 
+                                   dip: float, 
+                                   rake: float) -> float:
     """Compute the unit-norm normal vector on the fault plane, 
     the unit-norm slip vector in the ENU-xyz reference frame
     """
@@ -242,16 +245,16 @@ def compute_seismic_moment_vectors(strike: float, dip: float, rake: float) -> fl
     nv = np.array([+np.sin(dip)*np.cos(strike),\
                    -np.sin(dip)*np.sin(strike),\
                    +np.cos(dip)])
-    dv = np.array([-np.sin(rake)*np.cos(dip)*np.cos(strike) + np.cos(rake)*np.sin(aS),\
-                   +np.sin(rake)*np.cos(dip)*np.sin(strike) + np.cos(rake)*np.cos(aS),\
+    dv = np.array([-np.sin(rake)*np.cos(dip)*np.cos(strike) +\
+                    np.cos(rake)*np.sin(strike),\
+                   +np.sin(rake)*np.cos(dip)*np.sin(strike) +\
+                    np.cos(rake)*np.cos(strike),\
                    +np.sin(rake)*np.sin(dip)])
     
     print("Vector normal to the fault : {}".format(nv))
     print("Vector of the slip         : {}".format(dv))
     M = np.tensordot(nv, dv, axes=0) + np.tensordot(dv, nv, axes=0)
-    # for i in np.arange(3):
-    #     for j in np.arange(3):
-    #         M[i,j] = nv[i]*dv[j]+nv[j]*dv[i]
+
     print('Moment matrix: ')
     print(M[0,:])
     print(M[1,:])
