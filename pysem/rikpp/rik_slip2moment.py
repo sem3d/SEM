@@ -120,39 +120,43 @@ class mesh(object):
 
 class SEM3Dfault(object):
     __nSegments = 0
-    __hypocenter = np.empty((3,))
+    __HypoXYZ = np.empty((3,))
     __M0 = 0.0
     
     def __init__(self, **kwargs):
         super(SEM3Dfault, self).__init__()
-        if 'hypocenter' in kwargs.keys():
-            SEM3Dfault.__hypocenter = kwargs['hypocenter']
-        if 'moment' in kwargs.keys():
-            SEM3Dfault.__M0 = kwargs['moment']
+        if 'HypoXYZ' in kwargs.keys():
+            SEM3Dfault.__HypoXYZ = kwargs['HypoXYZ']
+        if 'M0' in kwargs.keys():
+            SEM3Dfault.__M0 = kwargs['M0']
             
     def __call__(self, **kwargs):
-        if 'hypocenter' in kwargs.keys():
-            SEM3Dfault.__hypocenter = kwargs['hypocenter']
-        if 'moment' in kwargs.keys():
-            SEM3Dfault.__M0 = kwargs['moment']
+        if 'HypoXYZ' in kwargs.keys():
+            SEM3Dfault.__HypoXYZ = kwargs['HypoXYZ']
+        if 'M0' in kwargs.keys():
+            SEM3Dfault.__M0 = kwargs['M0']
             
     @classproperty
     def UpdateNumberOfSegments(cls):
         cls.__nSegments += 1
-        
-    def SetHypoCoords(SEM3Dfault, hypocenter: dict):
-        for k in sorted(hypocenter, 
-                        key=hypocenter.get, 
-                        reverse=True):
-            print("{:>10}{:>20}".format(k, hypocenter[k]))
-            
-        hypocenter2array=np.array([v for v in list(hypocenter.values())])
-        SEM3Dfault.__hypocenter = hypocenter2array
-
-    def GetHypoCoords(SEM3Dfault):
-        return SEM3Dfault.__hypocenter
     
-    HypoCoords = property(GetHypoCoords, SetHypoCoords)
+    @classproperty
+    def HypoXYZ(cls):
+        return cls.__HypoXYZ
+    
+    @HypoXYZ.setter
+    def SetHypoCoords(cls, HypoXYZ: dict):
+        for k in sorted(HypoXYZ, 
+                        key=HypoXYZ.get, 
+                        reverse=True):
+            print("{:>10}{:>20}".format(k, HypoXYZ[k]))
+            
+        HypoXYZ = np.array([v for v in list(HypoXYZ.values())])
+        cls.__HypoXYZ = HypoXYZ
+        print("Hypocenter location: EW: {0:>f} m - NS: {1:>f} m - UD: {2} m\n\n".format(*tuple(cls.HypoXYZ)))
+
+    
+    # HypoXYZ = classproperty(GetHypoCoords, SetHypoCoords)
     
     @classproperty
     def M0(cls):
@@ -170,6 +174,60 @@ class SEM3Dfault(object):
     def SetnSegments(cls, count: int):
         cls.__nSegments += count
 
+
+class RIK2DFault(SEM3Dfault):
+    __HypoFile = ''
+    __HypoAlongSDDepthKm = np.empty((3,))
+    __setFile = False
+    
+    def __init__(self, **kwargs):
+        super(RIK2DFault, self).__init__()
+        if 'HypoAlongSDDepthKm' in kwargs.keys():
+            RIK2DFault.__HypoAlongSDDepthKm = kwargs['HypoAlongSDDepthKm']
+    
+    @classproperty
+    def setFile(cls):
+        return cls.__setFile
+    
+    @setFile.setter
+    def SetsetFile(cls, setFile: bool):
+        cls.__setFile = setFile
+        
+    @classproperty
+    def HypoFile(cls):
+        return cls.__HypoFile
+    
+    @HypoFile.setter
+    def SetHypoFile(cls, HypoFile: str):
+        cls.__HypoFile = HypoFile
+        cls.setFile = True
+        
+        
+    @classproperty
+    def HypoDepthKm(cls):
+        return cls.__HypoAlongSDDepthKm[-1]
+    
+    @HypoDepthKm.setter
+    def SetHypoDepthKm(cls, depth_km: float):
+        cls.__HypoAlongSDDepthKm[-1] = depth_km
+    
+    @classproperty
+    def HypoAlongSDDepthKm(cls):
+        return cls.__HypoAlongSDDepthKm
+        
+    @HypoAlongSDDepthKm.setter
+    def SetHypoAlongSDDepthKm(cls, HypoDict: dict) -> None:
+        HypoFile = HypoDict["HypoFile"]
+        HypoDepthKm = HypoDict["HypoDepthKm"]
+        if not cls.setFile:
+            cls.HypoFile = HypoFile
+        cls.__HypoAlongSDDepthKm[0] = np.genfromtxt(cls.HypoFile, usecols=0)
+        cls.__HypoAlongSDDepthKm[1] = np.genfromtxt(cls.HypoFile, usecols=1)  
+        cls.HypoDepthKm = HypoDepthKm
+        
+        print("Hypocenter location: along-length: {} km - along-dip: {} km - depth: {} km\n\n".format(*tuple(cls.HypoAlongSDDepthKm)))
+        
+    
 class FaultSegment(SEM3Dfault):
     def __init__(self, 
                  strike=None, 
@@ -227,38 +285,72 @@ class FaultSegment(SEM3Dfault):
     
     @StrikeDipRake.setter
     def SetStrikeDipRake(self, sdr: tuple[float]) -> None:
+        """
+        Set Strike, Dip, Rake and convert them to radians
+        
+            Parameters: 
+            sdr (tuple): (strike, dip, rake)
+            
+            Returns:
+            None
+        """
         strike, dip, rake = sdr
-        print("Strike: {} Dip: {} Rake: {}".format(strike, dip, rake))
+        print("Strike: {} Dip: {} Rake: {}\n\n".format(strike, dip, rake))
         self.__φs = strike*np.pi/180.0
         self.__δ = dip*np.pi/180.0
         self.__λ = rake*np.pi/180.0
         self.__sdr = np.array([strike, dip, rake])*np.pi/180.0
         self.sdr_set = True
-        # self.__ndM = compute_seismic_moment_vectors(strike=self.__φs,
-        #                                             dip=self.__δ,
-        #                                             rake=self.__λ)
-        # self.__nv, self.__dv, self.__Mm = self.__ndM
     
     @NormalVector.setter
     def SetNormalVector(self, nv: list[float]) -> None:
+        """
+        Set fault unit-norm vector
+        
+            Parameters: 
+            nv (list[float]): unit-norm normal vector
+            
+            Returns:
+            None
+        """
         self.__nv = nv
     
     @SlipVector.setter
     def SetSlipVector(self, dv: list[float]):
+        """
+        Set slip unit-norm vector
+        
+            Parameters: 
+            dv (list[float]): unit-norm slip vector
+            
+            Returns:
+            None
+        """
         self.__dv = dv
         
     @MomentUnitTensor.setter
     def SetMomentUnitTensor(self, Mm: list[float]):
+        """
+        Set fault unit-norm seismic Moment
+        
+            Parameters: 
+            Mv (list[float]): unit-norm seismic Moment
+            
+            Returns:
+            None
+        """
         self.__Mm = Mm
 
     @FaultVectors.setter
-    def SetFaultVectors(self, sdr: tuple[float]):
+    def SetFaultVectors(self, sdr: tuple[float]) -> None:
         """
         Compute normal/slip vectors and unit norm Moment tensor
         
             Parameters:
-            
             sdr (tuple): (strike, dip, rake)
+            
+            Returns:
+            None
         """
         strike, dip, rake = sdr
         if not self.sdr_set:
@@ -269,13 +361,15 @@ class FaultSegment(SEM3Dfault):
         self.__nv, self.__dv, self.__Mm = self.__ndM        
         
     @RotationTensor.setter
-    def SetRotationTensor(self, sdr: tuple[float]):
+    def SetRotationTensor(self, sdr: tuple[float]) -> None:
         """
         Compute the fault plane rotation tensor [N,E,D] et to [E,N,Z]
         
-            Parameters:
-            
+            Parameters:            
             sdr (tuple): (strike, dip, rake)
+            
+            Returns:
+            None
         """
         strike, dip, rake = sdr
         if not self.sdr_set:
@@ -284,35 +378,16 @@ class FaultSegment(SEM3Dfault):
     
     @Mesh.setter
     def SetMesh(self, faultmesh: mesh) -> None:
+        """
+        Set fault mesh (3D)
+        
+            Parameters: 
+            mesh (mesh): 3D fault plane-segment mesh
+            
+            Returns:
+            None
+        """
         self.__mesh = faultmesh
-    # def get_segment_Lidx(x): return int(x/L*nL)
-    # # def get_segment_Widx(x): return int(x/W*nW)
-
-    # nLxSegment = list(map(get_segment_Lidx, segL))
-    # nWxSegment = [nW]*nSegments
-
-    # SegmentEdgesL = np.cumsum(np.array([0]+nLxSegment))
-    # SegmentEdgesW = np.array([0]+nWxSegment)
-        
-        
-class RIK_source(object):
-    def __init__(self, x=0., y=0., z=0., hypfile=None):
-        self.x = x
-        self.y = y
-        self.z = z
-        if hypfile:
-            self.read_hypo(hypfile)
-    def __call__(self,x=0.,y=0.,z=0.):
-        self.x = x
-        self.y = y
-        self.z = z
-        if hypfile:
-            self.read_hypo(hypfile)
-    def read_hypo(self,hypfile):
-        self.x, self.y = readhypo(hypfile)
-    def get_hypo(self):
-        return np.array([self.x, self.y, self.z],
-                        dtype=np.float64)
 
 if __name__=='__main__':
     opt = start_rik()
@@ -343,22 +418,20 @@ if __name__=='__main__':
     
     # Define SEM source per segment
     SEMsource = SEM3Dfault(moment=M0)
-    SEMsource.HypoCoords = {'ew': hE, 'ns': hN, 'ud': hZ}
+    SEMsource.HypoXYZ = {'ew': hE, 'ns': hN, 'ud': hZ}
     
     SEMsegments = []
     for i, (φs, δ, λ) in enumerate(zip(strike, dip, rake)):
         SEMsegments.append(FaultSegment(strike=φs, dip=δ, rake=λ))
-    import pdb
-    pdb.set_trace()
-    
-    
-    # Location of the hypocenter
-    RIKsource = RIK_source(hypfile=hypfile, z=np.abs(hZ)/1.0e3)
-    RIKhypocenter, SEMhypocenter = RIKsource.get_hypo(), SEMsource.get_hypo()
+
+    # Parse RIK 2D fault
+    RIKsource = RIK2DFault()
+    RIKsource.HypoAlongSDDepthKm = {"HypoFile": hypfile, 
+                                    "HypoDepthKm": np.abs(hZ)/1.0e3}
+
     # print("RIKhypocenter: \nx [km]: {0}\ny [km]: {1}\nd [km]: {2}\n".format(
     #     *tuple(RIKhypocenter.tolist())))
     # print("/n/n")
-    # print("Hypocenter (UTM): \nEW: {:>.1f}\nNS: {:>.1f}\nUD: {:>.1f}\n".format(hE,
     #                                                                            hN,
     #                                                                            hZ)
     #       )
