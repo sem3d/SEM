@@ -6,7 +6,7 @@ Script to parse and post-process SEM3D traces
     Ex. : Parse hdf5 traces called Uobs, for all directions x y z, monitor 0 and 1 (in stations.txt) 
         and plot them
         
-        python3 ParseSEM3DH5Traces_h5_traces.py @@wkd ./traces/ @@fmt h5 @@nam Uobs @@var Displ @@rdr x y z @@mon 0 1 2 @@plt
+        python3 parse_h5_traces.py @@wkd ./traces/ @@fmt h5 @@nam Uobs @@var Displ @@rdr x y z @@mon 0 1 2 @@plt
 """
 
 # Required modules
@@ -103,14 +103,14 @@ class SEM3DMonitor(object):
             try:
                 self.nt = self.Time.size
             except:
-                raise('Time vector not ParseSEM3DH5Tracesd!')
+                raise('Time vector not parsed!')
             
     def set_dTime(self):
         if self.fmt=='h5' and 'Time' in self.var.keys():
             try:
                 self.dTime = self.Time[-1]-self.Time[-2]
             except:
-                raise('Time vector not ParseSEM3DH5Tracesd!')
+                raise('Time vector not parsed!')
             
         else:
             # on ne prend pas [1]-[0] car certains filtres decalent le T0
@@ -156,9 +156,9 @@ class SEM3DMonitor(object):
                             else:
                                 return plt.gcf()
                         else:
-                            raise ValueError('Component '+c+' not ParseSEM3DH5Tracesd!')
+                            raise ValueError('Component '+c+' not parsed!')
                 else:
-                    raise ValueError('Variable '+v+' not ParseSEM3DH5Tracesd!')
+                    raise ValueError('Variable '+v+' not parsed!')
             
 
     def filt_low_pass(self, fmax, fband=2.0):
@@ -267,12 +267,12 @@ def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**
             for ds in f.items():
                 if 'Variables' not in ds[0]:
                     if 'pos' not in ds[0] :
-                        # ParseSEM3DH5Traces time vector and construct time properties
+                        # Parse time vector and construct time properties
                         if not flag: 
                             cpt.set_time(ds[1][...][:,0])
                             flag=True
             f.close()
-            # ParseSEM3DH5Traces h5 files to find total number of capteurs
+            # Parse h5 files to find total number of capteurs
             idx = {}
             nc = 0
             for fn in fls:
@@ -327,7 +327,7 @@ if __name__=='__main__':
     
     # ParseSEM3DH5Traces database
     stream = ParseSEM3DH5Traces(**options)
-    print("Database ParseSEM3DH5Traces!\n")
+    print("Database parsed!\n")
 
     # Plot traces
     if options['plt']:
