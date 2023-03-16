@@ -5,7 +5,7 @@ Script to create stations' file for SEM3D
 
     Ex.1 : Create a [10 x 10 x 1] grid of receivers in a domain of 5m x 5m x 5m
         
-        python3 create_stations.py -x -5. 5. -y -5. 5 -z 0. -s 10 10 1
+        python3 create_stations.py @x -5. 5. @y -5. 5 @z 0. 0. @s 10 10 1
 """
 
 # Required modules
@@ -76,7 +76,7 @@ if __name__=='__main__':
     lims = (('xmin',opt.xlim[0]),('xmax',opt.xlim[1]),
             ('ymin',opt.ylim[0]),('ymax',opt.ylim[1]),
             ('zmin',opt.zlim[0]),('zmax',opt.zlim[1]),
-            ('nx',opt.step[0]),('ny',opt.step[1]),('nz',opt.step[2]))
+            ('nx',int(opt.step[0])),('ny',int(opt.step[1])),('nz',int(opt.step[2])))
     lims = dict(lims)
     print(f'Domain limits/discretization : \n X: {lims["xmin"]} m : {lims["xmax"]} m; nx={lims["nx"]} \n Y: {lims["ymin"]} m : {lims["ymax"]} m; ny={lims["ny"]} \n Z: {lims["zmin"]} m : {lims["zmax"]} m; nz={lims["nz"]}')
     
