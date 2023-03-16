@@ -16,6 +16,10 @@ based on the original work of D. Komatitsch:
 ## Contacts: 
 - [Filippo Gatti](mailto:filippo.gatti@centralesupelec.fr) - [github](https://github.com/FilLTP89)
 
+## How to cite:
+CEA, CentraleSupélec, IPGP and CNRS. SEM3D Ver 2017.04 Registered at French Agency for Protection of Programs (Dépôt APP). IDDN.FR.001.400009.000.S.P.2018.000.31235, 2017.
+
+
 ## Bibliography (journal publications involving the use of SEM):
 - Touhami, S.; Gatti, F.; Lopez-Caballero, F.; Cottereau, R.; de Abreu Corrêa, L.; Aubry, L.; Clouteau, D. __SEM3D: A 3D High-Fidelity Numerical Earthquake Simulator for Broadband (0-10 Hz) Seismic Response Prediction at a Regional Scale__. Geosciences 2022, 12 (3). [doi](https://doi.org/10.3390/geosciences12030112)
 
