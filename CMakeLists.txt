@@ -65,12 +65,15 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   #                         ceci permet de caser des directives openmp dans des macros
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -mkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
   set(USE_MKL TRUE)
-else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "NVHPC")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Mpreprocess ")
+  set(USE_MKL FALSE)
+else ()
   # Assume gfortran
   # -fdefault-real-8 -fdefault-double-8
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_GFORT_FLAGS} -cpp -Wall -Wno-unused-dummy-argument -ffree-line-length-0")
   set(USE_MKL FALSE)
-endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+endif ()
 
 message(STATUS "${CMAKE_CXX_FLAGS}")
 
