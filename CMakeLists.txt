@@ -6,6 +6,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
+set(EXTRA_IFORT_FLAGS "")
+set(EXTRA_GFORT_FLAGS "")
+set(EXTRA_NVFORT_FLAGS "")
 
 option(OPT_SINGLE "Single precision" OFF)
 if (OPT_SINGLE)
@@ -17,13 +20,31 @@ if (OPT_CPML)
   add_definitions(-DCPML)
 endif(OPT_CPML)
 
+
 set(OPT_VEC "1" CACHE STRING "Vectorization chunks")
 
 add_definitions(-DVCHUNK=${OPT_VEC})
 if (${OPT_VEC}>1)
-  set(EXTRA_IFORT_FLAGS "-qopenmp-simd")
-  set(EXTRA_GFORT_FLAGS "-fopenmp")
+  set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  -qopenmp-simd")
+  set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenmp")
+  set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} -fopenmp")
 endif(${OPT_VEC}>1)
+
+option(OPT_OPENACC "OPENACC" OFF)
+if (OPT_OPENACC)
+  add_definitions(-DOPENACC)
+  set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  ")
+  set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenacc")
+  set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} -acc=gpu ") # -acc=gpu -acc=multicore,... -cuda ... ?
+endif(OPT_OPENACC)
+
+option(OPT_OPENMP "OPENMP" OFF)
+if (OPT_OPENMP)
+  add_definitions(-DOPENMP)
+  set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  -qopenmp")
+  set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenmp")
+  set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} ") # -acc=gpu -acc=multicore,...
+endif(OPT_OPENMP)
 
 option(OPT_MPI "Compilation en mode MPI" ON)
 
@@ -58,6 +79,8 @@ endif (OPT_MPI)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+message("Fortran COMPILER is ${CMAKE_Fortran_COMPILER_ID}")
+
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # FLAGS ifort :
   # -fpp : preprocesseur
@@ -65,8 +88,11 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   #                         ceci permet de caser des directives openmp dans des macros
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -mkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
   set(USE_MKL TRUE)
+elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -qmkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
+  set(USE_MKL TRUE)
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "NVHPC")
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Mpreprocess ")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_NVFORT_FLAGS} -Mpreprocess ")
   set(USE_MKL FALSE)
 else ()
   # Assume gfortran
