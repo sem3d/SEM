@@ -26,7 +26,7 @@ __status__ = "Beta"
 
 dirs_dict = {'x':0,'y':1,'z':2}
 trnsp = (2,1,0)
-
+prop_dict = {"la":"Lambda","mu":"Mu","ds":"Rho","vp":"Vp","vs":"Vs"}
 def base_smooth_heterogeneous(d,grd,nu=0.3):
     z = grd[d]
     la = np.zeros_like(grd[d])
@@ -76,12 +76,15 @@ def gen_mat(model,dirs,prop,grd,nu=0.3):
 def write_h5(pfx,prop,mat,lims,xdmf=True):
     for v in prop:
         with h5py.File("{}_{}.h5".format(pfx,v),"w") as fid:
-            samples = fid.create_dataset("samples",mat[v].shape,data=mat[v])
+            grp = fid.create_group(prop_dict[v])
+            samples = grp.create_dataset("samples",
+                                         mat[v].shape,
+                                         data=mat[v])
             # chunks=tuple([l//10 for l in mat[v].shape]))
             xMinGlob = np.array([lims['xmin'],lims['ymin'],lims['zmin']])
             xMaxGlob = np.array([lims['xmax'],lims['ymax'],lims['zmax']])
-            fid.attrs['xMinGlob'] = xMinGlob
-            fid.attrs['xMaxGlob'] = xMaxGlob
+            grp.attrs['xMinGlob'] = xMinGlob
+            grp.attrs['xMaxGlob'] = xMaxGlob
             fid.close()
 
 def write_xdmf(pfx,prop,mat,lims):
@@ -98,7 +101,8 @@ def write_xdmf(pfx,prop,mat,lims):
                       '''<Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">\n'''+
                       '''<Domain>\n''')
             fid.write('   <DataItem Name="{}" Format="HDF" DataType="Float" Precision="8" Dimensions="{} {} {}">\n'.format(v,*szs))
-            fid.write('        %s.h5:/samples\n'%fnm)
+            fid.write(
+                '        {:>s}.h5:/{:>s}/samples\n'.format(fnm, prop_dict[v]))
             fid.write('   </DataItem>\n')
             fid.write('  <Grid GridType="Collection" CollectionType="Spatial">\n')
             fid.write('   <Grid Name="Group1">\n')
