@@ -77,9 +77,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee)
-#endif
+                LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
@@ -90,9 +88,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee)
-#endif
+                LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,1,dUy_dxi(ee,i,j,k),dUy_deta(ee,i,j,k),dUy_dzeta(ee,i,j,k))
@@ -103,9 +99,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee)
-#endif
+                LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,2,dUz_dxi(ee,i,j,k),dUz_deta(ee,i,j,k),dUz_dzeta(ee,i,j,k))
@@ -117,9 +111,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(ee)
-#endif
+                LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
 #define JXX dom%InvGrad_(0,0,i,j,k,bnum,ee)
 #define JXY dom%InvGrad_(0,1,i,j,k,bnum,ee)
@@ -343,11 +335,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-                !dir$ simd
-                !dir$ vector aligned
-!$omp simd linear(ee)
-#endif
+                LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 !=-=-=-=-=-=-=-=-=-=-
                 !
@@ -462,9 +450,7 @@ subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(e,ee)
-#endif
+                LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 epsilon_trace_over_3 = M_1_3 * (DXX + DYY + DZZ)
                 epsilonvol_loc = DXX + DYY + DZZ
