@@ -94,7 +94,7 @@ contains
             !if (trim(nom(1:20))=="04x29") flag = .true.
             call trouve_capteur(Tdomain, xc, yc, zc, n_el, dmin, xi, eta, zeta, flag)
             ! Cas ou le capteur est dans le maillage
-            call MPI_AllReduce(dmin, glob_dmin, 1, MPI_DOUBLE, &
+            call MPI_AllReduce(dmin, glob_dmin, 1, MPI_DOUBLE_PRECISION, &
                 MPI_MIN, Tdomain%communicateur, ierr)
             if (dmin==glob_dmin) then
                 numproc = Tdomain%rank

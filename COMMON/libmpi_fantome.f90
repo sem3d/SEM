@@ -28,6 +28,7 @@
 !!!!!!!!!!     MPI_ALLGATHERV                                    !!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module mpi
+    use constants, only : fpp
     implicit none
 
     INTERFACE MPI_Allreduce
@@ -71,6 +72,12 @@ module mpi
 
 contains
 
+    function MPI_WTIME()
+        implicit none
+        double precision :: MPI_WTIME
+        MPI_WTIME = 0
+        return
+    end function MPI_WTIME
 
     subroutine MPI_INIT (ierr)
         implicit none
@@ -180,7 +187,7 @@ contains
         implicit none
         integer, intent(in) :: count, type, root, comm
         integer, intent(inout) :: ierr
-        real, intent(inout) :: buffer(count)
+        real(fpp), intent(inout) :: buffer(count)
         ierr = 0
     end subroutine MPI_BCAST_rv
 
@@ -188,7 +195,7 @@ contains
         implicit none
         integer, intent(in) :: count, type, root, comm
         integer, intent(inout) :: ierr
-        real, intent(inout) :: buffer
+        real(fpp), intent(inout) :: buffer
         ierr = 0
     end subroutine MPI_BCAST_r1
 
@@ -211,7 +218,7 @@ contains
     !! ----------------------- MPI_Send ---------------------------
     subroutine MPI_SEND_r1 (val, long, type, dest, tag, comm, ierr)
         implicit none
-        real, intent(in) :: val
+        real(fpp), intent(in) :: val
         integer, intent(in) :: long, type, dest, tag, comm
         integer, intent(inout) :: ierr
         ierr = 0
@@ -219,7 +226,7 @@ contains
 
     subroutine MPI_SEND_rv (val, long, type, dest, tag, comm, ierr)
         implicit none
-        real, intent(in) :: val(long)
+        real(fpp), intent(in) :: val(long)
         integer, intent(in) :: long, type, dest, tag, comm
         integer, intent(inout) :: ierr
         ierr = 0
@@ -227,7 +234,7 @@ contains
 
     subroutine MPI_SEND_rm (val, long, type, dest, tag, comm, ierr)
         implicit none
-        real, intent(in), dimension(:,:) :: val
+        real(fpp), intent(in), dimension(:,:) :: val
         integer, intent(in) :: long, type, dest, tag, comm
         integer, intent(inout) :: ierr
         ierr = 0
@@ -235,7 +242,7 @@ contains
 
     subroutine MPI_SEND_rm3 (val, long, type, dest, tag, comm, ierr)
         implicit none
-        real, intent(in), dimension(:,:,:) :: val
+        real(fpp), intent(in), dimension(:,:,:) :: val
         integer, intent(in) :: long, type, dest, tag, comm
         integer, intent(inout) :: ierr
         ierr = 0
@@ -268,7 +275,7 @@ contains
     !! ----------------------- MPI_Recv ---------------------------
     subroutine MPI_RECV_r1 (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        real, intent(out) :: val
+        real(fpp), intent(out) :: val
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -278,7 +285,7 @@ contains
 
     subroutine MPI_RECV_rv (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        real, intent(out) :: val(long)
+        real(fpp), intent(out) :: val(long)
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -288,7 +295,7 @@ contains
 
     subroutine MPI_RECV_rm (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        real, intent(out), dimension(:,:) :: val
+        real(fpp), intent(out), dimension(:,:) :: val
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -298,7 +305,7 @@ contains
 
     subroutine MPI_RECV_rm3 (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        real, intent(out), dimension(:,:,:) :: val
+        real(fpp), intent(out), dimension(:,:,:) :: val
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -346,8 +353,8 @@ contains
         integer, intent(in) :: op
         integer, intent(in) :: comm
         integer, intent(inout) :: ierr
-        real, intent(inout) :: recvbuf(long)
-        real, intent(in) :: sendbuf(long)
+        real(fpp), intent(inout) :: recvbuf(long)
+        real(fpp), intent(in) :: sendbuf(long)
 
         if ( (op == MPI_MAX) .OR. (op == MPI_MIN) .OR. (op == MPI_SUM) ) then
             recvbuf = sendbuf
@@ -366,8 +373,8 @@ contains
         integer, intent(in) :: op
         integer, intent(in) :: comm
         integer, intent(inout) :: ierr
-        real, intent(inout) :: recvbuf
-        real, intent(in) :: sendbuf
+        real(fpp), intent(inout) :: recvbuf
+        real(fpp), intent(in) :: sendbuf
 
         if ( (op == MPI_MAX) .OR. (op == MPI_MIN) .OR. (op == MPI_SUM) ) then
             recvbuf = sendbuf
@@ -430,8 +437,8 @@ contains
         integer, intent(in) :: comm
         integer, intent(inout) :: ierr
 
-        real, intent(inout) :: recvbuf(long)
-        real, intent(in) :: sendbuf(long)
+        real(fpp), intent(inout) :: recvbuf(long)
+        real(fpp), intent(in) :: sendbuf(long)
 
         recvbuf = sendbuf
         ierr = 0
@@ -448,8 +455,8 @@ contains
         integer, intent(in) :: comm
         integer, intent(inout) :: ierr
 
-        real, intent(inout) :: recvbuf
-        real, intent(in) :: sendbuf
+        real(fpp), intent(inout) :: recvbuf
+        real(fpp), intent(in) :: sendbuf
 
         recvbuf = sendbuf
         ierr = 0
@@ -498,8 +505,8 @@ contains
 
         integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, root, comm
         integer, intent(inout) :: ierr
-        real, intent(inout) :: recvbuf(recvcount)
-        real, intent(in) :: sendbuf(sendcount)
+        real(fpp), intent(inout) :: recvbuf(recvcount)
+        real(fpp), intent(in) :: sendbuf(sendcount)
         recvbuf = sendbuf
     end subroutine MPI_GATHER_rv
 
@@ -508,8 +515,8 @@ contains
 
         integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, root, comm
         integer, intent(inout) :: ierr
-        real, intent(inout) :: recvbuf(recvcount)
-        real, intent(in) :: sendbuf
+        real(fpp), intent(inout) :: recvbuf(recvcount)
+        real(fpp), intent(in) :: sendbuf
         recvbuf = sendbuf
     end subroutine MPI_GATHER_r1
 
@@ -540,8 +547,8 @@ contains
         integer, intent(inout) :: ierr
         integer, intent(in) :: recvcounts(*)
         integer, intent(in) :: displs(*)
-        real, intent(inout) :: recvbuf(sendcount)
-        real, intent(in) :: sendbuf(sendcount)
+        real(fpp), intent(inout) :: recvbuf(sendcount)
+        real(fpp), intent(in) :: sendbuf(sendcount)
         recvbuf = sendbuf
     end subroutine MPI_GATHERV_rv
 
@@ -551,8 +558,8 @@ contains
         integer, intent(inout) :: ierr
         integer, intent(in) :: recvcounts(*)
         integer, intent(in) :: displs(*)
-        real, intent(inout), dimension(:,:) :: recvbuf
-        real, intent(in), dimension(:,:) :: sendbuf
+        real(fpp), intent(inout), dimension(:,:) :: recvbuf
+        real(fpp), intent(in), dimension(:,:) :: sendbuf
         recvbuf = sendbuf
     end subroutine MPI_GATHERV_rmij
 
@@ -562,8 +569,8 @@ contains
         integer, intent(inout) :: ierr
         integer, intent(in) :: recvcounts(*)
         integer, intent(in) :: displs(*)
-        real, intent(inout) :: recvbuf(sendcount)
-        real, intent(in) :: sendbuf
+        real(fpp), intent(inout) :: recvbuf(sendcount)
+        real(fpp), intent(in) :: sendbuf
         recvbuf = sendbuf
     end subroutine MPI_GATHERV_r1
 
@@ -612,8 +619,8 @@ contains
         integer, intent(in) :: comm
         integer, intent(inout) :: ierr
 
-        real, intent(inout) :: recvbuf(recvcount)
-        real, intent(in) :: sendbuf(sendcount)
+        real(fpp), intent(inout) :: recvbuf(recvcount)
+        real(fpp), intent(in) :: sendbuf(sendcount)
 
         recvbuf = sendbuf
 
@@ -627,8 +634,8 @@ contains
         integer, intent(inout) :: ierr
         integer, intent(in) :: sendcounts(*)
         integer, intent(in) :: displs(*)
-        real, intent(inout) :: recvbuf(recvcount)
-        real, intent(in), dimension(:) :: sendbuf
+        real(fpp), intent(inout) :: recvbuf(recvcount)
+        real(fpp), intent(in), dimension(:) :: sendbuf
         ierr = 0
         recvbuf=sendbuf
     end subroutine MPI_SCATTERV_rv
@@ -639,8 +646,8 @@ contains
         integer, intent(inout) :: ierr
         integer, intent(in) :: sendcounts(*)
         integer, intent(in) :: displs(*)
-        real, intent(inout) :: recvbuf
-        real, intent(in) :: sendbuf
+        real(fpp), intent(inout) :: recvbuf
+        real(fpp), intent(in) :: sendbuf
         ierr = 0
         recvbuf=sendbuf
     end subroutine MPI_SCATTERV_r1
@@ -699,8 +706,8 @@ contains
         implicit none
         integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, comm
         integer, intent(inout) :: ierr
-        real, intent(inout) :: recvbuf(recvcount)
-        real, intent(in) :: sendbuf(sendcount)
+        real(fpp), intent(inout) :: recvbuf(recvcount)
+        real(fpp), intent(in) :: sendbuf(sendcount)
         recvbuf = sendbuf
     end subroutine MPI_ALLGATHER_rv
 
@@ -708,8 +715,8 @@ contains
         implicit none
         integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, comm
         integer, intent(inout) :: ierr
-        real, intent(inout) :: recvbuf(recvcount)
-        real, intent(in) :: sendbuf
+        real(fpp), intent(inout) :: recvbuf(recvcount)
+        real(fpp), intent(in) :: sendbuf
         ierr = 0
         recvbuf = sendbuf
     end subroutine MPI_ALLGATHER_r1
@@ -746,7 +753,7 @@ contains
     !! ----------------------- MPI_Sendrecv ---------------------------
     subroutine MPI_SENDRECV_r1(val1, long1, type1, dest1, tag1, val2, long2, type2, dest2, tag2, comm, status, ierr)
         implicit none
-        real, intent(in) :: val1, val2
+        real(fpp), intent(in) :: val1, val2
         integer, intent(in) :: long1, type1, dest1, tag1, long2, type2, dest2, tag2, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -756,8 +763,8 @@ contains
 
     subroutine MPI_SENDRECV_rv(val1, long1, type1, dest1, tag1, val2, long2, type2, dest2, tag2, comm, status, ierr)
         implicit none
-        real, intent(in), dimension(long1) :: val1
-        real, intent(in), dimension(long2) :: val2
+        real(fpp), intent(in), dimension(long1) :: val1
+        real(fpp), intent(in), dimension(long2) :: val2
         integer, intent(in) :: long1, type1, dest1, tag1, long2, type2, dest2, tag2, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -767,7 +774,7 @@ contains
 
     subroutine MPI_SENDRECV_rm(val1, long1, type1, dest1, tag1, val2, long2, type2, dest2, tag2, comm, status, ierr)
         implicit none
-        real, intent(in), dimension(:,:) :: val1, val2
+        real(fpp), intent(in), dimension(:,:) :: val1, val2
         integer, intent(in) :: long1, type1, dest1, tag1, long2, type2, dest2, tag2, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -799,7 +806,7 @@ contains
     !! ----------------------- MPI_Isend ---------------------------
     subroutine MPI_ISEND_r1 (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real, intent(in) :: val
+        real(fpp), intent(in) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -814,7 +821,7 @@ contains
 
     subroutine MPI_ISEND_rv (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real, intent(in), dimension(long) :: val
+        real(fpp), intent(in), dimension(long) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -829,7 +836,7 @@ contains
 
     subroutine MPI_ISEND_rij (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real, intent(in), dimension(:,:) :: val
+        real(fpp), intent(in), dimension(:,:) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -844,7 +851,7 @@ contains
 
     subroutine MPI_ISEND_rijk (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real, intent(in), dimension(:,:,:) :: val
+        real(fpp), intent(in), dimension(:,:,:) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -859,7 +866,7 @@ contains
     !! ----------------------- MPI_Irecv ---------------------------
     subroutine MPI_IRECV_r1 (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real, intent(out) :: val
+        real(fpp), intent(out) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -874,7 +881,7 @@ contains
 
     subroutine MPI_IRECV_rv (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real, intent(out), dimension(long) :: val
+        real(fpp), intent(out), dimension(long) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -889,7 +896,7 @@ contains
 
     subroutine MPI_IRECV_rij (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real, intent(out), dimension(:,:) :: val
+        real(fpp), intent(out), dimension(:,:) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -904,7 +911,7 @@ contains
 
     subroutine MPI_IRECV_rijk (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real, intent(out), dimension(:,:,:) :: val
+        real(fpp), intent(out), dimension(:,:,:) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -930,8 +937,8 @@ contains
         integer, intent(in) :: recvcounts(*)
         integer, intent(in) :: displs(*)
 
-        real, intent(inout), dimension(sendcount) :: recvbuf
-        real, intent(in), dimension(sendcount) :: sendbuf
+        real(fpp), intent(inout), dimension(sendcount) :: recvbuf
+        real(fpp), intent(in), dimension(sendcount) :: sendbuf
 
         recvbuf = sendbuf
 
