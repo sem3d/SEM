@@ -27,6 +27,7 @@ module m_calcul_forces_aniso ! wrap subroutine in module to get arg type check a
     implicit none
 contains
     subroutine calcul_forces_aniso(dom,bnum,Fox,Foy,Foz,Depla)
+        !$acc routine worker
         use champs_solid
         implicit none
         type(domain_solid), intent (INOUT) :: dom

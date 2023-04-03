@@ -27,6 +27,7 @@
 #endif
 
 subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
+    !$acc routine worker
     use champs_solid
     implicit none
 
@@ -359,6 +360,7 @@ end subroutine PROCNAME
 
 #ifdef ATTENUATION
 subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
+    !$acc routine worker
     use champs_solid
     use deriv3d
     implicit none
