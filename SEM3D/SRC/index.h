@@ -40,11 +40,9 @@
 #define IND_NIJKE(n,i,j,k,eb,ec)     ec,n,i,j,k,eb
 
 #if VCHUNK>1
-#define SUBELEM_LOOP_DIR  !dir$ simd
 #define BEGIN_SUBELEM_LOOP(e,ee,bl)  do ee=0,VCHUNK-1; e = bl*VCHUNK+ee
 #define END_SUBELEM_LOOP()  enddo
 #else
-#define SUBELEM_LOOP_DIR
 #define BEGIN_SUBELEM_LOOP(e,ee,e0)  ee=0;e=e0;
 #define END_SUBELEM_LOOP()  ;
 #endif

@@ -255,10 +255,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-                !dir$ simd
-                !dir$ vector aligned
-#endif
+                LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 !=-=-=-=-=-=-=-=-=-=-
                 !
