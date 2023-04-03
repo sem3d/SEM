@@ -17,6 +17,7 @@ betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(
 gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
 
     subroutine calcul_forces_atn_nl(dom,bnum,Fox,Foy,Foz,Depla)
+        !$acc routine worker
         use champs_solid
         use deriv3d
         use nonlinear

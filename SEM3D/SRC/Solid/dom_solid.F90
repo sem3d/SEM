@@ -760,13 +760,19 @@ contains
                 call forces_int_solid_nl(dom, dom%champs(i0), dom%champs(i1), n)
             enddo
         else
+            !$acc parallel vector_length(VCHUNK)
+            !$acc loop gang
+            !$omp parallel do
             do n = 0,dom%nblocks-1
                 call forces_int_solid(dom, dom%champs(i0), dom%champs(i1), n)
             enddo
+            !$omp end parallel do
+            !$acc end parallel
         endif
     end subroutine forces_int_solid_mainloop
     
     subroutine forces_int_solid(dom, var, dvdt, bnum)
+        !$acc routine worker
         use m_calcul_forces_iso
         use m_calcul_forces_aniso
         use m_calcul_forces_iso_atn

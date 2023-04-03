@@ -28,6 +28,7 @@ module m_calcul_forces_iso ! wrap subroutine in module to get arg type check at 
 contains
 
     subroutine calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+        !$acc routine worker
         use champs_solid
         implicit none
         type(domain_solid), intent (INOUT) :: dom
