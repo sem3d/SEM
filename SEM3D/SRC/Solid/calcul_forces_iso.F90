@@ -52,39 +52,71 @@ contains
         end select
     end subroutine calcul_forces_iso
 
+#ifndef TEST_FORCE
+#define TEST_FORCE 0
+#endif
+
 #undef ATTENUATION
 #define NGLLVAL 4
 #define PROCNAME calcul_forces_iso_4
+#if TEST_FORCE
+#include "calcul_forces_solid_iso.inc"
+#else
 #include "calcul_forces_solid.inc"
+#endif
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 5
 #define PROCNAME calcul_forces_iso_5
+#if TEST_FORCE
+#include "calcul_forces_solid_iso.inc"
+#else
 #include "calcul_forces_solid.inc"
+#endif
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 6
 #define PROCNAME calcul_forces_iso_6
+#if TEST_FORCE
+#include "calcul_forces_solid_iso.inc"
+#else
 #include "calcul_forces_solid.inc"
+#endif
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 7
 #define PROCNAME calcul_forces_iso_7
+#if TEST_FORCE
+#include "calcul_forces_solid_iso.inc"
+#else
 #include "calcul_forces_solid.inc"
+#endif
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 8
 #define PROCNAME calcul_forces_iso_8
+#if TEST_FORCE
+#include "calcul_forces_solid_iso.inc"
+#else
 #include "calcul_forces_solid.inc"
+#endif
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 9
 #define PROCNAME calcul_forces_iso_9
+#if TEST_FORCE
+#include "calcul_forces_solid_iso.inc"
+#else
 #include "calcul_forces_solid.inc"
+#endif
 #undef NGLLVAL
 #undef PROCNAME
 #define PROCNAME calcul_forces_iso_n
+#if TEST_FORCE
+#include "calcul_forces_solid_iso.inc"
+#else
 #include "calcul_forces_solid.inc"
+#endif
 
 end module m_calcul_forces_iso
 
