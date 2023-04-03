@@ -547,10 +547,7 @@ contains
                 endif
             ! Without Mirror
             else
-                do n = 0,Tdomain%sdom%nblocks-1
-                    call forces_int_solid(Tdomain%sdom, &
-                        Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n,Tdomain%nl_flag)
-                enddo
+                call forces_int_solid_mainloop(Tdomain%sdom, i0, i1, Tdomain%nl_flag)
             endif
             call stat_stoptick(STAT_FSOL)
         endif

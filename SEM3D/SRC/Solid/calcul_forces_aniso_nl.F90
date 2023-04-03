@@ -21,15 +21,13 @@
 
 #include "index.h"
 
-module m_calcul_forces_nl ! wrap subroutine in module to get arg type check at build time
+module m_calcul_forces_aniso_nl ! wrap subroutine in module to get arg type check at build time
     use constants
     implicit none
 contains
 
-    subroutine calcul_forces_nl(dom,bnum,Fox,Foy,Foz,Depla)
+    subroutine calcul_forces_aniso_nl(dom,bnum,Fox,Foy,Foz,Depla)
         use champs_solid
-        use deriv3d
-        use nonlinear
         implicit none
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: bnum
@@ -38,59 +36,59 @@ contains
 
         select case(dom%ngll)
         case(4)
-            call calcul_forces_nl_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_nl_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case(5)
-            call calcul_forces_nl_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_nl_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (6)
-            call calcul_forces_nl_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_nl_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (7)
-            call calcul_forces_nl_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_nl_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (8)
-            call calcul_forces_nl_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_nl_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (9)
-            call calcul_forces_nl_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_nl_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case default
-            call calcul_forces_nl_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_nl_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         end select
-    end subroutine calcul_forces_nl
+    end subroutine calcul_forces_aniso_nl
 
 #undef ANISO
 #undef ATTENUATION
 #define NONLINEAR
 #define NGLLVAL 4
-#define PROCNAME calcul_forces_nl_4
-#include "calcul_forces_solid.inc"
+#define PROCNAME calcul_forces_aniso_nl_4
+#include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 5
-#define PROCNAME calcul_forces_nl_5
-#include "calcul_forces_solid.inc"
+#define PROCNAME calcul_forces_aniso_nl_5
+#include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 6
-#define PROCNAME calcul_forces_nl_6
-#include "calcul_forces_solid.inc"
+#define PROCNAME calcul_forces_aniso_nl_6
+#include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 7
-#define PROCNAME calcul_forces_nl_7
-#include "calcul_forces_solid.inc"
+#define PROCNAME calcul_forces_aniso_nl_7
+#include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 8
-#define PROCNAME calcul_forces_nl_8
-#include "calcul_forces_solid.inc"
+#define PROCNAME calcul_forces_aniso_nl_8
+#include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME
 #define NGLLVAL 9
-#define PROCNAME calcul_forces_nl_9
-#include "calcul_forces_solid.inc"
+#define PROCNAME calcul_forces_aniso_nl_9
+#include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME
-#define PROCNAME calcul_forces_nl_n
-#include "calcul_forces_solid.inc"
+#define PROCNAME calcul_forces_aniso_nl_n
+#include "calcul_forces_solid_nl.inc"
 
-end module m_calcul_forces_nl
+end module m_calcul_forces_aniso_nl
 
 !! Local Variables:
 !! mode: f90

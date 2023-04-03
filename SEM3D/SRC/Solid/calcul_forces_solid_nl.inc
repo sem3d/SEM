@@ -15,13 +15,20 @@
 #endif
 
 #define USE_LOCAL_MEM
-
-#ifdef NONLINEAR
-#error "NONLINEAR: wrong include"
+#ifndef NONLINEAR
+#error "NONLINEAR include only"
 #endif
+
+#ifdef ATTENUATION
+#error "ATTENUATION+NONLINEAR Not supported yet"
+#endif
+
+#undef LOOP_VECTORIZE
+#define LOOP_VECTORIZE LOOP_VECTORIZE_SIMD
 
 subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solid
+    use nonlinear
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
@@ -48,6 +55,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
+    real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP
+    real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_epl
+    logical    :: st_epl
 
 #ifdef ANISO
     real(fpp) :: Eyz, Exz, Exy
@@ -169,37 +179,47 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 szz = xla2mu * DZZ + xla * ( DXX + DYY )
 #endif
 
-#ifdef ATTENUATION
-#ifndef ANISO
-                ! if the compiler is not too dumb, the previous definition won't be computed...
-                ! ATTENUATION ISOTROPE
-                xmu = dom%Mu_(i,j,k,bnum,ee) * dom%onemSbeta_(i,j,k,bnum,ee)
-                x2mu = 2. * xmu
-                sxx = x2mu * DXX
-                sxy = xmu * ( DXY + DYX )
-                sxz = xmu * ( DXZ + DZX )
-                syy = x2mu * DYY
-                syz = xmu * ( DYZ + DZY )
-                szz = x2mu * DZZ
-#endif
-                xkappa = dom%Kappa_(i,j,k,bnum,ee)* dom%onemPbeta_(i,j,k,bnum,ee)
-                xpression = xkappa*(DXX+DYY+DZZ)
-                do i_sls = 0,dom%n_sls-1
-                    xpression = xpression - dom%R_vol_(i_sls,i,j,k,bnum,ee)
-                    sxx = sxx - dom%R_xx_(i_sls,i,j,k,bnum,ee)
-                    syy = syy - dom%R_yy_(i_sls,i,j,k,bnum,ee)
-                    ! ici on utilise le fait que la trace est nulle
-                    szz = szz + dom%R_xx_(i_sls,i,j,k,bnum,ee) + dom%R_yy_(i_sls,i,j,k,bnum,ee)
-                    sxy = sxy - dom%R_xy_(i_sls,i,j,k,bnum,ee)
-                    sxz = sxz - dom%R_xz_(i_sls,i,j,k,bnum,ee)
-                    syz = syz - dom%R_yz_(i_sls,i,j,k,bnum,ee)
-                enddo
-                stt = (sxx + syy + szz)*M_1_3
-                sxx = sxx - stt + xpression
-                syy = syy - stt + xpression
-                szz = szz - stt + xpression
-#endif
+                start       =   dom%stress_(0:5,i,j,k,bnum,ee)
+                center      =   dom%center_(0:5,i,j,k,bnum,ee)
+                radius      =   zero !dom%radius_(i,j,k,bnum,ee)
+                syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
+                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee)
+                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee)
+                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee)
+                ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
 
+                dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
+                dEps_alpha(0:5) = dEps_alpha(0:5)*dom%dt
+                dom%strain_(0:5,i,j,k,bnum,ee) = dom%strain_(0:5,i,j,k,bnum,ee) + dEps_alpha(0:5)
+                dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee)
+
+                sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
+                syy = xla2mu*dEps_alpha(1)+xla*(dEps_alpha(0)+dEps_alpha(2))
+                szz = xla2mu*dEps_alpha(2)+xla*sum(dEps_alpha(0:1))
+                sxy = xmu*dEps_alpha(3)
+                sxz = xmu*dEps_alpha(4)
+                syz = xmu*dEps_alpha(5)
+                trial       =   (/sxx,syy,szz,sxy,sxz,syz/)
+                call check_plasticity(trial, start, center,radius, &
+                    syld,st_epl,alpha_epl)
+
+                if (st_epl) then
+
+                    dEps_alpha=(1.0d0-alpha_epl)*dEps_alpha
+                    call plastic_corrector(dEps_alpha, trial, center, syld, &
+                            radius, biso, rinf, ckin, kkin, xmu, xla, dEpsP)
+                end if
+                sxx = trial(0)
+                syy = trial(1)
+                szz = trial(2)
+                sxy = trial(3)
+                sxz = trial(4)
+                syz = trial(5)
+
+                dom%stress_(0:5,i,j,k,bnum,ee)   = trial(0:5)
+                dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)
+                dom%plstrain_(0:5,i,j,k,bnum,ee) = dEpsP(0:5)
+                dom%radius_(i,j,k,bnum,ee)       = zero !radius
                 !
                 !=====================
                 !       FX
@@ -353,6 +373,7 @@ end subroutine PROCNAME
 
 #ifdef ATTENUATION
 subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
+    !$acc routine worker
     use champs_solid
     use deriv3d
     implicit none

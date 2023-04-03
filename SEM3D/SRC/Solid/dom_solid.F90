@@ -747,18 +747,35 @@ contains
         specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
+      
+    subroutine forces_int_solid_mainloop(dom, i0, i1, nlflag)
+        type(domain_solid), intent (INOUT) :: dom
+        integer, intent(IN) :: i0, i1
+        logical, intent(IN) :: nlflag
+        !
+        integer :: n
 
-    subroutine forces_int_solid(dom, var, dvdt, bnum, nl_flag)
-        use m_calcul_forces
-        use m_calcul_forces_atn
-        use m_calcul_forces_nl
+        if (nlflag) then
+            do n = 0,dom%nblocks-1
+                call forces_int_solid_nl(dom, dom%champs(i0), dom%champs(i1), n)
+            enddo
+        else
+            do n = 0,dom%nblocks-1
+                call forces_int_solid(dom, dom%champs(i0), dom%champs(i1), n)
+            enddo
+        endif
+    end subroutine forces_int_solid_mainloop
+    
+    subroutine forces_int_solid(dom, var, dvdt, bnum)
+        use m_calcul_forces_iso
+        use m_calcul_forces_aniso
+        use m_calcul_forces_iso_atn
+        use m_calcul_forces_aniso_atn
 
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(in) :: var
         type(champssolid), intent(inout) :: dvdt
         integer, intent(in) :: bnum
-        !
-        logical,    intent(in) :: nl_flag
         !
         integer :: ngll,i,j,k,i_dir,ee,idx
         integer :: n_solid
@@ -770,35 +787,19 @@ contains
         aniso = dom%aniso
         ngll = dom%ngll
 
-        if (nl_flag) then
-            ! PLASTIC CASE: VELOCITY PREDICTION
-            do i_dir = 0,2
-                do k = 0,ngll-1
-                    do j = 0,ngll-1
-                        do i = 0,ngll-1
-                            do ee = 0, VCHUNK-1
-                                idx = dom%Idom_(i,j,k,bnum,ee)
-                                Depla(ee,i,j,k,i_dir) = var%Veloc(idx,i_dir)
-                            enddo
+        ! ELASTIC CASE: DISPLACEMENT PREDICTION
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
                         enddo
                     enddo
                 enddo
             enddo
-        else
-            ! ELASTIC CASE: DISPLACEMENT PREDICTION
-            do i_dir = 0,2
-                do k = 0,ngll-1
-                    do j = 0,ngll-1
-                        do i = 0,ngll-1
-                            do ee = 0, VCHUNK-1
-                                idx = dom%Idom_(i,j,k,bnum,ee)
-                                Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
-                            enddo
-                        enddo
-                    enddo
-                enddo
-            enddo
-        endif
+        enddo
 
         Fox = 0d0
         Foy = 0d0
@@ -812,18 +813,10 @@ contains
             end if
         else
             if (n_solid>0) then
-                if (nl_flag) then
-                    stop "Not supported NL+ATN"
-                else
-                    call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
-                endif
+                call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                if (nl_flag) then
-                    call calcul_forces_nl(dom,bnum,Fox,Foy,Foz,Depla)
-                else
-                    call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
-                endif
-            end if
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
         end if
 
         do k = 0,ngll-1
@@ -840,10 +833,76 @@ contains
         enddo
     end subroutine forces_int_solid
 
+    subroutine forces_int_solid_nl(dom, var, dvdt, bnum)
+        use m_calcul_forces_iso_nl
+        use m_calcul_forces_aniso_nl
+
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        integer, intent(in) :: bnum
+        !
+        integer :: ngll,i,j,k,i_dir,ee,idx
+        integer :: n_solid
+        logical :: aniso
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+
+        n_solid = dom%n_sls
+        aniso = dom%aniso
+        ngll = dom%ngll
+
+        ! PLASTIC CASE: VELOCITY PREDICTION
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            Depla(ee,i,j,k,i_dir) = var%Veloc(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        Fox = 0d0
+        Foy = 0d0
+        Foz = 0d0
+
+        if (aniso) then
+            if (n_solid>0) then
+                !call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_aniso_nl(dom,bnum,Fox,Foy,Foz,Depla)
+            end if
+        else
+            if (n_solid>0) then
+                !call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+            else
+                call calcul_forces_iso_nl(dom,bnum,Fox,Foy,Foz,Depla)
+            endif
+        end if
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
+                    enddo
+               enddo
+            enddo
+        enddo
+    end subroutine forces_int_solid_nl
+
     subroutine forces_int_solid_mirror_dump(dom,var,dvdt,bnum)
-        use m_calcul_forces
-        use m_calcul_forces_atn
-        use m_calcul_forces_nl
+        use m_calcul_forces_iso
+        use m_calcul_forces_aniso
+        use m_calcul_forces_iso_atn
+        use m_calcul_forces_aniso_atn
         use sdomain
         !
         type(domain_solid),intent(inout) :: dom
@@ -918,9 +977,10 @@ contains
 
 
     subroutine forces_int_solid_mirror_dump_expl(dom,var, dvdt, bnum)
-        use m_calcul_forces
-        use m_calcul_forces_atn
-        use m_calcul_forces_nl
+        use m_calcul_forces_iso
+        use m_calcul_forces_aniso
+        use m_calcul_forces_iso_atn
+        use m_calcul_forces_aniso_atn
 
         type(domain_solid),intent(inout) :: dom
         type(champssolid),intent(in) :: var
@@ -1057,9 +1117,10 @@ contains
 
 
     subroutine forces_int_solid_mirror_load(dom, var, dvdt, bnum)
-        use m_calcul_forces
-        use m_calcul_forces_atn
-        use m_calcul_forces_nl
+        use m_calcul_forces_iso
+        use m_calcul_forces_aniso
+        use m_calcul_forces_iso_atn
+        use m_calcul_forces_aniso_atn
 
         type(domain_solid),intent(inout) :: dom
         type(champssolid),intent(in)     :: var
@@ -1139,9 +1200,10 @@ contains
 
 
     subroutine forces_int_solid_mirror_load_expl(dom,var, dvdt, bnum)
-        use m_calcul_forces
-        use m_calcul_forces_atn
-        use m_calcul_forces_nl
+        use m_calcul_forces_iso
+        use m_calcul_forces_aniso
+        use m_calcul_forces_iso_atn
+        use m_calcul_forces_aniso_atn
 
         type(domain_solid),intent(inout) :: dom
         type(champssolid),intent(in) :: var
@@ -1212,9 +1274,10 @@ contains
 
 
     subroutine forces_int_solid_mirror_load_recalc(dom,var,dvdt,bnum)
-        use m_calcul_forces
-        use m_calcul_forces_atn
-        use m_calcul_forces_nl
+        use m_calcul_forces_iso
+        use m_calcul_forces_aniso
+        use m_calcul_forces_iso_atn
+        use m_calcul_forces_aniso_atn
 
         type(domain_solid),intent(inout) :: dom
         type(champssolid),intent(in) :: var

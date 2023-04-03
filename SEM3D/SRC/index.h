@@ -148,3 +148,9 @@
             dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); \
         END DO;
         
+#define RK4_attenu_coefs(dt,omega_tau_s,alphaval,betaval,gammaval) \
+dt_tau = -dt*omega_tau_s;\
+alphaval = 1d0 + dt_tau + 0.5d0 * dt_tau**2 + dt_tau**3 *(1d0/6d0) + dt_tau**4 *(1d0/24.d0); \
+betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(1d0/24.d0)); \
+gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
+

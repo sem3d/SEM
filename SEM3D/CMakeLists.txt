@@ -40,9 +40,12 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
 #   ${PRJ}/SRC/Solid/attenuation_solid.F90
-    ${PRJ}/SRC/Solid/calcul_forces.F90
-    ${PRJ}/SRC/Solid/calcul_forces_nl.f90   
-    ${PRJ}/SRC/Solid/calcul_forces_atn.F90
+    ${PRJ}/SRC/Solid/calcul_forces_iso.F90
+    ${PRJ}/SRC/Solid/calcul_forces_aniso.F90
+    ${PRJ}/SRC/Solid/calcul_forces_iso_atn.F90
+    ${PRJ}/SRC/Solid/calcul_forces_aniso_atn.F90
+    ${PRJ}/SRC/Solid/calcul_forces_iso_nl.F90
+    ${PRJ}/SRC/Solid/calcul_forces_aniso_nl.F90
     # NOT WORKING
 #    ${PRJ}/SRC/Solid/calcul_forces_atn_nl.F90
     ${PRJ}/SRC/Solid/dom_solid.F90
