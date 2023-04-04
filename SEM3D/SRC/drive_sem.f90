@@ -391,6 +391,14 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !---------------------------------------------------------!
     !--------------------  LOOP UPON TIME  -------------------!
     !---------------------------------------------------------!
+    !$acc  data copyin(Tdomain%sdom, Tdomain%sdom%champs) &
+    !$acc&      copyin(Tdomain%sdom%MassMat, Tdomain%sdom%dirich) &
+    !$acc&      copyin(Tdomain%sdom%m_Lambda, Tdomain%sdom%m_mu, Tdomain%sdom%gllw, Tdomain%sdom%hprime)&
+    !$acc&      copyin(Tdomain%sdom%m_Idom, Tdomain%sdom%m_Jacob, Tdomain%sdom%m_InvGrad) &
+    !$acc&      create(Tdomain%sdom%Fox, Tdomain%sdom%Foy, Tdomain%sdom%Foz, Tdomain%sdom%Depla) &
+    !$acc&      copyin(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%veloc) &
+    !$acc&      copyin(Tdomain%sdom%champs(1)%Depla, Tdomain%sdom%champs(1)%veloc) &
+    !$acc
     do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
 
         protection = 0
@@ -472,21 +480,30 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !---------------------------------------------------------!
         !- SNAPSHOTS
         !---------------------------------------------------------!
-        if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
+        if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) then
+            !$acc update host(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%Veloc, Tdomain%sdom%champs(1)%Veloc) async(2) wait(1)
+            !$acc wait(2)
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
+        end if
         !---------------------------------------------------------!
         !- RECEIVERS'OUTPUTS
         !---------------------------------------------------------!
         call evalueSortieCapteur(ntime, sortie_capteur)
 
         ! sortie des quantites demandees par les capteur
-        if (sortie_capteur) call save_capteur(Tdomain, ntime)
+        if (sortie_capteur) then
+!!            !$acc update host(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%Veloc, Tdomain%sdom%champs(1)%Veloc) async(2) wait(1)
+!!            !$acc wait(2)
+            call save_capteur(Tdomain, ntime)
+        end if
 
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!
         if (protection /= 0 .and. Tdomain%logicD%save_restart) then
             if(Tdomain%rank == 0) print*," SAVING PROT"
+            !$acc update host(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%Veloc, Tdomain%sdom%champs(1)%Veloc) async(2) wait(1)
+            !$acc wait(2)
 
             call flushAllCapteurs(Tdomain)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)
@@ -506,7 +523,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !---------------------------------------------------------!
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
-
+    !$acc end data
 
 end subroutine TIME_STEPPING
 !-----------------------------------------------------------------------------------

@@ -759,24 +759,31 @@ contains
         integer, intent(IN) :: i0, i1
         logical, intent(IN) :: nlflag
         !
-        integer :: n
+        integer :: n, nblocks
 
         if (nlflag) then
             do n = 0,dom%nblocks-1
                 call forces_int_solid_nl(dom, dom%champs(i0), dom%champs(i1), n)
             enddo
         else
-            !$acc parallel vector_length(VCHUNK)
+            nblocks = dom%nblocks
+!!            !$acc update device(dom%champs(i1)%veloc)
+!!            !$acc update device(dom%champs(i0)%depla)
+
+            !$acc parallel vector_length(VCHUNK) async(1)
             !$acc loop gang
             !$omp parallel do
-            do n = 0,dom%nblocks-1
+            do n = 0, nblocks-1
                 call forces_int_solid(dom, dom%champs(i0), dom%champs(i1), n)
             enddo
             !$omp end parallel do
             !$acc end parallel
+            !!$acc update host(dom%champs(i1)%veloc) async(1)
+            !!$acc wait(1)
         endif
     end subroutine forces_int_solid_mainloop
-    
+
+
     subroutine forces_int_solid(dom, var, dvdt, bnum)
         !$acc routine worker
         use m_calcul_forces_iso
@@ -815,10 +822,12 @@ contains
         ngll = dom%ngll
 
         ! ELASTIC CASE: DISPLACEMENT PREDICTION
+        !$acc loop worker collapse(4)
         do i_dir = 0,2
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
+                        !$acc loop vector
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
@@ -846,15 +855,30 @@ contains
             endif
         end if
 
+        !$acc loop worker collapse(3)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        idx = dom%Idom_(i,j,k,bnum,ee)
-                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
-                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
-                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
-                    enddo
+                    if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                        !$acc loop vector
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        enddo
+                    else
+                        !$acc loop vector
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        enddo
+                    end if
                enddo
             enddo
         enddo
@@ -1520,31 +1544,46 @@ contains
     subroutine newmark_predictor_solid(dom, f0, f1)
         type(domain_solid), intent (INOUT) :: dom
         integer :: f0, f1
-        !
-        !dom%champs(f1)%Depla = dom%champs(f0)%Depla
-        !dom%champs(f1)%Depla = dom%champs(f0)%Veloc
+        !$acc kernels async(1)
         dom%champs(f1)%Veloc = 0d0
+        !$acc end kernels
     end subroutine newmark_predictor_solid
 
+
+    ! predictor (1.veloc)
+    ! forces    (wait 1.veloc)  -> host(1.veloc)
+    ! source    1.veloc sur host
+    ! corrector (device 1.veloc)
+
+    
     subroutine newmark_corrector_solid(dom, dt, f0, f1)
         type(domain_solid), intent (INOUT) :: dom
         real(fpp):: dt
         integer, intent(in) :: f0, f1
         !
-        integer :: i_dir, n, indpml
-        do n = 0, dom%n_dirich-1
+        integer :: i_dir, n, indpml, count
+
+        count = dom%n_dirich
+        !!$acc update device(dom%champs(f1)%Veloc) async(1)
+        !$acc parallel loop  async(1)
+        do n = 0, count-1
             indpml = dom%dirich(n)
             dom%champs(f1)%Veloc(indpml,:) = 0.
             !dom%champs(f1)%Depla(indpml,:) = 0.
         enddo
+        !$acc end parallel
+
+        count = dom%nglltot
+        !$acc parallel loop collapse(2)  async(1)
         do i_dir = 0,2
 !$omp simd linear(n)
-            do n = 0,dom%nglltot-1
+            do n = 0,count-1
                 dom%champs(f1)%Veloc(n,i_dir) = dom%champs(f1)%Veloc(n,i_dir) * dom%MassMat(n)
                 dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f1)%Veloc(n,i_dir)
                 dom%champs(f0)%Depla(n,i_dir) = dom%champs(f0)%Depla(n,i_dir) + dt * dom%champs(f0)%Veloc(n,i_dir)
             end do
         enddo
+        !$acc end parallel
     end subroutine newmark_corrector_solid
 
     function solid_Pspeed(dom, lnum, i, j, k) result(Pspeed)
