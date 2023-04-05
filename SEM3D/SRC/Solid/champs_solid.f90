@@ -62,6 +62,7 @@ module champs_solid
         real(fpp), dimension(:,:,:,:,:),   allocatable :: Foy
         real(fpp), dimension(:,:,:,:,:),   allocatable :: Foz
         real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Depla
+        real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Sigma
 #endif
         ! Champs
         type(champssolid), dimension(:), allocatable :: champs

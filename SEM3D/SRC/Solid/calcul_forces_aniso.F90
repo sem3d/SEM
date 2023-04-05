@@ -34,35 +34,36 @@ contains
         integer, intent(in) :: bnum
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: Fox,Foz,Foy
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Sigma
 
         select case(dom%ngll)
 #if GENGLL4
         case(4)
-            call calcul_forces_aniso_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
 #endif
 #if GENGLL5
         case(5)
-            call calcul_forces_aniso_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
 #endif
 #if GENGLL6
         case (6)
-            call calcul_forces_aniso_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
 #endif
 #if GENGLL7
         case (7)
-            call calcul_forces_aniso_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
 #endif
 #if GENGLL8
         case (8)
-            call calcul_forces_aniso_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
 #endif
 #if GENGLL9
         case (9)
-            call calcul_forces_aniso_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
 #endif
 #if GENGLLN
         case default
-            call calcul_forces_aniso_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_aniso_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
 #endif
         end select
     end subroutine calcul_forces_aniso
