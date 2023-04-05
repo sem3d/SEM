@@ -43,6 +43,8 @@ CEA, CentraleSupélec, IPGP and CNRS. SEM3D Ver 2017.04 Registered at French Age
 
 - Touhami, S.; Lopez-Caballero, F.; Clouteau, D. A __Holistic Approach of Numerical Analysis of the Geology Effects on Ground Motion Prediction: Argostoli Site Test__. Journal of Seismology 2021, 25, 115-140. [doi](https://doi.org/10.1007/s10950-020-09961-0)
 
+- de Abreu Corrêa, L.; Cottereau, R.; Faure, B. __Dispersion analysis in ballasted railway tracks and Anderson localization in granular media__. Journal of Sound and Vibration, 2020, 465(115010). [doi](https://doi.org/10.1016/j.jsv.2019.115010)
+
 - Gatti, F.; Clouteau, D. __Towards Blending Physics-Based Numerical Simulations and Seismic Databases Using Generative Adversarial Network__. Computer Methods in Applied Mechanics and Engineering 2020, 372, (113421). [doi](https://doi.org/10.1016/j.cma.2020.113421)
 
 - Gatti, F.; Touhami, S.; Lopez-Caballero, F.; Paolucci, R.; Clouteau, D.; Alves Fernandes, V.; Kham, M.; Voldoire, F. __Broad-Band 3-D Earthquake Simulation at Nuclear Site by an All-Embracing Source-to-Structure Approach__. Soil Dynamics and Earthquake Engineering 2018, 115, 263-280. [doi](https://doi.org/10.1016/j.soildyn.2018.08.028)
