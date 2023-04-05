@@ -77,8 +77,16 @@
         syz = xmu * ( DYZ + DZY ); \
         szz = xla2mu * DZZ + xla * ( DXX + DYY );
 
+#define get_sigma(a,b,c) \
+        sxx = Sigma(ee,a,b,c,0);\
+        syy = Sigma(ee,a,b,c,1);\
+        szz = Sigma(ee,a,b,c,2);\
+        syz = Sigma(ee,a,b,c,3);\
+        sxz = Sigma(ee,a,b,c,4);\
+        sxy = Sigma(ee,a,b,c,5);
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
+
+subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
     !$acc routine worker
     use champs_solid
     implicit none
@@ -91,6 +99,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #endif
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:5), intent(inout) :: Sigma
     integer :: i,j,k,l,e,ee,ll
     real(fpp) :: wi,wj,wk,wl,ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
@@ -101,8 +110,42 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
     real(fpp) :: xla2mu, xla
     real(fpp) :: xmu
-
+    ! TODO: CHECK
+!    real(fpp), dimension(0:ngll-1,0:ngll-1) :: hprime
+!    real(fpp), dimension(0:ngll-1) :: gllw
+!    hprime = dom%hprime
+!    gllw = dom%gllw
     !if (ngll/=ngllvar) stop 1
+
+    !$acc loop worker collapse(3)
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
+                LOOP_VECTORIZE
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                Fox(ee,i,j,k) = 0
+                Foy(ee,i,j,k) = 0
+                Foz(ee,i,j,k) = 0
+                END_SUBELEM_LOOP()
+                ! Compute sigma
+                LOOP_VECTORIZE
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                load_jacobian_matrix(i,j,k)
+                compute_du_deta(i,j,k)
+                compute_du_dx(i,j,k)
+                compute_sigma(i,j,k)
+                ! xt1 +xt5 + xt8
+                sigma(ee,i,j,k,0) = sxx
+                sigma(ee,i,j,k,1) = syy
+                sigma(ee,i,j,k,2) = szz
+                sigma(ee,i,j,k,3) = syz
+                sigma(ee,i,j,k,4) = sxz
+                sigma(ee,i,j,k,5) = sxy
+                END_SUBELEM_LOOP()
+            end do
+        end do
+    end do
+
     !$acc loop worker collapse(3)
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -110,21 +153,13 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 wi = dom%GLLw(i)
                 wj = dom%GLLw(j)
                 wk = dom%GLLw(k)
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                Fox(ee,i,j,k) = 0
-                Foy(ee,i,j,k) = 0
-                Foz(ee,i,j,k) = 0
-                END_SUBELEM_LOOP()
                 ! Compute the terms relative to local coord xsi
                 DO L = 0, ngll-1
                     LOOP_VECTORIZE
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     wl = dom%hprime(i,L)*dom%Jacob_(L,j,k,bnum,ee)*dom%GLLw(L)*wj*wk
                     load_jacobian_matrix(L,j,k)
-                    compute_du_deta(L,j,k)
-                    compute_du_dx(L,j,k)
-                    compute_sigma(L,j,k)
+                    get_sigma(L,j,k)
                     ! xt1 +xt5 + xt8
                     Fox(ee,i,j,k) = Fox(ee,i,j,k) + (sxx*ljxx+sxy*ljyx+sxz*ljzx)*wl
                     Foy(ee,i,j,k) = Foy(ee,i,j,k) + (sxy*ljxx+syy*ljyx+syz*ljzx)*wl
@@ -138,9 +173,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     wl = dom%hprime(j,L)*dom%Jacob_(i,L,k,bnum,ee)*dom%GLLw(L)*wi*wk
                     load_jacobian_matrix(i,L,k)
-                    compute_du_deta(i,L,k)
-                    compute_du_dx(i,L,k)
-                    compute_sigma(i,L,k)
+                    get_sigma(i,L,k)
                     ! xt2 + xt6 + xt9
                     Fox(ee,i,j,k) = Fox(ee,i,j,k) + (sxx*ljxy+sxy*ljyy+sxz*ljzy)*wl
                     Foy(ee,i,j,k) = Foy(ee,i,j,k) + (sxy*ljxy+syy*ljyy+syz*ljzy)*wl
@@ -153,9 +186,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     wl = dom%hprime(k,L)*dom%Jacob_(i,j,L,bnum,ee)*dom%GLLw(L)*wi*wj
                     load_jacobian_matrix(i,j,L)
-                    compute_du_deta(i,j,L)
-                    compute_du_dx(i,j,L)
-                    compute_sigma(i,j,L)
+                    get_sigma(i,j,L)
                     Fox(ee,i,j,k) = Fox(ee,i,j,k) + (sxx*ljxz+sxy*ljyz+sxz*ljzz)*wl
                     Foy(ee,i,j,k) = Foy(ee,i,j,k) + (sxy*ljxz+syy*ljyz+syz*ljzz)*wl
                     Foz(ee,i,j,k) = Foz(ee,i,j,k) + (sxz*ljxz+syz*ljyz+szz*ljzz)*wl

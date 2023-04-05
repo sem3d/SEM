@@ -64,6 +64,7 @@ contains
             allocate(dom%Foy  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1))
             allocate(dom%Foz  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1))
             allocate(dom%Depla(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:2,0:nblocks-1))
+            allocate(dom%Sigma(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:5,0:nblocks-1))
 #endif
             dom%m_Kappa = 0. ! May not be initialized if run without attenuation
 
@@ -804,17 +805,21 @@ contains
 #define tFoy dom%Foy(:,:,:,:,bnum)
 #define tFoz dom%Foz(:,:,:,:,bnum)
 #define tDepla dom%Depla(:,:,:,:,:,bnum)
+#define tSigma dom%Sigma(:,:,:,:,:,bnum)
 #define tFox_(e,i,j,k,bnum) dom%Fox(e,i,j,k,bnum)
 #define tFoy_(e,i,j,k,bnum) dom%Foy(e,i,j,k,bnum)
 #define tFoz_(e,i,j,k,bnum) dom%Foz(e,i,j,k,bnum)
 #define tDepla_(e,i,j,k,c,bnum) dom%Depla(e,i,j,k,c,bnum)
+#define tSigma_(e,i,j,k,c,bnum) dom%Sigma(e,i,j,k,c,bnum)
 #else
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: tFox,tFoy,tFoz
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: tDepla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: tSigma
 #define tFox_(e,i,j,k,bnum)     tFox(e,i,j,k)
 #define tFoy_(e,i,j,k,bnum)     tFoy(e,i,j,k)
 #define tFoz_(e,i,j,k,bnum)     tFoz(e,i,j,k)
 #define tDepla_(e,i,j,k,c,bnum) tDepla(e,i,j,k,c)
+#define tSigma_(e,i,j,k,c,bnum) tSigma(e,i,j,k,c)
 #endif
 
         n_solid = dom%n_sls
@@ -851,7 +856,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,tFox,tFoy,tFoz,tDepla)
             else
-                call calcul_forces_iso(dom,bnum,tFox,tFoy,tFoz,tDepla)
+                call calcul_forces_iso(dom,bnum,tFox,tFoy,tFoz,tDepla, tSigma)
             endif
         end if
 
@@ -975,6 +980,7 @@ contains
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Sigma
         !
         n_solid = dom%n_sls
         aniso = dom%aniso
@@ -1012,7 +1018,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla,Sigma)
             endif
         endif
         do k = 0,ngll-1
@@ -1051,6 +1057,7 @@ contains
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
 !!!        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_ex,Foy_ex,Foz_ex
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Sigma
 
         n_solid = dom%n_sls
         aniso = dom%aniso
@@ -1085,7 +1092,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla,Sigma)
             endif
         endif
 
@@ -1150,7 +1157,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla,Sigma)
             endif
         endif
 
@@ -1191,6 +1198,7 @@ contains
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
         !real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Sigma
 
         n_solid = dom%n_sls
         aniso = dom%aniso
@@ -1232,7 +1240,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla,Sigma)
                 ! [TODO] calcul_forces_nl
             endif
         endif
@@ -1273,6 +1281,7 @@ contains
         integer :: lnum,n_solid,ngll,i,j,k,i_dir,ee,idx,idx_m
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Sigma
 
         n_solid = dom%n_sls
         aniso = dom%aniso
@@ -1306,7 +1315,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla,Sigma)
             endif
         endif
 
@@ -1348,6 +1357,7 @@ contains
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_m,Foy_m,Foz_m
         real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Sigma
 
         n_solid = dom%n_sls
         aniso = dom%aniso
@@ -1381,7 +1391,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla,Sigma)
             endif
         endif
 
@@ -1413,7 +1423,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
             else
-                call calcul_forces_iso(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+                call calcul_forces_iso(dom,bnum,Fox_m,Foy_m,Foz_m,Depla,Sigma)
             endif
         endif
         !!! update regular forces using mirror excitation -W.(K.u)
@@ -1459,7 +1469,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
             else
-                call calcul_forces_iso(dom,bnum,Fox_m,Foy_m,Foz_m,Depla)
+                call calcul_forces_iso(dom,bnum,Fox_m,Foy_m,Foz_m,Depla,Sigma)
             endif
         endif
         do k = 0,ngll-1

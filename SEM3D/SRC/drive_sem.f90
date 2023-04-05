@@ -396,6 +396,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !$acc&      copyin(Tdomain%sdom%m_Lambda, Tdomain%sdom%m_mu, Tdomain%sdom%gllw, Tdomain%sdom%hprime)&
     !$acc&      copyin(Tdomain%sdom%m_Idom, Tdomain%sdom%m_Jacob, Tdomain%sdom%m_InvGrad) &
     !$acc&      create(Tdomain%sdom%Fox, Tdomain%sdom%Foy, Tdomain%sdom%Foz, Tdomain%sdom%Depla) &
+    !$acc&      create(Tdomain%sdom%Sigma) &
     !$acc&      copyin(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%veloc) &
     !$acc&      copyin(Tdomain%sdom%champs(1)%Depla, Tdomain%sdom%champs(1)%veloc) &
     !$acc&      copyin(Tdomain%sSource, Tdomain%sSource(0)%ExtForce) &

@@ -26,7 +26,7 @@
 #error "NONLINEAR: wrong include"
 #endif
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
+subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Sigma)
     !$acc routine worker
     use champs_solid
     implicit none
@@ -39,6 +39,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #endif
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:5), intent(in) :: Sigma
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
