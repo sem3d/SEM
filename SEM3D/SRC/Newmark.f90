@@ -607,7 +607,7 @@ contains
     !-------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------
     subroutine external_forces(Tdomain,timer,ntime,i1)
-
+        use dom_solid
         implicit none
 #include "index.h"
 
@@ -616,7 +616,7 @@ contains
         real(kind=fpp), intent(in)  :: timer
         integer, intent(in) :: i1
         integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntimecur, dom
-        real(kind=fpp) :: t, ft, val, force, timercur
+        real(kind=fpp) :: t, ft, val, timercur
 
         if (Tdomain%mirror_type==1) return
         !!!if (Tdomain%mirror_type>=1) return
@@ -652,22 +652,7 @@ contains
                 if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
                     ! collocated force in solid
                     !
-                    do i_dir = 0,2
-                        do k = 0,ngll-1
-                            do j = 0,ngll-1
-                                do i = 0,ngll-1
-                                    if (dom==DM_SOLID_CG) then
-                                        idx   = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
-                                        force = Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
-                                        Tdomain%sdom%champs(i1)%Veloc(idx, i_dir) = force
-                                    else if (dom==DM_SOLID_DG) then
-                                        force = Tdomain%sdomdg%champs(i1)%Q(ee,i,j,k,6+i_dir,bnum) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
-                                        Tdomain%sdomdg%champs(i1)%Q(ee,i,j,k,6+i_dir,bnum) = force
-                                    end if
-                                enddo
-                            enddo
-                        enddo
-                    enddo
+                    call apply_source_solid(Tdomain%sSource(ns), Tdomain%sdom, i1, ft, lnum)
                 else if(Tdomain%sSource(ns)%i_type_source == 3)then    ! pressure pulse in fluid
                     do k = 0,ngll-1
                         do j = 0,ngll-1
@@ -685,7 +670,7 @@ contains
 
         return
     end subroutine external_forces
-
+    
 end module mtimestep
 !! Local Variables:
 !! mode: f90

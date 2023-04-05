@@ -398,7 +398,9 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !$acc&      create(Tdomain%sdom%Fox, Tdomain%sdom%Foy, Tdomain%sdom%Foz, Tdomain%sdom%Depla) &
     !$acc&      copyin(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%veloc) &
     !$acc&      copyin(Tdomain%sdom%champs(1)%Depla, Tdomain%sdom%champs(1)%veloc) &
+    !$acc&      copyin(Tdomain%sSource, Tdomain%sSource(0)%ExtForce) &
     !$acc
+    ! TODO multi-source 
     do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
 
         protection = 0
