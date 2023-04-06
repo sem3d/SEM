@@ -131,8 +131,11 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
                 LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 load_jacobian_matrix(i,j,k)
+                ! flop count : 6.n4
                 compute_du_deta(i,j,k)
+                ! flop count : (9*5).n3
                 compute_du_dx(i,j,k)
+                ! flop count : 20.n3
                 compute_sigma(i,j,k)
                 ! xt1 +xt5 + xt8
                 sigma(ee,i,j,k,0) = sxx
@@ -153,6 +156,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
                 wi = dom%GLLw(i)
                 wj = dom%GLLw(j)
                 wk = dom%GLLw(k)
+                ! flop count : n4.(5+18)*3
                 ! Compute the terms relative to local coord xsi
                 DO L = 0, ngll-1
                     LOOP_VECTORIZE
