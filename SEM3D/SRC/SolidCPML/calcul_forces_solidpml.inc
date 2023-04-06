@@ -34,6 +34,8 @@
 !!    Li and Lijk (from Conv) are defined in (A.4) from Ref1.
 !!
 !!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
+#include "index.h"
+#include "loops.h"
 
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"

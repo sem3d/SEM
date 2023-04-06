@@ -2,6 +2,9 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
+#include "index.h"
+#include "loops.h"
+
 #undef PROCNAME
 #undef PROCNAME_ATN
 #define PROCNAME PROCNAMEBASE()NGLLVAL

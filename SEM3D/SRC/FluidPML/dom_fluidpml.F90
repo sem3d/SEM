@@ -13,6 +13,7 @@ module dom_fluidpml
     use pml
     implicit none
 #include "index.h"
+#include "loops.h"
 
 contains
 
@@ -242,9 +243,7 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i=0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(ee) safelen(VCHUNK) private(acoeff)
-#endif
+                    LOOP_VECTORIZE
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     acoeff = -dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(i,j,k,bnum,ee) &
                         * dom%PMLVeloc_(i,j,k,d,bnum,ee)

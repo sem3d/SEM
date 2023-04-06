@@ -41,9 +41,7 @@ subroutine PROCNAME(ngllvar,bnum,nblocks,nglltot,ForcesPML,Idom,Stress,InvGrad,J
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i=0,ngll-1
-#if VCHUNK>1
-                !$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
-#endif
+                LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 sum_vx = 0d0
                 sum_vy = 0d0
