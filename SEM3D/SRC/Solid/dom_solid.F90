@@ -815,45 +815,110 @@ contains
         logical, intent(IN) :: nlflag
         !
         integer :: n, nblocks
+        integer :: n_solid
+        logical :: aniso
+        n_solid = dom%n_sls
+        aniso = dom%aniso
 
         if (nlflag) then
             do n = 0,dom%nblocks-1
                 call forces_int_solid_nl(dom, dom%champs(i0), dom%champs(i1), n)
             enddo
         else
-            nblocks = dom%nblocks
-!!            !$acc update device(dom%champs(i1)%veloc)
-!!            !$acc update device(dom%champs(i0)%depla)
+            if (aniso) then
+                if (n_solid>0) then
+                    call run_forces_int_aniso_atn(dom, dom%champs(i0), dom%champs(i1))
+                else
+                    call run_forces_int_aniso(dom, dom%champs(i0), dom%champs(i1))
+                end if
+            else
+                if (n_solid>0) then
+                    call run_forces_int_iso_atn(dom, dom%champs(i0), dom%champs(i1))
+                else
+                    call run_forces_int_iso(dom, dom%champs(i0), dom%champs(i1))
+                endif
+            end if
 
-            !$acc parallel vector_length(VCHUNK) async(1)
-            !$acc loop gang
-            !$omp parallel do
-            do n = 0, nblocks-1
-                call forces_int_solid(dom, dom%champs(i0), dom%champs(i1), n)
-            enddo
-            !$omp end parallel do
-            !$acc end parallel
-            !!$acc update host(dom%champs(i1)%veloc) async(1)
-            !!$acc wait(1)
         endif
     end subroutine forces_int_solid_mainloop
 
+    subroutine run_forces_int_iso(dom, var, dvdt)
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        !
+        integer :: n, nblocks
+        nblocks = dom%nblocks
+        !$acc parallel vector_length(VCHUNK) async(1)
+        !$acc loop gang
+        !$omp parallel do
+        do n = 0, nblocks-1
+            call forces_int_solid_iso(dom, var, dvdt, n)
+        enddo
+        !$omp end parallel do
+        !$acc end parallel
+    end subroutine run_forces_int_iso
 
-    subroutine forces_int_solid(dom, var, dvdt, bnum)
+    subroutine run_forces_int_aniso(dom, var, dvdt)
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        !
+        integer :: n, nblocks
+        nblocks = dom%nblocks
+        !$acc parallel vector_length(VCHUNK) async(1)
+        !$acc loop gang
+        !$omp parallel do
+        do n = 0, nblocks-1
+            call forces_int_solid_aniso(dom, var, dvdt, n)
+        enddo
+        !$omp end parallel do
+        !$acc end parallel
+    end subroutine run_forces_int_aniso
+
+    subroutine run_forces_int_iso_atn(dom, var, dvdt)
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        !
+        integer :: n, nblocks
+        nblocks = dom%nblocks
+        !$acc parallel vector_length(VCHUNK) async(1)
+        !$acc loop gang
+        !$omp parallel do
+        do n = 0, nblocks-1
+            call forces_int_solid_iso_atn(dom, var, dvdt, n)
+        enddo
+        !$omp end parallel do
+        !$acc end parallel
+    end subroutine run_forces_int_iso_atn
+
+    subroutine run_forces_int_aniso_atn(dom, var, dvdt)
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        !
+        integer :: n, nblocks
+        nblocks = dom%nblocks
+        !$acc parallel vector_length(VCHUNK) async(1)
+        !$acc loop gang
+        !$omp parallel do
+        do n = 0, nblocks-1
+            call forces_int_solid_aniso_atn(dom, var, dvdt, n)
+        enddo
+        !$omp end parallel do
+        !$acc end parallel
+    end subroutine run_forces_int_aniso_atn
+
+    subroutine forces_int_solid_iso(dom, var, dvdt, bnum)
         !$acc routine worker
         use m_calcul_forces_iso
-        use m_calcul_forces_aniso
-        use m_calcul_forces_iso_atn
-        use m_calcul_forces_aniso_atn
-
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(in) :: var
         type(champssolid), intent(inout) :: dvdt
         integer, intent(in) :: bnum
         !
         integer :: ngll,i,j,k,i_dir,ee,idx
-        integer :: n_solid
-        logical :: aniso
 #if OPENACC
 #define tFox dom%Fox(:,:,:,:,bnum)
 #define tFoy dom%Foy(:,:,:,:,bnum)
@@ -876,8 +941,91 @@ contains
 #define tSigma_(e,i,j,k,c,bnum) tSigma(e,i,j,k,c)
 #endif
 
-        n_solid = dom%n_sls
-        aniso = dom%aniso
+        ngll = dom%ngll
+
+        ! ELASTIC CASE: DISPLACEMENT PREDICTION
+        !$acc loop worker vector collapse(5)
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        call calcul_forces_iso(dom,bnum,tFox,tFoy,tFoz,tDepla, tSigma)
+
+        !$acc loop worker vector collapse(4)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        else
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        end if
+                    enddo
+               enddo
+            enddo
+        enddo
+#undef tFox
+#undef tFoy
+#undef tFoz
+#undef tDepla
+#undef tFox_
+#undef tFoy_
+#undef tFoz_
+#undef tDepla_
+        
+    end subroutine forces_int_solid_iso
+
+    subroutine forces_int_solid_aniso(dom, var, dvdt, bnum)
+        !$acc routine worker
+        use m_calcul_forces_aniso
+
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        integer, intent(in) :: bnum
+        !
+        integer :: ngll,i,j,k,i_dir,ee,idx
+#if OPENACC
+#define tFox dom%Fox(:,:,:,:,bnum)
+#define tFoy dom%Foy(:,:,:,:,bnum)
+#define tFoz dom%Foz(:,:,:,:,bnum)
+#define tDepla dom%Depla(:,:,:,:,:,bnum)
+#define tSigma dom%Sigma(:,:,:,:,:,bnum)
+#define tFox_(e,i,j,k,bnum) dom%Fox(e,i,j,k,bnum)
+#define tFoy_(e,i,j,k,bnum) dom%Foy(e,i,j,k,bnum)
+#define tFoz_(e,i,j,k,bnum) dom%Foz(e,i,j,k,bnum)
+#define tDepla_(e,i,j,k,c,bnum) dom%Depla(e,i,j,k,c,bnum)
+#define tSigma_(e,i,j,k,c,bnum) dom%Sigma(e,i,j,k,c,bnum)
+#else
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: tFox,tFoy,tFoz
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: tDepla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: tSigma
+#define tFox_(e,i,j,k,bnum)     tFox(e,i,j,k)
+#define tFoy_(e,i,j,k,bnum)     tFoy(e,i,j,k)
+#define tFoz_(e,i,j,k,bnum)     tFoz(e,i,j,k)
+#define tDepla_(e,i,j,k,c,bnum) tDepla(e,i,j,k,c)
+#define tSigma_(e,i,j,k,c,bnum) tSigma(e,i,j,k,c)
+#endif
+
         ngll = dom%ngll
 
         ! ELASTIC CASE: DISPLACEMENT PREDICTION
@@ -900,19 +1048,7 @@ contains
         tFoy = 0d0
         tFoz = 0d0
 
-        if (aniso) then
-            if (n_solid>0) then
-                call calcul_forces_aniso_atn(dom,bnum,tFox,tFoy,tFoz,tDepla)
-            else
-                call calcul_forces_aniso(dom,bnum,tFox,tFoy,tFoz,tDepla)
-            end if
-        else
-            if (n_solid>0) then
-                call calcul_forces_iso_atn(dom,bnum,tFox,tFoy,tFoz,tDepla)
-            else
-                call calcul_forces_iso(dom,bnum,tFox,tFoy,tFoz,tDepla, tSigma)
-            endif
-        end if
+        call calcul_forces_aniso(dom,bnum,tFox,tFoy,tFoz,tDepla)
 
         !$acc loop worker collapse(3)
         do k = 0,ngll-1
@@ -950,7 +1086,195 @@ contains
 #undef tFoz_
 #undef tDepla_
         
-    end subroutine forces_int_solid
+    end subroutine forces_int_solid_aniso
+
+    subroutine forces_int_solid_iso_atn(dom, var, dvdt, bnum)
+        !$acc routine worker
+        use m_calcul_forces_iso_atn
+
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        integer, intent(in) :: bnum
+        !
+        integer :: ngll,i,j,k,i_dir,ee,idx
+#if OPENACC
+#define tFox dom%Fox(:,:,:,:,bnum)
+#define tFoy dom%Foy(:,:,:,:,bnum)
+#define tFoz dom%Foz(:,:,:,:,bnum)
+#define tDepla dom%Depla(:,:,:,:,:,bnum)
+#define tSigma dom%Sigma(:,:,:,:,:,bnum)
+#define tFox_(e,i,j,k,bnum) dom%Fox(e,i,j,k,bnum)
+#define tFoy_(e,i,j,k,bnum) dom%Foy(e,i,j,k,bnum)
+#define tFoz_(e,i,j,k,bnum) dom%Foz(e,i,j,k,bnum)
+#define tDepla_(e,i,j,k,c,bnum) dom%Depla(e,i,j,k,c,bnum)
+#define tSigma_(e,i,j,k,c,bnum) dom%Sigma(e,i,j,k,c,bnum)
+#else
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: tFox,tFoy,tFoz
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: tDepla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: tSigma
+#define tFox_(e,i,j,k,bnum)     tFox(e,i,j,k)
+#define tFoy_(e,i,j,k,bnum)     tFoy(e,i,j,k)
+#define tFoz_(e,i,j,k,bnum)     tFoz(e,i,j,k)
+#define tDepla_(e,i,j,k,c,bnum) tDepla(e,i,j,k,c)
+#define tSigma_(e,i,j,k,c,bnum) tSigma(e,i,j,k,c)
+#endif
+
+        ngll = dom%ngll
+
+        ! ELASTIC CASE: DISPLACEMENT PREDICTION
+        !$acc loop worker collapse(4)
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        !$acc loop vector
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        tFox = 0d0
+        tFoy = 0d0
+        tFoz = 0d0
+
+        call calcul_forces_iso_atn(dom,bnum,tFox,tFoy,tFoz,tDepla)
+
+        !$acc loop worker collapse(3)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                        !$acc loop vector
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        enddo
+                    else
+                        !$acc loop vector
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        enddo
+                    end if
+               enddo
+            enddo
+        enddo
+#undef tFox
+#undef tFoy
+#undef tFoz
+#undef tDepla
+#undef tFox_
+#undef tFoy_
+#undef tFoz_
+#undef tDepla_
+        
+    end subroutine forces_int_solid_iso_atn
+
+    subroutine forces_int_solid_aniso_atn(dom, var, dvdt, bnum)
+        !$acc routine worker
+        use m_calcul_forces_aniso_atn
+
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        integer, intent(in) :: bnum
+        !
+        integer :: ngll,i,j,k,i_dir,ee,idx
+#if OPENACC
+#define tFox dom%Fox(:,:,:,:,bnum)
+#define tFoy dom%Foy(:,:,:,:,bnum)
+#define tFoz dom%Foz(:,:,:,:,bnum)
+#define tDepla dom%Depla(:,:,:,:,:,bnum)
+#define tSigma dom%Sigma(:,:,:,:,:,bnum)
+#define tFox_(e,i,j,k,bnum) dom%Fox(e,i,j,k,bnum)
+#define tFoy_(e,i,j,k,bnum) dom%Foy(e,i,j,k,bnum)
+#define tFoz_(e,i,j,k,bnum) dom%Foz(e,i,j,k,bnum)
+#define tDepla_(e,i,j,k,c,bnum) dom%Depla(e,i,j,k,c,bnum)
+#define tSigma_(e,i,j,k,c,bnum) dom%Sigma(e,i,j,k,c,bnum)
+#else
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: tFox,tFoy,tFoz
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: tDepla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: tSigma
+#define tFox_(e,i,j,k,bnum)     tFox(e,i,j,k)
+#define tFoy_(e,i,j,k,bnum)     tFoy(e,i,j,k)
+#define tFoz_(e,i,j,k,bnum)     tFoz(e,i,j,k)
+#define tDepla_(e,i,j,k,c,bnum) tDepla(e,i,j,k,c)
+#define tSigma_(e,i,j,k,c,bnum) tSigma(e,i,j,k,c)
+#endif
+
+        ngll = dom%ngll
+
+        ! ELASTIC CASE: DISPLACEMENT PREDICTION
+        !$acc loop worker collapse(4)
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        !$acc loop vector
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        tFox = 0d0
+        tFoy = 0d0
+        tFoz = 0d0
+
+        call calcul_forces_aniso_atn(dom,bnum,tFox,tFoy,tFoz,tDepla)
+
+        !$acc loop worker collapse(3)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                        !$acc loop vector
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        enddo
+                    else
+                        !$acc loop vector
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        enddo
+                    end if
+               enddo
+            enddo
+        enddo
+#undef tFox
+#undef tFoy
+#undef tFoz
+#undef tDepla
+#undef tFox_
+#undef tFoy_
+#undef tFoz_
+#undef tDepla_
+        
+    end subroutine forces_int_solid_aniso_atn
 
     subroutine forces_int_solid_nl(dom, var, dvdt, bnum)
         use m_calcul_forces_iso_nl
