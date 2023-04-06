@@ -27,6 +27,7 @@ module m_calcul_forces_iso ! wrap subroutine in module to get arg type check at 
     implicit none
 contains
 
+#if 1
     subroutine calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla,Sigma)
         !$acc routine worker
         use champs_solid
@@ -38,36 +39,16 @@ contains
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5), intent(inout) :: Sigma
 
         select case(dom%ngll)
-#if GENGLL4
-        case(4)
-            call calcul_forces_iso_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
-#endif
-#if GENGLL5
-        case(5)
-            call calcul_forces_iso_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
-#endif
-#if GENGLL6
-        case (6)
-            call calcul_forces_iso_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
-#endif
-#if GENGLL7
-        case (7)
-            call calcul_forces_iso_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
-#endif
-#if GENGLL8
-        case (8)
-            call calcul_forces_iso_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
-#endif
-#if GENGLL9
-        case (9)
-            call calcul_forces_iso_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
-#endif
-#if GLLMAX>GLLOPTMAX
-        case default
-            call calcul_forces_iso_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma)
-#endif
+            NGLLDISPATCHCALL_4(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
+            NGLLDISPATCHCALL_5(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
+            NGLLDISPATCHCALL_6(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
+            NGLLDISPATCHCALL_7(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
+            NGLLDISPATCHCALL_8(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
+            NGLLDISPATCHCALL_9(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
+            NGLLDISPATCHCALL_N(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
         end select
     end subroutine calcul_forces_iso
+#endif
 
 #ifndef TEST_FORCE
 #define TEST_FORCE 0
