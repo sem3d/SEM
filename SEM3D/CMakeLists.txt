@@ -101,6 +101,7 @@ set(SEM3D_SOURCES_F
 
 )
 set_source_files_properties(
+  ${PRJ}/SRC/Solid/dom_solid.F90
   ${PRJ}/SRC/Solid/calcul_forces_iso.F90
   ${PRJ}/SRC/Solid/calcul_forces_aniso.F90
   ${PRJ}/SRC/Solid/calcul_forces_iso_atn.F90

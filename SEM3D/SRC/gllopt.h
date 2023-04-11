@@ -52,57 +52,53 @@
 
 #define STICK(x) x
 
-#define CALLOP(N,funcname,args) case(N);call STICK(funcname)STICK(_)N args
 
-#define CALLDFLT(funcname,args) case default call STICK(funcname)STICK(_)N args
+#define CALLOP(N,funcname,sfx,args) case(N);call STICK(funcname)STICK(_)STICK(N)STICK(sfx) args
+
+#define CALLDFLT(funcname,sfx,args) case default;call STICK(funcname)STICK(_)STICK(N)STICK(sfx) args
 
 #if GENGLL4
-#define NGLLDISPATCHCALL_4(funcname,args) CALLOP(4,funcname,args)
+#define NGLLDISPATCHCALL_4(funcname,sfx,args) CALLOP(4,funcname,sfx,args)
 #else
-#define NGLLDISPATCHCALL_4(funcname,args)
+#define NGLLDISPATCHCALL_4(funcname,sfx,args)
 #endif
 #if GENGLL5
-#define NGLLDISPATCHCALL_5(funcname,args) CALLOP(5,funcname,args)
+#define NGLLDISPATCHCALL_5(funcname,sfx,args) CALLOP(5,funcname,sfx,args)
 #else
-#define NGLLDISPATCHCALL_5(funcname,args)
+#define NGLLDISPATCHCALL_5(funcname,sfx,args)
 #endif
 #if GENGLL6
-#define NGLLDISPATCHCALL_6(funcname,args) CALLOP(6,funcname,args)
+#define NGLLDISPATCHCALL_6(funcname,sfx,args) CALLOP(6,funcname,sfx,args)
 #else
-#define NGLLDISPATCHCALL_6(funcname,args)
+#define NGLLDISPATCHCALL_6(funcname,sfx,args)
 #endif
 #if GENGLL7
-#define NGLLDISPATCHCALL_7(funcname,args) CALLOP(7,funcname,args)
+#define NGLLDISPATCHCALL_7(funcname,sfx,args) CALLOP(7,funcname,sfx,args)
 #else
-#define NGLLDISPATCHCALL_7(funcname,args)
+#define NGLLDISPATCHCALL_7(funcname,sfx,args)
 #endif
 #if GENGLL8
-#define NGLLDISPATCHCALL_8(funcname,args) CALLOP(8,funcname,args)
+#define NGLLDISPATCHCALL_8(funcname,sfx,args) CALLOP(8,funcname,sfx,args)
 #else
-#define NGLLDISPATCHCALL_8(funcname,args)
+#define NGLLDISPATCHCALL_8(funcname,sfx,args)
 #endif
 #if GENGLL9
-#define NGLLDISPATCHCALL_9(funcname,args) CALLOP(9,funcname,args)
+#define NGLLDISPATCHCALL_9(funcname,sfx,args) CALLOP(9,funcname,sfx,args)
 #else
-#define NGLLDISPATCHCALL_9(funcname,args)
+#define NGLLDISPATCHCALL_9(funcname,sfx,args)
 #endif
 #if GENGLLN
-#define NGLLDISPATCHCALL_N(funcname,args) CALLDFLT(funcname,args)
+#define NGLLDISPATCHCALL_N(funcname,sfx,args) CALLDFLT(funcname,sfx,args)
 #else
-#define NGLLDISPATCHCALL_N(funcname,args)
+#define NGLLDISPATCHCALL_N(funcname,sfx,args)
 #endif
 
-#define NGLLDISPATCHCALL(funcname,args) \
-NGLLDISPATCHCALL_4(funcname,args);\
-NGLLDISPATCHCALL_5(funcname,args);\
-NGLLDISPATCHCALL_6(funcname,args);\
-NGLLDISPATCHCALL_7(funcname,args);\
-NGLLDISPATCHCALL_8(funcname,args);\
-NGLLDISPATCHCALL_9(funcname,args);\
-NGLLDISPATCHCALL_N(funcname,args);
-
-
-!test
-!NGLLDISPATCHCALL(plot,(a,b,c,d))
-
+#define NGLLDISPATCHCALL(funcname,sfx,args)     \
+NGLLDISPATCHCALL_4(funcname,sfx,args);\
+NGLLDISPATCHCALL_5(funcname,sfx,args);\
+NGLLDISPATCHCALL_6(funcname,sfx,args);\
+NGLLDISPATCHCALL_7(funcname,sfx,args);\
+NGLLDISPATCHCALL_8(funcname,sfx,args);\
+NGLLDISPATCHCALL_9(funcname,sfx,args);\
+NGLLDISPATCHCALL_N(funcname,sfx,args);
 #endif

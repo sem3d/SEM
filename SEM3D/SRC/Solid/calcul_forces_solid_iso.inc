@@ -4,20 +4,26 @@
 !!
 #include "index.h"
 #include "loops.h"
+#include "solid_forces.h"
 
 #undef PROCNAME
 #undef PROCNAME_ATN
-#define PROCNAME PROCNAMEBASE()NGLLVAL
-#define PROCNAME_ATN PROCNAMEBASE_ATN()NGLLVAL
-#define PROCNAME1() PROCNAME
-#define SUBPROCNAME  PROCNAME1()_subloop
 
 #undef ngllvar
+!!! Generic values of ngll
 #ifndef NGLLVAL
 #define ngllvar ngll
+#define PROCNAME PROCNAMEBASE()N
 #else
+!!! Compilation time specified values of ngll
+#define PROCNAME PROCNAMEBASE()NGLLVAL
 #define ngllvar ngll0
 #endif
+
+#define PROCNAME1() PROCNAME
+#define SUBPROCNAME1  PROCNAME1()_main
+#define SUBPROCNAME2  PROCNAME1()_subloop
+#define PROCNAME_ATN  PROCNAME1()_atn
 
 #ifdef ATTENUATION
 #error "ATTENUATION defined : wrong file"
@@ -29,14 +35,82 @@
 #error "ANISO defined : wrong file"
 #endif
 
+subroutine PROCNAME(dom, ngllvar, var, dvdt)
+    use champs_solid
+    type(domain_solid), intent (INOUT) :: dom
+    type(champssolid), intent(in) :: var
+    type(champssolid), intent(inout) :: dvdt
+    integer, intent(in) :: ngllvar
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    !
+    integer :: i,j,k,i_dir,ee,idx
+    integer :: bnum, nblocks
+
+    nblocks = dom%nblocks
+
+    ! ELASTIC CASE: DISPLACEMENT PREDICTION
+    !$acc parallel loop collapse(6) async(1)
+    do bnum = 0, nblocks-1
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+    enddo
+    !$acc end parallel
+
+    !$acc parallel vector_length(VCHUNK) async(1)
+    !$acc loop gang
+    do bnum = 0, nblocks-1
+        call SUBPROCNAME2(dom,ngllvar,bnum,tFox,tFoy,tFoz,tDepla, tSigma)
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop collapse(5) async(1)
+    do bnum = 0, nblocks-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        else
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        end if
+                    enddo
+                enddo
+            enddo
+        enddo
+    enddo
+    !$acc end parallel
+end subroutine PROCNAME
+
 #define x_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,a,b,c) \
         dS_dxi   = 0.0D+0; \
         dS_deta  = 0.0D+0; \
         dS_dzeta = 0.0D+0; \
         DO LL = 0, ngll-1;  \
-            dS_dxi   = dS_dxi  +Var(ee,LL,b,c,d)*dom%hprime(LL,a); \
-            dS_deta  = dS_deta +Var(ee,a,LL,c,d)*dom%hprime(LL,b); \
-            dS_dzeta = dS_dzeta+Var(ee,a,b,LL,d)*dom%hprime(LL,c); \
+            dS_dxi   = dS_dxi  +Var(ee,LL,b,c,d)*hprime(LL,a); \
+            dS_deta  = dS_deta +Var(ee,a,LL,c,d)*hprime(LL,b); \
+            dS_dzeta = dS_dzeta+Var(ee,a,b,LL,d)*hprime(LL,c); \
         END DO;
 
 #define load_jacobian_matrix(a,b,c) \
@@ -86,7 +160,7 @@
         sxy = Sigma(ee,a,b,c,5);
 
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
+subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
     !$acc routine worker
     use champs_solid
     implicit none
@@ -111,10 +185,10 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
     real(fpp) :: xla2mu, xla
     real(fpp) :: xmu
     ! TODO: CHECK
-!    real(fpp), dimension(0:ngll-1,0:ngll-1) :: hprime
-!    real(fpp), dimension(0:ngll-1) :: gllw
-!    hprime = dom%hprime
-!    gllw = dom%gllw
+    real(fpp), dimension(0:ngll-1,0:ngll-1) :: hprime
+    real(fpp), dimension(0:ngll-1) :: gllw
+    hprime = dom%hprime
+    gllw = dom%gllw
     !if (ngll/=ngllvar) stop 1
 
     !$acc loop worker collapse(3)
@@ -153,15 +227,15 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-                wi = dom%GLLw(i)
-                wj = dom%GLLw(j)
-                wk = dom%GLLw(k)
+                wi = GLLw(i)
+                wj = GLLw(j)
+                wk = GLLw(k)
                 ! flop count : n4.(5+18)*3
                 ! Compute the terms relative to local coord xsi
                 DO L = 0, ngll-1
                     LOOP_VECTORIZE
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    wl = dom%hprime(i,L)*dom%Jacob_(L,j,k,bnum,ee)*dom%GLLw(L)*wj*wk
+                    wl = hprime(i,L)*dom%Jacob_(L,j,k,bnum,ee)*GLLw(L)*wj*wk
                     load_jacobian_matrix(L,j,k)
                     get_sigma(L,j,k)
                     ! xt1 +xt5 + xt8
@@ -200,12 +274,37 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
         enddo
     enddo
     !
-end subroutine PROCNAME
+end subroutine SUBPROCNAME2
 
 #undef x_deriv_ijke
 #undef load_jacobian_matrix
 #undef compute_du_dx
 #undef compute_sigma
+
+
+!!!! ROUTINES DE TRAITEMENT DES MIRROIRS
+#define PROC_MIRROR         PROCNAME1()_mirror
+
+subroutine PROC_MIRROR(dom, ngllvar, var, dvdt, m_dump, m_expl, m_recalc)
+    use champs_solid
+    type(domain_solid), intent (INOUT) :: dom
+    type(champssolid), intent(in) :: var
+    type(champssolid), intent(inout) :: dvdt
+    integer, intent(in) :: ngllvar
+    logical, intent(IN) :: m_dump, m_expl, m_recalc
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    !
+    integer :: i,j,k,i_dir,ee,idx, idx_m
+    integer :: bnum, nblocks, lnum
+    logical :: m_load
+    real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_m,Foy_m,Foz_m
+
+    m_load = .not. m_dump
+    nblocks = dom%nblocks
+
+end subroutine PROC_MIRROR
 
 !! Local Variables:
 !! mode: f90
