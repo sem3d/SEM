@@ -474,7 +474,7 @@ contains
         type(domain), intent(inout)  :: Tdomain
         integer, intent(in) :: i0, i1, ntime
         integer  :: n, indsol, indflu, indpml
-
+        logical :: m_dump, m_load, m_expl, m_recalc
         ! DOMAIN FLUID
         if (Tdomain%fdom%nbelem>0) then
             call stat_starttick(STAT_FFLU)
@@ -509,46 +509,35 @@ contains
         end if
         ! DOMAIN SOLID
         if (Tdomain%sdom%nbelem>0) then
+            m_load = .false.
+            m_dump = .false.
+            m_recalc = .false.
+            m_expl = .false.
             call stat_starttick(STAT_FSOL)
             ! Mirror Record
             if (Tdomain%mirror_type==0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
+                m_dump = .true.
                 if (Tdomain%mirror_expl) then
-                    do n = 0,Tdomain%sdom%nblocks-1
-                        call forces_int_solid_mirror_dump_expl(Tdomain%sdom, &
-                            Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
-                    enddo
-                else
-                    do n = 0,Tdomain%sdom%nblocks-1
-                        call forces_int_solid_mirror_dump(Tdomain%sdom, &
-                            Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
-                    enddo
+                    m_expl = .true.
                 endif
-                call dump_mirror_sl(Tdomain%sdom,ntime)
             ! Mirror Forward/Backward
             elseif (Tdomain%mirror_type>0.and.Tdomain%sdom%mirror_sl%n_glltot>0) then
+                m_load = .true.
                 call load_mirror_sl(Tdomain%sdom,ntime)
                 if (Tdomain%mirror_recalc) then
-                    do n = 0,Tdomain%sdom%nblocks-1
-                        call forces_int_solid_mirror_load_recalc(Tdomain%sdom, &
-                            Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
-                    enddo
+                    m_recalc = .true.
                 else
                     if (Tdomain%mirror_expl) then
-                        do n = 0,Tdomain%sdom%nblocks-1
-                            call forces_int_solid_mirror_load_expl(Tdomain%sdom, &
-                                Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
-                        enddo
-                    else
-                        do n = 0,Tdomain%sdom%nblocks-1
-                            call forces_int_solid_mirror_load(Tdomain%sdom, &
-                                Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n)
-                        enddo
+                        m_expl = .true.
                     endif
                 endif
             ! Without Mirror
-            else
-                call forces_int_solid_mainloop(Tdomain%sdom, i0, i1, Tdomain%nl_flag)
+            end if
+            call forces_int_solid_mainloop(Tdomain%sdom, i0, i1, Tdomain%nl_flag, m_dump, m_load, m_expl,m_recalc)
+            if (m_dump) then
+                call dump_mirror_sl(Tdomain%sdom,ntime)
             endif
+
             call stat_stoptick(STAT_FSOL)
         endif
         !! DOMAIN SOLID DG

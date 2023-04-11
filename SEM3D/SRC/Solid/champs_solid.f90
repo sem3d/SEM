@@ -56,14 +56,14 @@ module champs_solid
         integer :: mirror_type
         type(time_mirror_sl) :: mirror_sl
 
-        ! temp mem pre-allocated
-#ifdef OPENACC
+        ! pre-allocated temporary mem
         real(fpp), dimension(:,:,:,:,:),   allocatable :: Fox
         real(fpp), dimension(:,:,:,:,:),   allocatable :: Foy
         real(fpp), dimension(:,:,:,:,:),   allocatable :: Foz
         real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Depla
+        real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Veloc
         real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Sigma
-#endif
+
         ! Champs
         type(champssolid), dimension(:), allocatable :: champs
         ! Attenuation

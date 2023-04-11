@@ -4,21 +4,25 @@
 !!
 #include "index.h"
 #include "loops.h"
+#include "solid_forces.h"
 
 #undef PROCNAME
 #undef PROCNAME_ATN
-#define PROCNAME PROCNAMEBASE()NGLLVAL
-#define PROCNAME_ATN PROCNAMEBASE_ATN()NGLLVAL
 
 #undef ngllvar
 #ifndef NGLLVAL
 #define ngllvar ngll
-#define PROCNAME PROCNAMEBASE()N
-#define PROCNAME_ATN PROCNAMEBASE_ATN()N
+#define PROCNUM() N
 #else
 #define ngllvar ngll0
+#define PROCNUM() NGLLVAL
 #endif
 
+#define PROCNAME PROCNAMEBASE()PROCNUM()
+#define PROCNAME1() PROCNAME
+#define SUBPROCNAME1  PROCNAME1()_main
+#define SUBPROCNAME2  PROCNAME1()_subloop
+#define PROCNAME_ATN  PROCNAME1()_atn
 
 #define USE_LOCAL_MEM
 
@@ -26,7 +30,62 @@
 #error "NONLINEAR: wrong include"
 #endif
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Sigma)
+subroutine PROCNAME(dom, ngllvar, var, dvdt)
+    use champs_solid
+    type(domain_solid), intent (INOUT) :: dom
+    type(champssolid), intent(in) :: var
+    type(champssolid), intent(inout) :: dvdt
+    integer, intent(in) :: ngllvar
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    !
+    integer :: i,j,k,i_dir,ee,idx
+    integer :: bnum, nblocks
+
+    nblocks = dom%nblocks
+
+    ! ELASTIC CASE: DISPLACEMENT PREDICTION
+    do bnum = 0, nblocks-1
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+        call SUBPROCNAME2(dom,ngllvar,bnum,tFox,tFoy,tFoz,tDepla)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        else
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        end if
+                    enddo
+                enddo
+            enddo
+        enddo
+    enddo
+end subroutine PROCNAME
+
+subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !$acc routine worker
     use champs_solid
     implicit none
@@ -39,7 +98,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Sigma)
 #endif
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:5), intent(in) :: Sigma
+
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
@@ -357,7 +416,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Sigma)
         dUy_dxi,dUy_deta,dUy_dzeta, &
         dUz_dxi,dUz_deta,dUz_dzeta)
 #endif
-end subroutine PROCNAME
+end subroutine SUBPROCNAME2
 
 #ifdef ATTENUATION
 subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
@@ -510,6 +569,193 @@ end subroutine PROCNAME_ATN
 #undef JZX
 #undef JZY
 #undef JZZ
+
+!!!! ROUTINES DE TRAITEMENT DES MIRROIRS
+#define PROC_MIRROR         PROCNAME1()_mirror
+
+subroutine PROC_MIRROR(dom, ngllvar, var, dvdt, m_dump, m_expl, m_recalc)
+    use champs_solid
+    type(domain_solid), intent (INOUT) :: dom
+    type(champssolid), intent(in) :: var
+    type(champssolid), intent(inout) :: dvdt
+    integer, intent(in) :: ngllvar
+    logical, intent(IN) :: m_dump, m_expl, m_recalc
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    !
+    integer :: i,j,k,i_dir,ee,idx, idx_m
+    integer :: bnum, nblocks, lnum
+    logical :: m_load
+    real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_m,Foy_m,Foz_m
+
+    m_load = .not. m_dump
+    nblocks = dom%nblocks
+
+    ! ELASTIC CASE: DISPLACEMENT PREDICTION
+    !$acc parallel loop gang
+    do bnum = 0, nblocks-1
+        lnum = bnum*VCHUNK
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
+                            if (m_dump) then
+                                idx_m = dom%mirror_sl%map(ee+lnum,i,j,k)
+                                dom%mirror_sl%fields(i_dir+1,idx_m) = tDepla_(ee,i,j,k,i_dir,bnum)
+                                if (.not. m_expl) then
+                                    dom%mirror_sl%fields(i_dir+7,idx_m) = tVeloc_(ee,i,j,k,i_dir, bnum)
+                                endif
+                            endif ! m_load then
+                            if (m_load .and. .not. (m_expl .or. m_recalc)) then
+                                idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                                if (idx_m>0)then
+                                    tDepla_(ee,i,j,k,i_dir,bnum) = tDepla_(ee,i,j,k,i_dir,bnum) &
+                                        +dom%mirror_sl%fields(i_dir+1,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                                endif
+                            endif
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+        call SUBPROCNAME2(dom,ngllvar,bnum,tFox,tFoy,tFoz,tDepla)
+
+        if (m_recalc) then
+            ! compute mirror excitation force -W.(K.u)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            if (idx_m>=0) then
+                                tDepla_(ee,i,j,k,0,bnum) = dom%mirror_sl%fields(1,idx_m)
+                                tDepla_(ee,i,j,k,1,bnum) = dom%mirror_sl%fields(2,idx_m)
+                                tDepla_(ee,i,j,k,2,bnum) = dom%mirror_sl%fields(3,idx_m)
+                            endif
+                        enddo
+                    enddo
+                enddo
+            enddo
+            call SUBPROCNAME2(dom,ngllvar,bnum,Fox_m,Foy_m,Foz_m,tDepla)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            if (idx_m>=0) then
+                                ! update regular forces using mirror excitation -W.(K.u)
+                                tFox_(ee,i,j,k,bnum) = tFox_(ee,i,j,k,bnum)-Fox_m(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                                tFoy_(ee,i,j,k,bnum) = tFoy_(ee,i,j,k,bnum)-Fox_m(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                                tFoz_(ee,i,j,k,bnum) = tFoz_(ee,i,j,k,bnum)-Fox_m(ee,i,j,k)*dom%mirror_sl%winfunc(idx_m)
+                                tDepla_(ee,i,j,k,0,bnum) = dom%mirror_sl%fields(1,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                                tDepla_(ee,i,j,k,1,bnum) = dom%mirror_sl%fields(2,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                                tDepla_(ee,i,j,k,2,bnum) = dom%mirror_sl%fields(3,idx_m)*dom%mirror_sl%winfunc(idx_m)
+                            endif
+                        enddo
+                    enddo
+                enddo
+            enddo
+            call SUBPROCNAME2(dom,ngllvar,bnum,Fox_m,Foy_m,Foz_m,tDepla)
+        endif
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        if (m_load .and. m_expl) then
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            ! apply explicit mirror excitation force -W.(K.u)+K.(W.u)
+                            if (idx_m>=0) then
+                                tFox_(ee,i,j,k,bnum) = tFox_(ee,i,j,k,bnum)+dom%mirror_sl%fields(4,idx_m)
+                                tFoy_(ee,i,j,k,bnum) = tFoy_(ee,i,j,k,bnum)+dom%mirror_sl%fields(5,idx_m)
+                                tFoz_(ee,i,j,k,bnum) = tFoz_(ee,i,j,k,bnum)+dom%mirror_sl%fields(6,idx_m)
+                            endif
+                        endif
+                        if (m_load .and. m_recalc) then
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            ! apply explicit mirror excitation force -W.(K.u)+K.(W.u)
+                            if (idx_m>=0) then
+                                tFox_(ee,i,j,k,bnum) = tFox_(ee,i,j,k,bnum)+Fox_m(ee,i,j,k)
+                                tFoy_(ee,i,j,k,bnum) = tFoy_(ee,i,j,k,bnum)+Fox_m(ee,i,j,k)
+                                tFoz_(ee,i,j,k,bnum) = tFoz_(ee,i,j,k,bnum)+Fox_m(ee,i,j,k)
+                            endif
+                        endif
+                        if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        else
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        end if
+                        if (m_dump) then
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            if (idx_m>0) then
+                                if (m_expl) then
+                                    dom%mirror_sl%fields(4,idx_m) = -tFox_(ee,i,j,k,bnum)*dom%mirror_sl%winfunc(idx_m)
+                                    dom%mirror_sl%fields(5,idx_m) = -tFoy_(ee,i,j,k,bnum)*dom%mirror_sl%winfunc(idx_m)
+                                    dom%mirror_sl%fields(6,idx_m) = -tFoz_(ee,i,j,k,bnum)*dom%mirror_sl%winfunc(idx_m)
+                                else
+                                    dom%mirror_sl%fields(4,idx_m) = tFox_(ee,i,j,k,bnum)
+                                    dom%mirror_sl%fields(5,idx_m) = tFoy_(ee,i,j,k,bnum)
+                                    dom%mirror_sl%fields(6,idx_m) = tFoz_(ee,i,j,k,bnum)
+                                endif
+                            endif
+                        endif
+                    enddo
+                enddo
+            enddo
+        enddo
+        if (m_expl) then
+            ! compute K.(W.u)
+            ! TODO ACC
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            if (idx_m>=0) then
+                                tDepla_(ee,i,j,k,0,bnum) = var%Depla(idx,0)*dom%mirror_sl%winfunc(idx_m)
+                                tDepla_(ee,i,j,k,1,bnum) = var%Depla(idx,1)*dom%mirror_sl%winfunc(idx_m)
+                                tDepla_(ee,i,j,k,2,bnum) = var%Depla(idx,2)*dom%mirror_sl%winfunc(idx_m)
+                            endif
+                        enddo
+                    enddo
+                enddo
+            enddo
+            call SUBPROCNAME2(dom,ngllvar,bnum,tFox,tFoy,tFoz,tDepla)
+
+            ! update mirror excitation force with +K.(W.u)
+            ! TODO ACC+ATOMIC
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx_m = dom%mirror_sl%map(lnum+ee,i,j,k)
+                            if (idx_m>=0) then 
+                                dom%mirror_sl%fields(4,idx_m) = dom%mirror_sl%fields(4,idx_m)+tFox_(ee,i,j,k,bnum)
+                                dom%mirror_sl%fields(5,idx_m) = dom%mirror_sl%fields(5,idx_m)+tFoy_(ee,i,j,k,bnum)
+                                dom%mirror_sl%fields(6,idx_m) = dom%mirror_sl%fields(6,idx_m)+tFoz_(ee,i,j,k,bnum)
+                            endif
+                        enddo
+                    enddo
+                enddo
+            enddo
+        endif
+    enddo
+end subroutine PROC_MIRROR
+
 
 !! Local Variables:
 !! mode: f90

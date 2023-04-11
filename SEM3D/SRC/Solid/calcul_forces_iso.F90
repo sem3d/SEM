@@ -27,29 +27,6 @@ module m_calcul_forces_iso ! wrap subroutine in module to get arg type check at 
     implicit none
 contains
 
-#if 1
-    subroutine calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla,Sigma)
-        !$acc routine worker
-        use champs_solid
-        implicit none
-        type(domain_solid), intent (INOUT) :: dom
-        integer, intent(in) :: bnum
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: Fox,Foz,Foy
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5), intent(inout) :: Sigma
-
-        select case(dom%ngll)
-            NGLLDISPATCHCALL_4(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
-            NGLLDISPATCHCALL_5(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
-            NGLLDISPATCHCALL_6(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
-            NGLLDISPATCHCALL_7(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
-            NGLLDISPATCHCALL_8(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
-            NGLLDISPATCHCALL_9(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
-            NGLLDISPATCHCALL_N(calcul_forces_iso,(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla,Sigma))
-        end select
-    end subroutine calcul_forces_iso
-#endif
-
 #ifndef TEST_FORCE
 #define TEST_FORCE 0
 #endif
