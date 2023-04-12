@@ -69,12 +69,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     enddo
     !$acc end parallel
 
-    !$acc parallel vector_length(VCHUNK) async(1)
-    !$acc loop gang
-    do bnum = 0, nblocks-1
-        call SUBPROCNAME2(dom,ngllvar,bnum,tFox,tFoy,tFoz,tDepla, tSigma)
-    end do
-    !$acc end parallel
+    call SUBPROCNAME2(dom,ngllvar,nblocks,dom%Fox,dom%Foy,dom%Foz,dom%Depla)
 
     !$acc parallel loop collapse(5) async(1)
     do bnum = 0, nblocks-1
@@ -109,9 +104,9 @@ end subroutine PROCNAME
         dS_deta  = 0.0D+0; \
         dS_dzeta = 0.0D+0; \
         DO LL = 0, ngll-1;  \
-            dS_dxi   = dS_dxi  +Var(ee,LL,b,c,d)*hprime(LL,a); \
-            dS_deta  = dS_deta +Var(ee,a,LL,c,d)*hprime(LL,b); \
-            dS_dzeta = dS_dzeta+Var(ee,a,b,LL,d)*hprime(LL,c); \
+            dS_dxi   = dS_dxi  +Var(ee,LL,b,c,d,bnum)*hprime(LL,a); \
+            dS_deta  = dS_deta +Var(ee,a,LL,c,d,bnum)*hprime(LL,b); \
+            dS_dzeta = dS_dzeta+Var(ee,a,b,LL,d,bnum)*hprime(LL,c); \
         END DO;
 
 #define load_jacobian_matrix(a,b,c) \
@@ -152,30 +147,21 @@ end subroutine PROCNAME
         syz = xmu * ( DYZ + DZY ); \
         szz = xla2mu * DZZ + xla * ( DXX + DYY );
 
-#define get_sigma(a,b,c) \
-        sxx = Sigma(ee,a,b,c,0);\
-        syy = Sigma(ee,a,b,c,1);\
-        szz = Sigma(ee,a,b,c,2);\
-        syz = Sigma(ee,a,b,c,3);\
-        sxz = Sigma(ee,a,b,c,4);\
-        sxy = Sigma(ee,a,b,c,5);
 
-
-subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
-    !$acc routine worker
+subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla)
     use champs_solid
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
-    integer, intent(in) :: bnum
     integer, intent(in) :: ngllvar
+    integer, intent(in) :: nblocks
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:5), intent(inout) :: Sigma
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(out) :: Fox,Foz,Foy
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Depla
     integer :: i,j,k,l,e,ee,ll
+    integer :: bnum
     real(fpp) :: wi,wj,wk,wl,ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: dUx_dxi, dUx_deta, dUx_dzeta
@@ -184,118 +170,116 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla, Sigma)
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10,t4
 
-    real(fpp) :: xla2mu, xla
+    real(fpp) :: xla2mu, xla, jac
     real(fpp) :: xmu, xtmp, ytmp, ztmp
     ! TODO: CHECK
     real(fpp), dimension(0:ngll-1,0:ngll-1) :: hprime
     real(fpp), dimension(0:ngll-1) :: gllw
     hprime = dom%hprime
     gllw = dom%gllw
-    !if (ngll/=ngllvar) stop 1
 
-    !$acc loop worker collapse(3)
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i = 0,ngll-1
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                Fox(ee,i,j,k) = 0
-                Foy(ee,i,j,k) = 0
-                Foz(ee,i,j,k) = 0
-                END_SUBELEM_LOOP()
+    !$acc parallel loop async(1) collapse(5)
+    do bnum = 0, nblocks-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                    Fox(ee,i,j,k,bnum) = 0
+                    Foy(ee,i,j,k,bnum) = 0
+                    Foz(ee,i,j,k,bnum) = 0
+                    END_SUBELEM_LOOP()
+                enddo
             enddo
         enddo
     enddo
 
-    !$acc loop worker collapse(3)
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i = 0,ngll-1
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                load_jacobian_matrix(i,j,k)
-                ! flop count : 6.n4
-                compute_du_deta(i,j,k)
-                ! flop count : (9*5).n3
-                compute_du_dx(i,j,k)
-                ! flop count : 20.n3
-                compute_sigma(i,j,k)
+    !$acc parallel loop async(1) collapse(5)
+    do bnum = 0, nblocks-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                    compute_du_deta(i,j,k)
+                    load_jacobian_matrix(i,j,k)
+                    compute_du_dx(i,j,k)
+                    compute_sigma(i,j,k)
 
-                !=====================
-                !       FX
-                !=====================
-                !
-                xt1 = sxx*LJXX+sxy*LJYX+sxz*LJZX
-                xt2 = sxx*LJXY+sxy*LJYY+sxz*LJZY
-                xt3 = sxx*LJXZ+sxy*LJYZ+sxz*LJZZ
-                !
-                !=====================
-                !       FY
-                !=====================
-                !
-                xt5 = syy*LJYX+sxy*LJXX+syz*LJZX
-                xt6 = syy*LJYY+sxy*LJXY+syz*LJZY
-                xt7 = syy*LJYZ+sxy*LJXZ+syz*LJZZ
-                !
-                !=====================
-                !       FZ
-                !=====================
-                !
-                xt8 = szz*LJZX+sxz*LJXX+syz*LJYX
-                xt9 = szz*LJZY+sxz*LJXY+syz*LJYY
-                xt10= szz*LJZZ+sxz*LJXZ+syz*LJYZ
-                !
-                !- Multiplication par le Jacobien et le poids d'integration
-                !
-                t4 = dom%Jacob_(i,j,k,bnum,ee) * GLLw(i)
-                xt1  =  xt1 * t4
-                xt5  =  xt5 * t4
-                xt8  =  xt8 * t4
+                    !=====================
+                    !       FX
+                    !=====================
+                    !
+                    xt1 = sxx*LJXX+sxy*LJYX+sxz*LJZX
+                    xt2 = sxx*LJXY+sxy*LJYY+sxz*LJZY
+                    xt3 = sxx*LJXZ+sxy*LJYZ+sxz*LJZZ
+                    !
+                    !=====================
+                    !       FY
+                    !=====================
+                    !
+                    xt5 = syy*LJYX+sxy*LJXX+syz*LJZX
+                    xt6 = syy*LJYY+sxy*LJXY+syz*LJZY
+                    xt7 = syy*LJYZ+sxy*LJXZ+syz*LJZZ
+                    !
+                    !=====================
+                    !       FZ
+                    !=====================
+                    !
+                    xt8 = szz*LJZX+sxz*LJXX+syz*LJYX
+                    xt9 = szz*LJZY+sxz*LJXY+syz*LJYY
+                    xt10= szz*LJZZ+sxz*LJXZ+syz*LJYZ
+                    !
+                    !- Multiplication par le Jacobien et le poids d'integration
+                    !
+                    wi = Gllw(i)
+                    wj = Gllw(j)
+                    wk = Gllw(k)
+                    jac = dom%Jacob_(i,j,k,bnum,ee)
+                    t4 = jac * wi * wj * wk
+                    xt1  =  xt1 * t4
+                    xt5  =  xt5 * t4
+                    xt8  =  xt8 * t4
+                    xt2  =  xt2 * t4
+                    xt6  =  xt6 * t4
+                    xt9  =  xt9 * t4
+                    xt3  =  xt3 * t4
+                    xt7  =  xt7 * t4
+                    xt10 = xt10 * t4
 
-                t4 = dom%Jacob_(i,j,k,bnum,ee) * GLLw(j)
-                xt2  =  xt2 * t4
-                xt6  =  xt6 * t4
-                xt9  =  xt9 * t4
-
-                t4 = dom%Jacob_(i,j,k,bnum,ee) * GLLw(k)
-                xt3  =  xt3 * t4
-                xt7  =  xt7 * t4
-                xt10 = xt10 * t4
-
-                DO L = 0, ngll-1
-                    xtmp = hprime(L,I)*xt1*GLLw(j) * GLLw(k)
-                    ytmp = hprime(L,I)*xt5*GLLw(j) * GLLw(k)
-                    ztmp = hprime(L,I)*xt8*GLLw(j) * GLLw(k)
-                    !$acc atomicupdate
-                    Fox(ee,L,j,k) = Fox(ee,L,j,k) + xtmp
-                    !$acc atomicupdate
-                    Foy(ee,L,j,k) = Foy(ee,L,j,k) + ytmp
-                    !$acc atomicupdate
-                    Foz(ee,L,j,k) = Foz(ee,L,j,k) + ztmp
-                END DO
-                DO L = 0, ngll-1
-                    xtmp = hprime(L,J)*xt2*GLLw(i) * GLLw(k)
-                    ytmp = hprime(L,J)*xt6*GLLw(i) * GLLw(k)
-                    ztmp = hprime(L,J)*xt9*GLLw(i) * GLLw(k)
-                    !$acc atomicupdate
-                    Fox(ee,i,L,k) = Fox(ee,i,L,k) + xtmp
-                    !$acc atomicupdate
-                    Foy(ee,i,L,k) = Foy(ee,i,L,k) + ytmp
-                    !$acc atomicupdate
-                    Foz(ee,i,L,k) = Foz(ee,i,L,k) + ztmp
-                END DO
-                DO L = 0, ngll-1
-                    xtmp = hprime(L,K)*xt3*GLLw(i) * GLLw(j)
-                    ytmp = hprime(L,K)*xt7*GLLw(i) * GLLw(j)
-                    ztmp = hprime(L,K)*xt10*GLLw(i) * GLLw(j)
-                    !$acc atomicupdate
-                    Fox(ee,i,j,L) = Fox(ee,i,j,L) + xtmp
-                    !$acc atomicupdate
-                    Foy(ee,i,j,L) = Foy(ee,i,j,L) + ytmp
-                    !$acc atomicupdate
-                    Foz(ee,i,j,L) = Foz(ee,i,j,L) + ztmp
-                END DO
-                END_SUBELEM_LOOP()
+                    DO L = 0, ngll-1
+                        xtmp = hprime(L,I)*xt1
+                        ytmp = hprime(L,I)*xt5
+                        ztmp = hprime(L,I)*xt8
+                        !$acc atomic update
+                        Fox(ee,L,j,k,bnum) = Fox(ee,L,j,k,bnum) + xtmp
+                        !$acc atomic update
+                        Foy(ee,L,j,k,bnum) = Foy(ee,L,j,k,bnum) + ytmp
+                        !$acc atomic update
+                        Foz(ee,L,j,k,bnum) = Foz(ee,L,j,k,bnum) + ztmp
+                    END DO
+                    DO L = 0, ngll-1
+                        xtmp = hprime(L,J)*xt2
+                        ytmp = hprime(L,J)*xt6
+                        ztmp = hprime(L,J)*xt9
+                        !$acc atomic update
+                        Fox(ee,i,L,k,bnum) = Fox(ee,i,L,k,bnum) + xtmp
+                        !$acc atomic update
+                        Foy(ee,i,L,k,bnum) = Foy(ee,i,L,k,bnum) + ytmp
+                        !$acc atomic update
+                        Foz(ee,i,L,k,bnum) = Foz(ee,i,L,k,bnum) + ztmp
+                    END DO
+                    DO L = 0, ngll-1
+                        xtmp = hprime(L,K)*xt3 
+                        ytmp = hprime(L,K)*xt7 
+                        ztmp = hprime(L,K)*xt10
+                        !$acc atomic update
+                        Fox(ee,i,j,L,bnum) = Fox(ee,i,j,L,bnum) + xtmp
+                        !$acc atomic update
+                        Foy(ee,i,j,L,bnum) = Foy(ee,i,j,L,bnum) + ytmp
+                        !$acc atomic update
+                        Foz(ee,i,j,L,bnum) = Foz(ee,i,j,L,bnum) + ztmp
+                    END DO
+                    END_SUBELEM_LOOP()
+                end do
             end do
         end do
     end do
