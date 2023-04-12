@@ -64,8 +64,8 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                    if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                        do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             !$acc atomic update
                             dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
@@ -73,13 +73,16 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
                             dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
                             !$acc atomic update
                             dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
-                        else
+                        enddo
+                    else
+                        LOOP_VECTORIZE
+                        BEGIN_SUBELEM_LOOP1(ee)
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
                             dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
                             dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
-                        end if
-                    enddo
+                        END_SUBELEM_LOOP()
+                    end if
                 enddo
             enddo
         enddo
