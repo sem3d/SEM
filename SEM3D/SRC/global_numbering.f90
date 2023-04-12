@@ -75,7 +75,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
     integer, dimension(0:DM_MAX) :: icount ! nombre de glls    par domaine
     integer, dimension(0:DM_MAX) :: ecount ! nombre d'elements par domaine
     integer, dimension(0:DM_MAX) :: fcount ! nombre de faces par domaine
-    integer :: ngll
+    integer :: ngll, n3, n0, bnum, ee, lnum, vchunk0
     integer, dimension(0:3) :: elface
     integer, dimension(0:1) :: eledge
     integer :: dom
@@ -99,16 +99,42 @@ subroutine renumber_global_gll_nodes(Tdomain)
         allocate(Tdomain%specel(n)%Idom    (0:ngll-1,0:ngll-1,0:ngll-1))
         Tdomain%specel(n)%Iglobnum = -1
         Tdomain%specel(n)%Idom = -1
+        ! assign a global number first
         do k = 1,ngll-2
             do j = 1,ngll-2
                 do i = 1,ngll-2
                     Tdomain%specel(n)%Iglobnum(i,j,k) = icount(0)
                     icount(0) = icount(0) + 1
-                    Tdomain%specel(n)%Idom(i,j,k) = icount(dom)
-                    icount(dom) = icount(dom) + 1
+!                    Tdomain%specel(n)%Idom(i,j,k) = icount(dom)
+!                    icount(dom) = icount(dom) + 1
                 enddo
             enddo
         enddo
+    end do
+    do n = 0,Tdomain%n_elem-1
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        dom = Tdomain%specel(n)%domain
+        ! assign local numbering for inside gll nodes
+        n3 = (ngll-2)*(ngll-2)*(ngll-2)
+        lnum = Tdomain%specel(n)%lnum
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+        n0 = bnum*VCHUNK*n3+ee
+        vchunk0 = VCHUNK
+        ! make sure we have no 'holes' in the numbering
+        if ((bnum+1)*VCHUNK>ecount(dom)) then
+            ! last block of elems may not be complete
+            vchunk0 = mod(ecount(dom),VCHUNK)
+        endif
+        do k = 1,ngll-2
+            do j = 1,ngll-2
+                do i = 1,ngll-2
+                    Tdomain%specel(n)%Idom(i,j,k) = n0
+                    n0 = n0 + vchunk0
+                enddo
+            enddo
+        enddo
+        icount(dom) = icount(dom) + n3
     enddo
     Tdomain%sdom   %nbelem = ecount(DM_SOLID_CG)
     Tdomain%sdomdg %nbelem = ecount(DM_SOLID_DG)
@@ -302,7 +328,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
     enddo
 #endif
 end subroutine renumber_global_gll_nodes
-
 
 ! Compute the mapping between face%Idom(i,j) to surf%map so that
 ! map(renum(face%Idom(i,j))) == face%Idom(i,j) for each face of surf
