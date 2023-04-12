@@ -25,9 +25,6 @@
 #error "ATTENUATION+NONLINEAR Not supported yet"
 #endif
 
-#undef LOOP_VECTORIZE
-#define LOOP_VECTORIZE LOOP_VECTORIZE_SIMD
-
 subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solid
     use nonlinear
