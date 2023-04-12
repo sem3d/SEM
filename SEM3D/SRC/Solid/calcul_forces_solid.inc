@@ -51,10 +51,11 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
-                        do ee = 0, VCHUNK-1
+                        LOOP_VECTORIZE
+                        BEGIN_SUBELEM_LOOP1(ee)
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
-                        enddo
+                        END_SUBELEM_LOOP()
                     enddo
                 enddo
             enddo
@@ -137,7 +138,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         do j = 0,ngll-1
             do i = 0,ngll-1
                 LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                BEGIN_SUBELEM_LOOP1(ee)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
@@ -148,7 +149,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         do j = 0,ngll-1
             do i = 0,ngll-1
                 LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                BEGIN_SUBELEM_LOOP1(ee)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,1,dUy_dxi(ee,i,j,k),dUy_deta(ee,i,j,k),dUy_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
@@ -159,7 +160,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         do j = 0,ngll-1
             do i = 0,ngll-1
                 LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                BEGIN_SUBELEM_LOOP1(ee)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,2,dUz_dxi(ee,i,j,k),dUz_deta(ee,i,j,k),dUz_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
@@ -171,7 +172,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         do j = 0,ngll-1
             do i = 0,ngll-1
                 LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                BEGIN_SUBELEM_LOOP1(ee)
 #define JXX dom%InvGrad_(0,0,i,j,k,bnum,ee)
 #define JXY dom%InvGrad_(0,1,i,j,k,bnum,ee)
 #define JXZ dom%InvGrad_(0,2,i,j,k,bnum,ee)
@@ -351,7 +352,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         do j = 0,ngll-1
             do i = 0,ngll-1
                 LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                BEGIN_SUBELEM_LOOP1(ee)
                 !=-=-=-=-=-=-=-=-=-=-
                 !
                 t11 = dom%GLLw(j) * dom%GLLw(k)
@@ -467,7 +468,7 @@ subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy
         do j = 0,ngll-1
             do i = 0,ngll-1
                 LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                BEGIN_SUBELEM_LOOP1(ee)
                 epsilon_trace_over_3 = M_1_3 * (DXX + DYY + DZZ)
                 epsilonvol_loc = DXX + DYY + DZZ
                 epsilondev_xx_loc = DXX - epsilon_trace_over_3

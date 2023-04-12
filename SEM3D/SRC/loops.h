@@ -26,10 +26,12 @@
 #define LOOP_VECTORIZE LOOP_VECTORIZE_SIMD
 #endif
 #define BEGIN_SUBELEM_LOOP(e,ee,bl)  do ee=0,VCHUNK-1; e = bl*VCHUNK+ee
+#define BEGIN_SUBELEM_LOOP1(ee)  do ee=0,VCHUNK-1;
 #define END_SUBELEM_LOOP()  enddo
 #else
 #define LOOP_VECTORIZE
 #define BEGIN_SUBELEM_LOOP(e,ee,e0)  ee=0;e=e0;
+#define BEGIN_SUBELEM_LOOP1(ee)  ee=0;
 #define END_SUBELEM_LOOP()  ;
 #endif
 
