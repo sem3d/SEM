@@ -1160,17 +1160,43 @@ contains
         !$acc end parallel
 
         count = dom%nglltot
+        call newmark_corrector_time_scheme(count,dt,dom%MassMat,dom%champs(f0)%Depla, &
+            dom%champs(f0)%Veloc,dom%champs(f1)%Veloc)
+!!        !$acc parallel loop collapse(2)  async(1)
+!!        do i_dir = 0,2
+!!!$omp simd linear(n)
+!!            do n = 0,count-1
+!!                dom%champs(f1)%Veloc(n,i_dir) = dom%champs(f1)%Veloc(n,i_dir) * dom%MassMat(n)
+!!                dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f1)%Veloc(n,i_dir)
+!!                dom%champs(f0)%Depla(n,i_dir) = dom%champs(f0)%Depla(n,i_dir) + dt * dom%champs(f0)%Veloc(n,i_dir)
+!!            end do
+!!        enddo
+!!        !$acc end parallel
+    end subroutine newmark_corrector_solid
+
+    subroutine newmark_corrector_time_scheme(count,dt,invmass,depla,veloc,accel)
+        integer, intent(in) :: count
+        real(fpp), intent(in) :: dt
+        real(fpp), dimension(0:count,0:2), intent(inout) :: depla, veloc, accel
+        real(fpp), dimension(0:count), intent(in) :: invmass
+        !
+        integer :: n, i_dir
+        real(fpp) :: acc, vel
         !$acc parallel loop collapse(2)  async(1)
         do i_dir = 0,2
-!$omp simd linear(n)
+            !$omp simd linear(n)
             do n = 0,count-1
-                dom%champs(f1)%Veloc(n,i_dir) = dom%champs(f1)%Veloc(n,i_dir) * dom%MassMat(n)
-                dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f1)%Veloc(n,i_dir)
-                dom%champs(f0)%Depla(n,i_dir) = dom%champs(f0)%Depla(n,i_dir) + dt * dom%champs(f0)%Veloc(n,i_dir)
+                acc = accel(n,i_dir) * invmass(n)
+                vel = veloc(n,i_dir)
+                accel(n,i_dir) = acc
+                vel = vel + dt * acc
+                veloc(n,i_dir) = vel
+                depla(n,i_dir) = depla(n,i_dir) + dt * vel
             end do
         enddo
         !$acc end parallel
-    end subroutine newmark_corrector_solid
+   
+    end subroutine newmark_corrector_time_scheme
 
     function solid_Pspeed(dom, lnum, i, j, k) result(Pspeed)
         type(domain_solid), intent (IN) :: dom
