@@ -15,7 +15,7 @@ module msnapshots
     implicit none
 #include "index.h"
 contains
-#define DEBUG_CPML
+#undef DEBUG_CPML
 #ifdef SINGLEPRECISION
 #define MPI_REAL_FPP MPI_FLOAT
 #else
