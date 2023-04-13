@@ -205,7 +205,7 @@ def start_rik():
 
     return opt
 
-def get_rotation_tensor(strike: float, dip: float) -> float:
+def get_rotation_tensor(strike: float, dip: float) -> np.float64:
     """
     Compute Rotation tensor from [N,E,D] et to [E,N,Z]
     """
@@ -221,7 +221,7 @@ def get_rotation_tensor(strike: float, dip: float) -> float:
                 MatMesh[i,j] = 0.0
     return MatMesh
 
-def moment_computation(M0,time,f,ts,gamma):
+def moment_computation(M0, time, f, ts, gamma):
     T 	   = 1.0/f
     moment = np.zeros(len(time))
     for i in np.arange(len(time)):
@@ -234,7 +234,7 @@ def moment_computation(M0,time,f,ts,gamma):
 
 def compute_seismic_moment_vectors(strike: float, 
                                    dip: float, 
-                                   rake: float) -> float:
+                                   rake: float) -> tuple[np.float64]:
     """Compute the unit-norm normal vector on the fault plane, 
     the unit-norm slip vector in the ENU-xyz reference frame
     """
@@ -262,7 +262,8 @@ def compute_seismic_moment_vectors(strike: float,
     return nv, dv, M
 
 
-def parseRIKrates(filename: str, dimensions: tuple) -> float:
+def ConvertLine(x): return float(x.rsplit()[1])
+def parseRIKrates(filename: str, dimensions: tuple) -> np.float64:
     """Read moment rate file from RIKsrf
 
     Arguments:
@@ -276,12 +277,13 @@ def parseRIKrates(filename: str, dimensions: tuple) -> float:
                     dtype=np.float64)
     fid = open(filename, 'r')
     FileContent = fid.readlines()
-    ConvertLine = lambda x: float(x.rsplit()[1])
+    
     rate = np.vstack([np.array(list(map(ConvertLine,
-                                        FileContent[i*(nt+2):(i+1)*(nt+2)-2]))) 
-                      for i in range(nL*nW)]
-                     )
-    return rate.reshape(dimensions, order='F')
+                                        FileContent[i*(nt+2):
+                                            (i+1)*(nt+2)-2]))) 
+                    for i in range(nL*nW)]
+                    ).reshape(dimensions, order='F')
+    return rate
 
 def make_colormap(seq):
     """Return a LinearSegmentedColormap
