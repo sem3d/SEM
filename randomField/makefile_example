@@ -1,10 +1,12 @@
 #### PATH TO HDF5 AND MPI LIBRARY AND INCLUDES - to be modified by user (to be completed)
+# Install hdf5 with --enable-fortran enable-fortran2003 and --enable-parallel options
 LIBHDF5 = -L/path/to/local/local/hdf5/lib -lhdf5hl_fortran -lhdf5_hl -lhdf5_fortran -lhdf5 -ldl -lm -lz 
 INCLUDEHDF5 = -I/path/to/local/local/hdf5/include
 
 LIBMPI = -L/path/to/local/openmpi/lib -lmpi_cxx -lmpi -lmpi_mpifh -lmpi_usempif08 -lmpi_usempi_ignore_tkr
 INCLUDEMPI = -I/path/to/local/openmpi/include
 
+# Compile fftw with --enable-mpi --enable-openmp --enable-threads options
 LIBFFTW = -L/path/to/local/local/fftw/lib -lfftw3_mpi -lfftw3 -lfftw3_threads
 INCLUDEFFTW = -I/path/to/local/local/fftw/include
 
@@ -246,35 +248,35 @@ cdfnor.o             : dinvnr.o \
 		       spmpar.o \
 		       cumnor.o
 # Making all the ".o" from the ".f90"
-%.o: ../sem-ecp/randomField/SRC_EXE/%.f90
+%.o: ../SEM/randomField/SRC_EXE/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 		
-%.o: ../sem-ecp/randomField/SRC_LIB/%.f90
+%.o: ../SEM/randomField/SRC_LIB/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
-%.o: ../sem-ecp/randomField/BLAS/%.f90
+%.o: ../SEM/randomField/BLAS/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 	
-%.o: ../sem-ecp/randomField/RANDLIB/%.f90
+%.o: ../SEM/randomField/RANDLIB/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '	
 	
-%.o: ../sem-ecp/randomField/dcdflib/src/%.f
+%.o: ../SEM/randomField/dcdflib/src/%.f
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
