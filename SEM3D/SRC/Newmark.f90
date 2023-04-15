@@ -264,11 +264,14 @@ contains
             do n = 0,Tdomain%Comm_data%ncomm-1
                 ! Domain SOLID
                 k = 0
-                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
-
-                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%Qasm, k)
+                if (Tdomain%Comm_data%Data(n)%nsol>0) then
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
+                end if
+                if (Tdomain%Comm_data%Data(n)%nsoldg>0) then
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%Qasm, k)
+                end if
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
@@ -281,9 +284,10 @@ contains
                 end if
 
                 ! Domain FLUID
-                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%champs(f1)%ForcesFl, k)
-
+                if (Tdomain%Comm_data%Data(n)%nflu>0) then
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%champs(f1)%ForcesFl, k)
+                end if
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
@@ -305,11 +309,15 @@ contains
             do n = 0,Tdomain%Comm_data%ncomm-1
                 ! Domain SOLID
                 k = 0
-                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
+                if (Tdomain%Comm_data%Data(n)%nsol>0) then
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs(f1)%Veloc, k)
+                end if
                 ! Domain SOLID DG
-                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%Qasm, k)
+                if (Tdomain%Comm_data%Data(n)%nsoldg>0) then
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveSDG, Tdomain%sdomdg%Qasm, k)
+                end if
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
@@ -322,8 +330,10 @@ contains
                 end if
 
                 ! Domain FLUID
-                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%champs(f1)%ForcesFl, k)
+                if (Tdomain%Comm_data%Data(n)%nflu>0) then
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%champs(f1)%ForcesFl, k)
+                end if
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
