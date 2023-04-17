@@ -60,7 +60,7 @@ contains
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-#if OPENACC || TEST_FORCE==1
+#if defined(OPENACC) || TEST_FORCE==1
             ntemps = nblocks
 #else
             ntemps = 1
