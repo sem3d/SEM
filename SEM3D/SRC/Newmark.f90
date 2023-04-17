@@ -562,9 +562,7 @@ contains
         ! DOMAIN PML SOLID
         if (Tdomain%spmldom%nbelem>0) then
             call stat_starttick(STAT_PSOL)
-            do n = 0,Tdomain%spmldom%nblocks-1
-                call forces_int_sol_pml(Tdomain%spmldom, Tdomain%spmldom%champs(i1), n, Tdomain)
-            end do
+            call forces_int_sol_pml_mainloop(Tdomain%spmldom, i1)
             call stat_stoptick(STAT_PSOL)
         end if
 

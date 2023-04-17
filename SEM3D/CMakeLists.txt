@@ -127,9 +127,16 @@ else(OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
       ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
       ${PRJ}/SRC/SolidPML/champs_solidpml.f90
+      ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
       ${PRJ}/SRC/pml.F90
       ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
       ${PRJ}/SRC/SolidPML/dom_solidpml.F90)
+set_source_files_properties(
+  ${PRJ}/SRC/SolidPML/dom_solidpml.F90
+  ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
+  PROPERTIES
+  COMPILE_DEFINITIONS "${GLLDEFS}")
+    
 endif(OPT_CPML)
 
 #if(NOT USE_MKL)
