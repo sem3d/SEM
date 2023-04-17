@@ -99,7 +99,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Bspline.f90
     ${PRJ}/SRC/Modules/Mirror.f90
 
-)
+  )
+set(GLLDEFS "GLLOPTMIN=${OPT_MIN_GLL_OPT};GLLOPTMAX=${OPT_MAX_GLL_OPT};GLLMAX=${OPT_MAX_GLL}")
 set_source_files_properties(
   ${PRJ}/SRC/Solid/dom_solid.F90
   ${PRJ}/SRC/Solid/calcul_forces_iso.F90
@@ -110,7 +111,7 @@ set_source_files_properties(
   ${PRJ}/SRC/Solid/calcul_forces_aniso_nl.F90
 
   PROPERTIES
-  COMPILE_DEFINITIONS "GLLMIN=${OPT_MIN_GLL_OPT};GLLMAX=${OPT_MAX_GLL};GLLOPTMAX=${OPT_MAX_GLL_OPT}"
+  COMPILE_DEFINITIONS "${GLLDEFS}"
 )
 
 if (OPT_CPML)
