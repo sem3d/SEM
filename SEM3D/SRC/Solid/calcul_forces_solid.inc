@@ -6,9 +6,8 @@
 #include "loops.h"
 #include "solid_forces.h"
 
-#undef PROCNAME
-#undef PROCNAME_ATN
 
+#undef PROCNUM
 #undef ngllvar
 #ifndef NGLLVAL
 #define ngllvar ngll
@@ -17,6 +16,12 @@
 #define ngllvar ngll0
 #define PROCNUM() NGLLVAL
 #endif
+
+#undef PROCNAME
+#undef PROCNAME1
+#undef SUBPROCNAME1
+#undef SUBPROCNAME2
+#undef PROCNAME_ATN
 
 #define PROCNAME PROCNAMEBASE()PROCNUM()
 #define PROCNAME1() PROCNAME
