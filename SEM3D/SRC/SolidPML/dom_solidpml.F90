@@ -14,7 +14,7 @@ module dom_solidpml
     implicit none
 #include "index.h"
 #include "loops.h"
-
+#include "gllopt.h"
 contains
 
     subroutine allocate_champs_solidpml(dom, f)
@@ -205,9 +205,12 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
         !
-        integer :: i, ns
+        integer :: i
 
-        !$acc  enter data copyin(dom, dom%champs) &
+        !$acc enter data copyin(dom, dom%champs) &
+        !$acc&           copyin(dom%m_Stress1,dom%m_Stress2,dom%m_Stress3) &
+        !$acc&           copyin(dom%m_PMLDumpSx,dom%m_PMLDumpSy,dom%m_PMLDumpSz) &
+        !$acc&           copyin(dom%DumpMass,dom%DumpV,dom%m_Lambda,dom%m_Mu) &
         !$acc&
         do i = 0,1
             !$acc enter data  copyin(dom%champs(i)%VelocPML, dom%champs(i)%ForcesPML)
@@ -220,9 +223,12 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
         !
-        integer :: i, ns
+        integer :: i
 
-        !$acc  exit data delete(dom, dom%champs) &
+        !$acc exit data delete(dom, dom%champs) &
+        !$acc&          delete(dom%m_Stress1,dom%m_Stress2,dom%m_Stress3) &
+        !$acc&          delete(dom%m_PMLDumpSx,dom%m_PMLDumpSy,dom%m_PMLDumpSz) &
+        !$acc&          delete(dom%DumpMass,dom%DumpV,dom%m_Lambda,dom%m_Mu) &
         !$acc&
         do i = 0,1
             !$acc exit data  delete(dom%champs(i)%VelocPML, dom%champs(i)%ForcesPML)
@@ -262,156 +268,22 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
-    subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
-        use sdomain
+    subroutine forces_int_sol_pml_mainloop(dom, i1)
+        use m_calcul_forces_pml
         type(domain_solidpml), intent(inout) :: dom
-        type(champssolidpml), intent(inout) :: champs1
-        integer :: bnum
-        type (domain), intent (INOUT), target :: Tdomain ! Needed for compilation compatibility with SolidCPML
+        integer, intent(in) :: i1
         !
-        real(fpp), dimension (0:VCHUNK-1,0:5,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Stress
-        !
-        call pred_sol_pml(dom, dom%dt, champs1, bnum, Stress)
         select case(dom%ngll)
-        case(5)
-            call forces_int_sol_pml_5(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
-        case(6)
-            call forces_int_sol_pml_6(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
-         case default
-            call forces_int_sol_pml_n(dom%ngll,bnum,dom%nblocks,dom%nglltot,champs1%ForcesPML,dom%m_Idom, &
-                Stress, dom%m_Invgrad, dom%m_Jacob, dom%GLLw,dom%hprime)
+            NGLLDISPATCHCALL_4(calcul_forces_pml,,(dom,dom%ngll,dom%champs(i1)))
+            NGLLDISPATCHCALL_5(calcul_forces_pml,,(dom,dom%ngll,dom%champs(i1)))
+            NGLLDISPATCHCALL_6(calcul_forces_pml,,(dom,dom%ngll,dom%champs(i1)))
+            NGLLDISPATCHCALL_7(calcul_forces_pml,,(dom,dom%ngll,dom%champs(i1)))
+            NGLLDISPATCHCALL_8(calcul_forces_pml,,(dom,dom%ngll,dom%champs(i1)))
+            NGLLDISPATCHCALL_9(calcul_forces_pml,,(dom,dom%ngll,dom%champs(i1)))
+            NGLLDISPATCHCALL_N(calcul_forces_pml,,(dom,dom%ngll,dom%champs(i1)))
         end select
+    end subroutine forces_int_sol_pml_mainloop
 
-    end subroutine forces_int_sol_pml
-
-#define NGLLVAL 5
-#define PROCNAME forces_int_sol_pml_5
-#include "calcul_forces_int_pml.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 6
-#define PROCNAME forces_int_sol_pml_6
-#include "calcul_forces_int_pml.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define PROCNAME forces_int_sol_pml_n
-#include "calcul_forces_int_pml.inc"
-
-
-    subroutine pred_sol_pml(dom, dt, champs1, bnum, Stress)
-        implicit none
-
-        type(domain_solidpml), intent(inout) :: dom
-        type(champssolidpml), intent(inout) :: champs1
-        real(fpp), intent(out), dimension (0:VCHUNK-1,0:5,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Stress
-        real(fpp), intent(in) :: dt
-        integer :: bnum
-        !
-        real(fpp), dimension (0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
-        real(fpp) :: dVx_dx, dVx_dy, dVx_dz
-        real(fpp) :: dVy_dx, dVy_dy, dVy_dz
-        real(fpp) :: dVz_dx, dVz_dy, dVz_dz
-        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
-        integer :: ngll
-        integer :: i, j, k, l, ind, i_dir, e, ee
-        real(fpp) :: lambda, mu, dumpsx0, dumpsx1, dumpsy0, dumpsy1, dumpsz0, dumpsz1
-
-        ngll = dom%ngll
-
-        do i_dir = 0,2
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(ee)
-#endif
-                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                        ind = dom%Idom_(i,j,k,bnum,ee)
-                        Veloc(ee,i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
-                                                champs1%VelocPML(ind,i_dir,1) + &
-                                                champs1%VelocPML(ind,i_dir,2)
-                        END_SUBELEM_LOOP()
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(ee)
-#endif
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    ! partial of velocity components with respect to xi,eta,zeta
-                    part_deriv_ijke(Veloc,0,dS_dxi,dS_deta,dS_dzeta,dVx_dx,dVx_dy,dVx_dz)
-                    part_deriv_ijke(Veloc,1,dS_dxi,dS_deta,dS_dzeta,dVy_dx,dVy_dy,dVy_dz)
-                    part_deriv_ijke(Veloc,2,dS_dxi,dS_deta,dS_dzeta,dVz_dx,dVz_dy,dVz_dz)
-                    ! shortcuts
-                    lambda = dom%Lambda_(i,j,k,bnum,ee)
-                    mu = dom%Mu_(i,j,k,bnum,ee)
-                    dumpsx0 = dom%PMLDumpSx_(i,j,k,0,bnum,ee)
-                    dumpsx1 = dom%PMLDumpSx_(i,j,k,1,bnum,ee)
-                    dumpsy0 = dom%PMLDumpSy_(i,j,k,0,bnum,ee)
-                    dumpsy1 = dom%PMLDumpSy_(i,j,k,1,bnum,ee)
-                    dumpsz0 = dom%PMLDumpSz_(i,j,k,0,bnum,ee)
-                    dumpsz1 = dom%PMLDumpSz_(i,j,k,1,bnum,ee)
-                    ! Stress_xx
-                    dom%Stress1_(i,j,k,0,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,0,bnum,ee) + &
-                                                       dumpsx1*Dt*(lambda+2*mu)*dVx_dx
-                    dom%Stress2_(i,j,k,0,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,0,bnum,ee) + &
-                                                       dumpsy1*Dt*(lambda)*dVy_dy
-                    dom%Stress3_(i,j,k,0,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,0,bnum,ee) + &
-                                                       dumpsz1*Dt*(lambda)*dVz_dz
-
-                    ! Stress_yy
-                    dom%Stress1_(i,j,k,1,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,1,bnum,ee) + &
-                                                       dumpsx1*Dt*(lambda)*dVx_dx
-                    dom%Stress2_(i,j,k,1,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,1,bnum,ee) + &
-                                                       dumpsy1*Dt*(lambda+2*mu)*dVy_dy
-                    dom%Stress3_(i,j,k,1,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,1,bnum,ee) + &
-                                                       dumpsz1*Dt*(lambda)*dVz_dz
-
-                    ! Stress_zz
-                    dom%Stress1_(i,j,k,2,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,2,bnum,ee) + &
-                                                       dumpsx1*Dt*(lambda)*dVx_dx
-                    dom%Stress2_(i,j,k,2,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,2,bnum,ee) + &
-                                                       dumpsy1*Dt*(lambda)*dVy_dy
-                    dom%Stress3_(i,j,k,2,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,2,bnum,ee) + &
-                                                       dumpsz1*Dt*(lambda+2*mu)*dVz_dz
-
-                    ! Stress_xy
-                    dom%Stress1_(i,j,k,3,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,3,bnum,ee) + &
-                                                       dumpsx1*Dt*(mu)*dVy_dx
-                    dom%Stress2_(i,j,k,3,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,3,bnum,ee) + &
-                                                       dumpsy1*Dt*(mu)*dVx_dy
-                    dom%Stress3_(i,j,k,3,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,3,bnum,ee)
-
-                    ! Stress_xz
-                    dom%Stress1_ (i,j,k,4,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,4,bnum,ee) + &
-                                                        dumpsx1*Dt*(mu)*dVz_dx
-                    dom%Stress2_ (i,j,k,4,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,4,bnum,ee)
-                    dom%Stress3_ (i,j,k,4,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,4,bnum,ee) + &
-                                                        dumpsz1*Dt*(mu)*dVx_dz
-
-                    ! Stress_yz
-                    dom%Stress1_ (i,j,k,5,bnum,ee) = dumpsx0*dom%Stress1_(i,j,k,5,bnum,ee)
-                    dom%Stress2_ (i,j,k,5,bnum,ee) = dumpsy0*dom%Stress2_(i,j,k,5,bnum,ee) + &
-                                                        dumpsy1*Dt*(mu)*dVz_dy
-                    dom%Stress3_ (i,j,k,5,bnum,ee) = dumpsz0*dom%Stress3_(i,j,k,5,bnum,ee) + &
-                                                        dumpsz1*Dt*(mu)*dVy_dz
-
-                    Stress(ee,:,i,j,k) = dom%Stress1_(i,j,k,:,bnum,ee) + &
-                        dom%Stress2_(i,j,k,:,bnum,ee) + &
-                        dom%Stress3_(i,j,k,:,bnum,ee)
-
-                    END_SUBELEM_LOOP()
-                enddo
-            enddo
-        enddo
-    end subroutine pred_sol_pml
 
     subroutine init_solidpml_properties(Tdomain,specel,mat)
         type (domain), intent (INOUT), target :: Tdomain
