@@ -108,7 +108,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
 
-    integer :: i,j,k,l,e,ee
+    integer :: i,j,k,l,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
@@ -458,7 +458,7 @@ subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy
     real(fpp) :: epsilondev_xx_loc,epsilondev_yy_loc
     real(fpp) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
     real(fpp) :: epsilonvol_loc
-    integer   :: i_sls,i,j,k, e,ee
+    integer   :: i_sls,i,j,k, ee
     real(fpp) :: factorS_loc,Sn,Snp1
     real(fpp) :: epsilon_trace_over_3
     real(fpp) :: factor_common_3, omega_tau_s, gamma_mu, gamma_kappa
