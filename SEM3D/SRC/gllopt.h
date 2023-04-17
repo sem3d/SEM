@@ -1,43 +1,43 @@
 #ifndef GLLOPT_H
 #define GLLOPT_H
 
-#ifndef GLLMIN
-#define GLLMIN 5
-#endif
-#ifndef GLLMAX
-#define GLLMAX 10
+#ifndef GLLOPTMIN
+#define GLLOPTMIN 5
 #endif
 #ifndef GLLOPTMAX
 #define GLLOPTMAX 9
 #endif
+#ifndef GLLMAX
+#define GLLMAX 9
+#endif
 
 
-#if GLLMIN<=4 && GLLMAX>=4
+#if GLLOPTMIN<=4 && GLLOPTMAX>=4
 #define GENGLL4 1
 #else
 #define GENGLL4 0
 #endif
-#if GLLMIN<=5 && GLLMAX>=5
+#if GLLOPTMIN<=5 && GLLOPTMAX>=5
 #define GENGLL5 1
 #else
 #define GENGLL5 0
 #endif
-#if GLLMIN<=6 && GLLMAX>=6
+#if GLLOPTMIN<=6 && GLLOPTMAX>=6
 #define GENGLL6 1
 #else
 #define GENGLL6 0
 #endif
-#if GLLMIN<=7 && GLLMAX>=7
+#if GLLOPTMIN<=7 && GLLOPTMAX>=7
 #define GENGLL7 1
 #else
 #define GENGLL7 0
 #endif
-#if GLLMIN<=8 && GLLMAX>=8
+#if GLLOPTMIN<=8 && GLLOPTMAX>=8
 #define GENGLL8 1
 #else
 #define GENGLL8 0
 #endif
-#if GLLMIN<=9 && GLLMAX>=9
+#if GLLOPTMIN<=9 && GLLOPTMAX>=9
 #define GENGLL9 1
 #else
 #define GENGLL9 0
