@@ -34,46 +34,46 @@ contains
 #undef ATTENUATION
 #define PROCNAMEBASE() calcul_forces_iso_
 
-#if TEST_FORCE==1
+#if defined(OPENACC) || TEST_FORCE==1
 #if GENGLL4
 #undef NGLLVAL
 #define NGLLVAL 4
-#include "calcul_forces_solid_iso.inc"
+#include "calcul_forces_solid_acc.inc"
 #endif
 
 #if GENGLL5
 #undef NGLLVAL
 #define NGLLVAL 5
-#include "calcul_forces_solid_iso.inc"
+#include "calcul_forces_solid_acc.inc"
 #endif
 
 #if GENGLL6
 #undef NGLLVAL
 #define NGLLVAL 6
-#include "calcul_forces_solid_iso.inc"
+#include "calcul_forces_solid_acc.inc"
 #endif
 
 #if GENGLL7
 #undef NGLLVAL
 #define NGLLVAL 7
-#include "calcul_forces_solid_iso.inc"
+#include "calcul_forces_solid_acc.inc"
 #endif
 
 #if GENGLL8
 #undef NGLLVAL
 #define NGLLVAL 8
-#include "calcul_forces_solid_iso.inc"
+#include "calcul_forces_solid_acc.inc"
 #endif
 
 #if GENGLL9
 #undef NGLLVAL
 #define NGLLVAL 9
-#include "calcul_forces_solid_iso.inc"
+#include "calcul_forces_solid_acc.inc"
 #endif
 
 #if GENGLLN
 #undef NGLLVAL
-#include "calcul_forces_solid_iso.inc"
+#include "calcul_forces_solid_acc.inc"
 #endif
 
 #else
