@@ -31,9 +31,6 @@
 #ifdef NONLINEAR
 #error "NONLINEAR defined : wrong file"
 #endif
-#ifdef ANISO
-#error "ANISO defined : wrong file"
-#endif
 
 subroutine PROCNAME(dom, ngllvar, var, dvdt)
     use champs_solid
@@ -69,7 +66,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     enddo
     !$acc end parallel
 
-    call SUBPROCNAME2(dom,ngllvar,nblocks,dom%Fox,dom%Foy,dom%Foz,dom%Depla)
+    call SUBPROCNAME2(dom,ngllvar,nblocks,dom%Fox,dom%Foy,dom%Foz,dom%Depla, dom%m_Cij)
 
     !$acc parallel loop collapse(5) async(1)
     do bnum = 0, nblocks-1
@@ -147,8 +144,9 @@ end subroutine PROCNAME
         syz = xmu * ( DYZ + DZY ); \
         szz = xla2mu * DZZ + xla * ( DXX + DYY );
 
+#define CC(d) Cij(ee,d,i,j,k,bnum,ee)
 
-subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla)
+subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla,Cij)
     use champs_solid
     implicit none
 
@@ -160,6 +158,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla)
 #endif
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Depla
+    real(fpp), dimension(0:VCHUNK-1,0:20,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Cij
     integer :: i,j,k,l,e,ee,ll
     integer :: bnum
     real(fpp) :: wi,wj,wk,wl,ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz
@@ -169,9 +168,11 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla)
     real(fpp) :: dUz_dxi, dUz_deta, dUz_dzeta
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10,t4
-
     real(fpp) :: xla2mu, xla, jac
     real(fpp) :: xmu, xtmp, ytmp, ztmp
+#ifdef ANISO
+    real(fpp) :: Eyz, Exz, Exy
+#endif
     ! TODO: CHECK
     real(fpp), dimension(0:ngll-1,0:ngll-1) :: hprime
     real(fpp), dimension(0:ngll-1) :: gllw
@@ -202,7 +203,22 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla)
                     compute_du_deta(i,j,k)
                     load_jacobian_matrix(i,j,k)
                     compute_du_dx(i,j,k)
+#ifdef ANISO
+                    Eyz = (DYZ+DZY)*M_SQRT1_2
+                    Exz = (DXZ+DZX)*M_SQRT1_2
+                    Exy = (DXY+DYX)*M_SQRT1_2
+                    sxx = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
+                    syy = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
+                    szz = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
+                    syz = DXX*CC( 3) + DYY*CC( 8) + DZZ*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
+                    sxz = DXX*CC( 4) + DYY*CC( 9) + DZZ*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
+                    sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
+                    syz = syz/M_SQRT2
+                    sxz = sxz/M_SQRT2
+                    sxy = sxy/M_SQRT2
+#else
                     compute_sigma(i,j,k)
+#endif
 
                     !=====================
                     !       FX
