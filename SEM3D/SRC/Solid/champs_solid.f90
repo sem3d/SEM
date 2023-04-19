@@ -23,7 +23,7 @@ module champs_solid
         real(fpp), dimension(:,:), allocatable :: Veloc
     end type champssolid
 
-    type :: lmc_param ! LAMAITRE & CHABOCHE NONLINEAR PARAMETERS
+    type :: lmc_param ! LEMAITRE & CHABOCHE NONLINEAR PARAMETERS
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_biso
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_rinf
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_ckin
