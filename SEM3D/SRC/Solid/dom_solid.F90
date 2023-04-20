@@ -828,9 +828,11 @@ contains
         aniso = dom%aniso
 
         if (nlflag) then
-            do n = 0,dom%nblocks-1
-                call forces_int_solid_nl(dom, dom%champs(i0), dom%champs(i1), n)
-            enddo
+            if (n_solid>0) then
+                call dispatch_forces_int_aniso_nl(dom, dom%champs(i0), dom%champs(i1))
+            else
+                call dispatch_forces_int_iso_nl(dom, dom%champs(i0), dom%champs(i1))
+            endif
         else if (m_dump .or. m_load) then
             !!! WITH MIRROR
             if (aniso) then
@@ -932,6 +934,40 @@ contains
         end select
     end subroutine dispatch_forces_int_aniso_atn
 
+    subroutine dispatch_forces_int_iso_nl(dom, var, dvdt)
+        use m_calcul_forces_iso_nl
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        !
+        select case(dom%ngll)
+            NGLLDISPATCHCALL_4(calcul_forces_iso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_5(calcul_forces_iso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_6(calcul_forces_iso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_7(calcul_forces_iso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_8(calcul_forces_iso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_9(calcul_forces_iso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_N(calcul_forces_iso_nl,,(dom,dom%ngll,var,dvdt))
+        end select
+    end subroutine dispatch_forces_int_iso_nl
+
+    subroutine dispatch_forces_int_aniso_nl(dom, var, dvdt)
+        use m_calcul_forces_aniso_nl
+        type(domain_solid), intent (INOUT) :: dom
+        type(champssolid), intent(in) :: var
+        type(champssolid), intent(inout) :: dvdt
+        !
+        select case(dom%ngll)
+            NGLLDISPATCHCALL_4(calcul_forces_aniso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_5(calcul_forces_aniso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_6(calcul_forces_aniso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_7(calcul_forces_aniso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_8(calcul_forces_aniso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_9(calcul_forces_aniso_nl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_N(calcul_forces_aniso_nl,,(dom,dom%ngll,var,dvdt))
+        end select
+    end subroutine dispatch_forces_int_aniso_nl
+
     subroutine dispatch_forces_int_mirror_iso(dom, var, dvdt, m_dump, m_expl, m_recalc)
         use m_calcul_forces_iso
         type(domain_solid), intent (INOUT) :: dom
@@ -1005,72 +1041,6 @@ contains
     end subroutine dispatch_forces_int_mirror_aniso_atn
 
     
-    subroutine forces_int_solid_nl(dom, var, dvdt, bnum)
-        use m_calcul_forces_iso_nl
-        use m_calcul_forces_aniso_nl
-
-        type(domain_solid), intent (INOUT) :: dom
-        type(champssolid), intent(in) :: var
-        type(champssolid), intent(inout) :: dvdt
-        integer, intent(in) :: bnum
-        !
-        integer :: ngll,i,j,k,i_dir,ee,idx
-        integer :: n_solid
-        logical :: aniso
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
-
-        n_solid = dom%n_sls
-        aniso = dom%aniso
-        ngll = dom%ngll
-
-        ! PLASTIC CASE: VELOCITY PREDICTION
-        do i_dir = 0,2
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-                        do ee = 0, VCHUNK-1
-                            idx = dom%Idom_(i,j,k,bnum,ee)
-                            Depla(ee,i,j,k,i_dir) = var%Veloc(idx,i_dir)
-                        enddo
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        Fox = 0d0
-        Foy = 0d0
-        Foz = 0d0
-
-        if (aniso) then
-            if (n_solid>0) then
-                !call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
-            else
-                call calcul_forces_aniso_nl(dom,bnum,Fox,Foy,Foz,Depla)
-            end if
-        else
-            if (n_solid>0) then
-                !call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
-            else
-                call calcul_forces_iso_nl(dom,bnum,Fox,Foy,Foz,Depla)
-            endif
-        end if
-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        idx = dom%Idom_(i,j,k,bnum,ee)
-                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
-                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
-                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
-                    enddo
-               enddo
-            enddo
-        enddo
-    end subroutine forces_int_solid_nl
-
-
 
 
 !!    ! XXX WTF?
