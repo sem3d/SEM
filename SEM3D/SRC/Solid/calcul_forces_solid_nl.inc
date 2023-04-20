@@ -4,28 +4,108 @@
 !!
 #include "index.h"
 #include "loops.h"
+#include "solid_forces.h"
 
-#ifndef PROCNAME
-#error "Must define PROCNAME before inclusion"
-#endif
-
+#undef PROCNUM
 #undef ngllvar
 #ifndef NGLLVAL
 #define ngllvar ngll
+#define PROCNUM() N
 #else
 #define ngllvar ngll0
+#define PROCNUM() NGLLVAL
 #endif
 
+#undef PROCNAME
+#undef PROCNAME1
+#undef SUBPROCNAME1
+#undef SUBPROCNAME2
+#undef PROCNAME_ATN
+
+#define PROCNAME PROCNAMEBASE()PROCNUM()
+#define PROCNAME1() PROCNAME
+#define SUBPROCNAME1  PROCNAME1()_main
+#define SUBPROCNAME2  PROCNAME1()_subloop
+#define PROCNAME_ATN  PROCNAME1()_atn
+
 #define USE_LOCAL_MEM
+
 #ifndef NONLINEAR
-#error "NONLINEAR include only"
+#error "NONLINEAR: wrong include"
+#endif
+
+#ifdef ANISO
+#warning "ANISO/NONLINEAR: NOT WORKING!"
 #endif
 
 #ifdef ATTENUATION
 #error "ATTENUATION+NONLINEAR Not supported yet"
 #endif
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
+
+subroutine PROCNAME(dom, ngllvar, var, dvdt)
+    use champs_solid
+    type(domain_solid), intent (INOUT) :: dom
+    type(champssolid), intent(in) :: var
+    type(champssolid), intent(inout) :: dvdt
+    integer, intent(in) :: ngllvar
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    !
+    integer :: i,j,k,i_dir,ee,idx
+    integer :: bnum, nblocks
+
+    nblocks = dom%nblocks
+
+    ! ELASTIC CASE: DISPLACEMENT PREDICTION
+    do bnum = 0, nblocks-1
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        LOOP_VECTORIZE
+                        BEGIN_SUBELEM_LOOP1(ee)
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Veloc(idx,i_dir)
+                        END_SUBELEM_LOOP()
+                    enddo
+                enddo
+            enddo
+        enddo
+        tFox = 0
+        tFoy = 0
+        tFoz = 0
+        call SUBPROCNAME2(dom,ngllvar,bnum,tFox,tFoy,tFoz,tDepla)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            !$acc atomic update
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        enddo
+                    else
+                        LOOP_VECTORIZE
+                        BEGIN_SUBELEM_LOOP1(ee)
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                            dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
+                        END_SUBELEM_LOOP()
+                    end if
+                enddo
+            enddo
+        enddo
+    enddo
+end subroutine PROCNAME
+
+subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solid
     use nonlinear
     implicit none
@@ -60,6 +140,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
 #ifdef ANISO
     real(fpp) :: Eyz, Exz, Exy
+    real(fpp) :: xla, xla2mu, xmu ! XXX: ANISO ? BUG?
 #else
     real(fpp) :: xla2mu, xla
     real(fpp) :: xmu
@@ -368,7 +449,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         dUy_dxi,dUy_deta,dUy_dzeta, &
         dUz_dxi,dUz_deta,dUz_dzeta)
 #endif
-end subroutine PROCNAME
+end subroutine SUBPROCNAME2
 
 #ifdef ATTENUATION
 subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
