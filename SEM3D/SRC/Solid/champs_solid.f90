@@ -57,9 +57,7 @@ module champs_solid
         type(time_mirror_sl) :: mirror_sl
 
         ! pre-allocated temporary mem
-        real(fpp), dimension(:,:,:,:,:),   allocatable :: Fox
-        real(fpp), dimension(:,:,:,:,:),   allocatable :: Foy
-        real(fpp), dimension(:,:,:,:,:),   allocatable :: Foz
+        real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Forces
         real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Depla
         real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Veloc
         real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Sigma
