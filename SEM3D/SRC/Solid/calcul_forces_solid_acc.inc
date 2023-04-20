@@ -66,7 +66,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     enddo
     !$acc end parallel
 
-    call SUBPROCNAME2(dom,ngllvar,nblocks,dom%Fox,dom%Foy,dom%Foz,dom%Depla, dom%m_Cij)
+    call SUBPROCNAME2(dom,ngllvar,nblocks, dom%Forces, dom%Depla, dom%m_Cij)
 
     !$acc parallel loop collapse(5) async(1)
     do bnum = 0, nblocks-1
@@ -146,7 +146,7 @@ end subroutine PROCNAME
 
 #define CC(d) Cij(ee,d,i,j,k,bnum,ee)
 
-subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla,Cij)
+subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,Cij)
     use champs_solid
     implicit none
 
@@ -156,7 +156,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla,Cij)
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(out) :: Fox,Foz,Foy
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(out) :: Forces
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Depla
     real(fpp), dimension(0:VCHUNK-1,0:20,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Cij
     integer :: i,j,k,l,e,ee,ll
@@ -185,9 +185,9 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla,Cij)
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    Fox(ee,i,j,k,bnum) = 0
-                    Foy(ee,i,j,k,bnum) = 0
-                    Foz(ee,i,j,k,bnum) = 0
+                    Forces(ee,i,j,k,0,bnum) = 0
+                    Forces(ee,i,j,k,1,bnum) = 0
+                    Forces(ee,i,j,k,2,bnum) = 0
                     END_SUBELEM_LOOP()
                 enddo
             enddo
@@ -266,33 +266,33 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Fox,Foy,Foz,Depla,Cij)
                         ytmp = hprime(L,I)*xt5
                         ztmp = hprime(L,I)*xt8
                         !$acc atomic update
-                        Fox(ee,L,j,k,bnum) = Fox(ee,L,j,k,bnum) + xtmp
+                        Forces(ee,L,j,k,0,bnum) = Forces(ee,L,j,k,0,bnum) + xtmp
                         !$acc atomic update
-                        Foy(ee,L,j,k,bnum) = Foy(ee,L,j,k,bnum) + ytmp
+                        Forces(ee,L,j,k,1,bnum) = Forces(ee,L,j,k,1,bnum) + ytmp
                         !$acc atomic update
-                        Foz(ee,L,j,k,bnum) = Foz(ee,L,j,k,bnum) + ztmp
+                        Forces(ee,L,j,k,2,bnum) = Forces(ee,L,j,k,2,bnum) + ztmp
                     END DO
                     DO L = 0, ngll-1
                         xtmp = hprime(L,J)*xt2
                         ytmp = hprime(L,J)*xt6
                         ztmp = hprime(L,J)*xt9
                         !$acc atomic update
-                        Fox(ee,i,L,k,bnum) = Fox(ee,i,L,k,bnum) + xtmp
+                        Forces(ee,i,L,k,0,bnum) = Forces(ee,i,L,k,0,bnum) + xtmp
                         !$acc atomic update
-                        Foy(ee,i,L,k,bnum) = Foy(ee,i,L,k,bnum) + ytmp
+                        Forces(ee,i,L,k,1,bnum) = Forces(ee,i,L,k,1,bnum) + ytmp
                         !$acc atomic update
-                        Foz(ee,i,L,k,bnum) = Foz(ee,i,L,k,bnum) + ztmp
+                        Forces(ee,i,L,k,2,bnum) = Forces(ee,i,L,k,2,bnum) + ztmp
                     END DO
                     DO L = 0, ngll-1
                         xtmp = hprime(L,K)*xt3 
                         ytmp = hprime(L,K)*xt7 
                         ztmp = hprime(L,K)*xt10
                         !$acc atomic update
-                        Fox(ee,i,j,L,bnum) = Fox(ee,i,j,L,bnum) + xtmp
+                        Forces(ee,i,j,L,0,bnum) = Forces(ee,i,j,L,0,bnum) + xtmp
                         !$acc atomic update
-                        Foy(ee,i,j,L,bnum) = Foy(ee,i,j,L,bnum) + ytmp
+                        Forces(ee,i,j,L,1,bnum) = Forces(ee,i,j,L,1,bnum) + ytmp
                         !$acc atomic update
-                        Foz(ee,i,j,L,bnum) = Foz(ee,i,j,L,bnum) + ztmp
+                        Forces(ee,i,j,L,2,bnum) = Forces(ee,i,j,L,2,bnum) + ztmp
                     END DO
                     END_SUBELEM_LOOP()
                 end do

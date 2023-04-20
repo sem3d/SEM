@@ -65,10 +65,8 @@ contains
 #else
             ntemps = 1
 #endif
-            allocate(dom%Fox  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:ntemps-1))
-            allocate(dom%Foy  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:ntemps-1))
-            allocate(dom%Foz  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:ntemps-1))
-            allocate(dom%Depla(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:2,0:ntemps-1))
+            allocate(dom%Forces (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:2,0:ntemps-1))
+            allocate(dom%Depla  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:2,0:ntemps-1))
             ! TODO: only for mirrors
             allocate(dom%Veloc(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:2,0:ntemps-1))
             allocate(dom%Sigma(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:5,0:ntemps-1))
@@ -655,7 +653,7 @@ contains
         !$acc&            copyin(dom%MassMat, dom%dirich) &
         !$acc&      copyin(dom%m_Lambda, dom%m_mu, dom%gllw, dom%hprime)&
         !$acc&      copyin(dom%m_Idom, dom%m_Jacob, dom%m_InvGrad) &
-        !$acc&      create(dom%Fox, dom%Foy, dom%Foz, dom%Depla, dom%Sigma)
+        !$acc&      create(dom%Forces, dom%Depla, dom%Sigma)
         do i = 0,1
             !$acc enter data  copyin(dom%champs(i)%Depla, dom%champs(i)%veloc)
         end do
@@ -693,7 +691,7 @@ contains
         !$acc  exit data  delete(dom%MassMat, dom%dirich) &
         !$acc&            delete(dom%m_Lambda, dom%m_mu, dom%gllw, dom%hprime)&
         !$acc&            delete(dom%m_Idom, dom%m_Jacob, dom%m_InvGrad) &
-        !$acc&            delete(dom%Fox, dom%Foy, dom%Foz, dom%Depla, dom%Sigma) &
+        !$acc&            delete(dom%Forces, dom%Depla, dom%Sigma) &
         !$acc&            delete(dom%champs, dom)
     end subroutine stop_domain_solid
 
