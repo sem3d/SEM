@@ -390,6 +390,10 @@ contains
         endif
 
         call h5fopen_f(trim(fname), H5F_ACC_RDONLY_F, fid, hdferr)
+        if (hdferr .ne. 0) then
+            write(*,*) "h5fopen : failed to open file : ",fname," rank:", rg
+            stop 1
+        end if
         !
         !-- Reading mesh properties
         neumann_log = .false.
