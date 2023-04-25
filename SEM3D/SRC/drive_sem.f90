@@ -213,10 +213,10 @@ subroutine RUN_PREPARED(Tdomain)
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
     ! Need to call compute_courant first
-    call check_interface_orient(Tdomain, Tdomain%intSolPml, 1e-10_fpp)
-    call check_interface_orient(Tdomain, Tdomain%intFluPml, 1e-10_fpp)
-    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1e-10_fpp)
-    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10_fpp)
+    call check_interface_orient(Tdomain, Tdomain%intSolPml, SMALLFPP)
+    call check_interface_orient(Tdomain, Tdomain%intFluPml, SMALLFPP)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, SMALLFPP)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, SMALLFPP)
 
  !- anelastic properties
     if (Tdomain%n_sls>0) then
