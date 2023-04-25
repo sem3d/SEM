@@ -94,6 +94,9 @@ contains
 
         do while(associated(matdesc))
             num = matdesc%num
+            ! init global
+            Tdomain%sSubdomain(num)%is_sph = .false.
+            Tdomain%sSubdomain(num)%n_prop = 0
             select case(matdesc%defspatial)
             case (0) ! CONSTANT
                 Tdomain%sSubdomain(num)%material_definition = MATERIAL_CONSTANT
@@ -114,7 +117,6 @@ contains
                 end select
 
                 ! check for spherical material
-                Tdomain%sSubdomain(num)%is_sph = .false.
                 if (matdesc%is_sph==1) then
                     Tdomain%sSubdomain(num)%is_sph = .true.
                     Tdomain%sSubdomain(num)%sph_args%theta_chk = 90.0_fpp-matdesc%lat_center
@@ -215,6 +217,7 @@ contains
             Tdomain%sSubdomain(i)%material_definition = MATERIAL_CONSTANT
             Tdomain%sSubDomain(i)%deftype = MATDEF_VP_VS_RHO
             Tdomain%sSubDomain(i)%pml_width = 0.
+            Tdomain%sSubDomain(i)%is_sph = .false.
 
             ! call Lame_coefficients (Tdomain%sSubDomain(i)) ! XXX Make sure its done in definearrays
 
