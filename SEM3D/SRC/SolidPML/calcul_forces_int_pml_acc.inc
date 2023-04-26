@@ -23,8 +23,8 @@
 
 #define PROCNAME PROCNAMEBASE()PROCNUM()
 #define PROCNAME1() PROCNAME
-#define PROC_PRED  PROCNAME1()_pred
-#define PROC_MAIN  PROCNAME1()_main
+#define PROC_PRED  PROCNAME1()_pred_acc
+#define PROC_MAIN  PROCNAME1()_main_acc
 
 #undef x_deriv_ijke
 #define x_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
