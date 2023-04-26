@@ -21,9 +21,9 @@
 #endif
 
 #define PROCNAME1() PROCNAME
-#define SUBPROCNAME1  PROCNAME1()_main
-#define SUBPROCNAME2  PROCNAME1()_subloop
-#define PROCNAME_ATN  PROCNAME1()_atn
+#define SUBPROCNAME1  PROCNAME1()_main_acc
+#define SUBPROCNAME2  PROCNAME1()_subloop_acc
+#define PROCNAME_ATN  PROCNAME1()_atn_acc
 
 #ifdef ATTENUATION
 #error "ATTENUATION defined : wrong file"
