@@ -44,6 +44,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     !
     integer :: i,j,k,i_dir,ee,idx
     integer :: bnum, nblocks
+    real(fpp) :: uval
     !
 
     nblocks = dom%nblocks
@@ -57,7 +58,8 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
                     do i = 0,ngll-1
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
-                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
+                            uval = var%Depla(idx,i_dir)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = uval
                         enddo
                     enddo
                 enddo
@@ -159,7 +161,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,Cij)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(out) :: Forces
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Depla
     real(fpp), dimension(0:VCHUNK-1,0:20,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Cij
-    integer :: i,j,k,l,e,ee,ll
+    integer :: i,j,k,l,ee,ll
     integer :: bnum
     real(fpp) :: wi,wj,wk,wl,ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
@@ -219,7 +221,6 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,Cij)
 #else
                     compute_sigma(i,j,k)
 #endif
-
                     !=====================
                     !       FX
                     !=====================
