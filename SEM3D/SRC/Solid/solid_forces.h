@@ -2,7 +2,7 @@
 #define SOLID_FORCES_H
 
 
-#if OPENACC
+#if defined(OPENACC) || TEST_FORCE==1
 #define tFox dom%Forces(:,:,:,:,0,bnum)
 #define tFoy dom%Forces(:,:,:,:,1,bnum)
 #define tFoz dom%Forces(:,:,:,:,2,bnum)
