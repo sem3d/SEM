@@ -305,7 +305,7 @@ contains
         real(fpp)                :: DYX, DYY, DYZ
         real(fpp)                :: DZX, DZY, DZZ
         real(fpp)                :: divU
-        real(fpp)                :: xmu, xlambda, xkappa, xeps_vol
+        real(fpp)                :: xmu, xlambda, xkappa
         real(fpp)                :: x2mu, xlambda2mu
         real(fpp)                :: onemSbeta, onemPbeta
         real(fpp), dimension(0:20) :: CC
@@ -391,7 +391,6 @@ contains
                                 xmu     = dom%Mu_    (i,j,k,bnum,ee)
                                 xlambda = dom%Lambda_(i,j,k,bnum,ee)
                                 xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
-                                xeps_vol = DXX + DYY + DZZ
                                 if (dom%n_sls>0) then
                                     onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
                                     onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
@@ -403,8 +402,8 @@ contains
                             end if
                         endif
                         ! P-ENERGY
-                        if (out_variables(OUT_ENERGYP) == 1) then
-                            P_energy(i,j,k) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
+                        if (out_variables(OUT_ENERGYP) == 1) then !XXX: aniso
+                            P_energy(i,j,k) = ((0.5d0*xlambda) + xmu) * divU**2d0
                         end if
                         ! S-ENERGY
                         if (out_variables(OUT_ENERGYS) == 1) then
@@ -819,7 +818,6 @@ contains
         logical, intent(IN) :: nlflag
         logical, intent(IN) :: m_dump, m_load, m_expl, m_recalc
         !
-        integer :: n
         integer :: n_solid
         logical :: aniso
         n_solid = dom%n_sls
@@ -1115,31 +1113,21 @@ contains
         real(fpp):: dt
         integer, intent(in) :: f0, f1
         !
-        integer :: i_dir, n, indpml, count
+        integer :: n, idx, count
 
         count = dom%n_dirich
         !!$acc update device(dom%champs(f1)%Veloc) async(1)
         !$acc parallel loop  async(1)
         do n = 0, count-1
-            indpml = dom%dirich(n)
-            dom%champs(f1)%Veloc(indpml,:) = 0.
-            !dom%champs(f1)%Depla(indpml,:) = 0.
+            idx = dom%dirich(n)
+            dom%champs(f1)%Veloc(idx,:) = 0.
+            !dom%champs(f1)%Depla(idx,:) = 0.
         enddo
         !$acc end parallel
 
         count = dom%nglltot
         call newmark_corrector_time_scheme(count,dt,dom%MassMat,dom%champs(f0)%Depla, &
             dom%champs(f0)%Veloc,dom%champs(f1)%Veloc)
-!!        !$acc parallel loop collapse(2)  async(1)
-!!        do i_dir = 0,2
-!!!$omp simd linear(n)
-!!            do n = 0,count-1
-!!                dom%champs(f1)%Veloc(n,i_dir) = dom%champs(f1)%Veloc(n,i_dir) * dom%MassMat(n)
-!!                dom%champs(f0)%Veloc(n,i_dir) = dom%champs(f0)%Veloc(n,i_dir) + dt * dom%champs(f1)%Veloc(n,i_dir)
-!!                dom%champs(f0)%Depla(n,i_dir) = dom%champs(f0)%Depla(n,i_dir) + dt * dom%champs(f0)%Veloc(n,i_dir)
-!!            end do
-!!        enddo
-!!        !$acc end parallel
     end subroutine newmark_corrector_solid
 
     subroutine newmark_corrector_time_scheme(count,dt,invmass,depla,veloc,accel)
