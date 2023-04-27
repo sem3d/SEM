@@ -26,8 +26,8 @@ module m_calcul_forces_pml ! wrap subroutine in module to get arg type check at 
     implicit none
 contains
 
-#ifndef TEST_FORCE
-#define TEST_FORCE 0
+#ifndef TEST_FORCE_PML
+#define TEST_FORCE_PML 0
 #endif
 
 #define PROCNAMEBASE() calcul_forces_pml_

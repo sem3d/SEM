@@ -68,6 +68,7 @@ contains
                 dom%PMLDumpSx_(:,:,:,:,:,:) = 0d0
                 dom%PMLDumpSy_(:,:,:,:,:,:) = 0d0
                 dom%PMLDumpSz_(:,:,:,:,:,:) = 0d0
+                allocate(dom%Veloc(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1))
             endif
         end if
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -200,38 +201,48 @@ contains
         dom%dt = Tdomain%TimeD%dtmin
     end subroutine init_domain_solidpml
 
-    subroutine start_domain_solidpml(Tdomain, dom)
+    subroutine start_domain_solidpml(Tdomain, spmldom)
         use sdomain
         type (domain), intent (INOUT), target :: Tdomain
-        type(domain_solidpml), intent(inout) :: dom
+        type(domain_solidpml), intent(inout) :: spmldom
         !
         integer :: i
 
-        !$acc enter data copyin(dom, dom%champs) &
-        !$acc&           copyin(dom%m_Stress1,dom%m_Stress2,dom%m_Stress3) &
-        !$acc&           copyin(dom%m_PMLDumpSx,dom%m_PMLDumpSy,dom%m_PMLDumpSz) &
-        !$acc&           copyin(dom%DumpMass,dom%DumpV,dom%m_Lambda,dom%m_Mu) &
+        !$acc enter data copyin(spmldom, spmldom%champs, spmldom%dirich) &
+        !$acc&           copyin(spmldom%m_Stress1,spmldom%m_Stress2,spmldom%m_Stress3) &
+        !$acc&           copyin(spmldom%hprime,spmldom%gllw, spmldom%m_Idom) &
+        !$acc&           copyin(spmldom%m_InvGrad, spmldom%m_Jacob, spmldom%Veloc) &
+        !$acc&           copyin(spmldom%m_PMLDumpSx,spmldom%m_PMLDumpSy,spmldom%m_PMLDumpSz) &
+        !$acc&           copyin(spmldom%DumpMass,spmldom%DumpV,spmldom%m_Lambda,spmldom%m_Mu) &
+        !$acc&           copyin(Tdomain%intSolPml) &
+        !$acc&           copyin(Tdomain%intSolPml%surf0, Tdomain%intSolPml%surf0%map) &
+        !$acc&           copyin(Tdomain%intSolPml%surf1, Tdomain%intSolPml%surf1%map) &
         !$acc&
         do i = 0,1
-            !$acc enter data  copyin(dom%champs(i)%VelocPML, dom%champs(i)%ForcesPML)
+            !$acc enter data  copyin(spmldom%champs(i), spmldom%champs(i)%VelocPML, spmldom%champs(i)%ForcesPML)
         end do
 
     end subroutine start_domain_solidpml
 
-    subroutine stop_domain_solidpml(Tdomain, dom)
+    subroutine stop_domain_solidpml(Tdomain, spmldom)
         use sdomain
         type (domain), intent (INOUT), target :: Tdomain
-        type(domain_solidpml), intent(inout) :: dom
+        type(domain_solidpml), intent(inout) :: spmldom
         !
         integer :: i
 
-        !$acc exit data delete(dom, dom%champs) &
-        !$acc&          delete(dom%m_Stress1,dom%m_Stress2,dom%m_Stress3) &
-        !$acc&          delete(dom%m_PMLDumpSx,dom%m_PMLDumpSy,dom%m_PMLDumpSz) &
-        !$acc&          delete(dom%DumpMass,dom%DumpV,dom%m_Lambda,dom%m_Mu) &
+        !$acc exit data delete(spmldom, spmldom%champs, spmldom%dirich) &
+        !$acc&          delete(spmldom%m_Stress1,spmldom%m_Stress2,spmldom%m_Stress3) &
+        !$acc&          delete(spmldom%hprime,spmldom%gllw, spmldom%m_Idom) &
+        !$acc&          delete(spmldom%m_InvGrad, spmldom%m_Jacob, spmldom%Veloc) &
+        !$acc&          delete(spmldom%m_PMLDumpSx,spmldom%m_PMLDumpSy,spmldom%m_PMLDumpSz) &
+        !$acc&          delete(spmldom%DumpMass,spmldom%DumpV,spmldom%m_Lambda,spmldom%m_Mu) &
+        !$acc&          delete(Tdomain%intSolPml%surf0, Tdomain%intSolPml%surf0%map) &
+        !$acc&          delete(Tdomain%intSolPml%surf1, Tdomain%intSolPml%surf1%map) &
+        !$acc&          delete(Tdomain%intSolPml) &
         !$acc&
         do i = 0,1
-            !$acc exit data  delete(dom%champs(i)%VelocPML, dom%champs(i)%ForcesPML)
+            !$acc exit data  delete(spmldom%champs(i)%VelocPML, spmldom%champs(i)%ForcesPML)
         end do
 
     end subroutine stop_domain_solidpml
@@ -385,23 +396,77 @@ contains
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(in) :: f0, f1
         !
-        integer :: n, indsol, indpml
+        integer :: n, i, j, indsol, indpml
         real(fpp) :: bega, dt
 
         bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
         dt = Tdomain%TimeD%dtmin
 
-        dom%champs(f1)%ForcesPML = 0.
+!!        !$acc   parallel async(1)  &
+!!        !$acc&  present(Tdomain,Tdomain%sdom,dom) &
+!!        !$acc&  present(dom%champs(f0),dom%champs(f1)) &
+!!        !$acc&  present(dom%champs(f0)%VelocPML) &
+!!        !$acc&  present(dom%champs(f1)%VelocPML,dom%champs(f1)%ForcesPML) &
+!!        !$acc&  present(Tdomain%sdom%champs(f0)%Veloc) &
+!!        !$acc&  present(Tdomain%intSolPml%surf0, Tdomain%intSolPml%surf0%map) &
+!!        !$acc&  present(Tdomain%intSolPml%surf1, Tdomain%intSolPml%surf1%map) &
+!!        !$acc&
+
+        !$acc   parallel async(1)  &
+        !$acc&  present(Tdomain,dom) &
+        !$acc&  present(dom%champs(f1)) &
+        !$acc&  present(dom%champs(f1)%VelocPML) &
+        !$acc&
+        !$acc loop collapse(3)
+        do n = 0,dom%nglltot
+            do i=0,2
+                do j=0,2
+                    dom%champs(f1)%ForcesPML(n,i,j) = 0.
+                end do
+            end do
+        end do
+        !$acc end parallel
+
+        !$acc   parallel async(1)  &
+        !$acc&  present(Tdomain,Tdomain%spmldom,dom) &
+        !$acc&  present(dom%champs(f0),dom%champs(f1)) &
+        !$acc&  present(dom%champs(f0)%VelocPML) &
+        !$acc&  present(dom%champs(f1)%VelocPML,dom%champs(f1)%ForcesPML) &
+        !$acc&  present(Tdomain%sdom%champs(f0)%Veloc) &
+        !$acc&  present(Tdomain%intSolPml%surf0, Tdomain%intSolPml%surf0%map) &
+        !$acc&  present(Tdomain%intSolPml%surf1, Tdomain%intSolPml%surf1%map) &
+        !$acc&
+        !$acc loop private(indsol,indpml)
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             ! Couplage à l'interface solide / PML
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            dom%champs(f0)%VelocPML(indpml,:,0) = Tdomain%sdom%champs(f0)%Veloc(indsol,:)
-            dom%champs(f0)%VelocPML(indpml,:,1) = 0.
-            dom%champs(f0)%VelocPML(indpml,:,2) = 0.
+            do i=0,2
+                !$acc atomic write
+                dom%champs(f0)%VelocPML(indpml,i,0) = Tdomain%sdom%champs(f0)%Veloc(indsol,i)
+                dom%champs(f0)%VelocPML(indpml,i,1) = 0.
+                dom%champs(f0)%VelocPML(indpml,i,2) = 0.
+            end do
         enddo
         ! Prediction
-        dom%champs(f1)%VelocPML = dom%champs(f0)%VelocPML + dt*(0.5-bega)*dom%champs(f1)%ForcesPML
+        !$acc end parallel
+
+        !$acc   parallel async(1)  &
+        !$acc&  present(dom) &
+        !$acc&  present(dom%champs(f0),dom%champs(f1)) &
+        !$acc&  present(dom%champs(f0)%VelocPML) &
+        !$acc&  present(dom%champs(f1)%VelocPML,dom%champs(f1)%ForcesPML) &
+        !$acc&
+        !$acc loop collapse(3)
+        do n = 0,dom%nglltot
+            do i=0,2
+                do j=0,2
+                    dom%champs(f1)%VelocPML(n,i,j) = dom%champs(f0)%VelocPML(n,i,j) + &
+                        dt*(0.5-bega)*dom%champs(f1)%ForcesPML(n,i,j)
+                end do
+            end do
+        end do
+        !$acc end parallel
     end subroutine newmark_predictor_solidpml
 
     subroutine newmark_corrector_solidpml(dom, dt, t, f0, f1)
@@ -411,6 +476,12 @@ contains
         !
         integer  :: n, id, indpml, jp
 
+        !$acc parallel async(1) &
+        !$acc&   present(dom, dom%DumpV, dom%champs) &
+        !$acc&   present(dom%champs(f0)%VelocPML, dom%champs(f1)%ForcesPML) &
+        !$acc&   present(dom%dirich) &
+        !$acc&
+        !$acc loop collapse(3)
         do jp = 0,2
             do id = 0,2
                 !$omp simd linear(n)
@@ -421,10 +492,16 @@ contains
             end do
         end do
         !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
+        !$acc loop
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs(f0)%VelocPML(indpml,:,:) = 0.
+            do jp = 0,2
+                do id = 0,2
+                    dom%champs(f0)%VelocPML(indpml,id,jp) = 0.
+                end do
+            end do
         enddo
+        !$acc end parallel
     end subroutine newmark_corrector_solidpml
 
     function solidpml_Pspeed(dom, lnum, i, j, k) result(Pspeed)
@@ -438,6 +515,41 @@ contains
         M = dom%Lambda_(i,j,k,bnum,ee) + 2.*dom%Mu_(i,j,k,bnum,ee)
         Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
     end function solidpml_Pspeed
+
+    subroutine couplage_pml_solid(Tdomain, sdom, spmldom, i1)
+        use dom_solid
+        implicit none
+        type(domain), intent(inout)  :: Tdomain
+        type(domain_solid), intent (inout) :: sdom
+        type(domain_solidpml), intent (inout) :: spmldom
+        integer, intent(in) :: i1
+        !
+        integer :: lnum, i, j, k
+        integer  :: n, indsol, indpml
+        real(fpp) :: force
+        !
+        !$acc  parallel loop async(1) &
+        !$acc& present(Tdomain, Tdomain%intSolPml, sdom, spmldom) &
+        !$acc& present(Tdomain%intSolPml%surf0, Tdomain%intSolPml%surf0%map) &
+        !$acc& present(Tdomain%intSolPml%surf1, Tdomain%intSolPml%surf1%map) &
+        !$acc& present(sdom%champs(i1),spmldom%champs(i1)) &
+        !$acc& present(sdom%champs(i1)%Veloc) &
+        !$acc& present(spmldom%champs(i1)%ForcesPML) &
+        !$acc&
+        do n = 0,Tdomain%intSolPml%surf0%nbtot-1
+            indsol = Tdomain%intSolPml%surf0%map(n)
+            indpml = Tdomain%intSolPml%surf1%map(n)
+            do i=0,2
+                force = spmldom%champs(i1)%ForcesPML(indpml,i,0) + &
+                    spmldom%champs(i1)%ForcesPML(indpml,i,1) + &
+                    spmldom%champs(i1)%ForcesPML(indpml,i,2)
+                !$acc atomic update
+                sdom%champs(i1)%Veloc(indsol,i) = sdom%champs(i1)%Veloc(indsol,i) + force
+            end do
+        enddo
+
+    end subroutine couplage_pml_solid
+
 end module dom_solidpml
 
 !! Local Variables:

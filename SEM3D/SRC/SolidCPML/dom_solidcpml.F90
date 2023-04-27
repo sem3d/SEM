@@ -918,6 +918,27 @@ contains
         rho = dom%Density_(i,j,k,bnum,ee)
         Pspeed = sqrt((lbd+2.*mu)/rho)
     end function solidpml_Pspeed
+
+    subroutine couplage_pml_solid(Tdomain, sdom, spmldom)
+        use dom_solid
+        implicit none
+        type(domain), intent(inout)  :: Tdomain
+        type(domain_solid), intent (inout) :: sdom
+        type(domain_solidpml), intent (inout) :: spmldom
+        !
+        integer :: lnum, i, j, k
+        !
+        do n = 0,Tdomain%intSolPml%surf0%nbtot-1
+            indsol = Tdomain%intSolPml%surf0%map(n)
+            indpml = Tdomain%intSolPml%surf1%map(n)
+            sdom%champs(i1)%Veloc(indsol,:) = sdom%champs(i1)%Veloc(indsol,:) + &
+                Tdomain%spmldom%champs(i1)%Forces(indpml,:) &
+                - spmldom%DumpMat(indpml)*spmldom%champs(i0)%Veloc(indpml,:) &
+                - spmldom%MasUMat(indpml)*spmldom%champs(i0)%Depla(indpml,:)
+        enddo
+
+    end subroutine couplage_pml_solid
+
 end module dom_solidpml
 
 !! Local Variables:
