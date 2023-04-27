@@ -195,6 +195,7 @@ contains
 
         !- Prediction Phase
         call Newmark_Predictor(Tdomain)
+        !$acc wait(1)
 
         !- Solution phase
         call internal_forces(Tdomain, 0, 1, ntime)
@@ -568,21 +569,9 @@ contains
 
         ! Couplage interface solide / PML
         if (Tdomain%spmldom%nglltot > 0) then
-            do n = 0,Tdomain%intSolPml%surf0%nbtot-1
-                indsol = Tdomain%intSolPml%surf0%map(n)
-                indpml = Tdomain%intSolPml%surf1%map(n)
-                Tdomain%sdom%champs(i1)%Veloc(indsol,:) = Tdomain%sdom%champs(i1)%Veloc(indsol,:) + &
-#ifdef CPML
-                    Tdomain%spmldom%champs(i1)%Forces(indpml,:) &
-                    - Tdomain%spmldom%DumpMat(indpml)*Tdomain%spmldom%champs(i0)%Veloc(indpml,:) &
-                    - Tdomain%spmldom%MasUMat(indpml)*Tdomain%spmldom%champs(i0)%Depla(indpml,:)
-#else
-                Tdomain%spmldom%champs(i1)%ForcesPML(indpml,:,0) + &
-                    Tdomain%spmldom%champs(i1)%ForcesPML(indpml,:,1) + &
-                    Tdomain%spmldom%champs(i1)%ForcesPML(indpml,:,2)
-#endif
-            enddo
+            call couplage_pml_solid(Tdomain, Tdomain%sdom, Tdomain%spmldom, i1)
         endif
+
         ! Couplage interface fluid / PML
         if (Tdomain%fpmldom%nglltot > 0) then
             do n = 0,Tdomain%intFluPml%surf0%nbtot-1

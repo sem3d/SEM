@@ -32,9 +32,9 @@
         dS_deta  = 0.0D+0; \
         dS_dzeta = 0.0D+0; \
         DO L = 0, ngll-1;  \
-            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d)*hprime(L,I); \
-            dS_deta  = dS_deta +Var(ee,I,L,K,d)*hprime(L,J); \
-            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*hprime(L,K); \
+            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d,bnum)*hprime(L,I); \
+            dS_deta  = dS_deta +Var(ee,I,L,K,d,bnum)*hprime(L,J); \
+            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d,bnum)*hprime(L,K); \
         END DO; \
         dxx = dS_dxi*InvGrad(ee,0,0,i,j,k,bnum)+dS_deta*InvGrad(ee,0,1,i,j,k,bnum)+dS_dzeta*InvGrad(ee,0,2,i,j,k,bnum); \
         dxy = dS_dxi*InvGrad(ee,1,0,i,j,k,bnum)+dS_deta*InvGrad(ee,1,1,i,j,k,bnum)+dS_dzeta*InvGrad(ee,1,2,i,j,k,bnum); \
@@ -66,36 +66,36 @@ subroutine PROCNAME(dom, ngllvar, champs1)
     call PROC_MAIN(ngll, nblocks, dom%nglltot, dom%dt, dom%GLLw, dom%hprime, dom%m_Idom, &
             dom%m_InvGrad, dom%m_Jacob, champs1%VelocPML, dom%m_Lambda, dom%m_Mu, &
             dom%m_Stress1, dom%m_Stress2, dom%m_Stress3, champs1%ForcesPML, &
-            dom%m_PMLDumpSx, dom%m_PMLDumpSy, dom%m_PMLDumpSz)
+            dom%m_PMLDumpSx, dom%m_PMLDumpSy, dom%m_PMLDumpSz, dom%Veloc)
 end subroutine PROCNAME
 
 subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
     InvGrad,Jacob,VelocPML,vLambda, vMu, &
-    Stress1, Stress2, Stress3, ForcesPML,PMLDumpSx, PMLDumpSy, PMLDumpSz)
+    Stress1, Stress2, Stress3, ForcesPML,PMLDumpSx, PMLDumpSy, PMLDumpSz, Veloc)
     implicit none
     integer, intent(in) :: ngllvar
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
+    integer, intent(in) :: nblocks, nglltot
     real(fpp), intent(in), dimension(0:ngll-1,0:ngll-1) :: hprime
     real(fpp), intent(in), dimension(0:ngll-1) :: gllw
     !real(fpp), intent(out), dimension (0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1) :: Stress
     real(fpp), intent(inout), dimension (0:nglltot,0:2,0:2) :: VelocPML
-    integer, intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: Idom
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: vLambda, vMu
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: InvGrad
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: Jacob
-    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: Stress1
-    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: Stress2
-    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: Stress3
+    integer, intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Idom
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: vLambda, vMu
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: InvGrad
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Jacob
+    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Stress1
+    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Stress2
+    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Stress3
     real(fpp), intent(inout), dimension(0:nglltot,0:2,0:2) :: ForcesPML
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: PMLDumpSx
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: PMLDumpSy
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks) :: PMLDumpSz
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: PMLDumpSx
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: PMLDumpSy
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: PMLDumpSz
     real(fpp), intent(in) :: dt
-    integer, intent(in) :: nblocks, nglltot
+    real(fpp), intent(inout), dimension (0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1) :: Veloc
     !
-    real(fpp), dimension (0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2) :: Veloc
     real(fpp) :: dVx_dx, dVx_dy, dVx_dz
     real(fpp) :: dVy_dx, dVy_dy, dVy_dz
     real(fpp) :: dVz_dx, dVz_dy, dVz_dz
@@ -105,7 +105,10 @@ subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
     real(fpp) :: wi,wj,wk,acoeff
     real(fpp) :: ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz, jac
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz
-
+    real(fpp) :: xtmp, ytmp, ztmp
+    !$acc parallel loop collapse(6) async(1) &
+    !$acc& present(Idom,Veloc,VelocPML) &
+    !$acc&
     do bnum = 0,nblocks-1
         do i_dir = 0,2
             do k = 0,ngll-1
@@ -113,7 +116,7 @@ subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
                     do i = 0,ngll-1
                         BEGIN_SUBELEM_LOOP1(ee)
                         ind = Idom(ee,i,j,k,bnum)
-                        Veloc(ee,i,j,k,i_dir) = VelocPML(ind,i_dir,0) + VelocPML(ind,i_dir,1) + VelocPML(ind,i_dir,2)
+                        Veloc(ee,i,j,k,i_dir,bnum) = VelocPML(ind,i_dir,0) + VelocPML(ind,i_dir,1) + VelocPML(ind,i_dir,2)
                         END_SUBELEM_LOOP()
                     enddo
                 enddo
@@ -121,6 +124,17 @@ subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
         enddo
     enddo
 
+    !$acc parallel loop collapse(5) async(1) &
+    !$acc& present(Veloc,Stress1,Stress2,Stress3) &
+    !$acc& present(vLambda,vMu,hprime,invgrad) &
+    !$acc& present(PMLDumpSx,PMLDumpSy,PMLDumpSz) &
+    !$acc& private(ds_dxi,ds_deta,ds_dzeta) &
+    !$acc& private(dvx_dx,dvx_dy,dvx_dz) &
+    !$acc& private(dvy_dx,dvy_dy,dvy_dz) &
+    !$acc& private(dvz_dx,dvz_dy,dvz_dz) &
+    !$acc& private(lambda,mu,lam2mu) &
+    !$acc& private(dumpsx0,dumpsx1,dumpsy0,dumpsy1,dumpsz0,dumpsz1) &
+    !$acc&
     do bnum = 0,nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -168,6 +182,12 @@ subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
             enddo
         enddo
     enddo
+
+    !$acc parallel loop collapse(5) async(1) &
+    !$acc& present(ForcesPML,Stress1,Stress2,Stress3) &
+    !$acc& present(invgrad,jacob) &
+    !$acc& present(hprime,gllw) &
+    !$acc&
     do bnum = 0,nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -188,21 +208,39 @@ subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
                         ! Forces1
                         ind = Idom(ee,l,j,k,bnum)
                         acoeff = - hprime(l,i)*wi*wj*wk*jac
-                        ForcesPML(ind,0,0) = ForcesPML(ind,0,0) + acoeff*(LJXX*sxx+LJYX*sxy+LJZX*sxz)
-                        ForcesPML(ind,1,0) = ForcesPML(ind,1,0) + acoeff*(LJXX*sxy+LJYX*syy+LJZX*syz)
-                        ForcesPML(ind,2,0) = ForcesPML(ind,2,0) + acoeff*(LJXX*sxz+LJYX*syz+LJZX*szz)
+                        xtmp = acoeff*(LJXX*sxx+LJYX*sxy+LJZX*sxz)
+                        ytmp = acoeff*(LJXX*sxy+LJYX*syy+LJZX*syz)
+                        ztmp = acoeff*(LJXX*sxz+LJYX*syz+LJZX*szz)
+                        !$acc atomic update
+                        ForcesPML(ind,0,0) = ForcesPML(ind,0,0) + xtmp
+                        !$acc atomic update
+                        ForcesPML(ind,1,0) = ForcesPML(ind,1,0) + ytmp
+                        !$acc atomic update
+                        ForcesPML(ind,2,0) = ForcesPML(ind,2,0) + ztmp
                         !!
                         ind = Idom(ee,i,l,k,bnum)
                         acoeff = - hprime(l,j)*wi*wj*wk*jac
-                        ForcesPML(ind,0,1) = ForcesPML(ind,0,1) + acoeff*(LJXY*sxx+LJYY*sxy+LJZY*sxz)
-                        ForcesPML(ind,1,1) = ForcesPML(ind,1,1) + acoeff*(LJXY*sxy+LJYY*syy+LJZY*syz)
-                        ForcesPML(ind,2,1) = ForcesPML(ind,2,1) + acoeff*(LJXY*sxz+LJYY*syz+LJZY*szz)
+                        xtmp = acoeff*(LJXY*sxx+LJYY*sxy+LJZY*sxz)
+                        ytmp = acoeff*(LJXY*sxy+LJYY*syy+LJZY*syz)
+                        ztmp = acoeff*(LJXY*sxz+LJYY*syz+LJZY*szz)
+                        !$acc atomic update
+                        ForcesPML(ind,0,1) = ForcesPML(ind,0,1) + xtmp
+                        !$acc atomic update
+                        ForcesPML(ind,1,1) = ForcesPML(ind,1,1) + ytmp
+                        !$acc atomic update
+                        ForcesPML(ind,2,1) = ForcesPML(ind,2,1) + ztmp
                         !!
                         ind = Idom(ee,i,j,l,bnum)
                         acoeff = - hprime(l,k)*wi*wj*wk*jac
-                        ForcesPML(ind,0,2) = ForcesPML(ind,0,2) + acoeff*(LJXZ*sxx+LJYZ*sxy+LJZZ*sxz)
-                        ForcesPML(ind,1,2) = ForcesPML(ind,1,2) + acoeff*(LJXZ*sxy+LJYZ*syy+LJZZ*syz)
-                        ForcesPML(ind,2,2) = ForcesPML(ind,2,2) + acoeff*(LJXZ*sxz+LJYZ*syz+LJZZ*szz)
+                        xtmp = acoeff*(LJXZ*sxx+LJYZ*sxy+LJZZ*sxz)
+                        ytmp = acoeff*(LJXZ*sxy+LJYZ*syy+LJZZ*syz)
+                        ztmp = acoeff*(LJXZ*sxz+LJYZ*syz+LJZZ*szz)
+                        !$acc atomic update
+                        ForcesPML(ind,0,2) = ForcesPML(ind,0,2) + xtmp
+                        !$acc atomic update
+                        ForcesPML(ind,1,2) = ForcesPML(ind,1,2) + ytmp
+                        !$acc atomic update
+                        ForcesPML(ind,2,2) = ForcesPML(ind,2,2) + ztmp
                     end do
                     END_SUBELEM_LOOP()
                 enddo
