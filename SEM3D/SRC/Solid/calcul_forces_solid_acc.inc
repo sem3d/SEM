@@ -184,7 +184,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,Cij)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                    BEGIN_SUBELEM_LOOP1(ee)
                     Forces(ee,i,j,k,0,bnum) = 0
                     Forces(ee,i,j,k,1,bnum) = 0
                     Forces(ee,i,j,k,2,bnum) = 0
@@ -199,7 +199,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,Cij)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                    BEGIN_SUBELEM_LOOP1(ee)
                     compute_du_deta(i,j,k)
                     load_jacobian_matrix(i,j,k)
                     compute_du_dx(i,j,k)
