@@ -19,7 +19,7 @@
 
 #if VCHUNK>1
 #define LOOP_VECTORIZE_ACC ACC_DIR(loop vector)
-#define LOOP_VECTORIZE_SIMD OMP_SIMD(linear(e,ee))
+#define LOOP_VECTORIZE_SIMD OMP_SIMD(linear(ee))
 #ifdef OPENACC
 #define LOOP_VECTORIZE LOOP_VECTORIZE_ACC
 #else
