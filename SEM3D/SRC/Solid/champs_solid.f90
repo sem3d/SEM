@@ -23,18 +23,6 @@ module champs_solid
         real(fpp), dimension(:,:), allocatable :: Veloc
     end type champssolid
 
-    type :: lmc_param ! LEMAITRE & CHABOCHE NONLINEAR PARAMETERS
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_biso
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_rinf
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_ckin
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_kkin
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_syld
-    end type lmc_param
-
-    type :: nl_parameters  ! STRUCTURE CONTAINING NL PARAMETER SETS
-        type(lmc_param), allocatable :: LMC
-    end type nl_parameters
-
     ! Mirror
     type :: time_mirror_sl
         integer :: n_glltot, n_gll, n_t
@@ -49,8 +37,8 @@ module champs_solid
     type, extends(dombase) :: domain_solid
         ! D'abord, les données membres qui ne sont pas modifiées
         logical :: aniso
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
+        integer :: nprops
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: props
         ! Mirror
         !!! GB logical :: use_mirror
         integer :: mirror_type
@@ -67,8 +55,6 @@ module champs_solid
         ! Attenuation
         integer :: n_sls
 
-        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Qs
-        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Qp
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_epsilonvol
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_epsilondev_xx
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_epsilondev_yy
@@ -92,7 +78,6 @@ module champs_solid
         type(PWfield)                                  :: PlaneW
         ! Lemaitre-Chaboche non linear model
         integer :: nl_law
-        type(nl_parameters),allocatable :: nl_param
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_radius
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_stress
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_center

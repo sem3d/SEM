@@ -34,9 +34,6 @@
 #error "NONLINEAR: wrong include"
 #endif
 
-#ifdef ANISO
-#warning "ANISO/NONLINEAR: NOT WORKING!"
-#endif
 
 #ifdef ATTENUATION
 #error "ATTENUATION+NONLINEAR Not supported yet"
@@ -140,7 +137,6 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
 #ifdef ANISO
     real(fpp) :: Eyz, Exz, Exy
-    real(fpp) :: xla, xla2mu, xmu ! XXX: ANISO ? BUG?
 #else
     real(fpp) :: xla2mu, xla
     real(fpp) :: xmu
@@ -235,7 +231,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
-#define CC(d)  dom%Cij_(d,i,j,k,bnum,ee)
+#define CC(d)  dom%props(ee,i,j,k,1+d,bnum)
                 sxx = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
                 syy = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
                 szz = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
@@ -248,8 +244,8 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #undef CC
 #else
                 ! LINEAR ELASTIC ISOTROPE
-                xmu = dom%Mu_    (i,j,k,bnum,ee)
-                xla = dom%Lambda_(i,j,k,bnum,ee)
+                xmu = dom%props(ee,i,j,k,cMu,bnum)
+                xla = dom%props(ee,i,j,k,cLambda,bnum)
                 xla2mu = xla + 2. * xmu
                 sxx = xla2mu * DXX + xla * ( DYY + DZZ )
                 sxy = xmu * ( DXY + DYX )
@@ -262,17 +258,20 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 start       =   dom%stress_(0:5,i,j,k,bnum,ee)
                 center      =   dom%center_(0:5,i,j,k,bnum,ee)
                 radius      =   zero !dom%radius_(i,j,k,bnum,ee)
-                syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
-                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee)
-                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee)
-                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee)
-                ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
+                syld        =   dom%props(ee,i,j,k,cSyld,bnum)
+                kkin        =   dom%props(ee,i,j,k,cKKin,bnum)
+                rinf        =   dom%props(ee,i,j,k,cRinf,bnum)
+                biso        =   dom%props(ee,i,j,k,cBiso,bnum)
+                ckin        =   dom%props(ee,i,j,k,cCKin,bnum)
 
                 dEps_alpha(0:5) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
                 dEps_alpha(0:5) = dEps_alpha(0:5)*dom%dt
                 dom%strain_(0:5,i,j,k,bnum,ee) = dom%strain_(0:5,i,j,k,bnum,ee) + dEps_alpha(0:5)
                 dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee)
 
+#ifdef ANISO
+#warning "ANISO/NONLINEAR: NOT WORKING!"
+#else
                 sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
                 syy = xla2mu*dEps_alpha(1)+xla*(dEps_alpha(0)+dEps_alpha(2))
                 szz = xla2mu*dEps_alpha(2)+xla*sum(dEps_alpha(0:1))
@@ -295,6 +294,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxy = trial(3)
                 sxz = trial(4)
                 syz = trial(5)
+#endif
 
                 dom%stress_(0:5,i,j,k,bnum,ee)   = trial(0:5)
                 dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)

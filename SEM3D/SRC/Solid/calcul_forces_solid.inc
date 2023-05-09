@@ -221,7 +221,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
-#define CC(d)  dom%Cij_(d,i,j,k,bnum,ee)
+#define CC(d)  dom%props(ee,i,j,k,d+1,bnum)
                 sxx = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
                 syy = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
                 szz = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
@@ -234,8 +234,8 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #undef CC
 #else
                 ! LINEAR ELASTIC ISOTROPE
-                xmu = dom%Mu_    (i,j,k,bnum,ee)
-                xla = dom%Lambda_(i,j,k,bnum,ee)
+                xmu = dom%props(ee,i,j,k,cMu,bnum)
+                xla = dom%props(ee,i,j,k,cLambda,bnum)
                 xla2mu = xla + 2. * xmu
                 sxx = xla2mu * DXX + xla * ( DYY + DZZ )
                 sxy = xmu * ( DXY + DYX )
@@ -249,7 +249,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #ifndef ANISO
                 ! if the compiler is not too dumb, the previous definition won't be computed...
                 ! ATTENUATION ISOTROPE
-                xmu = dom%Mu_(i,j,k,bnum,ee) * dom%onemSbeta_(i,j,k,bnum,ee)
+                xmu = dom%props(ee,i,j,k,cMu,bnum) * dom%onemSbeta_(i,j,k,bnum,ee)
                 x2mu = 2. * xmu
                 sxx = x2mu * DXX
                 sxy = xmu * ( DXY + DYX )
@@ -258,7 +258,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 syz = xmu * ( DYZ + DZY )
                 szz = x2mu * DZZ
 #endif
-                xkappa = dom%Kappa_(i,j,k,bnum,ee)* dom%onemPbeta_(i,j,k,bnum,ee)
+                xkappa = dom%props(ee,i,j,k,cKappa,bnum)* dom%onemPbeta_(i,j,k,bnum,ee)
                 xpression = xkappa*(DXX+DYY+DZZ)
                 do i_sls = 0,dom%n_sls-1
                     xpression = xpression - dom%R_vol_(i_sls,i,j,k,bnum,ee)
@@ -493,7 +493,7 @@ subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy
 #ifndef ANISO
                     ! get coefficients for that standard linear solid
                     factor_common_P = 2_fpp*gamma_kappa*omega_tau_s
-                    factorP_loc   = dom%Kappa_(i,j,k,bnum,ee) * factor_common_P
+                    factorP_loc   = dom%props(ee,i,j,k,cKappa,bnum) * factor_common_P
 
                     !  terme volumique
                     Pn   = factorP_loc * dom%epsilonvol_(i,j,k,bnum,ee)
@@ -504,7 +504,7 @@ subroutine PROCNAME_ATN(dom,ngllvar,bnum,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy
                     ! get coefficients for that standard linear solid
                     factor_common_3 = 2d0*gamma_mu*omega_tau_s
 
-                    factorS_loc   = dom%Mu_(i,j,k,bnum,ee) * factor_common_3
+                    factorS_loc   = dom%props(ee,i,j,k,cMu,bnum) * factor_common_3
 
                     !     termes deviatoires
                     ! term in xx
