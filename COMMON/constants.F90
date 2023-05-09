@@ -161,6 +161,24 @@ MODULE constants
     integer, parameter :: COND_DIRICH   = 1
     integer, parameter :: COND_NEUMANN  = 2
 
+    ! INDEXING props array from DOM_SOLID
+    integer, parameter :: cRHO  = 0
+    !   isotrope properties
+    integer, parameter :: cLambda  = 1
+    integer, parameter :: cMu  = 2
+    integer, parameter :: cKappa = 3
+    integer, parameter :: cQp = 4
+    integer, parameter :: cQs = 5
+    !   anisotropic properties
+    integer, parameter :: cAniso = 6 ! Start index for anisotropic properties 
+    ! we don't define consts here as it's props(1) .. props(21)
+    !   non linear properties
+    integer, parameter :: cSyld  = 6
+    integer, parameter :: cCKin  = 7
+    integer, parameter :: cKKin  = 8
+    integer, parameter :: cRinf  = 9
+    integer, parameter :: cBiso  = 10
+
     !METHOD
     integer, parameter :: ISOTROPIC = 1, &
                           SHINOZUKA = 2, &

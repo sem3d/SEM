@@ -68,7 +68,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     enddo
     !$acc end parallel
 
-    call SUBPROCNAME2(dom,ngllvar,nblocks, dom%Forces, dom%Depla, dom%m_Cij)
+    call SUBPROCNAME2(dom,ngllvar,nblocks, dom%Forces, dom%Depla, dom%props)
 
     !$acc parallel loop collapse(5) async(1)
     do bnum = 0, nblocks-1
@@ -136,8 +136,8 @@ end subroutine PROCNAME
         dzz=dUz_dxi*LJZX + dUz_deta*LJZY + dUz_dzeta*LJZZ;
 
 #define compute_sigma(a,b,c) \
-        xmu = dom%Mu_    (a,b,c,bnum,ee); \
-        xla = dom%Lambda_(a,b,c,bnum,ee); \
+        xmu = props(ee,a,b,c,cMu,bnum); \
+        xla = props(ee,a,b,c,cLambda,bnum); \
         xla2mu = xla + 2. * xmu; \
         sxx = xla2mu * DXX + xla * ( DYY + DZZ ); \
         sxy = xmu * ( DXY + DYX ); \
@@ -146,9 +146,18 @@ end subroutine PROCNAME
         syz = xmu * ( DYZ + DZY ); \
         szz = xla2mu * DZZ + xla * ( DXX + DYY );
 
-#define CC(d) Cij(ee,d,i,j,k,bnum,ee)
+#define CC(d) props(ee,i,j,k,cAniso+d,bnum)
+#ifdef ANISO
+#define nprops 26
+#else
+#ifdef ATTENUATION
+#define nprops 5
+#else
+#define nprops 2
+#endif
+#endif
 
-subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,Cij)
+subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,props)
     use champs_solid
     implicit none
 
@@ -160,7 +169,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,Cij)
 #endif
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(out) :: Forces
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Depla
-    real(fpp), dimension(0:VCHUNK-1,0:20,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Cij
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nprops,0:nblocks-1), intent(in) :: props
     integer :: i,j,k,l,ee,ll
     integer :: bnum
     real(fpp) :: wi,wj,wk,wl,ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz

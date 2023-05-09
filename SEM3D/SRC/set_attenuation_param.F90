@@ -88,8 +88,8 @@ contains
                 do j = 0,ngll-1
                     do k = 0,ngll-1
 
-                        Q_mu = Tdomain%sdom%Qs_(i,j,k,bnum,ee)
-                        Q_kappa = Tdomain%sdom%Qp_(i,j,k,bnum,ee)
+                        Q_mu = Tdomain%sdom%props(ee,i,j,k,cQs,bnum)
+                        Q_kappa = Tdomain%sdom%props(ee,i,j,k,cQp,bnum)
 
                         !- from Qs to gammas
                         if (Q_mu .ne. Q_mu_old) then
@@ -103,11 +103,11 @@ contains
 
 
                         !- getting the values of the relaxed moduli
-                        Tdomain%sdom%Mu_(i,j,k,bnum,ee) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)*   &
+                        Tdomain%sdom%props(ee,i,j,k,cMu,bnum) = Tdomain%sdom%props(ee,i,j,k,cMu,bnum)*   &
                             get_relaxed_modulus(n_solid,Q_mu,f_ref,   &
                             f_c_source,omega_tau_s,agamma_mu)
 
-                        Tdomain%sdom%Kappa_(i,j,k,bnum,ee) = Tdomain%sdom%Kappa_(i,j,k,bnum,ee)*  &
+                        Tdomain%sdom%props(ee,i,j,k,cKappa,bnum) = Tdomain%sdom%props(ee,i,j,k,cKappa,bnum)*  &
                             get_relaxed_modulus(n_solid,Q_kappa,f_ref,     &
                             f_c_source,omega_tau_s,agamma_kappa)
 

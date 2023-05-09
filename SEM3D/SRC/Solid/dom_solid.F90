@@ -31,7 +31,7 @@ contains
         type(domain_solid), intent (INOUT) :: dom
         !
         integer :: nbelem, nblocks, ngll, n_solid, i
-        integer :: ntemps
+        integer :: ntemps, nprops
         logical :: aniso,nl_flag
         !
 
@@ -56,10 +56,27 @@ contains
             ! Wexo can have glls without elements
             nblocks = dom%nblocks
 
-            allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            ! number of material properties
+            ! indexed as 0:nprops with 0 being rho
+            if (nl_flag) then
+                ! rho, lam, mu, kappa, qp, qs + 5 (Syld,CKin,KKin,Rinf,Biso)
+                nprops = 10
+            else
+                if (aniso) then
+                    ! rho, lam, mu, kappa, qp, qs + 21
+                    nprops = cAniso+20
+                else
+                    if (n_solid>0) then
+                        ! rho, lam, mu, kappa, qp, qs
+                        nprops = 5
+                    else
+                        ! rho, lam, mu
+                        nprops = 2
+                    endif
+                endif
+            endif
+            dom%nprops = nprops
+            allocate (dom%props (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nprops, 0:nblocks-1))
 #if defined(OPENACC) || TEST_FORCE==1
             ntemps = nblocks
 #else
@@ -70,17 +87,9 @@ contains
             ! TODO: only for mirrors
             allocate(dom%Veloc(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:2,0:ntemps-1))
             allocate(dom%Sigma(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:5,0:ntemps-1))
-            dom%m_Kappa = 0. ! May not be initialized if run without attenuation
+            dom%props = 0. ! May not be initialized if run without attenuation
 
             if (nl_flag) then
-                ! nonlinear parameters
-                allocate(dom%nl_param)
-                allocate(dom%nl_param%LMC)
-                allocate(dom%nl_param%LMC%syld_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-                allocate(dom%nl_param%LMC%ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-                allocate(dom%nl_param%LMC%kkin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-                allocate(dom%nl_param%LMC%rinf_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-                allocate(dom%nl_param%LMC%biso_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
                 ! internal variables
                 allocate(dom%radius_      (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
                 allocate(dom%stress_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
@@ -94,9 +103,6 @@ contains
                 dom%radius_  (:,:,:,:,:)   = zero
             end if
 
-            if (aniso) then
-                allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-            endif
             if (n_solid>0) then
                 !!! <GB> temporary modif
                 !!!
@@ -111,8 +117,6 @@ contains
                 !!!     allocate (dom%R_vol_       (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 !!!     dom%R_vol_(:,:,:,:,:,:) = 0
                 !!! endif
-                allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 dom%epsilonvol_(:,:,:,:,:) = 0
@@ -162,14 +166,8 @@ contains
         logical, intent(in) :: nl_flag
         integer :: i
 
-        if(allocated(dom%m_Density)) deallocate(dom%m_Density)
-        if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
-        if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
-        if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
+        if(allocated(dom%props)) deallocate(dom%props)
 
-        if(allocated(dom%m_Cij            )) deallocate (dom%m_Cij            )
-        if(allocated(dom%m_Qs             )) deallocate (dom%m_Qs             )
-        if(allocated(dom%m_Qp             )) deallocate (dom%m_Qp             )
         if(allocated(dom%m_onemPbeta      )) deallocate (dom%m_onemPbeta      )
         if(allocated(dom%m_epsilonvol     )) deallocate (dom%m_epsilonvol     )
         if(allocated(dom%m_R_vol          )) deallocate (dom%m_R_vol          )
@@ -191,13 +189,6 @@ contains
         end do
         ! nonlinear parameters TODO
         if (nl_flag) then
-            if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
-            if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
-            if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
-            if(allocated(dom%nl_param%LMC%m_Ckin))  deallocate(dom%nl_param%LMC%m_Ckin)
-            if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
-            if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
-            if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
             ! nonlinear internal variables
             if(allocated(dom%m_radius)) deallocate(dom%m_radius)
             if(allocated(dom%m_stress)) deallocate(dom%m_stress)
@@ -228,7 +219,7 @@ contains
         ngll = dom%ngll
 
         grad_La = 0d0
-        xlambda = dom%Lambda_(:,:,:,bnum,ee) 
+        xlambda = dom%props(ee,:,:,:,cLambda,bnum) 
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
@@ -262,7 +253,7 @@ contains
         ngll = dom%ngll
 
         grad_Mu = 0d0
-        xmu = dom%Mu_(:,:,:,bnum,ee)
+        xmu = dom%props(ee,:,:,:,cMu,bnum)
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
@@ -375,7 +366,9 @@ contains
                     if (flag_gradU .and. .not. nl_flag) then
                         ! PRESSION
                         if (out_variables(OUT_PRESSION) == 1) then
-                            fieldP(i,j,k) = -(dom%Lambda_(i,j,k,bnum,ee)+two*M_1_3*dom%Mu_(i,j,k,bnum,ee))*divU
+                            xkappa = dom%props(ee,i,j,k,cLambda,bnum) + &
+                                two*M_1_3*dom%props(ee,i,j,k,cMu,bnum)
+                            fieldP(i,j,k) = -xkappa*divU
                         endif
                         ! EPSVOL
                         if (out_variables(OUT_EPS_VOL) == 1) then
@@ -386,11 +379,11 @@ contains
                             out_variables(OUT_ENERGYS) == 1 .or. &
                             out_variables(OUT_STRESS_DEV) == 1) then
                             if (dom%aniso) then
-                                CC = dom%Cij_(:,i,j,k,bnum,ee)
+                                CC = dom%props(ee,i,j,k,1:21,bnum)
                             else
-                                xmu     = dom%Mu_    (i,j,k,bnum,ee)
-                                xlambda = dom%Lambda_(i,j,k,bnum,ee)
-                                xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
+                                xmu     = dom%props(ee,i,j,k,cMu,bnum)
+                                xlambda = dom%props(ee,i,j,k,cLambda,bnum)
+                                xkappa  = dom%props(ee,i,j,k,cKappa,bnum)
                                 if (dom%n_sls>0) then
                                     onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
                                     onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
@@ -598,10 +591,10 @@ contains
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     xeps_vol = dUx_dx + dUy_dy + dUz_dz
 
-                    xmu     = dom%Mu_    (i,j,k,bnum,ee)
-                    xlambda = dom%Lambda_(i,j,k,bnum,ee)
-                    xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
-                    xdensity = dom%Density_ (i,j,k,bnum,ee)
+                    xmu      = dom%props(ee,i,j,k,cMu,bnum)
+                    xlambda  = dom%props(ee,i,j,k,cLambda,bnum)
+                    xkappa   = dom%props(ee,i,j,k,cKappa,bnum)
+                    xdensity = dom%props(ee,i,j,k,cRho,bnum)
                     xvel     = fieldV(i,j,k,:)
 
                     if (dom%n_sls>0) then
@@ -650,7 +643,7 @@ contains
 
         !$acc  enter data copyin(dom, dom%champs) &
         !$acc&            copyin(dom%MassMat, dom%dirich) &
-        !$acc&      copyin(dom%m_Lambda, dom%m_mu, dom%gllw, dom%hprime)&
+        !$acc&      copyin(dom%props, dom%gllw, dom%hprime)&
         !$acc&      copyin(dom%m_Idom, dom%m_Jacob, dom%m_InvGrad) &
         !$acc&      create(dom%Forces, dom%Depla, dom%Sigma)
         do i = 0,1
@@ -688,7 +681,7 @@ contains
         end do
 
         !$acc  exit data  delete(dom%MassMat, dom%dirich) &
-        !$acc&            delete(dom%m_Lambda, dom%m_mu, dom%gllw, dom%hprime)&
+        !$acc&            delete(dom%props, dom%gllw, dom%hprime)&
         !$acc&            delete(dom%m_Idom, dom%m_Jacob, dom%m_InvGrad) &
         !$acc&            delete(dom%Forces, dom%Depla, dom%Sigma) &
         !$acc&            delete(dom%champs, dom)
@@ -715,30 +708,30 @@ contains
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        dom%Density_(:,:,:,bnum,ee) = density
-        dom%Lambda_ (:,:,:,bnum,ee) = lambda
-        dom%Mu_     (:,:,:,bnum,ee) = mu
+        dom%props(ee,:,:,:,cRho,bnum) = density
+        dom%props(ee,:,:,:,cLambda,bnum) = lambda
+        dom%props(ee,:,:,:,cMu,bnum) = mu
         
         if (nl_flag) then
             if (mat%deftype.eq.MATDEF_NLKP_VS_RHO) then
-                dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = gamma_el*mu*sqrt(3.0d0)
-                dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mu
-                dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1.0d0/(sqrt(3.0d0)*(nlkp-gamma_el))
-                dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%DRinf 
-                dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = mat%DBiso
+                dom%props(ee,:,:,:,cSyld,bnum) = gamma_el*mu*sqrt(3.0d0)
+                dom%props(ee,:,:,:,cCKin,bnum) = mu
+                dom%props(ee,:,:,:,cKKin,bnum) = 1.0d0/(sqrt(3.0d0)*(nlkp-gamma_el))
+                dom%props(ee,:,:,:,cRinf,bnum) = mat%DRinf 
+                dom%props(ee,:,:,:,cBiso,bnum) = mat%DBiso
             else
-                dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = gamma_el*nlkp*sqrt(3.0d0)
-                dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = nlkp
-                dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = 1.0d0/(sqrt(3.0d0)*(nlkp-gamma_el))
-                dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = 0.0D0
-                dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = 0.0D0
+                dom%props(ee,:,:,:,cSyld,bnum) = gamma_el*nlkp*sqrt(3.0d0)
+                dom%props(ee,:,:,:,cCKin,bnum) = nlkp
+                dom%props(ee,:,:,:,CKKin,bnum) = 1.0d0/(sqrt(3.0d0)*(nlkp-gamma_el))
+                dom%props(ee,:,:,:,CRinf,bnum) = 0.0D0
+                dom%props(ee,:,:,:,CBiso,bnum) = 0.0D0
             endif
         endif
 
         if (dom%n_sls>0)  then
-            dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
-            dom%Qs_(:,:,:,bnum,ee) = Qmu
-            dom%Qp_(:,:,:,bnum,ee) = Qkappa
+            dom%props(ee,:,:,:,cKappa,bnum) = lambda + 2d0*mu/3d0
+            dom%props(ee,:,:,:,cQp,bnum) = Qkappa
+            dom%props(ee,:,:,:,cQs,bnum) = Qmu
         endif
 
     end subroutine init_material_properties_solid
@@ -761,9 +754,9 @@ contains
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        dom%Density_(:,:,:,bnum,ee) = density
-        dom%Lambda_ (:,:,:,bnum,ee) = lambda
-        dom%Mu_     (:,:,:,bnum,ee) = mu
+        dom%props(ee,:,:,:,cRho   ,bnum) = density
+        dom%props(ee,:,:,:,cLambda,bnum) = lambda
+        dom%props(ee,:,:,:,cMu    ,bnum) = mu
 
         do i=0,dom%ngll-1
             do j=0,dom%ngll-1
@@ -771,7 +764,7 @@ contains
                     idef = 0
                     do ii = 1,6
                         do jj = ii,6
-                            dom%Cij_(idef,i,j,k,bnum,ee) = Cij(ii,jj,i,j,k)
+                            dom%props(ee,i,j,k,cAniso+idef,bnum) = Cij(ii,jj,i,j,k)
                             idef = idef + 1
                         enddo
                     enddo
@@ -780,10 +773,10 @@ contains
         enddo
 
         if (dom%n_sls>0)  then
-            dom%Kappa_  (:,:,:,bnum,ee) = lambda + 2d0*mu/3d0
+            dom%props(ee,:,:,:,cKappa,bnum) = lambda + 2d0*mu/3d0
             !!! <GB> uniform cover of att
-            dom%Qs_(:,:,:,bnum,ee) = Qmu
-            dom%Qp_(:,:,:,bnum,ee) = Qkappa
+            dom%props(ee,:,:,:,cQs,bnum) = Qmu
+            dom%props(ee,:,:,:,cQp,bnum) = Qkappa
             !!!if (dom%aniso) then
             !!!    dom%Q_(:,:,:,bnum,ee) = Qmu
             !!!else
@@ -808,7 +801,7 @@ contains
 
         ! Solid.
 
-        specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
+        specel%MassMat(i,j,k) = Whei*dom%props(ee,i,j,k,cRho,bnum)*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
       
@@ -1162,8 +1155,8 @@ contains
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
-        M = dom%Lambda_(i,j,k,bnum,ee) + 2.*dom%Mu_(i,j,k,bnum,ee)
-        Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
+        M = dom%props(ee,i,j,k,cLambda,bnum) + 2.*dom%props(ee,i,j,k,cMu,bnum)
+        Pspeed = sqrt(M/dom%props(ee,i,j,k,cRho,bnum))
     end function solid_Pspeed
 
 
