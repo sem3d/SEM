@@ -68,7 +68,8 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     enddo
     !$acc end parallel
 
-    call SUBPROCNAME2(dom,ngllvar,nblocks, dom%Forces, dom%Depla, dom%props)
+    call SUBPROCNAME2(ngllvar,nblocks, dom%Forces, dom%Depla, dom%props, dom%hprime, dom%gllw, &
+        dom%m_Jacob, dom%m_InvGrad)
 
     !$acc parallel loop collapse(5) async(1)
     do bnum = 0, nblocks-1
@@ -109,15 +110,15 @@ end subroutine PROCNAME
         END DO;
 
 #define load_jacobian_matrix(a,b,c) \
-        LJXX = dom%InvGrad_(0,0,a,b,c,bnum,ee); \
-        LJYX = dom%InvGrad_(1,0,a,b,c,bnum,ee); \
-        LJZX = dom%InvGrad_(2,0,a,b,c,bnum,ee); \
-        LJXY = dom%InvGrad_(0,1,a,b,c,bnum,ee); \
-        LJYY = dom%InvGrad_(1,1,a,b,c,bnum,ee); \
-        LJZY = dom%InvGrad_(2,1,a,b,c,bnum,ee); \
-        LJXZ = dom%InvGrad_(0,2,a,b,c,bnum,ee); \
-        LJYZ = dom%InvGrad_(1,2,a,b,c,bnum,ee); \
-        LJZZ = dom%InvGrad_(2,2,a,b,c,bnum,ee);
+        LJXX = InvGrad(ee,a,b,c,0,0,bnum); \
+        LJYX = InvGrad(ee,a,b,c,1,0,bnum); \
+        LJZX = InvGrad(ee,a,b,c,2,0,bnum); \
+        LJXY = InvGrad(ee,a,b,c,0,1,bnum); \
+        LJYY = InvGrad(ee,a,b,c,1,1,bnum); \
+        LJZY = InvGrad(ee,a,b,c,2,1,bnum); \
+        LJXZ = InvGrad(ee,a,b,c,0,2,bnum); \
+        LJYZ = InvGrad(ee,a,b,c,1,2,bnum); \
+        LJZZ = InvGrad(ee,a,b,c,2,2,bnum);
 
 #define compute_du_deta(a,b,c) \
         x_deriv_ijke(Depla,0,dUx_dxi,dUx_deta,dUx_dzeta,a,b,c); \
@@ -157,11 +158,9 @@ end subroutine PROCNAME
 #endif
 #endif
 
-subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,props)
-    use champs_solid
+subroutine SUBPROCNAME2(ngllvar,nblocks,Forces,Depla,props, hprime, gllw, Jacob, invgrad)
     implicit none
 
-    type(domain_solid), intent (INOUT) :: dom
     integer, intent(in) :: ngllvar
     integer, intent(in) :: nblocks
 #ifdef NGLLVAL
@@ -170,6 +169,10 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,props)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(out) :: Forces
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Depla
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nprops,0:nblocks-1), intent(in) :: props
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(in) :: jacob
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2,0:nblocks-1), intent(in) :: invgrad
+    real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+    real(fpp), dimension(0:ngll-1), intent(in) :: gllw
     integer :: i,j,k,l,ee,ll
     integer :: bnum
     real(fpp) :: wi,wj,wk,wl,ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz
@@ -185,10 +188,6 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,props)
     real(fpp) :: Eyz, Exz, Exy
 #endif
     ! TODO: CHECK
-    real(fpp), dimension(0:ngll-1,0:ngll-1) :: hprime
-    real(fpp), dimension(0:ngll-1) :: gllw
-    hprime = dom%hprime
-    gllw = dom%gllw
 
     !$acc parallel loop async(1) collapse(5)
     do bnum = 0, nblocks-1
@@ -259,7 +258,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,nblocks,Forces,Depla,props)
                     wi = Gllw(i)
                     wj = Gllw(j)
                     wk = Gllw(k)
-                    jac = dom%Jacob_(i,j,k,bnum,ee)
+                    jac = Jacob(ee,i,j,k,bnum)
                     t4 = jac * wi * wj * wk
                     xt1  =  xt1 * t4
                     xt5  =  xt5 * t4
@@ -335,7 +334,7 @@ subroutine PROC_MIRROR(dom, ngllvar, var, dvdt, m_dump, m_expl, m_recalc)
     integer :: i,j,k,i_dir,ee,idx, idx_m
     integer :: bnum, nblocks, lnum
     logical :: m_load
-    real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox_m,Foy_m,Foz_m
+    real(fpp),dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: Fox_m,Foy_m,Foz_m
 
     m_load = .not. m_dump
     nblocks = dom%nblocks
