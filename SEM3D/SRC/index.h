@@ -21,7 +21,7 @@
 #define IND_MNE(m,n,eb,ec)           ec,m,n,eb
 #define IND_NE(n,eb,ec)              ec,n,eb
 #define IND_DIJKE(m,i,j,k,eb,ec)     ec,m,i,j,k,eb
-#define IND_MNIJKE(m,n,i,j,k,eb,ec)  ec,m,n,i,j,k,eb
+#define IND_MNIJKE(m,n,i,j,k,eb,ec)  ec,i,j,k,m,n,eb
 #define IND_IJKNE(i,j,k,n,eb,ec)     ec,n,i,j,k,eb
 #define IND_IJKE(i,j,k,eb,ec)        ec,i,j,k,eb
 #define IND_NIJKE(n,i,j,k,eb,ec)     ec,n,i,j,k,eb
