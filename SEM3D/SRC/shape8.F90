@@ -10,6 +10,7 @@
 module mshape8
     use constants, only : fpp, deps
     use sdomain
+    use mlinalg
     implicit none
 #include "index.h"
 
@@ -299,6 +300,7 @@ contains
     end subroutine shape8_local2global
     !---------------------------------------------------------------------------
     subroutine shape8_local2jacob(coord, xi, eta, zeta, jac)
+        !$acc routine seq
         real(fpp), dimension(0:2,0:7), intent(in)  :: coord
         real(fpp), intent(in) :: xi, eta, zeta
         real(fpp), dimension(0:2,0:2), intent(out) :: jac
