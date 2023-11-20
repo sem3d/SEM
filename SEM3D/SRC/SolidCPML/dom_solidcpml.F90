@@ -705,13 +705,22 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine pred_sol_pml
 
-    subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
-        use sdomain
+    subroutine forces_int_sol_pml_mainloop(dom, i1)
+        type(domain_solidpml), intent(inout) :: dom
+        integer, intent(in) :: i1
+        integer :: bnum
+        !
+        do bnum = 0,dom%nblocks-1
+            call forces_int_sol_pml(dom, dom%champs(i1), bnum)
+        end do
+    end subroutine forces_int_sol_pml_mainloop
+
+    subroutine forces_int_sol_pml(dom, champs1, bnum)
+!        use sdomain
         use m_calcul_forces_solidpml
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
         integer :: bnum
-        type (domain), intent (INOUT), target :: Tdomain
         !
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
