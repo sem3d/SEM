@@ -405,6 +405,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     do n = 0,Tdomain%Comm_data%ncomm-1
         !$acc  enter data create(Tdomain%Comm_data%Data(n)%Give) &
         !$acc&            create(Tdomain%Comm_data%Data(n)%Take) &
+        !$acc&      copyin(Tdomain%Comm_data%Data(n)) &
         !$acc&      copyin(Tdomain%Comm_data%Data(n)%IGiveF) &
         !$acc&      copyin(Tdomain%Comm_data%Data(n)%IGiveS) &
         !$acc&      copyin(Tdomain%Comm_data%Data(n)%IGiveSDG) &
