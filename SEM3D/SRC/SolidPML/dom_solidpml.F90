@@ -243,6 +243,7 @@ contains
         !$acc&
         do i = 0,1
             !$acc exit data  delete(spmldom%champs(i)%VelocPML, spmldom%champs(i)%ForcesPML)
+            !$acc exit data  delete(spmldom%champs(i))
         end do
 
     end subroutine stop_domain_solidpml
@@ -402,20 +403,12 @@ contains
         bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
         dt = Tdomain%TimeD%dtmin
 
-!!        !$acc   parallel async(1)  &
-!!        !$acc&  present(Tdomain,Tdomain%sdom,dom) &
-!!        !$acc&  present(dom%champs(f0),dom%champs(f1)) &
-!!        !$acc&  present(dom%champs(f0)%VelocPML) &
-!!        !$acc&  present(dom%champs(f1)%VelocPML,dom%champs(f1)%ForcesPML) &
-!!        !$acc&  present(Tdomain%sdom%champs(f0)%Veloc) &
-!!        !$acc&  present(Tdomain%intSolPml%surf0, Tdomain%intSolPml%surf0%map) &
-!!        !$acc&  present(Tdomain%intSolPml%surf1, Tdomain%intSolPml%surf1%map) &
-!!        !$acc&
-
         !$acc   parallel async(1)  &
         !$acc&  present(Tdomain,dom) &
+        !$acc&  present(dom%champs) &
         !$acc&  present(dom%champs(f1)) &
-        !$acc&  present(dom%champs(f1)%VelocPML) &
+        !$acc&  present(dom%champs(f1)%ForcesPML) &
+        !$acc&  firstprivate(f1) &
         !$acc&
         !$acc loop collapse(3)
         do n = 0,dom%nglltot
@@ -428,13 +421,15 @@ contains
         !$acc end parallel
 
         !$acc   parallel async(1)  &
-        !$acc&  present(Tdomain,Tdomain%spmldom,dom) &
-        !$acc&  present(dom%champs(f0),dom%champs(f1)) &
+        !$acc&  present(Tdomain,Tdomain%spmldom,dom,dom%champs) &
+        !$acc&  present(dom%champs(f0)) &
         !$acc&  present(dom%champs(f0)%VelocPML) &
-        !$acc&  present(dom%champs(f1)%VelocPML,dom%champs(f1)%ForcesPML) &
+        !$acc&  present(Tdomain%sdom,Tdomain%sdom%champs,Tdomain%sdom%champs(f0)) &
         !$acc&  present(Tdomain%sdom%champs(f0)%Veloc) &
+        !$acc&  present(Tdomain%intSolPml) &
         !$acc&  present(Tdomain%intSolPml%surf0, Tdomain%intSolPml%surf0%map) &
         !$acc&  present(Tdomain%intSolPml%surf1, Tdomain%intSolPml%surf1%map) &
+        !$acc&  firstprivate(f0) &
         !$acc&
         !$acc loop private(indsol,indpml)
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
@@ -452,10 +447,11 @@ contains
         !$acc end parallel
 
         !$acc   parallel async(1)  &
-        !$acc&  present(dom) &
+        !$acc&  present(dom,dom%champs) &
         !$acc&  present(dom%champs(f0),dom%champs(f1)) &
         !$acc&  present(dom%champs(f0)%VelocPML) &
         !$acc&  present(dom%champs(f1)%VelocPML,dom%champs(f1)%ForcesPML) &
+        !$acc&  firstprivate(f0,f1,dt,bega) &
         !$acc&
         !$acc loop collapse(3)
         do n = 0,dom%nglltot
@@ -478,8 +474,11 @@ contains
 
         !$acc parallel async(1) &
         !$acc&   present(dom, dom%DumpV, dom%champs) &
+        !$acc&   present(dom%champs(f0), dom%champs(f1)) &
         !$acc&   present(dom%champs(f0)%VelocPML, dom%champs(f1)%ForcesPML) &
         !$acc&   present(dom%dirich) &
+        !$acc&   firstprivate(f0,f1,dt) &
+        !$acc&   private(indpml) &
         !$acc&
         !$acc loop collapse(3)
         do jp = 0,2
@@ -524,8 +523,8 @@ contains
         type(domain_solidpml), intent (inout) :: spmldom
         integer, intent(in) :: i0, i1
         !
-        integer  :: n, indsol, indpml, i
-        real(fpp) :: force
+        integer  :: n, indsol, indpml
+        real(fpp) :: force0, force1, force2
         !
         !$acc  parallel loop async(1) &
         !$acc& present(Tdomain, Tdomain%intSolPml, sdom, spmldom) &
@@ -534,17 +533,27 @@ contains
         !$acc& present(sdom%champs(i1),spmldom%champs(i1)) &
         !$acc& present(sdom%champs(i1)%Veloc) &
         !$acc& present(spmldom%champs(i1)%ForcesPML) &
+        !$acc& firstprivate(i0,i1) &
+        !$acc& private(indsol,indpml,force0,force1,force2) &
         !$acc&
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            do i=0,2
-                force = spmldom%champs(i1)%ForcesPML(indpml,i,0) + &
-                    spmldom%champs(i1)%ForcesPML(indpml,i,1) + &
-                    spmldom%champs(i1)%ForcesPML(indpml,i,2)
-                !$acc atomic update
-                sdom%champs(i1)%Veloc(indsol,i) = sdom%champs(i1)%Veloc(indsol,i) + force
-            end do
+            force0 = spmldom%champs(i1)%ForcesPML(indpml,0,0) + &
+                spmldom%champs(i1)%ForcesPML(indpml,0,1) + &
+                spmldom%champs(i1)%ForcesPML(indpml,0,2)
+            force1 = spmldom%champs(i1)%ForcesPML(indpml,1,0) + &
+                spmldom%champs(i1)%ForcesPML(indpml,1,1) + &
+                spmldom%champs(i1)%ForcesPML(indpml,1,2)
+            force2 = spmldom%champs(i1)%ForcesPML(indpml,2,0) + &
+                spmldom%champs(i1)%ForcesPML(indpml,2,1) + &
+                spmldom%champs(i1)%ForcesPML(indpml,2,2)
+            !$acc atomic update
+            sdom%champs(i1)%Veloc(indsol,0) = sdom%champs(i1)%Veloc(indsol,0) + force0
+            !$acc atomic update
+            sdom%champs(i1)%Veloc(indsol,1) = sdom%champs(i1)%Veloc(indsol,1) + force1
+            !$acc atomic update
+            sdom%champs(i1)%Veloc(indsol,2) = sdom%champs(i1)%Veloc(indsol,2) + force2
         enddo
 
     end subroutine couplage_pml_solid
