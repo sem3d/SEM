@@ -919,22 +919,26 @@ contains
         Pspeed = sqrt((lbd+2.*mu)/rho)
     end function solidpml_Pspeed
 
-    subroutine couplage_pml_solid(Tdomain, sdom, spmldom)
+    subroutine couplage_pml_solid(Tdomain, sdom, spmldom, i0, i1)
         use dom_solid
         implicit none
         type(domain), intent(inout)  :: Tdomain
         type(domain_solid), intent (inout) :: sdom
         type(domain_solidpml), intent (inout) :: spmldom
+        integer, intent(in) :: i0, i1
         !
-        integer :: lnum, i, j, k
+        integer :: n, indsol, indpml, i
+        real(fpp) :: force
         !
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            sdom%champs(i1)%Veloc(indsol,:) = sdom%champs(i1)%Veloc(indsol,:) + &
-                Tdomain%spmldom%champs(i1)%Forces(indpml,:) &
-                - spmldom%DumpMat(indpml)*spmldom%champs(i0)%Veloc(indpml,:) &
-                - spmldom%MasUMat(indpml)*spmldom%champs(i0)%Depla(indpml,:)
+            do i=0,2
+                force = spmldom%champs(i1)%Forces(indpml,i) &
+                    - spmldom%DumpMat(indpml)*spmldom%champs(i0)%Veloc(indpml,i) &
+                    - spmldom%MasUMat(indpml)*spmldom%champs(i0)%Depla(indpml,i)
+                sdom%champs(i1)%Veloc(indsol,i) = sdom%champs(i1)%Veloc(indsol,i) + force
+            enddo
         enddo
 
     end subroutine couplage_pml_solid

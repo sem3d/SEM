@@ -516,16 +516,15 @@ contains
         Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
     end function solidpml_Pspeed
 
-    subroutine couplage_pml_solid(Tdomain, sdom, spmldom, i1)
+    subroutine couplage_pml_solid(Tdomain, sdom, spmldom, i0, i1)
         use dom_solid
         implicit none
         type(domain), intent(inout)  :: Tdomain
         type(domain_solid), intent (inout) :: sdom
         type(domain_solidpml), intent (inout) :: spmldom
-        integer, intent(in) :: i1
+        integer, intent(in) :: i0, i1
         !
-        integer :: lnum, i, j, k
-        integer  :: n, indsol, indpml
+        integer  :: n, indsol, indpml, i
         real(fpp) :: force
         !
         !$acc  parallel loop async(1) &
