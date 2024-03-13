@@ -9,7 +9,7 @@ module champs_solid
     use constants
     use mdombase
     implicit none
-    
+
     type PWfield
         real(kind=8), dimension(:,:), allocatable :: displ
         real(kind=8), dimension(:,:), allocatable :: veloc
@@ -44,7 +44,7 @@ module champs_solid
         real(fpp), dimension(:,:), allocatable :: fields
         real(fpp), dimension(:), allocatable :: winfunc
     end type time_mirror_sl
-    
+
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
     type, extends(dombase) :: domain_solid
         ! D'abord, les données membres qui ne sont pas modifiées
@@ -56,6 +56,13 @@ module champs_solid
         integer :: mirror_type
         type(time_mirror_sl) :: mirror_sl
 
+        ! temp mem pre-allocated
+#ifdef OPENACC
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: Fox
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: Foy
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: Foz
+        real(fpp), dimension(:,:,:,:,:,:),   allocatable :: Depla
+#endif
         ! Champs
         type(champssolid), dimension(:), allocatable :: champs
         ! Attenuation
