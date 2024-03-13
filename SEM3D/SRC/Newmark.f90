@@ -484,7 +484,7 @@ contains
 
         type(domain), intent(inout)  :: Tdomain
         integer, intent(in) :: i0, i1, ntime
-        integer  :: n, indsol, indflu, indpml
+        integer  :: n, indflu, indpml
         logical :: m_dump, m_load, m_expl, m_recalc
         ! DOMAIN FLUID
         if (Tdomain%fdom%nbelem>0) then
@@ -569,7 +569,7 @@ contains
 
         ! Couplage interface solide / PML
         if (Tdomain%spmldom%nglltot > 0) then
-            call couplage_pml_solid(Tdomain, Tdomain%sdom, Tdomain%spmldom, i1)
+            call couplage_pml_solid(Tdomain, Tdomain%sdom, Tdomain%spmldom, i0, i1)
         endif
 
         ! Couplage interface fluid / PML
