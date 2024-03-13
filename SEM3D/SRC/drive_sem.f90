@@ -484,7 +484,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!
-        if(protection /= 0)then
+        if (protection /= 0 .and. Tdomain%logicD%save_restart) then
             if(Tdomain%rank == 0) print*," SAVING PROT"
 
             call flushAllCapteurs(Tdomain)
