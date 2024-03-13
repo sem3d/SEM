@@ -342,7 +342,10 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use semconfig !< pour config C
     use sem_c_bindings
     use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO, STAT_ITER
-
+    use dom_solid, only : start_domain_solid, stop_domain_solid
+    use dom_solidpml, only : start_domain_solidpml, stop_domain_solidpml
+    use dom_fluid, only : start_domain_fluid, stop_domain_fluid
+    use dom_fluidpml, only : start_domain_fluidpml, stop_domain_fluidpml
     implicit none
 
     type(domain), intent(inout) :: Tdomain
@@ -391,17 +394,12 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !---------------------------------------------------------!
     !--------------------  LOOP UPON TIME  -------------------!
     !---------------------------------------------------------!
-    !$acc  data copyin(Tdomain%sdom, Tdomain%sdom%champs) &
-    !$acc&      copyin(Tdomain%sdom%MassMat, Tdomain%sdom%dirich) &
-    !$acc&      copyin(Tdomain%sdom%m_Lambda, Tdomain%sdom%m_mu, Tdomain%sdom%gllw, Tdomain%sdom%hprime)&
-    !$acc&      copyin(Tdomain%sdom%m_Idom, Tdomain%sdom%m_Jacob, Tdomain%sdom%m_InvGrad) &
-    !$acc&      create(Tdomain%sdom%Fox, Tdomain%sdom%Foy, Tdomain%sdom%Foz, Tdomain%sdom%Depla) &
-    !$acc&      create(Tdomain%sdom%Sigma) &
-    !$acc&      copyin(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%veloc) &
-    !$acc&      copyin(Tdomain%sdom%champs(1)%Depla, Tdomain%sdom%champs(1)%veloc) &
-    !$acc&      copyin(Tdomain%sSource, Tdomain%sSource(0)%ExtForce) &
+    !$acc data      copyin(Tdomain%sSource) &
     !$acc
-    ! TODO multi-source 
+    call start_domain_solid(Tdomain, Tdomain%sdom)
+    call start_domain_solidpml(Tdomain, Tdomain%spmldom)
+    call start_domain_fluid(Tdomain, Tdomain%fdom)
+    call start_domain_fluidpml(Tdomain, Tdomain%fpmldom)
     do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
 
         protection = 0
@@ -526,6 +524,10 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !---------------------------------------------------------!
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
+    call stop_domain_solid(Tdomain, Tdomain%sdom)
+    call stop_domain_solidpml(Tdomain, Tdomain%spmldom)
+    call stop_domain_fluid(Tdomain, Tdomain%fdom)
+    call stop_domain_fluidpml(Tdomain, Tdomain%fpmldom)
     !$acc end data
 
 end subroutine TIME_STEPPING

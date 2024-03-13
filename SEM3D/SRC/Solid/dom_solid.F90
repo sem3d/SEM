@@ -638,6 +638,60 @@ contains
         dom%dt = Tdomain%TimeD%dtmin
     end subroutine init_domain_solid
 
+    subroutine start_domain_solid(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_solid), intent(inout) :: dom
+        !
+        integer :: i, ns
+
+        !$acc  enter data copyin(dom, dom%champs) &
+        !$acc&            copyin(dom%MassMat, dom%dirich) &
+        !$acc&      copyin(dom%m_Lambda, dom%m_mu, dom%gllw, dom%hprime)&
+        !$acc&      copyin(dom%m_Idom, dom%m_Jacob, dom%m_InvGrad) &
+        !$acc&      create(dom%Fox, dom%Foy, dom%Foz, dom%Depla, dom%Sigma)
+        do i = 0,1
+            !$acc enter data  copyin(dom%champs(i)%Depla, dom%champs(i)%veloc)
+        end do
+        
+
+        do ns = 0, Tdomain%n_source-1
+            if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
+                if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
+                    !$acc enter data      copyin(Tdomain%sSource(ns)%ExtForce)
+                end if
+            end if
+        end do
+
+    end subroutine start_domain_solid
+
+    subroutine stop_domain_solid(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_solid), intent(inout) :: dom
+        !
+        integer :: i, ns
+
+        do ns = 0, Tdomain%n_source-1
+            if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
+                if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
+                    !$acc exit data      delete(Tdomain%sSource(ns)%ExtForce)
+                end if
+            end if
+        end do
+
+        do i = 0,1
+            !$acc exit data  delete(dom%champs(i)%Depla, Tdomain%sdom%champs(i)%veloc)
+        end do
+
+        !$acc  exit data  delete(dom%MassMat, dom%dirich) &
+        !$acc&            delete(dom%m_Lambda, dom%m_mu, dom%gllw, dom%hprime)&
+        !$acc&            delete(dom%m_Idom, dom%m_Jacob, dom%m_InvGrad) &
+        !$acc&            delete(dom%Fox, dom%Foy, dom%Foz, dom%Depla, dom%Sigma) &
+        !$acc&            delete(dom%champs, dom)
+    end subroutine stop_domain_solid
+
+    
     subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, &
         Qkappa, Qmu, nlkp, nl_flag)
         use ssubdomains
