@@ -201,6 +201,37 @@ contains
         end select
     end function domain_ngll
 
+    subroutine domain_nelems(Tdomain, dom, nelems, nglltot)
+        integer, intent(in) :: dom
+        type(domain), intent(in) :: Tdomain
+        integer, intent(out) :: nelems, nglltot
+        !
+        nelems = 0
+        nglltot = 0
+        select case(dom)
+        case(DM_SOLID_CG)
+            nelems  = Tdomain%sdom%nbelem
+            nglltot = Tdomain%sdom%nglltot
+        case(DM_FLUID_CG)
+            nelems  = Tdomain%fdom%nbelem
+            nglltot = Tdomain%fdom%nglltot
+        case(DM_SOLID_CG_PML)
+            nelems  = Tdomain%spmldom%nbelem
+            nglltot = Tdomain%spmldom%nglltot
+        case(DM_FLUID_CG_PML)
+            nelems  = Tdomain%fpmldom%nbelem
+            nglltot = Tdomain%fpmldom%nglltot
+        case(DM_SOLID_DG)
+            nelems  = Tdomain%sdomdg%nbelem
+            nglltot = Tdomain%sdomdg%nglltot
+        case(DM_FLUID_DG)
+            nelems  = 0
+            nglltot = 0
+        case default
+            stop "Unknown Domain, nelems"
+        end select
+    end subroutine domain_nelems
+
     subroutine domain_gllc(Tdomain, dom, GLLc)
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: dom

@@ -98,7 +98,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
  !---------------------------------------------------------------------------------------------!
 
     call END_SEM(Tdomain,ntime)
-    call stat_finalize()
+    call stat_finalize(Tdomain)
 
 end subroutine sem
  !-----------------------------------------------------------------------------------

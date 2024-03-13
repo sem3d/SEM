@@ -1,5 +1,5 @@
 module stat
-    use constants, only : fpp
+    use constants, only : fpp, DM_MAX, OUT_DOM_NAMES
     use sem_c_bindings, only : sem_mkdir
     implicit none
     ! TYPE DE STATISTIQUES
@@ -29,7 +29,8 @@ module stat
 
     real(fpp), dimension(0:STAT_COUNT-1), private :: statTimes
     integer*8, dimension(0:STAT_COUNT-1), private :: statStart, statStop
-
+    integer, dimension(1:DM_MAX) :: elemCounts
+    integer, dimension(1:DM_MAX) :: ngllCounts
     logical :: log_traces
     integer :: ntraces, itrace, rank
     integer*8, allocatable, dimension(:,:) :: traces
@@ -99,9 +100,11 @@ contains
     end subroutine stat_init
 
 
-    subroutine stat_finalize()
+    subroutine stat_finalize(Tdomain)
         use mpi
+        use sdomain, only : domain_nelems, domain
         implicit none
+        type(domain), intent(in) :: Tdomain
         integer :: ierr, rank, sz, r, i
         integer :: status(MPI_STATUS_SIZE)
 
@@ -118,18 +121,27 @@ contains
         if (deltaTick < 0) deltaTick = deltaTick+maxPeriod
         fullTime = real(deltaTick,fpp)/real(clockRate,fpp)
 
+        do i=1, DM_MAX
+            call domain_nelems(Tdomain, i, elemCounts(i), ngllCounts(i))
+        end do
         statTimes(STAT_FULL) = fullTime
         call MPI_Comm_Rank (MPI_COMM_WORLD, rank, ierr)
         if (rank .gt. 0) then
+            call MPI_SEND(elemCounts,DM_MAX,MPI_INTEGER,0,0,MPI_COMM_WORLD,ierr)
+            call MPI_SEND(ngllCounts,DM_MAX,MPI_INTEGER,0,0,MPI_COMM_WORLD,ierr)
             call MPI_SEND(statTimes,STAT_COUNT,MPI_DOUBLE_PRECISION,0,0,MPI_COMM_WORLD,ierr)
         else
             open (123, file="stat.log", status="replace", action="write")
             call MPI_Comm_Size (MPI_COMM_WORLD,   sz, ierr)
             do r = 0, sz-1
                 if (r .gt. 0) then
+                    call MPI_RECV(elemCounts,DM_MAX,MPI_INTEGER,r,0,MPI_COMM_WORLD,status,ierr)
+                    call MPI_RECV(ngllCounts,DM_MAX,MPI_INTEGER,r,0,MPI_COMM_WORLD,status,ierr)
                     call MPI_RECV(statTimes,STAT_COUNT,MPI_DOUBLE_PRECISION,r,0,MPI_COMM_WORLD,status,ierr)
                 end if
-
+                do i=1,DM_MAX
+                    write(123, '(a12,I6,I8,I8)') OUT_DOM_NAMES(i), r, elemCounts(i), ngllCounts(i)
+                end do
                 do i=0,STAT_COUNT-1
                     write(123, '(a8,I6,f12.5)') stat_labels(i), r, statTimes(i)
                 end do
