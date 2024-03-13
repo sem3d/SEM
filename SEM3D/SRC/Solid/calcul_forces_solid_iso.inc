@@ -5,9 +5,12 @@
 #include "index.h"
 #include "loops.h"
 
-#ifndef PROCNAME
-#error "Must define PROCNAME before inclusion"
-#endif
+#undef PROCNAME
+#undef PROCNAME_ATN
+#define PROCNAME PROCNAMEBASE()NGLLVAL
+#define PROCNAME_ATN PROCNAMEBASE_ATN()NGLLVAL
+#define PROCNAME1() PROCNAME
+#define SUBPROCNAME  PROCNAME1()_subloop
 
 #undef ngllvar
 #ifndef NGLLVAL
@@ -26,10 +29,58 @@
 #error "ANISO defined : wrong file"
 #endif
 
+#define x_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,a,b,c) \
+        dS_dxi   = 0.0D+0; \
+        dS_deta  = 0.0D+0; \
+        dS_dzeta = 0.0D+0; \
+        DO LL = 0, ngll-1;  \
+            dS_dxi   = dS_dxi  +Var(ee,LL,b,c,d)*dom%hprime(LL,a); \
+            dS_deta  = dS_deta +Var(ee,a,LL,c,d)*dom%hprime(LL,b); \
+            dS_dzeta = dS_dzeta+Var(ee,a,b,LL,d)*dom%hprime(LL,c); \
+        END DO;
+
+#define load_jacobian_matrix(a,b,c) \
+        LJXX = dom%InvGrad_(0,0,a,b,c,bnum,ee); \
+        LJYX = dom%InvGrad_(1,0,a,b,c,bnum,ee); \
+        LJZX = dom%InvGrad_(2,0,a,b,c,bnum,ee); \
+        LJXY = dom%InvGrad_(0,1,a,b,c,bnum,ee); \
+        LJYY = dom%InvGrad_(1,1,a,b,c,bnum,ee); \
+        LJZY = dom%InvGrad_(2,1,a,b,c,bnum,ee); \
+        LJXZ = dom%InvGrad_(0,2,a,b,c,bnum,ee); \
+        LJYZ = dom%InvGrad_(1,2,a,b,c,bnum,ee); \
+        LJZZ = dom%InvGrad_(2,2,a,b,c,bnum,ee);
+
+#define compute_du_deta(a,b,c) \
+        x_deriv_ijke(Depla,0,dUx_dxi,dUx_deta,dUx_dzeta,a,b,c); \
+        x_deriv_ijke(Depla,1,dUy_dxi,dUy_deta,dUy_dzeta,a,b,c); \
+        x_deriv_ijke(Depla,2,dUz_dxi,dUz_deta,dUz_dzeta,a,b,c);
+
+#define compute_du_dx(a,b,c) \
+        dxx=dUx_dxi*LJXX + dUx_deta*LJXY + dUx_dzeta*LJXZ; \
+        dxy=dUx_dxi*LJYX + dUx_deta*LJYY + dUx_dzeta*LJYZ; \
+        dxz=dUx_dxi*LJZX + dUx_deta*LJZY + dUx_dzeta*LJZZ; \
+        dyx=dUy_dxi*LJXX + dUy_deta*LJXY + dUy_dzeta*LJXZ; \
+        dyy=dUy_dxi*LJYX + dUy_deta*LJYY + dUy_dzeta*LJYZ; \
+        dyz=dUy_dxi*LJZX + dUy_deta*LJZY + dUy_dzeta*LJZZ; \
+        dzx=dUz_dxi*LJXX + dUz_deta*LJXY + dUz_dzeta*LJXZ; \
+        dzy=dUz_dxi*LJYX + dUz_deta*LJYY + dUz_dzeta*LJYZ; \
+        dzz=dUz_dxi*LJZX + dUz_deta*LJZY + dUz_dzeta*LJZZ;
+
+#define compute_sigma(a,b,c) \
+        xmu = dom%Mu_    (a,b,c,bnum,ee); \
+        xla = dom%Lambda_(a,b,c,bnum,ee); \
+        xla2mu = xla + 2. * xmu; \
+        sxx = xla2mu * DXX + xla * ( DYY + DZZ ); \
+        sxy = xmu * ( DXY + DYX ); \
+        sxz = xmu * ( DXZ + DZX ); \
+        syy = xla2mu * DYY + xla * ( DXX + DZZ ); \
+        syz = xmu * ( DYZ + DZY ); \
+        szz = xla2mu * DZZ + xla * ( DXX + DYY );
+
+
 subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !$acc routine worker
     use champs_solid
-    use nonlinear
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
@@ -40,154 +91,86 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #endif
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
-    integer :: i,j,k,l,e,ee
+    integer :: i,j,k,l,e,ee,ll
     real(fpp) :: wi,wj,wk,wl,ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    real(fpp), dimension(0:VCHUNK-1) :: dUx_dxi, dUx_deta, dUx_dzeta
-    real(fpp), dimension(0:VCHUNK-1) :: dUy_dxi, dUy_deta, dUy_dzeta
-    real(fpp), dimension(0:VCHUNK-1) :: dUz_dxi, dUz_deta, dUz_dzeta
-    real(fpp), dimension(0:VCHUNK-1) :: fxijk, fyijk, fzijk
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: sxx,sxy,sxz,syy,syz,szz
+    real(fpp) :: dUx_dxi, dUx_deta, dUx_dzeta
+    real(fpp) :: dUy_dxi, dUy_deta, dUy_dzeta
+    real(fpp) :: dUz_dxi, dUz_deta, dUz_dzeta
+    real(fpp) :: sxx,sxy,sxz,syy,syz,szz
 
     real(fpp) :: xla2mu, xla
     real(fpp) :: xmu
 
     !if (ngll/=ngllvar) stop 1
-
+    !$acc loop worker collapse(3)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                local_deriv_ijke(Depla,0,dUx_dxi(ee),dUx_deta(ee),dUx_dzeta(ee))
-                END_SUBELEM_LOOP()
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                local_deriv_ijke(Depla,1,dUy_dxi(ee),dUy_deta(ee),dUy_dzeta(ee))
-                END_SUBELEM_LOOP()
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                local_deriv_ijke(Depla,2,dUz_dxi(ee),dUz_deta(ee),dUz_dzeta(ee))
-                END_SUBELEM_LOOP()
-
-#define JXX dom%InvGrad_(0,0,i,j,k,bnum,ee)
-#define JXY dom%InvGrad_(0,1,i,j,k,bnum,ee)
-#define JXZ dom%InvGrad_(0,2,i,j,k,bnum,ee)
-#define JYX dom%InvGrad_(1,0,i,j,k,bnum,ee)
-#define JYY dom%InvGrad_(1,1,i,j,k,bnum,ee)
-#define JYZ dom%InvGrad_(1,2,i,j,k,bnum,ee)
-#define JZX dom%InvGrad_(2,0,i,j,k,bnum,ee)
-#define JZY dom%InvGrad_(2,1,i,j,k,bnum,ee)
-#define JZZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
-
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-
-                dxx=dUx_dxi(ee)*JXX + dUx_deta(ee)*JXY + dUx_dzeta(ee)*JXZ
-                dxy=dUx_dxi(ee)*JYX + dUx_deta(ee)*JYY + dUx_dzeta(ee)*JYZ
-                dxz=dUx_dxi(ee)*JZX + dUx_deta(ee)*JZY + dUx_dzeta(ee)*JZZ
-
-                dyx=dUy_dxi(ee)*JXX + dUy_deta(ee)*JXY + dUy_dzeta(ee)*JXZ
-                dyy=dUy_dxi(ee)*JYX + dUy_deta(ee)*JYY + dUy_dzeta(ee)*JYZ
-                dyz=dUy_dxi(ee)*JZX + dUy_deta(ee)*JZY + dUy_dzeta(ee)*JZZ
-
-                dzx=dUz_dxi(ee)*JXX + dUz_deta(ee)*JXY + dUz_dzeta(ee)*JXZ
-                dzy=dUz_dxi(ee)*JYX + dUz_deta(ee)*JYY + dUz_dzeta(ee)*JYZ
-                dzz=dUz_dxi(ee)*JZX + dUz_deta(ee)*JZY + dUz_dzeta(ee)*JZZ
-
-
-                ! LINEAR ELASTIC ISOTROPE
-                xmu = dom%Mu_    (i,j,k,bnum,ee)
-                xla = dom%Lambda_(i,j,k,bnum,ee)
-                xla2mu = xla + 2. * xmu
-                sxx(ee,i,j,k) = xla2mu * DXX + xla * ( DYY + DZZ )
-                sxy(ee,i,j,k) = xmu * ( DXY + DYX )
-                sxz(ee,i,j,k) = xmu * ( DXZ + DZX )
-                syy(ee,i,j,k) = xla2mu * DYY + xla * ( DXX + DZZ )
-                syz(ee,i,j,k) = xmu * ( DYZ + DZY )
-                szz(ee,i,j,k) = xla2mu * DZZ + xla * ( DXX + DYY )
-                END_SUBELEM_LOOP()
-            end do
-        end do
-    end do
-
-
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i = 0,ngll-1
-                fxijk = 0
-                fyijk = 0
-                fzijk = 0
                 wi = dom%GLLw(i)
                 wj = dom%GLLw(j)
                 wk = dom%GLLw(k)
+                LOOP_VECTORIZE
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                Fox(ee,i,j,k) = 0
+                Foy(ee,i,j,k) = 0
+                Foz(ee,i,j,k) = 0
+                END_SUBELEM_LOOP()
                 ! Compute the terms relative to local coord xsi
                 DO L = 0, ngll-1
-                    wl = dom%hprime(i,L)*dom%Jacob_(L,j,k,bnum,ee)*dom%GLLw(L)*wj*wk
                     LOOP_VECTORIZE
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    LJXX = dom%InvGrad_(0,0,L,j,k,bnum,ee)
-                    LJYX = dom%InvGrad_(1,0,L,j,k,bnum,ee)
-                    LJZX = dom%InvGrad_(2,0,L,j,k,bnum,ee)
+                    wl = dom%hprime(i,L)*dom%Jacob_(L,j,k,bnum,ee)*dom%GLLw(L)*wj*wk
+                    load_jacobian_matrix(L,j,k)
+                    compute_du_deta(L,j,k)
+                    compute_du_dx(L,j,k)
+                    compute_sigma(L,j,k)
                     ! xt1 +xt5 + xt8
-                    fxijk(ee) = fxijk(ee) + (sxx(ee,L,j,k)*ljxx+sxy(ee,L,j,k)*ljyx+sxz(ee,L,j,k)*ljzx)*wl
-                    fyijk(ee) = fyijk(ee) + (sxy(ee,L,j,k)*ljxx+syy(ee,L,j,k)*ljyx+syz(ee,L,j,k)*ljzx)*wl
-                    fzijk(ee) = fzijk(ee) + (sxz(ee,L,j,k)*ljxx+syz(ee,L,j,k)*ljyx+szz(ee,L,j,k)*ljzx)*wl
+                    Fox(ee,i,j,k) = Fox(ee,i,j,k) + (sxx*ljxx+sxy*ljyx+sxz*ljzx)*wl
+                    Foy(ee,i,j,k) = Foy(ee,i,j,k) + (sxy*ljxx+syy*ljyx+syz*ljzx)*wl
+                    Foz(ee,i,j,k) = Foz(ee,i,j,k) + (sxz*ljxx+syz*ljyx+szz*ljzx)*wl
                     END_SUBELEM_LOOP()
                 END DO
-
 
                 ! Compute the terms relative to local coord eta
                 DO L = 0, ngll-1
-                    wl = dom%hprime(j,L)*dom%Jacob_(i,L,k,bnum,ee)*dom%GLLw(L)*wi*wk
                     LOOP_VECTORIZE
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    LJXY = dom%InvGrad_(0,1,i,L,k,bnum,ee)
-                    LJYY = dom%InvGrad_(1,1,i,L,k,bnum,ee)
-                    LJZY = dom%InvGrad_(2,1,i,L,k,bnum,ee)
+                    wl = dom%hprime(j,L)*dom%Jacob_(i,L,k,bnum,ee)*dom%GLLw(L)*wi*wk
+                    load_jacobian_matrix(i,L,k)
+                    compute_du_deta(i,L,k)
+                    compute_du_dx(i,L,k)
+                    compute_sigma(i,L,k)
                     ! xt2 + xt6 + xt9
-                    fxijk(ee) = fxijk(ee) + (sxx(ee,i,L,k)*ljxy+sxy(ee,i,L,k)*ljyy+sxz(ee,i,L,k)*ljzy)*wl
-                    fyijk(ee) = fyijk(ee) + (sxy(ee,i,L,k)*ljxy+syy(ee,i,L,k)*ljyy+syz(ee,i,L,k)*ljzy)*wl
-                    fzijk(ee) = fzijk(ee) + (sxz(ee,i,L,k)*ljxy+syz(ee,i,L,k)*ljyy+szz(ee,i,L,k)*ljzy)*wl
+                    Fox(ee,i,j,k) = Fox(ee,i,j,k) + (sxx*ljxy+sxy*ljyy+sxz*ljzy)*wl
+                    Foy(ee,i,j,k) = Foy(ee,i,j,k) + (sxy*ljxy+syy*ljyy+syz*ljzy)*wl
+                    Foz(ee,i,j,k) = Foz(ee,i,j,k) + (sxz*ljxy+syz*ljyy+szz*ljzy)*wl
                     END_SUBELEM_LOOP()
                 END DO
 
                 DO L = 0, ngll-1
-                    wl = dom%hprime(k,L)*dom%Jacob_(i,j,L,bnum,ee)*dom%GLLw(L)*wi*wj
                     LOOP_VECTORIZE
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    LJXZ = dom%InvGrad_(0,2,i,j,L,bnum,ee)
-                    LJYZ = dom%InvGrad_(1,2,i,j,L,bnum,ee)
-                    LJZZ = dom%InvGrad_(2,2,i,j,L,bnum,ee)
-                    fxijk(ee) = fxijk(ee) + (sxx(ee,i,j,L)*ljxz+sxy(ee,i,j,L)*ljyz+sxz(ee,i,j,L)*ljzz)*wl
-                    fyijk(ee) = fyijk(ee) + (sxy(ee,i,j,L)*ljxz+syy(ee,i,j,L)*ljyz+syz(ee,i,j,L)*ljzz)*wl
-                    fzijk(ee) = fzijk(ee) + (sxz(ee,i,j,L)*ljxz+syz(ee,i,j,L)*ljyz+szz(ee,i,j,L)*ljzz)*wl
+                    wl = dom%hprime(k,L)*dom%Jacob_(i,j,L,bnum,ee)*dom%GLLw(L)*wi*wj
+                    load_jacobian_matrix(i,j,L)
+                    compute_du_deta(i,j,L)
+                    compute_du_dx(i,j,L)
+                    compute_sigma(i,j,L)
+                    Fox(ee,i,j,k) = Fox(ee,i,j,k) + (sxx*ljxz+sxy*ljyz+sxz*ljzz)*wl
+                    Foy(ee,i,j,k) = Foy(ee,i,j,k) + (sxy*ljxz+syy*ljyz+syz*ljzz)*wl
+                    Foz(ee,i,j,k) = Foz(ee,i,j,k) + (sxz*ljxz+syz*ljyz+szz*ljzz)*wl
                     END_SUBELEM_LOOP()
                 END DO
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                Fox(ee,i,j,k) = fxijk(ee)
-                Foy(ee,i,j,k) = fyijk(ee)
-                Foz(ee,i,j,k) = fzijk(ee)
-                END_SUBELEM_LOOP()
             enddo
         enddo
     enddo
     !
 end subroutine PROCNAME
 
-#undef JXX
-#undef JXY
-#undef JXZ
-#undef JYX
-#undef JYY
-#undef JYZ
-#undef JZX
-#undef JZY
-#undef JZZ
+#undef x_deriv_ijke
+#undef load_jacobian_matrix
+#undef compute_du_dx
+#undef compute_sigma
 
 !! Local Variables:
 !! mode: f90

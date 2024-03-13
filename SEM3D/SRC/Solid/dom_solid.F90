@@ -59,6 +59,12 @@ contains
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+#if OPENACC
+            allocate(dom%Fox  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1))
+            allocate(dom%Foy  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1))
+            allocate(dom%Foz  (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1))
+            allocate(dom%Depla(0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:2,0:nblocks-1))
+#endif
             dom%m_Kappa = 0. ! May not be initialized if run without attenuation
 
             if (nl_flag) then
@@ -786,8 +792,23 @@ contains
         integer :: ngll,i,j,k,i_dir,ee,idx
         integer :: n_solid
         logical :: aniso
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+#if OPENACC
+#define tFox dom%Fox(:,:,:,:,bnum)
+#define tFoy dom%Foy(:,:,:,:,bnum)
+#define tFoz dom%Foz(:,:,:,:,bnum)
+#define tDepla dom%Depla(:,:,:,:,:,bnum)
+#define tFox_(e,i,j,k,bnum) dom%Fox(e,i,j,k,bnum)
+#define tFoy_(e,i,j,k,bnum) dom%Foy(e,i,j,k,bnum)
+#define tFoz_(e,i,j,k,bnum) dom%Foz(e,i,j,k,bnum)
+#define tDepla_(e,i,j,k,c,bnum) dom%Depla(e,i,j,k,c,bnum)
+#else
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: tFox,tFoy,tFoz
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: tDepla
+#define tFox_(e,i,j,k,bnum)     tFox(e,i,j,k)
+#define tFoy_(e,i,j,k,bnum)     tFoy(e,i,j,k)
+#define tFoz_(e,i,j,k,bnum)     tFoz(e,i,j,k)
+#define tDepla_(e,i,j,k,c,bnum) tDepla(e,i,j,k,c)
+#endif
 
         n_solid = dom%n_sls
         aniso = dom%aniso
@@ -800,28 +821,28 @@ contains
                     do i = 0,ngll-1
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
-                            Depla(ee,i,j,k,i_dir) = var%Depla(idx,i_dir)
+                            tDepla_(ee,i,j,k,i_dir,bnum) = var%Depla(idx,i_dir)
                         enddo
                     enddo
                 enddo
             enddo
         enddo
 
-        Fox = 0d0
-        Foy = 0d0
-        Foz = 0d0
+        tFox = 0d0
+        tFoy = 0d0
+        tFoz = 0d0
 
         if (aniso) then
             if (n_solid>0) then
-                call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_aniso_atn(dom,bnum,tFox,tFoy,tFoz,tDepla)
             else
-                call calcul_forces_aniso(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_aniso(dom,bnum,tFox,tFoy,tFoz,tDepla)
             end if
         else
             if (n_solid>0) then
-                call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso_atn(dom,bnum,tFox,tFoy,tFoz,tDepla)
             else
-                call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso(dom,bnum,tFox,tFoy,tFoz,tDepla)
             endif
         end if
 
@@ -830,13 +851,22 @@ contains
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-Fox(ee,i,j,k)
-                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-Foy(ee,i,j,k)
-                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-Foz(ee,i,j,k)
+                        dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
+                        dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
+                        dvdt%Veloc(idx,2) = dvdt%Veloc(idx,2)-tFoz_(ee,i,j,k,bnum)
                     enddo
                enddo
             enddo
         enddo
+#undef tFox
+#undef tFoy
+#undef tFoz
+#undef tDepla
+#undef tFox_
+#undef tFoy_
+#undef tFoz_
+#undef tDepla_
+        
     end subroutine forces_int_solid
 
     subroutine forces_int_solid_nl(dom, var, dvdt, bnum)
