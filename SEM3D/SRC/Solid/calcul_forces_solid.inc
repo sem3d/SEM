@@ -2,17 +2,20 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-
-#ifndef PROCNAME
-#error "Must define PROCNAME before inclusion"
-#endif
+#undef PROCNAME
+#undef PROCNAME_ATN
+#define PROCNAME PROCNAMEBASE()NGLLVAL
+#define PROCNAME_ATN PROCNAMEBASE_ATN()NGLLVAL
 
 #undef ngllvar
 #ifndef NGLLVAL
 #define ngllvar ngll
+#define PROCNAME PROCNAMEBASE()N
+#define PROCNAME_ATN PROCNAMEBASE_ATN()N
 #else
 #define ngllvar ngll0
 #endif
+
 
 #define USE_LOCAL_MEM
 

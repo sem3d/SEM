@@ -57,6 +57,10 @@ if (OPT_OPENMP)
   set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} ") # -acc=gpu -acc=multicore,...
 endif(OPT_OPENMP)
 
+set(OPT_MIN_GLL_OPT "4" CACHE STRING "Minimum hardcoded gll order")
+set(OPT_MAX_GLL_OPT "7" CACHE STRING "Maximum hardcoded gll order")
+set(OPT_MAX_GLL     "8" CACHE STRING  "Maximum gll order (any if > MAX_GLL_OPT)")
+
 option(OPT_MPI "Compilation en mode MPI" ON)
 
 # Obligatoire mais le flag n'est pas supprime partout

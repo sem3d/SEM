@@ -100,6 +100,17 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Mirror.f90
 
 )
+set_source_files_properties(
+  ${PRJ}/SRC/Solid/calcul_forces_iso.F90
+  ${PRJ}/SRC/Solid/calcul_forces_aniso.F90
+  ${PRJ}/SRC/Solid/calcul_forces_iso_atn.F90
+  ${PRJ}/SRC/Solid/calcul_forces_aniso_atn.F90
+  ${PRJ}/SRC/Solid/calcul_forces_iso_nl.F90
+  ${PRJ}/SRC/Solid/calcul_forces_aniso_nl.F90
+
+  PROPERTIES
+  COMPILE_DEFINITIONS "GLLMIN=${OPT_MIN_GLL_OPT};GLLMAX=${OPT_MAX_GLL};GLLOPTMAX=${OPT_MAX_GLL_OPT}"
+)
 
 if (OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
