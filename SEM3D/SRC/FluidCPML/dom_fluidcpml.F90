@@ -175,6 +175,36 @@ contains
         dom%alphamax = M_PI * fmax
     end subroutine init_domain_fluidpml
 
+    subroutine start_domain_fluidpml(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_fluidpml), intent(inout) :: dom
+        !
+        integer :: i
+
+        !$acc  enter data copyin(dom, dom%champs) &
+        !$acc&
+        do i = 0,1
+            !$acc enter data  copyin(dom%champs(i)%Phi, dom%champs(i)%VelPhi, dom%champs(i)%ForcesFl)
+        end do
+
+    end subroutine start_domain_fluidpml
+
+    subroutine stop_domain_fluidpml(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_fluidpml), intent(inout) :: dom
+        !
+        integer :: i
+
+        !$acc  exit data delete(dom, dom%champs) &
+        !$acc&
+        do i = 0,1
+            !$acc exit data delete(dom%champs(i)%Phi, dom%champs(i)%VelPhi, dom%champs(i)%ForcesFl)
+        end do
+
+    end subroutine stop_domain_fluidpml
+
     subroutine fluid_velocity(ngll,hprime,InvGrad,idensity,phi,veloc)
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)
         implicit none

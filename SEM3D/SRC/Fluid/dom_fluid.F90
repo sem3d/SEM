@@ -283,6 +283,36 @@ contains
         dom%dt = Tdomain%TimeD%dtmin
     end subroutine init_domain_fluid
 
+    subroutine start_domain_fluid(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_fluid), intent(inout) :: dom
+        !
+        integer :: i
+
+        !$acc  enter data copyin(dom, dom%champs) &
+        !$acc&
+        do i = 0,1
+            !$acc enter data  copyin(dom%champs(i)%Phi, dom%champs(i)%VelPhi, dom%champs(i)%ForcesFl)
+        end do
+
+    end subroutine start_domain_fluid
+
+    subroutine stop_domain_fluid(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_fluid), intent(inout) :: dom
+        !
+        integer :: i
+
+        !$acc  exit data delete(dom, dom%champs) &
+        !$acc&
+        do i = 0,1
+            !$acc exit data delete(dom%champs(i)%Phi, dom%champs(i)%VelPhi, dom%champs(i)%ForcesFl)
+        end do
+
+    end subroutine stop_domain_fluid
+
     subroutine init_material_properties_fluid(dom, lnum, mat, density, lambda)
         type(domain_fluid), intent(inout) :: dom
         integer, intent(in) :: lnum

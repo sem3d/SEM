@@ -421,6 +421,36 @@ contains
         dom%alphamax = M_PI * fmax
     end subroutine init_domain_solidpml
 
+    subroutine start_domain_solidpml(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_solidpml), intent(inout) :: dom
+        !
+        integer :: i, ns
+
+        !$acc  enter data copyin(dom, dom%champs) &
+        !$acc&
+        do i = 0,1
+            !$acc enter data  copyin(dom%champs(i)%Depla, dom%champs(i)%Forces)
+        end do
+
+    end subroutine start_domain_solidpml
+
+    subroutine stop_domain_solidpml(Tdomain, dom)
+        use sdomain
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_solidpml), intent(inout) :: dom
+        !
+        integer :: i, ns
+
+        !$acc  exit data delete(dom, dom%champs) &
+        !$acc&
+        do i = 0,1
+            !$acc exit data  delete(dom%champs(i)%Depla, dom%champs(i)%Forces)
+        end do
+
+    end subroutine stop_domain_solidpml
+
     subroutine init_material_properties_solidpml(dom, lnum, mat, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
         integer, intent(in) :: lnum
