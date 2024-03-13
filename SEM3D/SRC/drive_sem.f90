@@ -25,7 +25,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     use mdefinitions, only : define_arrays
     use semconfig !< pour config C
     use sem_c_bindings
-    use stat, only : stat_starttick, stat_stoptick, stat_init, stat_finalize, STAT_FULL, STAT_START
+    use stat, only : stat_starttick, stat_stoptick, stat_init, stat_finalize, STAT_START
 
     implicit none
 
@@ -56,7 +56,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     Tdomain%nb_procs = nb_procs
 
     call stat_init(communicateur, rg, nb_procs, .false.)
-    call stat_starttick(STAT_FULL)
     call stat_starttick(STAT_START)
 
  !----------------------------------------------------------------------------------------------!
@@ -73,7 +72,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
 
-    call stat_stoptick(STAT_START)
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
@@ -91,8 +89,9 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
                 enddo
             enddo
         enddo
-        
-        call TIME_STEPPING(Tdomain,isort,ntime)
+    call stat_stoptick(STAT_START)
+
+    call TIME_STEPPING(Tdomain,isort,ntime)
 
  !---------------------------------------------------------------------------------------------!
  !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
@@ -341,7 +340,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use mtimestep
     use semconfig !< pour config C
     use sem_c_bindings
-    use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO
+    use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO, STAT_ITER
 
     implicit none
 
@@ -403,12 +402,14 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- TIME STEPPER TO CHOSE
 !---------------------------------------------------------!
         !- Newmark reduced to leap-frog
+        call stat_starttick(STAT_ITER)
         select case(Tdomain%TimeD%type_timeinteg)
         case (TIME_INTEG_NEWMARK)
             call Newmark(Tdomain, ntime)
         case (TIME_INTEG_LDDRK64)
             call Timestep_LDDRK(Tdomain, ntime)
         end select
+        call stat_stoptick(STAT_ITER)
         if (Tdomain%rank==0 .and. mod(ntime,20)==0) then
             print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
         end if

@@ -3,7 +3,7 @@ module stat
     use sem_c_bindings, only : sem_mkdir
     implicit none
     ! TYPE DE STATISTIQUES
-    integer, parameter :: STAT_COUNT = 13
+    integer, parameter :: STAT_COUNT = 14
     integer, parameter :: STAT_GIVE  = 0 !
     integer, parameter :: STAT_TAKE  = 1 !
     integer, parameter :: STAT_WAIT  = 2 !
@@ -17,9 +17,10 @@ module stat
     integer, parameter :: STAT_IO    =10 ! IO
     integer, parameter :: STAT_START  =11 ! Initialisation/startup time
     integer, parameter :: STAT_FSOL_DG=12 ! Forces      solide
+    integer, parameter :: STAT_ITER=13    !
 
     character(len=5), dimension(0:STAT_COUNT-1) :: stat_labels = (/ &
-        "GIVE ", "TAKE ", "WAIT ", "FSOL ", "FFLU ", "PSOL ", "PFLU ", "FEXT ", "FULL ", "TSTEP","IO   ", "INIT ", "FSDG " /)
+        "GIVE ", "TAKE ", "WAIT ", "FSOL ", "FFLU ", "PSOL ", "PFLU ", "FEXT ", "FULL ", "TSTEP","IO   ", "INIT ", "FSDG ", "ITER " /)
 
     integer*8, private :: clockRate, maxPeriod
 
