@@ -71,9 +71,9 @@ contains
             call internal_forces(Tdomain, 0, 2, ntime)
             call external_forces(Tdomain, t, ntime, 2)
 
-            call assemble_forces(Tdomain, Tdomain%sdomdg, 2)
+            call assemble_forces_dg(Tdomain, Tdomain%sdomdg, 2)
             call comm_forces(Tdomain, 2)
-            call deassemble_forces(Tdomain, Tdomain%sdomdg,2)
+            call deassemble_forces_dg(Tdomain, Tdomain%sdomdg,2)
 
             call lddrk_update_solid(Tdomain%sdom, 0, 1, 2, dt, cb, cg)
             call lddrk_update_solid_dg(Tdomain%sdomdg, 0, 1, 2, dt, cb, cg)
@@ -107,7 +107,7 @@ contains
 
     end subroutine Timestep_LDDRK
 
-    subroutine assemble_forces(Tdomain, dom, f1)
+    subroutine assemble_forces_dg(Tdomain, dom, f1)
 
         implicit none
 
@@ -135,9 +135,9 @@ contains
             enddo
         enddo
 
-    end subroutine assemble_forces
+    end subroutine assemble_forces_dg
 
-    subroutine deassemble_forces(Tdomain, dom, f1)
+    subroutine deassemble_forces_dg(Tdomain, dom, f1)
 
         implicit none
 
@@ -168,7 +168,7 @@ contains
             enddo
         enddo
 
-    end subroutine deassemble_forces
+    end subroutine deassemble_forces_dg
 
     subroutine Newmark(Tdomain,ntime)
         ! Predictor-MultiCorrector Newmark Velocity Scheme within a
