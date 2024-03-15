@@ -333,6 +333,7 @@ end subroutine RUN_INIT_INTERACT
 !-----------------------------------------------------------------------------------
 subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use sdomain
+    use scomm
     use mCapteur
     use semdatafiles
     use sem_mpi
@@ -361,7 +362,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     double precision :: time_now
     integer :: time_now_s
     real(kind=8) :: remaining_time
-    integer :: code
+    integer :: code, n
 
     rg = Tdomain%rank
     nb_procs = Tdomain%nb_procs
@@ -391,11 +392,26 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !- end of run flag
     interrupt = 0
 
+    startup_init_done = .true.
     !---------------------------------------------------------!
     !--------------------  LOOP UPON TIME  -------------------!
     !---------------------------------------------------------!
-    !$acc data      copyin(Tdomain%sSource) &
-    !$acc
+    !$acc data &
+    !$acc& copyin(Tdomain) &
+    !$acc& copyin(Tdomain%sSource) &
+    !$acc& copyin(Tdomain%Comm_data) &
+    !$acc& copyin(Tdomain%Comm_data%Data) &
+    !$acc&
+    do n = 0,Tdomain%Comm_data%ncomm-1
+        !$acc  enter data create(Tdomain%Comm_data%Data(n)%Give) &
+        !$acc&            create(Tdomain%Comm_data%Data(n)%Take) &
+        !$acc&      copyin(Tdomain%Comm_data%Data(n)%IGiveF) &
+        !$acc&      copyin(Tdomain%Comm_data%Data(n)%IGiveS) &
+        !$acc&      copyin(Tdomain%Comm_data%Data(n)%IGiveSDG) &
+        !$acc&      copyin(Tdomain%Comm_data%Data(n)%IGiveSPML) &
+        !$acc&      copyin(Tdomain%Comm_data%Data(n)%IGiveFPML) &
+        !$acc&
+    end do
     call start_domain_solid(Tdomain, Tdomain%sdom)
     call start_domain_solidpml(Tdomain, Tdomain%spmldom)
     call start_domain_fluid(Tdomain, Tdomain%fdom)

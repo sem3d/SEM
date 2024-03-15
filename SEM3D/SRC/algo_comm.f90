@@ -4,6 +4,9 @@
 !!
 module scomm
     use constants, only : fpp
+#if OPENACC
+    use openacc
+#endif
     implicit none
     interface comm_give_data
         module procedure comm_give_data_1, comm_give_data_2, comm_give_data_3
@@ -12,8 +15,36 @@ module scomm
     interface comm_take_data
         module procedure comm_take_data_1, comm_take_data_2, comm_take_data_3
     end interface comm_take_data
+    logical :: startup_init_done
 
 contains
+    subroutine exchange_proc(Tdomain, tag, vector, i, give, take)
+        use sdomain
+        use sem_mpi
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: tag, i
+        type(comm_vector), intent(inout) :: vector
+        real(fpp), intent(inout), dimension(0:vector%Data(i)%ndata-1) :: give
+        real(fpp), intent(inout), dimension(0:vector%Data(i)%ndata-1) :: take
+        !
+#ifdef __MPI
+        ! Won't work with stub mpi module and nvhpc/openacc because
+        ! somehow the compiler changes the datatype of give/take
+        integer :: dest, ierr
+        dest = vector%Data(i)%dest
+        !$acc host_data use_device(give) if (startup_init_done)
+        call MPI_Isend(give, vector%Data(i)%ndata, &
+            MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
+            vector%send_reqs(i), ierr)
+        !$acc end host_data
+        !$acc host_data use_device(take) if (startup_init_done)
+        call MPI_Irecv(take, vector%Data(i)%ndata, &
+            MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
+            vector%recv_reqs(i), ierr)
+        !$acc end host_data
+#endif
+    end subroutine exchange_proc
     subroutine exchange_sem_var(Tdomain, tag, vector)
         use sdomain
         use sem_mpi
@@ -33,17 +64,10 @@ contains
         vector%recv_reqs = MPI_REQUEST_NULL
 
         call stat_starttick(STAT_WAIT)
+        !$acc wait(1)   if (startup_init_done)
         do i = 0,vector%ncomm-1
             if (vector%Data(i)%ndata>0) then
-                dest = vector%Data(i)%dest
-                src = vector%Data(i)%src
-                call MPI_Isend(vector%Data(i)%Give, vector%Data(i)%ndata, &
-                    MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
-                    vector%send_reqs(i), ierr)
-
-                call MPI_Irecv(vector%Data(i)%Take, vector%Data(i)%ndata, &
-                    MPI_REAL_FPP, dest, tag, Tdomain%communicateur, &
-                    vector%recv_reqs(i), ierr)
+                call exchange_proc(Tdomain, tag, vector, i, vector%Data(i)%Give, vector%Data(i)%Take)
             end if
         enddo
 
@@ -51,6 +75,19 @@ contains
         call MPI_Waitall(vector%ncomm, vector%send_reqs, statuses, ierr)
         call stat_stoptick(STAT_WAIT)
 
+        if (startup_init_done .and. .false.) then
+            open(111,file="comm.nok."//strrank(Tdomain%rank),status="unknown",form="formatted",position="append")
+            write(111,*) "----------------------------------------------------"
+            write(111,*) "ITERX:", Tdomain%TimeD%rtime
+            do i = 0,vector%ncomm-1
+                write(111,*) "COMM:", i, ":", vector%Data(i)%src, " -> ", vector%Data(i)%dest
+                if (vector%Data(i)%ndata>0) then
+                    write(111,"(*(6(F10.5,3X),/))") vector%Data(0)%Give
+                end if
+                write(111,*)
+            end do
+            close(111)
+        end if
     end subroutine exchange_sem_var
 
     subroutine comm_give_data_1(give, igive, data, pos)
@@ -59,11 +96,15 @@ contains
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
-        integer :: i
-        do i=0,size(igive)-1
-            give(pos) = data(igive(i))
-            pos = pos + 1
+        integer :: i, p0
+        integer :: ni
+        ni = size(igive)
+        p0 = pos
+        !$acc parallel loop async(1) if (startup_init_done)
+        do i=0,ni-1
+            give(p0+i) = data(igive(i))
         end do
+        pos = p0+ni
     end subroutine comm_give_data_1
 
     subroutine comm_give_data_2(give, igive, data, pos)
@@ -72,13 +113,18 @@ contains
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
-        integer :: i,j
-        do i=0,size(igive)-1
-            do j=0,size(data,2)-1
-                give(pos) = data(igive(i),j)
-                pos = pos + 1
+        integer :: i,j,p0
+        integer :: ni, nj
+        ni = size(igive)
+        nj = size(data,2)
+        p0 = pos
+        !$acc parallel loop collapse(2) async(1)  if (startup_init_done)
+        do i=0,ni-1
+            do j=0,nj-1
+                give(p0+j+nj*i) = data(igive(i),j)
             end do
         end do
+        pos = p0 + ni*nj
     end subroutine comm_give_data_2
 
     subroutine comm_give_data_3(give, igive, data, pos)
@@ -87,15 +133,21 @@ contains
         integer, dimension(0:), intent(in) :: igive
         integer, intent(inout) :: pos
         !
-        integer :: i,j,k
-        do i=0,size(igive)-1
-            do j=0,size(data,2)-1
-                do k=0,size(data,3)-1
-                    give(pos) = data(igive(i),j,k)
-                    pos = pos + 1
+        integer :: i,j,k,p0
+        integer :: ni, nj, nk
+        ni = size(igive)
+        nj = size(data,2)
+        nk = size(data,3)
+        p0 = pos
+        !$acc parallel loop collapse(3) async(1)  if (startup_init_done)
+        do i=0,ni-1
+            do j=0,nj-1
+                do k=0,nk-1
+                    give(p0 + k + nk*(j + nj*i)) = data(igive(i),j,k)
                 end do
             end do
         end do
+        pos = pos+ni*nj*nk
     end subroutine comm_give_data_3
 
     subroutine comm_take_data_1(take, itake, data, pos)
@@ -104,12 +156,16 @@ contains
         real(fpp), dimension(0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
-        integer :: i, idx
-        do i=0,size(itake)-1
+        integer :: i, idx, p0
+        integer :: ni
+        ni = size(itake)
+        p0 = pos
+        !$acc parallel loop async(1)  if (startup_init_done)
+        do i=0,ni-1
             idx = itake(i)
-            data(idx) = data(idx) + take(pos)
-            pos = pos + 1
+            data(idx) = data(idx) + take(p0+i)
         end do
+        pos = p0+ni
     end subroutine comm_take_data_1
 
     subroutine comm_take_data_2(take, itake, data, pos)
@@ -118,14 +174,19 @@ contains
         real(fpp), dimension(0:,0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
-        integer :: i, j, idx
-        do i=0,size(itake)-1
-            idx = itake(i)
-            do j=0,size(data,2)-1
-                data(idx,j) = data(idx,j) + take(pos)
-                pos = pos + 1
+        integer :: i, j, idx, p0
+        integer :: ni, nj
+        ni = size(itake)
+        nj = size(data,2)
+        p0 = pos
+        !$acc parallel loop collapse(2) async(1)  if (startup_init_done)
+        do i=0,ni-1
+            do j=0,nj-1
+                idx = itake(i)
+                data(idx,j) = data(idx,j) + take(p0+j+nj*i)
             end do
         end do
+        pos = p0+ni*nj
     end subroutine comm_take_data_2
 
     subroutine comm_take_data_3(take, itake, data, pos)
@@ -134,16 +195,22 @@ contains
         real(fpp), dimension(0:,0:,0:), intent(inout)  :: data
         integer, intent(inout) :: pos
         !
-        integer :: i, j, k, idx
-        do i=0,size(itake)-1
-            idx = itake(i)
-            do j=0,size(data,2)-1
-                do k=0,size(data,3)-1
-                    data(idx,j,k) = data(idx,j,k) + take(pos)
-                    pos = pos + 1
+        integer :: i, j, k, idx, p0
+        integer :: ni, nj, nk
+        ni = size(itake)
+        nj = size(data,2)
+        nk = size(data,3)
+        p0 = pos
+        !$acc parallel loop collapse(3) async(1)  if (startup_init_done)
+        do i=0,ni-1
+            do j=0,nj-1
+                do k=0,nk-1
+                    idx = itake(i)
+                    data(idx,j,k) = data(idx,j,k) + take(p0 + k + nk*(j + nj*i))
                 end do
             end do
         end do
+        pos = p0 +ni*nj*nk
     end subroutine comm_take_data_3
 
     subroutine exchange_sf_normals(Tdomain)

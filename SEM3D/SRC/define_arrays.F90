@@ -37,6 +37,8 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg, bnum, ee
 
+        ! for scomm:
+        startup_init_done = .false.
         ! Copy Idom from element to domain_XXX
         ! Note : this must be done first as CPLM domain needs dom%Idom_ to build M, K, ...
         ! Note : the non-CPML domains (Solid, Fluid, ...) use specel%Idom instead of dom%Idom_ to build M, K...

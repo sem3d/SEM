@@ -842,7 +842,7 @@ contains
 
     subroutine MPI_ISEND_rv (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real(fpp), intent(in), dimension(long) :: val
+        real(fpp), intent(in), dimension(:) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
@@ -902,7 +902,7 @@ contains
 
     subroutine MPI_IRECV_rv (val, long, type, dest, tag, comm, requete, ierr)
         implicit none
-        real(fpp), intent(out), dimension(long) :: val
+        real(fpp), intent(out), dimension(:) :: val
         integer, intent(in) :: long
         integer, intent(in) :: type
         integer, intent(in) :: dest
