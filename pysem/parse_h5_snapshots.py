@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """
-Script to compute PML properties for SEM3D
+Script read SEM3D snapshots with MPI-based algorithm
 
-    Ex.1 : Compute amplitude Ax knowning PML length (300. m):
-        
-        python3 compute_pml_length.py @@PML_length 300.
-    
-    Ex.2 : Compute PML_length knowing the amplitude Ax (10.)
-        
-        python3 compute_pml_length.py @@Ax 10.
+    Ex.1 : Parse Velocity snapshot files with n MPI cores
+
+        mpirun --np n python3 parse_h5_snapshots.py @@wkd /path/to/sem3d/res @@var veloc
+
 """
 # Required modules
 import mpi4py

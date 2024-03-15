@@ -259,7 +259,7 @@ def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**
                 cmp_ok[k].sort()
         
         if 'all' in nam:
-            nam = [c for c in nam]
+            nam_ok = [c for c in nam]
         cpts = {}
         for n in nam:
             cpt = SEM3DMonitor(name=n,fmt=fmt,var=var_ok,var_avl=var_avl,comp=cmp_ok)
