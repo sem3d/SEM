@@ -91,7 +91,6 @@
 #define        PMLDumpSy_(i,j,k,n,eb,ec)        m_PMLDumpSy(IND_IJKNE(i,j,k,n,eb,ec))
 #define        PMLDumpSz_(i,j,k,n,eb,ec)        m_PMLDumpSz(IND_IJKNE(i,j,k,n,eb,ec))
 
-#endif
 
 #define part_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
         dS_dxi   = 0.0D+0; \
@@ -123,3 +122,13 @@ alphaval = 1d0 + dt_tau + 0.5d0 * dt_tau**2 + dt_tau**3 *(1d0/6d0) + dt_tau**4 *
 betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(1d0/24.d0)); \
 gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
 
+
+#ifdef SINGLEPRECISION
+#define MPI_REAL_FPP MPI_FLOAT
+#define H5T_REAL  H5T_NATIVE_REAL
+#else
+#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
+#define H5T_REAL  H5T_NATIVE_DOUBLE
+#endif
+
+#endif

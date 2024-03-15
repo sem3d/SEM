@@ -13,10 +13,12 @@ MODULE constants
     ! Precision
 #ifdef SINGLEPRECISION
     integer, parameter :: FPP=kind(0E0)
+    real(fpp), parameter :: HUGE_VAL = 1E20
     real(fpp), parameter :: MAX_DOUBLE = 1E15
     real(fpp), parameter :: SMALLFPP=1e-3
 #else
     integer, parameter :: FPP=kind(0D0)
+    real(fpp), parameter :: HUGE_VAL = 1E40
     real(fpp), parameter :: MAX_DOUBLE = 1.79769313486231570d+307
     real(fpp), parameter :: SMALLFPP=1e-10
 #endif

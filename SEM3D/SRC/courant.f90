@@ -19,9 +19,9 @@ contains
         implicit none
         type (Domain), intent (INOUT) :: Tdomain
         integer, intent(in) :: idef0, idef1
-        real(fpp), intent(inout) :: dxmin, dxmax
+        double precision, intent(inout) :: dxmin, dxmax
         !
-        real(fpp) :: dx
+        double precision :: dx
 
         if (idef0==idef1) then
             write(*,*) "Numbering problem"
@@ -50,11 +50,11 @@ contains
 
         integer :: i,j,k,n,ngll,idef0,idef1, mat, ierr
         integer :: lnum
-        real(fpp) :: dxmin,courant,courant_max
-        real(fpp) :: dt_min, dt, dt_loc
-        real(fpp) :: dxmax
-        real(fpp) :: pspeed, maxPspeed, sumPspeed
-        real(fpp), dimension(0:Tdomain%n_mat-1) :: avgPspeed_mat, dxmin_mat, dt_loc_mat
+        double precision :: dxmin,courant,courant_max
+        double precision :: dt_loc, dt_min, dt
+        double precision :: dxmax
+        double precision :: pspeed, maxPspeed, sumPspeed
+        double precision, dimension(0:Tdomain%n_mat-1) :: avgPspeed_mat, dxmin_mat, dt_loc_mat
         integer, dimension(0:Tdomain%n_mat-1) :: ngll_mat
         logical :: use_average
 

@@ -570,19 +570,19 @@ contains
 
         select case(mat%deftype)
         case(MATDEF_VP_VS_RHO,MATDEF_VP_VS_RHO_D)
-            nlkp = 1.0d40
+            nlkp = HUGE_VAL
             mu = rho * v1**2
             lambda = rho*(v0**2 - 2d0 *v1**2)
         case(MATDEF_E_NU_RHO,MATDEF_E_NU_RHO_D)
-            nlkp = 1.0d40
+            nlkp = HUGE_VAL
             lambda = v0*v1/((1d0+v1)*(1d0-2d0*v1))
             mu = v0/(2d0*(1d0+v1))
         case(MATDEF_LAMBDA_MU_RHO,MATDEF_LAMBDA_MU_RHO_D)
-            nlkp = 1.0d40
+            nlkp = HUGE_VAL
             lambda = v0
             mu = v1
         case(MATDEF_KAPPA_MU_RHO,MATDEF_KAPPA_MU_RHO_D)
-            nlkp = 1.0d40
+            nlkp = HUGE_VAL
             mu = v1
             lambda = v0 - 2d0*mu/3d0
         case(MATDEF_HOOKE_RHO,MATDEF_HOOKE_RHO_D)
@@ -597,7 +597,7 @@ contains
             nu = v0
             mu = rho*v1**2
             lambda = 2.0d0*nu*(rho*v1**2)/(1.0d0-2.0d0*nu)
-            nlkp = 1.0d40
+            nlkp = HUGE_VAL
         case(MATDEF_VTI_ANISO)
             A = rho*v0h**2
             C = rho*v0**2

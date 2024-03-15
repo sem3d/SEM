@@ -345,7 +345,7 @@ contains
         real(fpp), intent(out), dimension(0:2) :: rtp
         real(fpp) :: dx
 
-        rtp(0) = dsqrt(xyz(0)**2+xyz(1)**2+xyz(2)**2)
+        rtp(0) = sqrt(xyz(0)**2+xyz(1)**2+xyz(2)**2)
         if (rtp(0)==0.0_fpp) then
             rtp(1) = 0.0_fpp
             rtp(2) = 0.0_fpp
@@ -356,18 +356,18 @@ contains
             else if (dx<=-1.0_fpp) then
                 rtp(1) = M_PI
             else
-                rtp(1) = dacos(dx)
+                rtp(1) = acos(dx)
             end if
             if ((rtp(1)==0.0_fpp).or.(rtp(1)==M_PI)) then
                 rtp(2) = 0.0_fpp
             else
-                dx = xyz(0)/(rtp(0)*dsin(rtp(1)))
+                dx = xyz(0)/(rtp(0)*sin(rtp(1)))
                 if (dx>1.0_fpp) then
                     rtp(2) = 0.0_fpp
                 else if (dx<1.0_fpp) then
                     rtp(2) = M_PI
                 else
-                    rtp(2) = dacos(dx)
+                    rtp(2) = acos(dx)
                     if (xyz(1)<0.0_fpp) rtp(2) = 2*M_PI-rtp(2)
                 end if
             end if

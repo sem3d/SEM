@@ -510,7 +510,7 @@ contains
             t = ntimecur*d_t
             tnt = t/d_tm
             recn = int(tnt)
-            tnt = tnt-dble(recn)
+            tnt = tnt-real(recn,fpp)
             if (ntimecur==first.or.recn/=recp) then
                 j1 = 1
                 j2 = n_spl+1
@@ -545,7 +545,7 @@ contains
             dom%mirror_sl%fields(4:6,:) = 0.d0
             dom%mirror_sl%fields(7:9,:) = 0.d0
             do i = 1,n_spl+1
-                tmp = bspln(0,n_spl,dble(tnt+i-1))
+                tmp = bspln(0,n_spl,real(tnt+i-1,fpp))
                 dom%mirror_sl%fields(1:3,:) = dom%mirror_sl%fields(1:3,:)+tmp*displ_sl(:,:,n_spl+2-i)
                 dom%mirror_sl%fields(4:6,:) = dom%mirror_sl%fields(4:6,:)+tmp*force_sl(:,:,n_spl+2-i)
                 dom%mirror_sl%fields(7:9,:) = dom%mirror_sl%fields(7:9,:)+tmp*veloc_sl(:,:,n_spl+2-i)
@@ -605,7 +605,7 @@ contains
             t = ntimecur*d_t
             tnt = t/d_tm
             recn = int(tnt)
-            tnt = tnt-dble(recn)
+            tnt = tnt-real(recn,fpp)
             if (ntimecur==first.or.recn/=recp) then
                 j1 = 1
                 j2 = n_spl+1
@@ -639,7 +639,7 @@ contains
             dom%mirror_fl%fields(1,:) = 0.d0
             dom%mirror_fl%fields(2,:) = 0.d0
             do i = 1,n_spl+1
-                tmp = bspln(0,n_spl,dble(tnt+i-1))
+                tmp = bspln(0,n_spl,real(tnt+i-1,fpp))
                 dom%mirror_fl%fields(1,:) = dom%mirror_fl%fields(1,:)+tmp*displ_fl(:,n_spl+2-i)
                 dom%mirror_fl%fields(2,:) = dom%mirror_fl%fields(2,:)+tmp*force_fl(:,n_spl+2-i)
                 dom%mirror_fl%fields(3,:) = dom%mirror_fl%fields(3,:)+tmp*veloc_fl(:,n_spl+2-i)

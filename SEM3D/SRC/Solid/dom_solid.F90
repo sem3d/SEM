@@ -644,8 +644,8 @@ contains
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Qmu
         real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: nlkp
         logical, intent(in) :: nl_flag
-        real(fpp),parameter :: gamma_el = 1.0d-5
-        real(fpp),parameter :: gamma_pl = 1.0d-4
+        real(fpp),parameter :: gamma_el = real(1.0d-5,fpp)
+        real(fpp),parameter :: gamma_pl = real(1.0d-4,fpp)
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
