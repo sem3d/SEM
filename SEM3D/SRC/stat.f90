@@ -61,7 +61,7 @@ contains
     end subroutine add_stop_trace
 
     subroutine stat_init(comm, rg, nprocs, dotraces)
-        use mpi
+        use sem_mpi
         implicit none
         integer, intent(in) :: comm, rg, nprocs
         logical, intent(in) :: dotraces
@@ -101,7 +101,7 @@ contains
 
 
     subroutine stat_finalize(Tdomain)
-        use mpi
+        use sem_mpi
         use sdomain, only : domain_nelems, domain
         implicit none
         type(domain), intent(in) :: Tdomain

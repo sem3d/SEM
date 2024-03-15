@@ -26,11 +26,8 @@ module sem_hdf5
 
     integer(HSIZE_T), DIMENSION(1:2) :: chunk = (/chunk0,chunk1/)
 
-#ifdef SINGLEPRECISION
-#define H5T_REAL  H5T_NATIVE_REAL
-#else
-#define H5T_REAL  H5T_NATIVE_DOUBLE
-#endif
+#include "sem_hdf5.h"
+    
     interface create_dset
        module procedure create_dset_i4, create_dset_i8
     end interface create_dset
@@ -273,7 +270,7 @@ contains
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
         if (hdferr .ne. 1) stop "read_dset_1d_real : h5sgetdim KO"
         allocate(data(i0:dims(1)+i0-1))
-        call h5dread_f(dset_id, H5T_REAL, data, dims, hdferr)
+        call h5dread_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         if (hdferr .ne. 0) stop "read_dset_1d_real : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_1d_real : h5dclose KO"
@@ -357,7 +354,7 @@ contains
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
         if (hdferr .ne. 2) stop "read_dset_2d_real : h5sgetdim KO "
         allocate(data(i0:dims(1)+i0-1, i1:dims(2)+i1-1))
-        call h5dread_f(dset_id, H5T_REAL, data, dims, hdferr)
+        call h5dread_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         if (hdferr .ne. 0) stop "read_dset_2d_real : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_2d_real : h5dclose KO"
@@ -413,7 +410,7 @@ contains
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
         if (hdferr .ne. 3) stop "read_dset_3d_real : h5sgetdim KO "
         allocate(data(i0:dims(1)+i0-1, i1:dims(2)+i1-1, i2:dims(3)+i2-1))
-        call h5dread_f(dset_id, H5T_REAL, data, dims, hdferr)
+        call h5dread_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         if (hdferr .ne. 0) then
             write(*,*) "read_dset_3d_real : h5dread KO", dims
             stop 1
@@ -445,7 +442,7 @@ contains
         if (hdferr .ne. 0) stop "read_subset_3d_real : h5sgetdim KO "
         allocate(data(imin(0):imax(0), imin(1):imax(1), imin(2):imax(2)))
         call H5Screate_simple_f(3, count, memspace_id, hdferr)
-        call h5dread_f(dset_id, H5T_REAL, data, count, hdferr, memspace_id, space_id)
+        call h5dread_f(dset_id, H5T_REAL_FPP, data, count, hdferr, memspace_id, space_id)
         if (hdferr .ne. 0) then
             write(*,*) "read_subset_3d_real : h5dread KO", imin, imax
             stop 1
@@ -562,7 +559,7 @@ contains
         !write(*,*) "save_attr_real: ", attr, value
         call h5screate_f(H5S_SCALAR_F, space_id, hdferr)
         call h5acreate_f(dset, attr, H5T_NATIVE_DOUBLE, space_id, attr_id, hdferr, H5P_DEFAULT_F)
-        call h5awrite_f(attr_id, H5T_REAL, value, dims, hdferr)
+        call h5awrite_f(attr_id, H5T_REAL_FPP, value, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
     end subroutine write_attr_real
@@ -643,7 +640,7 @@ contains
         call h5aopen_f(dset, attr, attr_id, hdferr)
         call h5aget_space_f(attr_id, space_id, hdferr)
         ! TODO: check h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
-        call h5aread_f(attr_id, H5T_REAL, value, dims, hdferr)
+        call h5aread_f(attr_id, H5T_REAL_FPP, value, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
     end subroutine read_attr_real
@@ -660,7 +657,7 @@ contains
         integer :: hdferr
         dims(1) = size(arr,1)
         call create_dset(parent, name, H5T_IEEE_F64LE, dims(1), dset_id)
-        call h5dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, arr, dims, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d1 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d1 : h5dclose KO"
@@ -679,7 +676,7 @@ contains
         dims(1) = size(arr,1)
         dims(2) = size(arr,2)
         call create_dset_2d_i8(parent, name, H5T_IEEE_F64LE, dims(1), dims(2), dset_id)
-        call h5dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, arr, dims, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d2 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d2 : h5dclose KO"
@@ -699,7 +696,7 @@ contains
         dims(2) = size(arr,2)
         dims(3) = size(arr,3)
         call create_dset_3d_i8(parent, name, H5T_IEEE_F64LE, dims, dset_id)
-        call h5dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, arr, dims, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d3 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
         if (hdferr .ne. 0) stop "write_dataset_d3 : h5dclose KO"
@@ -760,7 +757,7 @@ contains
              offset, count, hdferr, stride, block)
         call h5screate_simple_f(1, dimsm, memspace, hdferr)
         allocate(arr(dimsm(1)))
-        call h5dread_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
+        call h5dread_f(dset_id, H5T_REAL_FPP, arr, dimsm, hdferr, &
              memspace, dataspace)
         call h5sclose_f(dataspace, hdferr)
         call h5sclose_f(memspace, hdferr)
@@ -810,7 +807,7 @@ contains
              offset, count, hdferr, stride, block)
         call h5screate_simple_f(2, dimsm, memspace, hdferr)
         allocate(arr(dimsm(1),dimsm(2)))
-        call h5dread_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
+        call h5dread_f(dset_id, H5T_REAL_FPP, arr, dimsm, hdferr, &
              memspace, dataspace)
         call h5sclose_f(dataspace, hdferr)
         call h5sclose_f(memspace, hdferr)
@@ -859,7 +856,7 @@ contains
         call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
              offset, count, hdferr, stride, block)
         call h5screate_simple_f(1, dimsm, memspace, hdferr)
-        call h5dwrite_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, arr, dimsm, hdferr, &
              memspace, dataspace)
         call h5sclose_f(dataspace, hdferr)
         call h5sclose_f(memspace, hdferr)
@@ -907,7 +904,7 @@ contains
         call h5sselect_hyperslab_f(dataspace, H5S_SELECT_SET_F, &
              offset, count, hdferr, stride, block)
         call h5screate_simple_f(2, dimsm, memspace, hdferr)
-        call h5dwrite_f(dset_id, H5T_REAL, arr, dimsm, hdferr, &
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, arr, dimsm, hdferr, &
              memspace, dataspace)
         call h5sclose_f(dataspace, hdferr)
         call h5sclose_f(memspace, hdferr)
@@ -962,7 +959,7 @@ contains
         dims(1) = size(arr, 1)
         call H5Sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, dims, hdferr)
         
-        call H5Dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr, memspace, filespace)
+        call H5Dwrite_f(dset_id, H5T_REAL_FPP, arr, dims, hdferr, memspace, filespace)
         call H5Sclose_f(filespace, hdferr)
         call H5Sclose_f(memspace, hdferr)
     end subroutine append_dataset_1d_r
@@ -1027,7 +1024,7 @@ contains
         !write(*,*) "RW: dims:", dims
         call H5Sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, dims, hdferr)
 
-        call H5Dwrite_f(dset_id, H5T_REAL, arr, dims, hdferr, memspace, filespace)
+        call H5Dwrite_f(dset_id, H5T_REAL_FPP, arr, dims, hdferr, memspace, filespace)
         call H5Sclose_f(filespace, hdferr)
         call H5Sclose_f(memspace, hdferr)
     end subroutine append_dataset_2d_r
@@ -1082,7 +1079,7 @@ contains
         call h5aopen_f(file_id, attr_name, attr_id, hdferr)
         call h5aget_space_f(attr_id, space_id, hdferr)
         call h5sget_simple_extent_dims_f(space_id, dims, max_dims, hdferr) !Get the size of the attribute
-        call h5aread_f(attr_id, H5T_REAL, data, dims, hdferr)
+        call h5aread_f(attr_id, H5T_REAL_FPP, data, dims, hdferr)
         call h5aclose_f(attr_id, hdferr)
         call h5sclose_f(space_id, hdferr)
 

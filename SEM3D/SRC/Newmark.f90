@@ -174,7 +174,7 @@ contains
         ! Predictor-MultiCorrector Newmark Velocity Scheme within a
         ! Time staggered Stress-Velocity formulation inside PML
         use mcapteur
-        use mpi
+        use sem_mpi
         use scomm, only : exchange_sem_var, comm_give_data, comm_take_data
         use scommutils
         use stat, only : stat_starttick, stat_stoptick, STAT_FEXT

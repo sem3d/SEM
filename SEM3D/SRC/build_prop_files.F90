@@ -1,7 +1,6 @@
 module build_prop_files
 
     use sdomain
-    use mpi
     use constants
     use scomm
     use scommutils

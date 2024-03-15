@@ -82,7 +82,7 @@ include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCL
 if (${HDF5_ROOT})
   include_directories(${HDF5_ROOT}/include/shared)
 endif ()
-include_directories(${PROJECT_BINARY_DIR}/libs/common)
+include_directories(${PROJECT_SOURCE_DIR}/COMMON ${PROJECT_BINARY_DIR}/libs/common)
 
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
@@ -147,6 +147,7 @@ set(SEM_SRC
   ${SEMCOMMON}/leastsq.f90
   ${SEMCOMMON}/intset.F90
   ${SEMCOMMON}/invariants.f90
+  ${SEMCOMMON}/sem_mpi.F90
 )
 
 set(SEM_SRC_C
@@ -194,9 +195,11 @@ if(OPT_MPI OR HDF5_IS_PARALLEL)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES} ${MPI_Fortran_LIBRARIES})
 set(SEM_CPP_LIBS ${SEM_CPP_LIBS} ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES})
 else(OPT_MPI OR HDF5_IS_PARALLEL)
-set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
 endif(OPT_MPI OR HDF5_IS_PARALLEL)
 
+if(NOT OPT_MPI)
+set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
+endif()
 
 if (CEAUSER)
 add_definitions(-DHAVE_TREMAIN)

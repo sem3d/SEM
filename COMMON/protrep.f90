@@ -4,7 +4,7 @@
 !!
 module protrep
     use semdatafiles
-    use mpi
+    use sem_mpi
 contains
     !>
     !! \brief Assure la reprise par la lecture des fichiers de protection.

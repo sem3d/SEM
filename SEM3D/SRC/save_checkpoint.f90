@@ -15,11 +15,12 @@ module msavecheckpoint
     use constants, only : fpp
     implicit none
     public :: save_checkpoint, init_protection
+#include "index.h"
 contains
     subroutine init_protection(Tdomain, it, prot_file)
         use sdomain
         use semdatafiles
-        use mpi
+        use sem_mpi
         use sem_c_config, only : sem_mkdir
         implicit none
         type (domain), intent (INOUT):: Tdomain
@@ -221,7 +222,7 @@ contains
         use sem_hdf5, only : create_dset
         use HDF5
         implicit none
-#include "index.h"
+#include "sem_hdf5.h"
         type (domain), intent (IN):: Tdomain
         integer(HID_T), intent(IN) :: elem_id
         integer(HID_T) :: dset_id
@@ -231,7 +232,7 @@ contains
         integer(HSIZE_T), dimension(1) :: dims
         integer :: n_solid
 
-        call create_dset(elem_id, "EpsilonVol", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "EpsilonVol", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -265,7 +266,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
     end subroutine write_EpsilonVol
@@ -285,7 +286,7 @@ contains
         integer(HSIZE_T), dimension(1) :: dims
         integer :: n_solid
 
-        call create_dset(elem_id, "Rvol", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "Rvol", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -322,7 +323,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
     end subroutine write_Rvol
@@ -342,11 +343,11 @@ contains
         integer(HSIZE_T), dimension(1) :: dims
         integer :: n_solid
 
-        call create_dset(elem_id, "R_xx", H5T_IEEE_F64LE, nmax, dset_id_xx)
-        call create_dset(elem_id, "R_yy", H5T_IEEE_F64LE, nmax, dset_id_yy)
-        call create_dset(elem_id, "R_xy", H5T_IEEE_F64LE, nmax, dset_id_xy)
-        call create_dset(elem_id, "R_xz", H5T_IEEE_F64LE, nmax, dset_id_xz)
-        call create_dset(elem_id, "R_yz", H5T_IEEE_F64LE, nmax, dset_id_yz)
+        call create_dset(elem_id, "R_xx", H5T_IEEE_FPP, nmax, dset_id_xx)
+        call create_dset(elem_id, "R_yy", H5T_IEEE_FPP, nmax, dset_id_yy)
+        call create_dset(elem_id, "R_xy", H5T_IEEE_FPP, nmax, dset_id_xy)
+        call create_dset(elem_id, "R_xz", H5T_IEEE_FPP, nmax, dset_id_xz)
+        call create_dset(elem_id, "R_yz", H5T_IEEE_FPP, nmax, dset_id_yz)
         if(nmax <= 0)then
             call h5dclose_f(dset_id_xx, hdferr)
             call h5dclose_f(dset_id_yy, hdferr)
@@ -393,11 +394,11 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id_xx, H5T_NATIVE_DOUBLE, data_xx, dims, hdferr)
-        call h5dwrite_f(dset_id_yy, H5T_NATIVE_DOUBLE, data_yy, dims, hdferr)
-        call h5dwrite_f(dset_id_xy, H5T_NATIVE_DOUBLE, data_xy, dims, hdferr)
-        call h5dwrite_f(dset_id_xz, H5T_NATIVE_DOUBLE, data_xz, dims, hdferr)
-        call h5dwrite_f(dset_id_yz, H5T_NATIVE_DOUBLE, data_yz, dims, hdferr)
+        call h5dwrite_f(dset_id_xx, H5T_REAL_FPP, data_xx, dims, hdferr)
+        call h5dwrite_f(dset_id_yy, H5T_REAL_FPP, data_yy, dims, hdferr)
+        call h5dwrite_f(dset_id_xy, H5T_REAL_FPP, data_xy, dims, hdferr)
+        call h5dwrite_f(dset_id_xz, H5T_REAL_FPP, data_xz, dims, hdferr)
+        call h5dwrite_f(dset_id_yz, H5T_REAL_FPP, data_yz, dims, hdferr)
         deallocate(data_xx,data_yy,data_xy,data_xz,data_yz)
         call h5dclose_f(dset_id_xx, hdferr)
         call h5dclose_f(dset_id_yy, hdferr)
@@ -421,11 +422,11 @@ contains
         integer(HSIZE_T), dimension(1) :: dims
         integer :: n_solid
 
-        call create_dset(elem_id, "EpsilonDev_xx", H5T_IEEE_F64LE, nmax, dset_id_xx)
-        call create_dset(elem_id, "EpsilonDev_yy", H5T_IEEE_F64LE, nmax, dset_id_yy)
-        call create_dset(elem_id, "EpsilonDev_xy", H5T_IEEE_F64LE, nmax, dset_id_xy)
-        call create_dset(elem_id, "EpsilonDev_xz", H5T_IEEE_F64LE, nmax, dset_id_xz)
-        call create_dset(elem_id, "EpsilonDev_yz", H5T_IEEE_F64LE, nmax, dset_id_yz)
+        call create_dset(elem_id, "EpsilonDev_xx", H5T_IEEE_FPP, nmax, dset_id_xx)
+        call create_dset(elem_id, "EpsilonDev_yy", H5T_IEEE_FPP, nmax, dset_id_yy)
+        call create_dset(elem_id, "EpsilonDev_xy", H5T_IEEE_FPP, nmax, dset_id_xy)
+        call create_dset(elem_id, "EpsilonDev_xz", H5T_IEEE_FPP, nmax, dset_id_xz)
+        call create_dset(elem_id, "EpsilonDev_yz", H5T_IEEE_FPP, nmax, dset_id_yz)
         if(nmax <= 0)then
             call h5dclose_f(dset_id_xx, hdferr)
             call h5dclose_f(dset_id_yy, hdferr)
@@ -469,11 +470,11 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id_xx, H5T_NATIVE_DOUBLE, data_xx, dims, hdferr)
-        call h5dwrite_f(dset_id_yy, H5T_NATIVE_DOUBLE, data_yy, dims, hdferr)
-        call h5dwrite_f(dset_id_xy, H5T_NATIVE_DOUBLE, data_xy, dims, hdferr)
-        call h5dwrite_f(dset_id_xz, H5T_NATIVE_DOUBLE, data_xz, dims, hdferr)
-        call h5dwrite_f(dset_id_yz, H5T_NATIVE_DOUBLE, data_yz, dims, hdferr)
+        call h5dwrite_f(dset_id_xx, H5T_REAL_FPP, data_xx, dims, hdferr)
+        call h5dwrite_f(dset_id_yy, H5T_REAL_FPP, data_yy, dims, hdferr)
+        call h5dwrite_f(dset_id_xy, H5T_REAL_FPP, data_xy, dims, hdferr)
+        call h5dwrite_f(dset_id_xz, H5T_REAL_FPP, data_xz, dims, hdferr)
+        call h5dwrite_f(dset_id_yz, H5T_REAL_FPP, data_yz, dims, hdferr)
         deallocate(data_xx,data_yy,data_xy,data_xz,data_yz)
         call h5dclose_f(dset_id_xx, hdferr)
         call h5dclose_f(dset_id_yy, hdferr)
@@ -499,7 +500,7 @@ contains
         real(fpp), allocatable, dimension(:) :: data
         integer(HSIZE_T), dimension(1) :: dims
 
-        call create_dset(elem_id, "Stress", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "Stress", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -530,7 +531,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
 #endif
@@ -553,7 +554,7 @@ contains
         real(fpp), allocatable, dimension(:) :: data
         integer(HSIZE_T), dimension(1) :: dims
 
-        call create_dset(elem_id, "Stress_nl", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "Stress_nl", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -585,7 +586,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
 #endif
@@ -608,7 +609,7 @@ contains
         real(fpp), allocatable, dimension(:) :: data
         integer(HSIZE_T), dimension(1) :: dims
 
-        call create_dset(elem_id, "Strain_nl", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "Strain_nl", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -640,7 +641,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
 #endif
@@ -663,7 +664,7 @@ contains
         real(fpp), allocatable, dimension(:) :: data
         integer(HSIZE_T), dimension(1) :: dims
 
-        call create_dset(elem_id, "Pstrain_nl", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "Pstrain_nl", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -695,7 +696,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
 #endif
@@ -718,7 +719,7 @@ contains
         real(fpp), allocatable, dimension(:) :: data
         integer(HSIZE_T), dimension(1) :: dims
 
-        call create_dset(elem_id, "Center_nl", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "Center_nl", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -750,7 +751,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
 #endif
@@ -773,7 +774,7 @@ contains
         real(fpp), allocatable, dimension(:) :: data
         integer(HSIZE_T), dimension(1) :: dims
 
-        call create_dset(elem_id, "Radius_nl", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "Radius_nl", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -800,7 +801,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
 #endif
@@ -822,7 +823,7 @@ contains
         real(fpp), allocatable, dimension(:) :: data
         integer(HSIZE_T), dimension(1) :: dims
 
-        call create_dset(elem_id, "Veloc_Fl_PML", H5T_IEEE_F64LE, nmax, dset_id)
+        call create_dset(elem_id, "Veloc_Fl_PML", H5T_IEEE_FPP, nmax, dset_id)
         if(nmax <= 0)then
             call h5dclose_f(dset_id, hdferr)
             return
@@ -856,7 +857,7 @@ contains
                 enddo
             enddo
         enddo
-        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        call h5dwrite_f(dset_id, H5T_REAL_FPP, data, dims, hdferr)
         deallocate(data)
         call h5dclose_f(dset_id, hdferr)
     end subroutine write_Veloc_Fluid_PML

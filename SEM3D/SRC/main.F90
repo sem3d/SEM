@@ -3,7 +3,7 @@
 !! Copyright CEA, ECP, IPGP
 !!
 program SEM3D
-    use mpi
+    use sem_mpi
     use semdatafiles
     use drive_sem
 

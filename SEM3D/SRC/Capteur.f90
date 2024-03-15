@@ -15,7 +15,6 @@ module mCapteur
 
     use sdomain
     use semdatafiles
-    use mpi
     use sem_hdf5
     use sem_c_config
     use constants
@@ -53,6 +52,7 @@ module mCapteur
 contains
 
     subroutine create_capteurs(Tdomain)
+        use sem_mpi
         implicit none
         type(domain), intent (inout) :: Tdomain
         !

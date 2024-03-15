@@ -14,14 +14,9 @@ module scomm
     end interface comm_take_data
 
 contains
-#ifdef SINGLEPRECISION
-#define MPI_REAL_FPP MPI_FLOAT
-#else
-#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
-#endif
     subroutine exchange_sem_var(Tdomain, tag, vector)
         use sdomain
-        use mpi
+        use sem_mpi
         use stat, only : stat_starttick, stat_stoptick, STAT_WAIT
 
 

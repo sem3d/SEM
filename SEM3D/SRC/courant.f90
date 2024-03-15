@@ -43,7 +43,7 @@ contains
         use dom_fluid
         use dom_solidpml
         use dom_fluidpml
-        use mpi
+        use sem_mpi
         implicit none
         type (Domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: rg

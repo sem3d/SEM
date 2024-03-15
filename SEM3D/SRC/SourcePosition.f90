@@ -14,7 +14,7 @@
 subroutine SourcePosition (Tdomain)
     use sdomain
     use ssources
-    use mpi
+    use sem_mpi
     use mshape8
     use mshape27
     use mlinalg

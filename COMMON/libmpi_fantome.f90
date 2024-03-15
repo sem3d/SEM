@@ -27,12 +27,13 @@
 !!!!!!!!!!     MPI_ISEND                                         !!!!!!!!!!
 !!!!!!!!!!     MPI_ALLGATHERV                                    !!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-module mpi
+module fake_mpi
     use constants, only : fpp
     implicit none
 
     INTERFACE MPI_Allreduce
-       MODULE PROCEDURE MPI_Allreduce_rv, MPI_Allreduce_r1, MPI_Allreduce_i1, MPI_Allreduce_iv
+        MODULE PROCEDURE MPI_Allreduce_rv, MPI_Allreduce_r1f, MPI_Allreduce_r1d, &
+            MPI_Allreduce_i1, MPI_Allreduce_iv
     END INTERFACE
     INTERFACE MPI_Send
        MODULE PROCEDURE MPI_Send_rv, MPI_Send_r1, MPI_Send_iv, MPI_Send_im, MPI_Send_i1, MPI_Send_rm, MPI_Send_rm3
@@ -365,7 +366,7 @@ contains
         ierr = 0
     end subroutine MPI_Allreduce_rv
 
-    subroutine MPI_Allreduce_r1 (sendbuf, recvbuf, long, type, op, comm, ierr)
+    subroutine MPI_Allreduce_r1f (sendbuf, recvbuf, long, type, op, comm, ierr)
         implicit none
 
         integer, intent(in) :: long
@@ -373,8 +374,8 @@ contains
         integer, intent(in) :: op
         integer, intent(in) :: comm
         integer, intent(inout) :: ierr
-        real(fpp), intent(inout) :: recvbuf
-        real(fpp), intent(in) :: sendbuf
+        real, intent(inout) :: recvbuf
+        real, intent(in) :: sendbuf
 
         if ( (op == MPI_MAX) .OR. (op == MPI_MIN) .OR. (op == MPI_SUM) ) then
             recvbuf = sendbuf
@@ -383,7 +384,27 @@ contains
             stop
         endif
         ierr = 0
-    end subroutine MPI_Allreduce_r1
+    end subroutine MPI_Allreduce_r1f
+
+    subroutine MPI_Allreduce_r1d (sendbuf, recvbuf, long, type, op, comm, ierr)
+        implicit none
+
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: op
+        integer, intent(in) :: comm
+        integer, intent(inout) :: ierr
+        double precision, intent(inout) :: recvbuf
+        double precision, intent(in) :: sendbuf
+
+        if ( (op == MPI_MAX) .OR. (op == MPI_MIN) .OR. (op == MPI_SUM) ) then
+            recvbuf = sendbuf
+        else
+            print*,'MPI_ALLREDUCE : type d operation non traite par la librairie mpi fantome',op
+            stop
+        endif
+        ierr = 0
+    end subroutine MPI_Allreduce_r1d
 
 
     subroutine MPI_Allreduce_i1 (sendbuf, recvbuf, long, type, op, comm, ierr)
@@ -955,7 +976,7 @@ contains
         ierr = 0
 
     end subroutine MPI_WAIT
-end module mpi
+end module fake_mpi
 
 !! Local Variables:
 !! mode: f90

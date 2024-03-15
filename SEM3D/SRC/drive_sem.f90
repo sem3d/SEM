@@ -20,7 +20,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     use mrenumber
     use mCapteur
     use semdatafiles
-    use mpi
+    use sem_mpi
     use msnapshots
     use mdefinitions, only : define_arrays
     use semconfig !< pour config C
@@ -132,7 +132,7 @@ subroutine RUN_PREPARED(Tdomain)
     use attenuation
     use mCapteur
     use semdatafiles
-    use mpi
+    use sem_mpi
     use msnapshots
     use semconfig !< pour config C
     use sem_c_bindings
@@ -258,7 +258,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
     use sdomain
     use mCapteur
     use semdatafiles
-    use mpi
+    use sem_mpi
     use mloadcheckpoint
     use msnapshots
     use semconfig !< pour config C
@@ -334,7 +334,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use sdomain
     use mCapteur
     use semdatafiles
-    use mpi
+    use sem_mpi
     use msnapshots
     use msavecheckpoint
     use mtimestep
@@ -539,7 +539,7 @@ subroutine END_SEM(Tdomain,ntime)
     use semdatafiles
     use semconfig !< pour config C
     use sem_c_bindings
-
+    use sem_mpi
     implicit none
 
     type(domain) :: Tdomain

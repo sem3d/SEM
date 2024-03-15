@@ -169,7 +169,7 @@ contains
     subroutine read_material_file_v2(Tdomain)
         use sdomain
         use semdatafiles
-        use mpi
+        use sem_mpi
         implicit none
 
         type(domain), intent(inout)   :: Tdomain
@@ -646,7 +646,7 @@ contains
     subroutine read_input (Tdomain, code)
         use sdomain
         use semdatafiles
-        use mpi
+        use sem_mpi
         use constants
         use mcapteur
         use surface_input !, only : read_surface_input,

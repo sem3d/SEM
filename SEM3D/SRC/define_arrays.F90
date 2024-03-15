@@ -12,7 +12,6 @@
 !<
 module mdefinitions
     use sdomain
-    use mpi
     use scomm
     use constants
     use dom_solid

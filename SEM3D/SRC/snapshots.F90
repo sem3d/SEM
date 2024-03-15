@@ -4,25 +4,20 @@
 
 module msnapshots
     use sdomain
-    use hdf5
-    use sem_hdf5
     use semdatafiles
-    use mpi
     use deriv3d
     use sem_c_config, only : sem_mkdir
     use constants
     use msnapdata, only : output_var_t
     implicit none
 #include "index.h"
+#include "sem_hdf5.h"
 contains
 #undef DEBUG_CPML
-#ifdef SINGLEPRECISION
-#define MPI_REAL_FPP MPI_FLOAT
-#else
-#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
-#endif
 
     subroutine grp_write_real_2d(outputs, parent_id, name, dim1, dim2, data, ntot_nodes)
+        use sem_hdf5
+        use sem_mpi
         type (output_var_t), intent (INOUT):: outputs
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim1, dim2
@@ -59,7 +54,7 @@ contains
             dims(1) = dim1
             dims(2) = ntot_nodes
             call create_dset_2d(parent_id, name, H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
-            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data, dims, hdferr)
+            call h5dwrite_f(dset_id, H5T_REAL_FPP, all_data, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
             deallocate(all_data)
             deallocate(displs)
@@ -68,6 +63,8 @@ contains
     end subroutine grp_write_real_2d
 
     subroutine write_1d_var_c(outputs, parent_id, fname, field)
+        use sem_hdf5
+        use sem_mpi
         type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         character(len=*), intent(in) :: fname
@@ -83,12 +80,14 @@ contains
         if (outputs%rank==0) then
             dims(1) = outputs%ntot_cells
             call create_dset(parent_id, trim(fname), H5T_IEEE_F32LE, dims(1), dset_id)
-            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, outputs%all_data_1d_c, dims, hdferr)
+            call h5dwrite_f(dset_id, H5T_REAL_FPP, outputs%all_data_1d_c, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
     end subroutine write_1d_var_c
 
     subroutine write_2d_var_vecc(outputs, parent_id, fname, field)
+        use sem_hdf5
+        use sem_mpi
         type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         character(len=*), intent(in) :: fname
@@ -105,12 +104,14 @@ contains
             dims(1) = 3
             dims(2) = outputs%ntot_cells
             call create_dset_2d(parent_id, trim(fname), H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
-            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, outputs%all_data_2d_c, dims, hdferr)
+            call h5dwrite_f(dset_id, H5T_REAL_FPP, outputs%all_data_2d_c, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
     end subroutine write_2d_var_vecc
 
     subroutine write_1d_var_n(outputs, parent_id, fname, field)
+        use sem_hdf5
+        use sem_mpi
         type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         character(len=*), intent(in) :: fname
@@ -126,12 +127,14 @@ contains
         if (outputs%rank==0) then
             dims(1) = outputs%ntot_nodes
             call create_dset(parent_id, trim(fname), H5T_IEEE_F32LE, dims(1), dset_id)
-            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, outputs%all_data_1d_n, dims, hdferr)
+            call h5dwrite_f(dset_id, H5T_REAL_FPP, outputs%all_data_1d_n, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
     end subroutine write_1d_var_n
 
     subroutine write_2d_var_vecn(outputs, parent_id, fname, field)
+        use sem_hdf5
+        use sem_mpi
         type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         character(len=*), intent(in) :: fname
@@ -148,12 +151,13 @@ contains
             dims(1) = 3
             dims(2) = outputs%ntot_nodes
             call create_dset_2d(parent_id, trim(fname), H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
-            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, outputs%all_data_2d_n, dims, hdferr)
+            call h5dwrite_f(dset_id, H5T_REAL_FPP, outputs%all_data_2d_n, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
     end subroutine write_2d_var_vecn
 
     subroutine grp_write_fields(outputs, parent_id, out_variables)
+        use sem_hdf5, only : HID_T
         type(output_var_t), intent(inout) :: outputs
         integer(HID_T), intent(in) :: parent_id
         integer, dimension(0:), intent(in) :: out_variables
@@ -257,6 +261,8 @@ contains
     end subroutine grp_write_fields
 
     subroutine grp_write_int_2d(outputs, parent_id, name, dim1, dim2, data, ntot_nodes)
+        use sem_hdf5
+        use sem_mpi
         type (output_var_t), intent (INOUT):: outputs
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim1, dim2
@@ -302,6 +308,8 @@ contains
     end subroutine grp_write_int_2d
 
     subroutine grp_write_int_1d(outputs, parent_id, name, dim1, data, ntot_nodes)
+        use sem_hdf5
+        use sem_mpi
         type (output_var_t), intent (INOUT):: outputs
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim1
@@ -346,6 +354,8 @@ contains
     end subroutine grp_write_int_1d
 
     subroutine grp_write_real_1d(outputs, parent_id, name, dim1, data, ntot_nodes)
+        use sem_hdf5
+        use sem_mpi
         type (output_var_t), intent (INOUT):: outputs
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim1
@@ -380,7 +390,7 @@ contains
         if (outputs%rank==0) then
             dims(1) = ntot_nodes
             call create_dset(parent_id, name, H5T_IEEE_F32LE, dims(1), dset_id)
-            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data, dims, hdferr)
+            call h5dwrite_f(dset_id, H5T_REAL_FPP, all_data, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
             deallocate(all_data)
             deallocate(displs)
@@ -447,6 +457,7 @@ contains
     end subroutine compute_saved_elements
 
     subroutine compute_offsets(outputs)
+        use sem_mpi
         type(output_var_t), intent(inout) :: outputs
         !
         integer :: nnodes, ncells
@@ -495,6 +506,7 @@ contains
 
 
     subroutine create_dir_sorties(Tdomain, isort)
+        use sem_mpi
         implicit none
         type (domain), intent (IN):: Tdomain
         integer,intent(in) :: isort
@@ -514,6 +526,8 @@ contains
     !! Le format est destine a etre relu par paraview / xdmf
     !<
     subroutine write_snapshot_geom(Tdomain, outputs)
+        use sem_hdf5
+        use sem_mpi
         implicit none
         type (domain), intent (INOUT):: Tdomain
         type (output_var_t), intent(INOUT) :: outputs
@@ -567,6 +581,8 @@ contains
     end subroutine write_snapshot_geom
 
     subroutine write_global_nodes(Tdomain, fid, outputs)
+        use sem_hdf5
+        use sem_mpi
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
@@ -588,6 +604,8 @@ contains
     end subroutine write_global_nodes
 
     subroutine write_elem_connectivity(Tdomain, fid, outputs)
+        use sem_hdf5
+        use sem_mpi
         implicit none
         type (domain), intent (INOUT) :: Tdomain
         type (output_var_t), intent(INOUT) :: outputs
@@ -883,6 +901,8 @@ contains
         use dom_fluid
         use dom_solidpml
         use dom_fluidpml
+        use sem_hdf5
+        use sem_mpi
 
         implicit none
         type (domain), intent (INOUT):: Tdomain
@@ -1388,6 +1408,8 @@ contains
 
     subroutine write_constant_fields(Tdomain, fid, outputs)
         use dom_solid
+        use sem_hdf5
+        use sem_mpi
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
