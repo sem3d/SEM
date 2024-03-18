@@ -10,19 +10,20 @@
 module sem_mpi
 #ifdef __MPI
     use mpi_f08
-#else
-    use fake_mpi
-#endif
 #ifdef SINGLEPRECISION
     type(MPI_datatype), parameter :: MPI_REAL_FPP=MPI_REAL
 #else
     type(MPI_datatype), parameter :: MPI_REAL_FPP=MPI_DOUBLE_PRECISION
 #endif
+#else
+    use fake_mpi
+    integer, parameter :: MPI_REAL_FPP=3
+#endif
 
 contains
 
     subroutine acc_init()
-#ifdef _OPENACC
+#if defined( _OPENACC) && defined(__MPI)
         USE openacc
         character(len=16) :: local_rank_env
         integer :: status, local_rank
