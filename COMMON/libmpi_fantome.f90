@@ -27,6 +27,7 @@
 !!!!!!!!!!     MPI_ISEND                                         !!!!!!!!!!
 !!!!!!!!!!     MPI_ALLGATHERV                                    !!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 module fake_mpi
     use constants, only : fpp
     implicit none
@@ -34,6 +35,10 @@ module fake_mpi
     INTERFACE MPI_Allreduce
         MODULE PROCEDURE MPI_Allreduce_rv, MPI_Allreduce_r1f, MPI_Allreduce_r1d, &
             MPI_Allreduce_i1, MPI_Allreduce_iv
+    END INTERFACE
+    INTERFACE MPI_Allreduce_inp
+        MODULE PROCEDURE MPI_Allreduce_inp_rv, MPI_Allreduce_inp_r1f, MPI_Allreduce_inp_r1d, &
+            MPI_Allreduce_inp_i1, MPI_Allreduce_inp_iv
     END INTERFACE
     INTERFACE MPI_Send
        MODULE PROCEDURE MPI_Send_rv, MPI_Send_r1, MPI_Send_iv, MPI_Send_im, MPI_Send_i1, MPI_Send_rm, MPI_Send_rm3
@@ -78,10 +83,12 @@ module fake_mpi
     type :: MPI_Request
     end type MPI_Request
     integer, parameter :: MPI_MAX=0, MPI_MIN=1,MPI_SUM=2
-    integer, parameter :: MPI_DOUBLE_PRECISION=3
+    integer, parameter :: MPI_DOUBLE_PRECISION=3,MPI_LOGICAL=4
     integer, parameter :: MPI_REAL=1,MPI_INTEGER=2
     type(MPI_Comm) :: MPI_COMM_WORLD
+    type(MPI_Request) :: MPI_REQUEST_NULL
 !    include 'mpif.h'
+
 
 contains
 
@@ -468,6 +475,70 @@ contains
         endif
         ierr = 0
     end subroutine MPI_Allreduce_iv
+    !! ----------------------- MPI_Allreduce_inp (IN PLACE) ---------------------------
+    subroutine MPI_Allreduce_inp_rv (sendbuf, long, type, op, comm, ierr)
+        implicit none
+
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: op
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent(inout) :: ierr
+        real(fpp), intent(in) :: sendbuf(long)
+        ierr = 0
+    end subroutine MPI_Allreduce_inp_rv
+
+    subroutine MPI_Allreduce_inp_r1f (sendbuf, long, type, op, comm, ierr)
+        implicit none
+
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: op
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent(inout) :: ierr
+        real, intent(in) :: sendbuf
+
+        ierr = 0
+    end subroutine MPI_Allreduce_inp_r1f
+
+    subroutine MPI_Allreduce_inp_r1d (sendbuf, long, type, op, comm, ierr)
+        implicit none
+
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: op
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent(inout) :: ierr
+        double precision, intent(in) :: sendbuf
+        ierr = 0
+    end subroutine MPI_Allreduce_inp_r1d
+
+
+    subroutine MPI_Allreduce_inp_i1 (sendbuf, long, type, op, comm, ierr)
+        implicit none
+
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: op
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent(inout) :: ierr
+        integer, intent(in) :: sendbuf
+
+        ierr = 0
+    end subroutine MPI_Allreduce_inp_i1
+
+    subroutine MPI_Allreduce_inp_iv (sendbuf, long, type, op, comm, ierr)
+        implicit none
+
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: op
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent(inout) :: ierr
+        integer, intent(in) :: sendbuf(long)
+
+        ierr = 0
+    end subroutine MPI_Allreduce_inp_iv
 
     !! ----------------------- MPI_Reduce ---------------------------
     subroutine MPI_REDUCE_rv (sendbuf, recvbuf, long, type, op, dest, comm, ierr)

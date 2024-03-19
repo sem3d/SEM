@@ -15,6 +15,11 @@ module sem_mpi
 #else
     type(MPI_datatype), parameter :: MPI_REAL_FPP=MPI_DOUBLE_PRECISION
 #endif
+
+    INTERFACE MPI_Allreduce_inp
+        MODULE PROCEDURE MPI_Allreduce_inp_i1
+    END INTERFACE
+
 #else
     use fake_mpi
     integer, parameter :: MPI_REAL_FPP=3
@@ -45,4 +50,18 @@ contains
         end if
 #endif
     end subroutine acc_init
+
+#ifdef __MPI
+    subroutine MPI_Allreduce_inp_i1 (recvbuf, long, type, op, comm, ierr)
+        implicit none
+
+        integer, intent(in) :: long
+        type(MPI_datatype), intent(in) :: type
+        type(MPI_Op), intent(in) :: op
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent(inout) :: ierr
+        integer, intent(inout) :: recvbuf
+        call MPI_Allreduce(MPI_IN_PLACE, recvbuf, long, type, op, comm, ierr)
+    end subroutine MPI_Allreduce_inp_i1
+#endif
 end module sem_mpi
