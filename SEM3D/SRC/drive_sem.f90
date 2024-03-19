@@ -482,7 +482,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
             call stat_starttick(STAT_TSTEP)
             call TREMAIN(remaining_time)
             if(remaining_time < max_time_left) interrupt = 1
-            call MPI_ALLREDUCE(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
+            call MPI_ALLREDUCE_INP(interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
             call stat_stoptick(STAT_TSTEP)
         end if
 
