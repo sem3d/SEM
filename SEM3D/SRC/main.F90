@@ -18,6 +18,7 @@ program SEM3D
     integer :: ierr, rg
 
     call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_mat, p_mirror)
+    call MPI_Init (ierr)
 
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 

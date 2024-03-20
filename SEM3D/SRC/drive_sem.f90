@@ -39,7 +39,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer :: isort, ierr
     real(kind=8), parameter :: max_time_left=900
 
-    call MPI_Init (ierr)
     Tdomain%time_0 = MPI_Wtime();
 
 !----------------------------------------------------------------------------------------------!
