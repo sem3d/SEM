@@ -79,8 +79,12 @@ add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
 ##include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
-if (DEFINED ENV{HDF5_ROOT})
+if (DEFINED ENV{HDF5_ROOT}) # Some install put modules in different places
+  if (EXISTS $ENV{HDF5_ROOT}/include/shared/hdf5.mod)
     include_directories($ENV{HDF5_ROOT}/include/shared)
+  elseif (EXISTS $ENV{HDF5_ROOT}/include/static/hdf5.mod)
+    include_directories($ENV{HDF5_ROOT}/include/shared)
+  endif ()
 endif ()
 include_directories(${PROJECT_SOURCE_DIR}/COMMON ${PROJECT_BINARY_DIR}/libs/common)
 
