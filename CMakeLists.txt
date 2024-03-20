@@ -1,8 +1,8 @@
 # Ce CMakeLists.txt est le projet principal permettant de construire sem2d et sem3d
 # en standalone (hors mka3d)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 PROJECT(SEM)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
-CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
