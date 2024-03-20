@@ -110,15 +110,15 @@ end subroutine PROCNAME
         END DO;
 
 #define load_jacobian_matrix(a,b,c) \
-        LJXX = InvGrad(ee,a,b,c,0,0,bnum); \
-        LJYX = InvGrad(ee,a,b,c,1,0,bnum); \
-        LJZX = InvGrad(ee,a,b,c,2,0,bnum); \
-        LJXY = InvGrad(ee,a,b,c,0,1,bnum); \
-        LJYY = InvGrad(ee,a,b,c,1,1,bnum); \
-        LJZY = InvGrad(ee,a,b,c,2,1,bnum); \
-        LJXZ = InvGrad(ee,a,b,c,0,2,bnum); \
-        LJYZ = InvGrad(ee,a,b,c,1,2,bnum); \
-        LJZZ = InvGrad(ee,a,b,c,2,2,bnum);
+        LJXX = InvGrad(ee,0,0,a,b,c,bnum); \
+        LJYX = InvGrad(ee,1,0,a,b,c,bnum); \
+        LJZX = InvGrad(ee,2,0,a,b,c,bnum); \
+        LJXY = InvGrad(ee,0,1,a,b,c,bnum); \
+        LJYY = InvGrad(ee,1,1,a,b,c,bnum); \
+        LJZY = InvGrad(ee,2,1,a,b,c,bnum); \
+        LJXZ = InvGrad(ee,0,2,a,b,c,bnum); \
+        LJYZ = InvGrad(ee,1,2,a,b,c,bnum); \
+        LJZZ = InvGrad(ee,2,2,a,b,c,bnum);
 
 #define compute_du_deta(a,b,c) \
         x_deriv_ijke(Depla,0,dUx_dxi,dUx_deta,dUx_dzeta,a,b,c); \
@@ -170,7 +170,7 @@ subroutine SUBPROCNAME2(ngllvar,nblocks,Forces,Depla,props, hprime, gllw, Jacob,
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1), intent(in) :: Depla
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nprops,0:nblocks-1), intent(in) :: props
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(in) :: jacob
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2,0:nblocks-1), intent(in) :: invgrad
+    real(fpp), dimension(0:VCHUNK-1,0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(in) :: invgrad
     real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
     real(fpp), dimension(0:ngll-1), intent(in) :: gllw
     integer :: i,j,k,l,ee,ll
