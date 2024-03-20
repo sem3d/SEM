@@ -3,14 +3,14 @@
 !! Copyright CEA, ECP, IPGP
 
 module msnapdata
-
+    use sem_mpi, only : MPI_Comm
     use constants
     implicit none
 
     ! Type assurant la gestion des sorties snapshots
     type :: output_var_t
         ! Communicator used for output grouping. Only rank 0 of this comm produces outputs
-        integer :: comm
+        type(MPI_Comm) :: comm
         ! Nombre de processeur dans le groupe de communication associe a comm_output
         integer :: nprocs
         integer :: rank

@@ -9,13 +9,13 @@
 
 module sem_mpi
 #ifdef __MPI
-    use mpi
+    use mpi_f08
 #else
     use fake_mpi
 #endif
 #ifdef SINGLEPRECISION
-    parameter (MPI_REAL_FPP=MPI_REAL)
+    type(MPI_datatype), parameter :: MPI_REAL_FPP=MPI_REAL
 #else
-    parameter (MPI_REAL_FPP=MPI_DOUBLE_PRECISION)
+    type(MPI_datatype), parameter :: MPI_REAL_FPP=MPI_DOUBLE_PRECISION
 #endif
 end module sem_mpi

@@ -12,7 +12,8 @@ contains
     !<
     subroutine init_restart(comm, rg, iter, file_prot)
         implicit none
-        integer, intent (in):: comm, rg, iter
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent (in):: rg, iter
         character (len=MAX_FILE_SIZE), intent(out) :: file_prot
         character (len=MAX_FILE_SIZE) :: dir_prot,  file_temps_sem
         character (len=MAX_FILE_SIZE) :: dir_prot_capteurs, dir_capteurs, file_prot_temps_sem

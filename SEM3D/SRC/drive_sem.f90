@@ -30,7 +30,8 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     implicit none
 
     ! Hors couplage on doit avoir -1 MPI_COMM_WORLD, MPI_COMM_WORLD
-    integer, intent(in) :: communicateur, communicateur_global, master_superviseur
+    type(MPI_Comm), intent(in) :: communicateur, communicateur_global
+    integer, intent(in) :: master_superviseur
     integer :: ee, ii, j, k, n, ngll
     real(fpp) :: bnum
     type(domain) :: Tdomain

@@ -63,7 +63,8 @@ contains
     subroutine stat_init(comm, rg, nprocs, dotraces)
         use sem_mpi
         implicit none
-        integer, intent(in) :: comm, rg, nprocs
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent(in) :: rg, nprocs
         logical, intent(in) :: dotraces
         character(Len=1000) :: fname
         integer :: ierr
@@ -106,7 +107,7 @@ contains
         implicit none
         type(domain), intent(in) :: Tdomain
         integer :: ierr, rank, sz, r, i
-        integer :: status(MPI_STATUS_SIZE)
+        type(MPI_Status) :: status
 
         call system_clock(count=stopFullTick)
         statStop(STAT_FULL)=stopFullTick

@@ -4,6 +4,7 @@
 !!
 
 module scomms
+    use sem_mpi
     use constants, only : fpp
     implicit none
 
@@ -23,8 +24,8 @@ module scomms
     type :: comm_vector
        integer :: ncomm
        type(exchange_vector), dimension(:), allocatable :: Data ! dimmension : 0,ncomm-1
-       integer, dimension(:), allocatable :: send_reqs
-       integer, dimension(:), allocatable :: recv_reqs
+       type(MPI_Request), dimension(:), allocatable :: send_reqs
+       type(MPI_Request), dimension(:), allocatable :: recv_reqs
     end type comm_vector
 
     type :: comm

@@ -25,7 +25,7 @@ contains
         integer, intent(in) :: tag
         type(comm_vector), intent(inout) :: vector
 
-        integer, dimension(MPI_STATUS_SIZE,vector%ncomm) :: statuses
+        type(MPI_Status), dimension(vector%ncomm) :: statuses
         integer :: dest, src, ierr, i
 
         !- now we can exchange (communication global arrays)

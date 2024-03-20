@@ -32,17 +32,18 @@ module sdomain
     use champs_fluid
     use champs_fluidpml
     use constants
+    use sem_mpi, only : MPI_Comm
     use msnapdata, only : output_var_t
     implicit none
 
 
     type :: domain
-       integer :: communicateur !<<< Communicator including all SEM processors
+       type(MPI_Comm) :: communicateur !<<< Communicator for all SEM processors
        integer :: rank          !<<< Rank of this process within this communicator
        integer :: nb_procs      !<<< Total number of SEM processors
        ! Without coupling : communicateur=communicateur_global
        ! With coupling    : communicateur : includes every processes
-       integer :: communicateur_global
+       type(MPI_Comm) :: communicateur_global
        ! Nombre de processeur avec qui on communique (size(sComm))
        integer :: tot_comm_proc
        ! En mode couplage : Rg du superviseur dans le communicateur global
