@@ -4,6 +4,13 @@ ENABLE_LANGUAGE(Fortran)
 
 set(PRJ ${PROJECT_SOURCE_DIR})
 
+set(SOLID_SRC  ${PRJ}/SRC/Solid/calcul_forces_iso.F90)
+if (SAVE_PREPROCESS)
+  set(SOLID_PROC ${CMAKE_CURRENT_BINARY_DIR}/calcul_forces_iso_p.F90)
+else()
+  set(SOLID_PROC ${SOLID_SRC})
+endif()
+
 set(SEM3D_SOURCES_F
     ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
@@ -40,7 +47,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
 #   ${PRJ}/SRC/Solid/attenuation_solid.F90
-    ${PRJ}/SRC/Solid/calcul_forces_iso.F90
+    ${SOLID_PROC}
     ${PRJ}/SRC/Solid/calcul_forces_aniso.F90
     ${PRJ}/SRC/Solid/calcul_forces_iso_atn.F90
     ${PRJ}/SRC/Solid/calcul_forces_aniso_atn.F90
@@ -124,16 +131,26 @@ if (OPT_CPML)
       ${PRJ}/SRC/SolidCPML/calcul_forces_solidpml.F90
       ${PRJ}/SRC/SolidCPML/dom_solidcpml.F90)
 else(OPT_CPML)
+
+  set(SOLIDPML_SRC  ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90)
+  if (SAVE_PREPROCESS)
+    set(SOLIDPML_PROC ${CMAKE_CURRENT_BINARY_DIR}/calcul_forces_pml_p.F90)
+  else()
+    set(SOLIDPML_PROC ${SOLIDPML_SRC})
+  endif()
+
+  
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
       ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
       ${PRJ}/SRC/SolidPML/champs_solidpml.f90
-      ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
+      #${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
+      ${SOLIDPML_PROC}
       ${PRJ}/SRC/pml.F90
       ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
       ${PRJ}/SRC/SolidPML/dom_solidpml.F90)
 set_source_files_properties(
   ${PRJ}/SRC/SolidPML/dom_solidpml.F90
-  ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
+  #${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
   PROPERTIES
   COMPILE_DEFINITIONS "${GLLDEFS}")
     
@@ -174,6 +191,38 @@ set_target_properties(sem3d.exe PROPERTIES
   COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
   Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
+
+set(incflags)
+get_target_property(incdirs sem3d.exe INCLUDE_DIRECTORIES)
+foreach(dir ${incdirs})
+  list(APPEND incflags "-I${dir}")
+endforeach()
+get_property(incdirs DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY COMPILE_DEFINITIONS)
+foreach(defs ${incdirs})
+  list(APPEND incflags "-D${defs}")
+endforeach()
+
+separate_arguments(CUSTOM_FLAGS UNIX_COMMAND "${CMAKE_Fortran_FLAGS} -DGLLOPTMIN=${OPT_MIN_GLL_OPT} -DGLLOPTMAX=${OPT_MAX_GLL_OPT} -DGLLMAX=${OPT_MAX_GLL}")
+list(APPEND CUSTOM_FLAGS ${incflags})
+
+if (SAVE_PREPROCESS)
+  add_custom_command(
+    OUTPUT "${SOLIDPML_PROC}"
+    COMMAND "${CMAKE_Fortran_COMPILER}" ${CUSTOM_FLAGS} -E ${SOLIDPML_SRC} | grep -v "^# "  >${SOLIDPML_PROC}
+    DEPENDS "${SOLIDPML_SRC}"
+    #VERBATIM COMMAND_EXPAND_LISTS # these two args are generally useful, but not actually required here.
+  )
+  add_custom_command(
+    OUTPUT "${SOLID_PROC}"
+    COMMAND "${CMAKE_Fortran_COMPILER}" ${CUSTOM_FLAGS} -E ${SOLID_SRC} | grep -v "^# " >${SOLID_PROC}
+    DEPENDS "${SOLID_SRC}"
+    #VERBATIM COMMAND_EXPAND_LISTS # these two args are generally useful, but not actually required here.
+  )
+  target_sources(sem3d.exe PRIVATE "${SOLIDPML_PROC}" "${SOLID_PROC}")
+endif()
+
+# this might be needed since I don't expect cmake to infer CXX from the .ii extension
+#set_property(SOURCE "${output_file}" TARGET_DIRECTORY my_target PROPERTY LANGUAGE CXX)
 
 
 add_executable(test_pointlist

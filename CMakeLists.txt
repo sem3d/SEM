@@ -31,6 +31,8 @@ if (OPT_CPML)
   add_definitions(-DCPML)
 endif(OPT_CPML)
 
+option(SAVE_PREPROCESS "Save preprocessed files" OFF)
+
 
 set(OPT_VEC "1" CACHE STRING "Vectorization chunks")
 
