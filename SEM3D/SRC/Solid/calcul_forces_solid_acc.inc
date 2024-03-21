@@ -50,12 +50,13 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     nblocks = dom%nblocks
 
     ! ELASTIC CASE: DISPLACEMENT PREDICTION version not USE_LOCAL_MEM
-    !$acc parallel loop collapse(6) async(1)
+    !$acc parallel loop gang worker collapse(5) async(1) firstprivate(nblocks) present(dom,dom%m_idom,var,var%depla,dom%depla) private(idx,uval)
     do bnum = 0, nblocks-1
         do i_dir = 0,2
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
+                        !$acc loop vector
                         do ee = 0, VCHUNK-1
                             idx = dom%Idom_(i,j,k,bnum,ee)
                             uval = var%Depla(idx,i_dir)
@@ -71,15 +72,16 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     call SUBPROCNAME2(ngllvar,nblocks, dom%Forces, dom%Depla, dom%props, dom%hprime, dom%gllw, &
         dom%m_Jacob, dom%m_InvGrad)
 
-    !$acc parallel loop collapse(5) async(1)
+    !$acc parallel loop gang worker collapse(4) async(1) firstprivate(nblocks) private(idx) present(dom,dom%forces,dvdt,dvdt%veloc,dom%m_idom)
     do bnum = 0, nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
+                    !$acc loop vector
                     do ee = 0, VCHUNK-1
                         if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
                             idx = dom%Idom_(i,j,k,bnum,ee)
-                            !$acc atomicupdate
+                            !$acc atomic update
                             dvdt%Veloc(idx,0) = dvdt%Veloc(idx,0)-tFox_(ee,i,j,k,bnum)
                             !$acc atomic update
                             dvdt%Veloc(idx,1) = dvdt%Veloc(idx,1)-tFoy_(ee,i,j,k,bnum)
@@ -204,11 +206,22 @@ subroutine SUBPROCNAME2(ngllvar,nblocks,Forces,Depla,props, hprime, gllw, Jacob,
         enddo
     enddo
 
-    !$acc parallel loop async(1) collapse(5)
+    !$acc parallel loop gang worker  collapse(4)  async(1) &
+    !$acc&     present(hprime,gllw,forces,jacob,invgrad,props) &
+    !$acc&     private(dux_dxi,dux_deta,dux_dzeta) &
+    !$acc&     private(duy_dxi,duy_deta,duy_dzeta) &
+    !$acc&     private(duz_dxi,duz_deta,duz_dzeta) &
+    !$acc&     private(ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz) &
+    !$acc&     private(dxx,dxy,dxz,dyx,dyy,dyz,dzx,dzy,dzz) &
+    !$acc&     private(xla2mu,xla,xmu,wi,wj,wk,ll,jac) &
+    !$acc&     private(sxx,sxy,sxz,syy,syz,szz) &
+    !$acc&     private(xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10,t4)
     do bnum = 0, nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
+                    !$acc cache(hprime,gllw)
+                    !$acc loop vector
                     BEGIN_SUBELEM_LOOP1(ee)
                     compute_du_deta(i,j,k)
                     load_jacobian_matrix(i,j,k)
