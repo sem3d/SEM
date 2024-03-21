@@ -45,8 +45,7 @@ contains
             ! Define the GPU to use via OpenACC
             call acc_set_device_num(local_rank, acc_get_device_type())
         else
-            print *, "Error: impossible to determine the local rank of the process"
-            stop 1
+            print *, "Warning: impossible to determine the local rank of the process"
         end if
 #endif
     end subroutine acc_init
