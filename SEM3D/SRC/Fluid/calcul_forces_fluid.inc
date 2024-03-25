@@ -5,21 +5,82 @@
 
 #include "index.h"
 #include "loops.h"
+#include "fluid_forces.h"
 
-#ifndef PROCNAME
-#error "Must define PROCNAME before inclusion"
-#endif
+#undef PROCNAME
+#undef PROCNAME_ATN
 
 #undef ngllvar
+!!! Generic values of ngll
 #ifndef NGLLVAL
 #define ngllvar ngll
+#define PROCNAME PROCNAMEBASE()N
 #else
+!!! Compilation time specified values of ngll
+#define PROCNAME PROCNAMEBASE()NGLLVAL
 #define ngllvar ngll0
 #endif
 
+#define PROCNAME1() PROCNAME
+#define SUBPROCNAME1  PROCNAME1()_main
+#define SUBPROCNAME2  PROCNAME1()_subloop
+
 #define USE_LOCAL_MEM
 
-subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_IDensity,FFl,Phi)
+subroutine PROCNAME(dom, ngllvar, var, dvdt)
+    use champs_fluid
+    type(domain_fluid), intent (INOUT) :: dom
+    type(champsfluid), intent(in) :: var
+    type(champsfluid), intent(inout) :: dvdt
+    integer, intent(in) :: ngllvar
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    !
+    integer :: i,j,k,ee,bnum,idx
+    integer :: nblocks
+    real(fpp) :: uval
+    !
+    real(fpp) :: val
+
+    nblocks = dom%nblocks
+
+    ! FLUID
+    do bnum = 0, nblocks-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    BEGIN_SUBELEM_LOOP1(ee)
+                    idx = dom%Idom_(i,j,k,bnum,ee)
+                    dom%Phi(ee,i,j,k,0) = var%Phi(idx)
+                    dom%ForcesFl(ee,i,j,k,0) = 0d0
+                    END_SUBELEM_LOOP()
+                enddo
+            enddo
+        enddo
+
+        ! internal forces
+        call SUBPROCNAME1(ngllvar, nblocks, bnum, dom%hprime, dom%htprime, dom%gllw, &
+            dom%m_InvGrad(:,:,:,:,:,:,bnum), dom%m_Jacob(:,:,:,:,bnum), dom%m_IDensity(:,:,:,:,bnum), &
+            dom%ForcesFl(:,:,:,:,0), dom%Phi(:,:,:,:,0))
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    BEGIN_SUBELEM_LOOP1(ee)
+                    e = bnum*VCHUNK+ee
+                    idx = dom%Idom_(i,j,k,bnum,ee)
+                    uval = dvdt%ForcesFl(idx)
+                    uval = uval - dom%ForcesFl(ee,i,j,k,0)
+                    dvdt%ForcesFl(idx) = uval
+                    END_SUBELEM_LOOP()
+                enddo
+            enddo
+        enddo
+    enddo
+end subroutine PROCNAME
+
+subroutine SUBPROCNAME1(ngllvar,nblocks,bnum,hprime,htprime,gllw,InvGrad,Jacob,IDensity,FFl,Phi)
     use sdomain
     use deriv3d
     implicit none
@@ -33,9 +94,9 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Phi
     real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime,htprime
     real(fpp), dimension(0:ngll-1), intent(in) :: gllw
-    real(fpp), dimension(IND_MNIJKE(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_InvGrad
-    real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_Jacob
-    real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_IDensity
+    real(fpp), dimension(0:VCHUNK-1,0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: invGrad
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: jacob
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: IDensity
     !
     real(fpp) :: dPhi_dX,dPhi_dY,dPhi_dZ
     real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
@@ -52,75 +113,63 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
 #ifdef NGLLVAL
     if (ngll/=ngll0) stop 1
 #endif
-    !dir$ ASSUME_ALIGNED PHI: 32
-    !dir$ ASSUME_ALIGNED FFL: 32
-    !dir$ ASSUME_ALIGNED m_InvGrad: 32
-    !dir$ ASSUME_ALIGNED m_Jacob: 32
-    !dir$ ASSUME_ALIGNED m_IDensity: 32
-    !dir$ ASSUME_ALIGNED hprime: 32
-    !dir$ ASSUME_ALIGNED htprime: 32
-    !dir$ ASSUME_ALIGNED gllw: 32
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(ee)
-#endif
                 BEGIN_SUBELEM_LOOP(ei,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 dPhi_dxi   = 0D0
                 dPhi_deta  = 0D0
                 dPhi_dzeta = 0D0
-                !dir$ loop count (5)
                 DO L = 0, ngll-1
                     dPhi_dxi   = dPhi_dxi  +Phi(ee,L,J,K)*hprime(L,I)
                     dPhi_deta  = dPhi_deta +Phi(ee,I,L,K)*hprime(L,J)
                     dPhi_dzeta = dPhi_dzeta+Phi(ee,I,J,L)*hprime(L,K)
                 END DO
 
-                xi1 = InvGrad_(0,0,i,j,k,bnum,ee)
-                xi2 = InvGrad_(1,0,i,j,k,bnum,ee)
-                xi3 = InvGrad_(2,0,i,j,k,bnum,ee)
-                et1 = InvGrad_(0,1,i,j,k,bnum,ee)
-                et2 = InvGrad_(1,1,i,j,k,bnum,ee)
-                et3 = InvGrad_(2,1,i,j,k,bnum,ee)
-                ga1 = InvGrad_(0,2,i,j,k,bnum,ee)
-                ga2 = InvGrad_(1,2,i,j,k,bnum,ee)
-                ga3 = InvGrad_(2,2,i,j,k,bnum,ee)
+                xi1 = InvGrad(ee,0,0,i,j,k)
+                xi2 = InvGrad(ee,1,0,i,j,k)
+                xi3 = InvGrad(ee,2,0,i,j,k)
+                et1 = InvGrad(ee,0,1,i,j,k)
+                et2 = InvGrad(ee,1,1,i,j,k)
+                et3 = InvGrad(ee,2,1,i,j,k)
+                ga1 = InvGrad(ee,0,2,i,j,k)
+                ga2 = InvGrad(ee,1,2,i,j,k)
+                ga3 = InvGrad(ee,2,2,i,j,k)
                 !- in the physical domain
                 dPhi_dx = dPhi_dxi*xi1 + dPhi_deta*et1 + dPhi_dzeta*ga1
                 dPhi_dy = dPhi_dxi*xi2 + dPhi_deta*et2 + dPhi_dzeta*ga2
                 dPhi_dz = dPhi_dxi*xi3 + dPhi_deta*et3 + dPhi_dzeta*ga3
 
                 ! (fluid equivalent) stress  ( = physical velocity)
-                xdens = IDensity_(i,j,k,bnum,ee)
+                xdens = IDensity(ee,i,j,k)
                 sx = xdens*dPhi_dX
                 sy = xdens*dPhi_dY
                 sz = xdens*dPhi_dZ
 
 
                 !=====================
-                !       F1 
+                !       F1
                 xt1 = sx*xi1 + sy*xi2 + sz*xi3
 
                 !=====================
-                !       F2 
+                !       F2
                 xt6 = sx*et1 + sy*et2 + sz*et3
 
                 !=====================
-                !       F3 
+                !       F3
                 xt10 = sx*ga1 + sy*ga2 + sz*ga3
 
                 !
                 !- Multiply par Jacobian and weight
                 !
-                t4  = Jacob_(i,j,k,bnum,ee) * gllw(i)
+                t4  = Jacob(ee,i,j,k) * gllw(i)
                 xt1 = xt1 * t4
 
-                t4  = Jacob_(i,j,k,bnum,ee) * gllw(j)
+                t4  = Jacob(ee,i,j,k) * gllw(j)
                 xt6 = xt6 * t4
 
-                t4   = Jacob_(i,j,k,bnum,ee) * gllw(k)
+                t4  = Jacob(ee,i,j,k) * gllw(k)
                 xt10 = xt10 * t4
 
 #ifdef USE_LOCAL_MEM
@@ -148,10 +197,7 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#if VCHUNK>1
-!$omp simd linear(ee)
-#endif
-                BEGIN_SUBELEM_LOOP(ei,ee,bnum)
+                BEGIN_SUBELEM_LOOP1(ee)
                 !=-=-=-=-=-=-=-=-=-=-
                 !
                 t11 = gllw(j) * gllw(k)
@@ -191,8 +237,23 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
     enddo
 #endif
     !=-=-=-=-=-=-=-=-=-=-
-end subroutine PROCNAME
+end subroutine SUBPROCNAME1
 
+!!!! ROUTINES DE TRAITEMENT DES MIRROIRS
+#define PROC_MIRROR         PROCNAME1()_mirror
+
+subroutine PROC_MIRROR(dom, ngllvar, var, dvdt, m_dump, m_expl, m_recalc)
+    use champs_fluid
+    type(domain_fluid), intent (INOUT) :: dom
+    type(champsfluid), intent(in) :: var
+    type(champsfluid), intent(inout) :: dvdt
+    integer, intent(in) :: ngllvar
+    logical, intent(in) :: m_dump, m_expl, m_recalc
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+
+end subroutine PROC_MIRROR
 
 
 !! Local Variables:

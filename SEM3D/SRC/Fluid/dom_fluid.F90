@@ -11,6 +11,7 @@ module dom_fluid
     use ssubdomains
     implicit none
 #include "index.h"
+#include "gllopt.h"
 
 contains
 
@@ -32,7 +33,7 @@ contains
         type(domain) :: TDomain
         type(domain_fluid), intent (INOUT) :: dom
         !
-        integer :: nbelem, ngll, nblocks, i
+        integer :: nbelem, ngll, nblocks, i, ntemps
         !
 
         ngll   = dom%ngll
@@ -53,6 +54,13 @@ contains
             nblocks = dom%nblocks
             allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+#if defined(OPENACC) || TEST_FLUID_ACC==1
+            ntemps = nblocks
+#else
+            ntemps = 1
+#endif
+            allocate(dom%ForcesFl (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:ntemps-1))
+            allocate(dom%Phi      (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1,0:ntemps-1))
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
@@ -288,14 +296,25 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_fluid), intent(inout) :: dom
         !
-        integer :: i
+        integer :: i,ns
 
         !$acc  enter data copyin(dom, dom%champs) &
+        !$acc&            copyin(dom%MassMat, dom%dirich) &
+        !$acc&            copyin(dom%Phi, dom%ForcesFl)  &
+        !$acc&            copyin(dom%m_IDensity, dom%gllw, dom%hprime)&
+        !$acc&            copyin(dom%m_Idom, dom%m_Jacob, dom%m_InvGrad) &
         !$acc&
         do i = 0,1
             !$acc enter data  copyin(dom%champs(i)%Phi, dom%champs(i)%VelPhi, dom%champs(i)%ForcesFl)
         end do
 
+        do ns = 0, Tdomain%n_source-1
+            if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
+                if(Tdomain%sSource(ns)%i_type_source == 3) then
+                    !$acc enter data      copyin(Tdomain%sSource(ns)%ExtForce)
+                end if
+            end if
+        end do
     end subroutine start_domain_fluid
 
     subroutine stop_domain_fluid(Tdomain, dom)
@@ -303,12 +322,23 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_fluid), intent(inout) :: dom
         !
-        integer :: i
+        integer :: i, ns
 
         !$acc  exit data delete(dom, dom%champs) &
+        !$acc&           delete(dom%MassMat, dom%dirich) &
+        !$acc&           delete(dom%Phi, dom%ForcesFl)  &
+        !$acc&           delete(dom%m_IDensity, dom%gllw, dom%hprime)&
+        !$acc&           delete(dom%m_Idom, dom%m_Jacob, dom%m_InvGrad) &
         !$acc&
         do i = 0,1
             !$acc exit data delete(dom%champs(i)%Phi, dom%champs(i)%VelPhi, dom%champs(i)%ForcesFl)
+        end do
+        do ns = 0, Tdomain%n_source-1
+            if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
+                if(Tdomain%sSource(ns)%i_type_source == 3) then
+                    !$acc exit  data      delete(Tdomain%sSource(ns)%ExtForce)
+                end if
+            end if
         end do
 
     end subroutine stop_domain_fluid
@@ -344,153 +374,214 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluid
 
-    subroutine forces_int_fluid(dom, field, bnum)
+
+    subroutine forces_int_fluid_mainloop(dom, i0, i1, m_dump, m_load, m_expl, m_recalc)
+        type(domain_fluid), intent (INOUT) :: dom
+        integer, intent(IN) :: i0, i1
+        logical, intent(IN) :: m_dump, m_load, m_expl, m_recalc
+        !
+        if (m_dump .or. m_load) then
+            call dispatch_forces_int_mirror_fl(dom, dom%champs(i0), dom%champs(i1), m_dump, m_expl, m_recalc)
+        else
+            call dispatch_forces_int_fl(dom, dom%champs(i0), dom%champs(i1))
+        endif
+    end subroutine forces_int_fluid_mainloop
+
+    subroutine dispatch_forces_int_fl(dom, var, dvdt)
         use m_calcul_forces_fluid
         type(domain_fluid), intent (INOUT) :: dom
-        type(champsfluid), intent(inout) :: field
-        integer, intent(in) :: bnum
+        type(champsfluid), intent(in) :: var
+        type(champsfluid), intent(inout) :: dvdt
         !
-        integer :: ngll,i,j,k,e,ee,idx
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
-        real(fpp) :: val
+        select case(dom%ngll)
+            NGLLDISPATCHCALL_4(calcul_forces_fl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_5(calcul_forces_fl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_6(calcul_forces_fl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_7(calcul_forces_fl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_8(calcul_forces_fl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_9(calcul_forces_fl,,(dom,dom%ngll,var,dvdt))
+            NGLLDISPATCHCALL_N(calcul_forces_fl,,(dom,dom%ngll,var,dvdt))
+        end select
+    end subroutine dispatch_forces_int_fl
 
-        ngll = dom%ngll
-
-        ! d(rho*Phi)_dX
-        ! d(rho*Phi)_dY
-        ! d(rho*Phi)_dZ
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        idx = dom%Idom_(i,j,k,bnum,ee)
-                        Phi(ee,i,j,k) = field%Phi(idx)
-                        Fo_Fl(ee,i,j,k) = 0d0
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        ! internal forces
-        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        e = bnum*VCHUNK+ee
-                        idx = dom%Idom_(i,j,k,bnum,ee)
-                        val = field%ForcesFl(idx)
-                        val = val - Fo_Fl(ee,i,j,k)
-                        field%ForcesFl(idx) = val
-                    enddo
-                enddo
-            enddo
-        enddo
-    end subroutine forces_int_fluid
-
-    subroutine forces_int_fluid_mirror_dump(dom,field,bnum)
+    subroutine dispatch_forces_int_mirror_fl(dom, var, dvdt, m_dump, m_expl, m_recalc)
         use m_calcul_forces_fluid
+        type(domain_fluid), intent (INOUT) :: dom
+        type(champsfluid), intent(in) :: var
+        type(champsfluid), intent(inout) :: dvdt
+        logical, intent(IN) :: m_dump, m_expl, m_recalc
+        !
+        select case(dom%ngll)
+            NGLLDISPATCHCALL_4(calcul_forces_fl,_mirror,(dom,dom%ngll,var,dvdt,m_dump,m_expl,m_recalc))
+            NGLLDISPATCHCALL_5(calcul_forces_fl,_mirror,(dom,dom%ngll,var,dvdt,m_dump,m_expl,m_recalc))
+            NGLLDISPATCHCALL_6(calcul_forces_fl,_mirror,(dom,dom%ngll,var,dvdt,m_dump,m_expl,m_recalc))
+            NGLLDISPATCHCALL_7(calcul_forces_fl,_mirror,(dom,dom%ngll,var,dvdt,m_dump,m_expl,m_recalc))
+            NGLLDISPATCHCALL_8(calcul_forces_fl,_mirror,(dom,dom%ngll,var,dvdt,m_dump,m_expl,m_recalc))
+            NGLLDISPATCHCALL_9(calcul_forces_fl,_mirror,(dom,dom%ngll,var,dvdt,m_dump,m_expl,m_recalc))
+            NGLLDISPATCHCALL_N(calcul_forces_fl,_mirror,(dom,dom%ngll,var,dvdt,m_dump,m_expl,m_recalc))
+        end select
+    end subroutine dispatch_forces_int_mirror_fl
 
-        type(domain_fluid),intent(inout) :: dom
-        type(champsfluid),intent(inout) :: field
-        integer,intent(in) :: bnum
-        integer :: lnum,ngll,i,j,k,ee,idx,idx_m
-        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl
-        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Phi
-        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: VelPhi
+!    subroutine forces_int_fluid(dom, field, bnum)
+!        use m_calcul_forces_fluid
+!        type(domain_fluid), intent (INOUT) :: dom
+!        type(champsfluid), intent(inout) :: field
+!        integer, intent(in) :: bnum
+!        !
+!        integer :: ngll,i,j,k,e,ee,idx
+!        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
+!        real(fpp) :: val
+!
+!        ngll = dom%ngll
+!
+!        ! d(rho*Phi)_dX
+!        ! d(rho*Phi)_dY
+!        ! d(rho*Phi)_dZ
+!        do k = 0,ngll-1
+!            do j = 0,ngll-1
+!                do i = 0,ngll-1
+!                    do ee = 0, VCHUNK-1
+!                        idx = dom%Idom_(i,j,k,bnum,ee)
+!                        Phi(ee,i,j,k) = field%Phi(idx)
+!                        Fo_Fl(ee,i,j,k) = 0d0
+!                    enddo
+!                enddo
+!            enddo
+!        enddo
+!
+!        ! internal forces
+!        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
+!
+!        do k = 0,ngll-1
+!            do j = 0,ngll-1
+!                do i = 0,ngll-1
+!                    do ee = 0, VCHUNK-1
+!                        e = bnum*VCHUNK+ee
+!                        idx = dom%Idom_(i,j,k,bnum,ee)
+!                        val = field%ForcesFl(idx)
+!                        val = val - Fo_Fl(ee,i,j,k)
+!                        field%ForcesFl(idx) = val
+!                    enddo
+!                enddo
+!            enddo
+!        enddo
+!    end subroutine forces_int_fluid
 
-        ngll = dom%ngll
-        lnum = bnum*VCHUNK
+!    subroutine forces_int_fluid_mirror_dump(dom,field,bnum)
+!        use m_calcul_forces_fluid
+!
+!        type(domain_fluid),intent(inout) :: dom
+!        type(champsfluid),intent(inout) :: field
+!        integer,intent(in) :: bnum
+!        integer :: lnum,ngll,i,j,k,ee,idx,idx_m
+!        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl
+!        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Phi
+!        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: VelPhi
+!
+!        ngll = dom%ngll
+!        lnum = bnum*VCHUNK
+!
+!        do k = 0,ngll-1
+!            do j = 0,ngll-1
+!                do i = 0,ngll-1
+!                    do ee = 0, VCHUNK-1
+!                        idx = dom%Idom_(i,j,k,bnum,ee)
+!                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+!                        Phi(ee,i,j,k) = field%Phi(idx)
+!                        VelPhi(ee,i,j,k) = field%VelPhi(idx)
+!                        if (idx_m>0) then
+!                            dom%mirror_fl%fields(1,idx_m) = Phi(ee,i,j,k)
+!                            dom%mirror_fl%fields(3,idx_m) = VelPhi(ee,i,j,k)
+!                        end if
+!                    enddo
+!                enddo
+!            enddo
+!        enddo
+!
+!        Fo_Fl = 0.0_fpp
+!        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
+!
+!        do k = 0,ngll-1
+!            do j = 0,ngll-1
+!                do i = 0,ngll-1
+!                    do ee = 0, VCHUNK-1
+!                        idx = dom%Idom_(i,j,k,bnum,ee)
+!                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+!                        if (idx_m>0) dom%mirror_fl%fields(2,idx_m) = Fo_Fl(ee,i,j,k)
+!                        field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
+!                    enddo
+!                enddo
+!            enddo
+!        enddo
+!
+!    end subroutine forces_int_fluid_mirror_dump
 
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        idx = dom%Idom_(i,j,k,bnum,ee)
-                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                        Phi(ee,i,j,k) = field%Phi(idx)
-                        VelPhi(ee,i,j,k) = field%VelPhi(idx)
-                        if (idx_m>0) then
-                            dom%mirror_fl%fields(1,idx_m) = Phi(ee,i,j,k)
-                            dom%mirror_fl%fields(3,idx_m) = VelPhi(ee,i,j,k)
-                        end if
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        Fo_Fl = 0.0_fpp
-        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        idx = dom%Idom_(i,j,k,bnum,ee)
-                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                        if (idx_m>0) dom%mirror_fl%fields(2,idx_m) = Fo_Fl(ee,i,j,k)
-                        field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
-                    enddo
-                enddo
-            enddo
-        enddo
-
-    end subroutine forces_int_fluid_mirror_dump
-
-    subroutine forces_int_fluid_mirror_load(dom,field,bnum)
-        use m_calcul_forces_fluid
-
-        type(domain_fluid),intent(inout) :: dom
-        type(champsfluid),intent(inout) :: field
-        integer,intent(in) :: bnum
-        integer :: lnum,ngll,i,j,k,ee,idx,idx_m
-        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Phi
-        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl
-
-        ngll = dom%ngll
-        lnum = bnum*VCHUNK
-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        idx = dom%Idom_(i,j,k,bnum,ee)
-                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                        Phi(ee,i,j,k) = field%Phi(idx)
-                        if (idx_m>0) Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m) &
-                            *dom%mirror_fl%winfunc(idx_m)
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        Fo_Fl = 0.0_fpp
-        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    do ee = 0, VCHUNK-1
-                        idx = dom%Idom_(i,j,k,bnum,ee)
-                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
-                        if (idx_m>0) Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m) &
-                            *dom%mirror_fl%winfunc(idx_m)
-                        field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
-                    enddo
-                enddo
-            enddo
-        enddo
-
-    end subroutine forces_int_fluid_mirror_load
+!    subroutine forces_int_fluid_mirror_load(dom,field,bnum)
+!        use m_calcul_forces_fluid
+!
+!        type(domain_fluid),intent(inout) :: dom
+!        type(champsfluid),intent(inout) :: field
+!        integer,intent(in) :: bnum
+!        integer :: lnum,ngll,i,j,k,ee,idx,idx_m
+!        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Phi
+!        real(fpp),dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fo_Fl
+!
+!        ngll = dom%ngll
+!        lnum = bnum*VCHUNK
+!
+!        do k = 0,ngll-1
+!            do j = 0,ngll-1
+!                do i = 0,ngll-1
+!                    do ee = 0, VCHUNK-1
+!                        idx = dom%Idom_(i,j,k,bnum,ee)
+!                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+!                        Phi(ee,i,j,k) = field%Phi(idx)
+!                        if (idx_m>0) Phi(ee,i,j,k) = Phi(ee,i,j,k)+dom%mirror_fl%fields(1,idx_m) &
+!                            *dom%mirror_fl%winfunc(idx_m)
+!                    enddo
+!                enddo
+!            enddo
+!        enddo
+!
+!        Fo_Fl = 0.0_fpp
+!        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
+!
+!        do k = 0,ngll-1
+!            do j = 0,ngll-1
+!                do i = 0,ngll-1
+!                    do ee = 0, VCHUNK-1
+!                        idx = dom%Idom_(i,j,k,bnum,ee)
+!                        idx_m = dom%mirror_fl%map(lnum+ee,i,j,k)
+!                        if (idx_m>0) Fo_Fl(ee,i,j,k) = Fo_Fl(ee,i,j,k)-dom%mirror_fl%fields(2,idx_m) &
+!                            *dom%mirror_fl%winfunc(idx_m)
+!                        field%ForcesFl(idx) = field%ForcesFl(idx)-Fo_Fl(ee,i,j,k)
+!                    enddo
+!                enddo
+!            enddo
+!        enddo
+!
+!    end subroutine forces_int_fluid_mirror_load
 
     subroutine newmark_predictor_fluid(dom, f0, f1)
         type(domain_fluid), intent (INOUT) :: dom
         integer, intent(in) :: f0, f1
         !
-        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
-        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
+        integer :: i
+!!         !$acc parallel loop async(1) present(dom,dom%champs) &
+!!         !$acc&   present(dom%champs(f0)%Phi,dom%champs(f0)%VelPhi) &
+!!         !$acc&   present(dom%champs(f1)%Phi,dom%champs(f1)%VelPhi,dom%champs(f1)%ForcesFl)
+!!         do i=0,dom%nglltot
+!!             !dom%champs(f1)%VelPhi(i)   = dom%champs(f0)%VelPhi(i)
+!!             !dom%champs(f1)%Phi(i)      = dom%champs(f0)%Phi(i)
+!!             dom%champs(f1)%ForcesFl(i) = 0d0
+!!         end do
+!!         !$acc end parallel
+
+        !$acc kernels async(1) present(dom%champs(f1)%ForcesFl)
+!        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
+!        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
         dom%champs(f1)%ForcesFl = 0d0
+        !$acc end kernels
     end subroutine newmark_predictor_fluid
 
     subroutine newmark_corrector_fluid(dom, dt, f0, f1)
@@ -498,15 +589,26 @@ contains
         real(fpp), intent(in) :: dt
         integer, intent(in) :: f0, f1
         !
-        integer  :: n,  indpml
-
-        dom%champs(f0)%ForcesFl = dom%champs(f1)%ForcesFl * dom%MassMat
-        dom%champs(f0)%VelPhi = (dom%champs(f0)%VelPhi + dt * dom%champs(f0)%ForcesFl)
+        integer  :: n,  indpml, count, nglltot
+        !
+        real(fpp) :: val
+        count = dom%n_dirich
+        nglltot = dom%nglltot
+        !$acc kernels async(1)  present(dom,dom%champs, dom%massmat) &
+        !$acc&     present(dom%champs(f1)%ForcesFl) &
+        !$acc&     present(dom%champs(f0)%VelPhi,dom%champs(f1)%Phi)
+        dom%champs(f0)%VelPhi = dom%champs(f0)%VelPhi + dt * dom%champs(f1)%ForcesFl * dom%MassMat
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
             dom%champs(f0)%VelPhi(indpml) = 0.
         enddo
         dom%champs(f0)%Phi = dom%champs(f0)%Phi + dt * dom%champs(f0)%VelPhi
+        !$acc end kernels
+
+!        !$acc update host(dom%champs(f1)%ForcesFl,dom%champs(f0)%ForcesFl) wait(1)
+!        write(*,*) "nglltot:", nglltot
+!        write(*,"(A,E16.9,E16.9,E16.9)") "src:", dom%MassMat(35850),dom%champs(f0)%ForcesFl(35850),dom%champs(f1)%ForcesFl(35850)
+
     end subroutine newmark_corrector_fluid
 
     function fluid_Pspeed(dom, lnum, i, j, k) result(Pspeed)
@@ -519,6 +621,46 @@ contains
         ee = mod(lnum,VCHUNK)
         Pspeed = sqrt(dom%Lambda_(i,j,k,bnum,ee)*dom%IDensity_(i,j,k,bnum,ee))
     end function fluid_Pspeed
+
+    subroutine apply_source_fluid(src, dom, i1, ft, lnum)
+        use sdomain
+        implicit none
+        type(domain_fluid),intent(inout) :: dom
+        type(Source),intent(inout) :: src 
+        real(fpp), intent(in) :: ft
+        integer, intent(in) :: i1
+        integer, intent(in) :: lnum
+        integer :: bnum, ee
+        integer :: ngll, i, j, k, idx
+        real(kind=fpp) :: val
+
+        ngll = dom%ngll
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+
+        !$acc parallel loop gang vector collapse(3) async(1)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    idx = dom%Idom_(i,j,k,bnum,ee)
+                    val = dom%champs(i1)%ForcesFl(idx)
+                    val = val + ft*src%ExtForce(i,j,k,0)
+                    dom%champs(i1)%ForcesFl(idx) = val
+                enddo
+            enddo
+        enddo
+!!        write(*,*) "source:"
+!!        !$acc update host(dom%champs(i1)%ForcesFl) wait(1)
+!!        i=2
+!!        j=2
+!!        k=2
+!!        idx = dom%Idom_(i,j,k,bnum,ee)
+!!        val = dom%champs(i1)%ForcesFl(idx)
+!!        !val = src%ExtForce(i,j,k,0)
+!!        write(*,"(A,I2,I2,I2,A,I5,A,E16.9)") "src:",i,j,k,"idx:",idx,":",val
+
+    end subroutine apply_source_fluid
+
 end module dom_fluid
 
 !! Local Variables:

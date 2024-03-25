@@ -37,6 +37,10 @@ module champs_fluid
         integer :: mirror_type
         type(time_mirror_fl) :: mirror_fl
 
+        ! pre-allocated temporary mem
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: ForcesFl
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: Phi
+
         ! Champs
         type(champsfluid), dimension(:), allocatable :: champs
     end type domain_fluid
