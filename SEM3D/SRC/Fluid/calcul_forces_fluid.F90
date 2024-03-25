@@ -5,76 +5,99 @@
 module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check at build time
 contains
 #include "index.h"
+#include "gllopt.h"
 
-    subroutine calcul_forces_fluid(dom,ngll,bnum,FFl,Phi)
-        use sdomain
-        use deriv3d
-        implicit none
-        type(domain_fluid), intent (INOUT) :: dom
-        integer, intent(in) :: ngll
-        integer, intent(in) :: bnum
-        !
-        integer :: nblocks
-        real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: FFl
-        real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Phi
-        nblocks = dom%nblocks
-        select case(ngll)
-        case(4)
-            call calcul_forces_fluid_4(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
-        case(5)
-            call calcul_forces_fluid_5(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
-        case (6)
-            call calcul_forces_fluid_6(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
-        case (7)
-            call calcul_forces_fluid_7(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
-        case (8)
-            call calcul_forces_fluid_8(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
-        case (9)
-            call calcul_forces_fluid_9(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
-        case default
-            call calcul_forces_fluid_n(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
-        end select
-    end subroutine calcul_forces_fluid
+#define PROCNAMEBASE() calcul_forces_fl_
 
+#ifndef TEST_FLUID_ACC
+#define TEST_FLUID_ACC 0
+#endif
+
+#if defined(OPENACC) || TEST_FLUID_ACC==1
+#if GENGLL4
+#undef NGLLVAL
 #define NGLLVAL 4
-#define PROCNAME calcul_forces_fluid_4
-#include "calcul_forces_fluid.inc"
+#include "calcul_forces_fluid_acc.inc"
+#endif
+
+#if GENGLL5
 #undef NGLLVAL
-#undef PROCNAME
 #define NGLLVAL 5
-#define PROCNAME calcul_forces_fluid_5
-#include "calcul_forces_fluid.inc"
+#include "calcul_forces_fluid_acc.inc"
+#endif
+
+#if GENGLL6
 #undef NGLLVAL
-#undef PROCNAME
 #define NGLLVAL 6
-#define PROCNAME calcul_forces_fluid_6
-#include "calcul_forces_fluid.inc"
+#include "calcul_forces_fluid_acc.inc"
+#endif
+
+#if GENGLL7
 #undef NGLLVAL
-#undef PROCNAME
 #define NGLLVAL 7
-#define PROCNAME calcul_forces_fluid_7
-#include "calcul_forces_fluid.inc"
+#include "calcul_forces_fluid_acc.inc"
+#endif
+
+#if GENGLL8
 #undef NGLLVAL
-#undef PROCNAME
 #define NGLLVAL 8
-#define PROCNAME calcul_forces_fluid_8
-#include "calcul_forces_fluid.inc"
+#include "calcul_forces_fluid_acc.inc"
+#endif
+
+#if GENGLL9
 #undef NGLLVAL
-#undef PROCNAME
 #define NGLLVAL 9
-#define PROCNAME calcul_forces_fluid_9
-#include "calcul_forces_fluid.inc"
+#include "calcul_forces_fluid_acc.inc"
+#endif
+
+#if GENGLLN
 #undef NGLLVAL
-#undef PROCNAME
-#define PROCNAME calcul_forces_fluid_n
+#include "calcul_forces_fluid_acc.inc"
+#endif
+
+#else
+#if GENGLL4
+#undef NGLLVAL
+#define NGLLVAL 4
 #include "calcul_forces_fluid.inc"
+#endif
+
+#if GENGLL5
+#undef NGLLVAL
+#define NGLLVAL 5
+#include "calcul_forces_fluid.inc"
+#endif
+
+#if GENGLL6
+#undef NGLLVAL
+#define NGLLVAL 6
+#include "calcul_forces_fluid.inc"
+#endif
+
+#if GENGLL7
+#undef NGLLVAL
+#define NGLLVAL 7
+#include "calcul_forces_fluid.inc"
+#endif
+
+#if GENGLL8
+#undef NGLLVAL
+#define NGLLVAL 8
+#include "calcul_forces_fluid.inc"
+#endif
+
+#if GENGLL9
+#undef NGLLVAL
+#define NGLLVAL 9
+#include "calcul_forces_fluid.inc"
+#endif
+
+#if GENGLLN
+#undef NGLLVAL
+#include "calcul_forces_fluid.inc"
+#endif
+
+#endif
 
 end module m_calcul_forces_fluid
 

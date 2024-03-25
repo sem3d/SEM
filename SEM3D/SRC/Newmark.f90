@@ -488,25 +488,52 @@ contains
         logical :: m_dump, m_load, m_expl, m_recalc
         ! DOMAIN FLUID
         if (Tdomain%fdom%nbelem>0) then
+            m_load = .false.
+            m_dump = .false.
+            m_recalc = .false.
+            m_expl = .false.
             call stat_starttick(STAT_FFLU)
-            ! Mirror Record
+           ! Mirror Record
             if (Tdomain%mirror_type==0.and.Tdomain%fdom%mirror_fl%n_glltot>0) then
-                do n = 0,Tdomain%fdom%nblocks-1
-                    call forces_int_fluid_mirror_dump(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
-                enddo
-                call dump_mirror_fl(Tdomain%fdom,ntime)
+                m_dump = .true.
+                if (Tdomain%mirror_expl) then
+                    m_expl = .true.
+                endif
             ! Mirror Forward/Backward
             elseif (Tdomain%mirror_type>0.and.Tdomain%fdom%mirror_fl%n_glltot>0) then
+                m_load = .true.
                 call load_mirror_fl(Tdomain%fdom,ntime)
-                do n = 0,Tdomain%fdom%nblocks-1
-                    call forces_int_fluid_mirror_load(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
-                enddo
+                if (Tdomain%mirror_recalc) then
+                    m_recalc = .true.
+                else
+                    if (Tdomain%mirror_expl) then
+                        m_expl = .true.
+                    endif
+                endif
             ! Without Mirror
-            else
-                do n = 0,Tdomain%fdom%nblocks-1
-                    call forces_int_fluid(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
-                enddo
+            end if
+            call forces_int_fluid_mainloop(Tdomain%fdom, i0, i1, m_dump, m_load, m_expl,m_recalc)
+            if (m_dump) then
+                call dump_mirror_fl(Tdomain%fdom,ntime)
             endif
+!            ! Mirror Record
+!            if (Tdomain%mirror_type==0.and.Tdomain%fdom%mirror_fl%n_glltot>0) then
+!                do n = 0,Tdomain%fdom%nblocks-1
+!                    call forces_int_fluid_mirror_dump(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
+!                enddo
+!                call dump_mirror_fl(Tdomain%fdom,ntime)
+!            ! Mirror Forward/Backward
+!            elseif (Tdomain%mirror_type>0.and.Tdomain%fdom%mirror_fl%n_glltot>0) then
+!                call load_mirror_fl(Tdomain%fdom,ntime)
+!                do n = 0,Tdomain%fdom%nblocks-1
+!                    call forces_int_fluid_mirror_load(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
+!                enddo
+!            ! Without Mirror
+!            else
+!                do n = 0,Tdomain%fdom%nblocks-1
+!                    call forces_int_fluid(Tdomain%fdom,Tdomain%fdom%champs(i1),n)
+!                enddo
+!            endif
             call stat_stoptick(STAT_FFLU)
         endif
         ! DOMAIN PML FLUID
@@ -594,6 +621,7 @@ contains
     !-------------------------------------------------------------------------------
     subroutine external_forces(Tdomain,timer,ntime,i1)
         use dom_solid
+        use dom_fluid
         implicit none
 #include "index.h"
 
@@ -640,16 +668,7 @@ contains
                     !
                     call apply_source_solid(Tdomain%sSource(ns), Tdomain%sdom, i1, ft, lnum)
                 else if(Tdomain%sSource(ns)%i_type_source == 3)then    ! pressure pulse in fluid
-                    do k = 0,ngll-1
-                        do j = 0,ngll-1
-                            do i = 0,ngll-1
-                                idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
-                                val = Tdomain%fdom%champs(i1)%ForcesFl(idx)
-                                val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
-                                Tdomain%fdom%champs(i1)%ForcesFl(idx) = val
-                            enddo
-                        enddo
-                    enddo
+                    call apply_source_fluid(Tdomain%sSource(ns), Tdomain%fdom, i1, ft, lnum)
                 end if
             endif
         enddo

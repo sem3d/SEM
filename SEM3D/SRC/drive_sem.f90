@@ -499,6 +499,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) then
             !$acc update host(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%Veloc, Tdomain%sdom%champs(1)%Veloc) async(2) wait(1)
+            !$acc update host(Tdomain%fdom%champs(0)%Phi, Tdomain%fdom%champs(0)%VelPhi, Tdomain%fdom%champs(1)%ForcesFl) async(2) wait(1)
             !$acc wait(2)
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
         end if
@@ -510,6 +511,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) then
             !$acc update host(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%Veloc, Tdomain%sdom%champs(1)%Veloc) async(2) wait(1)
+            !$acc update host(Tdomain%fdom%champs(0)%Phi, Tdomain%fdom%champs(0)%VelPhi, Tdomain%fdom%champs(1)%ForcesFl) async(2) wait(1)
             !$acc wait(2)
             call save_capteur(Tdomain, ntime)
         end if
