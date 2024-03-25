@@ -46,6 +46,8 @@ module mCapteur
     type(Tcapteur), pointer :: listeCapteur
     type(Tcapteur), pointer :: capt_En_PS
 
+    type(Tcapteur), dimension(:), allocatable :: localCapteurs
+    integer :: nCapteursOnRank
     integer,parameter :: fileIdCapteur=200  ! id fichier capteur
 
     logical :: traces_h5_created
@@ -56,7 +58,7 @@ contains
         implicit none
         type(domain), intent (inout) :: Tdomain
         !
-        type(Tcapteur),pointer :: capteur
+        type(Tcapteur),pointer :: capteur, oldcapteur
         type(C_PTR) :: station_next;
         type(sem_station), pointer :: station_ptr
         character(Len=MAX_FILE_SIZE) :: nom
@@ -83,6 +85,7 @@ contains
 
         Tdomain%has_station = .false. !Stations other than Total Energy
 
+        nCapteursOnRank = 0
 
         do while (C_ASSOCIATED(station_next))
             call c_f_pointer(station_next, station_ptr)
@@ -151,6 +154,7 @@ contains
                 capteur%icache = 0
                 capteur%suivant => listeCapteur
                 listeCapteur => capteur
+                nCapteursOnRank = nCapteursOnRank + 1
                 write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4,A,I1)") "Capteur:", trim(capteur%nom), &
                     " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta, &
                     " in domain ", Tdomain%specel(n_el)%domain
@@ -167,6 +171,24 @@ contains
 
             station_next = station_ptr%next
         end do
+
+        ! Create array for GPU computing
+        if (nCapteursOnRank.gt.0) then
+            capteur => listCapteurs
+            allocate(localCapteurs(0:nCapteursOnRank-1))
+            do c = 0,nCapteursOnRank-1
+                localCapteurs(c) = capteur
+                if (c.lt.nCapteursOnRank-1) then
+                    localCapteurs(c)%suivant => localCapteurs(c+1)%suivant
+                else
+                    nullify(localCapteurs(c+1)%suivant
+                endif
+                oldcapteur => capteur
+                capteur => capteur%suivant
+                deallocate(oldcapteur)
+            enddo
+            listCapteurs => localCapteurs(0)
+        endif
 
         if(periodeRef < 1) periodeRef = 1
 
@@ -249,24 +271,36 @@ contains
         type(tCapteur),pointer :: capteur
         logical :: do_flush
 
-        do_flush = .false.
+        do_flush = .false. 
         ! boucle sur les capteurs
-
-
         capteur=>listeCapteur
-        do while (associated(capteur))
-            if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
-                if (capteur%type == CPT_INTERP) then
-                    call sortieGrandeurCapteur_interp(Tdomain, capteur)
-                else if (capteur%type == CPT_ENERGY) then
-                    call sortieGrandeurCapteur_energy(Tdomain, capteur)
+        ! do while (associated(capteur))
+        !$acc parallel loop gang async(1)
+        do c = 0,nCapteursOnRank-1
+            if (mod(ntime, localCapteurs(c)%periode)==0) then
+                if (localCapteurs(c)%type == CPT_INTERP) then
+                    call sortieGrandeurCapteur_interp(Tdomain, localcapteurs(c))
+                else if (localcapteurs(c)%type == CPT_ENERGY) then
+                    call sortieGrandeurCapteur_energy(Tdomain, localcapteurs(c))
                 end if
-                if (capteur%icache==NCAPT_CACHE) do_flush = .true.
-            end if
+            if (localcapteurs%icache==NCAPT_CACHE) do_flush = .true.
+
+            ! if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
+            !     if (capteur%type == CPT_INTERP) then
+            !         call sortieGrandeurCapteur_interp(Tdomain, capteur)
+            !     else if (capteur%type == CPT_ENERGY) then
+            !         call sortieGrandeurCapteur_energy(Tdomain, capteur)
+            !     end if
+            !     if (capteur%icache==NCAPT_CACHE) do_flush = .true.
+            ! end if
             capteur=>capteur%suivant
         enddo
-
-        if (do_flush) call flushAllCapteurs(Tdomain)
+        
+        if (do_flush) then
+            !$acc update host(localCapteurs) async(2) wait(1)
+            !$acc wait(2)
+            call flushAllCapteurs(Tdomain)
+        endif
 
     end subroutine save_capteur
 
@@ -470,6 +504,7 @@ contains
     !! seul le proc gere l'ecriture
     !!
     subroutine sortieGrandeurCapteur_interp(Tdomain, capteur)
+        !$acc routine worker
         use constants
         use dom_solid
         use dom_solid_dg
