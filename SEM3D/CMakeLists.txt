@@ -5,10 +5,14 @@ ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
 
 set(SOLID_SRC  ${PRJ}/SRC/Solid/calcul_forces_iso.F90)
+set(FLUID_SRC  ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90)
+
 if (SAVE_PREPROCESS)
   set(SOLID_PROC ${CMAKE_CURRENT_BINARY_DIR}/calcul_forces_iso_p.F90)
+  set(FLUID_PROC ${CMAKE_CURRENT_BINARY_DIR}/calcul_forces_fluid_p.F90)
 else()
   set(SOLID_PROC ${SOLID_SRC})
+  set(FLUID_PROC ${FLUID_SRC})
 endif()
 
 set(SEM3D_SOURCES_F
@@ -54,9 +58,9 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Solid/calcul_forces_iso_nl.F90
     ${PRJ}/SRC/Solid/calcul_forces_aniso_nl.F90
     # NOT WORKING
-#    ${PRJ}/SRC/Solid/calcul_forces_atn_nl.F90
+    # ${PRJ}/SRC/Solid/calcul_forces_atn_nl.F90
     ${PRJ}/SRC/Solid/dom_solid.F90
-    ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
+    ${FLUID_PROC}
     ${PRJ}/SRC/Fluid/dom_fluid.F90
     ${PRJ}/SRC/SolidDG/calcul_forces_solid_dg.F90
     ${PRJ}/SRC/SolidDG/dom_solid_dg.F90
@@ -220,7 +224,13 @@ if (SAVE_PREPROCESS)
     DEPENDS "${SOLID_SRC}"
     #VERBATIM COMMAND_EXPAND_LISTS # these two args are generally useful, but not actually required here.
   )
-  target_sources(sem3d.exe PRIVATE "${SOLIDPML_PROC}" "${SOLID_PROC}")
+  add_custom_command(
+    OUTPUT "${FLUID_PROC}"
+    COMMAND "${CMAKE_Fortran_COMPILER}" ${CUSTOM_FLAGS} -E ${FLUID_SRC} | grep -v "^# " >${FLUID_PROC}
+    DEPENDS "${FLUID_SRC}"
+    #VERBATIM COMMAND_EXPAND_LISTS # these two args are generally useful, but not actually required here.
+  )
+  target_sources(sem3d.exe PRIVATE "${SOLIDPML_PROC}" "${SOLID_PROC}" "${FLUID_PROC}")
 endif()
 
 # this might be needed since I don't expect cmake to infer CXX from the .ii extension
