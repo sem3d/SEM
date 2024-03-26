@@ -5,7 +5,6 @@
 
 #include "index.h"
 #include "loops.h"
-#include "fluid_forces.h"
 
 #undef PROCNAME
 #undef PROCNAME_ATN
@@ -72,9 +71,9 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
                         idx = dom%Idom_(i,j,k,bnum,ee)
                         if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
                             !$acc atomic update
-                            dvdt%ForcesFl(idx) = dvdt%ForcesFl(idx) - tForcesFl_(ee,i,j,k,bnum)
+                            dvdt%ForcesFl(idx) = dvdt%ForcesFl(idx) - dom%ForcesFl(ee,i,j,k,bnum)
                         else
-                            dvdt%ForcesFl(idx) = dvdt%ForcesFl(idx) - tForcesFl_(ee,i,j,k,bnum)
+                            dvdt%ForcesFl(idx) = dvdt%ForcesFl(idx) - dom%ForcesFl(ee,i,j,k,bnum)
                         end if
                     enddo
                 enddo
