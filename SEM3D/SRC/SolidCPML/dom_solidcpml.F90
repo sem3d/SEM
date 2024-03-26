@@ -184,6 +184,7 @@ contains
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        !$acc routine worker
         implicit none
         !
         type(domain_solidpml)              :: dom
@@ -297,6 +298,7 @@ contains
     end subroutine get_solidpml_dom_var
 
     subroutine get_solidpml_rfields(Tdomain, dom, n, lnum, outputs)
+        !$acc routine worker
         use msnapdata, only : output_var_t
         use m_calcul_forces_solidpml
         type(domain), intent(inout) :: TDomain

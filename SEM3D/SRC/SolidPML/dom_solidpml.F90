@@ -115,6 +115,7 @@ contains
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        !$acc routine worker
         implicit none
         !
         type(domain_solidpml)                      :: dom

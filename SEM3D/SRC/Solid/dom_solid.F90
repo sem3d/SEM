@@ -202,6 +202,7 @@ contains
         end subroutine deallocate_dom_solid
 
     subroutine get_solid_dom_grad_lambda(dom, lnum, grad_La)
+        !$acc routine worker
         use deriv3d
         implicit none
         !
@@ -236,6 +237,7 @@ contains
     end subroutine get_solid_dom_grad_lambda
 
     subroutine get_solid_dom_grad_mu(dom, lnum, grad_Mu)
+        !$acc routine worker
         use deriv3d
         implicit none
         !
@@ -272,6 +274,7 @@ contains
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy,&
         eps_vol, eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
+        !$acc routine worker
         use deriv3d
         implicit none
         !
@@ -496,6 +499,7 @@ contains
 
 
     subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, S_energy, R_energy, C_energy)
+        !$acc routine worker
         use deriv3d
         implicit none
         !

@@ -142,7 +142,7 @@ contains
 
     subroutine get_solid_dg_dom_var(dom, lnum, out_variables,  &
          fieldV, fieldA, eps_vol, eps_dev)
-
+        !$acc routine worker
         use deriv3d
     
         implicit none
