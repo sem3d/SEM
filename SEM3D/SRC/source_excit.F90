@@ -5,6 +5,7 @@
 !------------------------------------------------------------------------
 module msource_excit
     use constants, only : fpp
+    use lagrange_prop
     implicit none
 contains
     real(fpp) function interp_lag(ngll,GLLc,xi,eta,zeta,func)
