@@ -43,7 +43,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     nblocks = dom%nblocks
 
     ! FLUID
-    !$acc parallel loop gang worker collapse(5) async(1)
+    !$acc parallel loop  collapse(5) async(1)
     do bnum = 0, nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -62,7 +62,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     call SUBPROCNAME1(ngllvar, nblocks, dom%ForcesFl, dom%Phi, dom%m_IDensity, &
         dom%hprime, dom%gllw, dom%m_Jacob, dom%m_InvGrad)
 
-    !$acc parallel loop gang worker collapse(5) async(1)
+    !$acc parallel loop  collapse(5) async(1)
     do bnum = 0, nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -110,7 +110,7 @@ subroutine SUBPROCNAME1(ngllvar,nblocks,FFl,Phi,irho,hprime,gllw,jacob,invgrad)
 #ifdef NGLLVAL
     if (ngll/=ngll0) stop 1
 #endif
-    !$acc parallel loop gang worker collapse(5) async(1)
+    !$acc parallel loop collapse(5) async(1)
     do bnum = 0, nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
