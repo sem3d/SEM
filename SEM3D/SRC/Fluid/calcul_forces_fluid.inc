@@ -5,7 +5,6 @@
 
 #include "index.h"
 #include "loops.h"
-#include "fluid_forces.h"
 
 #undef PROCNAME
 #undef PROCNAME_ATN
