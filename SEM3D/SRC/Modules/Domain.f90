@@ -100,6 +100,7 @@ module sdomain
 
 
        integer, dimension(0:OUT_LAST) :: out_var_capt
+       integer, dimension(0:OUT_LAST) :: out_var_offset
        integer, dimension(0:OUT_LAST) :: out_var_snap
        integer                 :: nReqOut ! number of required outputs
        integer :: earthchunk_isInit
@@ -236,7 +237,6 @@ contains
     end subroutine domain_nelems
 
     subroutine domain_gllc(Tdomain, dom, GLLc)
-        !$acc routine seq
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: dom
         real(fpp), dimension(:), allocatable, intent(out) :: gllc

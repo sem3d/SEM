@@ -88,6 +88,7 @@ contains
     end subroutine deallocate_dom_fluid
 
     subroutine fluid_velocity(ngll,hprime,InvGrad,idensity,phi,veloc)
+        !$acc routine worker
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)
         implicit none
         integer, intent(in)  :: ngll
@@ -104,7 +105,7 @@ contains
         Veloc(:,:,:,2) = dphi_dz(:,:,:) * idensity(:,:,:)
     end subroutine fluid_velocity
 
-    subroutine get_fluid_dom_var(dom, lnum, out_variables, &
+    subroutine get_fluid_dom_var(dom, lnum, ngll, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
         !$acc routine worker
         use deriv3d
@@ -113,20 +114,20 @@ contains
         type(domain_fluid), intent(inout)          :: dom
         integer, dimension(0:), intent(in)         :: out_variables
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable   :: phi
-        real(fpp), dimension(:,:,:), allocatable   :: vphi
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldU
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldV
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldA
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: S_energy
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2) :: fieldU
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2) :: fieldV
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2) :: fieldA
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:8) :: dUdX
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1)     :: fieldP
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1)     :: P_energy
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1)     :: S_energy
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1)     :: eps_vol
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:5) :: eps_dev
+        real(fpp), intent(out), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:5) :: sig_dev
         real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,divU!
         real(fpp), dimension(0:2,0:2) :: invgrad_ijk
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1)   :: phi
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1)   :: vphi
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
         integer :: bnum, ee
@@ -141,41 +142,24 @@ contains
             out_variables(OUT_EPS_DEV) + &
             out_variables(OUT_STRESS_DEV)) /= 0
 
-        ngll = dom%ngll
-        allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
-        allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
 
+       !$acc loop worker vector collapse(3)
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     phi(i,j,k) = dom%champs(0)%Phi(ind)
-                enddo
-            enddo
-        enddo
-        do k=0,ngll-1
-            do j=0,ngll-1
-                do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,bnum,ee)
                     vphi(i,j,k) = dom%champs(0)%VelPhi(ind)
-                enddo
-            enddo
-        enddo
-
-        if (out_variables(OUT_PRESSION) == 1) then
-            do k=0,ngll-1
-                do j=0,ngll-1
-                    do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,bnum,ee)
+                    if (out_variables(OUT_PRESSION) == 1) then
 #ifdef CPML
                         fieldP(i,j,k) = -dom%champs(0)%ForcesFl(ind)
 #else
                         fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
 #endif
-                    enddo
+                    end if
                 enddo
             enddo
-        end if
+        enddo
 
         if (out_variables(OUT_DEPLA) == 1) then
 #ifdef CPML
@@ -207,6 +191,7 @@ contains
         end if
 
         if (flag_gradU) then
+            !$acc loop collapse(3)
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
@@ -254,8 +239,6 @@ contains
         if (out_variables(OUT_STRESS_DEV) == 1) then
             sig_dev(:,:,:,:) = 0.
         end if
-        deallocate(phi)
-        deallocate(vphi)
     end subroutine get_fluid_dom_var
 
 

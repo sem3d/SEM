@@ -194,8 +194,9 @@ contains
             stop "Newmark scheme implemented only in velocity form."
 
         !- Prediction Phase
+        ! Make sure all snapshots/capteurs are finished
+        !$acc wait(2)
         call Newmark_Predictor(Tdomain)
-        !$acc wait(1)
 
         !- Solution phase
         call internal_forces(Tdomain, 0, 1, ntime)

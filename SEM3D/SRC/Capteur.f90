@@ -40,6 +40,11 @@ module mCapteur
         integer :: icache
         real(fpp), dimension(:,:), allocatable :: valuecache
         integer :: type
+        integer :: domain
+        integer :: lnum
+        !
+        integer :: ngll
+        real(fpp), dimension(:), allocatable :: outx,outy,outz,doutx,douty,doutz
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
@@ -75,6 +80,8 @@ contains
         character(len=MAX_FILE_SIZE) :: fnamef
         integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out, ngll
         real(fpp) :: dmin, glob_dmin
+        real(fpp),dimension(:),allocatable :: gllc
+
         real(fpp), dimension(0:2, 0:Tdomain%n_nodes-1) :: coordl
         integer :: periodeRef
         logical :: flag
@@ -85,6 +92,9 @@ contains
         nullify(listeCapteur)
         periodeRef = -1
 
+        ! Default unspecified value is 'text'
+        if (Tdomain%traces_format == 0) Tdomain%traces_format = 1
+
         ! En reprise on ne recree pas le fichier capteur
         if (Tdomain%TimeD%NtimeMin==0) then
             traces_h5_created = .false.
@@ -94,6 +104,15 @@ contains
 
         Tdomain%has_station = .false. !Stations other than Total Energy
 
+
+        Tdomain%out_var_offset = 0
+        do i = 0,size(Tdomain%out_var_capt)-2
+            if (Tdomain%out_var_capt(i) == 1) then
+                Tdomain%out_var_offset(i+1) = Tdomain%out_var_offset(i) + OUT_VAR_DIMS_3D(i)
+            else
+                Tdomain%out_var_offset(i+1) = Tdomain%out_var_offset(i)
+            end if
+        end do
         nCapteursOnRank = 0
 
         do while (C_ASSOCIATED(station_next))
@@ -130,7 +149,6 @@ contains
                 allocate(capteur)
                 Tdomain%has_station = .true.
                 n_out = Tdomain%nReqOut
-                if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
 
                 if (glob_dmin>0) then
                     do i = 0, Tdomain%n_nodes-1
@@ -150,17 +168,6 @@ contains
                 nom = fromcstr(station_ptr%name)
                 ! Initialisation.
                 ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
-                allocate(capteur%fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-                allocate(capteur%fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                allocate(capteur%fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                allocate(capteur%fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                allocate(capteur%eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
-                allocate(capteur%P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-                allocate(capteur%S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-                allocate(capteur%eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                allocate(capteur%dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
-                allocate(capteur%eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
-                allocate(capteur%sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
 
                 capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
                 capteur%type = CPT_INTERP
@@ -174,7 +181,9 @@ contains
                 capteur%zeta = zeta
                 capteur%n_el = n_el
                 capteur%numproc = numproc_max
-                capteur%icache = 0
+                capteur%domain = Tdomain%specel(n_el)%domain
+                capteur%lnum = Tdomain%specel(n_el)%lnum
+                capteur%icache = 1
                 capteur%suivant => listeCapteur
                 listeCapteur => capteur
                 nCapteursOnRank = nCapteursOnRank + 1
@@ -201,18 +210,72 @@ contains
             allocate(localCapteurs(0:nCapteursOnRank-1))
             do c = 0,nCapteursOnRank-1
                 localCapteurs(c) = capteur
-                if (c.lt.nCapteursOnRank-1) then
+                if (c.lt.nCapteursOnRank-2) then
                     localCapteurs(c)%suivant => localCapteurs(c+1)
                 else
-                    nullify(localCapteurs(c+1)%suivant)
+                    nullify(localCapteurs(c)%suivant)
                 endif
+                n_el = localCapteurs(c)%n_el
+                localCapteurs(c)%ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
+
+                allocate(localCapteurs(c)%fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(localCapteurs(c)%fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(localCapteurs(c)%fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(localCapteurs(c)%fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(localCapteurs(c)%eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(localCapteurs(c)%P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(localCapteurs(c)%S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(localCapteurs(c)%eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+                allocate(localCapteurs(c)%dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
+                allocate(localCapteurs(c)%eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
+                allocate(localCapteurs(c)%sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+                allocate(localCapteurs(c)%outx(0:ngll-1))
+                allocate(localCapteurs(c)%outy(0:ngll-1))
+                allocate(localCapteurs(c)%outz(0:ngll-1))
+                allocate(localCapteurs(c)%doutx(0:ngll-1))
+                allocate(localCapteurs(c)%douty(0:ngll-1))
+                allocate(localCapteurs(c)%doutz(0:ngll-1))
+                allocate(localCapteurs(c)%valuecache(1:n_out+1,NCAPT_CACHE))
+                call domain_gllc(Tdomain, Tdomain%specel(n_el)%domain, GLLc)
+
+                do i = 0,ngll - 1
+                    call  pol_lagrange(ngll,GLLc,i,capteur%xi  ,localCapteurs(c)%outx(i))
+                    call  pol_lagrange(ngll,GLLc,i,capteur%eta ,localCapteurs(c)%outy(i))
+                    call  pol_lagrange(ngll,GLLc,i,capteur%zeta,localCapteurs(c)%outz(i))
+                    call  der_lagrange(ngll,GLLc,i,capteur%xi  ,localCapteurs(c)%doutx(i))
+                    call  der_lagrange(ngll,GLLc,i,capteur%eta ,localCapteurs(c)%douty(i))
+                    call  der_lagrange(ngll,GLLc,i,capteur%zeta,localCapteurs(c)%doutz(i))
+                end do
                 oldcapteur => capteur
                 capteur => capteur%suivant
                 deallocate(oldcapteur)
             enddo
             listeCapteur => localCapteurs(0)
         endif
-
+        !$acc enter data    copyin(localCapteurs)
+        do c = 0,nCapteursOnRank-1
+            !$acc enter data &
+            !$acc&      copyin(localCapteurs(c)) &
+            !$acc&      copyin(localCapteurs(c)%fieldP) &
+            !$acc&      copyin(localCapteurs(c)%fieldU) &
+            !$acc&      copyin(localCapteurs(c)%fieldV) &
+            !$acc&      copyin(localCapteurs(c)%fieldA) &
+            !$acc&      copyin(localCapteurs(c)%eps_vol) &
+            !$acc&      copyin(localCapteurs(c)%P_energy) &
+            !$acc&      copyin(localCapteurs(c)%S_energy) &
+            !$acc&      copyin(localCapteurs(c)%eps_dev) &
+            !$acc&      copyin(localCapteurs(c)%dUdX) &
+            !$acc&      copyin(localCapteurs(c)%eps_dev_pl) &
+            !$acc&      copyin(localCapteurs(c)%sig_dev) &
+            !$acc&      copyin(localCapteurs(c)%valuecache) &
+            !$acc&      copyin(localCapteurs(c)%outx) &
+            !$acc&      copyin(localCapteurs(c)%outy) &
+            !$acc&      copyin(localCapteurs(c)%outz) &
+            !$acc&      copyin(localCapteurs(c)%doutx) &
+            !$acc&      copyin(localCapteurs(c)%douty) &
+            !$acc&      copyin(localCapteurs(c)%doutz) &
+            !$acc&
+        end do
         if(periodeRef < 1) periodeRef = 1
 
         ! Energy outputs
@@ -237,7 +300,7 @@ contains
             capt_En_PS%zeta = -1111
             capt_En_PS%n_el = -1
             capt_En_PS%numproc = Tdomain%rank
-            capt_En_PS%icache = 0
+            capt_En_PS%icache = 1
             capt_En_PS%suivant => listeCapteur
             listeCapteur => capt_En_PS
             write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capt_En_PS%nom), &
@@ -288,43 +351,48 @@ contains
 
         implicit none
 
-        integer :: ntime, c
+        integer :: ntime, c, ngll, icache
         type (domain) :: TDomain
-
-        ! type(tCapteur),pointer :: capteur
         logical :: do_flush
-
-        do_flush = .false. 
-        ! boucle sur les capteurs
-        ! capteur=>listeCapteur
-        ! do while (associated(capteur))
-        !$acc parallel loop gang async(1)
+        real(fpp) :: rtime
+        rtime = TDomain%timeD%rtime
+        do_flush = .false.
+        ! boucle sur les capteurs kernel si openacc
+        !$acc parallel loop gang async(2) wait(1) present(Tdomain,localCapteurs) copyin(Tdomain%out_var_capt, Tdomain%out_var_offset)
         do c = 0,nCapteursOnRank-1
             if (mod(ntime, localCapteurs(c)%periode)==0) then
                 if (localCapteurs(c)%type == CPT_INTERP) then
-                    call sortieGrandeurCapteur_interp(Tdomain, localCapteurs(c))
+                    call sortieGrandeurCapteur_interp(Tdomain, rtime, localCapteurs(c)%ngll, localCapteurs(c), &
+                        Tdomain%out_var_offset(OUT_DEPLA), Tdomain%out_var_offset(OUT_VITESSE),Tdomain%out_var_offset(OUT_ACCEL) )
                 else if (localCapteurs(c)%type == CPT_ENERGY) then
-                    call sortieGrandeurCapteur_energy(Tdomain, localCapteurs(c))
+!                    call sortieGrandeurCapteur_energy(Tdomain, ngll, localCapteurs(c))
                 end if
-                if (localcapteurs(c)%icache==NCAPT_CACHE) do_flush = .true.
             endif
-            ! if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
-            !     if (capteur%type == CPT_INTERP) then
-            !         call sortieGrandeurCapteur_interp(Tdomain, capteur)
-            !     else if (capteur%type == CPT_ENERGY) then
-            !         call sortieGrandeurCapteur_energy(Tdomain, capteur)
-            !     end if
-            !     if (capteur%icache==NCAPT_CACHE) do_flush = .true.
-            ! end if
-            ! capteur=>capteur%suivant
         enddo
-        
+        ! check counters (always on cpu)
+        do c = 0,nCapteursOnRank-1
+            if (localcapteurs(c)%icache==NCAPT_CACHE) then
+                do_flush = .true.
+            end if
+        enddo
         if (do_flush) then
-            !$acc update host(localCapteurs) async(2) wait(1)
-            !$acc wait(2)
             call flushAllCapteurs(Tdomain)
+            !! flushAllCapteurs resets icache for all to 1
+        else
+            ! update counters (always on cpu)
+            do c = 0,nCapteursOnRank-1
+                if (mod(ntime, localCapteurs(c)%periode)==0) then
+                    localcapteurs(c)%icache = localcapteurs(c)%icache + 1
+                    if (localcapteurs(c)%icache>NCAPT_CACHE) then ! shouldn't happen
+                        localcapteurs(c)%icache = 1
+                    endif
+                !$acc update device(localCapteurs(c)%icache) async(2)
+                endif
+            enddo
         endif
-
+        do c = 0,nCapteursOnRank-1
+            !$acc update device(localCapteurs(c)%icache) async(2)
+        enddo
     end subroutine save_capteur
 
     function dset_capteur_name(capteur)
@@ -450,14 +518,14 @@ contains
         do while (associated(capteur))
             !write(*,*) "Capteur:", capteur%nom
             dname = dset_capteur_name(capteur)
-            if (capteur%icache==0) then
+            if (capteur%icache==1) then
                 capteur=>capteur%suivant
                 cycle
             endif
             call h5dopen_f(fid, trim(dname), dset_id, hdferr)
-            call append_dataset_2d(dset_id, capteur%valuecache(:,1:capteur%icache), hdferr)
+            call append_dataset_2d(dset_id, capteur%valuecache(:,1:capteur%icache-1), hdferr)
             call h5dclose_f(dset_id, hdferr)
-            capteur%icache=0
+            capteur%icache=1
             capteur=>capteur%suivant
         enddo
 
@@ -467,17 +535,17 @@ contains
     subroutine flushAllCapteurs(Tdomain)
         implicit none
         type (domain), intent(inout) :: TDomain
-        type(tCapteur),pointer :: capteur
+        integer :: c
+        do c = 0,nCapteursOnRank-1
+            !$acc update host(localCapteurs(c)%valuecache) async(2)
+        enddo
+        !$acc wait(2)
 
-        ! Default unspecified value is 'text'
-        if (Tdomain%traces_format == 0) Tdomain%traces_format = 1
 
         if (Tdomain%traces_format == 1) then
             ! boucle sur les capteurs
-            capteur=>listeCapteur
-            do while (associated(capteur))
-                call flushCapteur(capteur)
-                capteur=>capteur%suivant
+            do c = 0,nCapteursOnRank-1
+                call flushCapteur(localCapteurs(c))
             enddo
         else
             ! Sauvegarde au format hdf5
@@ -495,26 +563,26 @@ contains
 
     subroutine flushCapteur(capteur)
         implicit none
-        type(tCapteur),pointer :: capteur
+        type(tCapteur),intent(inout) :: capteur
         !
         integer, parameter :: fileId=123
         integer :: j
         character(len=MAX_FILE_SIZE) :: fnamef
         character(len=20) :: sizeChar
 
-        if (capteur%icache==0) return
+        if (capteur%icache==1) return
 
         call semname_capteur_type(capteur%nom,".txt",fnamef)
 
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-        do j=1,capteur%icache
+        do j=1,capteur%icache-1
             ! start modifs
             write(sizeChar, *) size(capteur%valuecache)
             write(fileId,'('//trim(sizeChar)//'(1X,E16.8E3))') capteur%valuecache(:,j)
             ! end modifs
         end do
         close(fileId)
-        capteur%icache = 0
+        capteur%icache = 1
     end subroutine flushCapteur
 
 
@@ -526,7 +594,7 @@ contains
     !! la maille se trouve dans un seul proc
     !! seul le proc gere l'ecriture
     !!
-    subroutine sortieGrandeurCapteur_interp(Tdomain, capteur)
+    subroutine sortieGrandeurCapteur_interp(Tdomain, rtime, ngll, capteur, ffu, ffv, ffa)
         !$acc routine worker
         use constants
         use dom_solid
@@ -536,250 +604,159 @@ contains
         use dom_fluidpml
         implicit none
         !
-        type(domain)   :: TDomain
-        type(tCapteur) :: capteur
+        type(domain),intent(inout)    :: TDomain
+        type(tCapteur),intent(inout)  :: capteur
+        integer, intent(in)           :: ngll
+        real(fpp), intent(in)         :: rtime
+        integer :: ffu,ffv,ffa
         !
-        integer                                    :: i, j, k, ioff
-        integer                                    :: n_el, ngll
-        real(fpp)                                  :: weight
-        ! Evaluation of lagrange polynomial at xi/eta/zeta capteur
-        real(fpp), dimension(:), allocatable       :: outx, outy, outz
+        integer                       :: i, j, k, ioff, ni, c
+        real(fpp)                     :: weight
         ! Evaluation of derivative of lagrange polynomial d/dx at xi, d/dy at eta d/dz at zeta
-        real(fpp), dimension(:), allocatable       :: doutx, douty, doutz
-        real(fpp), dimension(:), allocatable       :: grandeur
-        integer, dimension(0:OUT_LAST)             :: out_variables, offset
-        ! real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        ! real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        ! real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
-        ! real(fpp), dimension(:,:,:,:), allocatable :: dUdX
-        ! real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
-        ! real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
-        ! real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real(fpp), dimension(:), allocatable :: GLLc
         logical :: nl_flag
         integer :: nComp
 
         ! Verification : le capteur est il gere par le proc. ?
+!        write(*,*) "xU", Tdomain%out_var_capt(OUT_DEPLA), Tdomain%out_var_offset(OUT_DEPLA), ffu
+!        write(*,*) "xV", Tdomain%out_var_capt(OUT_VITESSE), Tdomain%out_var_offset(OUT_VITESSE), ffv
+!        write(*,*) "xA", Tdomain%out_var_capt(OUT_ACCEL), Tdomain%out_var_offset(OUT_ACCEL), ffa
 
-        n_el = capteur%n_el
-        if((n_el==-1) .OR. (capteur%numproc/=Tdomain%rank)) return
-
-        ! Initialisation.
-        ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
-        call domain_gllc(Tdomain, Tdomain%specel(n_el)%domain, GLLc)
-
-        !allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        !allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        !allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        !allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-        !! tot energy 5
-        !allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
-        !allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
-        !allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-        allocate(outx(0:ngll-1))
-        allocate(outy(0:ngll-1))
-        allocate(outz(0:ngll-1))
-        allocate(doutx(0:ngll-1))
-        allocate(douty(0:ngll-1))
-        allocate(doutz(0:ngll-1))
-        
-         
-        do i = 0,ngll - 1
-            call  pol_lagrange(ngll,GLLc,i,capteur%xi,outx(i))
-            call  pol_lagrange(ngll,GLLc,i,capteur%eta,outy(i))
-            call  pol_lagrange(ngll,GLLc,i,capteur%zeta,outz(i))
-            call  der_lagrange(ngll,GLLc,i,capteur%xi,doutx(i))
-            call  der_lagrange(ngll,GLLc,i,capteur%eta,douty(i))
-            call  der_lagrange(ngll,GLLc,i,capteur%zeta,doutz(i))
-        end do
-        deallocate(GLLc)
-
-        allocate(grandeur(0:Tdomain%nReqOut-1))
-        grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
-
-        out_variables(:) = Tdomain%out_var_capt(:)
         nl_flag = Tdomain%nl_flag
-        offset = 0
-        do i = 0,size(out_variables)-2
-            if (out_variables(i) == 1) then
-                offset(i+1) = offset(i) + OUT_VAR_DIMS_3D(i)
-            else
-                offset(i+1) = offset(i)
-            end if
-        end do
-
         ! On recupere les variables de l'element associe au capteur.
-        
-        select case(Tdomain%specel(n_el)%domain)
-            case (DM_SOLID_DG)
-              !call get_solid_dg_dom_var(Tdomain%sdomdg, Tdomain%specel(n_el)%lnum, out_variables, &
-              !  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-              !  dUdX)
-            !case (DM_SOLID_CG)
-            !  call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
-            !    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-            !    dUdX, nl_flag, eps_dev_pl)
-            !case (DM_FLUID_CG)
-            !  call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
-            !    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
-            !case (DM_SOLID_CG_PML)
-            !  call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-            !    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
-            !case (DM_FLUID_CG_PML)
-            !  call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-            !    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
-            case (DM_SOLID_CG)
-              call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
+        select case(capteur%domain)
+        case (DM_SOLID_DG)
+            !call get_solid_dg_dom_var(Tdomain%sdomdg, capteur%lnum, out_variables, &
+            !  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
+            !  dUdX)
+        case (DM_SOLID_CG)
+            call get_solid_dom_var(Tdomain%sdom, capteur%lnum, Tdomain%out_var_capt, &
                 capteur%fieldU, capteur%fieldV, capteur%fieldA, capteur%fieldP, &
                 capteur%P_energy, capteur%S_energy, capteur%eps_vol, capteur%eps_dev, capteur%sig_dev, &
                 capteur%dUdX, nl_flag, capteur%eps_dev_pl)
-            case (DM_FLUID_CG)
-              call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
+        case (DM_FLUID_CG)
+            call get_fluid_dom_var(Tdomain%fdom, capteur%lnum, ngll, Tdomain%out_var_capt, &
                 capteur%fieldU, capteur%fieldV, capteur%fieldA, capteur%fieldP, &
                 capteur%P_energy, capteur%S_energy, capteur%eps_vol, &
                 capteur%eps_dev, capteur%sig_dev, capteur%dUdX)
-            case (DM_SOLID_CG_PML)
-              call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
+        case (DM_SOLID_CG_PML)
+            call get_solidpml_dom_var(Tdomain%spmldom, capteur%lnum, Tdomain%out_var_capt, &
                 capteur%fieldU, capteur%fieldV, capteur%fieldA, capteur%fieldP, capteur%P_energy, &
                 capteur%S_energy, capteur%eps_vol, capteur%eps_dev, capteur%sig_dev)
-            case (DM_FLUID_CG_PML)
-              call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-                capteur%fieldU, capteur%fieldV, capteur%fieldA, capteur%fieldP, &
-                capteur%P_energy, capteur%S_energy, capteur%eps_vol, capteur%eps_dev, capteur%sig_dev)
-            case default
-              stop "unknown domain"
+        case (DM_FLUID_CG_PML)
+            call get_fluidpml_dom_var(Tdomain%fpmldom, capteur%lnum, Tdomain%out_var_capt, &
+                  capteur%fieldU, capteur%fieldV, capteur%fieldA, capteur%fieldP, &
+                  capteur%P_energy, capteur%S_energy, capteur%eps_vol, capteur%eps_dev, capteur%sig_dev)
+        case default
+            stop "unknown domain"
         end select
 
+        ni = capteur%icache
+        ! Sauvegarde des valeurs dans le capteur.
+        capteur%valuecache(1,ni) = rtime
+        capteur%valuecache(2:Tdomain%nReqOut+1,ni) = 0
         ! On interpole le DOF a la position du capteur.
-
+        !$acc loop worker vector collapse(3)
         do i = 0,ngll - 1
             do j = 0,ngll - 1
                 do k = 0,ngll - 1
-                    weight = outx(i)*outy(j)*outz(k)
-
-                    if (out_variables(OUT_DEPLA) == 1) then
-                        ioff = offset(OUT_DEPLA)
+                    weight = capteur%outx(i)*capteur%outy(j)*capteur%outz(k)
+                    if (Tdomain%out_var_capt(OUT_DEPLA) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_DEPLA)+1
                         nComp = OUT_VAR_DIMS_3D(OUT_DEPLA)-1
-                        grandeur(ioff:ioff+nComp) &
-                            ! = grandeur(ioff:ioff+nComp) + weight*fieldU(i,j,k,:)
-                            = grandeur(ioff:ioff+nComp) + weight*capteur%fieldU(i,j,k,:)
+                        do c=0,nComp
+                            !$acc atomic update
+                            capteur%valuecache(ioff+c,ni) &
+                                = capteur%valuecache(ioff+c,ni) + weight*capteur%fieldU(i,j,k,c)
+                        enddo
                     end if
 
-                    if (out_variables(OUT_VITESSE) == 1) then
-                        ioff = offset(OUT_VITESSE)
+                    if (Tdomain%out_var_capt(OUT_VITESSE) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_VITESSE)+1
                         nComp = OUT_VAR_DIMS_3D(OUT_VITESSE)-1
-                        grandeur(ioff:ioff+nComp) &
-                           !  = grandeur(ioff:ioff+nComp) + weight*fieldV(i,j,k,:)
-                           = grandeur(ioff:ioff+nComp) + weight*capteur%fieldV(i,j,k,:)
+                        do c=0,nComp
+                            !$acc atomic update
+                            capteur%valuecache(ioff+c,ni) &
+                                = capteur%valuecache(ioff+c,ni) + weight*capteur%fieldV(i,j,k,c)
+                        enddo
                     end if
 
-                    if (out_variables(OUT_ACCEL) == 1) then
-                        ioff = offset(OUT_ACCEL)
+                    if (Tdomain%out_var_capt(OUT_ACCEL) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_ACCEL)+1
                         nComp = OUT_VAR_DIMS_3D(OUT_ACCEL)-1
-                        grandeur(ioff:ioff+nComp) &
-                            ! = grandeur(ioff:ioff+nComp) + weight*fieldA(i,j,k,:)
-                            = grandeur(ioff:ioff+nComp) + weight*capteur%fieldA(i,j,k,:)
+                        do c=0,nComp
+                            !$acc atomic update
+                            capteur%valuecache(ioff+c,ni) &
+                                = capteur%valuecache(ioff+c,ni) + weight*capteur%fieldA(i,j,k,c)
+                        end do
                     end if
 
-                    if (out_variables(OUT_PRESSION) == 1) then
-                        ioff = offset(OUT_PRESSION)
-                        nComp = OUT_VAR_DIMS_3D(OUT_PRESSION)-1
-                        grandeur(ioff+nComp) &
-                            ! = grandeur(ioff+nComp) + weight*fieldP(i,j,k)
-                            = grandeur(ioff+nComp) + weight*capteur%fieldP(i,j,k)
+                    if (Tdomain%out_var_capt(OUT_PRESSION) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_PRESSION)+1
+                        !$acc atomic update
+                        capteur%valuecache(ioff,ni) &
+                            = capteur%valuecache(ioff,ni) + weight*capteur%fieldP(i,j,k)
                     end if
 
-                    if (out_variables(OUT_ENERGYP) == 1) then
-                        ioff = offset(OUT_ENERGYP)
-                        nComp = OUT_VAR_DIMS_3D(OUT_ENERGYP)-1
-                        ! grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*P_energy(i,j,k)
-                        grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*capteur%P_energy(i,j,k)
+                    if (Tdomain%out_var_capt(OUT_ENERGYP) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_ENERGYP)+1
+                        !$acc atomic update
+                        capteur%valuecache(ioff,ni) = capteur%valuecache(ioff,ni) + weight*capteur%P_energy(i,j,k)
                     end if
 
-                    if (out_variables(OUT_ENERGYS) == 1) then
-                        ioff = offset(OUT_ENERGYS)
-                        nComp = OUT_VAR_DIMS_3D(OUT_ENERGYS)-1
-                        ! grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*S_energy(i,j,k)
-                        grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*capteur%S_energy(i,j,k)
+                    if (Tdomain%out_var_capt(OUT_ENERGYS) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_ENERGYS)+1
+                        !$acc atomic update
+                        capteur%valuecache(ioff,ni) = capteur%valuecache(ioff,ni) + weight*capteur%S_energy(i,j,k)
                     end if
 
-                    if (out_variables(OUT_DUDX) == 1) then
-                        ioff = offset(OUT_DUDX)
+                    if (Tdomain%out_var_capt(OUT_DUDX) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_DUDX)+1
                         nComp = OUT_VAR_DIMS_3D(OUT_DUDX)-1
-                        grandeur (ioff:ioff+nComp) = grandeur(ioff:ioff+nComp)+weight*capteur%dUdX(i,j,k,:)
+                        do c=0,nComp
+                            !$acc atomic update
+                            capteur%valuecache(ioff+c,ni) = capteur%valuecache(ioff+c,ni)+weight*capteur%dUdX(i,j,k,c)
+                        enddo
                     end if
 
-                    if (out_variables(OUT_EPS_VOL) == 1) then
-                        ioff = offset(OUT_EPS_VOL)
-                        nComp = OUT_VAR_DIMS_3D(OUT_EPS_VOL)-1
-                        grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*capteur%eps_vol(i,j,k)
+                    if (Tdomain%out_var_capt(OUT_EPS_VOL) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_EPS_VOL)+1
+                        !$acc atomic update
+                        capteur%valuecache(ioff,ni) = capteur%valuecache(ioff,ni) + weight*capteur%eps_vol(i,j,k)
                     end if
 
-                    if (out_variables(OUT_EPS_DEV) == 1) then
-                        ioff = offset(OUT_EPS_DEV)
+                    if (Tdomain%out_var_capt(OUT_EPS_DEV) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_EPS_DEV)+1
                         nComp = OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1
-                        grandeur (ioff:ioff+nComp) = grandeur(ioff:ioff+nComp)+weight*capteur%eps_dev(i,j,k,:)
+                        do c=0,nComp
+                            !$acc atomic update
+                            capteur%valuecache(ioff+c,ni) = capteur%valuecache(ioff+c,ni)+weight*capteur%eps_dev(i,j,k,c)
+                        enddo
                     end if
 
-                    if (out_variables(OUT_EPS_DEV_PL) == 1) then
-                        ioff=offset(OUT_EPS_DEV_PL)
+                    if (Tdomain%out_var_capt(OUT_EPS_DEV_PL) == 1) then
+                        ioff=Tdomain%out_var_offset(OUT_EPS_DEV_PL)+1
                         nComp = OUT_VAR_DIMS_3D(OUT_EPS_DEV_PL)-1
-                        grandeur (ioff:ioff+nComp) = grandeur(ioff:ioff+nComp)+weight*capteur%eps_dev_pl(i,j,k,:)
+                        do c=0,nComp
+                            !$acc atomic update
+                            capteur%valuecache(ioff+c,ni) = capteur%valuecache(ioff+c,ni)+weight*capteur%eps_dev_pl(i,j,k,c)
+                        enddo
                     end if
 
-                    if (out_variables(OUT_STRESS_DEV) == 1) then
-                        ioff = offset(OUT_STRESS_DEV)
+                    if (Tdomain%out_var_capt(OUT_STRESS_DEV) == 1) then
+                        ioff = Tdomain%out_var_offset(OUT_STRESS_DEV)+1
                         nComp = OUT_VAR_DIMS_3D(OUT_STRESS_DEV)-1
-                        grandeur (ioff:ioff+nComp) = grandeur (ioff:ioff+nComp) &
-                        + (/weight*capteur%sig_dev(i,j,k,0), weight*capteur%sig_dev(i,j,k,1), &
-                            weight*capteur%sig_dev(i,j,k,2), &
-                            weight*capteur%sig_dev(i,j,k,3), weight*capteur%sig_dev(i,j,k,4), & 
-                            weight*capteur%sig_dev(i,j,k,5)/)
+                        do c=0,nComp
+                            !$acc atomic update
+                            capteur%valuecache(ioff+c,ni) = capteur%valuecache(ioff+c,ni) &
+                                + weight*capteur%sig_dev(i,j,k,c)
+                        enddo
                     end if
                 enddo
             enddo
         enddo
-        ! Sauvegarde des valeurs dans le capteur.
-
-        i = capteur%icache+1
-        capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-        capteur%valuecache(2:Tdomain%nReqOut+1,i) = grandeur(:)
-        capteur%icache = i
-
-        ! Deallocation.
-
-        !deallocate(fieldU)
-        !deallocate(fieldV)
-        !deallocate(fieldA)
-        !deallocate(fieldP)
-        !deallocate(P_energy)
-        !deallocate(S_energy)
-        !deallocate(eps_vol)
-        !deallocate(eps_dev)
-        !deallocate(eps_dev_pl)
-        !deallocate(sig_dev)
-        deallocate(capteur%fieldU)
-        deallocate(capteur%fieldV)
-        deallocate(capteur%fieldA)
-        deallocate(capteur%fieldP)
-        deallocate(capteur%P_energy)
-        deallocate(capteur%S_energy)
-        deallocate(capteur%eps_vol)
-        deallocate(capteur%eps_dev)
-        deallocate(capteur%eps_dev_pl)
-        deallocate(capteur%sig_dev)
-        deallocate(grandeur)
-        deallocate(capteur%dUdX)
-        deallocate(outx)
-        deallocate(outy)
-        deallocate(outz)
     end subroutine sortieGrandeurCapteur_interp
 
-    subroutine sortieGrandeurCapteur_energy(Tdomain, capteur)
+    subroutine sortieGrandeurCapteur_energy(Tdomain, ngll, capteur)
         !$acc routine worker
         use sdomain
         use dom_solid
@@ -790,10 +767,10 @@ contains
         !
         type(domain)   :: TDomain
         type(tCapteur) :: capteur
+        integer, intent(in) :: ngll
         !
         integer :: domain_type
         integer                                    :: i, j, k, n
-        integer                                    :: ngll
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, R_energy, C_energy
         real(fpp) :: local_sum_P_energy, local_sum_S_energy, local_sum_R_energy, local_sum_C_energy
@@ -835,7 +812,6 @@ contains
             end select
 
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
-            ngll = domain_ngll(Tdomain, el%domain)
             bnum = el%lnum/VCHUNK
             ee = mod(el%lnum,VCHUNK)
 
@@ -909,7 +885,7 @@ contains
         global_sum_C_energy = local_sum_C_energy
 
         ! Sauvegarde des valeurs dans le capteur.
-        i = capteur%icache+1
+        i = capteur%icache
         capteur%valuecache(1,i) = Tdomain%TimeD%rtime
         capteur%valuecache(2,i) = global_sum_P_energy
         capteur%valuecache(3,i) = global_sum_S_energy
@@ -917,7 +893,6 @@ contains
         capteur%valuecache(5,i) = global_sum_C_energy
         capteur%valuecache(6,i) = global_sum_P_energy + global_sum_S_energy &
                                 + global_sum_R_energy + global_sum_C_energy
-        capteur%icache = i
 
         ! Deallocation.
         if(allocated(jac)) deallocate(jac)
