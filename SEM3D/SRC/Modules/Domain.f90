@@ -159,6 +159,7 @@ contains
     end function domain_from_type_char
 
     function domain_nglltot(Tdomain, dom)
+        !$acc routine seq
         integer, intent(in) :: dom
         type(domain), intent(in) :: Tdomain
         !
@@ -181,6 +182,7 @@ contains
     end function domain_nglltot
 
     function domain_ngll(Tdomain, dom)
+        !$acc routine seq
         integer, intent(in) :: dom
         type(domain), intent(in) :: Tdomain
         !
@@ -234,6 +236,7 @@ contains
     end subroutine domain_nelems
 
     subroutine domain_gllc(Tdomain, dom, GLLc)
+        !$acc routine seq
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: dom
         real(fpp), dimension(:), allocatable, intent(out) :: gllc
@@ -266,6 +269,7 @@ contains
     end subroutine domain_gllc
 
     subroutine domain_gllw(Tdomain, dom, gllw)
+        !$acc routine seq
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: dom
         real(fpp), dimension(:), allocatable, intent(out) :: gllw

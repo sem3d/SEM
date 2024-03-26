@@ -53,6 +53,7 @@ contains
     !------------------------------------------------------------------------------------------
     !------------------------------------------------------------------------------------------
     subroutine physical_part_deriv(ngll,hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
+        !$acc routine seq
         !- partial derivatives of the scalar property Scalp, with respect to x,y,z
         implicit none
         integer, intent(in) :: ngll
@@ -101,6 +102,7 @@ contains
     end subroutine physical_part_deriv_nnn
 
     subroutine physical_part_deriv_ijk(i,j,k,ngll,hprime,InvGrad_ijk,Scalp,dS_dx,dS_dy,dS_dz)
+        !$acc routine seq
         implicit none
         integer :: i,j,k
         integer, intent(in) :: ngll
