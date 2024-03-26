@@ -9,6 +9,7 @@ module msnapshots
     use sem_c_config, only : sem_mkdir
     use constants
     use msnapdata, only : output_var_t
+    use lagrange_prop
     implicit none
 #include "index.h"
 #include "sem_hdf5.h"
@@ -802,6 +803,7 @@ contains
     end subroutine deallocate_fields
 
     subroutine integrate_on_element(ngll,jac,GLLw,input_field,output_integral)
+        !$acc routine seq
         implicit none
         ! intent IN
         integer,intent(in) :: ngll
