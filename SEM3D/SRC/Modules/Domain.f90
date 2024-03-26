@@ -236,7 +236,6 @@ contains
     end subroutine domain_nelems
 
     subroutine domain_gllc(Tdomain, dom, GLLc)
-        !$acc routine seq
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: dom
         real(fpp), dimension(:), allocatable, intent(out) :: gllc

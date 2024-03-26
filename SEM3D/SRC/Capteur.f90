@@ -40,6 +40,9 @@ module mCapteur
         integer :: icache
         real(fpp), dimension(:,:), allocatable :: valuecache
         integer :: type
+        !
+        integer :: ngll
+        real(fpp), dimension(:), allocatable :: outx,outy,outz,doutx,douty,doutz
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
@@ -75,6 +78,8 @@ contains
         character(len=MAX_FILE_SIZE) :: fnamef
         integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out, ngll
         real(fpp) :: dmin, glob_dmin
+        real(fpp),dimension(:),allocatable :: gllc
+
         real(fpp), dimension(0:2, 0:Tdomain%n_nodes-1) :: coordl
         integer :: periodeRef
         logical :: flag
@@ -150,17 +155,6 @@ contains
                 nom = fromcstr(station_ptr%name)
                 ! Initialisation.
                 ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
-                allocate(capteur%fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-                allocate(capteur%fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                allocate(capteur%fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                allocate(capteur%fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                allocate(capteur%eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
-                allocate(capteur%P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-                allocate(capteur%S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-                allocate(capteur%eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                allocate(capteur%dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
-                allocate(capteur%eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
-                allocate(capteur%sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
 
                 capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
                 capteur%type = CPT_INTERP
@@ -199,16 +193,61 @@ contains
         if (nCapteursOnRank.gt.0) then
             capteur => listeCapteur
             allocate(localCapteurs(0:nCapteursOnRank-1))
+            !$acc enter data create(localCapteurs)
             do c = 0,nCapteursOnRank-1
                 localCapteurs(c) = capteur
-                if (c.lt.nCapteursOnRank-1) then
+                if (c.lt.nCapteursOnRank-2) then
                     localCapteurs(c)%suivant => localCapteurs(c+1)
                 else
-                    nullify(localCapteurs(c+1)%suivant)
+                    nullify(localCapteurs(c)%suivant)
                 endif
+                write(*,*) "allocating capteur:",c
+                n_el = localCapteurs(c)%n_el
+                localCapteurs(c)%ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
+
+                allocate(localCapteurs(c)%fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(localCapteurs(c)%fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(localCapteurs(c)%fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(localCapteurs(c)%fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                allocate(localCapteurs(c)%eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(localCapteurs(c)%P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(localCapteurs(c)%S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(localCapteurs(c)%eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+                allocate(localCapteurs(c)%dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
+                allocate(localCapteurs(c)%eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
+                allocate(localCapteurs(c)%sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+                allocate(localCapteurs(c)%outx(0:ngll-1))
+                allocate(localCapteurs(c)%outy(0:ngll-1))
+                allocate(localCapteurs(c)%outz(0:ngll-1))
+                allocate(localCapteurs(c)%doutx(0:ngll-1))
+                allocate(localCapteurs(c)%douty(0:ngll-1))
+                allocate(localCapteurs(c)%doutz(0:ngll-1))
+                call domain_gllc(Tdomain, Tdomain%specel(n_el)%domain, GLLc)
+
+                do i = 0,ngll - 1
+                    call  pol_lagrange(ngll,GLLc,i,capteur%xi  ,localCapteurs(c)%outx(i))
+                    call  pol_lagrange(ngll,GLLc,i,capteur%eta ,localCapteurs(c)%outy(i))
+                    call  pol_lagrange(ngll,GLLc,i,capteur%zeta,localCapteurs(c)%outz(i))
+                    call  der_lagrange(ngll,GLLc,i,capteur%xi  ,localCapteurs(c)%doutx(i))
+                    call  der_lagrange(ngll,GLLc,i,capteur%eta ,localCapteurs(c)%douty(i))
+                    call  der_lagrange(ngll,GLLc,i,capteur%zeta,localCapteurs(c)%doutz(i))
+                end do
                 oldcapteur => capteur
                 capteur => capteur%suivant
                 deallocate(oldcapteur)
+                !$acc enter data &
+                !$acc&      create(localCapteurs(c)%fieldP) &
+                !$acc&      create(localCapteurs(c)%fieldU) &
+                !$acc&      create(localCapteurs(c)%fieldV) &
+                !$acc&      create(localCapteurs(c)%fieldA) &
+                !$acc&      create(localCapteurs(c)%eps_vol) &
+                !$acc&      create(localCapteurs(c)%P_energy) &
+                !$acc&      create(localCapteurs(c)%S_energy) &
+                !$acc&      create(localCapteurs(c)%eps_dev) &
+                !$acc&      create(localCapteurs(c)%dUdX) &
+                !$acc&      create(localCapteurs(c)%eps_dev_pl) &
+                !$acc&      create(localCapteurs(c)%sig_dev) &
+                !$acc&
             enddo
             listeCapteur => localCapteurs(0)
         endif
@@ -288,7 +327,7 @@ contains
 
         implicit none
 
-        integer :: ntime, c
+        integer :: ntime, c, ngll
         type (domain) :: TDomain
 
         ! type(tCapteur),pointer :: capteur
@@ -296,31 +335,22 @@ contains
 
         do_flush = .false. 
         ! boucle sur les capteurs
-        ! capteur=>listeCapteur
-        ! do while (associated(capteur))
-        !$acc parallel loop gang async(1)
         do c = 0,nCapteursOnRank-1
             if (mod(ntime, localCapteurs(c)%periode)==0) then
                 if (localCapteurs(c)%type == CPT_INTERP) then
-                    call sortieGrandeurCapteur_interp(Tdomain, localCapteurs(c))
+                    call sortieGrandeurCapteur_interp(Tdomain, ngll, localCapteurs(c))
                 else if (localCapteurs(c)%type == CPT_ENERGY) then
-                    call sortieGrandeurCapteur_energy(Tdomain, localCapteurs(c))
+                    call sortieGrandeurCapteur_energy(Tdomain, ngll, localCapteurs(c))
                 end if
+                localcapteurs(c)%icache = localcapteurs(c)%icache + 1
                 if (localcapteurs(c)%icache==NCAPT_CACHE) do_flush = .true.
             endif
-            ! if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
-            !     if (capteur%type == CPT_INTERP) then
-            !         call sortieGrandeurCapteur_interp(Tdomain, capteur)
-            !     else if (capteur%type == CPT_ENERGY) then
-            !         call sortieGrandeurCapteur_energy(Tdomain, capteur)
-            !     end if
-            !     if (capteur%icache==NCAPT_CACHE) do_flush = .true.
-            ! end if
-            ! capteur=>capteur%suivant
         enddo
-        
+
         if (do_flush) then
-            !$acc update host(localCapteurs) async(2) wait(1)
+!            do c = 0,nCapteursOnRank-1
+!                !$acc update host(localCapteurs(c)%) async(2) wait(1)
+!            end do
             !$acc wait(2)
             call flushAllCapteurs(Tdomain)
         endif
@@ -526,7 +556,7 @@ contains
     !! la maille se trouve dans un seul proc
     !! seul le proc gere l'ecriture
     !!
-    subroutine sortieGrandeurCapteur_interp(Tdomain, capteur)
+    subroutine sortieGrandeurCapteur_interp(Tdomain, ngll, capteur)
         !$acc routine worker
         use constants
         use dom_solid
@@ -538,67 +568,29 @@ contains
         !
         type(domain)   :: TDomain
         type(tCapteur) :: capteur
+        integer, intent(in) :: ngll
         !
         integer                                    :: i, j, k, ioff
-        integer                                    :: n_el, ngll
+        integer                                    :: n_el
         real(fpp)                                  :: weight
         ! Evaluation of lagrange polynomial at xi/eta/zeta capteur
-        real(fpp), dimension(:), allocatable       :: outx, outy, outz
+        real(fpp), dimension(0:ngll-1)             :: outx, outy, outz
         ! Evaluation of derivative of lagrange polynomial d/dx at xi, d/dy at eta d/dz at zeta
-        real(fpp), dimension(:), allocatable       :: doutx, douty, doutz
-        real(fpp), dimension(:), allocatable       :: grandeur
+        real(fpp), dimension(0:ngll-1)             :: doutx, douty, doutz
+        real(fpp), dimension(0:Tdomain%nReqOut-1)  :: grandeur
         integer, dimension(0:OUT_LAST)             :: out_variables, offset
-        ! real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        ! real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        ! real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
-        ! real(fpp), dimension(:,:,:,:), allocatable :: dUdX
-        ! real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
-        ! real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
-        ! real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        real(fpp), dimension(:), allocatable :: GLLc
+        real(fpp), dimension(0:ngll-1) :: GLLc
         logical :: nl_flag
-        integer :: nComp
+        integer :: nComp, icache
 
         ! Verification : le capteur est il gere par le proc. ?
-
+        icache = capteur%icache
         n_el = capteur%n_el
         if((n_el==-1) .OR. (capteur%numproc/=Tdomain%rank)) return
 
         ! Initialisation.
         ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
-        call domain_gllc(Tdomain, Tdomain%specel(n_el)%domain, GLLc)
 
-        !allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        !allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        !allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        !allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-        !! tot energy 5
-        !allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
-        !allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
-        !allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-        allocate(outx(0:ngll-1))
-        allocate(outy(0:ngll-1))
-        allocate(outz(0:ngll-1))
-        allocate(doutx(0:ngll-1))
-        allocate(douty(0:ngll-1))
-        allocate(doutz(0:ngll-1))
-        
-         
-        do i = 0,ngll - 1
-            call  pol_lagrange(ngll,GLLc,i,capteur%xi,outx(i))
-            call  pol_lagrange(ngll,GLLc,i,capteur%eta,outy(i))
-            call  pol_lagrange(ngll,GLLc,i,capteur%zeta,outz(i))
-            call  der_lagrange(ngll,GLLc,i,capteur%xi,doutx(i))
-            call  der_lagrange(ngll,GLLc,i,capteur%eta,douty(i))
-            call  der_lagrange(ngll,GLLc,i,capteur%zeta,doutz(i))
-        end do
-        deallocate(GLLc)
-
-        allocate(grandeur(0:Tdomain%nReqOut-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
         out_variables(:) = Tdomain%out_var_capt(:)
@@ -619,19 +611,6 @@ contains
               !call get_solid_dg_dom_var(Tdomain%sdomdg, Tdomain%specel(n_el)%lnum, out_variables, &
               !  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
               !  dUdX)
-            !case (DM_SOLID_CG)
-            !  call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
-            !    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
-            !    dUdX, nl_flag, eps_dev_pl)
-            !case (DM_FLUID_CG)
-            !  call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
-            !    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
-            !case (DM_SOLID_CG_PML)
-            !  call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-            !    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
-            !case (DM_FLUID_CG_PML)
-            !  call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-            !    fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case (DM_SOLID_CG)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 capteur%fieldU, capteur%fieldV, capteur%fieldA, capteur%fieldP, &
@@ -762,24 +741,24 @@ contains
         !deallocate(eps_dev)
         !deallocate(eps_dev_pl)
         !deallocate(sig_dev)
-        deallocate(capteur%fieldU)
-        deallocate(capteur%fieldV)
-        deallocate(capteur%fieldA)
-        deallocate(capteur%fieldP)
-        deallocate(capteur%P_energy)
-        deallocate(capteur%S_energy)
-        deallocate(capteur%eps_vol)
-        deallocate(capteur%eps_dev)
-        deallocate(capteur%eps_dev_pl)
-        deallocate(capteur%sig_dev)
+        !deallocate(capteur%fieldU)
+        !deallocate(capteur%fieldV)
+        !deallocate(capteur%fieldA)
+        !deallocate(capteur%fieldP)
+        !deallocate(capteur%P_energy)
+        !deallocate(capteur%S_energy)
+        !deallocate(capteur%eps_vol)
+        !deallocate(capteur%eps_dev)
+        !deallocate(capteur%eps_dev_pl)
+        !deallocate(capteur%sig_dev)
+        !deallocate(capteur%dUdX)
         deallocate(grandeur)
-        deallocate(capteur%dUdX)
         deallocate(outx)
         deallocate(outy)
         deallocate(outz)
     end subroutine sortieGrandeurCapteur_interp
 
-    subroutine sortieGrandeurCapteur_energy(Tdomain, capteur)
+    subroutine sortieGrandeurCapteur_energy(Tdomain, ngll, capteur)
         !$acc routine worker
         use sdomain
         use dom_solid
@@ -790,6 +769,7 @@ contains
         !
         type(domain)   :: TDomain
         type(tCapteur) :: capteur
+        integer, intent(in) :: ngll
         !
         integer :: domain_type
         integer                                    :: i, j, k, n
