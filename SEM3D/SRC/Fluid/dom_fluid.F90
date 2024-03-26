@@ -106,6 +106,7 @@ contains
 
     subroutine get_fluid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
+        !$acc routine worker
         use deriv3d
         implicit none
         !
@@ -259,6 +260,7 @@ contains
 
 
     subroutine get_fluid_dom_elem_energy(dom, lnum, P_energy, S_energy)
+        !$acc routine worker
         use deriv3d
         implicit none
         !
