@@ -570,18 +570,40 @@ contains
 !!         !$acc parallel loop async(1) present(dom,dom%champs) &
 !!         !$acc&   present(dom%champs(f0)%Phi,dom%champs(f0)%VelPhi) &
 !!         !$acc&   present(dom%champs(f1)%Phi,dom%champs(f1)%VelPhi,dom%champs(f1)%ForcesFl)
-!!         do i=0,dom%nglltot
+!!         do i=0,dom%nglltot-1
 !!             !dom%champs(f1)%VelPhi(i)   = dom%champs(f0)%VelPhi(i)
 !!             !dom%champs(f1)%Phi(i)      = dom%champs(f0)%Phi(i)
 !!             dom%champs(f1)%ForcesFl(i) = 0d0
 !!         end do
 !!         !$acc end parallel
-
-        !$acc kernels async(1) present(dom%champs(f1)%ForcesFl)
-!        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
-!        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
+        !$acc kernels async(1)
         dom%champs(f1)%ForcesFl = 0d0
         !$acc end kernels
+
+        !! BUG!!
+!!        !$acc kernels async(1)
+!!        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
+!!        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
+!!        dom%champs(f1)%ForcesFl = 0d0
+!!        !$acc end kernels
+
+        !! OK
+!!        !$acc kernels async(1)
+!!        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
+!!        !$acc end kernels
+!!        !$acc kernels async(1)
+!!        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
+!!        !$acc end kernels
+!!        !$acc kernels async(1)
+!!        dom%champs(f1)%ForcesFl = 0d0
+!!        !$acc end kernels
+
+        !! OK
+!!        !$acc kernels async(1) present(dom%champs(f1)%ForcesFl)
+!!        dom%champs(f1)%VelPhi(0:dom%nglltot-1)   = dom%champs(f0)%VelPhi(0:dom%nglltot-1)
+!!        dom%champs(f1)%Phi(0:dom%nglltot-1)      = dom%champs(f0)%Phi(0:dom%nglltot-1)
+!!        dom%champs(f1)%ForcesFl(0:dom%nglltot-1) = 0d0
+!!        !$acc end kernels
     end subroutine newmark_predictor_fluid
 
     subroutine newmark_corrector_fluid(dom, dt, f0, f1)
