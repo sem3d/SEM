@@ -578,16 +578,16 @@ contains
 !!             dom%champs(f1)%ForcesFl(i) = 0d0
 !!         end do
 !!         !$acc end parallel
-        !$acc kernels async(1)
-        dom%champs(f1)%ForcesFl = 0d0
-        !$acc end kernels
-
-        !! BUG!!
 !!        !$acc kernels async(1)
-!!        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
-!!        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
 !!        dom%champs(f1)%ForcesFl = 0d0
 !!        !$acc end kernels
+
+        !! BUG!!
+        !$acc kernels async(1)
+        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
+        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
+        dom%champs(f1)%ForcesFl = 0d0
+        !$acc end kernels
 
         !! OK
 !!        !$acc kernels async(1)

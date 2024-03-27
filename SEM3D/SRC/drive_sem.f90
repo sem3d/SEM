@@ -519,8 +519,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !---------------------------------------------------------!
         if (protection /= 0 .and. Tdomain%logicD%save_restart) then
             if(Tdomain%rank == 0) print*," SAVING PROT"
-            !$acc update host(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%Veloc, Tdomain%sdom%champs(1)%Veloc) async(2) wait(1)
-            !$acc wait(2)
 
             call flushAllCapteurs(Tdomain)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)
