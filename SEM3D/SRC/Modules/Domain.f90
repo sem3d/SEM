@@ -100,6 +100,7 @@ module sdomain
 
 
        integer, dimension(0:OUT_LAST) :: out_var_capt
+       integer, dimension(0:OUT_LAST) :: out_var_offset
        integer, dimension(0:OUT_LAST) :: out_var_snap
        integer                 :: nReqOut ! number of required outputs
        integer :: earthchunk_isInit
