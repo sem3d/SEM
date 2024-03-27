@@ -52,6 +52,7 @@ module mCapteur
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
     end type tCapteur
 
+    real(fpp), dimension(:,:), allocatable :: valuecache
     integer           :: dimCapteur        ! nombre total de capteurs
 
     type(Tcapteur), pointer :: listeCapteur
@@ -333,8 +334,9 @@ contains
         ! type(tCapteur),pointer :: capteur
         logical :: do_flush
 
-        do_flush = .false. 
-        ! boucle sur les capteurs
+        do_flush = .false.
+        ! boucle sur les capteurs kernel si openacc
+        !$acc parallel loop gang async(2) wait(1)
         do c = 0,nCapteursOnRank-1
             if (mod(ntime, localCapteurs(c)%periode)==0) then
                 if (localCapteurs(c)%type == CPT_INTERP) then
@@ -342,15 +344,22 @@ contains
                 else if (localCapteurs(c)%type == CPT_ENERGY) then
                     call sortieGrandeurCapteur_energy(Tdomain, ngll, localCapteurs(c))
                 end if
+            endif
+        enddo
+        ! update counters (always on cpu)
+        do c = 0,nCapteursOnRank-1
+            if (mod(ntime, localCapteurs(c)%periode)==0) then
                 localcapteurs(c)%icache = localcapteurs(c)%icache + 1
-                if (localcapteurs(c)%icache==NCAPT_CACHE) do_flush = .true.
+                if (localcapteurs(c)%icache==NCAPT_CACHE) then
+                    !$acc update host(localCapteurs(c)%valuecache) async(2)
+                    do_flush = .true.
+                    localcapteurs(c)%icache = 1
+                endif
+                !$acc update device(localCapteurs(c)) async(2)
             endif
         enddo
 
         if (do_flush) then
-!            do c = 0,nCapteursOnRank-1
-!                !$acc update host(localCapteurs(c)%) async(2) wait(1)
-!            end do
             !$acc wait(2)
             call flushAllCapteurs(Tdomain)
         endif
@@ -573,23 +582,16 @@ contains
         integer                                    :: i, j, k, ioff
         integer                                    :: n_el
         real(fpp)                                  :: weight
-        ! Evaluation of lagrange polynomial at xi/eta/zeta capteur
-        real(fpp), dimension(0:ngll-1)             :: outx, outy, outz
         ! Evaluation of derivative of lagrange polynomial d/dx at xi, d/dy at eta d/dz at zeta
-        real(fpp), dimension(0:ngll-1)             :: doutx, douty, doutz
         real(fpp), dimension(0:Tdomain%nReqOut-1)  :: grandeur
         integer, dimension(0:OUT_LAST)             :: out_variables, offset
         real(fpp), dimension(0:ngll-1) :: GLLc
         logical :: nl_flag
-        integer :: nComp, icache
+        integer :: nComp
 
         ! Verification : le capteur est il gere par le proc. ?
-        icache = capteur%icache
         n_el = capteur%n_el
         if((n_el==-1) .OR. (capteur%numproc/=Tdomain%rank)) return
-
-        ! Initialisation.
-        ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
 
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
@@ -605,7 +607,6 @@ contains
         end do
 
         ! On recupere les variables de l'element associe au capteur.
-        
         select case(Tdomain%specel(n_el)%domain)
             case (DM_SOLID_DG)
               !call get_solid_dg_dom_var(Tdomain%sdomdg, Tdomain%specel(n_el)%lnum, out_variables, &
@@ -634,11 +635,11 @@ contains
         end select
 
         ! On interpole le DOF a la position du capteur.
-
+        !$acc loop worker vector collapse(3)
         do i = 0,ngll - 1
             do j = 0,ngll - 1
                 do k = 0,ngll - 1
-                    weight = outx(i)*outy(j)*outz(k)
+                    weight = capteur%outx(i)*capteur%outy(j)*capteur%outz(k)
 
                     if (out_variables(OUT_DEPLA) == 1) then
                         ioff = offset(OUT_DEPLA)
@@ -724,38 +725,9 @@ contains
         enddo
         ! Sauvegarde des valeurs dans le capteur.
 
-        i = capteur%icache+1
+        i = capteur%icache
         capteur%valuecache(1,i) = Tdomain%TimeD%rtime
         capteur%valuecache(2:Tdomain%nReqOut+1,i) = grandeur(:)
-        capteur%icache = i
-
-        ! Deallocation.
-
-        !deallocate(fieldU)
-        !deallocate(fieldV)
-        !deallocate(fieldA)
-        !deallocate(fieldP)
-        !deallocate(P_energy)
-        !deallocate(S_energy)
-        !deallocate(eps_vol)
-        !deallocate(eps_dev)
-        !deallocate(eps_dev_pl)
-        !deallocate(sig_dev)
-        !deallocate(capteur%fieldU)
-        !deallocate(capteur%fieldV)
-        !deallocate(capteur%fieldA)
-        !deallocate(capteur%fieldP)
-        !deallocate(capteur%P_energy)
-        !deallocate(capteur%S_energy)
-        !deallocate(capteur%eps_vol)
-        !deallocate(capteur%eps_dev)
-        !deallocate(capteur%eps_dev_pl)
-        !deallocate(capteur%sig_dev)
-        !deallocate(capteur%dUdX)
-        deallocate(grandeur)
-        deallocate(outx)
-        deallocate(outy)
-        deallocate(outz)
     end subroutine sortieGrandeurCapteur_interp
 
     subroutine sortieGrandeurCapteur_energy(Tdomain, ngll, capteur)
@@ -773,7 +745,6 @@ contains
         !
         integer :: domain_type
         integer                                    :: i, j, k, n
-        integer                                    :: ngll
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, R_energy, C_energy
         real(fpp) :: local_sum_P_energy, local_sum_S_energy, local_sum_R_energy, local_sum_C_energy
@@ -815,7 +786,6 @@ contains
             end select
 
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
-            ngll = domain_ngll(Tdomain, el%domain)
             bnum = el%lnum/VCHUNK
             ee = mod(el%lnum,VCHUNK)
 
