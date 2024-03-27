@@ -397,6 +397,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !---------------------------------------------------------!
     !$acc data &
     !$acc& copyin(Tdomain) &
+    !$acc& copyin(Tdomain%out_var_capt, Tdomain%out_var_offset) &
     !$acc& copyin(Tdomain%sSource) &
     !$acc& copyin(Tdomain%Comm_data) &
     !$acc& copyin(Tdomain%Comm_data%Data) &
