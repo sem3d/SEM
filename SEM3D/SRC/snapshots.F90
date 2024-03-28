@@ -998,7 +998,7 @@ contains
                     call get_solid_dg_dom_var(Tdomain%sdomdg, el%lnum, out_variables, &
                         fieldV, fieldA, eps_vol, eps_dev)
                 case (DM_FLUID_CG)
-                    call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
+                    call get_fluid_dom_var(Tdomain%fdom, el%lnum, ngll, out_variables,        &
                         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, &
                         sig_dev, dUdX)
                 case (DM_SOLID_CG_PML)

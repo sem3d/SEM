@@ -357,8 +357,7 @@ contains
         rtime = TDomain%timeD%rtime
         do_flush = .false.
         ! boucle sur les capteurs kernel si openacc
-        !$acc parallel loop gang async(2) wait(1) &
-        !$acc&
+        !$acc parallel loop gang async(2) wait(1)
         do c = 0,nCapteursOnRank-1
             if (mod(ntime, localCapteurs(c)%periode)==0) then
                 if (localCapteurs(c)%type == CPT_INTERP) then
@@ -377,7 +376,8 @@ contains
         if (do_flush) then
             call flushAllCapteurs(Tdomain)
         endif
-
+        !! XXX Bug : flushAllCapteurs resets icache to 1
+        !! but we increment it there, so it starts at 2 after a flush
         ! update counters (always on cpu)
         do c = 0,nCapteursOnRank-1
             if (mod(ntime, localCapteurs(c)%periode)==0) then
@@ -630,7 +630,7 @@ contains
                 capteur%P_energy, capteur%S_energy, capteur%eps_vol, capteur%eps_dev, capteur%sig_dev, &
                 capteur%dUdX, nl_flag, capteur%eps_dev_pl)
             case (DM_FLUID_CG)
-              call get_fluid_dom_var(Tdomain%fdom, capteur%lnum, Tdomain%out_var_capt, &
+              call get_fluid_dom_var(Tdomain%fdom, capteur%lnum, ngll, Tdomain%out_var_capt, &
                 capteur%fieldU, capteur%fieldV, capteur%fieldA, capteur%fieldP, &
                 capteur%P_energy, capteur%S_energy, capteur%eps_vol, &
                 capteur%eps_dev, capteur%sig_dev, capteur%dUdX)

@@ -53,7 +53,7 @@ contains
     !------------------------------------------------------------------------------------------
     !------------------------------------------------------------------------------------------
     subroutine physical_part_deriv(ngll,hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
-        !$acc routine seq
+        !$acc routine worker
         !- partial derivatives of the scalar property Scalp, with respect to x,y,z
         implicit none
         integer, intent(in) :: ngll
@@ -129,6 +129,7 @@ contains
     end subroutine physical_part_deriv_ijk
 
     subroutine physical_part_deriv_555(hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
+        !$acc routine worker
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, parameter :: ngll=5
@@ -139,6 +140,7 @@ contains
         real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: i,j,k,l
 
+        !$acc loop collapse(3)
         DO K = 0, ngll-1
             ! d(Scalp)_dxi
             DO J = 0, ngll-1
@@ -164,6 +166,7 @@ contains
     end subroutine physical_part_deriv_555
 
     subroutine physical_part_deriv_666(hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
+        !$acc routine worker
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, parameter :: ngll=6
@@ -175,6 +178,7 @@ contains
         integer :: i,j,k,l
 
 
+        !$acc loop collapse(3)
         DO K = 0, ngll-1
             ! d(Scalp)_dxi
             DO J = 0, ngll-1
@@ -200,6 +204,7 @@ contains
     end subroutine physical_part_deriv_666
 
     subroutine physical_part_deriv_777(hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
+        !$acc routine worker
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, parameter :: ngll=7
@@ -210,6 +215,7 @@ contains
         real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: i,j,k,l
 
+        !$acc loop collapse(3)
         DO K = 0, ngll-1
             ! d(Scalp)_dxi
             DO J = 0, ngll-1
@@ -235,6 +241,7 @@ contains
     end subroutine physical_part_deriv_777
 
     subroutine physical_part_deriv_888(hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
+        !$acc routine worker
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
         implicit none
         integer, parameter :: ngll=8
@@ -245,6 +252,7 @@ contains
         real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: i,j,k,l
 
+        !$acc loop collapse(3)
         DO K = 0, ngll-1
             ! d(Scalp)_dxi
             DO J = 0, ngll-1
