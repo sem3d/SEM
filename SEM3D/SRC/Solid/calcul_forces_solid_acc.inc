@@ -220,6 +220,7 @@ subroutine SUBPROCNAME2(ngllvar,nblocks,Forces,Depla,props, hprime, gllw, Jacob,
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
+                    !$acc cache(hprime,gllw)
                     !$acc loop vector
                     BEGIN_SUBELEM_LOOP1(ee)
                     compute_du_deta(i,j,k)
