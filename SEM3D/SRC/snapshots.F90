@@ -1731,18 +1731,18 @@ contains
                     do i = 0,ngll-1
                         idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
-                            case (DM_SOLID_CG)
-                                kappa(idx) = Tdomain%sdom%props(ee,i,j,k,cKappa,bnum)
-                            case (DM_SOLID_DG)
-                                kappa(idx) = -1d0
-                            case (DM_SOLID_CG_PML)
-                                kappa(idx) = -1d0
-                            case (DM_FLUID_CG)
-                                kappa(idx) = -1d0
-                            case (DM_FLUID_CG_PML)
-                                kappa(idx) = -1d0
-                            case default
-                                stop "unknown domain"
+                        case (DM_SOLID_CG)
+                            kappa(idx) = -1d0
+                        case (DM_SOLID_DG)
+                            kappa(idx) = -1d0
+                        case (DM_SOLID_CG_PML)
+                            kappa(idx) = -1d0
+                        case (DM_FLUID_CG)
+                            kappa(idx) = -1d0
+                        case (DM_FLUID_CG_PML)
+                            kappa(idx) = -1d0
+                        case default
+                            stop "unknown domain"
                         end select
                     end do
                 end do

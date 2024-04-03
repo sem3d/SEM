@@ -597,11 +597,11 @@ contains
 
                     xmu      = dom%props(ee,i,j,k,cMu,bnum)
                     xlambda  = dom%props(ee,i,j,k,cLambda,bnum)
-                    xkappa   = dom%props(ee,i,j,k,cKappa,bnum)
                     xdensity = dom%props(ee,i,j,k,cRho,bnum)
                     xvel     = fieldV(i,j,k,:)
 
                     if (dom%n_sls>0) then
+                        xkappa   = dom%props(ee,i,j,k,cKappa,bnum)
                         onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
                         onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
                         xmu    = xmu * onemSbeta
