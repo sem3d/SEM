@@ -23,11 +23,21 @@ public:
     // methods
     Mesh3D():m_xadj(0L), m_adjncy(0L), debug(false), has_mrrs(false) {
         m_elems_offs.push_back(0);
+        dom_weights.resize(DM_MAX+1);
+        dom_weights[0] = 1;
+        // Default weights
+        dom_weights[DM_FLUID_CG_PML] = 3;
+        dom_weights[DM_SOLID_CG_PML] = 9;
+        dom_weights[DM_FLUID_CG    ] = 1;
+        dom_weights[DM_SOLID_CG    ] = 3;
+        dom_weights[DM_FLUID_DG    ] = 1;
+        dom_weights[DM_SOLID_DG    ] = 3;
     }
 
     void generate_output(int nprocs, const sem_config_t* config = NULL);
     void build_sf_interface();
     void compute_pml_free_surface();
+    void read_weights();
 
     size_t n_nodes()     const { return m_elems.size(); }
     size_t n_vertices()  const { return m_xco.size(); }
@@ -123,6 +133,7 @@ public:
     void save_bbox();
     // A map of surfaces, indexed by names
     std::map<std::string,Surface*> m_surfaces;
+    std::vector<int> dom_weights;
 protected:
     std::vector<index_t> m_procs; ///< size=n_elems; elem->proc association
 

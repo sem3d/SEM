@@ -10,37 +10,40 @@
 !! \date
 !!
 !<
-
-subroutine invert_3d (a,Det)
-    use constants, only : fpp
+module mlinalg
     implicit none
+contains
+    subroutine invert_3d (a,Det)
+        !$acc routine seq
+        use constants, only : fpp
+        implicit none
 
-    real(fpp), dimension (0:2,0:2), intent (INOUT) :: a
-    real(fpp), intent (OUT) :: Det
+        real(fpp), dimension (0:2,0:2), intent (INOUT) :: a
+        real(fpp), intent (OUT) :: Det
 
-    real(fpp), dimension(0:2,0:2) :: Inverse_A
+        real(fpp), dimension(0:2,0:2) :: Inverse_A
 
 
-    Det = a(0,0)* (a(1,1)*a(2,2) - a(2,1)*a(1,2) ) + a(1,0) * (a(0,2) * a(2,1) - a(0,1) * a(2,2) ) + a(2,0)  * (a(0,1)*a(1,2) - a(0,2)*a(1,1) )
+        Det = a(0,0)* (a(1,1)*a(2,2) - a(2,1)*a(1,2) ) + a(1,0) * (a(0,2) * a(2,1) - a(0,1) * a(2,2) ) + a(2,0)  * (a(0,1)*a(1,2) - a(0,2)*a(1,1) )
 
-    Inverse_A (0,0) = a(1,1)*a(2,2) - a(2,1)*a(1,2)
-    Inverse_A (1,0) = a(0,2) * a(2,1) - a(0,1) * a(2,2)
-    Inverse_A (2,0) = a(0,1)*a(1,2) - a(0,2)*a(1,1)
+        Inverse_A (0,0) = a(1,1)*a(2,2) - a(2,1)*a(1,2)
+        Inverse_A (1,0) = a(0,2)*a(2,1) - a(0,1)*a(2,2)
+        Inverse_A (2,0) = a(0,1)*a(1,2) - a(0,2)*a(1,1)
 
-    Inverse_A (0,1) = a(1,2)*a(2,0) - a(1,0)*a(2,2)
-    Inverse_A (1,1) = a(0,0) * a(2,2) - a(0,2) * a(2,0)
-    Inverse_A (2,1) = a(0,2)*a(1,0) - a(0,0)*a(1,2)
+        Inverse_A (0,1) = a(1,2)*a(2,0) - a(1,0)*a(2,2)
+        Inverse_A (1,1) = a(0,0)*a(2,2) - a(0,2)*a(2,0)
+        Inverse_A (2,1) = a(0,2)*a(1,0) - a(0,0)*a(1,2)
 
-    Inverse_A (0,2) = a(1,0)*a(2,1) - a(1,1)*a(2,0)
-    Inverse_A (1,2) = a(0,1) * a(2,0) - a(2,1) * a(0,0)
-    Inverse_A (2,2) = a(1,1)*a(0,0) - a(0,1)*a(1,0)
+        Inverse_A (0,2) = a(1,0)*a(2,1) - a(1,1)*a(2,0)
+        Inverse_A (1,2) = a(0,1)*a(2,0) - a(2,1)*a(0,0)
+        Inverse_A (2,2) = a(1,1)*a(0,0) - a(0,1)*a(1,0)
 
-    A = TRANSPOSE (Inverse_A)
-    A = A/ Det
+        A = TRANSPOSE (Inverse_A)
+        A = A/ Det
 
-    return
-end subroutine invert_3d
-
+        return
+    end subroutine invert_3d
+end module mlinalg
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

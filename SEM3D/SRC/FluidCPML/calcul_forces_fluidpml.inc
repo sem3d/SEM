@@ -4,6 +4,7 @@
 !!
 
 #include "index.h"
+#include "loops.h"
 
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"

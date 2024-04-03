@@ -13,6 +13,7 @@ module dom_solidpml
     use pml
     implicit none
 #include "index.h"
+#include "loops.h"
 
 contains
 

@@ -10,14 +10,14 @@
 !!\date 10/03/2009
 !!
 !<
-
 subroutine pol_lagrange(n,GLLc,k,x,y)
     ! value of Lagrange polynomial at x, on the basis defined by GLLc
+    use constants, only : fpp
     implicit none
     integer, intent(in) :: n,k
-    double precision, dimension(0:n-1), intent(in) :: GLLc
-    double precision,intent(in) :: x
-    double precision, intent(out) :: y
+    real(fpp), dimension(0:n-1), intent(in) :: GLLc
+    real(fpp), intent(in) :: x
+    real(fpp), intent(out) :: y
     integer :: i
 
     y = 1
@@ -35,13 +35,14 @@ end subroutine pol_lagrange
 subroutine der_lagrange(n,GLLc,ip,x0,dy0)
 
     ! computes derivatives of Lagrange polynomials given by GLLc, at x0
+    use constants, only : fpp
     implicit none
     integer, intent(in) :: n,ip
-    double precision, dimension(0:n-1), intent(in) :: GLLc
-    double precision, intent(in) :: x0
-    double precision, intent(out):: dy0
+    real(fpp), dimension(0:n-1), intent(in) :: GLLc
+    real(fpp), intent(in) :: x0
+    real(fpp), intent(out):: dy0
     integer :: i,k
-    double precision :: y0
+    real(fpp) :: y0
 
 
     dy0 = 0
@@ -68,12 +69,13 @@ subroutine mderlag(n,GLLc,np,Xpts,MatDer)
     ! computes derivatives of n Lagrange polynomials given by GLLc, at np coordinates points
     ! given in the vector Xpts. Results are stored in the derivative matrix MatDer such that
     ! MatDer(i,j) = l_i(xi_j). Note that it is the transpose of the result given by subroutine DMLEGL.
+    use constants, only : fpp
     implicit none
     integer, intent(in) :: n, np
-    double precision, dimension(0:n-1), intent(in) :: GLLc
-    double precision, dimension(0:np-1),intent(in) :: Xpts
-    double precision, dimension(0:n-1,0:np-1),intent(out) :: MatDer
-    double precision :: res
+    real(fpp), dimension(0:n-1), intent(in) :: GLLc
+    real(fpp), dimension(0:np-1),intent(in) :: Xpts
+    real(fpp), dimension(0:n-1,0:np-1),intent(out) :: MatDer
+    real(fpp) :: res
     integer :: i,j
 
     do i=0,n-1

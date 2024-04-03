@@ -15,7 +15,6 @@ module mCapteur
 
     use sdomain
     use semdatafiles
-    use mpi
     use sem_hdf5
     use sem_c_config
     use constants
@@ -53,6 +52,7 @@ module mCapteur
 contains
 
     subroutine create_capteurs(Tdomain)
+        use sem_mpi
         implicit none
         type(domain), intent (inout) :: Tdomain
         !
@@ -94,7 +94,7 @@ contains
             !if (trim(nom(1:20))=="04x29") flag = .true.
             call trouve_capteur(Tdomain, xc, yc, zc, n_el, dmin, xi, eta, zeta, flag)
             ! Cas ou le capteur est dans le maillage
-            call MPI_AllReduce(dmin, glob_dmin, 1, MPI_DOUBLE, &
+            call MPI_AllReduce(dmin, glob_dmin, 1, MPI_REAL_FPP, &
                 MPI_MIN, Tdomain%communicateur, ierr)
             if (dmin==glob_dmin) then
                 numproc = Tdomain%rank

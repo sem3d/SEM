@@ -118,28 +118,10 @@ void Mesh3D::partition_mesh(index_t n_parts)
     // Define weights
     for(int k=0;k<ne;++k) {
         const Material& mat = m_materials[m_mat[k]];
-        switch(mat.m_type) {
-        case DM_SOLID_CG:
-            vwgt[k] = 3;
-            break;
-        case DM_FLUID_CG:
-            vwgt[k] = 1;
-            break;
-        case DM_SOLID_CG_PML:
-            vwgt[k] = 9;
-            break;
-        case DM_FLUID_CG_PML:
-            vwgt[k] = 3;
-            break;
-        case DM_SOLID_DG:
-            vwgt[k] = 3;
-            break;
-        case DM_FLUID_DG:
-            vwgt[k] = 1;
-            break;
-        default:
-            vwgt[k] = 1;
-
+        if (mat.m_type>0 && mat.m_type<=DM_MAX) {
+            vwgt[k] = dom_weights[mat.m_type];
+        } else {
+            vwgt[k] = 0;
         }
     }
     if (n_parts>1) {
@@ -690,6 +672,32 @@ void Mesh3D::generate_output(int nprocs, const sem_config_t* config)
     output_all_meshes_xmf(nprocs);
 }
 
+void Mesh3D::read_weights()
+{
+    const int NC=13;
+    char buf[NC];
+    int weight, n, dom;
+    FILE* fw = fopen("weights.txt","r");
+    if (not fw) {
+        printf("Not reading partition weights from : 'weights.txt'\n");
+        return;
+    } else {
+        printf("Reading partition weights from : 'weights.txt'\n");
+    }
+    while(!feof(fw)) {
+        n = fscanf(fw, "%12s %d", buf, &weight); // %(NC)s..
+        if (n!=2) break;
+        if      (strncasecmp(buf,"fluid_cg_pml",NC)==0) dom = DM_FLUID_CG_PML;
+        else if (strncasecmp(buf,"solid_cg_pml",NC)==0) dom = DM_SOLID_CG_PML;
+        else if (strncasecmp(buf,"fluid_cg",NC)==0) dom = DM_FLUID_CG;
+        else if (strncasecmp(buf,"solid_cg",NC)==0) dom = DM_SOLID_CG;
+        else if (strncasecmp(buf,"fluid_dg",NC)==0) dom = DM_FLUID_DG;
+        else if (strncasecmp(buf,"solid_dg",NC)==0) dom = DM_SOLID_DG;
+        else { printf("Syntax error in weights.txt\n"); exit(1); }
+        dom_weights[dom] = weight;
+        printf("DOM: %d -> %d\n", dom, weight);
+    }
+}
 
 /* Local Variables:                                                        */
 /* mode: c++                                                               */

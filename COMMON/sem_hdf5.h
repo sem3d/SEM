@@ -1,0 +1,13 @@
+#ifndef SEM_HDF5_H
+#define SEM_HDF5_H
+
+
+#ifdef SINGLEPRECISION
+#define H5T_REAL_FPP  H5T_NATIVE_REAL
+#define H5T_IEEE_FPP  H5T_IEEE_F32LE
+#else
+#define H5T_REAL_FPP  H5T_NATIVE_DOUBLE
+#define H5T_IEEE_FPP  H5T_IEEE_F64LE
+#endif
+
+#endif

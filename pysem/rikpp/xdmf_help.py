@@ -3,19 +3,20 @@
 """
 XDMF helper
 """
-u'''Required modules'''
+# Required modules
 import warnings
 warnings.filterwarnings("ignore")
 import os.path as osp
 import argparse
 import numpy as np
 import h5py
-u'''General informations'''
+
+# General informations
 __author__ = "Filippo Gatti"
-__copyright__ = "Copyright 2018, CentraleSupélec (MSSMat UMR CNRS 8579)"
+__copyright__ = "Copyright 2018, MSSMat UMR CNRS 8579, CentraleSupélec"
 __credits__ = ["Filippo Gatti"]
-__license__ = "GPL"
-__version__ = "1.0.1"
+__license__ = "Cecill-C"
+__version__ = "1.0"
 __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"

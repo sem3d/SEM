@@ -20,15 +20,15 @@
 !========================================================================
 
 #include "index.h"
+#include "gllopt.h"
 
-module m_calcul_forces ! wrap subroutine in module to get arg type check at build time
+module m_calcul_forces_iso ! wrap subroutine in module to get arg type check at build time
     use constants
     implicit none
 contains
 
     subroutine calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
         use champs_solid
-        use deriv3d
         implicit none
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: bnum
@@ -36,121 +36,130 @@ contains
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
 
         select case(dom%ngll)
+#if GENGLL4
         case(4)
             call calcul_forces_iso_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+#endif
+#if GENGLL5
         case(5)
             call calcul_forces_iso_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+#endif
+#if GENGLL6
         case (6)
             call calcul_forces_iso_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+#endif
+#if GENGLL7
         case (7)
             call calcul_forces_iso_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+#endif
+#if GENGLL8
         case (8)
             call calcul_forces_iso_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+#endif
+#if GENGLL9
         case (9)
             call calcul_forces_iso_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+#endif
+#if GLLMAX>GLLOPTMAX
         case default
             call calcul_forces_iso_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
+#endif
         end select
     end subroutine calcul_forces_iso
 
-#undef ATTENUATION
-#define NGLLVAL 4
-#define PROCNAME calcul_forces_iso_4
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 5
-#define PROCNAME calcul_forces_iso_5
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 6
-#define PROCNAME calcul_forces_iso_6
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 7
-#define PROCNAME calcul_forces_iso_7
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 8
-#define PROCNAME calcul_forces_iso_8
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 9
-#define PROCNAME calcul_forces_iso_9
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define PROCNAME calcul_forces_iso_n
-#include "calcul_forces_solid.inc"
-
-    subroutine calcul_forces_aniso(dom,bnum,Fox,Foy,Foz,Depla)
-        use champs_solid
-        use deriv3d
-        implicit none
-        type(domain_solid), intent (INOUT) :: dom
-        integer, intent(in) :: bnum
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: Fox,Foz,Foy
-        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
-
-        select case(dom%ngll)
-        case(4)
-            call calcul_forces_aniso_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
-        case(5)
-            call calcul_forces_aniso_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
-        case (6)
-            call calcul_forces_aniso_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
-        case (7)
-            call calcul_forces_aniso_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
-        case (8)
-            call calcul_forces_aniso_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
-        case (9)
-            call calcul_forces_aniso_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
-        case default
-            call calcul_forces_aniso_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
-        end select
-    end subroutine calcul_forces_aniso
+#ifndef TEST_FORCE
+#define TEST_FORCE 0
+#endif
 
 #undef ATTENUATION
-#undef PROCNAME
-#define ANISO
-#define NGLLVAL 4
-#define PROCNAME calcul_forces_aniso_4
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 5
-#define PROCNAME calcul_forces_aniso_5
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 6
-#define PROCNAME calcul_forces_aniso_6
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 7
-#define PROCNAME calcul_forces_aniso_7
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 8
-#define PROCNAME calcul_forces_aniso_8
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define NGLLVAL 9
-#define PROCNAME calcul_forces_aniso_9
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#undef PROCNAME
-#define PROCNAME calcul_forces_aniso_n
-#include "calcul_forces_solid.inc"
+#define PROCNAMEBASE() calcul_forces_iso_
 
-end module m_calcul_forces
+#if TEST_FORCE
+#if GENGLL4
+#undef NGLLVAL
+#define NGLLVAL 4
+#include "calcul_forces_solid_iso.inc"
+#endif
+
+#if GENGLL5
+#undef NGLLVAL
+#define NGLLVAL 5
+#include "calcul_forces_solid_iso.inc"
+#endif
+
+#if GENGLL6
+#undef NGLLVAL
+#define NGLLVAL 6
+#include "calcul_forces_solid_iso.inc"
+#endif
+
+#if GENGLL7
+#undef NGLLVAL
+#define NGLLVAL 7
+#include "calcul_forces_solid_iso.inc"
+#endif
+
+#if GENGLL8
+#undef NGLLVAL
+#define NGLLVAL 8
+#include "calcul_forces_solid_iso.inc"
+#endif
+
+#if GENGLL9
+#undef NGLLVAL
+#define NGLLVAL 9
+#include "calcul_forces_solid_iso.inc"
+#endif
+
+#if GENGLLN
+#undef NGLLVAL
+#include "calcul_forces_solid_iso.inc"
+#endif
+#else
+
+#if GENGLL4
+#undef NGLLVAL
+#define NGLLVAL 4
+#include "calcul_forces_solid.inc"
+#endif
+
+#if GENGLL5
+#undef NGLLVAL
+#define NGLLVAL 5
+#include "calcul_forces_solid.inc"
+#endif
+
+#if GENGLL6
+#undef NGLLVAL
+#define NGLLVAL 6
+#include "calcul_forces_solid.inc"
+#endif
+
+#if GENGLL7
+#undef NGLLVAL
+#define NGLLVAL 7
+#include "calcul_forces_solid.inc"
+#endif
+
+#if GENGLL8
+#undef NGLLVAL
+#define NGLLVAL 8
+#include "calcul_forces_solid.inc"
+#endif
+
+#if GENGLL9
+#undef NGLLVAL
+#define NGLLVAL 9
+#include "calcul_forces_solid.inc"
+#endif
+
+#if GENGLLN
+#undef NGLLVAL
+#include "calcul_forces_solid.inc"
+#endif
+#endif
+
+end module m_calcul_forces_iso
 
 !! Local Variables:
 !! mode: f90

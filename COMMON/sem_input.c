@@ -17,7 +17,6 @@ void clear_scan( struct scan_info *info)
 
 int eval_bool(yyscan_t scanner, int* val)
 {
-    int res;
     if (cmp(scanner,"true")||cmp(scanner,"TRUE")) { *val=1; return 1; }
     if (cmp(scanner,"false")||cmp(scanner,"FALSE")) { *val=0; return 1; }
     return 0;
@@ -131,10 +130,6 @@ int expect_int(yyscan_t scanner, int* vals, int nexpected)
 
 int expect_eq_int(yyscan_t scanner, int* vals, int nexpected)
 {
-    int k = 0;
-    int tok, neg=0;
-    int value;
-
     if (!expect_eq(scanner)) return 0;
     return expect_int(scanner, vals, nexpected);
 }
@@ -184,14 +179,13 @@ int expect_eq_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval)
 int expect_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval)
 {
     int tok;
-    int len;
     int bufmax;
     char* msg;
+    int size = 0;
+    int k = 0;
 
     tok = skip_blank(scanner);
     if (tok!=K_ID) goto error;
-    int size = 0;
-    int k = 0;
     while(keywords[k].keyword!=NULL) {
         if (cmp(scanner, keywords[k].keyword)) { *keyval = keywords[k].index; return 1; }
         size += strlen(keywords[k].keyword);

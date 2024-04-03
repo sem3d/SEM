@@ -308,15 +308,10 @@ contains
         integer,intent(in) :: rank
         character(Len=*),intent(in) :: mesh
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE)             :: temp, sem_dir
+        character(Len=MAX_FILE_SIZE)             :: temp
 
         write(temp,"(a,a1,I4.4)") trim(adjustl(mesh)),".",rank
-#ifdef MKA3D
-        sem_dir = pjoin(path_data, "sem")
-        fnamef = pjoin(sem_dir, temp)
-#else
         fnamef = pjoin(path_data, temp)
-#endif
     end subroutine semname_read_mesh_rank
 
     subroutine semname_read_mesh_material_echo (fnamef)

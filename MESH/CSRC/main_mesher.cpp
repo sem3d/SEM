@@ -156,6 +156,7 @@ int main(int argc, char**argv)
     int err;
     read_sem_config(&config, 0, 3, "input.spec", &err);
     dump_config(&config);
+    mesh.read_weights();
 
     switch(choice) {
     case 1:

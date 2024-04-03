@@ -18,6 +18,10 @@ based on the original work of D. Komatitsch:
 ## Contacts: 
 - [Filippo Gatti](mailto:filippo.gatti@centralesupelec.fr) - [github](https://github.com/FilLTP89)
 
+## How to cite:
+CEA, CentraleSupélec, IPGP and CNRS. SEM3D Ver 2017.04 Registered at French Agency for Protection of Programs (Dépôt APP). IDDN.FR.001.400009.000.S.P.2018.000.31235, 2017.
+
+
 ## Bibliography (journal publications involving the use of SEM):
 - Touhami, S.; Gatti, F.; Lopez-Caballero, F.; Cottereau, R.; de Abreu Corrêa, L.; Aubry, L.; Clouteau, D. __SEM3D: A 3D High-Fidelity Numerical Earthquake Simulator for Broadband (0-10 Hz) Seismic Response Prediction at a Regional Scale__. Geosciences 2022, 12 (3). [doi](https://doi.org/10.3390/geosciences12030112)
 
@@ -38,6 +42,8 @@ based on the original work of D. Komatitsch:
 - Korres, M.; Lopez-Caballero, F.; Alves Fernandes, V.; Gatti, F.; Zentner, I.; Voldoire, F.; Clouteau, D.; Castro-Cruz, D. __Enhanced Seismic Response Prediction of Critical Structures via 3D Regional Scale Physics-Based Earthquake Simulation__. Journal of Earthquake Engineering 2022, 1-29 [doi](https://doi.org/10.1080/13632469.2021.2009061)
 
 - Touhami, S.; Lopez-Caballero, F.; Clouteau, D. A __Holistic Approach of Numerical Analysis of the Geology Effects on Ground Motion Prediction: Argostoli Site Test__. Journal of Seismology 2021, 25, 115-140. [doi](https://doi.org/10.1007/s10950-020-09961-0)
+
+- de Abreu Corrêa, L.; Cottereau, R.; Faure, B. __Dispersion analysis in ballasted railway tracks and Anderson localization in granular media__. Journal of Sound and Vibration, 2020, 465(115010). [doi](https://doi.org/10.1016/j.jsv.2019.115010)
 
 - Gatti, F.; Clouteau, D. __Towards Blending Physics-Based Numerical Simulations and Seismic Databases Using Generative Adversarial Network__. Computer Methods in Applied Mechanics and Engineering 2020, 372, (113421). [doi](https://doi.org/10.1016/j.cma.2020.113421)
 

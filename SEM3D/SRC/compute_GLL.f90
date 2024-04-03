@@ -39,9 +39,9 @@ contains
         call zelegl (ngll-1, dGLLc, GLLpol)
         call welegl (ngll-1, dGLLc, GLLpol, dGLLw)
         call dmlegl (ngll-1, ngll-1, dGLLc, GLLpol, dhTprime)
-        hTprime = dhTprime
-        gllc = dgllc
-        gllw = dgllw
+        hTprime = real(dhTprime,fpp)
+        gllc = real(dgllc,fpp)
+        gllw = real(dgllw,fpp)
         hprime = TRANSPOSE(hTprime)
 
     end subroutine compute_gll_data

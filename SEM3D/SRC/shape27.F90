@@ -4,6 +4,7 @@
 !!
 module mshape27
     use constants, only : fpp
+    use mlinalg
     implicit none
 #include "index.h"
 

@@ -10,7 +10,7 @@ mpml_atn_param = 0.002;
 
 snapshots {
     save_snap = true;
-    snap_interval = 0.01;
+    snap_interval = 0.1;
     deselect all;
     select box = -100 -100  100 500 500 150;
     select box = -100  100 -100 500 150 500;
@@ -19,12 +19,12 @@ snapshots {
 
 # Description des capteurs
 save_traces = true;
-traces_format=hdf5;
+traces_format=text;
 
 
 # Fichier protection reprise
 prorep=false;
-prorep_iter=1000;
+prorep_iter=10000;
 restart_iter=370;
 
 

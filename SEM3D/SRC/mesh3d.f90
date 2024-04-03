@@ -177,7 +177,7 @@ contains
     end subroutine read_mesh_elements
 
     subroutine compute_material_boundaries(Tdomain)
-        use mpi
+        use sem_mpi
         implicit none
         type(domain), intent(inout) :: Tdomain
         !
@@ -360,7 +360,7 @@ contains
     end subroutine read_surfaces
 
     subroutine read_mesh_file_h5(Tdomain)
-        use mpi
+        use sem_mpi
         use sem_c_bindings
         use semdatafiles, only : MAX_FILE_SIZE, strrank
         use constants
@@ -390,6 +390,10 @@ contains
         endif
 
         call h5fopen_f(trim(fname), H5F_ACC_RDONLY_F, fid, hdferr)
+        if (hdferr .ne. 0) then
+            write(*,*) "h5fopen : failed to open file : ",fname," rank:", rg
+            stop 1
+        end if
         !
         !-- Reading mesh properties
         neumann_log = .false.

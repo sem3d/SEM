@@ -1,11 +1,25 @@
 # Ce CMakeLists.txt est le projet principal permettant de construire sem2d et sem3d
 # en standalone (hors mka3d)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 PROJECT(SEM)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
-CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
+set(default_build_type "RelWithDebInfo")
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+      STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+    "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
+set(EXTRA_IFORT_FLAGS "")
+set(EXTRA_GFORT_FLAGS "")
+set(EXTRA_NVFORT_FLAGS "")
 
 option(OPT_SINGLE "Single precision" OFF)
 if (OPT_SINGLE)
@@ -17,13 +31,38 @@ if (OPT_CPML)
   add_definitions(-DCPML)
 endif(OPT_CPML)
 
+
 set(OPT_VEC "1" CACHE STRING "Vectorization chunks")
 
 add_definitions(-DVCHUNK=${OPT_VEC})
 if (${OPT_VEC}>1)
-  set(EXTRA_IFORT_FLAGS "-qopenmp-simd")
-  set(EXTRA_GFORT_FLAGS "-fopenmp")
+  set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  -qopenmp-simd")
+  set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenmp")
+  set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} -fopenmp")
+  if (${OPT_VEC}>=8)
+    set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  -qopt-zmm-usage=high")
+  endif ()
 endif(${OPT_VEC}>1)
+
+option(OPT_OPENACC "OPENACC" OFF)
+if (OPT_OPENACC)
+  add_definitions(-DOPENACC)
+  set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  ")
+  set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenacc")
+  set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} -acc=gpu ") # -acc=gpu -acc=multicore,... -cuda ... ?
+endif(OPT_OPENACC)
+
+option(OPT_OPENMP "OPENMP" OFF)
+if (OPT_OPENMP)
+  add_definitions(-DOPENMP)
+  set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  -qopenmp")
+  set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenmp")
+  set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} ") # -acc=gpu -acc=multicore,...
+endif(OPT_OPENMP)
+
+set(OPT_MIN_GLL_OPT "4" CACHE STRING "Minimum hardcoded gll order")
+set(OPT_MAX_GLL_OPT "7" CACHE STRING "Maximum hardcoded gll order")
+set(OPT_MAX_GLL     "8" CACHE STRING  "Maximum gll order (any if > MAX_GLL_OPT)")
 
 option(OPT_MPI "Compilation en mode MPI" ON)
 
@@ -38,8 +77,12 @@ set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
+##include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 include_directories(${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
-include_directories(${PROJECT_BINARY_DIR}/libs/common)
+if (${HDF5_ROOT})
+  include_directories(${HDF5_ROOT}/include/shared)
+endif ()
+include_directories(${PROJECT_SOURCE_DIR}/COMMON ${PROJECT_BINARY_DIR}/libs/common)
 
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
@@ -58,16 +101,22 @@ endif (OPT_MPI)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+message("Fortran COMPILER is ${CMAKE_Fortran_COMPILER_ID}")
+
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # FLAGS ifort :
   # -fpp : preprocesseur
   # -allow nofpp_comments : indique au preprocesseur de ne pas traiter specialement les commentaires fortran
   #                         ceci permet de caser des directives openmp dans des macros
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -mkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
-  set(USE_MKL TRUE)
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -diag-disable=10441")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -diag-disable=10441")
+elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -qmkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "NVHPC")
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Mpreprocess ")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_NVFORT_FLAGS} -Mpreprocess ")
   set(USE_MKL FALSE)
+  set(CMAKE_Fortran_DEPENDS_USE_COMPILER FALSE)
 else ()
   # Assume gfortran
   # -fdefault-real-8 -fdefault-double-8
@@ -98,6 +147,7 @@ set(SEM_SRC
   ${SEMCOMMON}/leastsq.f90
   ${SEMCOMMON}/intset.F90
   ${SEMCOMMON}/invariants.f90
+  ${SEMCOMMON}/sem_mpi.F90
 )
 
 set(SEM_SRC_C
@@ -145,9 +195,11 @@ if(OPT_MPI OR HDF5_IS_PARALLEL)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES} ${MPI_Fortran_LIBRARIES})
 set(SEM_CPP_LIBS ${SEM_CPP_LIBS} ${MPI_CXX_LIBRARIES} ${MPI_C_LIBRARIES})
 else(OPT_MPI OR HDF5_IS_PARALLEL)
-set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
 endif(OPT_MPI OR HDF5_IS_PARALLEL)
 
+if(NOT OPT_MPI)
+set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
+endif()
 
 if (CEAUSER)
 add_definitions(-DHAVE_TREMAIN)

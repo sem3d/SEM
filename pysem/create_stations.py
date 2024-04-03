@@ -5,10 +5,22 @@ Script to create stations' file for SEM3D
 
     Ex.1 : Create a [10 x 10 x 1] grid of receivers in a domain of 5m x 5m x 5m
         
-        python3 create_stations.py -x -5. 5. -y -5. 5 -z 0. -s 10 10 1
+        python3 create_stations.py @x -5. 5. @y -5. 5 @z 0. 0. @s 10 10 1
 """
+
+# Required modules
 import argparse
 import numpy as np
+
+# General informations
+__author__ = "Filippo Gatti"
+__copyright__ = "Copyright 2020, MSSMat UMR CNRS 8579, CentraleSupélec"
+__credits__ = ["Filippo Gatti"]
+__license__ = "Cecill-C"
+__version__ = "1.0"
+__maintainer__ = "Filippo Gatti"
+__email__ = "filippo.gatti@centralesupelec.fr"
+__status__ = "Beta"
 
 def grid(lims):
     xv = np.linspace(lims['xmin'],lims['xmax'],lims['nx'],dtype=np.float64)
@@ -22,13 +34,35 @@ def write_stations(xg,fn='stations.txt'):
     np.savetxt(fn,np.concatenate(xg,axis=-1),fmt='%10.5f',delimiter=' ')
 
 if __name__=='__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--xlim",type=float,nargs="*",default=[-5.0,5.0],help="Limits of the box")
-    parser.add_argument("--ylim",type=float,nargs="*",default=[-5.0,5.0],help="Limits of the box")
-    parser.add_argument("--zlim",type=float,nargs="*",default=[0.0,0.0],help="Limits of the box")
-    parser.add_argument("--step",type=float,nargs="*",default=[10,10,1],help="Numbers of points per direction")
-    parser.add_argument("--indx",type=str,default='ij',help="Grid indexing xy|ij")
-    parser.add_argument("--ofnm",type=str,default='stations.txt',help="Output filename")
+    parser = argparse.ArgumentParser(prefix_chars='@')
+    parser.add_argument("@x","@@xlim", 
+                        type=float, 
+                        nargs="*",
+                        default=[-5.0,5.0],
+                        help="Limits of the box")
+    parser.add_argument("@y","@@ylim", 
+                        type=float, 
+                        nargs="*",
+                        default=[-5.0,5.0],
+                        help="Limits of the box")
+    parser.add_argument("@z","@@zlim", 
+                        type=float, 
+                        nargs="*",
+                        default=[0.0,0.0],
+                        help="Limits of the box")
+    parser.add_argument("@s","@@step", 
+                        type=float, 
+                        nargs="*",
+                        default=[10,10,1],
+                        help="Numbers of points per direction")
+    parser.add_argument("@i","@@indx", 
+                        type=str, 
+                        default='ij',
+                        help="Grid indexing xy|ij")
+    parser.add_argument("@o","@@ofnm",
+                        type=str, 
+                        default='stations.txt',
+                        help="Output filename")
     opt = parser.parse_args()
 
     assert len(opt.xlim)==2
@@ -42,7 +76,7 @@ if __name__=='__main__':
     lims = (('xmin',opt.xlim[0]),('xmax',opt.xlim[1]),
             ('ymin',opt.ylim[0]),('ymax',opt.ylim[1]),
             ('zmin',opt.zlim[0]),('zmax',opt.zlim[1]),
-            ('nx',opt.step[0]),('ny',opt.step[1]),('nz',opt.step[2]))
+            ('nx',int(opt.step[0])),('ny',int(opt.step[1])),('nz',int(opt.step[2])))
     lims = dict(lims)
     print(f'Domain limits/discretization : \n X: {lims["xmin"]} m : {lims["xmax"]} m; nx={lims["nx"]} \n Y: {lims["ymin"]} m : {lims["ymax"]} m; ny={lims["ny"]} \n Z: {lims["zmin"]} m : {lims["zmax"]} m; nz={lims["nz"]}')
     

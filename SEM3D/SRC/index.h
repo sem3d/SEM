@@ -15,19 +15,6 @@
   Pour l'instant seule une boucle par element est prevue ainsi.
   
  */
-#if VCHUNK>1
-/* ATTENTION, ne pas utiliser ces macros pour l'instant, un bug du compilateur
-   intel 15 fait crasher le preprocesseur... */
-#define OMP_SIMD(xx) !$omp simd xx
-#if defined(__INTEL_COMPILER)  /* IFORT */
-#define OMP_DECLARE_SIMD(name,args) !$omp declare simd (name) args
-#define ALIGNED(var,val) !dir$ ASSUME_ALIGNED var: val
-#else /* GFORTRAN */
-#define OMP_DECLARE_SIMD(name,args) !!!
-#define ALIGNED(var,val) !!!
-#endif
-#else /* VCHUNK>1 */
-#endif
 
 
 #define IND_IJKE(i,j,k,eb,ec)        ec,i,j,k,eb
@@ -38,16 +25,6 @@
 #define IND_IJKNE(i,j,k,n,eb,ec)     ec,n,i,j,k,eb
 #define IND_IJKE(i,j,k,eb,ec)        ec,i,j,k,eb
 #define IND_NIJKE(n,i,j,k,eb,ec)     ec,n,i,j,k,eb
-
-#if VCHUNK>1
-#define SUBELEM_LOOP_DIR  !dir$ simd
-#define BEGIN_SUBELEM_LOOP(e,ee,bl)  do ee=0,VCHUNK-1; e = bl*VCHUNK+ee
-#define END_SUBELEM_LOOP()  enddo
-#else
-#define SUBELEM_LOOP_DIR
-#define BEGIN_SUBELEM_LOOP(e,ee,e0)  ee=0;e=e0;
-#define END_SUBELEM_LOOP()  ;
-#endif
 
 #define     Density_(i,j,k,eb,ec)     m_Density(IND_IJKE(i,j,k,eb,ec))
 #define    IDensity_(i,j,k,eb,ec)    m_IDensity(IND_IJKE(i,j,k,eb,ec))
@@ -114,7 +91,6 @@
 #define        PMLDumpSy_(i,j,k,n,eb,ec)        m_PMLDumpSy(IND_IJKNE(i,j,k,n,eb,ec))
 #define        PMLDumpSz_(i,j,k,n,eb,ec)        m_PMLDumpSz(IND_IJKNE(i,j,k,n,eb,ec))
 
-#endif
 
 #define part_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
         dS_dxi   = 0.0D+0; \
@@ -140,3 +116,19 @@
             dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); \
         END DO;
         
+#define RK4_attenu_coefs(dt,omega_tau_s,alphaval,betaval,gammaval) \
+dt_tau = -dt*omega_tau_s;\
+alphaval = 1d0 + dt_tau + 0.5d0 * dt_tau**2 + dt_tau**3 *(1d0/6d0) + dt_tau**4 *(1d0/24.d0); \
+betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(1d0/24.d0)); \
+gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
+
+
+#ifdef SINGLEPRECISION
+#define MPI_REAL_FPP MPI_FLOAT
+#define H5T_REAL  H5T_NATIVE_REAL
+#else
+#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
+#define H5T_REAL  H5T_NATIVE_DOUBLE
+#endif
+
+#endif

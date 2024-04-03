@@ -1,9 +1,9 @@
 module stat
-    use constants, only : fpp
+    use constants, only : fpp, DM_MAX, OUT_DOM_NAMES
     use sem_c_bindings, only : sem_mkdir
     implicit none
     ! TYPE DE STATISTIQUES
-    integer, parameter :: STAT_COUNT = 13
+    integer, parameter :: STAT_COUNT = 14
     integer, parameter :: STAT_GIVE  = 0 !
     integer, parameter :: STAT_TAKE  = 1 !
     integer, parameter :: STAT_WAIT  = 2 !
@@ -17,9 +17,10 @@ module stat
     integer, parameter :: STAT_IO    =10 ! IO
     integer, parameter :: STAT_START  =11 ! Initialisation/startup time
     integer, parameter :: STAT_FSOL_DG=12 ! Forces      solide
+    integer, parameter :: STAT_ITER=13    !
 
     character(len=5), dimension(0:STAT_COUNT-1) :: stat_labels = (/ &
-        "GIVE ", "TAKE ", "WAIT ", "FSOL ", "FFLU ", "PSOL ", "PFLU ", "FEXT ", "FULL ", "TSTEP","IO   ", "INIT ", "FSDG " /)
+        "GIVE ", "TAKE ", "WAIT ", "FSOL ", "FFLU ", "PSOL ", "PFLU ", "FEXT ", "FULL ", "TSTEP","IO   ", "INIT ", "FSDG ", "ITER " /)
 
     integer*8, private :: clockRate, maxPeriod
 
@@ -28,7 +29,8 @@ module stat
 
     real(fpp), dimension(0:STAT_COUNT-1), private :: statTimes
     integer*8, dimension(0:STAT_COUNT-1), private :: statStart, statStop
-
+    integer, dimension(1:DM_MAX) :: elemCounts
+    integer, dimension(1:DM_MAX) :: ngllCounts
     logical :: log_traces
     integer :: ntraces, itrace, rank
     integer*8, allocatable, dimension(:,:) :: traces
@@ -59,9 +61,10 @@ contains
     end subroutine add_stop_trace
 
     subroutine stat_init(comm, rg, nprocs, dotraces)
-        use mpi
+        use sem_mpi
         implicit none
-        integer, intent(in) :: comm, rg, nprocs
+        type(MPI_Comm), intent(in) :: comm
+        integer, intent(in) :: rg, nprocs
         logical, intent(in) :: dotraces
         character(Len=1000) :: fname
         integer :: ierr
@@ -98,11 +101,13 @@ contains
     end subroutine stat_init
 
 
-    subroutine stat_finalize()
-        use mpi
+    subroutine stat_finalize(Tdomain)
+        use sem_mpi
+        use sdomain, only : domain_nelems, domain
         implicit none
+        type(domain), intent(in) :: Tdomain
         integer :: ierr, rank, sz, r, i
-        integer :: status(MPI_STATUS_SIZE)
+        type(MPI_Status) :: status
 
         call system_clock(count=stopFullTick)
         statStop(STAT_FULL)=stopFullTick
@@ -117,18 +122,27 @@ contains
         if (deltaTick < 0) deltaTick = deltaTick+maxPeriod
         fullTime = real(deltaTick,fpp)/real(clockRate,fpp)
 
+        do i=1, DM_MAX
+            call domain_nelems(Tdomain, i, elemCounts(i), ngllCounts(i))
+        end do
         statTimes(STAT_FULL) = fullTime
         call MPI_Comm_Rank (MPI_COMM_WORLD, rank, ierr)
         if (rank .gt. 0) then
+            call MPI_SEND(elemCounts,DM_MAX,MPI_INTEGER,0,0,MPI_COMM_WORLD,ierr)
+            call MPI_SEND(ngllCounts,DM_MAX,MPI_INTEGER,0,0,MPI_COMM_WORLD,ierr)
             call MPI_SEND(statTimes,STAT_COUNT,MPI_DOUBLE_PRECISION,0,0,MPI_COMM_WORLD,ierr)
         else
             open (123, file="stat.log", status="replace", action="write")
             call MPI_Comm_Size (MPI_COMM_WORLD,   sz, ierr)
             do r = 0, sz-1
                 if (r .gt. 0) then
+                    call MPI_RECV(elemCounts,DM_MAX,MPI_INTEGER,r,0,MPI_COMM_WORLD,status,ierr)
+                    call MPI_RECV(ngllCounts,DM_MAX,MPI_INTEGER,r,0,MPI_COMM_WORLD,status,ierr)
                     call MPI_RECV(statTimes,STAT_COUNT,MPI_DOUBLE_PRECISION,r,0,MPI_COMM_WORLD,status,ierr)
                 end if
-
+                do i=1,DM_MAX
+                    write(123, '(a12,I6,I8,I8)') OUT_DOM_NAMES(i), r, elemCounts(i), ngllCounts(i)
+                end do
                 do i=0,STAT_COUNT-1
                     write(123, '(a8,I6,f12.5)') stat_labels(i), r, statTimes(i)
                 end do

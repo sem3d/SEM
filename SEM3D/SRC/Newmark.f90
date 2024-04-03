@@ -71,9 +71,9 @@ contains
             call internal_forces(Tdomain, 0, 2, ntime)
             call external_forces(Tdomain, t, ntime, 2)
 
-            call assemble_forces(Tdomain, Tdomain%sdomdg, 2)
+            call assemble_forces_dg(Tdomain, Tdomain%sdomdg, 2)
             call comm_forces(Tdomain, 2)
-            call deassemble_forces(Tdomain, Tdomain%sdomdg,2)
+            call deassemble_forces_dg(Tdomain, Tdomain%sdomdg,2)
 
             call lddrk_update_solid(Tdomain%sdom, 0, 1, 2, dt, cb, cg)
             call lddrk_update_solid_dg(Tdomain%sdomdg, 0, 1, 2, dt, cb, cg)
@@ -107,7 +107,7 @@ contains
 
     end subroutine Timestep_LDDRK
 
-    subroutine assemble_forces(Tdomain, dom, f1)
+    subroutine assemble_forces_dg(Tdomain, dom, f1)
 
         implicit none
 
@@ -135,9 +135,9 @@ contains
             enddo
         enddo
 
-    end subroutine assemble_forces
+    end subroutine assemble_forces_dg
 
-    subroutine deassemble_forces(Tdomain, dom, f1)
+    subroutine deassemble_forces_dg(Tdomain, dom, f1)
 
         implicit none
 
@@ -168,13 +168,13 @@ contains
             enddo
         enddo
 
-    end subroutine deassemble_forces
+    end subroutine deassemble_forces_dg
 
     subroutine Newmark(Tdomain,ntime)
         ! Predictor-MultiCorrector Newmark Velocity Scheme within a
         ! Time staggered Stress-Velocity formulation inside PML
         use mcapteur
-        use mpi
+        use sem_mpi
         use scomm, only : exchange_sem_var, comm_give_data, comm_take_data
         use scommutils
         use stat, only : stat_starttick, stat_stoptick, STAT_FEXT
@@ -547,10 +547,7 @@ contains
                 endif
             ! Without Mirror
             else
-                do n = 0,Tdomain%sdom%nblocks-1
-                    call forces_int_solid(Tdomain%sdom, &
-                        Tdomain%sdom%champs(i0),Tdomain%sdom%champs(i1),n,Tdomain%nl_flag)
-                enddo
+                call forces_int_solid_mainloop(Tdomain%sdom, i0, i1, Tdomain%nl_flag)
             endif
             call stat_stoptick(STAT_FSOL)
         endif

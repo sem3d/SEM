@@ -3,7 +3,8 @@
 """
 Set of subroutines to post-process RIK output
 """
-u'''Required modules'''
+# Required modules
+import utm
 import os 
 from os.path import join as opj
 import argparse
@@ -37,9 +38,9 @@ rc('text', usetex=True)
 import seaborn as sns
 from   collections import OrderedDict 
 
-u'''General informations'''
+# General informations
 __author__ = "Filippo Gatti, Elif Oral"
-__copyright__ = "Copyright 2023, LMPS UMR 9026 - CentraleSupélec"
+__copyright__ = "Copyright 2023, LMPS UMR 9026, CentraleSupélec"
 __credits__ = ["Filippo Gatti", "Elif Oral"]
 __license__ = "Cecill-C"
 __version__ = "1.0"
@@ -47,43 +48,172 @@ __maintainer__ = "Filippo Gatti"
 __email__ = "filippo.gatti@centralesupelec.fr"
 __status__ = "Beta"
 
+
+class ClassPropertyDescriptor(object):
+
+    def __init__(self, fget, fset=None):
+        self.fget = fget
+        self.fset = fset
+
+    def __get__(self, obj, klass=None):
+        if klass is None:
+            klass = type(obj)
+        return self.fget.__get__(obj, klass)()
+
+    def __set__(self, obj, value):
+        if not self.fset:
+            raise AttributeError("can't set attribute")
+        type_ = type(obj)
+        return self.fset.__get__(obj, type_)(value)
+
+    def setter(self, func):
+        if not isinstance(func, (classmethod, staticmethod)):
+            func = classmethod(func)
+        self.fset = func
+        return self
+
+
+def classproperty(func):
+    if not isinstance(func, (classmethod, staticmethod)):
+        func = classmethod(func)
+
+    return ClassPropertyDescriptor(func)
+
 def start_rik():
     parser = argparse.ArgumentParser(prefix_chars='@')
-    parser.add_argument('@wkd', type=str, default="./", help="Working directory")
-    parser.add_argument('@plot', action='store_true', help="plot?")
-    parser.add_argument('@tag', type=str,default='slip', help="tag")
-    parser.add_argument('@L', type=float,default=15., help="fault length [km]")
-    parser.add_argument('@W', type=float,default=15., help="fault width [km]")
-    parser.add_argument('@nL', type=int,default=294, help="Number of grids along fault length")
-    parser.add_argument('@nW', type=int,default=213, help="Number of grids along fault width")
-    parser.add_argument('@nt', type=int,default=480, help="Number of time steps")
-    parser.add_argument('@dt', type=float,default=0.025, help="Time step [s]")
-    parser.add_argument('@hL', type=float,default=12.5, help="Hypocenter along-length coordinate [km]")
-    parser.add_argument('@hW',type=float,default=0.0,help="Hypocenter along-width coordinate [km]")
-    parser.add_argument('@hE',type=float,default=0.0,help="Hypocenter east coordinate [m]")
-    parser.add_argument('@hN',type=float,default=0.0,help="Hypocenter north coordinate [m]")
-    parser.add_argument('@hZ',type=float,default=0.0,help="Hypocenter elevation coordinate [m]")
-    parser.add_argument('@strike',type=float,default=45.0,help="Strike")
-    parser.add_argument('@dip',type=float,default=60.0,help="Dip")
-    parser.add_argument('@rake',type=float,default=108.0,help="Rake")
-    parser.add_argument('@sf',type=str,default="slipdistribution.dat",help="Filename of slip distributions")
-    parser.add_argument('@fg',type=str,default="xxx.png",help="Figure file name")
-    parser.add_argument('@mf',type=str,default='napa2014_moment.h5',help='Moment rate tensor file')
-    parser.add_argument('@kf',type=str,default='napa2014_kine.h5',help='Fault parameters file')
-    parser.add_argument('@ct',nargs='*',default = ['moment'],help='Fault parameters file')
-    parser.add_argument('@snapshots',type=float,default=10.,help='Time interval between snapshots')
+    parser.add_argument('@wkd', 
+                        type=str, 
+                        default="./", 
+                        help="Working directory")
+    parser.add_argument('@plot', 
+                        action='store_true', 
+                        help="plot?")
+    parser.add_argument('@tag', 
+                        type=str,
+                        default='slip', 
+                        help="tag")
+    parser.add_argument('@L', 
+                        type=float,
+                        default=15., 
+                        help="fault length [km]")
+    parser.add_argument('@W', 
+                        type=float,
+                        default=15., 
+                        help="fault width [km]")
+    parser.add_argument('@nL', 
+                        type=int,
+                        default=294, 
+                        help="Number of grids along fault length")
+    parser.add_argument('@nW', 
+                        type=int,
+                        default=213, 
+                        help="Number of grids along fault width")
+    parser.add_argument('@nt', 
+                        type=int,
+                        default=480, 
+                        help="Number of time steps")
+    parser.add_argument('@dt', 
+                        type=float,
+                        default=0.025, 
+                        help="Time step [s]")
+    parser.add_argument('@M0',
+                        type=float,
+                        default=5.0e+20,
+                        help="Seismic Moment magnitude in Nm")
+    parser.add_argument('@hL', 
+                        type=float,
+                        default=12.5, 
+                        help="Hypocenter along-length coordinate [km]")
+    parser.add_argument('@hW',
+                        type=float,
+                        default=0.0, 
+                        help="Hypocenter along-width coordinate [km]")
+    parser.add_argument('@hE',
+                        type=float,
+                        default=None,
+                        help="Hypocenter east coordinate [m]")
+    parser.add_argument('@hN',
+                        type=float,
+                        default=None,
+                        help="Hypocenter north coordinate [m]")
+    parser.add_argument('@hLON', 
+                        type=float, 
+                        default=0.0,
+                        help="Hypocenter longitude [deg]")
+    parser.add_argument('@hLAT', 
+                        type=float, 
+                        default=0.0,
+                        help="Hypocenter latitude [deg]")
+    parser.add_argument('@hZ',
+                        type=float,
+                        default=0.0,
+                        help="Hypocenter elevation coordinate [m]")
+    parser.add_argument('@strike',
+                        type=float,
+                        nargs='*',
+                        default=[45.0],
+                        help="Strike(s)")
+    parser.add_argument('@dip',
+                        type=float,
+                        nargs='*',
+                        default=[60.0],
+                        help="Dip(s)")
+    parser.add_argument('@rake',
+                        type=float,
+                        nargs='*',
+                        default=[108.0],
+                        help="Rake(s)")
+    parser.add_argument('@sf',
+                        type=str,
+                        default="slipdistribution.dat",
+                        help="Filename of slip distributions")
+    parser.add_argument('@fg',
+                        type=str,
+                        default="xxx.png",
+                        help="Figure file name")
+    parser.add_argument('@mf',
+                        type=str,
+                        default='napa2014_moment.h5',
+                        help='Moment rate tensor file')
+    parser.add_argument('@kf',
+                        type=str,
+                        default='napa2014_kine.h5',
+                        help='Fault parameters file')
+    parser.add_argument('@ct',
+                        nargs='*',
+                        default = ['moment'],
+                        help='Fault parameters file')
+    parser.add_argument('@snapshots',
+                        type=float,
+                        default=10.0,
+                        help='Time interval between snapshots')
+    parser.add_argument('@segL', 
+                        type=float, 
+                        nargs='*', 
+                        default=[0.0],
+                        help='Fault segments left-lower corner along-width coordinate')
+    parser.add_argument('@segW', 
+                        type=float, 
+                        nargs='*', 
+                        default=[0.0],
+                        help='Fault segments left-lower corner along-dip (bottom-up) coordinate')
     parser.set_defaults(plot=True)
     opt = parser.parse_args().__dict__
+    
+    if (not opt['hE'] or not opt['hN']):
+        opt["hE"], opt["hN"], _, _ = utm.from_latlon(opt["hLAT"], opt["hLON"])
+
     return opt
 
-def get_rotation_tensor(aS,aD):
-    r'''From [N,E,D] et to [E,N,Z]
-    '''
+def get_rotation_tensor(strike: float, dip: float) -> np.float64:
+    """
+    Compute Rotation tensor from [N,E,D] et to [E,N,Z]
+    """
     MatMesh = np.zeros((3,3))
-    MatMesh[0,0] = -np.cos(aS)* np.cos(aD)
-    MatMesh[0,1] = +np.sin(aS)
-    MatMesh[1,0] = +np.sin(aS)* np.cos(aD)
-    MatMesh[1,1] = +np.cos(aS)
+    MatMesh[0,0] = -np.cos(strike)* np.cos(dip)
+    MatMesh[0,1] = +np.sin(strike)
+    MatMesh[1,0] = +np.sin(strike)* np.cos(dip)
+    MatMesh[1,1] = +np.cos(strike)
     MatMesh[2,2] =  -1
     for i in np.arange(3):
         for j in np.arange(3):
@@ -91,7 +221,7 @@ def get_rotation_tensor(aS,aD):
                 MatMesh[i,j] = 0.0
     return MatMesh
 
-def moment_computation(M0,time,f,ts,gamma):
+def moment_computation(M0, time, f, ts, gamma):
     T 	   = 1.0/f
     moment = np.zeros(len(time))
     for i in np.arange(len(time)):
@@ -101,49 +231,59 @@ def moment_computation(M0,time,f,ts,gamma):
             moment[i] = M0* (1.0- (1.0+s)*math.e**(-s))
     return moment
 
-def vecteurs(aD,aS,aR,output):
-    ''' Calcul du vecteur normal Vnormal sur le plan de faille, et du vecteur unitaire
-    de glissement Vslip dans le repere de reference et les attribuer dans le fichier 
-    output de hdf5 '''
+
+def compute_seismic_moment_vectors(strike: float, 
+                                   dip: float, 
+                                   rake: float) -> tuple[np.float64]:
+    """Compute the unit-norm normal vector on the fault plane, 
+    the unit-norm slip vector in the ENU-xyz reference frame
+    """
     # En supposant que (puisque l'on multiplie avec MatMesh)
     # x @--> EST
     # y @--> NORD
     # z @--> UP
-    Vnormal = np.array([+np.sin(aD)*np.cos(aS),\
-                        -np.sin(aD)*np.sin(aS),\
-                        +np.cos(aD)])
-    Vslip   = np.array([-np.sin(aR)*np.cos(aD)*np.cos(aS) + np.cos(aR)*np.sin(aS),\
-                        +np.sin(aR)*np.cos(aD)*np.sin(aS) + np.cos(aR)*np.cos(aS),\
-                        +np.sin(aR)*np.sin(aD)])
-    output.attrs['Vnormal'] = Vnormal
-    output.attrs['Vslip']   = Vslip
-    print("Vector normal to the fault : {}".format(Vnormal))
-    print("Vector of the slip         : {}".format(Vslip))
-    M = np.zeros((3,3))
-    for i in np.arange(3):
-        for j in np.arange(3):
-            M[i,j] = Vnormal[i]*Vslip[j]+Vnormal[j]*Vslip[i]
-    print('Moment matrix of SEM3D code: ')
+    nv = np.array([+np.sin(dip)*np.cos(strike),\
+                   -np.sin(dip)*np.sin(strike),\
+                   +np.cos(dip)])
+    dv = np.array([-np.sin(rake)*np.cos(dip)*np.cos(strike) +\
+                    np.cos(rake)*np.sin(strike),\
+                   +np.sin(rake)*np.cos(dip)*np.sin(strike) +\
+                    np.cos(rake)*np.cos(strike),\
+                   +np.sin(rake)*np.sin(dip)])
+    
+    print("Vector normal to the fault : {}".format(nv))
+    print("Vector of the slip         : {}".format(dv))
+    M = np.tensordot(nv, dv, axes=0) + np.tensordot(dv, nv, axes=0)
+
+    print('Moment matrix: ')
     print(M[0,:])
     print(M[1,:])
     print(M[2,:])
+    return nv, dv, M
 
-def read_moment_rate_RIK(dosya,dim):
-    ''' Lire la vitesse de moment par un fichier dosya et 
-    l'assigner a l'array de dimension dim '''
+
+def ConvertLine(x): return float(x.rsplit()[1])
+def parseRIKrates(filename: str, dimensions: tuple) -> np.float64:
+    """Read moment rate file from RIKsrf
+
+    Arguments:
+        filename (string): rate filename from RIKsrf
+        dimensions (tuple): nL, nW, nt
+    Returns:
+        rate (numpy.array): rate array 
+    """
+    nL, nW, nt = dimensions
+    rate = np.zeros((nL*nW, nt), 
+                    dtype=np.float64)
+    fid = open(filename, 'r')
+    FileContent = fid.readlines()
     
-    Mrate = np.zeros((dim[0]*dim[1], dim[2]))
-    f = open (dosya, 'r')
-    # Pour tous les points
-    for i in np.arange(dim[0] * dim[1]):
-        # Histoire temporelle
-        for t in np.arange(dim[2]):
-            string = f.readline()
-            dagit = string.rsplit()
-            Mrate[i, t] = float(dagit[1])
-        f.readline(); f.readline()
-    Mratenew = np.reshape(Mrate, dim, order='F')
-    return Mratenew
+    rate = np.vstack([np.array(list(map(ConvertLine,
+                                        FileContent[i*(nt+2):
+                                            (i+1)*(nt+2)-2]))) 
+                    for i in range(nL*nW)]
+                    ).reshape(dimensions, order='F')
+    return rate
 
 def make_colormap(seq):
     """Return a LinearSegmentedColormap

@@ -199,8 +199,8 @@ PARAMETER (MPI_OFFSET_KIND=8)
 !     the routine is never called.  Remove PMPI_WTIME and PMPI_WTICK
 !     if you have trouble with them.
 !
-DOUBLE PRECISION MPI_WTIME, MPI_WTICK,PMPI_WTIME,PMPI_WTICK
-EXTERNAL MPI_WTIME, MPI_WTICK,PMPI_WTIME,PMPI_WTICK
+DOUBLE PRECISION MPI_WTICK,PMPI_WTIME,PMPI_WTICK
+EXTERNAL MPI_WTICK,PMPI_WTIME,PMPI_WTICK
 !
 !     The attribute copy/delete subroutines are symbols that can be passed
 !     to MPI routines

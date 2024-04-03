@@ -3,7 +3,7 @@
 """
 Write xmf file for fault points
 """
-u'''Required modules'''
+# Required modules
 import warnings
 warnings.filterwarnings("ignore")
 import numpy as np
@@ -11,7 +11,7 @@ import h5py
 from rik_pp_lib import *
 import xdmf_help as xdmf
 
-u'''General informations'''
+# General informations
 __author__ = "Filippo Gatti"
 __copyright__ = "Copyright 2018, CentraleSupélec (MSSMat UMR CNRS 8579)"
 __credits__ = ["Filippo Gatti"]

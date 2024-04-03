@@ -419,7 +419,7 @@ contains
     subroutine  surface_in_list(Tdomain)
 
         use sdomain
-        use mpi
+        use sem_mpi
         use Alertes
 
         implicit none

@@ -16,7 +16,7 @@ contains
         real(fpp) :: b((n+1)*m+1)
 
         do i = 1,(n+1)*m+1
-            b(i) = bspln(0,n,dble(i-1)/dble((n+1)*m)*dble(n+1))
+            b(i) = bspln(0,n,real(i-1,fpp)/real((n+1)*m,fpp)*real(n+1,fpp))
         enddo
         return
 

@@ -20,17 +20,18 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     use mrenumber
     use mCapteur
     use semdatafiles
-    use mpi
+    use sem_mpi
     use msnapshots
     use mdefinitions, only : define_arrays
     use semconfig !< pour config C
     use sem_c_bindings
-    use stat, only : stat_starttick, stat_stoptick, stat_init, stat_finalize, STAT_FULL, STAT_START
+    use stat, only : stat_starttick, stat_stoptick, stat_init, stat_finalize, STAT_START
 
     implicit none
 
     ! Hors couplage on doit avoir -1 MPI_COMM_WORLD, MPI_COMM_WORLD
-    integer, intent(in) :: communicateur, communicateur_global, master_superviseur
+    type(MPI_Comm), intent(in) :: communicateur, communicateur_global
+    integer, intent(in) :: master_superviseur
     integer :: ee, ii, j, k, n, ngll
     real(fpp) :: bnum
     type(domain) :: Tdomain
@@ -56,7 +57,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     Tdomain%nb_procs = nb_procs
 
     call stat_init(communicateur, rg, nb_procs, .false.)
-    call stat_starttick(STAT_FULL)
     call stat_starttick(STAT_START)
 
  !----------------------------------------------------------------------------------------------!
@@ -73,33 +73,33 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
 
-    call stat_stoptick(STAT_START)
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
-        ngll = Tdomain%sdomdg%ngll           
-        do n = 0,Tdomain%n_elem-1
-            bnum = Tdomain%specel(n)%lnum/VCHUNK
-            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do ii = 0,ngll-1
-                        do ee = 0, VCHUNK-1
-                            Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,:,:) = 0.d0
-                        enddo
+    ngll = Tdomain%sdomdg%ngll
+    do n = 0,Tdomain%n_elem-1
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do ii = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        Tdomain%sdomdg%champs(0)%Q(ee,ii,j,k,:,:) = 0.d0
                     enddo
                 enddo
             enddo
         enddo
-        
-        call TIME_STEPPING(Tdomain,isort,ntime)
+    enddo
+    call stat_stoptick(STAT_START)
+
+    call TIME_STEPPING(Tdomain,isort,ntime)
 
  !---------------------------------------------------------------------------------------------!
  !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
  !---------------------------------------------------------------------------------------------!
 
     call END_SEM(Tdomain,ntime)
-    call stat_finalize()
+    call stat_finalize(Tdomain)
 
 end subroutine sem
  !-----------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ subroutine RUN_PREPARED(Tdomain)
     use attenuation
     use mCapteur
     use semdatafiles
-    use mpi
+    use sem_mpi
     use msnapshots
     use semconfig !< pour config C
     use sem_c_bindings
@@ -214,10 +214,10 @@ subroutine RUN_PREPARED(Tdomain)
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
     ! Need to call compute_courant first
-    call check_interface_orient(Tdomain, Tdomain%intSolPml, 1e-10_fpp)
-    call check_interface_orient(Tdomain, Tdomain%intFluPml, 1e-10_fpp)
-    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1e-10_fpp)
-    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10_fpp)
+    call check_interface_orient(Tdomain, Tdomain%intSolPml, SMALLFPP)
+    call check_interface_orient(Tdomain, Tdomain%intFluPml, SMALLFPP)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, SMALLFPP)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, SMALLFPP)
 
  !- anelastic properties
     if (Tdomain%n_sls>0) then
@@ -259,7 +259,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
     use sdomain
     use mCapteur
     use semdatafiles
-    use mpi
+    use sem_mpi
     use mloadcheckpoint
     use msnapshots
     use semconfig !< pour config C
@@ -335,13 +335,13 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use sdomain
     use mCapteur
     use semdatafiles
-    use mpi
+    use sem_mpi
     use msnapshots
     use msavecheckpoint
     use mtimestep
     use semconfig !< pour config C
     use sem_c_bindings
-    use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO
+    use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO, STAT_ITER
 
     implicit none
 
@@ -388,9 +388,9 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !- end of run flag
     interrupt = 0
 
-!---------------------------------------------------------!
-!--------------------  LOOP UPON TIME  -------------------!
-!---------------------------------------------------------!
+    !---------------------------------------------------------!
+    !--------------------  LOOP UPON TIME  -------------------!
+    !---------------------------------------------------------!
     do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
 
         protection = 0
@@ -399,51 +399,49 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
             exit
         end if
 
-!---------------------------------------------------------!
-    !- TIME STEPPER TO CHOSE
-!---------------------------------------------------------!
+        !---------------------------------------------------------!
+        !- TIME STEPPER TO CHOSE
+        !---------------------------------------------------------!
         !- Newmark reduced to leap-frog
+        call stat_starttick(STAT_ITER)
         select case(Tdomain%TimeD%type_timeinteg)
         case (TIME_INTEG_NEWMARK)
             call Newmark(Tdomain, ntime)
         case (TIME_INTEG_LDDRK64)
             call Timestep_LDDRK(Tdomain, ntime)
         end select
+        call stat_stoptick(STAT_ITER)
         if (Tdomain%rank==0 .and. mod(ntime,20)==0) then
             print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
         end if
 
-!---------------------------------------------------------!
-    !- logical end of run
-!---------------------------------------------------------!
+        !---------------------------------------------------------!
+        !- logical end of run
+        !---------------------------------------------------------!
         if(ntime == Tdomain%TimeD%NtimeMax-1)then
             interrupt = 1
         endif
 
 
 
-!---------------------------------------------------------!
-    !- OUTPUTS AND INTERACTIONS SEM -> OTHERS
-!---------------------------------------------------------!
-    !- Checkpoint restart
+        !---------------------------------------------------------!
+        !- OUTPUTS AND INTERACTIONS SEM -> OTHERS
+        !---------------------------------------------------------!
+        !- Checkpoint restart
         if(Tdomain%logicD%save_restart)then
             ! protection for a future restart?
             if(mod(ntime,Tdomain%TimeD%ncheck) == 0) then
                 if (ntime/=0) protection = 1
             end if
             if(Tdomain%prot_at_time >0 .and. (Tdomain%first_prot)) then
-                !if(Tdomain%rank == 0) print*," Tdomain%prot_at_time = ", Tdomain%prot_at_time
                 time_now = MPI_Wtime();
                 time_now_s = int(time_now-Tdomain%time_0) 
                 call MPI_ALLREDUCE(time_now_s, Tdomain%time_now_s, 1, MPI_INTEGER, MPI_MAX, Tdomain%communicateur_global, code)
-                !if(Tdomain%rank == 0) print*," >> Tdomain%time_now_s = ", Tdomain%time_now_s
                 if(Tdomain%time_now_s < Tdomain%prot_at_time) then
                     protection = 0
                 else
                     if(Tdomain%first_prot) then
                         protection = 1
-                        !print*, "PWD_HERE"
-                        !call system("pwd")
                         Tdomain%first_prot = .false.
                         if(Tdomain%rank == 0) then
                              print*," MAKING FIRST PROT_AT_TIME:", ntime
@@ -463,22 +461,22 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
             call stat_stoptick(STAT_TSTEP)
         end if
 
-    !- snapshotting
+        !- snapshotting
         if(Tdomain%logicD%save_snapshots) i_snap = mod(ntime, Tdomain%TimeD%nsnap)
 
-    !- Ici, on a une info globale pour interrupt, protection, i_snap
+        !- Ici, on a une info globale pour interrupt, protection, i_snap
         if(interrupt > 0) protection = 1
 
         call stat_starttick(STAT_IO)
 
-!---------------------------------------------------------!
-    !- SNAPSHOTS
-!---------------------------------------------------------!
+        !---------------------------------------------------------!
+        !- SNAPSHOTS
+        !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
-!---------------------------------------------------------!
-    !- RECEIVERS'OUTPUTS
-!---------------------------------------------------------!
+        !---------------------------------------------------------!
+        !- RECEIVERS'OUTPUTS
+        !---------------------------------------------------------!
         call evalueSortieCapteur(ntime, sortie_capteur)
 
         ! sortie des quantites demandees par les capteur
@@ -487,7 +485,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!
-        if(protection /= 0)then
+        if (protection /= 0 .and. Tdomain%logicD%save_restart) then
             if(Tdomain%rank == 0) print*," SAVING PROT"
 
             call flushAllCapteurs(Tdomain)
@@ -495,17 +493,17 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         endif
         call stat_stoptick(STAT_IO)
 
-!---------------------------------------------------------!
-    !-  STOPPING RUN on all procs
-!---------------------------------------------------------!
+        !---------------------------------------------------------!
+        !-  STOPPING RUN on all procs
+        !---------------------------------------------------------!
         if(interrupt /= 0) then
             if(rg == 0) print*,"--> SEM INTERRUPTED, iteration= ", ntime
             exit
         endif
 
-!---------------------------------------------------------!
-!----      END OF LOOP: TIME INCREASING
-!---------------------------------------------------------!
+        !---------------------------------------------------------!
+        !----      END OF LOOP: TIME INCREASING
+        !---------------------------------------------------------!
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
 
@@ -542,7 +540,7 @@ subroutine END_SEM(Tdomain,ntime)
     use semdatafiles
     use semconfig !< pour config C
     use sem_c_bindings
-
+    use sem_mpi
     implicit none
 
     type(domain) :: Tdomain

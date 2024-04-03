@@ -160,7 +160,7 @@ contains
 
     subroutine source_excit(Tdomain,rank)
         ! gives the excitation coeff. at GLL in an element, for a given source
-        use mpi
+        use sem_mpi
         use sdomain
         implicit none
 

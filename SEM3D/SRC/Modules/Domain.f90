@@ -32,17 +32,18 @@ module sdomain
     use champs_fluid
     use champs_fluidpml
     use constants
+    use sem_mpi, only : MPI_Comm
     use msnapdata, only : output_var_t
     implicit none
 
 
     type :: domain
-       integer :: communicateur !<<< Communicator including all SEM processors
+       type(MPI_Comm) :: communicateur !<<< Communicator for all SEM processors
        integer :: rank          !<<< Rank of this process within this communicator
        integer :: nb_procs      !<<< Total number of SEM processors
        ! Without coupling : communicateur=communicateur_global
        ! With coupling    : communicateur : includes every processes
-       integer :: communicateur_global
+       type(MPI_Comm) :: communicateur_global
        ! Nombre de processeur avec qui on communique (size(sComm))
        integer :: tot_comm_proc
        ! En mode couplage : Rg du superviseur dans le communicateur global
@@ -200,6 +201,37 @@ contains
             stop "Unknown Domain, ngll"
         end select
     end function domain_ngll
+
+    subroutine domain_nelems(Tdomain, dom, nelems, nglltot)
+        integer, intent(in) :: dom
+        type(domain), intent(in) :: Tdomain
+        integer, intent(out) :: nelems, nglltot
+        !
+        nelems = 0
+        nglltot = 0
+        select case(dom)
+        case(DM_SOLID_CG)
+            nelems  = Tdomain%sdom%nbelem
+            nglltot = Tdomain%sdom%nglltot
+        case(DM_FLUID_CG)
+            nelems  = Tdomain%fdom%nbelem
+            nglltot = Tdomain%fdom%nglltot
+        case(DM_SOLID_CG_PML)
+            nelems  = Tdomain%spmldom%nbelem
+            nglltot = Tdomain%spmldom%nglltot
+        case(DM_FLUID_CG_PML)
+            nelems  = Tdomain%fpmldom%nbelem
+            nglltot = Tdomain%fpmldom%nglltot
+        case(DM_SOLID_DG)
+            nelems  = Tdomain%sdomdg%nbelem
+            nglltot = Tdomain%sdomdg%nglltot
+        case(DM_FLUID_DG)
+            nelems  = 0
+            nglltot = 0
+        case default
+            stop "Unknown Domain, nelems"
+        end select
+    end subroutine domain_nelems
 
     subroutine domain_gllc(Tdomain, dom, GLLc)
         type(domain), intent(in) :: Tdomain
