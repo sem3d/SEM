@@ -231,11 +231,34 @@ contains
             end do
         end if
         if (out_variables(OUT_ENERGYP) == 1) then
-            P_energy(:,:,:) = 0. !TODO
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,bnum,ee)
+#ifdef CPML
+                        fieldP(i,j,k) = -dom%champs(0)%ForcesFl(ind)
+#else
+                        fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
+#endif
+                        P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)*dom%Lambda_(i,j,k,bnum,ee)
+                       !P_energy(i,j,k) = 0.5*dom%Lambda_(i,j,k,bnum,ee)*fieldP(i,j,k)**2
+                   enddo
+               enddo
+            enddo
+            !P_energy(:,:,:) = 0. !TODO
         end if
 
         if (out_variables(OUT_ENERGYS) == 1) then
-            S_energy(:,:,:) = 0.
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                             dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        S_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
+                        !S_energy(i,j,k) = 0
+                    enddo
+                enddo
+            enddo
         end if
 
         if (out_variables(OUT_EPS_DEV) == 1) then
