@@ -237,15 +237,14 @@ contains
                         ind = dom%Idom_(i,j,k,bnum,ee)
 #ifdef CPML
                         fieldP(i,j,k) = -dom%champs(0)%ForcesFl(ind)
+                        P_energy(i,j,k) = 0.
 #else
                         fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
+                        P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)/dom%Lambda_(i,j,k,bnum,ee)
 #endif
-                        P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)*dom%Lambda_(i,j,k,bnum,ee)
-                       !P_energy(i,j,k) = 0.5*dom%Lambda_(i,j,k,bnum,ee)*fieldP(i,j,k)**2
                    enddo
                enddo
             enddo
-            !P_energy(:,:,:) = 0. !TODO
         end if
 
         if (out_variables(OUT_ENERGYS) == 1) then
@@ -255,7 +254,6 @@ contains
                 do j=0,ngll-1
                     do i=0,ngll-1
                         S_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
-                        !S_energy(i,j,k) = 0
                     enddo
                 enddo
             enddo
