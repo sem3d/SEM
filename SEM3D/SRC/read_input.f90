@@ -221,6 +221,12 @@ contains
             if (is_pml(Tdomain%sSubDomain(i)))  then
                 npml = npml + 1
             endif
+
+            if (material_type == "F") then
+                Tdomain%sSubDomain(i)%Sspeed = 0
+                write(*,*) "WARNING ::::::: Please, verify the material input.You are applying &
+                a non zero shear velocity in a fluid ::::::: WARNING"
+            endif
         enddo
 
         if(npml > 0) then

@@ -143,6 +143,11 @@ subroutine read_material_file(Tdomain)
         if (Tdomain%sSubDomain(i)%material_type == "P" )  then
             npml = npml + 1
         endif
+        if (Tdomain%sSubDomain(i)%material_type == "F" )  then
+            Tdomain%sSubDomain(i)%Sspeed = 0
+            write(*,*) "WARNING ::::::: Please, verify the material input.You are applying &
+            a non zero shear velocity in a fluid ::::::: WARNING"
+        endif
         ! Pour l'instant, on a un seul type de Flux et d'Elements pour TOUT le domaine
         Tdomain%sSubDomain(i)%type_DG   = Tdomain%type_Elem
         Tdomain%sSubDomain(i)%type_Flux = Tdomain%type_Flux
