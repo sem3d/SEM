@@ -274,12 +274,15 @@ contains
     subroutine get_fluid_dom_elem_energy(dom, lnum, P_energy, S_energy)
         use deriv3d
         implicit none
-        !
+        !    
         type(domain_fluid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy
-
-        integer                  :: ngll
+        real(fpp), dimension(:,:,:), allocatable   :: fieldP
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldV
+        real(fpp), dimension(:,:,:), allocatable   :: phi
+       !real(fpp), dimension(:,:,:), allocatable   :: !vphi
+        integer                  :: ngll, i, j, k, ind
         !
         integer :: bnum, ee
 
@@ -287,13 +290,57 @@ contains
         ee = mod(lnum,VCHUNK)
 
 
-        ngll = dom%ngll
 
+        allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
+        !allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
+
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    ind = dom%Idom_(i,j,k,bnum,ee)
+                    phi(i,j,k) = dom%champs(0)%Phi(ind)
+                enddo
+            enddo
+        enddo
+
+        !Dellocation
+        if(allocated(S_energy)) then
+            if(size(S_energy) /= ngll*ngll*ngll) deallocate(S_energy)
+        end if
+
+        if(allocated(P_energy)) then
+            if(size(P_energy) /= ngll*ngll*ngll) deallocate(P_energy)
+        end if
+
+        !Allocation
         if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        S_energy = 0.0d0
-        P_energy = 0.0d0 !TODO
+        S_energy = -1
+        P_energy = -1
 
+        if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        fieldP = -1
+        fieldV = -1
+
+        call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                            dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
+
+        ! Then, get the energies.
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    ind = dom%Idom_(i,j,k,bnum,ee)
+                    fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
+                    P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)/dom%Lambda_(i,j,k,bnum,ee)
+                    S_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
+                enddo
+            enddo
+        enddo
+
+        deallocate(fieldP)
+        deallocate(fieldV)
+        deallocate(phi)
     end subroutine get_fluid_dom_elem_energy
 
     subroutine init_domain_fluid(Tdomain, dom)
