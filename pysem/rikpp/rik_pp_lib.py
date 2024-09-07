@@ -80,6 +80,14 @@ def classproperty(func):
     return ClassPropertyDescriptor(func)
 
 def start_rik():
+    """
+    Parse command line arguments for RIKPP.
+
+    Returns
+    -------
+    opt : dict
+        A dictionary containing the parsed command line arguments.
+    """
     parser = argparse.ArgumentParser(prefix_chars='@')
     parser.add_argument('@wkd', 
                         type=str, 
@@ -87,19 +95,19 @@ def start_rik():
                         help="Working directory")
     parser.add_argument('@plot', 
                         action='store_true', 
-                        help="plot?")
+                        help="Plot the results?")
     parser.add_argument('@tag', 
                         type=str,
                         default='slip', 
-                        help="tag")
+                        help="Tag to identify the results")
     parser.add_argument('@L', 
                         type=float,
                         default=15., 
-                        help="fault length [km]")
+                        help="Fault length [km]")
     parser.add_argument('@W', 
                         type=float,
                         default=15., 
-                        help="fault width [km]")
+                        help="Fault width [km]")
     parser.add_argument('@nL', 
                         type=int,
                         default=294, 
@@ -119,7 +127,7 @@ def start_rik():
     parser.add_argument('@M0',
                         type=float,
                         default=5.0e+20,
-                        help="Seismic Moment magnitude in Nm")
+                        help="Seismic moment magnitude [Nm]")
     parser.add_argument('@hL', 
                         type=float,
                         default=12.5, 
@@ -152,17 +160,17 @@ def start_rik():
                         type=float,
                         nargs='*',
                         default=[45.0],
-                        help="Strike(s)")
+                        help="Strike angle(s)")
     parser.add_argument('@dip',
                         type=float,
                         nargs='*',
                         default=[60.0],
-                        help="Dip(s)")
+                        help="Dip angle(s)")
     parser.add_argument('@rake',
                         type=float,
                         nargs='*',
                         default=[108.0],
-                        help="Rake(s)")
+                        help="Rake angle(s)")
     parser.add_argument('@sf',
                         type=str,
                         default="slipdistribution.dat",
@@ -340,27 +348,67 @@ def parseRIKrates(filename: str, dimensions: tuple) -> np.float64:
 
 def make_colormap(seq):
     """Return a LinearSegmentedColormap
-    seq: a sequence of floats and RGB-tuples. The floats should be increasing
+
+    seq is a sequence of floats and RGB-tuples. The floats should be increasing
     and in the interval (0,1).
+
+    The output colormap is a LinearSegmentedColormap with the colors specified
+    in the input sequence.
+
     """
     seq = [(None,) * 3, 0.0] + list(seq) + [1.0, (None,) * 3]
     cdict = {'red': [], 'green': [], 'blue': []}
     for i, item in enumerate(seq):
         if isinstance(item, float):
+            # item is a float, so we need to interpolate the color
             r1, g1, b1 = seq[i - 1]
             r2, g2, b2 = seq[i + 1]
             cdict['red'].append([item, r1, r2])
             cdict['green'].append([item, g1, g2])
             cdict['blue'].append([item, b1, b2])
+        else:
+            # item is an RGB tuple, so we add it directly to the cdict
+            cdict['red'].append([item[0], item[0], item[0]])
+            cdict['green'].append([item[1], item[1], item[1]])
+            cdict['blue'].append([item[2], item[2], item[2]])
     return mcolors.LinearSegmentedColormap('CustomMap', cdict)
 
 def readhypo(filename):
-    x = np.genfromtxt(filename,usecols=0)
-    y = np.genfromtxt(filename,usecols=1)
-    return x,y
+    """
+    Reads a hypocenter file and returns the coordinates of the hypocenter.
+
+    Parameters
+    ----------
+    filename : str
+        The name of the file containing the hypocenter coordinates
+
+    Returns
+    -------
+    x, y : numpy arrays
+        The x and y coordinates of the hypocenter
+
+    """
+    x = np.genfromtxt(filename, usecols=0)
+    y = np.genfromtxt(filename, usecols=1)
+    return x, y
 
 def read_subsources (filename):
+    """
+    Reads a file containing the coordinates of the subsources.
 
+    Parameters
+    ----------
+    filename : str
+        The name of the file containing the coordinates of the subsources
+
+    Returns
+    -------
+    xgrid, ygrid : numpy arrays
+        The x and y coordinates of the subsources
+    ssources : numpy array
+        The subsources coordinates
+
+    """
     f = open (filename, 'r')
     xgrid     = np.genfromtxt(filename, usecols=0)
     ygrid     = np.genfromtxt(filename, usecols=1)
@@ -369,6 +417,24 @@ def read_subsources (filename):
 
 
 def readfileslip (NSR, filename):
+    """
+    Reads a file containing the slip distribution over the fault plane.
+
+    Parameters
+    ----------
+    NSR : int
+        The number of points where the slip is evaluated
+    filename : str
+        The name of the file containing the slip distribution
+
+    Returns
+    -------
+    xgrid, ygrid : numpy arrays
+        The x and y coordinates of the points where the slip is evaluated
+    slip : numpy array
+        The slip distribution
+
+    """
     xgrid = np.zeros((NSR))
     ygrid = np.zeros((NSR))
     slip  = np.zeros((NSR))
@@ -382,6 +448,25 @@ def readfileslip (NSR, filename):
     return xgrid, ygrid, slip
 
 def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
+    """
+    Plot the maximum slip distribution over the fault plane.
+
+    Parameters
+    ----------
+    nrows, ncols : int
+        The number of points where the slip is evaluated
+    LF, WF : float
+        The length and width of the fault
+    slip : numpy array
+        The maximum slip distribution
+    kaydet : bool
+        If True, the plot will be saved as a file
+    figname : str
+        The name of the file
+    nucx, nucy : float
+        The x and y coordinates of the nucleation point
+
+    """
     print('\n\n')
     print('Plotting max-slip distribution')
     print(nrows,ncols,LF,WF)
@@ -431,8 +516,26 @@ def plotslip(nrows,ncols,LF,WF,slip,kaydet,figname,nucx,nucy):
     else:
         plt.show()
 
-def plotsubsources(x,y,radius,LF,WF,kaydet,figname,nucx,nucy):
-
+def plotsubsources(x, y, radius, LF, WF, kaydet, figname, nucx, nucy):
+    """
+    Plot the sub-sources on the fault plane
+    
+    Parameters
+    ----------
+    x, y : numpy arrays
+        The coordinates of the sub-sources
+    radius : numpy array
+        The radius of each sub-source
+    LF, WF : float
+        The length and width of the fault plane
+    kaydet : bool
+        If True, the plot will be saved as a file
+    figname : str
+        The name of the file
+    nucx, nucy : float
+        The x and y coordinates of the nucleation point
+    
+    """
     print('Plotting sub-sources\n')
     
     # Making a colormap
@@ -460,26 +563,52 @@ def plotsubsources(x,y,radius,LF,WF,kaydet,figname,nucx,nucy):
     ax.set_ylabel('Along up-dip [km]', fontsize=17)
     ax.set_xlim([0,1.1*LF])
     ax.set_ylim([-0.2,1.1*WF])
+    
+    # Plot the sub-sources
     i = 0
     for xx,yy in zip(x,y):
+        # Create a circle for each sub-source
         circ = Circle((xx,yy),radius[i], fill=False, lw=1)
         ax.add_patch(circ)	   
         i = i+1
+    
+    # Number of sub-sources
     Nsub = len(radius)
     topname  = 'Total number of subsources = '+ '%d' % Nsub
     plt.title(topname+'\n', fontsize=20)
     ax.plot(nucx,nucy, marker='*', color='red',markersize=20)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
+    
+    # Save the plot if needed
     if kaydet:
         fig.savefig(figname, dpi=300)
     else:
         plt.show()
 
 def plotgrid(nrows,ncols,LF,WF,kaydet,figname,hypox,hypoy,x,y):
+    """
+    Plot the 2D grid of the fault plane.
 
+    Parameters
+    ----------
+    nrows, ncols : int
+        The number of points where the slip is evaluated
+    LF, WF : float
+        The length and width of the fault
+    kaydet : bool
+        If True, the plot will be saved as a file
+    figname : str
+        The name of the file
+    hypox, hypoy : float
+        The x and y coordinates of the nucleation point
+    x, y : numpy arrays
+        The coordinates of the sub-sources
+
+    """
     print('Creating the 2D grid...')
-    # Making a colormap
+
+    # Create a colormap
     c    = mcolors.ColorConverter().to_rgb
     cc = ['#ffffff', '#dfe6ff', '#a5b5da', '#516b8e', '#c5ce9b',
           '#fcab6c', '#f50000']
