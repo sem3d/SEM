@@ -215,7 +215,21 @@ def start_rik():
 
 def get_rotation_tensor(strike: float, dip: float) -> np.float64:
     """
-    Compute Rotation tensor from [N,E,D] et to [E,N,Z]
+    Compute a rotation tensor to transform a vector from a geographical
+    coordinate system (North, East, Down) to a fault coordinate system
+    (East, North, Up).
+
+    Parameters
+    ----------
+    strike : float
+        The strike angle in radians.
+    dip : float
+        The dip angle in radians.
+
+    Returns
+    -------
+    np.float64
+        A 3x3 rotation matrix.
     """
     MatMesh = np.zeros((3,3))
 
