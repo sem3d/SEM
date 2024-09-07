@@ -210,11 +210,17 @@ def get_rotation_tensor(strike: float, dip: float) -> np.float64:
     Compute Rotation tensor from [N,E,D] et to [E,N,Z]
     """
     MatMesh = np.zeros((3,3))
-    MatMesh[0,0] = -np.cos(strike)* np.cos(dip)
-    MatMesh[0,1] = +np.sin(strike)
-    MatMesh[1,0] = +np.sin(strike)* np.cos(dip)
-    MatMesh[1,1] = +np.cos(strike)
-    MatMesh[2,2] =  -1
+
+    # See e.g. Aki & Richards, 2002, eq. 3.14
+    MatMesh[0,0] =  np.sin(strike)
+    MatMesh[0,1] = -np.cos(strike)*np.cos(dip)
+    MatMesh[1,0] =  np.cos(strike)
+    MatMesh[1,1] =  np.sin(strike)*np.cos(dip)
+    MatMesh[1,2] = -np.sin(strike)*np.sin(dip)
+    MatMesh[2,1] =  np.sin(dip)
+    MatMesh[2,2] =  np.cos(dip)
+
+    # Remove small values
     for i in np.arange(3):
         for j in np.arange(3):
             if abs(MatMesh[i,j]) < 1e-15:
