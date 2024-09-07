@@ -228,12 +228,36 @@ def get_rotation_tensor(strike: float, dip: float) -> np.float64:
     return MatMesh
 
 def moment_computation(M0, time, f, ts, gamma):
+    """
+    Compute the moment of an earthquake as a function of time.
+
+    Parameters
+    ----------
+    M0 : float
+        The seismic moment at t=0.
+    time : np.ndarray
+        Array of time values.
+    f : float
+        The corner frequency of the moment time function.
+    ts : float
+        The start time of the moment time function.
+    gamma : float
+        The exponent of the moment time function.
+
+    Returns
+    -------
+    np.ndarray
+        The moment at each time step.
+    """
     T 	   = 1.0/f
     moment = np.zeros(len(time))
     for i in np.arange(len(time)):
         t = time[i]
+        # Check if the time is greater or equal to the start time
         if (t >= ts):
+            # Compute the dimensionless time s
             s = ((t-ts)/T)**gamma
+            # Compute the moment at this time step
             moment[i] = M0* (1.0- (1.0+s)*math.e**(-s))
     return moment
 
@@ -241,24 +265,47 @@ def moment_computation(M0, time, f, ts, gamma):
 def compute_seismic_moment_vectors(strike: float, 
                                    dip: float, 
                                    rake: float) -> tuple[np.float64]:
-    """Compute the unit-norm normal vector on the fault plane, 
-    the unit-norm slip vector in the ENU-xyz reference frame
     """
-    # En supposant que (puisque l'on multiplie avec MatMesh)
+    Compute the unit-norm normal vector on the fault plane, 
+    the unit-norm slip vector in the ENU-xyz reference frame, 
+    and the moment matrix.
+
+    Parameters
+    ----------
+    strike : float
+        Strike angle in radians.
+    dip : float
+        Dip angle in radians.
+    rake : float
+        Rake angle in radians.
+
+    Returns
+    -------
+    nv : np.ndarray
+        Unit-norm normal vector on the fault plane.
+    dv : np.ndarray
+        Unit-norm slip vector in the ENU-xyz reference frame.
+    M : np.ndarray
+        Moment matrix.
+    """
+    # Compute the unit-norm normal vector on the fault plane
     # x @--> EST
     # y @--> NORD
     # z @--> UP
     nv = np.array([+np.sin(dip)*np.cos(strike),\
                    -np.sin(dip)*np.sin(strike),\
                    +np.cos(dip)])
+    nv = nv/np.sqrt(np.dot(nv,nv)) # normalize
+
+    # Compute the unit-norm slip vector in the ENU-xyz reference frame
     dv = np.array([-np.sin(rake)*np.cos(dip)*np.cos(strike) +\
                     np.cos(rake)*np.sin(strike),\
                    +np.sin(rake)*np.cos(dip)*np.sin(strike) +\
                     np.cos(rake)*np.cos(strike),\
                    +np.sin(rake)*np.sin(dip)])
-    
-    print("Vector normal to the fault : {}".format(nv))
-    print("Vector of the slip         : {}".format(dv))
+    dv = dv/np.sqrt(np.dot(dv,dv)) # normalize
+
+    # Compute the moment matrix
     M = np.tensordot(nv, dv, axes=0) + np.tensordot(dv, nv, axes=0)
 
     print('Moment matrix: ')
