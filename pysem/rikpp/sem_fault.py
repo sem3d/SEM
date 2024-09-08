@@ -64,11 +64,11 @@ class FaultMesh(object):
             self.msh.nodes[s, -1] = zg[s]
 
     def RotTransMesh2d(self,
-                       φs: float,
+                       ϕ: float,
                        δ: float,
                        hyp: list[float]) -> None:
-        Q_φδλ = get_rotation_tensor(φs, δ)
-        trs = np.dot(Q_φδλ, hyp[0])
+        Q_ϕδλ = get_rotation_tensor(ϕ, δ)
+        trs = np.dot(Q_ϕδλ, hyp[0])
         trs = hyp[1]-trs
         #self.msh.nodes = np.empty((self.msh.points.shape[0],self.msh.points.shape[1]+1))
         for i, p in enumerate(self.msh.points):
@@ -78,7 +78,7 @@ class FaultMesh(object):
                                                                       dtype=np.float64))))
 
     def RotTransMesh3d(self,
-                       φs: float,
+                       ϕ: float,
                        δ: float,
                        hyp: list[float]) -> None:
         Q_φδλ = get_rotation_tensor(φs, δ)
@@ -181,7 +181,7 @@ class FaultSegment(SEM3Dfault):
         super(FaultSegment, self).__init__()
         SEM3Dfault().UpdateNumberOfSegments
         self.SegmentID = SEM3Dfault.nSegments
-        self.__φs = None
+        self.__ϕ = None
         self.__δ = None
         self.__λ = None
         self.__nLs = 0
@@ -190,7 +190,7 @@ class FaultSegment(SEM3Dfault):
         self.__nv = np.empty((3,))
         self.__dv = np.empty((3,))
         self.__Mm = np.empty((3,3))
-        self.__Qφδλ = np.empty((3,3))
+        self.__Qϕδλ = np.empty((3,3))
         self.__mesh = np.empty((3, 3))
         self.sdr_set = False
         # self.__GridAlongSD = np.empty((1,1), dtype=np.float64)
@@ -229,7 +229,7 @@ class FaultSegment(SEM3Dfault):
     
     @property
     def RotationTensor(self):
-        return self.__Qφδλ
+        return self.__Qϕδλ
     
     @property
     def Mesh(self):
@@ -281,7 +281,7 @@ class FaultSegment(SEM3Dfault):
         """
         strike, dip, rake = sdr
         print("Strike: {} Dip: {} Rake: {}".format(strike, dip, rake))
-        self.__φs = strike*np.pi/180.0
+        self.__ϕ = strike*np.pi/180.0
         self.__δ = dip*np.pi/180.0
         self.__λ = rake*np.pi/180.0
         self.__sdr = np.array([strike, dip, rake])*np.pi/180.0
@@ -340,7 +340,7 @@ class FaultSegment(SEM3Dfault):
         strike, dip, rake = sdr
         if not self.sdr_set:
             self.SetStrikeDipRake(strike, dip, rake)
-        self.__ndM = compute_seismic_moment_vectors(strike=self.__φs,
+        self.__ndM = compute_seismic_moment_vectors(strike=self.__ϕ,
                                                     dip=self.__δ,
                                                     rake=self.__λ)
         self.__nv, self.__dv, self.__Mm = self.__ndM
@@ -359,7 +359,7 @@ class FaultSegment(SEM3Dfault):
         strike, dip, rake = sdr
         if not self.sdr_set:
             self.SetStrikeDipRake(strike, dip, rake)
-        self.__Qφδλ = get_rotation_tensor(strike, dip)
+        self.__Qϕδλ = get_rotation_tensor(strike, dip)
     
     @Mesh.setter
     def SetMesh(self, arg: tuple) -> None:
