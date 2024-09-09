@@ -4,28 +4,64 @@ from scipy.spatial import Delaunay
 
 class FaultMesh(object):
     def __init__(self, **kwargs) -> None:
-        if len(kwargs.keys()) == 1:
-            self.xg = kwargs['xg']
-        if len(kwargs.keys()) == 2:
-            self.xg = kwargs['xg']
-            self.yg = kwargs['yg']
-        if len(kwargs.keys()) == 3:
-            self.xg = kwargs['xg']
-            self.yg = kwargs['yg']
-            self.zg = kwargs['zg']
+        """
+        Initialize the class object.
+
+        Parameters
+        ----------
+        xg : 2D numpy array
+            The x coordinates of the grid points on the fault.
+        yg : 2D numpy array
+            The y coordinates of the grid points on the fault.
+        zg : 2D numpy array
+            The z coordinates of the grid points on the fault.
+
+        Notes
+        -----
+        The x and y coordinates are the coordinates of the grid points
+        on the fault surface in the local coordinate system of the fault.
+        The z coordinates are the depth of the grid points from the surface
+        of the Earth.
+        """
+        self.xg = kwargs['xg']
+        self.yg = kwargs['yg']
+        self.zg = kwargs['zg']
         if self.xg.size:
             self.nW = self.xg.shape[0]
             self.nL = self.xg.shape[1]
-        if self.xg.size and self.yg.size:
-            try:
-                self.genmesh3d()
-            except:
-                self.genmesh2d()
+        else:
+            ValueError('xg, yg, and zg must be non-empty 2D meshgrids')
+        # if self.xg.size and self.yg.size:
+        #     self.genmesh3d()
 
     def __call__(self, **kwargs) -> None:
+        """
+        Initialize the class object.
+
+        This is a convenience method to initialize the class object
+        with the same parameters as the __init__ method. This is useful
+        when the class object is used as a function.
+
+        Parameters
+        ----------
+        kwargs : dict
+            The keyword arguments to pass to the __init__ method.
+        """
         self.__init__(**kwargs)
 
     def plot_3d_geo(self) -> None:
+        """
+        Plot the 3D geometry of the fault plane.
+
+        This function will create a 3D plot of the fault plane
+        using the x, y, and z coordinates of the grid points.
+        The colorbar will represent the depth of the points
+        from the Earth's surface.
+
+        Returns
+        -------
+        None
+        """
         fig = plt.figure()
         ax = fig.gca(projection='3d')
         surf = ax.plot_surface(self.xg,
@@ -38,57 +74,106 @@ class FaultMesh(object):
                                antialiased=False)
         ax.zaxis.set_major_locator(LinearLocator(10))
         ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
-        fig.colorbar(surf, shrink=0.5, aspect=5)
+        fig.colorbar(surf, shrink=0.5, aspect=5,
+                     label='Depth (km)')
         plt.show()
 
-    def genmesh2d(self) -> None:
-        p2d = np.array([self.xg.T.reshape(-1,),
-                        self.yg.T.reshape(-1,)],
-                       dtype=np.float64).T
-        self.msh = Delaunay(p2d)
-        self.msh.nodes = np.zeros((self.msh.points.shape[0],
-                                   self.msh.points.shape[1]+1))
-        self.msh.nodes[:, :-1] = self.msh.points
+    # def genmesh2d(self) -> None:
+    #     p2d = np.array([self.xg.T.reshape(-1,),
+    #                     self.yg.T.reshape(-1,)],
+    #                    dtype=np.float64).T
+    #     self.msh = Delaunay(p2d)
+    #     self.msh.nodes = np.zeros((self.msh.points.shape[0],
+    #                                self.msh.points.shape[1]+1))
+    #     self.msh.nodes[:, :-1] = self.msh.points
 
     def genmesh3d(self) -> None:
+        """
+        Generate a 3D triangular mesh from the 2D grid points.
+
+        This function will create a 3D triangular mesh from the
+        x, y, and z coordinates of the grid points. The mesh
+        will be stored in the 'msh' attribute of the class.
+
+        Returns
+        -------
+        None
+        """
+        # [CHECK]
         p2d = np.array([self.xg.T.reshape(-1,),
                         self.yg.T.reshape(-1,)],
                        dtype=np.float64).T
-        zg = self.zg.T.reshape(-1,)
-        self.msh = Delaunay(p2d)
-        self.msh.nodes = np.zeros((self.msh.points.shape[0],
-                                   self.msh.points.shape[1]+1),
-                                  dtype=np.float64)
-        self.msh.nodes[:, :-1] = self.msh.points
-        for s in self.msh.simplices:
-            self.msh.nodes[s, -1] = zg[s]
+        self.msh=Delaunay(p2d)
+        # Initialize the nodes of the mesh with the x and y coordinates
+        # self.msh.nodes[:,:,-1] = self.msh.points
+        # Populate the z coordinates of the mesh
+        # for s in self.msh.simplices:
+        #     self.msh.nodes[s, -1] = zg[s]
 
-    def RotTransMesh2d(self,
-                       ϕ: float,
-                       δ: float,
-                       hyp: list[float]) -> None:
+    # def RotTransMesh2d(self,
+    #                    ϕ: float,
+    #                    δ: float,
+    #                    hyp: list[float]) -> None:
+    #     Q_ϕδλ = get_rotation_tensor(ϕ, δ)
+    #     trs = np.dot(Q_ϕδλ, hyp[0])
+    #     trs = hyp[1]-trs
+    #     #self.msh.nodes = np.empty((self.msh.points.shape[0],self.msh.points.shape[1]+1))
+    #     for i, p in enumerate(self.msh.points):
+    #         self.msh.nodes[i, :] = trs+np.dot(Q_ϕδλ,
+    #                                           np.concatenate((p.flatten(),
+    #                                                          np.array([0.],
+    #                                                                   dtype=np.float64))))
+
+    def RotTransMesh3d(self, ϕ: float, δ: float, hyp: dict) -> None:
+        """
+        Rotate and translate the 3D mesh according to the
+        fault's orientation and hypocenter location.
+
+        Parameters
+        ----------
+        ϕ : float
+            The strike angle in radians.
+        δ : float
+            The dip angle in radians.
+        hyp : list[float]
+            The hypocenter coordinates in the geographical
+            coordinate system (East, North, Up).
+
+        Returns
+        -------
+        None
+        """
+        # Translate wrt to hypocenter location on the fault plane
+        # self.xg -= hyp[0][0] # in m
+        # self.yg -= hyp[0][1] # in m
+        # self.zg -= (hyp[0][-1]+hyp[0][1]*np.sin(δ))*1.0e3
         Q_ϕδλ = get_rotation_tensor(ϕ, δ)
-        trs = np.dot(Q_ϕδλ, hyp[0])
-        trs = hyp[1]-trs
-        #self.msh.nodes = np.empty((self.msh.points.shape[0],self.msh.points.shape[1]+1))
-        for i, p in enumerate(self.msh.points):
-            self.msh.nodes[i, :] = trs+np.dot(Q_φδλ,
-                                              np.concatenate((p.flatten(),
-                                                             np.array([0.],
-                                                                      dtype=np.float64))))
-
-    def RotTransMesh3d(self,
-                       ϕ: float,
-                       δ: float,
-                       hyp: list[float]) -> None:
-        Q_φδλ = get_rotation_tensor(φs, δ)
-        trs = np.dot(Q_φδλ, hyp[0])
-        trs = hyp[1]-trs
-        for i, p in enumerate(self.msh.nodes):
-            self.msh.nodes[i, :] = trs + np.dot(Q_φδλ,
-                                                p.flatten())
+        # Rotate the position around the origin within the fault plane
+        self.xg, self.yg, self.zg = np.einsum('ij,jkl->ikl', 
+                                              Q_ϕδλ,
+                                              np.array([self.xg,
+                                                        self.yg,
+                                                        self.zg]))
+        # Translate the mesh to the hypocenter location
+        self.xg += hyp[0]
+        self.yg += hyp[1]
+        self.zg += hyp[2]
+        
+        Z = np.zeros((self.msh.points.shape[0],))
+        Z = np.row_stack((self.msh.points.T, Z))
+        
+        self.msh.nodes = np.einsum('ij,jk->ik', Q_ϕδλ, Z).T
+        self.msh.nodes +=hyp
+                                              
+        
 
     def write_mesh2h5(self, fid):
+        fid.create_dataset(name='x',
+                           data=self.xg)
+        fid.create_dataset(name='y',
+                           data=self.yg)
+        fid.create_dataset(name='z', 
+                           data=self.zg)
         fid.create_dataset(name='Nodes',
                            data=self.msh.nodes)
         fid.create_dataset(name='Elements',
@@ -191,7 +276,7 @@ class FaultSegment(SEM3Dfault):
         self.__dv = np.empty((3,))
         self.__Mm = np.empty((3,3))
         self.__Qϕδλ = np.empty((3,3))
-        self.__mesh = np.empty((3, 3))
+        self.__mesh = np.zeros((3, 3))
         self.sdr_set = False
         # self.__GridAlongSD = np.empty((1,1), dtype=np.float64)
         self.__SlipGridAlongS = np.empty((1,1), dtype=np.float64)
@@ -233,6 +318,21 @@ class FaultSegment(SEM3Dfault):
     
     @property
     def Mesh(self):
+        """
+        Return the 3D mesh for this segment
+
+        The mesh is a 3x3 numpy array, where each row and column
+        represents the x, y, and z coordinates of each node in the
+        mesh. The mesh is constructed by calling the
+        ``genmesh3d`` method of the ``FaultMesh`` class, which
+        generates a 3D mesh from the 2D grid points on the fault
+        surface.
+
+        Returns
+        -------
+        mesh : 3x3 numpy array
+            The 3D mesh for this segment
+        """
         return self.__mesh
     
     @property
@@ -361,8 +461,8 @@ class FaultSegment(SEM3Dfault):
             self.SetStrikeDipRake(strike, dip, rake)
         self.__Qϕδλ = get_rotation_tensor(strike, dip)
     
-    @Mesh.setter
-    def SetMesh(self, arg: tuple) -> None:
+    # @Mesh.setter
+    def SetMesh(self):
         """
         Set fault mesh (3D)
         
@@ -372,11 +472,13 @@ class FaultSegment(SEM3Dfault):
             Returns:
             None
         """
-        faultmesh, HypoDepthm = arg
-        faultmesh.RotTransMesh3d(self.__φs, 
-                                 self.__δ,
-                                 (HypoDepthm, 
-                                  self.HypoXYZ[-1]))
+        faultmesh = FaultMesh(xg=self.SlipGridAlongS,
+                              yg=self.SlipGridAlongD,
+                              zg=np.zeros_like(self.SlipGridAlongS))
+
+        faultmesh.genmesh3d()
+        faultmesh.RotTransMesh3d(self.__ϕ,self.__δ,self.HypoXYZ)
+        
         self.__mesh = faultmesh
 
     @nLsegment.setter
