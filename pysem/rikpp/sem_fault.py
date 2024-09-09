@@ -77,16 +77,6 @@ class FaultMesh(object):
         fig.colorbar(surf, shrink=0.5, aspect=5,
                      label='Depth (km)')
         plt.show()
-
-    # def genmesh2d(self) -> None:
-    #     p2d = np.array([self.xg.T.reshape(-1,),
-    #                     self.yg.T.reshape(-1,)],
-    #                    dtype=np.float64).T
-    #     self.msh = Delaunay(p2d)
-    #     self.msh.nodes = np.zeros((self.msh.points.shape[0],
-    #                                self.msh.points.shape[1]+1))
-    #     self.msh.nodes[:, :-1] = self.msh.points
-
     def genmesh3d(self) -> None:
         """
         Generate a 3D triangular mesh from the 2D grid points.
@@ -104,25 +94,6 @@ class FaultMesh(object):
                         self.yg.T.reshape(-1,)],
                        dtype=np.float64).T
         self.msh=Delaunay(p2d)
-        # Initialize the nodes of the mesh with the x and y coordinates
-        # self.msh.nodes[:,:,-1] = self.msh.points
-        # Populate the z coordinates of the mesh
-        # for s in self.msh.simplices:
-        #     self.msh.nodes[s, -1] = zg[s]
-
-    # def RotTransMesh2d(self,
-    #                    ϕ: float,
-    #                    δ: float,
-    #                    hyp: list[float]) -> None:
-    #     Q_ϕδλ = get_rotation_tensor(ϕ, δ)
-    #     trs = np.dot(Q_ϕδλ, hyp[0])
-    #     trs = hyp[1]-trs
-    #     #self.msh.nodes = np.empty((self.msh.points.shape[0],self.msh.points.shape[1]+1))
-    #     for i, p in enumerate(self.msh.points):
-    #         self.msh.nodes[i, :] = trs+np.dot(Q_ϕδλ,
-    #                                           np.concatenate((p.flatten(),
-    #                                                          np.array([0.],
-    #                                                                   dtype=np.float64))))
 
     def RotTransMesh3d(self, ϕ: float, δ: float, hyp: dict) -> None:
         """
@@ -143,10 +114,6 @@ class FaultMesh(object):
         -------
         None
         """
-        # Translate wrt to hypocenter location on the fault plane
-        # self.xg -= hyp[0][0] # in m
-        # self.yg -= hyp[0][1] # in m
-        # self.zg -= (hyp[0][-1]+hyp[0][1]*np.sin(δ))*1.0e3
         Q_ϕδλ = get_rotation_tensor(ϕ, δ)
         # Rotate the position around the origin within the fault plane
         self.xg, self.yg, self.zg = np.einsum('ij,jkl->ikl', 
