@@ -191,11 +191,11 @@ class RIK2DFault(SEM3Dfault):
         if not cls.setSlipFile:
             cls.SlipFile = SlipFile
         cls.SlipGridAlongS = np.genfromtxt(cls.SlipFile,
-                                           usecols=1).reshape(cls.nL,
+                                           usecols=0).reshape(cls.nL,
                                                               cls.nW,
                                                               order='F')
         cls.SlipGridAlongD = np.genfromtxt(cls.SlipFile,
-                                           usecols=0).reshape(cls.nL,
+                                           usecols=1).reshape(cls.nL,
                                                               cls.nW,
                                                               order='F')
 
