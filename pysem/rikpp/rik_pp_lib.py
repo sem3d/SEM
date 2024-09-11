@@ -230,10 +230,6 @@ def get_rotation_tensor(strike: float, dip: float) -> np.float64:
 
     # Remove small values
     MatMesh[np.where(MatMesh<=1e-5)]=0.0
-    # for i in np.arange(3):
-    #     for j in np.arange(3):
-    #         if abs(MatMesh[i,j]) < 1e-6:
-    #             MatMesh[i,j] = 0.0
     return MatMesh
 
 def moment_computation(M0, time, f, ts, gamma):
