@@ -266,7 +266,7 @@ contains
         if (out_variables(OUT_STRESS_DEV) == 1) then
             sig_dev(:,:,:,:) = 0.
         end if
-        deallocate(phi)
+        deallocate(phi)        
         deallocate(vphi)
     end subroutine get_fluid_dom_var
 
@@ -278,10 +278,9 @@ contains
         type(domain_fluid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy
-        real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp), dimension(:,:,:,:), allocatable :: fieldV
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldV
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: phi
-       !real(fpp), dimension(:,:,:), allocatable   :: !vphi
         integer                  :: ngll, i, j, k, ind
         !
         integer :: bnum, ee
@@ -290,38 +289,28 @@ contains
         ee = mod(lnum,VCHUNK)
 
 
-
+        ngll = dom%ngll
         allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
-        !allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
 
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     phi(i,j,k) = dom%champs(0)%Phi(ind)
+#ifdef CPML
+                    fieldP(i,j,k) = -dom%champs(0)%ForcesFl(ind)
+#else
+                    fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
+#endif                                                                                                                                                                       
                 enddo
             enddo
         enddo
-
-        !Dellocation
-        if(allocated(S_energy)) then
-            if(size(S_energy) /= ngll*ngll*ngll) deallocate(S_energy)
-        end if
-
-        if(allocated(P_energy)) then
-            if(size(P_energy) /= ngll*ngll*ngll) deallocate(P_energy)
-        end if
 
         !Allocation
         if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         S_energy = -1
         P_energy = -1
-
-        if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        fieldP = -1
-        fieldV = -1
 
         call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                             dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
@@ -331,15 +320,12 @@ contains
             do j=0,ngll-1
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
-                    fieldP(i,j,k) = -dom%champs(0)%VelPhi(ind)
                     P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)/dom%Lambda_(i,j,k,bnum,ee)
                     S_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
                 enddo
             enddo
         enddo
 
-        deallocate(fieldP)
-        deallocate(fieldV)
         deallocate(phi)
     end subroutine get_fluid_dom_elem_energy
 

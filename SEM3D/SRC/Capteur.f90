@@ -211,7 +211,7 @@ contains
 
         sortie_capteur = .FALSE.
         ! boucle sur les capteurs
-
+        
         !write(*,*)  "Before pointer"
         capteur=>listeCapteur
         !write(*,*)  "Before boucle"
@@ -252,7 +252,6 @@ contains
         do_flush = .false.
         ! boucle sur les capteurs
 
-
         capteur=>listeCapteur
         do while (associated(capteur))
             if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
@@ -265,9 +264,8 @@ contains
             end if
             capteur=>capteur%suivant
         enddo
-
+        
         if (do_flush) call flushAllCapteurs(Tdomain)
-
     end subroutine save_capteur
 
     function dset_capteur_name(capteur)
@@ -720,7 +718,6 @@ contains
         !count_P = 0
         !count_S = 0
 
-
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             domain_type = el%domain
@@ -755,6 +752,9 @@ contains
 
             !print *, "END allocated(jac) = ", allocated(jac)
 
+            if(allocated(GLLw)) deallocate(GLLw)
+            call domain_gllw(Tdomain, domain_type, GLLw)
+
             select case (domain_type)
                 case (DM_SOLID_CG)
                     do k = 0, ngll-1
@@ -769,6 +769,10 @@ contains
                                                    P_energy, S_energy, &
                                                    R_energy, C_energy)
 
+                    call integrate_on_element(ngll, jac, GLLw, P_energy,elem_P_En)
+                    call integrate_on_element(ngll, jac, GLLw, S_energy,elem_S_En)
+                    call integrate_on_element(ngll, jac, GLLw, R_energy,elem_R_En)
+                    call integrate_on_element(ngll, jac, GLLw, C_energy,elem_C_En)
                 case (DM_FLUID_CG)
                     do k = 0, ngll-1
                         do j = 0, ngll-1
@@ -777,18 +781,13 @@ contains
                             enddo
                         enddo
                     enddo
-
-                    call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, S_energy) !TODO
-
+                    call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, S_energy)
+                    
+                    call integrate_on_element(ngll, jac, GLLw,P_energy,elem_P_En)
+                    call integrate_on_element(ngll, jac,GLLw, S_energy,elem_S_En)
+                    elem_R_En = 0d0
+                    elem_C_En = 0d0
             end select
-
-            if(allocated(GLLw)) deallocate(GLLw)
-            call domain_gllw(Tdomain, domain_type, GLLw)
-
-            call integrate_on_element(ngll, jac, GLLw, P_energy, elem_P_En)
-            call integrate_on_element(ngll, jac, GLLw, S_energy, elem_S_En)
-            call integrate_on_element(ngll, jac, GLLw, R_energy, elem_R_En)
-            call integrate_on_element(ngll, jac, GLLw, C_energy, elem_C_En)
 
             local_sum_P_energy = local_sum_P_energy + elem_P_En
             local_sum_S_energy = local_sum_S_energy + elem_S_En
@@ -796,7 +795,6 @@ contains
             local_sum_C_energy = local_sum_C_energy + elem_C_En
 
         enddo
-
         ! !TOTO, take out this part and put only local values (total values on post-processing)
         ! call MPI_ALLREDUCE(local_sum_S_energy, global_sum_S_energy, 1, MPI_DOUBLE_PRECISION, &
         !                    MPI_SUM, Tdomain%communicateur_global, ierr)
@@ -811,7 +809,7 @@ contains
         global_sum_S_energy = local_sum_S_energy
         global_sum_R_energy = local_sum_R_energy
         global_sum_C_energy = local_sum_C_energy
-
+        
         ! Sauvegarde des valeurs dans le capteur.
         i = capteur%icache+1
         capteur%valuecache(1,i) = Tdomain%TimeD%rtime
