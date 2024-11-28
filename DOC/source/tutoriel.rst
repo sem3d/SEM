@@ -421,18 +421,18 @@ Les résultats de simulation peuvent être obtenus sous deux formes :
 
 Les champs disponibles sont :
 
-=============   ====== ======== ========
+==============  ====== ======== ========
 Champ           Milieu Snapshot Capteurs
-=============   ====== ======== ========
-Déplacement    S      Oui      Oui
+==============  ====== ======== ========
+Déplacement     S      Oui      Oui
 Vitesse         S/F    Oui      Oui
-Accélération  S/F    Oui      Oui 
+Accélération    S/F    Oui      Oui 
 Pression        S/F    Oui      Oui 
 Contrainte Dev  S      Oui      Oui 
 Deform. Vol     S      Oui      Oui 
 Deform. Dev     S      Oui      Oui 
 Deform. Dev Pl  S      Oui      Oui 
-=============   ===== ========= ========
+==============  ====== ======== ========
 
 Pour les instantanés, il existe un mécanisme de sélection de mailles
 qui permet de ne sauvegarder qu'une partie du maillage. Cependant on
