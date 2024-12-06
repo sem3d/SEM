@@ -31,8 +31,6 @@ class FaultMesh(object):
             self.nL = self.xg.shape[1]
         else:
             ValueError('xg, yg, and zg must be non-empty 2D meshgrids')
-        # if self.xg.size and self.yg.size:
-        #     self.genmesh3d()
 
     def __call__(self, **kwargs) -> None:
         """
@@ -77,7 +75,7 @@ class FaultMesh(object):
         fig.colorbar(surf, shrink=0.5, aspect=5,
                      label='Depth (km)')
         plt.show()
-    def genmesh3d(self) -> None:
+    def Triangulate(self) -> None:
         """
         Generate a 3D triangular mesh from the 2D grid points.
 
@@ -114,6 +112,7 @@ class FaultMesh(object):
         -------
         None
         """
+        # Get rotation tensor
         Q_ϕδλ = get_rotation_tensor(ϕ, δ)
         # Rotate the position around the origin within the fault plane
         self.xg, self.yg, self.zg = np.einsum('ij,jkl->ikl', 
@@ -131,9 +130,7 @@ class FaultMesh(object):
         
         self.msh.nodes = np.einsum('ij,jk->ik', Q_ϕδλ, Z).T
         self.msh.nodes +=hyp
-                                              
         
-
     def write_mesh2h5(self, fid):
         fid.create_dataset(name='x',
                            data=self.xg)
@@ -291,7 +288,7 @@ class FaultSegment(SEM3Dfault):
         The mesh is a 3x3 numpy array, where each row and column
         represents the x, y, and z coordinates of each node in the
         mesh. The mesh is constructed by calling the
-        ``genmesh3d`` method of the ``FaultMesh`` class, which
+        ``Triangulate`` method of the ``FaultMesh`` class, which
         generates a 3D mesh from the 2D grid points on the fault
         surface.
 
@@ -443,7 +440,8 @@ class FaultSegment(SEM3Dfault):
                               yg=self.SlipGridAlongD,
                               zg=np.zeros_like(self.SlipGridAlongS))
 
-        faultmesh.genmesh3d()
+        # Generate 3D flat Delaunay mesh
+        faultmesh.Triangulate()
         faultmesh.RotTransMesh3d(self.__ϕ,self.__δ,self.HypoXYZ)
         
         self.__mesh = faultmesh

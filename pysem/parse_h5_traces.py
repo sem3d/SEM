@@ -10,6 +10,7 @@ Script to parse and post-process SEM3D traces
 """
 
 # Required modules
+import sys
 import matplotlib as mpl
 mpl.use('Agg') # de-comment if pyplot raise errors
 from matplotlib import pyplot as plt
@@ -54,6 +55,30 @@ class SEM3DMonitor(object):
                  var=OrderedDict({}), \
                  var_avl =OrderedDict({}), \
                  comp = ['x','y','z']):
+        """
+        Initialize SEM3DMonitor object.
+
+        Parameters
+        ----------
+        name : str
+            Name of SEM3DMonitor object.
+        fmt : str
+            Format of data. Only 'h5' is supported.
+        data : dict
+            Dictionary of data arrays.
+        nt : int
+            Number of time steps.
+        nc : int
+            Number of capteurs.
+        dTime : float
+            Time step.
+        var : OrderedDict
+            Dictionary of variables.
+        var_avl : OrderedDict
+            Dictionary of available variables.
+        comp : list of str
+            List of components for each variable.
+        """
         self.name = name
         self.fmt  = fmt
         self.data = data
@@ -66,25 +91,111 @@ class SEM3DMonitor(object):
         self.dTime = dTime
         
     def __call__(self, **kwargs):    
+        """
+        Update the object with the given keyword arguments.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            The keyword arguments to update the object with.
+
+        Returns
+        -------
+        None
+        """
         self.__dict__.update(kwargs)
     
     def c2d(self,k,c):
+        """
+        Returns the index of the component c for variable k in the data array.
+
+        Parameters
+        ----------
+        k : str
+            Variable name.
+        c : str
+            Component name.
+
+        Returns
+        -------
+        int
+            Index of the component c for variable k in the data array.
+        """
         v = self.var_avl[k]
         c2d = [v[i] for i in self.comp[k]]
         return c2d.index(c)
     
     def add_capteur(self,data,c):
+        """
+        Add a capteur to the SEM3DMonitor object.
+
+        Parameters
+        ----------
+        data : numpy array
+            Data to add to the capteur.
+        c : int
+            Capteur number.
+
+        Returns
+        -------
+        None
+        """
         for k,v in self.var.items():
             if k != 'Time':
                 self.data[k][:,:,c] = data[:,[v[i]+1 for i in self.comp[k]]]
                 
     def add_position(self,data,c):
+        """
+        Add position data for a specific capteur.
+
+        Parameters
+        ----------
+        data : numpy array
+            Array containing position data [x, y, z].
+        c : int
+            Capteur number.
+
+        Returns
+        -------
+        None
+        """
         self.set_coord(c,data[0],data[1],data[2])
             
     def set_coord(self,c,x,y,z):
+        """
+        Set the coordinates for a capteur.
+
+        Parameters
+        ----------
+        c : int
+            Capteur number.
+        x, y, z : float
+            Coordinates of the capteur.
+
+        Returns
+        -------
+        None
+        """
         self.pos[str(c)] = np.array([x,y,z])
         
     def set_dimensions(self):
+        """
+        Initialize the dimensions for data and position attributes.
+
+        This method sets up the `data` dictionary with empty numpy arrays for each
+        variable (excluding 'Time') based on the specified number of time steps (`nt`),
+        components, and capteurs (`nc`). It also initializes the `position` dictionary 
+        with empty numpy arrays representing 3D coordinates for each capteur.
+
+        Attributes
+        ----------
+        data : dict
+            A dictionary where each key is a variable name and each value is an
+            empty numpy array with dimensions (nt, number of components, nc).
+        position : dict
+            A dictionary where each key is a capteur index as a string, and each
+            value is an empty numpy array representing 3D coordinates.
+        """
         self.data = {}
         self.position = {}
         for k in self.var.keys():
@@ -94,11 +205,23 @@ class SEM3DMonitor(object):
             self.position[str(c)] = np.empty((3,),dtype=np.float_)         
                 
     def set_time(self,Time):
+        """
+        Set the time vector `Time` for the SEM3DMonitor object.
+
+        If the format is 'h5' and 'Time' is a variable, sets `nt` to the size of the
+        `Time` array. If the time vector is not parsed, raises an exception.
+        """
         self.Time = Time
         self.set_dTime()
         self.set_nt()
         
     def set_nt(self):
+        """
+        Set the number of time steps `nt` for the SEM3DMonitor object.
+        
+        If the format is 'h5' and 'Time' is a variable, sets `nt` to the size of the
+        `Time` array. If the time vector is not parsed, raises an exception.
+        """
         if self.fmt=='h5' and 'Time' in self.var:
             try:
                 self.nt = self.Time.size
@@ -106,6 +229,20 @@ class SEM3DMonitor(object):
                 raise('Time vector not parsed!')
             
     def set_dTime(self):
+        """
+        Set the time step `dTime` for the SEM3DMonitor object.
+
+        If the format is 'h5' and 'Time' is a variable, calculates `dTime` as
+        the difference between the last two elements of the `Time` array. If
+        the time vector is not parsed, raises an exception. Otherwise, calculates
+        `dTime` based on the data array by taking the midpoint values, accounting
+        for potential T0 shifts due to filters.
+
+        Returns
+        -------
+        float
+            The calculated `dTime` value when not using 'h5' format.
+        """
         if self.fmt=='h5' and 'Time' in self.var.keys():
             try:
                 self.dTime = self.Time[-1]-self.Time[-2]
@@ -118,6 +255,21 @@ class SEM3DMonitor(object):
             return self.data[N+1,0] - self.data[N,0]
     
     def total_stress(self,rdr,cpt='all'):
+        """
+        Compute total stresses (deviatoric + pressure) for selected components
+
+        Parameters
+        ----------
+        rdr : list of str
+            Components to compute total stresses for.
+        cpt : str or list of int
+            If 'all', compute total stresses for all capteurs. Otherwise, list of capteurs to compute total stresses for.
+
+        Returns
+        -------
+        tts : dict
+            A dictionary of total stresses for each capteur.
+        """
         if cpt=='all':
             cpt = [c for c in range(self.nc)]
         tts = OrderedDict({})
@@ -135,6 +287,30 @@ class SEM3DMonitor(object):
         return tts
 
     def plot(self,var,rdr,mon,hfg=None,svf=False,**kwargs):
+        """
+        Plot SEM3DMonitor data.
+
+        Parameters
+        ----------
+        var : list[str]
+            List of variables to plot.
+        rdr : list[str]
+            List of components to plot.
+        mon : list[int]
+            List of monitor numbers to plot.
+        hfg : mpl figure, optional
+            Handle to existing figure. If not provided a new figure is created.
+        svf : bool, optional
+            If True save the figure to file (default is False).
+        **kwargs : dict, optional
+            Additional keyword arguments to pass to plt.plot.
+
+        Returns
+        -------
+        hfg : mpl figure
+            Handle to the figure.
+        """
+       
         for m in mon:
             for v in var:
                 if v in self.var.keys():
@@ -162,6 +338,21 @@ class SEM3DMonitor(object):
             
 
     def filt_low_pass(self, fmax, fband=2.0):
+        """
+        Apply a low-pass FIR filter to the data using a Kaiser window.
+
+        Parameters
+        ----------
+        fmax : float
+            The cutoff frequency of the filter in Hz.
+        fband : float, optional
+            The transition width of the filter in Hz (default is 2.0).
+
+        Returns
+        -------
+        SEM3DMonitor
+        A new SEM3DMonitor object with the low-pass filtered data.
+        """
         sample_rate = 1./self.dt()
 
         # The Nyquist rate of the signal.
@@ -192,10 +383,38 @@ class SEM3DMonitor(object):
         return self.filt_capteur(data2, "LP(%f Hz)" % fmax)
 
     def filt_capteur(self, data, pfx):
+        """
+        Create a new SEM3DMonitor object with modified data and time vector
+        Parameters
+        ----------
+        data : numpy array
+            Modified data
+        pfx : string
+            Prefix to be added to the name of the new SEM3DMonitor object
+        Returns
+        -------
+        cpt : SEM3DMonitor
+            New SEM3DMonitor object
+        """
         cpt = self.copy()
         return cpt
 
     def filt_ma(self, n, decimate=True):
+        """
+        Apply a moving average filter to the data.
+
+        Parameters
+        ----------
+        n : int
+            The order of the moving average filter.
+        decimate : bool
+            If True, decimate the data after filtering.
+
+        Returns
+        -------
+        cpt : SEM3DMonitor
+            A new SEM3DMonitor object with filtered data.
+        """
         nn = 2*n+1
         flt = np.ones((nn,))/float(nn)
         data = np.array(self.data, copy=True)
@@ -206,6 +425,22 @@ class SEM3DMonitor(object):
         return self.filt_capteur(data, "MA(%d)" % nn)
 
     def filt_median(self, n, decimate=True):
+        
+        """
+        Apply a median filter to the data.
+
+        Parameters
+        ----------
+        n : int
+            The order of the median filter.
+        decimate : bool
+            If True, decimate the data after filtering.
+
+        Returns
+        -------
+        cpt : SEM3DMonitor
+            A new SEM3DMonitor object with filtered data.
+        """
         data = np.array(self.data, copy=True)
         nn = 2*n+1
         for comp in 1,2,3:
@@ -215,6 +450,21 @@ class SEM3DMonitor(object):
         return self.filt_capteur(data, "MED(%d)" % nn)
 
     def filt_decimate(self, fac, scl):
+        """
+        Decimate the data (and time vector) by a given factor 'fac'.
+        
+        Parameters
+        ----------
+        fac : int
+            Decimation factor.
+        scl : float
+            Rescaling factor (not used so far).
+        
+        Returns
+        -------
+        cpt : SEM3DMonitor
+            New SEM3DMonitor object with decimated data and time vector.
+        """
         cpt = copy.deepcopy(self)
         cpt.name = cpt.name+'_dec'
         
@@ -229,6 +479,27 @@ class SEM3DMonitor(object):
         return cpt
 
 def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**kwargs):    
+    """
+    Parse SEM3D HDF5 traces.
+
+    Parameters
+    ----------
+    wkd : string
+        Working directory where files are located.
+    fmt : string
+        Format of traces. Only 'h5' is supported.
+    var : list of strings
+        List of variables to parse. If empty, all variables are parsed.
+    rdr : list of strings
+        Components to parse. If empty, all components are parsed.
+    nam : string or list of strings
+        Name of the capteur to parse. If 'all', all capteurs are parsed.
+
+    Returns
+    -------
+    cpts : dictionary
+        A dictionary of SEM3DMonitor objects, one per capteur.
+    """
     if fmt == 'h5':
         fls = glob.glob(osj(wkd,'*.h5'))
         fn = fls[0]
@@ -239,6 +510,7 @@ def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**
         for vi in range(len(tmp)):
             v = tmp[vi]
             v = tuple([vb.decode("utf-8") for vb in v])
+            print(v)
             if len(v)>2:
                 v=(v[0]+v[1],v[-1])
             if v[0] not in var_avl.keys():
@@ -302,17 +574,40 @@ def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**
         return cpts
 
 def ExportPickle(obj, filename):
+    """
+    Export an object to a Pickle file.
+
+    Parameters
+    ----------
+    obj : any
+        Object to be exported
+    filename : str
+        Name of the file to which the object will be exported
+
+    Returns
+    -------
+    None
+    """
     with open(filename, 'wb') as output:  # Overwrites any existing file.
         pickle.dump(obj, output, -1)# pickle.HIGHEST_PROTOCOL)
     output.close()
 
 def ParseOptions():
+    """
+    Parse command line arguments for ParseSEM3DH5Traces.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the parsed command line arguments.
+    """
     OptionParser = argparse.ArgumentParser(prefix_chars='@')
-    OptionParser.add_argument('@w','@@wkd',type=str,default='../test/traces/',help='Database main directory')
-    OptionParser.add_argument('@f','@@fmt',type=str,default='h5',help='Database format')
+    OptionParser.add_argument('@w','@@wkd',type=str,default='../test/traces/',required=True,help='Database main directory')
+    OptionParser.add_argument('@f','@@fmt',type=str,default='h5',choices=['h5','txt'],help='Database format')
     OptionParser.add_argument('@n','@@nam',type=str,nargs='+',default=['all'],help = 'Name of the set(s) of monitors')
-    OptionParser.add_argument('@v','@@var',type=str,nargs='+',default=['Displ','Veloc','Accel'],help='Output variables')
-    OptionParser.add_argument('@r','@@rdr',type=str,nargs='+',default=['x','y','z'],help='Motion components')
+    OptionParser.add_argument('@v','@@var',type=str,nargs='+',default=['Displ','Veloc','Accel'],
+                              choices=['Displ','Veloc','Accel','Pressure','StressDev','EpsDev','EpsDevPl'],help='Output variables')
+    OptionParser.add_argument('@r','@@rdr',type=str,nargs='+',default=['x','y','z'],choices=['x','y','z'],help='Motion components')
     OptionParser.add_argument('@m','@@mon',type=int,nargs='+',default=[0],help='SEM3DMonitor number')
     OptionParser.add_argument('@p','@@plt',action='store_true',default=True,help='Plot?')
     options = OptionParser.parse_args().__dict__
@@ -339,8 +634,7 @@ if __name__=='__main__':
     
     # Compute total stresses if present
     try:
-        ts = sem_db.total_stress(rdr=['xx','yy','zz','xy','xz','yz'])
+        ts = stream.total_stress(rdr=['xx','yy','zz','xy','xz','yz'])
     except:
         print("Warning: no stress field defined in database")
         pass
-    

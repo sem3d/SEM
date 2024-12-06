@@ -36,21 +36,26 @@ __status__ = "Beta"
 
 
 if __name__=='__main__':
+    # Parse command line
     opt = start_rik()
+    # Update global variables
     globals().update(opt)
+    assert len(strike)==len(dip) and len(dip)==len(rake)
     
-    fg = opj(wkd,"{:>s}".format(tag))
+    
+    fg = opj(wkd,f"{tag}")
+    
+    # RIK input files 
     coord_file_name = opj(wkd, 'source_coordinates.csv')
-
-    # Input files 
     sd_file = opj(wkd,'slipdistribution.dat')
     mr_file = opj(wkd,'MomentRate.dat')
     sr_file = opj(wkd, 'SlipRate.dat')
     hypfile = opj(wkd,'nucleationpoint.dat')
 
-    vtm = np.linspace(0.0, (nt-1)*dt, nt)  # time vector
+    # RIK time vector
+    vtm = np.linspace(0.0, (nt-1)*dt, nt)  
     
-    assert len(strike)==len(dip) and len(dip)==len(rake)
+    # Number of segments
     nSegments = len(strike)
     
     # Parse RIK 2D fault
@@ -62,15 +67,24 @@ if __name__=='__main__':
     RIKsource.GridAlongSD = {"SlipFile": sd_file}
     RIKsource.MomentRateGridAlongSD = {"MomentRateFile": mr_file}
     RIKsource.SlipRateGridAlongSD = {"SlipRateFile": sr_file}
-    RIKsource.HypoDepthm = None
+    RIKsource.HypoDepthm = 0.0
     
-    # Define SEM source per segment
+    # SEM3D source
+    
+    # Define SEM3D source
+    # Initialize 
     SEMsource = SEM3Dfault(moment=M0)
+    # SEM3D hypocenter (UTM) coordinates [X Y Z] = [E N Z] [m]
     SEMsource.HypoXYZ = {'ew': hE, 'ns': hN, 'ud': hZ}
+
     nLxSegment=list(map(partial(get_segment_Lidx, L=L, nL=nL), segL))
     nWxSegment = [nW]*nSegments
+    # Initialize SEM3D fault segment left edges
     SEMsource.SegmentEdgesL = np.cumsum(np.array([0]+nLxSegment))
+    # Initialize SEM3D fault segment lower edges
     SEMsource.SegmentEdgesW = np.array([0]+nWxSegment)
+
+    # Initialize fault segments
     SEMsegments = []
     for i, (φs, δ, λ) in enumerate(zip(strike, dip, rake)):
         fs = FaultSegment(strike=φs, dip=δ, rake=λ)
@@ -87,105 +101,81 @@ if __name__=='__main__':
                                  endpoint=False,
                                  dtype=np.int64)
                      )
-        fs.SetSlipGridAlongS = RIKsource.SlipGridAlongS[idx]*1.0e3
-        fs.SetSlipGridAlongD = RIKsource.SlipGridAlongD[idx]*1.0e3
+        # Centering on the fault hypocenter
+        fs.SetSlipGridAlongS = (RIKsource.SlipGridAlongS[idx]-RIKsource.HypoAlongSDDepthKm[0])*1.0e3
+        fs.SetSlipGridAlongD = (RIKsource.SlipGridAlongD[idx]-RIKsource.HypoAlongSDDepthKm[1])*1.0e3
         SEMsegments.append(fs)
 
     print("Number of segments: {:d}".format(SEMsource.nSegments))
+    
     for (i, s), d, r in zip(enumerate(strike), dip, rake):
-        print("Segment {:d}:".format(i+1),
-              "strike: {: > .1f},".format(s),
-              "dip: {: > .1f},".format(d),
-              "rake: {: > .1f}\n".format(r)
-              )
+        print(f"Segment {i+1}: strike: {s}, dip: {d}, rake: {r}\n")
             
     for i,fs in enumerate(SEMsegments):
+        # Set fault-segment mesh
         nLs = fs.nLsegment
         nWs = fs.nWsegment
         nv = fs.NormalVector
         dv = fs.SlipVector
-        kfo = h5py.File(opj(wkd,
-                            '{:>s}_kine_{:d}.h5'.format(tag,i)),
-                        'w')
-        sfo = h5py.File(opj(wkd,
-                            '{:>s}_moment_{:d}.h5'.format(tag,i)),
-                        'w')
+        fs.SetMesh()
+        
+        Moment = np.zeros((nLs, nWs, nt), dtype=np.float32)
+        Slip = np.zeros((nLs, nWs, nt), dtype=np.float32)
+        SlipRate = np.zeros((nLs, nWs, nt), dtype=np.float32)
+        
+        with h5py.File(opj(wkd,f"{tag}_kine_{i}.h5"), 'w') as kfo,\
+             h5py.File(opj(wkd,f"{tag}_moment_{i}.h5"), 'w') as sfo:
         #driver='mpio', comm=MPI.COMM_WORLD)
         
-        # Assign general properties
-        sfo.create_dataset('vtm', data=vtm)
-        kfo.attrs['dt'] = vtm[1]-vtm[0]
-        kfo.attrs['Nt'] = RIKsource.nt
-        kfo.attrs['Ns'] = nLs
-        kfo.attrs['Nd'] = nWs
-        kfo.attrs['Vnormal'] = nv
-        kfo.attrs['Vslip'] = dv
-        
-        Moment = sfo.create_dataset('moment',
-                                    (nLs, nWs, nt),
-                                    chunks=(1, 1, nt)
-                                    )
-        Slip = np.zeros((nLs, nWs, nt),
-                        dtype=np.float32
+            # Assign general properties
+            sfo.create_dataset('vtm', data=vtm)
+            kfo.attrs['dt'] = vtm[1]-vtm[0]
+            kfo.attrs['Nt'] = RIKsource.nt
+            kfo.attrs['Ns'] = nLs
+            kfo.attrs['Nd'] = nWs
+            kfo.attrs['Vnormal'] = nv
+            kfo.attrs['Vslip'] = dv
+            
+            fs.Mesh.write_mesh2h5(sfo)
+            fs.Mesh.write_mesh2h5(kfo)
+            
+            # Write dynamic fields        
+            idx = np.ix_(np.linspace(SEMsource.SegmentEdgesL[i],
+                                    SEMsource.SegmentEdgesL[i+1],
+                                    nLs,
+                                    endpoint=False,
+                                    dtype=np.int64),
+                        np.linspace(SEMsource.SegmentEdgesW[0],
+                                    SEMsource.SegmentEdgesW[1],
+                                    nWs,
+                                    endpoint=False,
+                                    dtype=np.int64),
+                        np.linspace(0,
+                                    nt,
+                                    nt,
+                                    endpoint=False,
+                                    dtype=np.int64),
                         )
-        SlipRate = np.zeros((nLs, nWs, nt),
-                            dtype=np.float32
-                            )
-        idx = np.ix_(np.linspace(SEMsource.SegmentEdgesL[i],
-                                 SEMsource.SegmentEdgesL[i+1],
-                                 nLs,
-                                 endpoint=False,
-                                 dtype=np.int64),
-                     np.linspace(SEMsource.SegmentEdgesW[0],
-                                 SEMsource.SegmentEdgesW[1],
-                                 nWs,
-                                 endpoint=False,
-                                 dtype=np.int64),
-                     np.linspace(0,
-                                 nt,
-                                 nt,
-                                 endpoint=False,
-                                 dtype=np.int64),
-                     )
-        
-        Moment[:, :, :] = RIKsource.MomentGridAlongSD[idx]
-        Slip[:, :, :] = RIKsource.SlipGridAlongSD[idx]
-        SlipRate[:, :, :] = RIKsource.SlipRateGridAlongSD[idx]
-        for t in range(RIKsource.nt):
-            sfo.create_dataset('mom_{:>d}'.format(t), shape=(nLs*nWs,),
-                               data=Moment[:, :, t].T.reshape((nLs*nWs,)),
-                               chunks=(1,))
-            kfo.create_dataset('slp_{:>d}'.format(t), shape=(nLs*nWs,),
-                               data=Slip[:, :, t].T.reshape((nLs*nWs,)),
-                               chunks=(1,))
-            kfo.create_dataset('sra_{:>d}'.format(t), shape=(nLs*nWs,),
-                               data=SlipRate[:, :, t].T.reshape((nLs*nWs,)),
-                               chunks=(1,))
-    
-        # SEM grid coordinates
-        Xg = kfo.create_dataset('x',
-                                (nLs, nWs),
-                                chunks=(1, 1))
-        Yg = kfo.create_dataset('y',
-                                (nLs, nWs),
-                                chunks=(1, 1))
-        Zg = kfo.create_dataset('z',
-                                (nLs, nWs),
-                                chunks=(1, 1))
-
-        Xg = fs.SlipGridAlongS
-        Yg = fs.SlipGridAlongD
-        Zg = RIKsource.HypoDepthm + \
-            np.sin(fs.StrikeDipRake[1])*(RIKsource.HypoAlongSD[1]-Xg)
-        
-        faultmesh = FaultMesh(xg=Xg[()],
-                              yg=Yg[()],
-                              zg=Zg[()])
-        
-        fs.SetMesh = (faultmesh, RIKsource.HypoAlongSDDepthKm)
-        fs.Mesh.write_mesh2h5(sfo)
-        fs.Mesh.write_mesh2h5(kfo)
-
+            
+            Moment = RIKsource.MomentGridAlongSD[idx]
+            Slip = RIKsource.SlipGridAlongSD[idx]
+            SlipRate = RIKsource.SlipRateGridAlongSD[idx]
+            
+            sfo.create_dataset('moment', data=Moment, chunks=(1, 1, nt))
+            
+            for t in range(RIKsource.nt):
+                sfo.create_dataset(f"mom_{t}", shape=(nLs*nWs,),
+                                data=Moment[:, :, t].T.reshape((nLs*nWs,)),
+                                chunks=(1,))
+                kfo.create_dataset(f"slp_{t}", shape=(nLs*nWs,),
+                                data=Slip[:, :, t].T.reshape((nLs*nWs,)),
+                                chunks=(1,))
+                kfo.create_dataset(f"sra_{t}", shape=(nLs*nWs,),
+                                data=SlipRate[:, :, t].T.reshape((nLs*nWs,)),
+                                chunks=(1,))
+        # Close hdf5
+        kfo.close()
+        sfo.close()
         if plot:
             clr = sns.color_palette("cool",nLs*nWs)
             fig = plt.figure(figsize=(10,5))
@@ -211,6 +201,3 @@ if __name__=='__main__':
                         bbox_inches='tight',
                     format='eps')
             plt.close()
-        # Close hdf5
-        kfo.close()
-        sfo.close()
