@@ -25,9 +25,9 @@
 #define SUBPROCNAME2  PROCNAME1()_subloop_acc
 #define PROCNAME_ATN  PROCNAME1()_atn_acc
 
-#ifdef ATTENUATION
-#error "ATTENUATION defined : wrong file"
-#endif
+!!#ifdef ATTENUATION
+!!#error "ATTENUATION defined : wrong file"
+!!#endif
 #ifdef NONLINEAR
 #error "NONLINEAR defined : wrong file"
 #endif

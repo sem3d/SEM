@@ -120,6 +120,7 @@ set_source_files_properties(
   ${PRJ}/SRC/Solid/calcul_forces_aniso_atn.F90
   ${PRJ}/SRC/Solid/calcul_forces_iso_nl.F90
   ${PRJ}/SRC/Solid/calcul_forces_aniso_nl.F90
+  ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
   ${PRJ}/SRC/Fluid/dom_fluid.F90
   ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
 
