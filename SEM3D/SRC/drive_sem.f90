@@ -542,6 +542,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !---------------------------------------------------------!
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
+    call flushAllCapteurs(Tdomain)
+
     call stop_domain_solid(Tdomain, Tdomain%sdom)
     call stop_domain_solidpml(Tdomain, Tdomain%spmldom)
     call stop_domain_fluid(Tdomain, Tdomain%fdom)
@@ -598,8 +600,6 @@ subroutine END_SEM(Tdomain,ntime)
         close(111)
     end if
 
-
-    call flushAllCapteurs(Tdomain)
 
     if (rg == 0) write (*,*) "--> DEALLOCATING DOMAIN."
     call deallocate_domain (Tdomain)
