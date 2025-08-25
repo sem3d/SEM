@@ -193,7 +193,7 @@ contains
     end subroutine fluid_velocity
 
     subroutine get_fluidpml_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain_fluidpml), intent(inout)       :: dom
@@ -204,7 +204,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldU, fieldV, fieldA
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: S_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: K_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
@@ -282,7 +282,7 @@ contains
         end if
 
         if (out_variables(OUT_ENERGYS) == 1) then
-            S_energy(:,:,:) = 0.
+            K_energy(:,:,:) = 0.
         end if
 
         if (out_variables(OUT_EPS_DEV) == 1) then
@@ -360,13 +360,13 @@ contains
         end do
     end subroutine get_fluidpml_rfields
 
-    subroutine get_fluidpml_dom_elem_energy(dom, lnum, P_energy, S_energy)
+    subroutine get_fluidpml_dom_elem_energy(dom, lnum, P_energy, K_energy)
         use deriv3d
         implicit none
         !
         type(domain_fluidpml), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy
         !
         integer                  :: ngll
         integer :: bnum, ee
@@ -376,9 +376,9 @@ contains
 
         ngll = dom%ngll
 
-        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        S_energy = 0.0d0
+        K_energy = 0.0d0
         P_energy = 0.0d0 !TODO
     end subroutine get_fluidpml_dom_elem_energy
 

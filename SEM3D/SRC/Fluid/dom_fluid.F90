@@ -97,7 +97,7 @@ contains
     end subroutine fluid_velocity
 
     subroutine get_fluid_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev, dUdX)
         use deriv3d
         implicit none
         !
@@ -112,7 +112,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: S_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: K_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
@@ -253,7 +253,7 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        S_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
+                        K_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
                     enddo
                 enddo
             enddo
@@ -271,13 +271,13 @@ contains
     end subroutine get_fluid_dom_var
 
 
-    subroutine get_fluid_dom_elem_energy(dom, lnum, P_energy, S_energy)
+    subroutine get_fluid_dom_elem_energy(dom, lnum, P_energy, K_energy)
         use deriv3d
         implicit none
         !    
         type(domain_fluid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldV
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: phi
@@ -307,9 +307,9 @@ contains
         enddo
 
         !Allocation
-        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        S_energy = -1
+        K_energy = -1
         P_energy = -1
 
         call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
@@ -321,7 +321,7 @@ contains
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)/dom%Lambda_(i,j,k,bnum,ee)
-                    S_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
+                    K_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
                 enddo
             enddo
         enddo

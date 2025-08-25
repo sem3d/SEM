@@ -490,7 +490,7 @@ contains
         integer, dimension(0:OUT_LAST)             :: out_variables, offset
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, K_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: dUdX
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
@@ -514,7 +514,7 @@ contains
         allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
         allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! tot energy 5
         allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
@@ -556,21 +556,21 @@ contains
         select case(Tdomain%specel(n_el)%domain)
             case (DM_SOLID_DG)
               !call get_solid_dg_dom_var(Tdomain%sdomdg, Tdomain%specel(n_el)%lnum, out_variables, &
-              !  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
+              !  fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev, &
               !  dUdX)
             case (DM_SOLID_CG)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, &
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev, &
                 dUdX, nl_flag, eps_dev_pl)
             case (DM_FLUID_CG)
               call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev, dUdX)
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev, dUdX)
             case (DM_SOLID_CG_PML)
               call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
             case (DM_FLUID_CG_PML)
               call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
             case default
               stop "unknown domain"
         end select
@@ -619,7 +619,7 @@ contains
                     if (out_variables(OUT_ENERGYS) == 1) then
                         ioff = offset(OUT_ENERGYS)
                         nComp = OUT_VAR_DIMS_3D(OUT_ENERGYS)-1
-                        grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*S_energy(i,j,k)
+                        grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*K_energy(i,j,k)
                     end if
 
                     if (out_variables(OUT_DUDX) == 1) then
@@ -670,7 +670,7 @@ contains
         deallocate(fieldA)
         deallocate(fieldP)
         deallocate(P_energy)
-        deallocate(S_energy)
+        deallocate(K_energy)
         deallocate(eps_vol)
         deallocate(eps_dev)
         deallocate(eps_dev_pl)
@@ -697,9 +697,9 @@ contains
         integer                                    :: i, j, k, n
         integer                                    :: ngll
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU
-        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, R_energy, C_energy
-        real(fpp) :: local_sum_P_energy, local_sum_S_energy, local_sum_R_energy, local_sum_C_energy
-        real(fpp) :: global_sum_P_energy, global_sum_S_energy, global_sum_R_energy, global_sum_C_energy
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, K_energy, R_energy, C_energy
+        real(fpp) :: local_sum_P_energy, local_sum_K_energy, local_sum_R_energy, local_sum_C_energy
+        real(fpp) :: global_sum_P_energy, global_sum_K_energy, global_sum_R_energy, global_sum_C_energy
         real(fpp), dimension(:), allocatable :: GLLw
         integer :: bnum, ee
         real(fpp), dimension(:,:,:), allocatable :: jac
@@ -712,7 +712,7 @@ contains
         !print *, "ENERGY CAPTOR"
 
         local_sum_P_energy = 0d0
-        local_sum_S_energy = 0d0
+        local_sum_K_energy = 0d0
         local_sum_R_energy = 0d0
         local_sum_C_energy = 0d0
         !count_P = 0
@@ -766,11 +766,11 @@ contains
                     enddo
 
                     call get_solid_dom_elem_energy(Tdomain%sdom, el%lnum, &
-                                                   P_energy, S_energy, &
+                                                   P_energy, K_energy, &
                                                    R_energy, C_energy)
 
                     call integrate_on_element(ngll, jac, GLLw, P_energy,elem_P_En)
-                    call integrate_on_element(ngll, jac, GLLw, S_energy,elem_S_En)
+                    call integrate_on_element(ngll, jac, GLLw, K_energy,elem_S_En)
                     call integrate_on_element(ngll, jac, GLLw, R_energy,elem_R_En)
                     call integrate_on_element(ngll, jac, GLLw, C_energy,elem_C_En)
                 case (DM_FLUID_CG)
@@ -781,22 +781,22 @@ contains
                             enddo
                         enddo
                     enddo
-                    call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, S_energy)
+                    call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, K_energy)
                     
                     call integrate_on_element(ngll, jac, GLLw,P_energy,elem_P_En)
-                    call integrate_on_element(ngll, jac,GLLw, S_energy,elem_S_En)
+                    call integrate_on_element(ngll, jac,GLLw, K_energy,elem_S_En)
                     elem_R_En = 0d0
                     elem_C_En = 0d0
             end select
 
             local_sum_P_energy = local_sum_P_energy + elem_P_En
-            local_sum_S_energy = local_sum_S_energy + elem_S_En
+            local_sum_K_energy = local_sum_K_energy + elem_S_En
             local_sum_R_energy = local_sum_R_energy + elem_R_En
             local_sum_C_energy = local_sum_C_energy + elem_C_En
 
         enddo
         ! !TOTO, take out this part and put only local values (total values on post-processing)
-        ! call MPI_ALLREDUCE(local_sum_S_energy, global_sum_S_energy, 1, MPI_DOUBLE_PRECISION, &
+        ! call MPI_ALLREDUCE(local_sum_K_energy, global_sum_K_energy, 1, MPI_DOUBLE_PRECISION, &
         !                    MPI_SUM, Tdomain%communicateur_global, ierr)
         ! call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
         !                    MPI_SUM, Tdomain%communicateur_global, ierr)
@@ -806,7 +806,7 @@ contains
         !                    MPI_SUM, Tdomain%communicateur_global, ierr)
 
         global_sum_P_energy = local_sum_P_energy
-        global_sum_S_energy = local_sum_S_energy
+        global_sum_K_energy = local_sum_K_energy
         global_sum_R_energy = local_sum_R_energy
         global_sum_C_energy = local_sum_C_energy
         
@@ -814,10 +814,10 @@ contains
         i = capteur%icache+1
         capteur%valuecache(1,i) = Tdomain%TimeD%rtime
         capteur%valuecache(2,i) = global_sum_P_energy
-        capteur%valuecache(3,i) = global_sum_S_energy
+        capteur%valuecache(3,i) = global_sum_K_energy
         capteur%valuecache(4,i) = global_sum_R_energy
         capteur%valuecache(5,i) = global_sum_C_energy
-        capteur%valuecache(6,i) = global_sum_P_energy + global_sum_S_energy &
+        capteur%valuecache(6,i) = global_sum_P_energy + global_sum_K_energy &
                                 + global_sum_R_energy + global_sum_C_energy
         capteur%icache = i
 
@@ -826,7 +826,7 @@ contains
         if(allocated(GLLw)) deallocate(GLLw)
         if(allocated(fieldU))   deallocate(fieldU)
         if(allocated(P_energy)) deallocate(P_energy)
-        if(allocated(S_energy)) deallocate(S_energy)
+        if(allocated(K_energy)) deallocate(K_energy)
         if(allocated(R_energy)) deallocate(R_energy)
         if(allocated(C_energy)) deallocate(C_energy)
 

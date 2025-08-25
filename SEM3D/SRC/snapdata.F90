@@ -39,7 +39,7 @@ module msnapdata
         ! Cell fields
         real(fpp), dimension(:)  , allocatable :: press_c, eps_vol
         real(fpp), dimension(:,:), allocatable :: eps_dev, sig_dev, dUdX
-        real(fpp), dimension(:)  , allocatable :: P_energy, S_energy
+        real(fpp), dimension(:)  , allocatable :: P_energy, K_energy
         real(fpp), dimension(:,:), allocatable :: eps_dev_pl
 
         ! Storage for communications

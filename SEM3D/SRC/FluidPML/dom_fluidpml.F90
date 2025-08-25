@@ -113,7 +113,7 @@ contains
     end subroutine init_domain_fluidpml
 
     subroutine get_fluidpml_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain_fluidpml), intent(inout)       :: dom
@@ -124,7 +124,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldA
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: S_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: K_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
@@ -176,7 +176,7 @@ contains
                     end if
 
                     if (out_variables(OUT_ENERGYS) == 1) then
-                        S_energy(i,j,k) = 0.
+                        K_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then

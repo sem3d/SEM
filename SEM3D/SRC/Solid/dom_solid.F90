@@ -268,7 +268,7 @@ contains
     end subroutine get_solid_dom_grad_mu
 
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy,&
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy,&
         eps_vol, eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
         use deriv3d
         implicit none
@@ -280,7 +280,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldU, fieldV, fieldA
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
-        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: S_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: K_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
@@ -293,6 +293,7 @@ contains
         real(fpp)                :: DXX, DXY, DXZ
         real(fpp)                :: DYX, DYY, DYZ
         real(fpp)                :: DZX, DZY, DZZ
+        real(fpp)                :: comp1, comp2, comp3
         real(fpp)                :: divU
         real(fpp)                :: xmu, xlambda, xkappa, xeps_vol
         real(fpp)                :: x2mu, xlambda2mu
@@ -393,15 +394,19 @@ contains
                         endif
                         ! P-ENERGY
                         if (out_variables(OUT_ENERGYP) == 1) then
-                            P_energy(i,j,k) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
-                        end if
-                        ! S-ENERGY
-                        if (out_variables(OUT_ENERGYS) == 1) then
-                            S_energy(i,j,k) = xmu/2.0d0 * (           &
+                            comp1 =  xmu/2.0d0 * (           &
                                                     (DZY - DYZ)**2d0  &
                                                   + (DXZ - DZX)**2d0  &
                                                   + (DYX - DXY)**2d0  &
                                                   )
+                            comp2 = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
+                            comp3 = 2.0d0*xmu*(DXY*DYX + DXZ*DZX + DYZ*DZY) &
+                                     -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
+                            P_energy(i,j,k) = comp1 + comp2 + comp3
+                        end if
+                        ! S-ENERGY
+                        if (out_variables(OUT_ENERGYS) == 1) then
+                            K_energy(i,j,k) = 0.5d0*dom%Density_(i,j,k,bnum,ee)*(dom%champs(0)%Veloc(ind,0)**2.0d0 + dom%champs(0)%Veloc(ind,1)**2.0d0 + dom%champs(0)%Veloc(ind,2)**2.0d0)
                         end if
                         ! DEVIATORIC STRAIN
                         if (out_variables(OUT_EPS_DEV) == 1) then
@@ -452,7 +457,7 @@ contains
                         end if
                         ! S-ENERGY
                         if (out_variables(OUT_ENERGYS) == 1) then
-                            S_energy(i,j,k) = zero
+                            K_energy(i,j,k) = zero
                         end if
                         ! TOTAL STRAIN
                         if (out_variables(OUT_EPS_DEV) == 1) then
@@ -492,13 +497,13 @@ contains
     end subroutine get_solid_dom_var
 
 
-    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, S_energy, R_energy, C_energy)
+    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, K_energy, R_energy, C_energy)
         use deriv3d
         implicit none
         !
         type(domain_solid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy, R_energy !R_energy = Residual energy (tend to zero as propagation takes place)
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy, R_energy !R_energy = Residual energy (tend to zero as propagation takes place)
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: C_energy !Cinetic energy
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV
 
@@ -521,8 +526,8 @@ contains
         ngll = dom%ngll
 
         !Dellocation
-        if(allocated(S_energy)) then
-            if(size(S_energy) /= ngll*ngll*ngll) deallocate(S_energy)
+        if(allocated(K_energy)) then
+            if(size(K_energy) /= ngll*ngll*ngll) deallocate(K_energy)
         end if
 
         if(allocated(P_energy)) then
@@ -546,11 +551,11 @@ contains
         end if
 
         !Allocation
-        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(R_energy)) allocate(R_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(C_energy)) allocate(C_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        S_energy = -1
+        K_energy = -1
         P_energy = -1
         if (dom%aniso) return
 
@@ -602,7 +607,7 @@ contains
                     endif
 
                     P_energy(i,j,k) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
-                    S_energy(i,j,k) = xmu/2.0d0 * (                       &
+                    K_energy(i,j,k) = xmu/2.0d0 * (                       &
                                                     (dUz_dy - dUy_dz)**2d0  &
                                                   + (dUx_dz - dUz_dx)**2d0  &
                                                   + (dUy_dx - dUx_dy)**2d0  &

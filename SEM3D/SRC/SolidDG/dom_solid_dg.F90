@@ -183,7 +183,7 @@ contains
     end subroutine get_solid_dg_dom_var
 
 
-    subroutine get_solid_dg_dom_elem_energy(dom, lnum, P_energy, S_energy, R_energy, C_energy)
+    subroutine get_solid_dg_dom_elem_energy(dom, lnum, P_energy, K_energy, R_energy, C_energy)
 
         use deriv3d
 
@@ -191,7 +191,7 @@ contains
 
         type(domain_solid_dg), intent(inout) :: dom
         integer, intent(in)                  :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, S_energy, R_energy !R_energy = Residual energy (tend to zero as propagation takes place)
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy, R_energy !R_energy = Residual energy (tend to zero as propagation takes place)
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: C_energy !Cinetic energy
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV
         integer                  :: ngll, i, j, k, ind
@@ -211,8 +211,8 @@ contains
         ngll = dom%ngll
 
         !Dellocation
-        if(allocated(S_energy)) then
-            if(size(S_energy) /= ngll*ngll*ngll) deallocate(S_energy)
+        if(allocated(K_energy)) then
+            if(size(K_energy) /= ngll*ngll*ngll) deallocate(K_energy)
         end if
 
         if(allocated(P_energy)) then
@@ -236,11 +236,11 @@ contains
         end if
 
         !Allocation
-        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(R_energy)) allocate(R_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(C_energy)) allocate(C_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        S_energy = -1
+        K_energy = -1
         P_energy = -1
 
 
@@ -283,7 +283,7 @@ contains
                     xvel     = fieldV(i,j,k,:)
 
                     P_energy(i,j,k) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
-                    S_energy(i,j,k) = xmu/2.0d0 * (                       &
+                    K_energy(i,j,k) = xmu/2.0d0 * (                       &
                                                     (dUz_dy - dUy_dz)**2d0  &
                                                   + (dUx_dz - dUz_dx)**2d0  &
                                                   + (dUy_dx - dUx_dy)**2d0  &
