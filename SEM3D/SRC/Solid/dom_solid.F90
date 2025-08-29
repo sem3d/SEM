@@ -557,14 +557,13 @@ contains
     end subroutine get_solid_dom_var
 
 
-    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, K_energy, R_energy, C_energy)
+    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, K_energy)
         use deriv3d
         implicit none
         !
         type(domain_solid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy, R_energy !R_energy = Residual energy (tend to zero as propagation takes place)
-        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: C_energy !Cinetic energy
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy !R_energy = Residual energy (tend to zero as propagation takes place)
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV
 
         integer                  :: ngll, i, j, k, ind
@@ -594,14 +593,6 @@ contains
             if(size(P_energy) /= ngll*ngll*ngll) deallocate(P_energy)
         end if
 
-        if(allocated(R_energy)) then
-            if(size(R_energy) /= ngll*ngll*ngll) deallocate(R_energy)
-        end if
-
-        if(allocated(C_energy)) then
-            if(size(C_energy) /= ngll*ngll*ngll) deallocate(C_energy)
-        end if
-
         if(allocated(fieldU)) then
             if(size(fieldU) /= ngll*ngll*ngll) deallocate(fieldU)
         end if
@@ -613,8 +604,6 @@ contains
         !Allocation
         if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        if(.not. allocated(R_energy)) allocate(R_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        if(.not. allocated(C_energy)) allocate(C_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         K_energy = -1
         P_energy = -1
         if (dom%aniso) return
@@ -653,32 +642,86 @@ contains
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     xeps_vol = dUx_dx + dUy_dy + dUz_dz
 
-                    xmu     = dom%Mu_    (i,j,k,bnum,ee)
-                    xlambda = dom%Lambda_(i,j,k,bnum,ee)
-                    xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
-                    xdensity = dom%Density_ (i,j,k,bnum,ee)
-                    xvel     = fieldV(i,j,k,:)
+                    if (dom%aniso) then
+                        CC = dom%Cij_(:,i,j,k,bnum,ee)
+                        xdensity = dom%Density_ (i,j,k,bnum,ee)
+                    else
+                        xmu     = dom%Mu_    (i,j,k,bnum,ee)
+                        xlambda = dom%Lambda_(i,j,k,bnum,ee)
+                        xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
+                        xdensity = dom%Density_ (i,j,k,bnum,ee)
+                        if (dom%n_sls>0) then
+                            onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
+                            onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
+                            xmu    = xmu * onemSbeta
+                            xkappa = xkappa * onemPbeta
+                        endif
+                    end if
 
-                    if (dom%n_sls>0) then
-                        onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
-                        onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
-                        xmu    = xmu * onemSbeta
-                        xkappa = xkappa * onemPbeta
-                    endif
+                    if ( dom%aniso) then
+                        C = 0.0d0
+                        C(1,1) = CC(1)  ! C11
+                        C(2,2) = CC(2)  ! C22
+                        C(3,3) = CC(3)  ! C33
+                        C(4,4) = CC(4)  ! C44
+                        C(5,5) = CC(5)  ! C55
+                        C(6,6) = CC(6)  ! C66
+                        C(1,2) = CC(7)  ! C12
+                        C(1,3) = CC(8)  ! C13
+                        C(1,4) = CC(9)  ! C14
+                        C(1,5) = CC(10) ! C15
+                        C(1,6) = CC(11) ! C16
+                        C(2,3) = CC(12) ! C23
+                        C(2,4) = CC(13) ! C24
+                        C(2,5) = CC(14) ! C25
+                        C(2,6) = CC(15) ! C26
+                        C(3,4) = CC(16) ! C34
+                        C(3,5) = CC(17) ! C35
+                        C(3,6) = CC(18) ! C36
+                        C(4,5) = CC(19) ! C45
+                        C(4,6) = CC(20) ! C46
+                        C(5,6) = CC(21) ! C56
+                        C(2,1) = C(1,2)
+                        C(3,1) = C(1,3)
+                        C(4,1) = C(1,4)
+                        C(5,1) = C(1,5)
+                        C(6,1) = C(1,6)
+                        C(3,2) = C(2,3)
+                        C(4,2) = C(2,4)
+                        C(5,2) = C(2,5)
+                        C(6,2) = C(2,6)
+                        C(4,3) = C(3,4)
+                        C(5,3) = C(3,5)
+                        C(6,3) = C(3,6)
+                        C(5,4) = C(4,5)
+                        C(6,4) = C(4,6)
+                        C(6,5) = C(5,6)
 
-                    P_energy(i,j,k) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
-                    K_energy(i,j,k) = xmu/2.0d0 * (                       &
-                                                    (dUz_dy - dUy_dz)**2d0  &
-                                                  + (dUx_dz - dUz_dx)**2d0  &
-                                                  + (dUy_dx - dUx_dy)**2d0  &
-                                                  )
-                    R_energy(i,j,k) = 2.0d0*xmu*(dUx_dy*dUy_dx + dUx_dz*dUz_dx + dUy_dz*dUz_dy) &
-                                     -2.0d0*xmu*(dUx_dx*dUy_dy + dUx_dx*dUz_dz + dUy_dy*dUz_dz)
-
-                    C_energy(i,j,k) = 0.5d0*xdensity*(xvel(0)**2.0d0 + xvel(1)**2.0d0 + xvel(2)**2.0d0)
-
-                    !PAPER: The Energy Partitioning and the Diffusive Character of the Seismic Coda, Shapiro et al, 2000
-
+                        ! Compute strain vector in Voigt notation
+                        epsilon(1) = dUx_dx
+                        epsilon(2) = dUy_dy
+                        epsilon(3) = dUz_dz
+                        epsilon(4) = dUy_dz + dUz_dy
+                        epsilon(5) = dUx_dz + dUz_dx
+                        epsilon(6) = dUx_dy + dUy_dx
+                        U = 0.0d0
+                        do ic = 1, 6
+                            do jc = 1, 6
+                                U = U + 0.5d0 * C(ic,jc) * epsilon(ic) * epsilon(jc)
+                            end do
+                        end do
+                        P_energy(i,j,k) = U
+                    else
+                        !PAPER: The Energy Partitioning and the Diffusive Character of the Seismic Coda, Shapiro et al, 2000
+                        P_energy(i,j,k) = xmu/2.0d0 * ( &
+                                    (dUz_dy - dUy_dz)**2d0  &
+                                    + (dUx_dz - dUz_dx)**2d0  &
+                                    + (dUy_dx - dUx_dy)**2d0) &
+                                    + ((0.5d0*xlambda) + xmu) * xeps_vol**2d0 &
+                                    + 2.0d0*xmu*(dUx_dy*dUy_dx + dUx_dz*dUz_dx + dUy_dz*dUz_dy) &
+                                    -2.0d0*xmu*(dUx_dx*dUy_dy + dUx_dx*dUz_dz + dUy_dy*dUz_dz)
+                    end if
+                    K_energy(i,j,k) = 0.5d0*xdensity*(fieldV(i,j,k,0)**2.0d0 + fieldV(i,j,k,1)**2.0d0 + fieldV(i,j,k,2)**2.0d0)
                 enddo
             enddo
         enddo
