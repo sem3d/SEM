@@ -18,7 +18,7 @@ snapshots {
 };
 
 # Description des capteurs
-save_traces = true;
+save_traces = false;
 traces_format=hdf5;
 
 
@@ -60,13 +60,14 @@ capteurs "UU" {
     period = 40;
 };
 out_variables {
-    enP = 0;   # P-wave energy (scalar field)
-    enS = 0;    # S-wave energy (scalar field)
-    evol = 0;   # volumetric strain (scalar field)
-    pre  = 0;   # pressure (scalar field)
+    enP = 1;   # P-wave energy (scalar field)
+    enK = 1;    # S-wave energy (scalar field)
+    evol = 1;   # volumetric strain (scalar field)
+    pre  = 1;   # pressure (scalar field)
     dis   = 1;   # displacement (vector field)
     vel   = 1;   #  velocity (vector field)
     acc  = 1;   # acceleration (vector field)
-    edev = 0;  # deviatoric strain (tensor field)
-    sdev  = 0;  # deviatoric stress (tensor field)
+    edev = 1;  # deviatoric strain (tensor field)
+    sdev  = 1;  # deviatoric stress (tensor field)
+    eTotal = 1; # Total energy
 };

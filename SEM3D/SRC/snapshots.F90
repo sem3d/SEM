@@ -164,7 +164,7 @@ contains
             call write_1d_var_c(outputs, parent_id, "P_energy", outputs%P_energy)
         end if
         ! S_ENERGY
-        if (out_variables(OUT_ENERGYS) == 1) then
+        if (out_variables(OUT_ENERGYK) == 1) then
             call write_1d_var_c(outputs, parent_id, "K_energy", outputs%K_energy)
         end if
         ! VOL_EPS
@@ -669,13 +669,13 @@ contains
 
         if (nl_flag) then
             flag_gradU = (out_flags(OUT_ENERGYP)     + &
-                          out_flags(OUT_ENERGYS)     + &
+                          out_flags(OUT_ENERGYK)     + &
                           out_flags(OUT_DUDX)        + &
                           out_flags(OUT_EPS_VOL)) /= 0
         else
             flag_gradU = (out_flags(OUT_PRESSION)    + &
                           out_flags(OUT_ENERGYP)     + &
-                          out_flags(OUT_ENERGYS)     + &
+                          out_flags(OUT_ENERGYK)     + &
                           out_flags(OUT_DUDX)        + &
                           out_flags(OUT_EPS_VOL)     + &
                           out_flags(OUT_EPS_DEV)     + &
@@ -689,7 +689,7 @@ contains
         if (out_flags(OUT_DUDX      ) == 1) allocate(outputs%dUdX(0:8,0:nnodes-1))
         ! sortie par element
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(outputs%P_energy(0:ncells-1))
-        if (out_flags(OUT_ENERGYS   ) == 1) allocate(outputs%K_energy(0:ncells-1))
+        if (out_flags(OUT_ENERGYK   ) == 1) allocate(outputs%K_energy(0:ncells-1))
         if (out_flags(OUT_EPS_VOL   ) == 1) allocate(outputs%eps_vol(0:ncells-1))
         if (out_flags(OUT_PRESSION  ) == 1) allocate(outputs%press_c(0:ncells-1))
         if (out_flags(OUT_EPS_DEV   ) == 1) allocate(outputs%eps_dev(0:5,0:ncells-1))
@@ -700,7 +700,7 @@ contains
         if (out_flags(OUT_VITESSE   ) == 1) outputs%veloc      = 0.
         if (out_flags(OUT_ACCEL     ) == 1) outputs%accel      = 0.
         if (out_flags(OUT_ENERGYP   ) == 1) outputs%P_energy   = 0.
-        if (out_flags(OUT_ENERGYS   ) == 1) outputs%K_energy   = 0.
+        if (out_flags(OUT_ENERGYK   ) == 1) outputs%K_energy   = 0.
         if (out_flags(OUT_DUDX      ) == 1) outputs%dUdX       = 0.
         if (out_flags(OUT_EPS_VOL   ) == 1) outputs%eps_vol    = 0.
         if (out_flags(OUT_PRESSION  ) == 1) outputs%press_c    = 0.
@@ -753,7 +753,7 @@ contains
         if (out_flags(OUT_VITESSE   ) == 1) deallocate(fields%veloc)
         if (out_flags(OUT_ACCEL     ) == 1) deallocate(fields%accel)
         if (out_flags(OUT_ENERGYP   ) == 1) deallocate(fields%P_energy)
-        if (out_flags(OUT_ENERGYS   ) == 1) deallocate(fields%K_energy)
+        if (out_flags(OUT_ENERGYK   ) == 1) deallocate(fields%K_energy)
         if (out_flags(OUT_DUDX      ) == 1) deallocate(fields%dUdX)
         if (out_flags(OUT_EPS_VOL   ) == 1) deallocate(fields%eps_vol)
         if (out_flags(OUT_PRESSION  ) == 1) deallocate(fields%press_c)
@@ -1043,7 +1043,7 @@ contains
             if (out_variables(OUT_ENERGYP) == 1) then
                 call evaluate_cell_centers(ngll, GLLc, cell_start, P_energy, outputs%P_energy)
             endif
-            if (out_variables(OUT_ENERGYS) == 1) then
+            if (out_variables(OUT_ENERGYK) == 1) then
                 call evaluate_cell_centers(ngll, GLLc, cell_start, K_energy, outputs%K_energy)
             endif
             if (out_variables(OUT_EPS_VOL) == 1) then !  .and. domain_type/=DM_SOLID_DG
@@ -1272,7 +1272,7 @@ contains
                 call write_xdmf_attr_scalar_cells("sig_dev_yz", ne, i, group, "sig_dev_yz")
             end if
             if (out_variables(OUT_ENERGYP) == 1) call write_xdmf_attr_scalar_cells("P_energy", ne, i, group, "P_energy")
-            if (out_variables(OUT_ENERGYS) == 1) call write_xdmf_attr_scalar_cells("K_energy", ne, i, group, "K_energy")
+            if (out_variables(OUT_ENERGYK) == 1) call write_xdmf_attr_scalar_cells("K_energy", ne, i, group, "K_energy")
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" NumberType="Int"  Dimensions="1">',group,'</DataItem>'

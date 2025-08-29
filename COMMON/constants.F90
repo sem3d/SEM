@@ -113,7 +113,7 @@ MODULE constants
 
     ! VARIABLES DE SORTIES
     integer, parameter :: OUT_ENERGYP      = 0
-    integer, parameter :: OUT_ENERGYS      = 1
+    integer, parameter :: OUT_ENERGYK      = 1
     integer, parameter :: OUT_EPS_VOL      = 2
     integer, parameter :: OUT_DEPLA        = 3
     integer, parameter :: OUT_VITESSE      = 4

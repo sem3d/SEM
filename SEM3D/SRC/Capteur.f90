@@ -616,9 +616,9 @@ contains
                         grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*P_energy(i,j,k)
                     end if
 
-                    if (out_variables(OUT_ENERGYS) == 1) then
-                        ioff = offset(OUT_ENERGYS)
-                        nComp = OUT_VAR_DIMS_3D(OUT_ENERGYS)-1
+                    if (out_variables(OUT_ENERGYK) == 1) then
+                        ioff = offset(OUT_ENERGYK)
+                        nComp = OUT_VAR_DIMS_3D(OUT_ENERGYK)-1
                         grandeur (ioff+nComp) = grandeur (ioff+nComp) + weight*K_energy(i,j,k)
                     end if
 

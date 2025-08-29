@@ -226,7 +226,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         if (tok!=K_ID) break;
 
         if (cmp(scanner,"enP")) err=expect_eq_int(scanner, &(config->out_variables[0]),1);
-        else if (cmp(scanner,"enS")) err=expect_eq_int(scanner, &(config->out_variables[1]),1);
+        else if (cmp(scanner,"enK")) err=expect_eq_int(scanner, &(config->out_variables[1]),1);
         else if (cmp(scanner,"evol")) err=expect_eq_int(scanner, &(config->out_variables[2]),1);
         else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
         else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);

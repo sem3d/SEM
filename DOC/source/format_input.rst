@@ -105,7 +105,7 @@ Le fichier suivant correspond à celui d'un cas test : ::
   # champs à sortir dans les snapshots et dans les traces
   out_variables {
     enP =  0 ;
-    enS =  0 ;
+    enK =  0 ;
     evol = 1 ;
     pre =  0 ;
     dis  = 0 ;
@@ -516,7 +516,7 @@ Chaque mot-clé peut prendre les valeurs 0, 1, 2 ou 3 avec pour signification :
 Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  =================================================================
 enP               bool     0                  énergie ondes P
-enS               bool     0                  énergie ondes S
+enK               bool     0                  énergie ondes S
 evol              bool     0                  déformation volumétrique
 pre               bool     1                  pression
 dis               bool     0                  vecteur des déplacements

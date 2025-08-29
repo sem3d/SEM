@@ -210,7 +210,7 @@ contains
 
         flag_gradU = (out_variables(OUT_PRESSION)    + &
                       out_variables(OUT_ENERGYP)     + &
-                      out_variables(OUT_ENERGYS)     + &
+                      out_variables(OUT_ENERGYK)     + &
                       out_variables(OUT_EPS_VOL)     + &
                       out_variables(OUT_EPS_DEV)     + &
                       out_variables(OUT_STRESS_DEV)) /= 0
@@ -275,7 +275,7 @@ contains
                         P_energy(i,j,k) = 0.
                     end if
 
-                    if (out_variables(OUT_ENERGYS) == 1) then
+                    if (out_variables(OUT_ENERGYK) == 1) then
                         K_energy(i,j,k) = 0.
                     end if
 

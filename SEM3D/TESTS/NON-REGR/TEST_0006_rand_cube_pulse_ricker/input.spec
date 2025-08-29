@@ -64,7 +64,7 @@ capteurs "UU" {
 };
 out_variables {
     enP = 1;   # P-wave energy (scalar field)
-    enS = 1;    # S-wave energy (scalar field)
+    enK = 1;    # S-wave energy (scalar field)
     evol = 0;   # volumetric strain (scalar field)
     pre  = 0;   # pressure (scalar field)
     dis   = 1;   # displacement (vector field)

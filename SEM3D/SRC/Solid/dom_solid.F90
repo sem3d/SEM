@@ -286,9 +286,10 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:6) :: eps_dev_pl
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
+        real(fpp), dimension(0:6)                                        :: epsilon
         !
         logical                  :: flag_gradU
-        integer                  :: ngll, i, j, k, ind
+        integer                  :: ngll, i, j, k, ind, ic, jc
         real(fpp)                :: EXY, EXZ, EYZ
         real(fpp)                :: DXX, DXY, DXZ
         real(fpp)                :: DYX, DYY, DYZ
@@ -298,8 +299,11 @@ contains
         real(fpp)                :: xmu, xlambda, xkappa, xeps_vol
         real(fpp)                :: x2mu, xlambda2mu
         real(fpp)                :: onemSbeta, onemPbeta
-        real(fpp), dimension(0:20) :: CC
+        real(fpp)                :: U
+        !
+        real(fpp), dimension(0:20)    :: CC
         real(fpp), dimension(0:2,0:2) :: invgrad_ijk
+        real(fpp)                     :: C(6,6) ! Stiffness matrix in Voigt notation
         !
         integer :: bnum, ee, flag_gradUint
 
@@ -310,7 +314,7 @@ contains
         x2mu = 0d0
         flag_gradUint = 0
         flag_gradUint = out_variables(OUT_ENERGYP) + &
-            out_variables(OUT_ENERGYS)
+            out_variables(OUT_ENERGYK)
 
         if (.not.nl_flag) then
             flag_gradUint = flag_gradUint     + &
@@ -373,7 +377,7 @@ contains
                         end if
                         ! ELASTIC-VISCOELASTIC MODULA
                         if (out_variables(OUT_ENERGYP) == 1 .or. &
-                            out_variables(OUT_ENERGYS) == 1 .or. &
+                            out_variables(OUT_ENERGYK) == 1 .or. &
                             out_variables(OUT_STRESS_DEV) == 1) then
                             if (dom%aniso) then
                                 CC = dom%Cij_(:,i,j,k,bnum,ee)
@@ -394,18 +398,74 @@ contains
                         endif
                         ! P-ENERGY
                         if (out_variables(OUT_ENERGYP) == 1) then
-                            comp1 =  xmu/2.0d0 * (           &
-                                                    (DZY - DYZ)**2d0  &
-                                                  + (DXZ - DZX)**2d0  &
-                                                  + (DYX - DXY)**2d0  &
-                                                  )
-                            comp2 = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
-                            comp3 = 2.0d0*xmu*(DXY*DYX + DXZ*DZX + DYZ*DZY) &
-                                     -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
-                            P_energy(i,j,k) = comp1 + comp2 + comp3
+                            if (dom%aniso) then
+                                C = 0.0d0
+                                C(1,1) = CC(1)  ! C11
+                                C(2,2) = CC(2)  ! C22
+                                C(3,3) = CC(3)  ! C33
+                                C(4,4) = CC(4)  ! C44
+                                C(5,5) = CC(5)  ! C55
+                                C(6,6) = CC(6)  ! C66
+                                C(1,2) = CC(7)  ! C12
+                                C(1,3) = CC(8)  ! C13
+                                C(1,4) = CC(9)  ! C14
+                                C(1,5) = CC(10) ! C15
+                                C(1,6) = CC(11) ! C16
+                                C(2,3) = CC(12) ! C23
+                                C(2,4) = CC(13) ! C24
+                                C(2,5) = CC(14) ! C25
+                                C(2,6) = CC(15) ! C26
+                                C(3,4) = CC(16) ! C34
+                                C(3,5) = CC(17) ! C35
+                                C(3,6) = CC(18) ! C36
+                                C(4,5) = CC(19) ! C45
+                                C(4,6) = CC(20) ! C46
+                                C(5,6) = CC(21) ! C56
+                                C(2,1) = C(1,2)
+                                C(3,1) = C(1,3)
+                                C(4,1) = C(1,4)
+                                C(5,1) = C(1,5)
+                                C(6,1) = C(1,6)
+                                C(3,2) = C(2,3)
+                                C(4,2) = C(2,4)
+                                C(5,2) = C(2,5)
+                                C(6,2) = C(2,6)
+                                C(4,3) = C(3,4)
+                                C(5,3) = C(3,5)
+                                C(6,3) = C(3,6)
+                                C(5,4) = C(4,5)
+                                C(6,4) = C(4,6)
+                                C(6,5) = C(5,6)
+
+                                ! Compute strain vector in Voigt notation
+                                epsilon(1) = DXX
+                                epsilon(2) = DYY
+                                epsilon(3) = DZZ
+                                epsilon(4) = DYZ + DZY
+                                epsilon(5) = DXZ + DZX
+                                epsilon(6) = DXY + DYX
+                                U = 0.0d0
+                                do ic = 1, 6
+                                    do jc = 1, 6
+                                        U = U + 0.5d0 * C(ic,jc) * epsilon(ic) * epsilon(jc)
+                                    end do
+                                end do
+                                P_energy(i,j,k) = U
+                            else
+                                comp1 =  xmu/2.0d0 * (           &
+                                                        (DZY - DYZ)**2d0  &
+                                                    + (DXZ - DZX)**2d0  &
+                                                    + (DYX - DXY)**2d0  &
+                                                    )
+                                comp2 = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
+                                comp3 = 2.0d0*xmu*(DXY*DYX + DXZ*DZX + DYZ*DZY) &
+                                        -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
+
+                                P_energy(i,j,k) = comp1 + comp2 + comp3
+                            end if
                         end if
                         ! S-ENERGY
-                        if (out_variables(OUT_ENERGYS) == 1) then
+                        if (out_variables(OUT_ENERGYK) == 1) then
                             K_energy(i,j,k) = 0.5d0*dom%Density_(i,j,k,bnum,ee)*(dom%champs(0)%Veloc(ind,0)**2.0d0 + dom%champs(0)%Veloc(ind,1)**2.0d0 + dom%champs(0)%Veloc(ind,2)**2.0d0)
                         end if
                         ! DEVIATORIC STRAIN
@@ -456,7 +516,7 @@ contains
                             P_energy(i,j,k) = zero
                         end if
                         ! S-ENERGY
-                        if (out_variables(OUT_ENERGYS) == 1) then
+                        if (out_variables(OUT_ENERGYK) == 1) then
                             K_energy(i,j,k) = zero
                         end if
                         ! TOTAL STRAIN

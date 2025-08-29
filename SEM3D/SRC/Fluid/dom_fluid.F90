@@ -126,7 +126,7 @@ contains
         ee = mod(lnum,VCHUNK)
 
         flag_gradU = (out_variables(OUT_ENERGYP) + &
-            out_variables(OUT_ENERGYS) + &
+            out_variables(OUT_ENERGYK) + &
             out_variables(OUT_DUDX) + &
             out_variables(OUT_EPS_VOL) + &
             out_variables(OUT_EPS_DEV) + &
@@ -247,7 +247,7 @@ contains
             enddo
         end if
 
-        if (out_variables(OUT_ENERGYS) == 1) then
+        if (out_variables(OUT_ENERGYK) == 1) then
             call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                              dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
             do k=0,ngll-1
