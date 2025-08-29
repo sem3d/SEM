@@ -697,26 +697,20 @@ contains
         integer                                    :: i, j, k, n
         integer                                    :: ngll
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU
-        real(fpp), dimension(:,:,:), allocatable   :: P_energy, K_energy, R_energy, C_energy
-        real(fpp) :: local_sum_P_energy, local_sum_K_energy, local_sum_R_energy, local_sum_C_energy
-        real(fpp) :: global_sum_P_energy, global_sum_K_energy, global_sum_R_energy, global_sum_C_energy
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, K_energy
+        real(fpp) :: local_sum_P_energy, local_sum_K_energy
+        real(fpp) :: global_sum_P_energy, global_sum_K_energy
         real(fpp), dimension(:), allocatable :: GLLw
         integer :: bnum, ee
         real(fpp), dimension(:,:,:), allocatable :: jac
-        real(fpp) :: elem_P_En, elem_S_En, elem_R_En, elem_C_En
+        real(fpp) :: elem_P_En, elem_K_En
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
 
         ! Verification : is an Energy Captor?
         if(capteur%type /= CPT_ENERGY) return
-        !print *, "ENERGY CAPTOR"
-
         local_sum_P_energy = 0d0
         local_sum_K_energy = 0d0
-        local_sum_R_energy = 0d0
-        local_sum_C_energy = 0d0
-        !count_P = 0
-        !count_S = 0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
@@ -766,14 +760,10 @@ contains
                     enddo
 
                     call get_solid_dom_elem_energy(Tdomain%sdom, el%lnum, &
-                                                   P_energy, K_energy, &
-                                                   R_energy, C_energy)
+                                                   P_energy, K_energy)
 
                     call integrate_on_element(ngll, jac, GLLw, P_energy,elem_P_En)
-                    call integrate_on_element(ngll, jac, GLLw, K_energy,elem_S_En)
-                    call integrate_on_element(ngll, jac, GLLw, R_energy,elem_R_En)
-                    call integrate_on_element(ngll, jac, GLLw, C_energy,elem_C_En)
-                case (DM_FLUID_CG)
+                    call integrate_on_element(ngll, jac, GLLw, K_energy,elem_K_En)
                     do k = 0, ngll-1
                         do j = 0, ngll-1
                             do i = 0, ngll-1
@@ -783,17 +773,12 @@ contains
                     enddo
                     call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, K_energy)
                     
-                    call integrate_on_element(ngll, jac, GLLw,P_energy,elem_P_En)
-                    call integrate_on_element(ngll, jac,GLLw, K_energy,elem_S_En)
-                    elem_R_En = 0d0
-                    elem_C_En = 0d0
+                    call integrate_on_element(ngll, jac, GLLw, P_energy, elem_P_En)
+                    call integrate_on_element(ngll, jac, GLLw, K_energy, elem_K_En)
             end select
 
             local_sum_P_energy = local_sum_P_energy + elem_P_En
-            local_sum_K_energy = local_sum_K_energy + elem_S_En
-            local_sum_R_energy = local_sum_R_energy + elem_R_En
-            local_sum_C_energy = local_sum_C_energy + elem_C_En
-
+            local_sum_K_energy = local_sum_K_energy + elem_K_En
         enddo
         ! !TOTO, take out this part and put only local values (total values on post-processing)
         ! call MPI_ALLREDUCE(local_sum_K_energy, global_sum_K_energy, 1, MPI_DOUBLE_PRECISION, &
@@ -807,18 +792,13 @@ contains
 
         global_sum_P_energy = local_sum_P_energy
         global_sum_K_energy = local_sum_K_energy
-        global_sum_R_energy = local_sum_R_energy
-        global_sum_C_energy = local_sum_C_energy
         
         ! Sauvegarde des valeurs dans le capteur.
         i = capteur%icache+1
         capteur%valuecache(1,i) = Tdomain%TimeD%rtime
         capteur%valuecache(2,i) = global_sum_P_energy
         capteur%valuecache(3,i) = global_sum_K_energy
-        capteur%valuecache(4,i) = global_sum_R_energy
-        capteur%valuecache(5,i) = global_sum_C_energy
-        capteur%valuecache(6,i) = global_sum_P_energy + global_sum_K_energy &
-                                + global_sum_R_energy + global_sum_C_energy
+        capteur%valuecache(4,i) = global_sum_P_energy + global_sum_K_energy 
         capteur%icache = i
 
         ! Deallocation.
@@ -827,8 +807,6 @@ contains
         if(allocated(fieldU))   deallocate(fieldU)
         if(allocated(P_energy)) deallocate(P_energy)
         if(allocated(K_energy)) deallocate(K_energy)
-        if(allocated(R_energy)) deallocate(R_energy)
-        if(allocated(C_energy)) deallocate(C_energy)
 
     end subroutine sortieGrandeurCapteur_energy
 

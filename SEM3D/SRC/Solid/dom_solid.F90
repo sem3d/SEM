@@ -400,27 +400,27 @@ contains
                         if (out_variables(OUT_ENERGYP) == 1) then
                             if (dom%aniso) then
                                 C = 0.0d0
-                                C(1,1) = CC(1)  ! C11
-                                C(2,2) = CC(2)  ! C22
-                                C(3,3) = CC(3)  ! C33
-                                C(4,4) = CC(4)  ! C44
-                                C(5,5) = CC(5)  ! C55
-                                C(6,6) = CC(6)  ! C66
-                                C(1,2) = CC(7)  ! C12
-                                C(1,3) = CC(8)  ! C13
-                                C(1,4) = CC(9)  ! C14
-                                C(1,5) = CC(10) ! C15
-                                C(1,6) = CC(11) ! C16
-                                C(2,3) = CC(12) ! C23
-                                C(2,4) = CC(13) ! C24
-                                C(2,5) = CC(14) ! C25
-                                C(2,6) = CC(15) ! C26
-                                C(3,4) = CC(16) ! C34
-                                C(3,5) = CC(17) ! C35
-                                C(3,6) = CC(18) ! C36
-                                C(4,5) = CC(19) ! C45
-                                C(4,6) = CC(20) ! C46
-                                C(5,6) = CC(21) ! C56
+                                C(1,1) = CC(0)  ! C11
+                                C(2,2) = CC(1)  ! C22
+                                C(3,3) = CC(2)  ! C33
+                                C(4,4) = CC(3)  ! C44
+                                C(5,5) = CC(4)  ! C55
+                                C(6,6) = CC(5)  ! C66
+                                C(1,2) = CC(6)  ! C12
+                                C(1,3) = CC(7)  ! C13
+                                C(1,4) = CC(8)  ! C14
+                                C(1,5) = CC(9)  ! C15
+                                C(1,6) = CC(10) ! C16
+                                C(2,3) = CC(11) ! C23
+                                C(2,4) = CC(12) ! C24
+                                C(2,5) = CC(13) ! C25
+                                C(2,6) = CC(14) ! C26
+                                C(3,4) = CC(15) ! C34
+                                C(3,5) = CC(16) ! C35
+                                C(3,6) = CC(17) ! C36
+                                C(4,5) = CC(18) ! C45
+                                C(4,6) = CC(19) ! C46
+                                C(5,6) = CC(20) ! C56
                                 C(2,1) = C(1,2)
                                 C(3,1) = C(1,3)
                                 C(4,1) = C(1,4)
@@ -565,16 +565,21 @@ contains
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy !R_energy = Residual energy (tend to zero as propagation takes place)
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV
+        real(fpp), dimension(0:6)                  :: epsilon
 
-        integer                  :: ngll, i, j, k, ind
+        integer                  :: ngll, i, j, k, ind, ic, jc
         real(fpp)                :: xmu, xlambda, xkappa, xdensity
         real(fpp)                :: onemSbeta, onemPbeta
         real(fpp)                :: xeps_vol
+        real(fpp)                :: U
         real(fpp), dimension(0:2,0:2) :: invgrad_ijk
         real(fpp), dimension(0:2) ::xvel
         real(fpp) :: dUx_dx,dUx_dy,dUx_dz
         real(fpp) :: dUy_dx,dUy_dy,dUy_dz
         real(fpp) :: dUz_dx,dUz_dy,dUz_dz
+                !
+        real(fpp), dimension(0:20)    :: CC
+        real(fpp)                     :: C(6,6) ! Stiffness matrix in Voigt notation
         !
         integer :: bnum, ee
 
@@ -660,27 +665,27 @@ contains
 
                     if ( dom%aniso) then
                         C = 0.0d0
-                        C(1,1) = CC(1)  ! C11
-                        C(2,2) = CC(2)  ! C22
-                        C(3,3) = CC(3)  ! C33
-                        C(4,4) = CC(4)  ! C44
-                        C(5,5) = CC(5)  ! C55
-                        C(6,6) = CC(6)  ! C66
-                        C(1,2) = CC(7)  ! C12
-                        C(1,3) = CC(8)  ! C13
-                        C(1,4) = CC(9)  ! C14
-                        C(1,5) = CC(10) ! C15
-                        C(1,6) = CC(11) ! C16
-                        C(2,3) = CC(12) ! C23
-                        C(2,4) = CC(13) ! C24
-                        C(2,5) = CC(14) ! C25
-                        C(2,6) = CC(15) ! C26
-                        C(3,4) = CC(16) ! C34
-                        C(3,5) = CC(17) ! C35
-                        C(3,6) = CC(18) ! C36
-                        C(4,5) = CC(19) ! C45
-                        C(4,6) = CC(20) ! C46
-                        C(5,6) = CC(21) ! C56
+                        C(1,1) = CC(0)  ! C11
+                        C(2,2) = CC(1)  ! C22
+                        C(3,3) = CC(2)  ! C33
+                        C(4,4) = CC(3)  ! C44
+                        C(5,5) = CC(4)  ! C55
+                        C(6,6) = CC(5)  ! C66
+                        C(1,2) = CC(6)  ! C12
+                        C(1,3) = CC(7)  ! C13
+                        C(1,4) = CC(8)  ! C14
+                        C(1,5) = CC(9)  ! C15
+                        C(1,6) = CC(10) ! C16
+                        C(2,3) = CC(11) ! C23
+                        C(2,4) = CC(12) ! C24
+                        C(2,5) = CC(13) ! C25
+                        C(2,6) = CC(14) ! C26
+                        C(3,4) = CC(15) ! C34
+                        C(3,5) = CC(16) ! C35
+                        C(3,6) = CC(17) ! C36
+                        C(4,5) = CC(18) ! C45
+                        C(4,6) = CC(19) ! C46
+                        C(5,6) = CC(20) ! C56
                         C(2,1) = C(1,2)
                         C(3,1) = C(1,3)
                         C(4,1) = C(1,4)
