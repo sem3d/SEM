@@ -764,6 +764,7 @@ contains
 
                     call integrate_on_element(ngll, jac, GLLw, P_energy,elem_P_En)
                     call integrate_on_element(ngll, jac, GLLw, K_energy,elem_K_En)
+                case (DM_FLUID_CG)
                     do k = 0, ngll-1
                         do j = 0, ngll-1
                             do i = 0, ngll-1
