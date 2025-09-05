@@ -111,6 +111,9 @@ contains
                 case (MATDEF_HOOKE_ANISO)
                     nprop = 22
                     Tdomain%aniso=.true.
+                case (CSTAR)
+                    nprop = 22
+                    Tdomain%aniso=.true.            
                 end select
 
                 ! check for spherical material

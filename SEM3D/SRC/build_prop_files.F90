@@ -75,7 +75,7 @@ contains
             mat%prop_field(6)%propName = "Eta"
             mat%prop_field(7)%propName = "Qkappa"
             mat%prop_field(8)%propName = "Qmu"
-        case(MATDEF_HOOKE_ANISO)
+        case(MATDEF_HOOKE_ANISO, CSTAR)
             mat%prop_field(1)%propName = "C11"
             mat%prop_field(2)%propName = "C22"
             mat%prop_field(3)%propName = "C33"
@@ -108,10 +108,14 @@ contains
             mat%prop_field(5)%propName = "Qs"
         end select
 
-        do i = 1,mat%n_prop
-            call init_prop_file_field(mat, mat%prop_field(i))
-        end do
-
+        select case (mat%deftype)
+            case(CSTAR) 
+                call init_prop_file_field_Cstar(mat)
+            case default
+                do i = 1,mat%n_prop
+                    call init_prop_file_field(mat, mat%prop_field(i))
+                end do
+        end select
     end subroutine init_prop_file
 
     ! Check for existence of a group in HDF5 file
@@ -208,6 +212,139 @@ contains
         if (subgrp) call H5Gclose_f(grp_id, hdferr)
         call H5Fclose_f(file_id, hdferr)
     end subroutine init_prop_file_field
+
+    subroutine init_prop_file_field_Cstar(mat)
+        use, intrinsic :: iso_c_binding
+        type(subdomain), intent(inout) :: mat
+        real(fpp), dimension(0:2) :: xxr
+ 
+        integer, parameter :: num_comp = 22
+        integer, parameter :: ntriu = 21
+        integer :: i, j, k, a, b, kk, comp, ielx, iely, ielz, idx, Nd
+        integer :: nelx, nely, nelz, nelements  
+        integer :: iheader, reclen, icode, ndeg
+        real(4) :: rxel, ryel, rzel, xs, ys, zs
+        integer :: nx, ny, nz
+        integer :: triu_idx(2, ntriu)
+        integer :: iindo(2, ntriu)
+        integer, dimension(0:1) :: ix, iy, iz
+        
+        real(4), dimension(:,:,:,:)  , allocatable :: buffer
+        real(4), dimension(:,:,:,:,:), allocatable :: elemtmp
+        integer, dimension(:,:) :: list
+
+        ! File I/O
+        integer :: unit, ios
+        character(len=256) :: filename
+       
+        if (.not. mat%present) return
+
+        open(newunit=unit, file= trim(mat%prop_field(1)%propFilePath), form='unformatted', access='stream',status='old', action='read', iostat=ios)
+        if (ios /= 0) then
+          write(*,*) "Could not open file:", trim(mat%prop_field(1)%propFilePath)
+          stop 1
+        end if
+       
+        ! read general info about Cstar
+        read(unit) icode
+        if (icode /= -82) stop 'Unsupported icode in reading CStar file'
+        read(unit) iheader
+        read(unit) reclen
+        read(unit) Nd
+        read(unit) ndeg
+        read(unit) nelx
+        read(unit) nely
+        read(unit) nelz
+        read(unit) rxel
+        read(unit) ryel
+        read(unit) rzel
+        read(unit) xs
+        read(unit) ys
+        read(unit) zs
+
+   do i = 1,mat%n_prop
+          mat%prop_field(i)%MinBound(0) = -0.0001
+          mat%prop_field(i)%MaxBound(0) = xs 
+          mat%prop_field(i)%MinBound(1) = -0.0001
+          mat%prop_field(i)%MaxBound(1) = ys 
+          mat%prop_field(i)%MinBound(2) = -0.0001
+          mat%prop_field(i)%MaxBound(2) = zs 
+          mat%prop_field(i)%NN(0) = Nx
+          mat%prop_field(i)%NN(1) = Ny
+          mat%prop_field(i)%NN(2) = Nz
+
+          do k = 0,2
+            mat%prop_field(i)%imin(k) = gindex(min_bound_loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))
+            mat%prop_field(i)%imax(k) = gindex(max_bound_loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))+1
+            mat%prop_field(i)%step(k) = (mat%prop_field(i)%MaxBound(k)-mat%prop_field(i)%MinBound(k))/(mat%prop_field(i)%NN(k)-1)
+            if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
+            if (mat%prop_field(i)%imin(k)<0) then
+              mat%prop_field(i)%imin(k) = 0
+              if (mat%prop_field(i)%imax(k)<1) mat%prop_field(i)%imax(k) = 1
+            endif
+            if (mat%prop_field(i)%imax(k)>=mat%prop_field(i)%NN(k)) then
+              mat%prop_field(i)%imax(k) = mat%prop_field(i)%NN(k)-1
+              if (mat%prop_field(i)%imin(k)>(mat%prop_field(i)%imax(k)-1)) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
+            endif
+            if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imax(k) = mat%prop_field(i)%imin(k)
+            if (mat%is_sph) then
+              mat%prop_field(i)%imin(k)=0
+              mat%prop_field(i)%imax(k)=mat%prop_field(i)%NN(k)-1
+            end if
+          end do
+        end do 
+                
+
+        if (mat%is_sph) then
+          xxr=matmul(mat%sph_args%R_from_pole_chk,min_bound_loc)
+          call cart2sph(xxr,min_bound_loc,.true.)
+          xxr=matmul(mat%sph_args%R_from_pole_chk,max_bound_loc)
+          call cart2sph(xxr,max_bound_loc,.true.)
+          !!! reverse latitude correction
+          minmax_swap=min_bound_loc(1)
+          min_bound_loc(1)=max_bound_loc(1)
+          max_bound_loc(1)=minmax_swap
+        end if
+
+       ix(0) = max(floor(mat%MinBound_Loc(0)/rxel),0)
+       ix(1) = min(ceil(mat%MaxBound_Loc(0)/rxel),nelx)
+
+       iy(0) = max(floor(mat%MinBound_Loc(1)/ryel),0)
+       iy(1) = min(ceil(mat%MaxBound_Loc(1)/ryel),nely)
+
+       iz(0) = max(floor(mat%MinBound_Loc(2)/rzel),0)
+       iz(1) = min(ceil(mat%MaxBound_Loc(2)/rzel),nelz)
+
+       nelem_needed = (ix(1)-ix(0))*(iy(1)-iy(0))*(iz(1)-iz(0))
+       allocate(list(nelem_needed,3))
+
+        ! get the elements to be read
+        i = 0
+        do ielx = ix(0), ix(1)
+          do iely = iy(0), iy(1)
+            do ielz = iz(0), iz(1)
+                list(1,i) = ielx 
+                list(2,i) = iely
+                list(3,i) = ielz
+                i = i+1
+            end do
+          end do          
+        end do
+        
+        allocate(buffer(Nd*(Nd+1)/2+1,ndeg+1,ndeg+1,ndeg+1) )
+        allocate(elemtmp(ndeg+1,ndeg+1,ndeg+1,22,nelem_needed))
+
+        do i=1,nelem_needed
+            irec=iheader+list(1,i)+(list(2,i)-1)*nelx+(list(3,i)-1)*nelx*nely
+            read(unit,rec=irec,iostat=ier)((((buffer(kk,k,l,m),kk=1,Nd*(Nd+1)/2+1),k=1,ndeg+1),l=1,ndeg+1),m=1,ndeg+1)
+            !do comp=1,Nd*(Nd+1)/2+1
+            !    mat%prop_field(comp)%var(a,b,kk) = buffer(comp,:,:,:)
+            !enddo
+        end do
+     
+     close(unit)
+
+    end subroutine init_prop_file_field_Cstar
 
     subroutine cleanup_prop_file(mat)
         integer :: i

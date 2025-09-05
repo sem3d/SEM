@@ -542,7 +542,7 @@ contains
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), eta)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), Qk)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(8), Qm)
-                case (MATDEF_HOOKE_ANISO)
+                case (MATDEF_HOOKE_ANISO, CSTAR)
                     aniso=.true.
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1),Cij(1,1,:,:,:))
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2),Cij(2,2,:,:,:))
@@ -643,7 +643,7 @@ contains
                     end do
                 end do
             end if
-        case(MATDEF_HOOKE_ANISO)
+        case(MATDEF_HOOKE_ANISO, CSTAR)
             !Cij definis au moment lecture fichier material.spec
             do i = 2,6
                 do j = 1,i-1
@@ -662,7 +662,7 @@ contains
 
         select case (specel%domain)
         case (DM_SOLID_CG)
-            if (mat%deftype==MATDEF_VTI_ANISO .or. mat%deftype==MATDEF_HOOKE_ANISO) then
+            if (mat%deftype==MATDEF_VTI_ANISO .or. mat%deftype==MATDEF_HOOKE_ANISO .or. mat%deftype==CSTAR) then
                 call init_material_tensor_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Qk,Qm,Cij)
             else
                 call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Qk,Qm,nlkp,Tdomain%nl_flag)
