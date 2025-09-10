@@ -32,6 +32,7 @@ const keyword_t str_mat_descrs[] = {
     {13, "Nu_Vs_Rho_D" },
     {14, "VTI_Aniso" },
     {15, "Hooke_Aniso" },
+    {16, "Cstar" }
 };
 
 const keyword_t str_mat_spatial[] = {

@@ -45,7 +45,7 @@ module mCapteur
     integer           :: dimCapteur        ! nombre total de capteurs
 
     type(Tcapteur), pointer :: listeCapteur
-    type(Tcapteur), pointer :: capt_En_PS
+    type(Tcapteur), pointer :: capt_Energy
 
     integer,parameter :: fileIdCapteur=200  ! id fichier capteur
 
@@ -175,27 +175,27 @@ contains
 
             if(Tdomain%rank == 0) write(*,*) "CREATING ENERGY SENSORS"
 
-            allocate(capt_En_PS)
+            allocate(capt_Energy)
 
-            n_out = 5
-            if (.not.allocated(capt_En_PS%valuecache)) allocate(capt_En_PS%valuecache(1:n_out+1,NCAPT_CACHE))
+            n_out = 7
+            if (.not.allocated(capt_Energy%valuecache)) allocate(capt_Energy%valuecache(1:n_out+1,NCAPT_CACHE))
 
-            capt_En_PS%nom = "En_PS"
-            capt_En_PS%type = CPT_ENERGY
+            capt_Energy%nom = "Energy"
+            capt_Energy%type = CPT_ENERGY
             !capt_En_PS%periode = periodeRef !TODO
-            capt_En_PS%periode = 1 !TODO
-            capt_En_PS%coord(1) = -1111
-            capt_En_PS%coord(2) = -1111
-            capt_En_PS%coord(3) = -1111
-            capt_En_PS%xi = -1111
-            capt_En_PS%eta = -1111
-            capt_En_PS%zeta = -1111
-            capt_En_PS%n_el = -1
-            capt_En_PS%numproc = Tdomain%rank
-            capt_En_PS%icache = 0
-            capt_En_PS%suivant => listeCapteur
-            listeCapteur => capt_En_PS
-            write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capt_En_PS%nom), &
+            capt_Energy%periode = 1 
+            capt_Energy%coord(1) = -1111
+            capt_Energy%coord(2) = -1111
+            capt_Energy%coord(3) = -1111
+            capt_Energy%xi = -1111
+            capt_Energy%eta = -1111
+            capt_Energy%zeta = -1111
+            capt_Energy%n_el = -1
+            capt_Energy%numproc = Tdomain%rank
+            capt_Energy%icache = 0
+            capt_Energy%suivant => listeCapteur
+            listeCapteur => capt_Energy
+            write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capt_Energy%nom), &
                 " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
 
         end if
@@ -324,12 +324,13 @@ contains
         integer(HID_T) :: tid, dsetid, spaceid
         integer :: hdferr
         character(len=12), dimension(:), allocatable :: varnames
-        character(len=12), dimension(6) :: energy_varnames = ["Time       1", &
-                                                              "Eng_P      1", &
-                                                              "Eng_S      1", &
-                                                              "Eng_Resid  1", &
-                                                              "Eng_Cine   1", &
-                                                              "Eng_Total  1"]
+        character(len=12), dimension(7) :: energy_varnames = ["Time       1", &
+                                                              "EnergyP    1", &
+                                                              "EnergyK    1", &
+                                                              "EnergyL    1", &
+                                                              "EnergyS    1", &
+                                                              "EnergyR    1", &
+                                                              "Total  1"]
         character(len=12) :: temp
         integer :: d,k,dim,dimtot
         integer(HSIZE_T), dimension(1) :: dims
@@ -366,7 +367,7 @@ contains
             call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
             call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
             call H5Screate_simple_f(1, dims, spaceid, hdferr)
-            call H5Dcreate_f(fid, "En_PS_Variables", tid, spaceid, dsetid, hdferr)
+            call H5Dcreate_f(fid, "Energy_Variables", tid, spaceid, dsetid, hdferr)
             call H5Dwrite_f(dsetid, tid, energy_varnames, dims, hdferr, spaceid, spaceid)
             call H5Dclose_f(dsetid, hdferr)
             call H5Sclose_f(spaceid, hdferr)
@@ -491,6 +492,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, K_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: D_energy
         real(fpp), dimension(:,:,:,:), allocatable :: dUdX
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
@@ -515,6 +517,7 @@ contains
         allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
         allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(D_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! tot energy 5
         allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
@@ -560,17 +563,17 @@ contains
               !  dUdX)
             case (DM_SOLID_CG)
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev, &
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev, &
                 dUdX, nl_flag, eps_dev_pl)
             case (DM_FLUID_CG)
               call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev, dUdX)
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev, dUdX)
             case (DM_SOLID_CG_PML)
               call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev)
             case (DM_FLUID_CG_PML)
               call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el)%lnum, out_variables, &
-                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev)
             case default
               stop "unknown domain"
         end select
@@ -653,6 +656,13 @@ contains
                         + (/weight*sig_dev(i,j,k,0), weight*sig_dev(i,j,k,1), weight*sig_dev(i,j,k,2), &
                             weight*sig_dev(i,j,k,3), weight*sig_dev(i,j,k,4), weight*sig_dev(i,j,k,5)/)
                     end if
+
+                    if (out_variables(OUT_ENERGYD) == 1) then
+                        ioff = offset(OUT_ENERGYD)
+                        nComp = OUT_VAR_DIMS_3D(OUT_ENERGYD)-1
+                        grandeur(ioff:ioff+nComp) = grandeur (ioff:ioff+nComp) + weight*D_energy(i,j,k,:)
+                    end if
+
                 enddo
             enddo
         enddo
@@ -671,6 +681,7 @@ contains
         deallocate(fieldP)
         deallocate(P_energy)
         deallocate(K_energy)
+        deallocate(D_energy)
         deallocate(eps_vol)
         deallocate(eps_dev)
         deallocate(eps_dev_pl)
@@ -698,12 +709,16 @@ contains
         integer                                    :: ngll
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, K_energy
+        real(fpp), dimension(:,:,:,:), allocatable :: D_energy
         real(fpp) :: local_sum_P_energy, local_sum_K_energy
+        real(fpp) :: local_sum_L_energy, local_sum_S_energy, local_sum_R_energy
         real(fpp) :: global_sum_P_energy, global_sum_K_energy
+        real(fpp) :: global_sum_L_energy, global_sum_S_energy, global_sum_R_energy
         real(fpp), dimension(:), allocatable :: GLLw
         integer :: bnum, ee
         real(fpp), dimension(:,:,:), allocatable :: jac
         real(fpp) :: elem_P_En, elem_K_En
+        real(fpp), dimension(0:2) :: elem_D_En
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
 
@@ -760,10 +775,13 @@ contains
                     enddo
 
                     call get_solid_dom_elem_energy(Tdomain%sdom, el%lnum, &
-                                                   P_energy, K_energy)
+                                                   P_energy, K_energy, D_energy)
 
                     call integrate_on_element(ngll, jac, GLLw, P_energy,elem_P_En)
                     call integrate_on_element(ngll, jac, GLLw, K_energy,elem_K_En)
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,0), elem_D_En(0))
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,1), elem_D_En(1))
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,2), elem_D_En(2))
                 case (DM_FLUID_CG)
                     do k = 0, ngll-1
                         do j = 0, ngll-1
@@ -772,14 +790,20 @@ contains
                             enddo
                         enddo
                     enddo
-                    call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, K_energy)
+                    call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, K_energy, D_energy)
                     
                     call integrate_on_element(ngll, jac, GLLw, P_energy, elem_P_En)
                     call integrate_on_element(ngll, jac, GLLw, K_energy, elem_K_En)
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,0), elem_D_En(0))
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,1), elem_D_En(1))
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,2), elem_D_En(2))
             end select
 
             local_sum_P_energy = local_sum_P_energy + elem_P_En
             local_sum_K_energy = local_sum_K_energy + elem_K_En
+            local_sum_L_energy = local_sum_L_energy + elem_D_En(0)
+            local_sum_S_energy = local_sum_S_energy + elem_D_En(1)
+            local_sum_R_energy = local_sum_R_energy + elem_D_En(2)
         enddo
         ! !TOTO, take out this part and put only local values (total values on post-processing)
         ! call MPI_ALLREDUCE(local_sum_K_energy, global_sum_K_energy, 1, MPI_DOUBLE_PRECISION, &
@@ -793,13 +817,19 @@ contains
 
         global_sum_P_energy = local_sum_P_energy
         global_sum_K_energy = local_sum_K_energy
-        
+        global_sum_L_energy = local_sum_L_energy
+        global_sum_S_energy = local_sum_S_energy
+        global_sum_R_energy = local_sum_R_energy
+
         ! Sauvegarde des valeurs dans le capteur.
         i = capteur%icache+1
         capteur%valuecache(1,i) = Tdomain%TimeD%rtime
         capteur%valuecache(2,i) = global_sum_P_energy
         capteur%valuecache(3,i) = global_sum_K_energy
-        capteur%valuecache(4,i) = global_sum_P_energy + global_sum_K_energy 
+        capteur%valuecache(4,i) = global_sum_L_energy
+        capteur%valuecache(5,i) = global_sum_S_energy
+        capteur%valuecache(6,i) = global_sum_R_energy
+        capteur%valuecache(7,i) = global_sum_P_energy + global_sum_K_energy 
         capteur%icache = i
 
         ! Deallocation.
@@ -808,7 +838,7 @@ contains
         if(allocated(fieldU))   deallocate(fieldU)
         if(allocated(P_energy)) deallocate(P_energy)
         if(allocated(K_energy)) deallocate(K_energy)
-
+        if(allocated(D_energy)) deallocate(D_energy)
     end subroutine sortieGrandeurCapteur_energy
 
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,

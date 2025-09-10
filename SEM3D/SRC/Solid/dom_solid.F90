@@ -268,7 +268,7 @@ contains
     end subroutine get_solid_dom_grad_mu
 
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy,&
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, &
         eps_vol, eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
         use deriv3d
         implicit none
@@ -281,6 +281,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: K_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: D_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
@@ -322,7 +323,8 @@ contains
                 out_variables(OUT_DUDX)       + &
                 out_variables(OUT_EPS_VOL)    + &
                 out_variables(OUT_EPS_DEV)    + &
-                out_variables(OUT_STRESS_DEV)
+                out_variables(OUT_STRESS_DEV) + &
+                out_variables(OUT_ENERGYD)
         endif
 
         flag_gradU = flag_gradUint /= 0
@@ -462,6 +464,9 @@ contains
                                         -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
 
                                 P_energy(i,j,k) = comp1 + comp2 + comp3
+                                D_energy(i,j,k,0) = comp1
+                                D_energy(i,j,k,1) = comp2
+                                D_energy(i,j,k,2) = comp3
                             end if
                         end if
                         ! S-ENERGY
@@ -500,6 +505,26 @@ contains
                                 sig_dev(i,j,k,5) =  xmu * (DYZ + DZY)
                             endif
                         endif
+                        ! ENERGY DECOMPOSITION
+                        if (out_variables(OUT_ENERGYD) == 1) then
+                            if (dom%aniso) then
+                                D_energy(i,j,k,:) = 0.
+                            else
+                                comp1 =  xmu/2.0d0 * (                 &
+                                                     (DZY - DYZ)**2d0  &
+                                                    + (DXZ - DZX)**2d0 &
+                                                    + (DYX - DXY)**2d0 &
+                                                    )
+                                comp2 = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
+                                comp3 = 2.0d0*xmu*(DXY*DYX + DXZ*DZX + DYZ*DZY) &
+                                        -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
+
+                                D_energy(i,j,k,0) = comp1
+                                D_energy(i,j,k,1) = comp2
+                                D_energy(i,j,k,2) = comp3
+
+                            end if
+                        end if
                     end if
                     if (nl_flag) then
                         ! PRESSION
@@ -510,14 +535,13 @@ contains
                         if (out_variables(OUT_EPS_VOL) == 1) then
                             eps_vol(i,j,k) = -sum(dom%strain_(0:2,i,j,k,bnum,ee))
                         end if
-                        ![TODOLUCIANO]
-                        ! P-ENERGY
+                        ! POTENTIAL ENERGY
                         if (out_variables(OUT_ENERGYP) == 1) then
-                            P_energy(i,j,k) = zero
+                            P_energy(i,j,k) = 0. !TODO
                         end if
-                        ! S-ENERGY
+                        ! KINECT ENERGY
                         if (out_variables(OUT_ENERGYK) == 1) then
-                            K_energy(i,j,k) = zero
+                            K_energy(i,j,k) = 0. !TODO
                         end if
                         ! TOTAL STRAIN
                         if (out_variables(OUT_EPS_DEV) == 1) then
@@ -549,6 +573,10 @@ contains
                             sig_dev(i,j,k,:)   = dom%stress_(:,i,j,k,bnum,ee)
                             sig_dev(i,j,k,0:2) = sig_dev(i,j,k,0:2) - sum(sig_dev(i,j,k,0:2))*M_1_3
                         endif
+                        ! ENERIGY DECOMPOSITION
+                        if (out_variables(OUT_ENERGYD) == 1) then
+                            D_energy(i,j,k,:) = 0.
+                        endif
                     end if
                 enddo
             enddo
@@ -557,13 +585,14 @@ contains
     end subroutine get_solid_dom_var
 
 
-    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, K_energy)
+    subroutine get_solid_dom_elem_energy(dom, lnum, P_energy, K_energy, D_energy)
         use deriv3d
         implicit none
         !
         type(domain_solid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy !R_energy = Residual energy (tend to zero as propagation takes place)
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy
+        real(fpp), dimension(:,:,:,:), allocatable, intent(inout) :: D_energy
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV
         real(fpp), dimension(0:6)                  :: epsilon
 
@@ -609,8 +638,11 @@ contains
         !Allocation
         if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(D_energy)) allocate(D_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+
         K_energy = -1
         P_energy = -1
+        D_energy = -1
         if (dom%aniso) return
 
 
@@ -725,6 +757,13 @@ contains
                                     + ((0.5d0*xlambda) + xmu) * xeps_vol**2d0 &
                                     + 2.0d0*xmu*(dUx_dy*dUy_dx + dUx_dz*dUz_dx + dUy_dz*dUz_dy) &
                                     -2.0d0*xmu*(dUx_dx*dUy_dy + dUx_dx*dUz_dz + dUy_dy*dUz_dz)
+                        D_energy(i,j,k,0) = xmu/2.0d0 * ( &
+                                    (dUz_dy - dUy_dz)**2d0  &
+                                    + (dUx_dz - dUz_dx)**2d0  &
+                                    + (dUy_dx - dUx_dy)**2d0)
+                        D_energy(i,j,k,1) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0 
+                        D_energy(i,j,k,2) =  2.0d0*xmu*(dUx_dy*dUy_dx + dUx_dz*dUz_dx + dUy_dz*dUz_dy) &
+                                    -2.0d0*xmu*(dUx_dx*dUy_dy + dUx_dx*dUz_dz +dUy_dy*dUz_dz)
                     end if
                     K_energy(i,j,k) = 0.5d0*xdensity*(fieldV(i,j,k,0)**2.0d0 + fieldV(i,j,k,1)**2.0d0 + fieldV(i,j,k,2)**2.0d0)
                 enddo

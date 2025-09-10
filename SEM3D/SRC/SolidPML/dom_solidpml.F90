@@ -112,7 +112,7 @@ contains
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain_solidpml)                      :: dom
@@ -122,6 +122,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: K_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: D_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
@@ -137,7 +138,8 @@ contains
             out_variables(OUT_ENERGYK) + &
             out_variables(OUT_EPS_VOL) + &
             out_variables(OUT_EPS_DEV) + &
-            out_variables(OUT_STRESS_DEV)) /= 0
+            out_variables(OUT_STRESS_DEV) +&
+            out_variables(OUT_ENERGYD) ) /= 0
 
         ngll = dom%ngll
 
@@ -185,6 +187,10 @@ contains
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
                         sig_dev(i,j,k,:) = 0.
+                    end if
+
+                    if (out_variables(OUT_ENERGYD) == 1) then
+                        D_energy(i,j,k,:) = 0.
                     end if
                 enddo
             enddo

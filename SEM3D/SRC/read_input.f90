@@ -108,12 +108,9 @@ contains
                 case (MATDEF_VTI_ANISO)
                     Tdomain%aniso=.true.
                     nprop = 8
-                case (MATDEF_HOOKE_ANISO)
+                case (MATDEF_HOOKE_ANISO, CSTAR)
                     nprop = 22
                     Tdomain%aniso=.true.
-                case (CSTAR)
-                    nprop = 22
-                    Tdomain%aniso=.true.            
                 end select
 
                 ! check for spherical material
@@ -675,7 +672,6 @@ contains
         call semname_file_input_spec(fnamef)
 
         call read_sem_config(Tdomain%config, Tdomain%rank, 3, trim(fnamef)//C_NULL_CHAR, code)
-
         if (code/=1) then
             stop 1
         endif
@@ -750,7 +746,6 @@ contains
         if (Tdomain%config%mpml/=0) then
             Tdomain%logicD%MPML = .true.
         end if
-
         Tdomain%logicD%run_restart = Tdomain%config%prorep .ne. 0
         Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
         Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde

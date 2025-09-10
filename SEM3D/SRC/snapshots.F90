@@ -217,6 +217,11 @@ contains
             call write_1d_var_c(outputs, parent_id, "sig_dev_yz", outputs%sig_dev(5,:))
         end if
 
+        if (out_variables(OUT_ENERGYD) == 1) then
+            call write_1d_var_c(outputs, parent_id, "L_energy", outputs%D_energy(0,:))
+            call write_1d_var_c(outputs, parent_id, "S_energy", outputs%D_energy(1,:))
+            call write_1d_var_c(outputs, parent_id, "R_energy", outputs%D_energy(2,:))
+        end if
 
         ! VELOCITY
         if (out_variables(OUT_VITESSE) == 1) then
@@ -679,7 +684,8 @@ contains
                           out_flags(OUT_DUDX)        + &
                           out_flags(OUT_EPS_VOL)     + &
                           out_flags(OUT_EPS_DEV)     + &
-                          out_flags(OUT_STRESS_DEV)) /= 0
+                          out_flags(OUT_STRESS_DEV)  + &
+                          out_flags(OUT_ENERGYD)   )/= 0
         endif
         ! sortie par noeud
         if (out_flags(OUT_DEPLA     ) == 1) allocate(outputs%displ(0:2,0:nnodes-1))
@@ -690,6 +696,7 @@ contains
         ! sortie par element
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(outputs%P_energy(0:ncells-1))
         if (out_flags(OUT_ENERGYK   ) == 1) allocate(outputs%K_energy(0:ncells-1))
+        if (out_flags(OUT_ENERGYD   ) == 1) allocate(outputs%D_energy(0:2,0:ncells-1))
         if (out_flags(OUT_EPS_VOL   ) == 1) allocate(outputs%eps_vol(0:ncells-1))
         if (out_flags(OUT_PRESSION  ) == 1) allocate(outputs%press_c(0:ncells-1))
         if (out_flags(OUT_EPS_DEV   ) == 1) allocate(outputs%eps_dev(0:5,0:ncells-1))
@@ -708,6 +715,7 @@ contains
         if (out_flags(OUT_EPS_DEV   ) == 1) outputs%eps_dev    = 0.
         if (out_flags(OUT_STRESS_DEV) == 1) outputs%sig_dev    = 0.
         if (out_flags(OUT_EPS_DEV_PL) == 1) outputs%eps_dev_pl = 0.
+        if (out_flags(OUT_ENERGYD   ) == 1) outputs%D_energy   = 0.
         !
 #ifdef CPML
         allocate(outputs%R1_0   (0:2,0:(nnodes-1)))
@@ -761,6 +769,7 @@ contains
         if (out_flags(OUT_EPS_DEV   ) == 1) deallocate(fields%eps_dev)
         if (out_flags(OUT_STRESS_DEV) == 1) deallocate(fields%sig_dev)
         if (out_flags(OUT_EPS_DEV_PL) == 1) deallocate(fields%eps_dev_pl)
+        if (out_flags(OUT_ENERGYD   ) == 1) deallocate(fields%D_energy)
         !
 #ifdef CPML
         deallocate(fields%R1_0)
@@ -902,6 +911,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, K_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: D_energy
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev, eps_dev_pl, dUdX
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         integer :: bnum, ee
@@ -947,7 +957,7 @@ contains
                 if (oldngll/=0) then
                     deallocate(fieldP,fieldU,fieldV,fieldA)
                     deallocate(eps_vol,eps_dev,sig_dev,dUdX)
-                    deallocate(P_energy,K_energy)
+                    deallocate(P_energy,K_energy,D_energy)
                 endif
                 allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
@@ -957,6 +967,7 @@ contains
                 allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+                allocate(D_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                 allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                 ! tot energy 5
                 allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
@@ -970,24 +981,24 @@ contains
 !                        call compute_planeW_Exafield(el%lnum,Tdomain%TimeD%rtime,Tdomain,0)
 !                    end if
                     call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,    &
-                        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol,&
+                        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol,&
                         eps_dev, sig_dev, dUdX, nl_flag, eps_dev_pl)
                 case (DM_SOLID_DG)
                     call get_solid_dg_dom_var(Tdomain%sdomdg, el%lnum, out_variables, &
                         fieldV, fieldA, eps_vol, eps_dev)
                 case (DM_FLUID_CG)
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
-                        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, &
+                        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, &
                         sig_dev, dUdX)
                 case (DM_SOLID_CG_PML)
                     call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
-                        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
+                        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev)
 #ifdef CPML
                     call get_solidpml_rfields(Tdomain, Tdomain%spmldom, n, el%lnum, outputs)
 #endif
                 case (DM_FLUID_CG_PML)
                     call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
-                    fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
+                    fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev)
 #ifdef CPML
                     call get_fluidpml_rfields(Tdomain, Tdomain%fpmldom, n, el%lnum, outputs)
 #endif
@@ -1064,6 +1075,12 @@ contains
                     call evaluate_cell_centers(ngll, GLLc, cell_start, sig_dev(:,:,:,m), outputs%sig_dev(m,:))
                 end do
             endif
+            if (out_variables(OUT_ENERGYD) == 1) then
+                do m = 0,OUT_VAR_DIMS_3D(OUT_ENERGYD)-1
+                    call evaluate_cell_centers(ngll, GLLc, cell_start, D_energy(:,:,:,m), outputs%D_energy(m,:))
+                end do
+            endif
+            
             cell_start = cell_start + (ngll-1)**3
             if(allocated(jac)) deallocate(jac)
             if(allocated(GLLc)) deallocate(GLLc)
@@ -1072,7 +1089,7 @@ contains
         if (oldngll/=0) then
             deallocate(fieldP,fieldU,fieldV,fieldA)
             deallocate(eps_vol,eps_dev,sig_dev,dUdX)
-            deallocate(P_energy,K_energy)
+            deallocate(P_energy,K_energy,D_energy)
         endif
 
         if (outputs%rank==0) then
@@ -1273,6 +1290,11 @@ contains
             end if
             if (out_variables(OUT_ENERGYP) == 1) call write_xdmf_attr_scalar_cells("P_energy", ne, i, group, "P_energy")
             if (out_variables(OUT_ENERGYK) == 1) call write_xdmf_attr_scalar_cells("K_energy", ne, i, group, "K_energy")
+            if (out_variables(OUT_ENERGYD) == 1) then
+                call write_xdmf_attr_scalar_cells("L_energy", ne, i, group, "L_energy")
+                call write_xdmf_attr_scalar_cells("S_energy", ne, i, group, "S_energy")
+                call write_xdmf_attr_scalar_cells("R_energy", ne, i, group, "R_energy")
+            end if
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" NumberType="Int"  Dimensions="1">',group,'</DataItem>'

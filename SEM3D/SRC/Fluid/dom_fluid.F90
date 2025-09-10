@@ -97,7 +97,7 @@ contains
     end subroutine fluid_velocity
 
     subroutine get_fluid_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev, dUdX)
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev, dUdX)
         use deriv3d
         implicit none
         !
@@ -113,6 +113,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: K_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: D_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
@@ -130,7 +131,8 @@ contains
             out_variables(OUT_DUDX) + &
             out_variables(OUT_EPS_VOL) + &
             out_variables(OUT_EPS_DEV) + &
-            out_variables(OUT_STRESS_DEV)) /= 0
+            out_variables(OUT_STRESS_DEV) + &
+            out_variables(OUT_ENERGYD)) /= 0
 
         ngll = dom%ngll
         allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
@@ -259,6 +261,10 @@ contains
             enddo
         end if
 
+        if (out_variables(OUT_ENERGYD) == 1) then
+            D_energy(:,:,:,:) = 0
+        end if
+
         if (out_variables(OUT_EPS_DEV) == 1) then
             eps_dev(:,:,:,:) = 0.
         end if
@@ -271,13 +277,14 @@ contains
     end subroutine get_fluid_dom_var
 
 
-    subroutine get_fluid_dom_elem_energy(dom, lnum, P_energy, K_energy)
-        use deriv3d
+    subroutine get_fluid_dom_elem_energy(dom, lnum, P_energy, K_energy, D_energy)
+
         implicit none
         !    
         type(domain_fluid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy
+        real(fpp), dimension(:,:,:,:), allocatable, intent(inout) :: D_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldV
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: phi
@@ -309,8 +316,10 @@ contains
         !Allocation
         if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        K_energy = -1
+        if(.not. allocated(P_energy)) allocate(D_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        K_energy = -1       
         P_energy = -1
+        D_energy = 0
 
         call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
                             dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)

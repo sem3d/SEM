@@ -193,7 +193,7 @@ contains
     end subroutine fluid_velocity
 
     subroutine get_fluidpml_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, eps_vol, eps_dev, sig_dev)
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, K_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain_fluidpml), intent(inout)       :: dom
@@ -205,6 +205,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: K_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: D_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: eps_vol
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
@@ -222,7 +223,8 @@ contains
             out_variables(OUT_EPS_VOL) + &
             out_variables(OUT_DUDX) + &
             out_variables(OUT_EPS_DEV) + &
-            out_variables(OUT_STRESS_DEV)) /= 0
+            out_variables(OUT_STRESS_DEV) + &
+            out_variables(OUT_ENERGYD) ) /= 0
 
         ngll = dom%ngll
         allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
@@ -292,6 +294,11 @@ contains
         if (out_variables(OUT_STRESS_DEV) == 1) then
             sig_dev(:,:,:,:) = 0.
         end if
+
+        if (out_variables(OUT_ENERGYD) == 1) then
+            D_energy(:,:,:,:) = 0.
+        end if
+        
         deallocate(phi)
         deallocate(vphi)
     end subroutine get_fluidpml_dom_var
@@ -360,13 +367,14 @@ contains
         end do
     end subroutine get_fluidpml_rfields
 
-    subroutine get_fluidpml_dom_elem_energy(dom, lnum, P_energy, K_energy)
+    subroutine get_fluidpml_dom_elem_energy(dom, lnum, P_energy, K_energy, D_energy)
         use deriv3d
         implicit none
         !
         type(domain_fluidpml), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
-        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy
+        real(fpp), dimension(:,:,:), allocatable, intent(inout)   :: P_energy, K_energy
+        real(fpp), dimension(:,:,:,:), allocatable, intent(inout) :: D_energy
         !
         integer                  :: ngll
         integer :: bnum, ee
@@ -378,8 +386,10 @@ contains
 
         if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if(.not. allocated(D_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         K_energy = 0.0d0
         P_energy = 0.0d0 !TODO
+        D_energy = 0.
     end subroutine get_fluidpml_dom_elem_energy
 
     subroutine init_material_properties_fluidpml(dom, lnum, mat, density, lambda)

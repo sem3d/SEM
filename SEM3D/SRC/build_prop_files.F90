@@ -109,7 +109,8 @@ contains
         end select
 
         select case (mat%deftype)
-            case(CSTAR) 
+            case(CSTAR)
+            write(*,*) "Uma vez" 
                 call init_prop_file_field_Cstar(mat)
             case default
                 do i = 1,mat%n_prop
@@ -168,7 +169,7 @@ contains
         ! On va calculer les indices i0,i1 j0,j1,k0,k1 tels que
         ! i0 plus grand entier tel que x(i0)<MinBound_loc(0), 
         ! i1 plus petit entier tel que x(i1)>MaxBound_loc(0), etc... 
-
+write(*,*) "NN", pf%NN
         !!! useless since we force full model read, to delete
         min_bound_loc=mat%MinBound_Loc
         max_bound_loc=mat%MaxBound_Loc
@@ -182,7 +183,7 @@ contains
             min_bound_loc(1)=max_bound_loc(1)
             max_bound_loc(1)=minmax_swap
         end if
-
+        
         do k = 0,2
             pf%imin(k) = gindex(min_bound_loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
             pf%imax(k) = gindex(max_bound_loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))+1
@@ -227,11 +228,13 @@ contains
         integer :: nx, ny, nz
         integer :: triu_idx(2, ntriu)
         integer :: iindo(2, ntriu)
-        integer, dimension(0:1) :: ix, iy, iz
+        integer, dimension(2) :: ix, iy, iz
         
         real(4), dimension(:,:,:,:)  , allocatable :: buffer
-        real(4), dimension(:,:,:,:,:), allocatable :: elemtmp
-        integer, dimension(:,:) :: list
+        real(4), dimension(:,:,:,:,:,:,:), allocatable :: elemtmp
+        integer, dimension(3) :: list
+        integer :: l, m
+        integer :: irec, ier, nelem_needed
 
         ! File I/O
         integer :: unit, ios
@@ -258,91 +261,112 @@ contains
         read(unit) rxel
         read(unit) ryel
         read(unit) rzel
-        read(unit) xs
-        read(unit) ys
-        read(unit) zs
+        !read(unit) xs
+        !read(unit) ys
+        !read(unit) zs
 
-   do i = 1,mat%n_prop
-          mat%prop_field(i)%MinBound(0) = -0.0001
-          mat%prop_field(i)%MaxBound(0) = xs 
-          mat%prop_field(i)%MinBound(1) = -0.0001
-          mat%prop_field(i)%MaxBound(1) = ys 
-          mat%prop_field(i)%MinBound(2) = -0.0001
-          mat%prop_field(i)%MaxBound(2) = zs 
-          mat%prop_field(i)%NN(0) = Nx
-          mat%prop_field(i)%NN(1) = Ny
-          mat%prop_field(i)%NN(2) = Nz
+        ix(0) = floor(mat%MinBound_Loc(0)/rxel)
+        ix(1) = ceiling(mat%MaxBound_Loc(0)/rxel)
 
-          do k = 0,2
-            mat%prop_field(i)%imin(k) = gindex(min_bound_loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))
-            mat%prop_field(i)%imax(k) = gindex(max_bound_loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))+1
-            mat%prop_field(i)%step(k) = (mat%prop_field(i)%MaxBound(k)-mat%prop_field(i)%MinBound(k))/(mat%prop_field(i)%NN(k)-1)
-            if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
-            if (mat%prop_field(i)%imin(k)<0) then
-              mat%prop_field(i)%imin(k) = 0
-              if (mat%prop_field(i)%imax(k)<1) mat%prop_field(i)%imax(k) = 1
-            endif
-            if (mat%prop_field(i)%imax(k)>=mat%prop_field(i)%NN(k)) then
-              mat%prop_field(i)%imax(k) = mat%prop_field(i)%NN(k)-1
-              if (mat%prop_field(i)%imin(k)>(mat%prop_field(i)%imax(k)-1)) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
-            endif
-            if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imax(k) = mat%prop_field(i)%imin(k)
-            if (mat%is_sph) then
-              mat%prop_field(i)%imin(k)=0
-              mat%prop_field(i)%imax(k)=mat%prop_field(i)%NN(k)-1
-            end if
-          end do
-        end do 
-                
+        iy(0) = floor(mat%MinBound_Loc(1)/ryel)
+        iy(1) = ceiling(mat%MaxBound_Loc(1)/ryel)
 
-        if (mat%is_sph) then
-          xxr=matmul(mat%sph_args%R_from_pole_chk,min_bound_loc)
-          call cart2sph(xxr,min_bound_loc,.true.)
-          xxr=matmul(mat%sph_args%R_from_pole_chk,max_bound_loc)
-          call cart2sph(xxr,max_bound_loc,.true.)
-          !!! reverse latitude correction
-          minmax_swap=min_bound_loc(1)
-          min_bound_loc(1)=max_bound_loc(1)
-          max_bound_loc(1)=minmax_swap
-        end if
+        iz(0) = floor(mat%MinBound_Loc(2)/rzel)
+        iz(1) = ceiling(mat%MaxBound_Loc(2)/rzel)
 
-       ix(0) = max(floor(mat%MinBound_Loc(0)/rxel),0)
-       ix(1) = min(ceil(mat%MaxBound_Loc(0)/rxel),nelx)
+        nelem_needed = (ix(1)-ix(0))*(iy(1)-iy(0))*(iz(1)-iz(0))
+        write(*,*) "Cstar read header"
+        write(*,*) "iheader :", iheader
+        write(*,*) "reclen :", reclen
+        write(*,*) "Nd :", Nd
+        write(*,*) "ndeg :", ndeg
+        write(*,*) "n el :", nelx, nely, nelz
+        write(*,*) "step in :", rxel, ryel, rzel
+        !write(*,*) "taille du domain :", xs, ys, zs
+        write(*,*) "finished "
+        write(*,*) "BB min from mat strucutre :", mat%MinBound_Loc
+        write(*,*) "BB max from mat strucutre :", mat%MaxBound_Loc
 
-       iy(0) = max(floor(mat%MinBound_Loc(1)/ryel),0)
-       iy(1) = min(ceil(mat%MaxBound_Loc(1)/ryel),nely)
-
-       iz(0) = max(floor(mat%MinBound_Loc(2)/rzel),0)
-       iz(1) = min(ceil(mat%MaxBound_Loc(2)/rzel),nelz)
-
-       nelem_needed = (ix(1)-ix(0))*(iy(1)-iy(0))*(iz(1)-iz(0))
-       allocate(list(nelem_needed,3))
-
-        ! get the elements to be read
-        i = 0
-        do ielx = ix(0), ix(1)
-          do iely = iy(0), iy(1)
-            do ielz = iz(0), iz(1)
-                list(1,i) = ielx 
-                list(2,i) = iely
-                list(3,i) = ielz
-                i = i+1
-            end do
-          end do          
-        end do
+        write(*,*) "x y z start in struuctured: ", ix(0), iy(0), iz(0)
+        write(*,*) "x y z end in structured: ", ix(1), iy(1), iz(1)
+        write(*,*) "Number of elements to be read :", nelem_needed
         
         allocate(buffer(Nd*(Nd+1)/2+1,ndeg+1,ndeg+1,ndeg+1) )
-        allocate(elemtmp(ndeg+1,ndeg+1,ndeg+1,22,nelem_needed))
-
-        do i=1,nelem_needed
-            irec=iheader+list(1,i)+(list(2,i)-1)*nelx+(list(3,i)-1)*nelx*nely
-            read(unit,rec=irec,iostat=ier)((((buffer(kk,k,l,m),kk=1,Nd*(Nd+1)/2+1),k=1,ndeg+1),l=1,ndeg+1),m=1,ndeg+1)
-            !do comp=1,Nd*(Nd+1)/2+1
-            !    mat%prop_field(comp)%var(a,b,kk) = buffer(comp,:,:,:)
-            !enddo
+        allocate(elemtmp(ndeg+1,ndeg+1,ndeg+1,22,nelx,nely,nelz))
+        i = 1
+        do ielz = iz(0), iz(1)-1
+            do iely = iy(0), iy(1)-1
+                do ielx = ix(0), ix(1)-1
+                    list(0) = ielx
+                    list(1) = iely
+                    list(2) = ielz
+                    irec=iheader+list(0)+(list(1)-1)*nelx+(list(2)-1)*nelx*nely
+                    read(unit,rec=irec,iostat=ier)((((buffer(kk,k,l,m),kk=1,Nd*(Nd+1)/2+1),k=1,ndeg+1),l=1,ndeg+1),m=1,ndeg+1)
+                    !write(*,*) i
+                    do kk=1,Nd*(Nd+1)/2+1
+                        elemtmp(:,:,:,kk,ielx,iely,ielz)=buffer(kk,:,:,:)
+                    enddo
+                    !i = i + 1
+                end do
+            end do
         end do
      
-     close(unit)
+        close(unit)
+
+        ! fill mat struct
+        do i = 1,mat%n_prop
+            mat%prop_field(i)%MinBound(0) = ix(0)*rxel
+            mat%prop_field(i)%MaxBound(0) = ix(1)*rxel
+            mat%prop_field(i)%MinBound(1) = iy(0)*ryel
+            mat%prop_field(i)%MaxBound(1) = iy(1)*ryel
+            mat%prop_field(i)%MinBound(2) = iz(0)*rzel
+            mat%prop_field(i)%MaxBound(2) = iz(1)*rzel
+
+            !mat%prop_field(i)%NN(0) = (ix(1)-ix(0))*(ndeg+1) + 1
+            !mat%prop_field(i)%NN(1) = (iy(1)-iy(0))*(ndeg+1) + 1
+            !mat%prop_field(i)%NN(2) = (iz(1)-iz(0))*(ndeg+1) + 1
+            mat%prop_field(i)%NN(0) = (ix(1)-ix(0))
+            mat%prop_field(i)%NN(1) = (iy(1)-iy(0))
+            mat%prop_field(i)%NN(2) = (iz(1)-iz(0))
+            !write(*,*) mat%prop_field(i)%MinBound
+            !write(*,*) mat%prop_field(i)%NN
+
+            do k = 0,2
+                mat%prop_field(i)%imin(k) = gindex(mat%MinBound_Loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))
+                mat%prop_field(i)%imax(k) = gindex(mat%Maxbound_Loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))+1
+                mat%prop_field(i)%step(k) = (mat%prop_field(i)%MaxBound(k)-mat%prop_field(i)%MinBound(k))/(mat%prop_field(i)%NN(k)-1)
+                !write(*,*) k, mat%prop_field(i)%imin(k), mat%prop_field(i)%imax(k), mat%prop_field(i)%step(k)
+                if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
+                if (mat%prop_field(i)%imin(k)<0) then
+                    mat%prop_field(i)%imin(k) = 0
+                    if (mat%prop_field(i)%imax(k)<1) mat%prop_field(i)%imax(k) = 1
+                end if
+                if (mat%prop_field(i)%imax(k)>=mat%prop_field(i)%NN(k)) then
+                    mat%prop_field(i)%imax(k) = mat%prop_field(i)%NN(k)-1
+                    if (mat%prop_field(i)%imin(k)>(mat%prop_field(i)%imax(k)-1)) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
+                endif
+                if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imax(k) = mat%prop_field(i)%imin(k)
+                if (mat%is_sph) then
+                    mat%prop_field(i)%imin(k)=0
+                    mat%prop_field(i)%imax(k)=mat%prop_field(i)%NN(k)-1
+                end if
+            end do
+            ! -------- just to test... it should be removed   
+            allocate(mat%prop_field(i)%var(nelx,nely,nelz)) 
+            do ielx = 0, nelx -1
+                do iely = 0, nely -1
+                    do ielz = 0, nelz -1
+                        mat%prop_field(i)%var(ielx,iely,ielz) = elemtmp(0,0,0,i,ielx,iely,ielz)
+                    end do
+                end do
+            end do
+            ! ------- here
+        end do
+
+        !interp to reagular grid
+        write(*,*) "Cstar readed routine end"
+        !stop 1
+
 
     end subroutine init_prop_file_field_Cstar
 

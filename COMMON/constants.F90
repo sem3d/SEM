@@ -92,8 +92,8 @@ MODULE constants
     integer, parameter :: MATDEF_NLKP_VS_RHO   = 5
     integer, parameter :: MATDEF_NU_VS_RHO     = 6
     integer, parameter :: MATDEF_VTI_ANISO     = 14
-    integer, parameter :: MATDEF_HOOKE_ANISO     = 15
-    integer, parameter :: CSTAR     = 16
+    integer, parameter :: MATDEF_HOOKE_ANISO   = 15
+    integer, parameter :: CSTAR                = 16
     ! Heterogeneous damping
     integer, parameter :: MATDEF_VP_VS_RHO_D     = 7
     integer, parameter :: MATDEF_E_NU_RHO_D      = 8
@@ -127,10 +127,11 @@ MODULE constants
     integer, parameter :: OUT_DUDX         = 11
     integer, parameter :: OUT_GRAD_LA      = 12
     integer, parameter :: OUT_GRAD_MU      = 13
-    integer, parameter :: OUT_LAST=13  ! Numero de la derniere variable
+    integer, parameter :: OUT_ENERGYD      = 14
+    integer, parameter :: OUT_LAST=14  ! Numero de la derniere variable
     character(len=10), dimension(0:OUT_LAST) :: OUT_VAR_NAMES = (/ &
         "EnergyP   ", &
-        "EnergyS   ", &
+        "EnergyK   ", &
         "Eps Vol   ", &
         "Displ     ", &
         "Veloc     ", &
@@ -142,8 +143,9 @@ MODULE constants
         "Eps Dev Pl", &
         "DUDX      ", &
         "GradLambda", &
-        "GradMu    " /)
-    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9, 3, 3/)
+        "GradMu    ", &
+        "EnergyD" /)
+    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9, 3, 3, 3 /)
 
     integer, parameter :: CPT_INTERP = 0
     integer, parameter :: CPT_ENERGY = 1
