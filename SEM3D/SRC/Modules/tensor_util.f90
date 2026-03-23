@@ -249,6 +249,36 @@ contains
         return
     end function
 
+    real(fpp) function lambda_from_CijK (C)
+
+        real(fpp), dimension(1:6,1:6), intent(IN) :: C
+        doubleprecision :: K,G,C66,C11
+        K=(C(1,1)+C(2,2)+C(3,3)+2.*(C(2,1)+C(3,1)+C(3,2)))/9.
+        !warning, because of Kelvin convension, CIJ(4,4), CIJ(5,5), CIJ(6,6)
+        !are already mutiplies by 2
+        G=(3.*(C(1,1)+C(2,2)+C(3,3)+(C(4,4)+C(5,5)+C(6,6)))-9.*K)/30.
+        C66=G
+        C11=K+C66*4./3.
+
+        lambda_from_CijK = C11-2.*C66
+        return
+    end function
+
+    ! ###############################################
+    real(fpp) function mu_from_CijK (C)
+        real(fpp), dimension(1:6,1:6), intent(IN) :: C
+        doubleprecision :: K,G,C66,C11
+        K=(C(1,1)+C(2,2)+C(3,3)+2.*(C(2,1)+C(3,1)+C(3,2)))/9.
+        !warning, because of Kelvin convension, CIJ(4,4), CIJ(5,5), CIJ(6,6)
+        !are already mutiplies by 2
+        G=(3.*(C(1,1)+C(2,2)+C(3,3)+(C(4,4)+C(5,5)+C(6,6)))-9.*K)/30.
+        mu_from_CijK = G
+        return
+    end function
+
+
+
+
 ! ############################################################
 end module tensor_util
 

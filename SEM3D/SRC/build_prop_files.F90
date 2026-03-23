@@ -75,7 +75,7 @@ contains
             mat%prop_field(6)%propName = "Eta"
             mat%prop_field(7)%propName = "Qkappa"
             mat%prop_field(8)%propName = "Qmu"
-        case(MATDEF_HOOKE_ANISO, CSTAR)
+        case(MATDEF_HOOKE_ANISO,CSTAR)
             mat%prop_field(1)%propName = "C11"
             mat%prop_field(2)%propName = "C22"
             mat%prop_field(3)%propName = "C33"
@@ -98,6 +98,29 @@ contains
             mat%prop_field(20)%propName = "C46"
             mat%prop_field(21)%propName = "C56"
             mat%prop_field(22)%propName = "Rho"
+        !case(CSTAR)
+        !    mat%prop_field(1)%propName  = "C11"
+        !    mat%prop_field(2)%propName  = "C12"
+        !    mat%prop_field(3)%propName  = "C13"
+        !    mat%prop_field(4)%propName  = "C14"
+        !    mat%prop_field(5)%propName  = "C15"
+        !    mat%prop_field(6)%propName  = "C16"
+        !    mat%prop_field(7)%propName  = "C22"
+        !    mat%prop_field(8)%propName  = "C23"
+        !    mat%prop_field(9)%propName  = "C24"
+        !    mat%prop_field(10)%propName = "C25"
+        !    mat%prop_field(11)%propName = "C26"
+        !    mat%prop_field(12)%propName = "C33"
+        !    mat%prop_field(13)%propName = "C34"
+        !    mat%prop_field(14)%propName = "C35"
+        !    mat%prop_field(15)%propName = "C35"
+        !    mat%prop_field(16)%propName = "C44"
+        !    mat%prop_field(17)%propName = "C45"
+        !    mat%prop_field(18)%propName = "C46"
+        !    mat%prop_field(19)%propName = "C55"
+        !    mat%prop_field(20)%propName = "C56"
+        !    mat%prop_field(21)%propName = "C66"
+        !    mat%prop_field(22)%propName = "Rho"
         end select
 
         select case(mat%deftype)
@@ -110,7 +133,6 @@ contains
 
         select case (mat%deftype)
             case(CSTAR)
-            write(*,*) "Uma vez" 
                 call init_prop_file_field_Cstar(mat)
             case default
                 do i = 1,mat%n_prop
@@ -169,7 +191,7 @@ contains
         ! On va calculer les indices i0,i1 j0,j1,k0,k1 tels que
         ! i0 plus grand entier tel que x(i0)<MinBound_loc(0), 
         ! i1 plus petit entier tel que x(i1)>MaxBound_loc(0), etc... 
-write(*,*) "NN", pf%NN
+
         !!! useless since we force full model read, to delete
         min_bound_loc=mat%MinBound_Loc
         max_bound_loc=mat%MaxBound_Loc
@@ -188,6 +210,7 @@ write(*,*) "NN", pf%NN
             pf%imin(k) = gindex(min_bound_loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
             pf%imax(k) = gindex(max_bound_loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))+1
             pf%step(k) = (pf%MaxBound(k)-pf%MinBound(k))/(pf%NN(k)-1)
+            write(*,*) "k: ", k, "imin: ",pf%imin(k), "imax: ",pf%imax(k), "step: ",pf%step(k)
             if ((pf%imax(k)-pf%imin(k))<1) pf%imin(k) = pf%imax(k)-1
             if (pf%imin(k)<0) then
                 pf%imin(k) = 0
@@ -215,7 +238,7 @@ write(*,*) "NN", pf%NN
     end subroutine init_prop_file_field
 
     subroutine init_prop_file_field_Cstar(mat)
-        use, intrinsic :: iso_c_binding
+        !use, intrinsic :: iso_c_binding
         type(subdomain), intent(inout) :: mat
         real(fpp), dimension(0:2) :: xxr
  
@@ -223,15 +246,17 @@ write(*,*) "NN", pf%NN
         integer, parameter :: ntriu = 21
         integer :: i, j, k, a, b, kk, comp, ielx, iely, ielz, idx, Nd
         integer :: nelx, nely, nelz, nelements  
-        integer :: iheader, reclen, icode, ndeg
-        real(4) :: rxel, ryel, rzel, xs, ys, zs
-        integer :: nx, ny, nz
+        integer :: iheader, reclen, icode, ndeg, len_int,len_real
+        real(4) :: rxel, ryel, rzel, xs, ys, zs, xs_whole_domain, ys_whole_domain, zs_whole_domain
+        integer :: nx, ny, nz, len
         integer :: triu_idx(2, ntriu)
         integer :: iindo(2, ntriu)
         integer, dimension(2) :: ix, iy, iz
-        
+        integer :: cx, cy, cz
+        integer :: mapping(22)
+         
         real(4), dimension(:,:,:,:)  , allocatable :: buffer
-        real(4), dimension(:,:,:,:,:,:,:), allocatable :: elemtmp
+        real(4), dimension(:,:,:,:), allocatable :: elemtmp
         integer, dimension(3) :: list
         integer :: l, m
         integer :: irec, ier, nelem_needed
@@ -239,31 +264,28 @@ write(*,*) "NN", pf%NN
         ! File I/O
         integer :: unit, ios
         character(len=256) :: filename
-       
-        if (.not. mat%present) return
+        integer :: fout = 666
+        open(unit=fout, file='outputCstar.txt', status='replace', action='write')
 
-        open(newunit=unit, file= trim(mat%prop_field(1)%propFilePath), form='unformatted', access='stream',status='old', action='read', iostat=ios)
+        if (.not. mat%present) return
+        
+        inquire(iolength=len_int) i
+        inquire(iolength=len_real)rxel
+        len=8*len_int+6*len_real
+
+        open(newunit=unit, file= trim(mat%prop_field(1)%propFilePath), form='unformatted', access='direct',status='old', action='read', iostat=ios, recl=len)
         if (ios /= 0) then
           write(*,*) "Could not open file:", trim(mat%prop_field(1)%propFilePath)
           stop 1
         end if
        
-        ! read general info about Cstar
-        read(unit) icode
+        read(unit,rec=1) icode,iheader,len,Nd,ndeg,nelx,nely,nelz,rxel,ryel,rzel,xs_whole_domain,ys_whole_domain,zs_whole_domain
+        xs=rxel*nelx
+        ys=ryel*nely
+        zs=rzel*nelz
+        close(unit)
+                                          
         if (icode /= -82) stop 'Unsupported icode in reading CStar file'
-        read(unit) iheader
-        read(unit) reclen
-        read(unit) Nd
-        read(unit) ndeg
-        read(unit) nelx
-        read(unit) nely
-        read(unit) nelz
-        read(unit) rxel
-        read(unit) ryel
-        read(unit) rzel
-        !read(unit) xs
-        !read(unit) ys
-        !read(unit) zs
 
         ix(0) = floor(mat%MinBound_Loc(0)/rxel)
         ix(1) = ceiling(mat%MaxBound_Loc(0)/rxel)
@@ -273,16 +295,20 @@ write(*,*) "NN", pf%NN
 
         iz(0) = floor(mat%MinBound_Loc(2)/rzel)
         iz(1) = ceiling(mat%MaxBound_Loc(2)/rzel)
-
+        
+        cx = ix(1)-ix(0)
+        cy = iy(1)-iy(0)
+        cz = iz(1)-iz(0)
         nelem_needed = (ix(1)-ix(0))*(iy(1)-iy(0))*(iz(1)-iz(0))
         write(*,*) "Cstar read header"
+        write(*,*) "icode :", icode
         write(*,*) "iheader :", iheader
-        write(*,*) "reclen :", reclen
+        write(*,*) "len :", len
         write(*,*) "Nd :", Nd
         write(*,*) "ndeg :", ndeg
-        write(*,*) "n el :", nelx, nely, nelz
+        write(*,*) "n el :", nelx, nely, nelz, cx, cy, cz
         write(*,*) "step in :", rxel, ryel, rzel
-        !write(*,*) "taille du domain :", xs, ys, zs
+        write(*,*) "taille du domain :", xs, ys, zs, xs_whole_domain,ys_whole_domain, zs_whole_domain
         write(*,*) "finished "
         write(*,*) "BB min from mat strucutre :", mat%MinBound_Loc
         write(*,*) "BB max from mat strucutre :", mat%MaxBound_Loc
@@ -290,31 +316,65 @@ write(*,*) "NN", pf%NN
         write(*,*) "x y z start in struuctured: ", ix(0), iy(0), iz(0)
         write(*,*) "x y z end in structured: ", ix(1), iy(1), iz(1)
         write(*,*) "Number of elements to be read :", nelem_needed
-        
+       
+        open(newunit=unit, file=trim(mat%prop_field(1)%propFilePath),status='old',access='direct',form='unformatted',recl=len, iostat=ios)
+        if (ios /= 0) then
+            write(*,*) "Could not open file:",trim(mat%prop_field(1)%propFilePath)
+            stop 1
+        end if
+                                                 
         allocate(buffer(Nd*(Nd+1)/2+1,ndeg+1,ndeg+1,ndeg+1) )
-        allocate(elemtmp(ndeg+1,ndeg+1,ndeg+1,22,nelx,nely,nelz))
-        i = 1
+        !allocate(elemtmp(ndeg+1,ndeg+1,ndeg+1,22,nelx+1,nely+1,nelz+1), stat=ios)
+        allocate(elemtmp(22,cx+1,cy+1,cz+1), stat=ios)
+        if (ios /= 0) then
+            print *, "Allocation failed!"
+            stop
+        endif
+        buffer = -1
+        elemtmp = 10
+        cz = 0
         do ielz = iz(0), iz(1)-1
+            cy = 0
             do iely = iy(0), iy(1)-1
+                cx = 0
                 do ielx = ix(0), ix(1)-1
-                    list(0) = ielx
-                    list(1) = iely
-                    list(2) = ielz
+                    list(0) = ielx+1
+                    list(1) = iely+1
+                    list(2) = ielz+1
                     irec=iheader+list(0)+(list(1)-1)*nelx+(list(2)-1)*nelx*nely
+                    !write(*,*) irec, list
                     read(unit,rec=irec,iostat=ier)((((buffer(kk,k,l,m),kk=1,Nd*(Nd+1)/2+1),k=1,ndeg+1),l=1,ndeg+1),m=1,ndeg+1)
-                    !write(*,*) i
+                    if (ier /= 0) then
+                        write(*,*) 'READ error at irec=', irec, ' ier=', ier
+                    end if
                     do kk=1,Nd*(Nd+1)/2+1
-                        elemtmp(:,:,:,kk,ielx,iely,ielz)=buffer(kk,:,:,:)
+                        if (buffer(kk,1,1,1)<0) then
+                            !buffer(kk,1,1,1) = 0
+                        endif
+                        if (buffer(kk,1,1,1) > 1d13) then
+                            !buffer(kk,1,1,1) = 1d13
+                        endif
+                        elemtmp(kk,cx+1,cy+1,cz+1)=buffer(kk,1,1,1)
+                        !write(fout,*) kk, ielx+1, cx, iely+1, cy, ielz+1, cz, buffer(kk,1,1,1), elemtmp(kk, cx+1, cy+1, cz+1)
                     enddo
-                    !i = i + 1
+                    cx = cx+1
                 end do
+                cy = cy+1
             end do
+            cz = cz+1     
         end do
      
         close(unit)
-
+        
+        cx = ix(1)-ix(0)
+        cy = iy(1)-iy(0)
+        cz = iz(1)-iz(0)
+        
+        mapping = [1, 7, 8, 9, 10, 11, 2, 12, 13, 14, 15, 3, 16, 17, 18, 4, 19, 20, 5, 21, 6, 22]
+        !mapping = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
         ! fill mat struct
-        do i = 1,mat%n_prop
+        do j = 1,mat%n_prop
+            i = mapping(j)
             mat%prop_field(i)%MinBound(0) = ix(0)*rxel
             mat%prop_field(i)%MaxBound(0) = ix(1)*rxel
             mat%prop_field(i)%MinBound(1) = iy(0)*ryel
@@ -335,7 +395,7 @@ write(*,*) "NN", pf%NN
                 mat%prop_field(i)%imin(k) = gindex(mat%MinBound_Loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))
                 mat%prop_field(i)%imax(k) = gindex(mat%Maxbound_Loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))+1
                 mat%prop_field(i)%step(k) = (mat%prop_field(i)%MaxBound(k)-mat%prop_field(i)%MinBound(k))/(mat%prop_field(i)%NN(k)-1)
-                !write(*,*) k, mat%prop_field(i)%imin(k), mat%prop_field(i)%imax(k), mat%prop_field(i)%step(k)
+                !write(*,*) "prop: ", i, "k: ", k, "imin: ",mat%prop_field(i)%imin(k), "imax: ",mat%prop_field(i)%imax(k), "step: ",mat%prop_field(i)%step(k)
                 if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
                 if (mat%prop_field(i)%imin(k)<0) then
                     mat%prop_field(i)%imin(k) = 0
@@ -351,23 +411,29 @@ write(*,*) "NN", pf%NN
                     mat%prop_field(i)%imax(k)=mat%prop_field(i)%NN(k)-1
                 end if
             end do
-            ! -------- just to test... it should be removed   
-            allocate(mat%prop_field(i)%var(nelx,nely,nelz)) 
-            do ielx = 0, nelx -1
-                do iely = 0, nely -1
-                    do ielz = 0, nelz -1
-                        mat%prop_field(i)%var(ielx,iely,ielz) = elemtmp(0,0,0,i,ielx,iely,ielz)
+            ! --------    
+            allocate(mat%prop_field(i)%var(0:cx-1,0:cy-1,0:cz-1)) 
+            do ielz = 0, cz -1
+                do iely = 0, cy -1
+                    do ielx = 0, cx -1
+                        mat%prop_field(i)%var(ielx,iely,ielz) = elemtmp(j,ielx+1,iely+1,ielz+1)
+                        write(fout,*) i, ielx, iely, ielz, mat%prop_field(i)%var(ielx,iely,ielz)
                     end do
                 end do
             end do
-            ! ------- here
+            ! ------- check this thing here...
+            !if (i == 4) .OR. (i==5) .OR. (i==6) then
+            !    mat%prop_field(i)%var = mat%prop_field(i)%var/2
+            !end if 
         end do
-
+        
         !interp to reagular grid
         write(*,*) "Cstar readed routine end"
         !stop 1
 
-
+        close(fout)
+        deallocate(buffer)
+        deallocate(elemtmp)
     end subroutine init_prop_file_field_Cstar
 
     subroutine cleanup_prop_file(mat)

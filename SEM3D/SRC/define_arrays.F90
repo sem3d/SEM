@@ -643,7 +643,7 @@ contains
                     end do
                 end do
             end if
-        case(MATDEF_HOOKE_ANISO, CSTAR)
+        case(MATDEF_HOOKE_ANISO)
             !Cij definis au moment lecture fichier material.spec
             do i = 2,6
                 do j = 1,i-1
@@ -658,6 +658,21 @@ contains
                     end do
                 end do
             end do
+        case(CSTAR)
+             !Cij definis au moment lecture fichier material.spec
+             do i = 2,6
+                 do j = 1,i-1
+                     Cij(i,j,:,:,:) = Cij(j,i,:,:,:)
+                 end do
+             end do
+             do k = 0,mat%NGLL-1
+                 do j = 0,mat%NGLL-1
+                     do i = 0,mat%NGLL-1
+                         lambda(i,j,k)=lambda_from_CijK(Cij(:,:,i,j,k))
+                         mu(i,j,k)=mu_from_CijK(Cij(:,:,i,j,k))
+                     end do
+                 end do
+             end do
         end select
 
         select case (specel%domain)

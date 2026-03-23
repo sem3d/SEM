@@ -287,7 +287,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:6) :: eps_dev_pl
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
-        real(fpp), dimension(0:6)                                        :: epsilon
+        real(fpp), dimension(0:6)                                        :: epsilon, sigma
         !
         logical                  :: flag_gradU
         integer                  :: ngll, i, j, k, ind, ic, jc
@@ -304,7 +304,6 @@ contains
         !
         real(fpp), dimension(0:20)    :: CC
         real(fpp), dimension(0:2,0:2) :: invgrad_ijk
-        real(fpp)                     :: C(6,6) ! Stiffness matrix in Voigt notation
         !
         integer :: bnum, ee, flag_gradUint
 
@@ -315,7 +314,8 @@ contains
         x2mu = 0d0
         flag_gradUint = 0
         flag_gradUint = out_variables(OUT_ENERGYP) + &
-            out_variables(OUT_ENERGYK)
+            out_variables(OUT_ENERGYK) +&
+            out_variables(OUT_ENERGYD)
 
         if (.not.nl_flag) then
             flag_gradUint = flag_gradUint     + &
@@ -401,77 +401,56 @@ contains
                         ! P-ENERGY
                         if (out_variables(OUT_ENERGYP) == 1) then
                             if (dom%aniso) then
-                                C = 0.0d0
-                                C(1,1) = CC(0)  ! C11
-                                C(2,2) = CC(1)  ! C22
-                                C(3,3) = CC(2)  ! C33
-                                C(4,4) = CC(3)  ! C44
-                                C(5,5) = CC(4)  ! C55
-                                C(6,6) = CC(5)  ! C66
-                                C(1,2) = CC(6)  ! C12
-                                C(1,3) = CC(7)  ! C13
-                                C(1,4) = CC(8)  ! C14
-                                C(1,5) = CC(9)  ! C15
-                                C(1,6) = CC(10) ! C16
-                                C(2,3) = CC(11) ! C23
-                                C(2,4) = CC(12) ! C24
-                                C(2,5) = CC(13) ! C25
-                                C(2,6) = CC(14) ! C26
-                                C(3,4) = CC(15) ! C34
-                                C(3,5) = CC(16) ! C35
-                                C(3,6) = CC(17) ! C36
-                                C(4,5) = CC(18) ! C45
-                                C(4,6) = CC(19) ! C46
-                                C(5,6) = CC(20) ! C56
-                                C(2,1) = C(1,2)
-                                C(3,1) = C(1,3)
-                                C(4,1) = C(1,4)
-                                C(5,1) = C(1,5)
-                                C(6,1) = C(1,6)
-                                C(3,2) = C(2,3)
-                                C(4,2) = C(2,4)
-                                C(5,2) = C(2,5)
-                                C(6,2) = C(2,6)
-                                C(4,3) = C(3,4)
-                                C(5,3) = C(3,5)
-                                C(6,3) = C(3,6)
-                                C(5,4) = C(4,5)
-                                C(6,4) = C(4,6)
-                                C(6,5) = C(5,6)
+                                P_energy(i,j,k) = 0d0
+                                EXY = (DXY+DYX)*M_SQRT1_2
+                                EYZ = (DYZ+DZY)*M_SQRT1_2
+                                EXZ = (DXZ+DZX)*M_SQRT1_2
+                                sigma(1) = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
+                                sigma(2) = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
+                                sigma(3) = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
+                                sigma(4) = DXX*CC( 3) + DYY*CC( 8) + DZZ*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
+                                sigma(5) = DXX*CC( 4) + DYY*CC( 9) + DZZ*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
+                                sigma(6) = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
+                                sigma(4) = sigma(4)/M_SQRT2
+                                sigma(5) = sigma(5)/M_SQRT2
+                                sigma(6) = sigma(6)/M_SQRT2
 
                                 ! Compute strain vector in Voigt notation
                                 epsilon(1) = DXX
                                 epsilon(2) = DYY
                                 epsilon(3) = DZZ
-                                epsilon(4) = DYZ + DZY
-                                epsilon(5) = DXZ + DZX
-                                epsilon(6) = DXY + DYX
+                                epsilon(4) = EYZ
+                                epsilon(5) = EXZ
+                                epsilon(6) = EXY
                                 U = 0.0d0
                                 do ic = 1, 6
                                     do jc = 1, 6
-                                        U = U + 0.5d0 * C(ic,jc) * epsilon(ic) * epsilon(jc)
+                                        U = U + sigma(ic) * epsilon(jc)
                                     end do
                                 end do
-                                P_energy(i,j,k) = U
+                                P_energy(i,j,k) = 0.5d0*U
                             else
-                                comp1 =  xmu/2.0d0 * (           &
-                                                        (DZY - DYZ)**2d0  &
-                                                    + (DXZ - DZX)**2d0  &
-                                                    + (DYX - DXY)**2d0  &
-                                                    )
+                                comp1 =  xmu/2.0d0 * (                  &
+                                                       (DZY - DYZ)**2d0  &
+                                                     + (DXZ - DZX)**2d0  &
+                                                     + (DYX - DXY)**2d0  &
+                                                     )
                                 comp2 = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
                                 comp3 = 2.0d0*xmu*(DXY*DYX + DXZ*DZX + DYZ*DZY) &
                                         -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
-
+                                P_energy(i,j,k) = 0d0
                                 P_energy(i,j,k) = comp1 + comp2 + comp3
-                                D_energy(i,j,k,0) = comp1
-                                D_energy(i,j,k,1) = comp2
-                                D_energy(i,j,k,2) = comp3
+                                !D_energy(i,j,k,0) = comp1
+                                !D_energy(i,j,k,1) = comp2
+                                !D_energy(i,j,k,2) = comp3
                             end if
                         end if
                         ! S-ENERGY
                         if (out_variables(OUT_ENERGYK) == 1) then
-                            K_energy(i,j,k) = 0.5d0*dom%Density_(i,j,k,bnum,ee)*(dom%champs(0)%Veloc(ind,0)**2.0d0 + dom%champs(0)%Veloc(ind,1)**2.0d0 + dom%champs(0)%Veloc(ind,2)**2.0d0)
+                            K_energy(i,j,k) = 0d0;
+                            K_energy(i,j,k) = 0.5d0*dom%Density_(i,j,k,bnum,ee)*(dom%champs(0)%Veloc(ind,0)**2.0d0 + &
+                                                                                 dom%champs(0)%Veloc(ind,1)**2.0d0 + & 
+                                                                                 dom%champs(0)%Veloc(ind,2)**2.0d0)
                         end if
                         ! DEVIATORIC STRAIN
                         if (out_variables(OUT_EPS_DEV) == 1) then
@@ -496,6 +475,9 @@ contains
                                 sig_dev(i,j,k,3) = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
                                 sig_dev(i,j,k,4) = DXX*CC( 4) + DYY*CC( 9) + DZZ*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
                                 sig_dev(i,j,k,5) = DXX*CC( 3) + DYY*CC( 8) + DZZ*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
+                                sig_dev(i,j,k,3) = sig_dev(i,j,k,3)/M_SQRT2
+                                sig_dev(i,j,k,4) = sig_dev(i,j,k,4)/M_SQRT2
+                                sig_dev(i,j,k,5) = sig_dev(i,j,k,5)/M_SQRT2
                             else
                                 sig_dev(i,j,k,0) = x2mu * (DXX - M_1_3 * divU)
                                 sig_dev(i,j,k,1) = x2mu * (DYY - M_1_3 * divU)
@@ -507,23 +489,22 @@ contains
                         endif
                         ! ENERGY DECOMPOSITION
                         if (out_variables(OUT_ENERGYD) == 1) then
-                            if (dom%aniso) then
-                                D_energy(i,j,k,:) = 0.
-                            else
-                                comp1 =  xmu/2.0d0 * (                 &
-                                                     (DZY - DYZ)**2d0  &
-                                                    + (DXZ - DZX)**2d0 &
-                                                    + (DYX - DXY)**2d0 &
-                                                    )
+                            !if (dom%aniso) then
+                            !    D_energy(i,j,k,:) = 0.
+                            !else
+                                comp1 =  xmu/2.0d0 * (                  &
+                                                       (DZY - DYZ)**2d0  &
+                                                     + (DXZ - DZX)**2d0  &
+                                                     + (DYX - DXY)**2d0  &
+                                                     )
                                 comp2 = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
                                 comp3 = 2.0d0*xmu*(DXY*DYX + DXZ*DZX + DYZ*DZY) &
                                         -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
-
+                                D_energy(i,j,k,:) = 0d0
                                 D_energy(i,j,k,0) = comp1
                                 D_energy(i,j,k,1) = comp2
                                 D_energy(i,j,k,2) = comp3
-
-                            end if
+                            !end if
                         end if
                     end if
                     if (nl_flag) then
@@ -594,7 +575,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy
         real(fpp), dimension(:,:,:,:), allocatable, intent(inout) :: D_energy
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV
-        real(fpp), dimension(0:6)                  :: epsilon
+        real(fpp), dimension(0:6)                  :: epsilon, sigma
 
         integer                  :: ngll, i, j, k, ind, ic, jc
         real(fpp)                :: xmu, xlambda, xkappa, xdensity
@@ -606,9 +587,9 @@ contains
         real(fpp) :: dUx_dx,dUx_dy,dUx_dz
         real(fpp) :: dUy_dx,dUy_dy,dUy_dz
         real(fpp) :: dUz_dx,dUz_dy,dUz_dz
-                !
+        real(fpp) :: EXY,EXZ,EYZ
+        !
         real(fpp), dimension(0:20)    :: CC
-        real(fpp)                     :: C(6,6) ! Stiffness matrix in Voigt notation
         !
         integer :: bnum, ee
 
@@ -640,11 +621,9 @@ contains
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(D_energy)) allocate(D_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
 
-        K_energy = -1
-        P_energy = -1
-        D_energy = -1
-        if (dom%aniso) return
-
+        K_energy = 0
+        P_energy = 0
+        D_energy = 0
 
         if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
@@ -696,59 +675,38 @@ contains
                     end if
 
                     if ( dom%aniso) then
-                        C = 0.0d0
-                        C(1,1) = CC(0)  ! C11
-                        C(2,2) = CC(1)  ! C22
-                        C(3,3) = CC(2)  ! C33
-                        C(4,4) = CC(3)  ! C44
-                        C(5,5) = CC(4)  ! C55
-                        C(6,6) = CC(5)  ! C66
-                        C(1,2) = CC(6)  ! C12
-                        C(1,3) = CC(7)  ! C13
-                        C(1,4) = CC(8)  ! C14
-                        C(1,5) = CC(9)  ! C15
-                        C(1,6) = CC(10) ! C16
-                        C(2,3) = CC(11) ! C23
-                        C(2,4) = CC(12) ! C24
-                        C(2,5) = CC(13) ! C25
-                        C(2,6) = CC(14) ! C26
-                        C(3,4) = CC(15) ! C34
-                        C(3,5) = CC(16) ! C35
-                        C(3,6) = CC(17) ! C36
-                        C(4,5) = CC(18) ! C45
-                        C(4,6) = CC(19) ! C46
-                        C(5,6) = CC(20) ! C56
-                        C(2,1) = C(1,2)
-                        C(3,1) = C(1,3)
-                        C(4,1) = C(1,4)
-                        C(5,1) = C(1,5)
-                        C(6,1) = C(1,6)
-                        C(3,2) = C(2,3)
-                        C(4,2) = C(2,4)
-                        C(5,2) = C(2,5)
-                        C(6,2) = C(2,6)
-                        C(4,3) = C(3,4)
-                        C(5,3) = C(3,5)
-                        C(6,3) = C(3,6)
-                        C(5,4) = C(4,5)
-                        C(6,4) = C(4,6)
-                        C(6,5) = C(5,6)
+                        P_energy(i,j,k)   = 0
+                        EXY = (dUx_dy+dUy_dx)*M_SQRT1_2
+                        EYZ = (dUy_dz+dUz_dy)*M_SQRT1_2
+                        EXZ = (dUx_dz+dUz_dx)*M_SQRT1_2
+                        sigma(1) = dUx_dx*CC( 0) + dUy_dy*CC( 1) + dUz_dz*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
+                        sigma(2) = dUx_dx*CC( 1) + dUy_dy*CC( 6) + dUz_dz*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
+                        sigma(3) = dUx_dx*CC( 2) + dUy_dy*CC( 7) + dUz_dz*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
+                        sigma(4) = dUx_dx*CC( 3) + dUy_dy*CC( 8) + dUz_dz*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
+                        sigma(5) = dUx_dx*CC( 4) + dUy_dy*CC( 9) + dUz_dz*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
+                        sigma(6) = dUx_dx*CC( 5) + dUy_dy*CC(10) + dUz_dz*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
+                        sigma(4) = sigma(4)/M_SQRT2
+                        sigma(5) = sigma(5)/M_SQRT2
+                        sigma(6) = sigma(6)/M_SQRT2
 
                         ! Compute strain vector in Voigt notation
                         epsilon(1) = dUx_dx
                         epsilon(2) = dUy_dy
                         epsilon(3) = dUz_dz
-                        epsilon(4) = dUy_dz + dUz_dy
-                        epsilon(5) = dUx_dz + dUz_dx
-                        epsilon(6) = dUx_dy + dUy_dx
+                        epsilon(4) = EYZ
+                        epsilon(5) = EXZ
+                        epsilon(6) = EXY
                         U = 0.0d0
                         do ic = 1, 6
                             do jc = 1, 6
-                                U = U + 0.5d0 * C(ic,jc) * epsilon(ic) * epsilon(jc)
+                                U = U + 0.5d0 * sigma(ic) * epsilon(jc)
                             end do
                         end do
+
                         P_energy(i,j,k) = U
                     else
+                        P_energy(i,j,k)   = 0
+                        D_energy(i,j,k,:) = 0
                         !PAPER: The Energy Partitioning and the Diffusive Character of the Seismic Coda, Shapiro et al, 2000
                         P_energy(i,j,k) = xmu/2.0d0 * ( &
                                     (dUz_dy - dUy_dz)**2d0  &

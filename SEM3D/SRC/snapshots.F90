@@ -537,7 +537,6 @@ contains
         call MPI_Comm_rank(outputs%comm, outputs%rank, code)
         outputs%group = group
 
-
         call init_hdf5()
         if (rg==0) then
             ierr = sem_mkdir(trim(adjustl(path_results)))
@@ -552,17 +551,17 @@ contains
         endif
 
         call mpi_barrier(Tdomain%communicateur, code)
-
+        
         call compute_saved_elements(Tdomain, outputs)
-
+        
         call write_global_nodes(Tdomain, fid, outputs)
-
+        
         call write_elem_connectivity(Tdomain, fid, outputs)
-
+        
         call allocate_fields(outputs, Tdomain%out_var_snap, Tdomain%nl_flag)
-
+        
         call write_constant_fields(Tdomain, fid, outputs)
-
+        
         if (outputs%rank==0) then
             call h5fclose_f(fid, hdferr)
         endif
@@ -1392,6 +1391,113 @@ contains
                 write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C11" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                         '">geometry',group,'.h5:/C11</DataItem>'
                 write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C12" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C12" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C12</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C13" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C13" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C13</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C14" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C14" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C14</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C15" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C15" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C15</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C16" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C16" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C16</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+
+                write(61,"(a)") '<Attribute Name="C22" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C22" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C22</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C23" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C23" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C23</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C24" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C24" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C24</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C25" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C25" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C25</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C26" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C26" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C26</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+
+                write(61,"(a)") '<Attribute Name="C33" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C33" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C33</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C34" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C34" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C34</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C35" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C35" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C35</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C36" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C36" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C36</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+
+                write(61,"(a)") '<Attribute Name="C44" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C44" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C44</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C45" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C45" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C45</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C46" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C46" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C46</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+
+                write(61,"(a)") '<Attribute Name="C55" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C55" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C55</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="C56" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C56" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C56</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+
+                write(61,"(a)") '<Attribute Name="C66" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="C66" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/C66</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+
             end if
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar">'
@@ -1423,7 +1529,13 @@ contains
         real(fpp), dimension(:),allocatable :: dumpsx
         real(fpp) :: dx, dy, dz, dt
 #endif
-        real(fpp), dimension(:),allocatable :: dens, lamb, mu, kappa, C11
+        real(fpp), dimension(:),allocatable :: dens, lamb, mu, kappa
+        real(fpp), dimension(:),allocatable :: C11, C12, C13, C14, C15, C16
+        real(fpp), dimension(:),allocatable :: C22, C23, C24, C25, C26
+        real(fpp), dimension(:),allocatable :: C33, C34, C35, C36
+        real(fpp), dimension(:),allocatable :: C44, C45, C46
+        real(fpp), dimension(:),allocatable :: C55, C56
+        real(fpp), dimension(:),allocatable :: C66
         real(fpp), dimension(:,:,:,:), allocatable :: grad_La
         real(fpp), dimension(:,:,:,:), allocatable :: grad_Mu
         real(fpp), dimension(:,:),allocatable :: grad_La_n,grad_Mu_n 
@@ -1440,8 +1552,35 @@ contains
         allocate(lamb(0:nnodes-1))
         allocate(mu(0:nnodes-1))
         allocate(kappa(0:nnodes-1))
+        
         if (Tdomain%aniso .EQV. .true.) then 
             allocate(C11(0:nnodes-1))
+            allocate(C12(0:nnodes-1))
+            allocate(C13(0:nnodes-1))
+            allocate(C14(0:nnodes-1))
+            allocate(C15(0:nnodes-1))
+            allocate(C16(0:nnodes-1))
+
+            allocate(C22(0:nnodes-1))
+            allocate(C23(0:nnodes-1))
+            allocate(C24(0:nnodes-1))
+            allocate(C25(0:nnodes-1))
+            allocate(C26(0:nnodes-1))
+
+            allocate(C33(0:nnodes-1))
+            allocate(C34(0:nnodes-1))
+            allocate(C35(0:nnodes-1))
+            allocate(C36(0:nnodes-1))
+
+            allocate(C44(0:nnodes-1))
+            allocate(C45(0:nnodes-1))
+            allocate(C46(0:nnodes-1))
+
+            allocate(C55(0:nnodes-1))
+            allocate(C56(0:nnodes-1))
+
+            allocate(C66(0:nnodes-1))
+
         end if
         if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
             allocate(grad_La_n(0:2,0:nnodes-1))
@@ -1760,6 +1899,32 @@ contains
                                         select case (Tdomain%specel(n)%domain)
                                            case (DM_SOLID_CG)
                                                 C11(idx) = Tdomain%sdom%Cij_(0,i,j,k,bnum,ee)
+                                                C12(idx) = Tdomain%sdom%Cij_(1,i,j,k,bnum,ee)
+                                                C13(idx) = Tdomain%sdom%Cij_(2,i,j,k,bnum,ee)
+                                                C14(idx) = Tdomain%sdom%Cij_(3,i,j,k,bnum,ee)
+                                                C15(idx) = Tdomain%sdom%Cij_(4,i,j,k,bnum,ee)
+                                                C16(idx) = Tdomain%sdom%Cij_(5,i,j,k,bnum,ee)
+
+                                                C22(idx) = Tdomain%sdom%Cij_(6,i,j,k,bnum,ee)
+                                                C23(idx) = Tdomain%sdom%Cij_(7,i,j,k,bnum,ee)
+                                                C24(idx) = Tdomain%sdom%Cij_(8,i,j,k,bnum,ee)
+                                                C25(idx) = Tdomain%sdom%Cij_(9,i,j,k,bnum,ee)
+                                                C26(idx) = Tdomain%sdom%Cij_(10,i,j,k,bnum,ee)
+
+                                                C33(idx) = Tdomain%sdom%Cij_(11,i,j,k,bnum,ee)
+                                                C34(idx) = Tdomain%sdom%Cij_(12,i,j,k,bnum,ee)
+                                                C35(idx) = Tdomain%sdom%Cij_(13,i,j,k,bnum,ee)
+                                                C36(idx) = Tdomain%sdom%Cij_(14,i,j,k,bnum,ee)
+
+                                                C44(idx) = Tdomain%sdom%Cij_(15,i,j,k,bnum,ee)
+                                                C45(idx) = Tdomain%sdom%Cij_(16,i,j,k,bnum,ee)
+                                                C46(idx) = Tdomain%sdom%Cij_(17,i,j,k,bnum,ee)
+                                                
+                                                C55(idx) = Tdomain%sdom%Cij_(18,i,j,k,bnum,ee)
+                                                C56(idx) = Tdomain%sdom%Cij_(19,i,j,k,bnum,ee)
+                                                
+                                                C66(idx) = Tdomain%sdom%Cij_(20,i,j,k,bnum,ee)
+
                                            case (DM_SOLID_DG)
                                                 C11(idx) = -1d0
                                            case (DM_SOLID_CG_PML)
@@ -1792,8 +1957,34 @@ contains
         call grp_write_real_1d(outputs, fid, "Lamb", nnodes, lamb, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Mu", nnodes, mu, nnodes_tot)
         call grp_write_real_1d(outputs, fid, "Kappa", nnodes, kappa, nnodes_tot)
+        
         if (Tdomain%aniso .EQV. .true.) then
             call grp_write_real_1d(outputs, fid, "C11", nnodes, C11, nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C12", nnodes, C12,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C13", nnodes, C13,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C14", nnodes, C14,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C15", nnodes, C15,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C16", nnodes, C16,  nnodes_tot)
+        
+            call grp_write_real_1d(outputs, fid, "C22", nnodes, C22,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C23", nnodes, C23,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C24", nnodes, C24,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C25", nnodes, C25,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C26", nnodes, C26,  nnodes_tot)
+
+            call grp_write_real_1d(outputs, fid, "C33", nnodes, C33,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C34", nnodes, C34,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C35", nnodes, C35,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C36", nnodes, C36,  nnodes_tot)
+
+            call grp_write_real_1d(outputs, fid, "C44", nnodes, C44,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C45", nnodes, C45,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C46", nnodes, C46,  nnodes_tot)
+
+            call grp_write_real_1d(outputs, fid, "C55", nnodes, C55,  nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "C56", nnodes, C56,  nnodes_tot)
+
+            call grp_write_real_1d(outputs, fid, "C66", nnodes, C66,  nnodes_tot)
         end if
         ! GRAD LAMBDA
         if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
@@ -1811,7 +2002,34 @@ contains
         if(allocated(grad_Mu)) deallocate(grad_Mu)
         if(allocated(grad_La_n)) deallocate(grad_La_n)
         if(allocated(grad_Mu_n)) deallocate(grad_Mu_n)
+        
         if(allocated(C11)) deallocate(C11)
+        if(allocated(C12)) deallocate(C12)
+        if(allocated(C13)) deallocate(C13)
+        if(allocated(C14)) deallocate(C14)
+        if(allocated(C15)) deallocate(C15)
+        if(allocated(C16)) deallocate(C16)
+
+        if(allocated(C22)) deallocate(C22)
+        if(allocated(C23)) deallocate(C23)
+        if(allocated(C24)) deallocate(C24)
+        if(allocated(C25)) deallocate(C25)
+        if(allocated(C26)) deallocate(C26)
+
+        if(allocated(C33)) deallocate(C33)
+        if(allocated(C34)) deallocate(C34)
+        if(allocated(C35)) deallocate(C35)
+        if(allocated(C36)) deallocate(C36)
+
+        if(allocated(C44)) deallocate(C44)
+        if(allocated(C45)) deallocate(C45)
+        if(allocated(C46)) deallocate(C46)
+
+        if(allocated(C55)) deallocate(C55)
+        if(allocated(C56)) deallocate(C56)
+
+        if(allocated(C66)) deallocate(C66)
+
 #ifdef CPML
 
         deallocate(alpha_pml)

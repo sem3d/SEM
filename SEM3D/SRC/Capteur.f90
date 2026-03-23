@@ -177,7 +177,7 @@ contains
 
             allocate(capt_Energy)
 
-            n_out = 7
+            n_out = 5
             if (.not.allocated(capt_Energy%valuecache)) allocate(capt_Energy%valuecache(1:n_out+1,NCAPT_CACHE))
 
             capt_Energy%nom = "Energy"
@@ -324,13 +324,12 @@ contains
         integer(HID_T) :: tid, dsetid, spaceid
         integer :: hdferr
         character(len=12), dimension(:), allocatable :: varnames
-        character(len=12), dimension(7) :: energy_varnames = ["Time       1", &
+        character(len=12), dimension(6) :: energy_varnames = ["Time       1", &
                                                               "EnergyP    1", &
                                                               "EnergyK    1", &
                                                               "EnergyL    1", &
                                                               "EnergyS    1", &
-                                                              "EnergyR    1", &
-                                                              "Total  1"]
+                                                              "EnergyR    1"]
         character(len=12) :: temp
         integer :: d,k,dim,dimtot
         integer(HSIZE_T), dimension(1) :: dims
@@ -555,7 +554,6 @@ contains
         end do
 
         ! On recupere les variables de l'element associe au capteur.
-        
         select case(Tdomain%specel(n_el)%domain)
             case (DM_SOLID_DG)
               !call get_solid_dg_dom_var(Tdomain%sdomdg, Tdomain%specel(n_el)%lnum, out_variables, &
@@ -749,17 +747,12 @@ contains
             bnum = el%lnum/VCHUNK
             ee = mod(el%lnum,VCHUNK)
 
-            !print *, "BEFORE Jac"
-
             if(allocated(jac)) then
                 if(size(jac) /= ngll*ngll*ngll) deallocate(jac)
             end if
 
-            !print *, "INIT allocated(jac) = ", allocated(jac)
             if(.not. allocated(jac)) allocate(jac(0:ngll-1,0:ngll-1,0:ngll-1))
             jac (:,:,:) = 0.0d0
-
-            !print *, "END allocated(jac) = ", allocated(jac)
 
             if(allocated(GLLw)) deallocate(GLLw)
             call domain_gllw(Tdomain, domain_type, GLLw)
@@ -798,7 +791,6 @@ contains
                     call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,1), elem_D_En(1))
                     call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,2), elem_D_En(2))
             end select
-
             local_sum_P_energy = local_sum_P_energy + elem_P_En
             local_sum_K_energy = local_sum_K_energy + elem_K_En
             local_sum_L_energy = local_sum_L_energy + elem_D_En(0)
@@ -829,7 +821,7 @@ contains
         capteur%valuecache(4,i) = global_sum_L_energy
         capteur%valuecache(5,i) = global_sum_S_energy
         capteur%valuecache(6,i) = global_sum_R_energy
-        capteur%valuecache(7,i) = global_sum_P_energy + global_sum_K_energy 
+        !capteur%valuecache(7,i) = global_sum_P_energy + global_sum_K_energy 
         capteur%icache = i
 
         ! Deallocation.
