@@ -264,8 +264,6 @@ contains
         ! File I/O
         integer :: unit, ios
         character(len=256) :: filename
-        integer :: fout = 666
-        open(unit=fout, file='outputCstar.txt', status='replace', action='write')
 
         if (.not. mat%present) return
         
@@ -308,7 +306,7 @@ contains
         write(*,*) "ndeg :", ndeg
         write(*,*) "n el :", nelx, nely, nelz, cx, cy, cz
         write(*,*) "step in :", rxel, ryel, rzel
-        write(*,*) "taille du domain :", xs, ys, zs, xs_whole_domain,ys_whole_domain, zs_whole_domain
+        write(*,*) "domain size :", xs, ys, zs, xs_whole_domain,ys_whole_domain, zs_whole_domain
         write(*,*) "finished "
         write(*,*) "BB min from mat strucutre :", mat%MinBound_Loc
         write(*,*) "BB max from mat strucutre :", mat%MaxBound_Loc
@@ -343,19 +341,18 @@ contains
                     list(2) = ielz+1
                     irec=iheader+list(0)+(list(1)-1)*nelx+(list(2)-1)*nelx*nely
                     !write(*,*) irec, list
-                    read(unit,rec=irec,iostat=ier)((((buffer(kk,k,l,m),kk=1,Nd*(Nd+1)/2+1),k=1,ndeg+1),l=1,ndeg+1),m=1,ndeg+1)
+                    read(unit,rec=irec,iostat=ier) buffer
                     if (ier /= 0) then
                         write(*,*) 'READ error at irec=', irec, ' ier=', ier
                     end if
                     do kk=1,Nd*(Nd+1)/2+1
-                        if (buffer(kk,1,1,1)<0) then
-                            !buffer(kk,1,1,1) = 0
-                        endif
-                        if (buffer(kk,1,1,1) > 1d13) then
-                            !buffer(kk,1,1,1) = 1d13
-                        endif
+                        !if (buffer(kk,1,1,1)<0) then
+                        !    !buffer(kk,1,1,1) = 0
+                        !endif
+                        !if (buffer(kk,1,1,1) > 1d13) then
+                        !    !buffer(kk,1,1,1) = 1d13
+                        !endif
                         elemtmp(kk,cx+1,cy+1,cz+1)=buffer(kk,1,1,1)
-                        !write(fout,*) kk, ielx+1, cx, iely+1, cy, ielz+1, cz, buffer(kk,1,1,1), elemtmp(kk, cx+1, cy+1, cz+1)
                     enddo
                     cx = cx+1
                 end do
@@ -413,14 +410,22 @@ contains
             end do
             ! --------    
             allocate(mat%prop_field(i)%var(0:cx-1,0:cy-1,0:cz-1)) 
-            do ielz = 0, cz -1
-                do iely = 0, cy -1
-                    do ielx = 0, cx -1
+        end do
+        
+        ! populate the elements for all properties with optimal cache locality
+        do ielz = 0, cz -1
+            do iely = 0, cy -1
+                do ielx = 0, cx -1
+                    do j = 1,mat%n_prop
+                        i = mapping(j)
                         mat%prop_field(i)%var(ielx,iely,ielz) = elemtmp(j,ielx+1,iely+1,ielz+1)
-                        write(fout,*) i, ielx, iely, ielz, mat%prop_field(i)%var(ielx,iely,ielz)
                     end do
                 end do
             end do
+        end do
+        
+        do j = 1,mat%n_prop
+            i = mapping(j)
             ! ------- check this thing here...
             !if (i == 4) .OR. (i==5) .OR. (i==6) then
             !    mat%prop_field(i)%var = mat%prop_field(i)%var/2
@@ -431,7 +436,6 @@ contains
         write(*,*) "Cstar readed routine end"
         !stop 1
 
-        close(fout)
         deallocate(buffer)
         deallocate(elemtmp)
     end subroutine init_prop_file_field_Cstar
