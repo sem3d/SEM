@@ -63,13 +63,17 @@ subroutine PROCNAME(dom, ngllvar, champs1)
     integer :: bnum, nblocks
 
     nblocks = dom%nblocks
-    call PROC_MAIN(ngll, nblocks, dom%nglltot, dom%dt, dom%GLLw, dom%hprime, dom%m_Idom, &
+    call PROC_PRED(ngll, nblocks, dom%nglltot, dom%dt, dom%GLLw, dom%hprime, dom%m_Idom, &
             dom%m_InvGrad, dom%m_Jacob, champs1%VelocPML, dom%m_Lambda, dom%m_Mu, &
             dom%m_Stress1, dom%m_Stress2, dom%m_Stress3, champs1%ForcesPML, &
-            dom%m_PMLDumpSx, dom%m_PMLDumpSy, dom%m_PMLDumpSz, dom%Veloc)
+            dom%m_PMLDumpSx, dom%m_PMLDumpSy, dom%m_PMLDumpSz, dom%Veloc &
+    )
+    call PROC_MAIN(ngll, nblocks, dom%nglltot, dom%dt, dom%GLLw, dom%hprime, dom%m_Idom, &
+            dom%m_InvGrad, dom%m_Jacob,  &
+            dom%m_Stress1, dom%m_Stress2, dom%m_Stress3, champs1%ForcesPML)
 end subroutine PROCNAME
 
-subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
+subroutine PROC_PRED(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
     InvGrad,Jacob,VelocPML,vLambda, vMu, &
     Stress1, Stress2, Stress3, ForcesPML,PMLDumpSx, PMLDumpSy, PMLDumpSz, Veloc)
     implicit none
@@ -182,6 +186,43 @@ subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
             enddo
         enddo
     enddo
+end subroutine PROC_PRED
+
+subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
+    InvGrad,Jacob, &
+    Stress1, Stress2, Stress3, ForcesPML)
+    implicit none
+    integer, intent(in) :: ngllvar
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    integer, intent(in) :: nblocks, nglltot
+    real(fpp), intent(in), dimension(0:ngll-1,0:ngll-1) :: hprime
+    real(fpp), intent(in), dimension(0:ngll-1) :: gllw
+    integer, intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Idom
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: InvGrad
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Jacob
+    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Stress1
+    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Stress2
+    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Stress3
+    real(fpp), intent(inout), dimension(0:nglltot,0:2,0:2) :: ForcesPML
+    real(fpp), intent(in) :: dt
+    !
+    real(fpp) :: dVx_dx, dVx_dy, dVx_dz
+    real(fpp) :: dVy_dx, dVy_dy, dVy_dz
+    real(fpp) :: dVz_dx, dVz_dy, dVz_dz
+    real(fpp) :: dS_dxi, dS_deta, dS_dzeta
+    integer :: i, j, k, l, ind, i_dir, e, ee, bnum
+    real(fpp) :: lambda, mu, lam2mu, dumpsx0, dumpsx1, dumpsy0, dumpsy1, dumpsz0, dumpsz1
+    real(fpp) :: wi,wj,wk,acoeff
+    real(fpp) :: ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz, jac
+    real(fpp) :: sxx,sxy,sxz,syy,syz,szz
+    real(fpp) :: xtmp, ytmp, ztmp
+
+    !!! XXX Check
+    !$acc kernels async(1)
+    ForcesPML = 0d0
+    !$acc end kernels
 
     !$acc parallel loop collapse(5) async(1) &
     !$acc& present(ForcesPML,Stress1,Stress2,Stress3) &
@@ -249,140 +290,6 @@ subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
     enddo
 end subroutine PROC_MAIN
 
-#if 0
-subroutine PROC_MAIN(ngllvar,bnum,nblocks,nglltot,ForcesPML,Idom,Stress,InvGrad,Jacob,GLLw,hprime)
-    use champs_solid
-    implicit none
-
-    integer, intent(in) :: bnum, nblocks, nglltot
-    integer, intent(in) :: ngllvar
-#ifdef NGLLVAL
-    integer, parameter :: ngll=NGLLVAL
-#endif
-    real(fpp), intent(inout), dimension(0:nglltot,0:2,0:2) :: ForcesPML
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1) :: Stress
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: InvGrad
-    real(fpp), intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Jacob
-    real(fpp), intent(in), dimension(0:ngll-1) :: GLLw
-    real(fpp), intent(in), dimension(0:ngll-1,0:ngll-1) :: hprime
-    integer, intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Idom
-    !
-    integer :: i, j, k, l, ind, e, ee
-    real(fpp) :: sum_vx, sum_vy, sum_vz, acoeff
-    real(fpp), dimension(0:VCHUNK-1,0:2,0:ngll-1,0:ngll-1,0:ngll-1)  :: Forces1, Forces2, Forces3
-
-
-    Forces1 = 0d0
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i=0,ngll-1
-                LOOP_VECTORIZE
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                sum_vx = 0d0
-                sum_vy = 0d0
-                sum_vz = 0d0
-                do l = 0,ngll-1
-                    !ind = Idom(ee,l,j,k,bnum)
-                    !ForcesPML(ind,:,0) = ForcesPML(ind,:,0) + Forces1(ee,:,l,j,k)
-
-                    acoeff = - hprime(l,i)*GLLw(i)*GLLw(j)*GLLw(k)*Jacob(ee,l,j,k,bnum)
-                    ForcesPML(ind,0,0) = ForcesPML(ind,0,0) + acoeff*InvGrad(ee,0,0,i,j,k,bnum)*sxx
-                    ForcesPML(ind,0,0) = ForcesPML(ind,0,0) + acoeff*InvGrad(ee,1,0,i,j,k,bnum)*sxy
-                    ForcesPML(ind,0,0) = ForcesPML(ind,0,0) + acoeff*InvGrad(ee,2,0,i,j,k,bnum)*sxz
-
-                    ForcesPML(ind,1,0) = ForcesPML(ind,1,0) + acoeff*InvGrad(ee,0,0,i,j,k,bnum)*sxy
-                    ForcesPML(ind,1,0) = ForcesPML(ind,1,0) + acoeff*InvGrad(ee,1,0,i,j,k,bnum)*syy
-                    ForcesPML(ind,1,0) = ForcesPML(ind,1,0) + acoeff*InvGrad(ee,2,0,i,j,k,bnum)*syz
-
-                    sum_vz = sum_vz + acoeff*InvGrad(ee,0,0,l,j,k,bnum)*Stress(ee,4,l,j,k) ! zx
-                    sum_vz = sum_vz + acoeff*InvGrad(ee,1,0,l,j,k,bnum)*Stress(ee,5,l,j,k) ! zy
-                    sum_vz = sum_vz + acoeff*InvGrad(ee,2,0,l,j,k,bnum)*Stress(ee,2,l,j,k) ! zz
-                end do
-                Forces1(ee,0,i,j,k) = sum_vx
-                Forces1(ee,1,i,j,k) = sum_vy
-                Forces1(ee,2,i,j,k) = sum_vz
-                END_SUBELEM_LOOP()
-            end do
-        end do
-    end do
-
-    Forces2 = 0d0
-    do k = 0,ngll-1
-        do l = 0,ngll-1
-            do j = 0,ngll-1
-                do i=0,ngll-1
-#if VCHUNK>1
-                    !$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
-#endif
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    acoeff = - hprime(j,l)*GLLw(i)*GLLw(l)*GLLw(k)*Jacob(ee,i,l,k,bnum)
-                    sum_vx = acoeff*(InvGrad(ee,0,1,i,l,k,bnum)*Stress(ee,0,i,l,k) + &
-                                     InvGrad(ee,1,1,i,l,k,bnum)*Stress(ee,3,i,l,k) + &
-                                     InvGrad(ee,2,1,i,l,k,bnum)*Stress(ee,4,i,l,k))
-
-                    sum_vy = acoeff*(InvGrad(ee,0,1,i,l,k,bnum)*Stress(ee,3,i,l,k) + &
-                                     InvGrad(ee,1,1,i,l,k,bnum)*Stress(ee,1,i,l,k) + &
-                                     InvGrad(ee,2,1,i,l,k,bnum)*Stress(ee,5,i,l,k))
-
-                    sum_vz = acoeff*(InvGrad(ee,0,1,i,l,k,bnum)*Stress(ee,4,i,l,k) + &
-                                     InvGrad(ee,1,1,i,l,k,bnum)*Stress(ee,5,i,l,k) + &
-                                     InvGrad(ee,2,1,i,l,k,bnum)*Stress(ee,2,i,l,k))
-                    Forces2(ee,0,i,j,k) = Forces2(ee,0,i,j,k) + sum_vx
-                    Forces2(ee,1,i,j,k) = Forces2(ee,1,i,j,k) + sum_vy
-                    Forces2(ee,2,i,j,k) = Forces2(ee,2,i,j,k) + sum_vz
-                    END_SUBELEM_LOOP()
-                end do
-            end do
-        end do
-    end do
-
-    ! TODO reorder loops ?
-    Forces3 = 0
-    do l = 0,ngll-1
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i=0,ngll-1
-#if VCHUNK>1
-                    !$omp simd linear(e,ee) private(sum_vx,sum_vy,sum_vz,acoeff)
-#endif
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    acoeff = - hprime(k,l)*GLLw(i)*GLLw(j)*GLLw(l)*Jacob(ee,i,j,l,bnum)
-                    sum_vx = acoeff*(InvGrad(ee,0,2,i,j,l,bnum)*Stress(ee,0,i,j,l) + &
-                                     InvGrad(ee,1,2,i,j,l,bnum)*Stress(ee,3,i,j,l) + &
-                                     InvGrad(ee,2,2,i,j,l,bnum)*Stress(ee,4,i,j,l))
-
-                    sum_vy = acoeff*(InvGrad(ee,0,2,i,j,l,bnum)*Stress(ee,3,i,j,l) + &
-                                     InvGrad(ee,1,2,i,j,l,bnum)*Stress(ee,1,i,j,l) + &
-                                     InvGrad(ee,2,2,i,j,l,bnum)*Stress(ee,5,i,j,l))
-
-                    sum_vz = acoeff*(InvGrad(ee,0,2,i,j,l,bnum)*Stress(ee,4,i,j,l) + &
-                                     InvGrad(ee,1,2,i,j,l,bnum)*Stress(ee,5,i,j,l) + &
-                                     InvGrad(ee,2,2,i,j,l,bnum)*Stress(ee,2,i,j,l))
-                    Forces3(ee,0,i,j,k) = Forces3(ee,0,i,j,k) + sum_vx
-                    Forces3(ee,1,i,j,k) = Forces3(ee,1,i,j,k) + sum_vy
-                    Forces3(ee,2,i,j,k) = Forces3(ee,2,i,j,k) + sum_vz
-                    END_SUBELEM_LOOP()
-                end do
-            end do
-        end do
-    end do
-
-    ! Assemblage
-    do k = 0,ngll-1
-        do j = 0,ngll-1
-            do i = 0,ngll-1
-                BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ind = Idom(ee,i,j,k,bnum)
-                ForcesPML(ind,:,0) = ForcesPML(ind,:,0) + Forces1(ee,:,i,j,k)
-                ForcesPML(ind,:,1) = ForcesPML(ind,:,1) + Forces2(ee,:,i,j,k)
-                ForcesPML(ind,:,2) = ForcesPML(ind,:,2) + Forces3(ee,:,i,j,k)
-                END_SUBELEM_LOOP()
-            enddo
-        enddo
-    enddo
-end subroutine PROC_MAIN
-
-#endif
 
 !! Local Variables:
 !! mode: f90
