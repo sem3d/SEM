@@ -113,14 +113,19 @@ contains
         ! TODO : useless, kill this method, needed for build compatibility SolidPML / SolidCPML
     end subroutine init_domain_fluidpml
 
-    subroutine start_domain_fluidpml(Tdomain, dom)
+    subroutine start_domain_fluidpml(Tdomain, fpmldom)
         use sdomain
         type (domain), intent (INOUT), target :: Tdomain
-        type(domain_fluidpml), intent(inout) :: dom
+        type(domain_fluidpml), intent(inout) :: fpmldom
         !
         integer :: i, ns
 
-        !$acc  enter data copyin(dom, dom%champs) &
+        !$acc  enter data copyin(fpmldom, fpmldom%champs) &
+        !$acc  copyin(fpmldom%DumpMass, fpmldom%DumpV, fpmldom%m_Lambda, fpmldom%m_Density) &
+        !$acc  copyin(fpmldom%m_PMLVeloc) &
+        !$acc  copyin(fpmldom%m_PMLDumpSx) &
+        !$acc  copyin(fpmldom%m_PMLDumpSy) &
+        !$acc  copyin(fpmldom%m_PMLDumpSz) &
         !$acc&
         do i = 0,1
             !$acc enter data  copyin(dom%champs(i)%fpml_Phi, dom%champs(i)%fpml_VelPhi, dom%champs(i)%fpml_Forces)
@@ -128,14 +133,19 @@ contains
 
     end subroutine start_domain_fluidpml
 
-    subroutine stop_domain_fluidpml(Tdomain, dom)
+    subroutine stop_domain_fluidpml(Tdomain, fpmldom)
         use sdomain
         type (domain), intent (INOUT), target :: Tdomain
-        type(domain_fluidpml), intent(inout) :: dom
+        type(domain_fluidpml), intent(inout) :: fpmldom
         !
         integer :: i, ns
 
-        !$acc  exit data delete(dom, dom%champs) &
+        !$acc  exit data delete(fpmldom, fpmldom%champs) &
+        !$acc  delete(fpmldom%DumpMass, fpmldom%DumpV, fpmldom%m_Lambda, fpmldom%m_Density) &
+        !$acc  delete(fpmldom%m_PMLVeloc) &
+        !$acc  delete(fpmldom%m_PMLDumpSx) &
+        !$acc  delete(fpmldom%m_PMLDumpSy) &
+        !$acc  delete(fpmldom%m_PMLDumpSz) &
         !$acc&
         do i = 0,1
             !$acc exit data  delete(dom%champs(i)%fpml_Phi, dom%champs(i)%fpml_VelPhi, dom%champs(i)%fpml_Forces)
