@@ -47,11 +47,16 @@ if (${OPT_VEC}>1)
 endif(${OPT_VEC}>1)
 
 option(OPT_OPENACC "OPENACC" OFF)
+option(OPT_OPENACC_FORCE_CPU "OPENACC_FORCE_CPU" OFF)
 if (OPT_OPENACC)
   add_definitions(-DOPENACC)
   set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  ")
   set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenacc")
-  set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} -acc=gpu ") # -acc=gpu -acc=multicore,... -cuda ... ?
+  if(NOT OPT_OPENACC_FORCE_CPU)
+    set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} -acc=gpu ") # -acc=gpu -acc=multicore,... -cuda ... ?
+  else()
+    set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} -acc=host ") # -acc=gpu -acc=multicore,... -cuda ... ?
+  endif()
 endif(OPT_OPENACC)
 
 option(OPT_OPENMP "OPENMP" OFF)
