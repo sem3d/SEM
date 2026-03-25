@@ -54,7 +54,7 @@ if (OPT_OPENACC)
   add_definitions(-DOPENACC)
   set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  ")
   set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenacc")
-  set(EXTRA_NFT_FLAGS    "${EXTRA_NFT_FLAGS}    -hacc")
+  set(EXTRA_NFT_FLAGS    "${EXTRA_NFT_FLAGS}    -hacc -hnoomp_simd -hnoomp")
   if(NOT OPT_OPENACC_FORCE_CPU)
     set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} -acc=gpu ") # -acc=gpu -acc=multicore,... -cuda ... ?
   else()
