@@ -396,13 +396,13 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !---------------------------------------------------------!
     !--------------------  LOOP UPON TIME  -------------------!
     !---------------------------------------------------------!
-    !$acc data &
+    !$acc enter data &
     !$acc& copyin(Tdomain) &
     !$acc& copyin(Tdomain%out_var_capt, Tdomain%out_var_offset) &
     !$acc& copyin(Tdomain%sSource) &
     !$acc& copyin(Tdomain%Comm_data) &
-    !$acc& copyin(Tdomain%Comm_data%Data) &
-    !$acc&
+    !$acc& copyin(Tdomain%Comm_data%Data)
+
     do n = 0,Tdomain%Comm_data%ncomm-1
         !$acc  enter data create(Tdomain%Comm_data%Data(n)%Give) &
         !$acc&            create(Tdomain%Comm_data%Data(n)%Take) &
@@ -548,7 +548,27 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     call stop_domain_solidpml(Tdomain, Tdomain%spmldom)
     call stop_domain_fluid(Tdomain, Tdomain%fdom)
     call stop_domain_fluidpml(Tdomain, Tdomain%fpmldom)
-    !$acc end data
+
+    do n = 0,Tdomain%Comm_data%ncomm-1
+        !$acc  exit data &
+        !$acc&      delete(Tdomain%Comm_data%Data(n)%Give) &
+        !$acc&      delete(Tdomain%Comm_data%Data(n)%Take) &
+        !$acc&      delete(Tdomain%Comm_data%Data(n)%IGiveF) &
+        !$acc&      delete(Tdomain%Comm_data%Data(n)%IGiveS) &
+        !$acc&      delete(Tdomain%Comm_data%Data(n)%IGiveSDG) &
+        !$acc&      delete(Tdomain%Comm_data%Data(n)%IGiveSPML) &
+        !$acc&      delete(Tdomain%Comm_data%Data(n)%IGiveFPML) &
+        !$acc&      delete(Tdomain%Comm_data%Data(n))
+    end do
+
+    !$acc exit data &
+    !$acc& delete(Tdomain%out_var_capt, Tdomain%out_var_offset) &
+    !$acc& delete(Tdomain%sSource) &
+    !$acc& delete(Tdomain%Comm_data%Data) &
+    !$acc& delete(Tdomain%Comm_data)
+
+    !$acc exit data &
+    !$acc& delete(Tdomain)
 
 end subroutine TIME_STEPPING
 !-----------------------------------------------------------------------------------
