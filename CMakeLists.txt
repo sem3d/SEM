@@ -138,7 +138,7 @@ message(STATUS "${CMAKE_CXX_FLAGS}")
 
 set(SEMCOMMON ${SEMDIR}/COMMON)
 
-set(SEM_SRC
+set(SEM_COMMON_SRC_F
   ${SEMCOMMON}/sem_c_bindings.F90
   ${SEMCOMMON}/semdatafiles.F90
   ${SEMCOMMON}/protrep.f90
@@ -159,7 +159,7 @@ set(SEM_SRC
   ${SEMCOMMON}/sem_mpi.F90
 )
 
-set(SEM_SRC_C
+set(SEM_COMMON_SRC_C
   ${SEMCOMMON}/read_input.c
   ${SEMCOMMON}/read_material.c
   ${SEMCOMMON}/file_scan.c
@@ -172,7 +172,7 @@ find_library(CEAUSER cea_user PATHS /usr/local/sr/lib)
 find_library(CEASHER cea_sherpa PATHS /usr/local/sr/lib)
 
 if(CEAUSER STREQUAL "CEAUSER-NOTFOUND")
-set(SEM_SRC ${SEM_SRC}
+set(SEM_COMMON_SRC_F ${SEM_COMMON_SRC_F}
   ${SEMCOMMON}/stub_tremain.F90
 )
 endif(CEAUSER STREQUAL "CEAUSER-NOTFOUND")
@@ -207,7 +207,7 @@ else(OPT_MPI OR HDF5_IS_PARALLEL)
 endif(OPT_MPI OR HDF5_IS_PARALLEL)
 
 if(NOT OPT_MPI)
-set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
+set(SEM_COMMON_SRC_F ${SEM_COMMON_SRC_F} ${FTM_SOURCES})
 endif()
 
 if (CEAUSER)
@@ -218,10 +218,6 @@ endif(CEAUSER)
 message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 
 set(SEMLIBDIR ${PROJECT_BINARY_DIR}/libs)
-#SEM COMMON LIBRARY
-add_library(semcommon ${SEM_SRC} ${SEM_SRC_C})
-set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
-set(SEM_EXTRA_LIBS semcommon ${SEM_EXTRA_LIBS})
 
 #RANDOM FIELD LIBRARY
 option(OPT_RF "RF" OFF)

@@ -4,18 +4,12 @@ ENABLE_LANGUAGE(Fortran)
 
 set(PRJ ${PROJECT_SOURCE_DIR})
 
-set(SOLID_SRC  ${PRJ}/SRC/Solid/calcul_forces_iso.F90)
-set(FLUID_SRC  ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90)
 
-if (SAVE_PREPROCESS)
-  set(SOLID_PROC ${CMAKE_CURRENT_BINARY_DIR}/calcul_forces_iso_p.F90)
-  set(FLUID_PROC ${CMAKE_CURRENT_BINARY_DIR}/calcul_forces_fluid_p.F90)
-else()
-  set(SOLID_PROC ${SOLID_SRC})
-  set(FLUID_PROC ${FLUID_SRC})
-endif()
+
+set(SEM3D_SOURCES_C ${SEM_COMMON_SRC_C})
 
 set(SEM3D_SOURCES_F
+    ${SEM_COMMON_SRC_F}
     ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/dombase.F90
@@ -51,7 +45,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
 #   ${PRJ}/SRC/Solid/attenuation_solid.F90
-    ${SOLID_PROC}
+    ${PRJ}/SRC/Solid/calcul_forces_iso.F90
     ${PRJ}/SRC/Solid/calcul_forces_aniso.F90
     ${PRJ}/SRC/Solid/calcul_forces_iso_atn.F90
     ${PRJ}/SRC/Solid/calcul_forces_aniso_atn.F90
@@ -60,7 +54,7 @@ set(SEM3D_SOURCES_F
     # NOT WORKING
     # ${PRJ}/SRC/Solid/calcul_forces_atn_nl.F90
     ${PRJ}/SRC/Solid/dom_solid.F90
-    ${FLUID_PROC}
+    ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90
     ${PRJ}/SRC/SolidDG/calcul_forces_solid_dg.F90
     ${PRJ}/SRC/SolidDG/dom_solid_dg.F90
@@ -109,7 +103,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/SourceMT/selectsurfload.f90 
     ${PRJ}/SRC/Modules/Bspline.f90
     ${PRJ}/SRC/Modules/Mirror.f90
-
   )
 set(GLLDEFS "GLLOPTMIN=${OPT_MIN_GLL_OPT};GLLOPTMAX=${OPT_MAX_GLL_OPT};GLLMAX=${OPT_MAX_GLL}")
 set_source_files_properties(
@@ -130,31 +123,24 @@ set_source_files_properties(
 
 if (OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
-      ${PRJ}/SRC/FluidCPML/champs_fluidcpml.f90
-      ${PRJ}/SRC/SolidCPML/champs_solidcpml.f90
       ${PRJ}/SRC/pml.F90
+      ${PRJ}/SRC/SolidCPML/champs_solidcpml.f90
+      ${PRJ}/SRC/SolidCPML/calcul_forces_solidpml.F90
+      ${PRJ}/SRC/SolidCPML/dom_solidcpml.F90
+      ${PRJ}/SRC/FluidCPML/champs_fluidcpml.f90
       ${PRJ}/SRC/FluidCPML/calcul_forces_fluidpml.F90
       ${PRJ}/SRC/FluidCPML/dom_fluidcpml.F90
-      ${PRJ}/SRC/SolidCPML/calcul_forces_solidpml.F90
-      ${PRJ}/SRC/SolidCPML/dom_solidcpml.F90)
+    )
 else(OPT_CPML)
-
-  set(SOLIDPML_SRC  ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90)
-  if (SAVE_PREPROCESS)
-    set(SOLIDPML_PROC ${CMAKE_CURRENT_BINARY_DIR}/calcul_forces_pml_p.F90)
-  else()
-    set(SOLIDPML_PROC ${SOLIDPML_SRC})
-  endif()
-
   
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
-      ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
-      ${PRJ}/SRC/SolidPML/champs_solidpml.f90
-      #${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
-      ${SOLIDPML_PROC}
       ${PRJ}/SRC/pml.F90
+      ${PRJ}/SRC/SolidPML/champs_solidpml.f90
+      ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
+      ${PRJ}/SRC/SolidPML/dom_solidpml.F90
+      ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
       ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
-      ${PRJ}/SRC/SolidPML/dom_solidpml.F90)
+    )
 set_source_files_properties(
   ${PRJ}/SRC/SolidPML/dom_solidpml.F90
   #${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
@@ -172,9 +158,17 @@ endif(OPT_CPML)
 #)
 #endif(NOT USE_MKL)
 
-set(SEM3D_SOURCES ${SEM3D_SOURCES_F})
+if(OPT_MPI)
+  #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+  # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
+  # c++ et ne link pas semx.exe
+else(OPT_MPI)
+  set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F} ${FTM_SOURCES})
+endif(OPT_MPI)
 
-set(SEM3D_SOURCES_MAIN
+### MAIN FILES
+set(SEM3D_SOURCES_F
+    ${SEM3D_SOURCES_F}
     ${PRJ}/SRC/Newmark.f90
     ${PRJ}/SRC/deallocate_domain.f90
     ${PRJ}/SRC/allocate_domain.f90
@@ -182,17 +176,9 @@ set(SEM3D_SOURCES_MAIN
     ${PRJ}/SRC/main.F90
     )
 
-if(OPT_MPI)
-  #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-  # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
-  # c++ et ne link pas semx.exe
-else(OPT_MPI)
-  set(SEM3D_SOURCES ${SEM3D_SOURCES} ${FTM_SOURCES})
-endif(OPT_MPI)
-
 include_directories(${PRJ}/SRC)
 
-add_executable(sem3d.exe  ${SEM3D_SOURCES} ${SEM3D_SOURCES_MAIN} )
+add_executable(sem3d.exe  ${SEM3D_SOURCES_MAIN} )
 target_link_libraries(sem3d.exe ${SEM_EXTRA_LIBS})
 set_target_properties(sem3d.exe PROPERTIES
   COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
@@ -212,27 +198,9 @@ endforeach()
 separate_arguments(CUSTOM_FLAGS UNIX_COMMAND "${CMAKE_Fortran_FLAGS} -DGLLOPTMIN=${OPT_MIN_GLL_OPT} -DGLLOPTMAX=${OPT_MAX_GLL_OPT} -DGLLMAX=${OPT_MAX_GLL}")
 list(APPEND CUSTOM_FLAGS ${incflags})
 
-if (SAVE_PREPROCESS)
-  add_custom_command(
-    OUTPUT "${SOLIDPML_PROC}"
-    COMMAND "${CMAKE_Fortran_COMPILER}" ${CUSTOM_FLAGS} -E ${SOLIDPML_SRC} | grep -v "^# "  >${SOLIDPML_PROC}
-    DEPENDS "${SOLIDPML_SRC}"
-    #VERBATIM COMMAND_EXPAND_LISTS # these two args are generally useful, but not actually required here.
-  )
-  add_custom_command(
-    OUTPUT "${SOLID_PROC}"
-    COMMAND "${CMAKE_Fortran_COMPILER}" ${CUSTOM_FLAGS} -E ${SOLID_SRC} | grep -v "^# " >${SOLID_PROC}
-    DEPENDS "${SOLID_SRC}"
-    #VERBATIM COMMAND_EXPAND_LISTS # these two args are generally useful, but not actually required here.
-  )
-  add_custom_command(
-    OUTPUT "${FLUID_PROC}"
-    COMMAND "${CMAKE_Fortran_COMPILER}" ${CUSTOM_FLAGS} -E ${FLUID_SRC} | grep -v "^# " >${FLUID_PROC}
-    DEPENDS "${FLUID_SRC}"
-    #VERBATIM COMMAND_EXPAND_LISTS # these two args are generally useful, but not actually required here.
-  )
-  target_sources(sem3d.exe PRIVATE "${SOLIDPML_PROC}" "${SOLID_PROC}" "${FLUID_PROC}")
-endif()
+set(SEM3D_SOURCES ${SEM3D_SOURCES_F})
+
+target_sources(sem3d.exe PRIVATE "${SEM3D_SOURCES}" "${SEM_COMMON_SRC_C}")
 
 # this might be needed since I don't expect cmake to infer CXX from the .ii extension
 #set_property(SOURCE "${output_file}" TARGET_DIRECTORY my_target PROPERTY LANGUAGE CXX)

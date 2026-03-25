@@ -44,7 +44,7 @@ add_library(mesh3d
   ${PRJ}/CSRC/mesh_common.cpp
   ${PRJ}/CSRC/reader_abaqus.cpp
   ${PRJ}/CSRC/reader_ideas.cpp
-  ${SEM_SRC_C}
+  ${SEM_COMMON_SRC_C}
   )
 #set_property(SOURCE ${SEMCOMMON}/read_unv.cpp ${PRJ}/CSRC/reader_ideas.cpp PROPERTY CXX_STANDARD 11) # set_property C++11 KO...
 #set_source_files_properties(${SEMCOMMON}/read_unv.cpp ${PRJ}/CSRC/reader_ideas.cpp PROPERTIES COMPILE_FLAGS "-std=c++11") # Bypass qui devrait marcher dans 99% des cas (gnu, intel)...
