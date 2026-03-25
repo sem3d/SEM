@@ -67,7 +67,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
             enddo
         enddo
     enddo
-    !$acc end parallel
+    !$acc end parallel loop
 
     call SUBPROCNAME2(ngllvar,nblocks, dom%Forces, dom%Depla, dom%props, dom%hprime, dom%gllw, &
         dom%m_Jacob, dom%m_InvGrad)
@@ -97,7 +97,7 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
             enddo
         enddo
     enddo
-    !$acc end parallel
+    !$acc end parallel loop
 end subroutine PROCNAME
 
 

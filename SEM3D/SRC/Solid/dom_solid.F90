@@ -1120,7 +1120,7 @@ contains
             dom%champs(f1)%Veloc(idx,:) = 0.
             !dom%champs(f1)%Depla(idx,:) = 0.
         enddo
-        !$acc end parallel
+        !$acc end parallel loop
 
         count = dom%nglltot
         call newmark_corrector_time_scheme(count,dt,dom%MassMat,dom%champs(f0)%Depla, &
@@ -1147,7 +1147,7 @@ contains
                 depla(n,i_dir) = depla(n,i_dir) + dt * vel
             end do
         enddo
-        !$acc end parallel
+        !$acc end parallel loop
    
     end subroutine newmark_corrector_time_scheme
 

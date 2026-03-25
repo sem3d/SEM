@@ -560,7 +560,7 @@ contains
 !!             !dom%champs(f1)%Phi(i)      = dom%champs(f0)%Phi(i)
 !!             dom%champs(f1)%ForcesFl(i) = 0d0
 !!         end do
-!!         !$acc end parallel
+!!         !$acc end parallel loop
         !$acc kernels async(1)
         dom%champs(f1)%ForcesFl = 0d0
         !$acc end kernels
