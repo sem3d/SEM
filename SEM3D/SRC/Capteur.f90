@@ -357,6 +357,9 @@ contains
         real(fpp) :: rtime
         rtime = TDomain%timeD%rtime
         do_flush = .false.
+        do c = 0,nCapteursOnRank-1
+            !$acc update device(localCapteurs(c)%icache) async(2)
+        enddo
         ! boucle sur les capteurs kernel si openacc
         !$acc parallel loop gang async(2) wait(1) present(Tdomain,localCapteurs) copyin(Tdomain%out_var_capt, Tdomain%out_var_offset)
         do c = 0,nCapteursOnRank-1
@@ -385,13 +388,9 @@ contains
                     if (localcapteurs(c)%icache>NCAPT_CACHE) then ! shouldn't happen
                         localcapteurs(c)%icache = 1
                     endif
-                !$acc update device(localCapteurs(c)%icache) async(2)
                 endif
             enddo
         endif
-        do c = 0,nCapteursOnRank-1
-            !$acc update device(localCapteurs(c)%icache) async(2)
-        enddo
     end subroutine save_capteur
 
     function dset_capteur_name(capteur)
