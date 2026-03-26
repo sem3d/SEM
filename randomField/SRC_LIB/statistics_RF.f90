@@ -3,7 +3,7 @@ module statistics_RF
     use displayCarvalhol
     use math_RF
     use mpi
-    use write_Log_File
+    use write_log_file
     use type_STAT
 
     implicit none

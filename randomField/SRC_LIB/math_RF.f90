@@ -2,7 +2,7 @@ module math_RF
 
     use displayCarvalhol
     use mpi
-    use write_Log_File
+    use write_log_file
     use constants_RF
 
     !All logic and math routines

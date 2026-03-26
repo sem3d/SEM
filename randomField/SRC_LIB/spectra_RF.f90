@@ -1,7 +1,7 @@
 module spectra_RF
     use displayCarvalhol
     use math_RF
-    use write_Log_File
+    use write_log_file
     use constants_RF
     use type_RF
     use special_functions

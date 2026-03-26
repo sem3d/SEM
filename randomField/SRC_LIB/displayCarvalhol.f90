@@ -2,7 +2,7 @@ module displayCarvalhol
 
     use mpi
     use constants_RF
-    use write_Log_File
+    use write_log_file
     !All display routines
     interface DispCarvalhol
        module procedure Disp1Ddble,   &

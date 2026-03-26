@@ -6,7 +6,7 @@ module randomFieldND
     use constants_RF
     use mesh_RF
     use mpi
-    use write_Log_File
+    use write_log_file
     use type_RF
     use type_MESH
     use common_variables_RF

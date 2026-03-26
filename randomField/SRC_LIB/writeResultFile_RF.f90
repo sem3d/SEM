@@ -5,7 +5,7 @@ module writeResultFile_RF
     use hdf5
     use mpi
     use constants_RF
-    use write_Log_File
+    use write_log_file
     use type_RF
     use type_MESH
     use hdf5_RF

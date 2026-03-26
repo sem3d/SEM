@@ -7,7 +7,7 @@ program main_RandomField
     use writeResultFile_RF
     use displayCarvalhol
     use charFunctions
-    use write_Log_File
+    use write_log_file
     use systemUt_RF
     use common_variables_RF
     use type_RF

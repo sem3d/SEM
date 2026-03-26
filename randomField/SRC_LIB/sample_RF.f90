@@ -1,7 +1,7 @@
 module sample_RF
 
     use displayCarvalhol
-    use write_Log_File
+    use write_log_file
     use math_RF
     use constants_RF
     use mpi

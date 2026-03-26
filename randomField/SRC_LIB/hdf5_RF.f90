@@ -4,7 +4,7 @@ module hdf5_RF
     use math_RF
     use hdf5
     use mpi
-    use write_Log_File
+    use write_log_file
 
 contains
 
