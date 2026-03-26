@@ -96,7 +96,7 @@ contains
             ! Cas ou le capteur est dans le maillage
             call MPI_AllReduce(dmin, glob_dmin, 1, MPI_DOUBLE, &
                 MPI_MIN, Tdomain%communicateur, ierr)
-            if (dmin==glob_dmin) then
+            if ((n_el >= 0) .and. (dmin==glob_dmin)) then
                 numproc = Tdomain%rank
             end if
             call MPI_AllReduce(numproc, numproc_max, 1, MPI_INTEGER, &
@@ -115,6 +115,12 @@ contains
 
             ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
             if(Tdomain%rank==numproc_max) then
+                if (n_el < 0) then
+                    write(*,*) "Internal error while creating station ", trim(nom)
+                    write(*,*) "Selected rank has no containing element (n_el = ", n_el, ")"
+                    write(*,*) "Please check station coordinates and mesh decomposition"
+                    stop 1
+                end if
                 allocate(capteur)
                 Tdomain%has_station = .true.
                 n_out = Tdomain%nReqOut
