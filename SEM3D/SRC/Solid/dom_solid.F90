@@ -1092,10 +1092,15 @@ contains
 
     subroutine newmark_predictor_solid(dom, f0, f1)
         type(domain_solid), intent (INOUT) :: dom
-        integer :: f0, f1
-        !$acc kernels async(1)
-        dom%champs(f1)%Veloc = 0d0
-        !$acc end kernels
+        integer :: f0, f1, n, count
+        count = dom%nglltot
+        !$acc parallel loop  async(1) present(dom,dom%champs,dom%champs(f1)%Veloc)
+        do n = 0, count
+            dom%champs(f1)%Veloc(n,0) = 0.
+            dom%champs(f1)%Veloc(n,1) = 0.
+            dom%champs(f1)%Veloc(n,2) = 0.
+        enddo
+        !$acc end parallel loop
     end subroutine newmark_predictor_solid
 
 
@@ -1114,10 +1119,12 @@ contains
 
         count = dom%n_dirich
         !!$acc update device(dom%champs(f1)%Veloc) async(1)
-        !$acc parallel loop  async(1)
+        !$acc parallel loop  async(1) present(dom,dom%dirich,dom%champs,dom%champs(f1)%Veloc)
         do n = 0, count-1
             idx = dom%dirich(n)
-            dom%champs(f1)%Veloc(idx,:) = 0.
+            dom%champs(f1)%Veloc(idx,0) = 0.
+            dom%champs(f1)%Veloc(idx,1) = 0.
+            dom%champs(f1)%Veloc(idx,2) = 0.
             !dom%champs(f1)%Depla(idx,:) = 0.
         enddo
         !$acc end parallel loop
@@ -1135,7 +1142,7 @@ contains
         !
         integer :: n, i_dir
         real(fpp) :: acc, vel
-        !$acc parallel loop collapse(2)  async(1)
+        !$acc parallel loop collapse(2)  async(1) present(depla,veloc,accel,invmass)
         do i_dir = 0,2
             !$omp simd linear(n)
             do n = 0,count-1
