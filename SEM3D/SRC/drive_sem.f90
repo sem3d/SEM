@@ -341,6 +341,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use mtimestep
     use semconfig !< pour config C
     use sem_c_bindings
+    use iso_fortran_env
     use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO, STAT_ITER
 
     implicit none
@@ -413,6 +414,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         call stat_stoptick(STAT_ITER)
         if (Tdomain%rank==0 .and. mod(ntime,20)==0) then
             print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
+            call flush(output_unit)
         end if
 
         !---------------------------------------------------------!
