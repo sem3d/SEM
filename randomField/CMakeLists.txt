@@ -37,11 +37,12 @@ set(COMM_SRC
   ${RFDIR}/SRC_LIB/hdf5_RF.f90
   ${RFDIR}/SRC_LIB/readFile_RF.f90
   ${RFDIR}/SRC_LIB/systemUt_RF.f90
+  ${RFDIR}/SRC_LIB/special_functions.f90
   ${RFDIR}/SRC_LIB/charFunctions.f90
   ${RFDIR}/SRC_LIB/constants_RF.f90
   ${RFDIR}/SRC_LIB/common_variables_RF.f90
   ${RFDIR}/SRC_LIB/displayCarvalhol.f90
-  ${RFDIR}/SRC_LIB/write_Log_File.f90
+  ${RFDIR}/SRC_LIB/write_log_file.f90
   ${RFDIR}/SRC_LIB/math_RF.f90
   ${RFDIR}/SRC_LIB/fftw3.f90
   ${RFDIR}/BLAS/dgemm.f90
