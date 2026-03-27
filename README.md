@@ -19,6 +19,9 @@ based on the original work of D. Komatitsch:
 - [Filippo Gatti](mailto:filippo.gatti@centralesupelec.fr) - [github](https://github.com/FilLTP89)
 
 ## Bibliography (journal publications involving the use of SEM):
+
+- de Abreu Corrêa, L., Khazaie, S., Gomez, C., & Cottereau, R. (2026). Quantitative error assessment of radiative transfer approximations of acoustic wave energies in unbounded and bounded random media. Wave Motion, 103715. [doi](https://doi.org/10.1016/j.wavemoti.2026.103715)
+
 - Touhami, S.; Gatti, F.; Lopez-Caballero, F.; Cottereau, R.; de Abreu Corrêa, L.; Aubry, L.; Clouteau, D. __SEM3D: A 3D High-Fidelity Numerical Earthquake Simulator for Broadband (0-10 Hz) Seismic Response Prediction at a Regional Scale__. Geosciences 2022, 12 (3). [doi](https://doi.org/10.3390/geosciences12030112)
 
 - Castro-Cruz, D.; Gatti, F.; Lopez-Caballero, F.; Hollender, F.; El Haber, E.; Causse, M. __Blind Broad-Band (0-10 Hz) Numerical Prediction of the 3-D near Field Seismic Response of a M W 6.0 Extended Fault Scenario: Application to the Nuclear Site of Cadarache (France)__. Geophysical Journal International 2022, ggac346. [doi](https://doi.org/10.1093/gji/ggac346)
