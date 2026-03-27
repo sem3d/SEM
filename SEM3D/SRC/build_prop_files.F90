@@ -260,12 +260,14 @@ contains
         integer, dimension(3) :: list
         integer :: l, m
         integer :: irec, ier, nelem_needed
+        integer :: rg
 
         ! File I/O
         integer :: unit, ios
         character(len=256) :: filename
 
         if (.not. mat%present) return
+        call MPI_Comm_rank(MPI_COMM_WORLD, rg, ier)
         
         inquire(iolength=len_int) i
         inquire(iolength=len_real)rxel
@@ -282,6 +284,11 @@ contains
         ys=ryel*nely
         zs=rzel*nelz
         close(unit)
+
+        if (Nd*(Nd+1)/2+1 /= 22) then
+            write(*,*) "Error: unsupported Cstar component count on proc", rg, "value =", Nd*(Nd+1)/2+1
+            stop "Acoustic Cstar is not yet coded"
+        end if
                                           
         if (icode /= -82) stop 'Unsupported icode in reading CStar file'
 
@@ -298,7 +305,7 @@ contains
         cy = iy(1)-iy(0)
         cz = iz(1)-iz(0)
         nelem_needed = (ix(1)-ix(0))*(iy(1)-iy(0))*(iz(1)-iz(0))
-        write(*,*) "Cstar read header"
+        write(*,*) "Cstar read header on proc", rg
         write(*,*) "icode :", icode
         write(*,*) "iheader :", iheader
         write(*,*) "len :", len
@@ -433,7 +440,7 @@ contains
         end do
         
         !interp to reagular grid
-        write(*,*) "Cstar readed routine end"
+        write(*,*) "Cstar readed routine end on proc", rg
         !stop 1
 
         deallocate(buffer)
