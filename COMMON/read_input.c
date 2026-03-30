@@ -435,34 +435,9 @@ void init_surface(surface_t *surface)
 {
     memset(surface, 0, sizeof(surface_t));
     // Initialisation de tous les champs surfaciques
-    surface->surface_list[40] = -1;
-    surface->surface_present=0;
-    surface->surface_type=0;
+    surface->surface_list[39] = -1;
     surface->surface_mat=-1;
-    surface->surface_K[3]=0;
-    surface->surface_C[3]=0;
-    surface->surface_f0=0;
-    surface->surface_whatbc=0;
-    surface->surface_dim=0;
-    surface->surface_Paravalue[100]=0;
-    surface->surface_Paramname=NULL;
-    surface->surface_nparamvar=0;
-    surface->surface_paramvar=0;
-    surface->surface_source=NULL;
-    surface->surface_funcx=NULL;
-    surface->surface_funcy=NULL;
-    surface->surface_funcz=NULL;
-    surface->surface_funcxy=NULL;
-    surface->surface_funcxz=NULL;
-    surface->surface_funcyz=NULL;
-    surface->surface_varia=NULL;
     surface->amplitude=1;
-    surface->Rtau = 0;
-    surface->surface_space=0;
-    surface->surface_size=0;
-    surface->surface_name=NULL;
-    surface->surface_wave = 0;
-    surface->surface_Speed =0;
 }
 
 
@@ -495,7 +470,6 @@ const keyword_t kw_wave_type[] = {
 int expect_source_shape(yyscan_t* scanner, int* type, char** name)
 {
     int tok;
-    int len;
 
     if (!expect_eq(scanner)) return 0;
     tok = skip_blank(scanner);
@@ -643,7 +617,7 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
 int generate_stations_points(yyscan_t scanner, sem_config_t* config, station_section_t* stations, int named)
 {
     FILE* f;
-    station_def_t *old, *stat;
+    station_def_t *stat;
     /* read station coordinates from file specified in point_file,
        the names are generated from section_name_%04d */
     int i, k = 0;
@@ -968,9 +942,6 @@ void dump_source(source_t* src)
 }
 void dump_config(sem_config_t* cfg)
 {
-    source_t* src;
-    int ksrc=0;
-
     printf("Configuration SEM\n");
     printf("Schema en acceleration: %d\n", cfg->accel_scheme);
     printf("Schema en vitesse: %d\n", cfg->veloc_scheme);
@@ -1019,8 +990,6 @@ void read_sem_config(sem_config_t* config, int rank, int dim, const char* input_
     struct scan_info info;
     FILE* input;
     yyscan_t scanner;
-
-    int tok;
 
     init_sem_config(config);
 
