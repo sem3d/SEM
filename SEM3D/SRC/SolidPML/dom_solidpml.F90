@@ -418,23 +418,6 @@ contains
         dt = Tdomain%TimeD%dtmin
 
         !$acc   parallel async(1)  &
-        !$acc&  present(Tdomain,dom) &
-        !$acc&  present(dom%champs) &
-        !$acc&  present(dom%champs(f1)) &
-        !$acc&  present(dom%champs(f1)%ForcesPML) &
-        !$acc&  firstprivate(f1) &
-        !$acc&
-        !$acc loop collapse(3)
-        do n = 0,dom%nglltot
-            do i=0,2
-                do j=0,2
-                    dom%champs(f1)%ForcesPML(n,i,j) = 0.
-                end do
-            end do
-        end do
-        !$acc end parallel
-
-        !$acc   parallel async(1)  &
         !$acc&  present(Tdomain,Tdomain%spmldom,dom,dom%champs) &
         !$acc&  present(dom%champs(f0)) &
         !$acc&  present(VelocPML0) &
@@ -465,14 +448,13 @@ contains
         !$acc&  present(dom%champs(f0),dom%champs(f1)) &
         !$acc&  present(VelocPML0,VelocPML1) &
         !$acc&  present(dom%champs(f1)%ForcesPML) &
-        !$acc&  firstprivate(f0,f1,dt,bega) 
+        !$acc&  firstprivate(f0,f1,dt,bega)
 
         !$acc loop collapse(3)
-        do n = 0,dom%nglltot
+        do j=0,2
             do i=0,2
-                do j=0,2
-                    VelocPML1(n,i,j) = VelocPML0(n,i,j) + &
-                        dt*(0.5-bega)*dom%champs(f1)%ForcesPML(n,i,j)
+                do n = 0,dom%nglltot
+                    VelocPML1(n,i,j) = VelocPML0(n,i,j)
                 end do
             end do
         end do

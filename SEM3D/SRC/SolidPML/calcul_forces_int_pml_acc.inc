@@ -207,17 +207,24 @@ subroutine PROC_MAIN(ngllvar,nblocks,nglltot,dt,gllw,hprime,Idom, &
     real(fpp) :: dVy_dx, dVy_dy, dVy_dz
     real(fpp) :: dVz_dx, dVz_dy, dVz_dz
     real(fpp) :: dS_dxi, dS_deta, dS_dzeta
-    integer :: i, j, k, l, ind, i_dir, e, ee, bnum
+    integer :: i, j, k, l, n, ind, i_dir, e, ee, bnum
     real(fpp) :: lambda, mu, lam2mu, dumpsx0, dumpsx1, dumpsy0, dumpsy1, dumpsz0, dumpsz1
     real(fpp) :: wi,wj,wk,acoeff
     real(fpp) :: ljxx,ljxy,ljxz,ljyx,ljyy,ljyz,ljzx,ljzy,ljzz, jac
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz
     real(fpp) :: xtmp, ytmp, ztmp
 
-    !!! XXX Check
-    !$acc kernels async(1)
-    ForcesPML = 0d0
-    !$acc end kernels
+    !$acc   parallel loop async(1)  &
+    !$acc&  copyout(ForcesPML) &
+    !$acc&  collapse(3)
+    do j=0,2
+        do i=0,2
+            do n = 0,nglltot
+                ForcesPML(n,i,j) = 0.
+            end do
+        end do
+    end do
+    !$acc end parallel
 
     !$acc parallel loop collapse(5) async(1) &
     !$acc& present(ForcesPML,Stress1,Stress2,Stress3) &

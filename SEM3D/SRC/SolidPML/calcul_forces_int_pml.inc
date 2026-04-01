@@ -18,6 +18,7 @@
 #undef PROC_PRED
 #undef PROC_MAIN
 
+#define PROC_INIT  GLUE(PROCNAME,_init)
 #define PROC_PRED  GLUE(PROCNAME,_pred)
 #define PROC_MAIN  GLUE(PROCNAME,_main)
 
@@ -47,6 +48,8 @@ subroutine PROCNAME(dom, ngllvar, champs1)
     integer :: bnum, nblocks
     real(fpp), dimension (0:VCHUNK-1,0:5,0:ngll-1,0:ngll-1,0:ngll-1) :: Stress
 
+    call PROC_INIT(ngll, dom%nglltot, champs1%ForcesPML)
+
     nblocks = dom%nblocks
     do bnum = 0,nblocks-1
         call PROC_PRED(ngll, bnum, nblocks, dom%nglltot, dom%dt, dom%hprime, dom%m_Idom, &
@@ -57,6 +60,23 @@ subroutine PROCNAME(dom, ngllvar, champs1)
             dom%m_Invgrad, dom%m_Jacob, dom%GLLw, dom%hprime)
     end do
 end subroutine PROCNAME
+
+subroutine PROC_INIT(ngllvar, nglltot, ForcesPML)
+    integer, intent(in) :: ngllvar, nglltot
+    real(fpp), intent(inout), dimension(0:nglltot,0:2,0:2) :: ForcesPML
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    !
+    integer :: n, i, j
+    do j=0,2
+        do i=0,2
+            do n = 0,nglltot
+                ForcesPML(n,i,j) = 0.
+            end do
+        end do
+    end do
+end subroutine PROC_INIT
 
 subroutine PROC_PRED(ngllvar,bnum,nblocks,nglltot,dt,hprime, Idom,InvGrad,VelocPML,vLambda, vMu, &
     Stress1, Stress2, Stress3, PMLDumpSx, PMLDumpSy, PMLDumpSz, Stress)
@@ -180,7 +200,6 @@ subroutine PROC_MAIN(ngllvar,bnum,nblocks,nglltot,ForcesPML,Idom,Stress,InvGrad,
     integer :: i, j, k, l, ind, e, ee
     real(fpp) :: sum_vx, sum_vy, sum_vz, acoeff
     real(fpp), dimension(0:VCHUNK-1,0:2,0:ngll-1,0:ngll-1,0:ngll-1)  :: Forces1, Forces2, Forces3
-
 
     Forces1 = 0d0
     do k = 0,ngll-1
