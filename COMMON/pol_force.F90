@@ -12,7 +12,7 @@
 !<
 
 !>
-!! \brief Assure l'evaluation de la valeur recherchee en x pour la fonction au point de gauss k.
+!! \brief Assure l''evaluation de la valeur recherchee en x pour la fonction au point de gauss k.
 !!
 !! \param integer, intent (IN) n
 !! \param integer, intent (IN) k

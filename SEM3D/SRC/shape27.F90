@@ -10,7 +10,7 @@ module mshape27
 
 contains
     !>
-    !! shape27: alloue et calcule la jacobienne et l'inverse du gradient de ??
+    !! shape27: alloue et calcule la jacobienne et l''inverse du gradient de ??
     !<
     subroutine shape27_init(Tdomain)
         use sdomain

@@ -294,7 +294,7 @@ contains
         integer :: k
         real(fpp) :: Mass
 
-        ! Couplage à l'interface solide / PML
+        ! Couplage à l''interface solide / PML
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
@@ -311,7 +311,7 @@ contains
             Tdomain%spmldom%MassMat(indpml) = Mass
         enddo
 
-        ! Couplage à l'interface fluid / PML
+        ! Couplage à l''interface fluid / PML
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)

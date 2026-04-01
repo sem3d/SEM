@@ -210,7 +210,7 @@ contains
         do nf = 0, surf%n_faces-1
             nfs = surf%if_faces(nf)
             orient = -1d0*surf%if_norm(nf)
-            ! We don't treat orphan faces, they will be handled by communications
+            ! We don''t treat orphan faces, they will be handled by communications
             if (Tdomain%sFace(nfs)%orphan) cycle
             do i = 0,3
                 nodes(:,i) = Tdomain%Coord_nodes(:,Tdomain%sFace(nfs)%inodes(i))
@@ -262,7 +262,7 @@ contains
                 + nodes(i,3)*(1-xi) )
         end do
         call cross_prod(d_xi, d_eta, normal)
-        ! We don't normalize, we want normal = n.dS
+        ! We don''t normalize, we want normal = n.dS
     end subroutine normal_face
     !---------------------------------------------------------------------------
     subroutine nodes_coord_8(Control_Nodes,n_glob_nodes,Coord_Nodes,coord)

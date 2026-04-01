@@ -1400,7 +1400,7 @@ contains
                 '">geometry',group,'.h5:/Dom</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a)") '</Grid>'
-            ! XXX inexact pour l'instant
+            ! XXX inexact pour l''instant
             time = time+Tdomain%TimeD%time_snapshots
         end do
         write(61,"(a)") '</Grid>'

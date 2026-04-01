@@ -4,7 +4,7 @@
 !!
 !>
 !! \fn function pow (x,vp,npm,dx,A,np)
-!! \brief calcule le facteur d'attenuation PML
+!! \brief calcule le facteur d''attenuation PML
 !!
 !! \param real x
 !! \param real vp

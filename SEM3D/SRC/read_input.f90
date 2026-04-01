@@ -731,7 +731,7 @@ contains
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
-        call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"
+        call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc
         Tdomain%mesh_file             = fnamef
         Tdomain%aniso                 = Tdomain%config%anisotropy .ne. 0
         Tdomain%material_file         = fromcstr(Tdomain%config%mat_file)

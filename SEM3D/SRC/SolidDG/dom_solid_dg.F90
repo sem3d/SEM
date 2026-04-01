@@ -40,7 +40,7 @@ contains
 
         ngll    = dom%ngll
         nbelem  = dom%nbelem
-        if (ngll == 0) return ! Domain doesn't exist anywhere
+        if (ngll == 0) return ! Domain doesn''t exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
@@ -76,7 +76,7 @@ contains
         integer :: n, nf, lnum, eb, ec, side, k, ngll, nnf
         integer, dimension(0:3) :: elface
         integer, dimension(0:2) :: i0, di, dj
-        
+
         !
         !Recollecting at the element level, from faces, edges and vertices.
         do n = 0,Tdomain%n_elem-1
@@ -120,7 +120,7 @@ contains
             end do
         end do
     end subroutine compute_trace_numbering
-    
+
     subroutine deallocate_dom_solid_dg (dom)
         implicit none
         type(domain_solid_dg), intent (INOUT) :: dom
@@ -164,7 +164,7 @@ contains
         ee = mod(lnum,VCHUNK)
 
         ngll = dom%ngll
-        
+
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
@@ -180,7 +180,7 @@ contains
                 enddo
             enddo
         enddo
-    
+
     end subroutine get_solid_dg_dom_var
 
 
@@ -364,7 +364,7 @@ contains
         type(champssolid_dg),  intent(IN)     :: var
         type(champssolid_dg),  intent(INOUT)  :: dvdt
         integer, intent(in) :: bnum
-        
+
         integer :: ngll
 
         ngll = dom%ngll
@@ -374,31 +374,31 @@ contains
     end subroutine forces_int_solid_dg
 
     function solid_Pspeed_dg(dom, lnum, i, j, k) result(Pspeed)
-        
+
         type(domain_solid_dg), intent (IN) :: dom
         integer, intent(in) :: lnum, i, j, k
         real(fpp) :: Pspeed, M
         integer :: bnum, ee
-        
+
         bnum   = lnum/VCHUNK
         ee     = mod(lnum,VCHUNK)
         M      = dom%Lambda_(i,j,k,bnum,ee) + 2.*dom%Mu_(i,j,k,bnum,ee)
         Pspeed = sqrt(M/dom%Density_(i,j,k,bnum,ee))
-    
+
     end function solid_Pspeed_dg
 
     subroutine lddrk_init_solid_dg(dom, f2)
 
         type(domain_solid_dg), intent (INOUT) :: dom
         integer, intent(in) :: f2
-    
+
         if (dom%nglltot == 0) return
 
         !dom%champs(f2)%Q(:,:,:,:,:,:) = 0.d0
         !dom%champs(0)%Q(:,:,:,:,:,:) = 0.d0
         !dom%champs(0)%Q(:,0,:,:,6,:) = 1.d0
         !dom%champs(0)%Q(:,1:5,:,:,0,:) = 0.d0
-        
+
       end subroutine lddrk_init_solid_dg
 
     subroutine lddrk_update_solid_dg(dom, f0, f1, f2, dt, cb, cg)

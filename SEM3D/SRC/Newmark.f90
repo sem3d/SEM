@@ -150,7 +150,7 @@ contains
         real(fpp)                   :: wh
 
         ngll   = dom%ngll
- 
+
         do n = 0,Tdomain%n_elem-1
             bnum = Tdomain%specel(n)%lnum/VCHUNK
             ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
@@ -656,7 +656,7 @@ contains
                 ! time : t_(n+1/2) for solid ; t_n for fluid
                 ! t = merge(timer+Tdomain%TimeD%dtmin/2d0,timer,Tdomain%specel(nel)%solid)
                 ! nouvelle version:
-                ! le temps n'est plus decale pour les sources, pour un saute-mouton
+                ! le temps n''est plus decale pour les sources, pour un saute-mouton
                 !   on rajoute le 1/2 pas de temps qui correspond au fait que la
                 !    exterieure doive etre prise a t_(n+1/2)
                 t = timercur+Tdomain%TimeD%dtmin/2_fpp
@@ -676,7 +676,7 @@ contains
 
         return
     end subroutine external_forces
-    
+
 end module mtimestep
 !! Local Variables:
 !! mode: f90

@@ -283,8 +283,8 @@ contains
     !        FOR A MATHEMATICAL DEVELOPMENT OF THE ALGORITHM USED,
     !        SEE:
     !
-    !        C TEMPERTON : "A GENERALIZED PRIME FACTOR FFT ALGORITHM
-    !          FOR ANY N = (2**P)(3**Q)(5**R)",
+    !        C TEMPERTON : A GENERALIZED PRIME FACTOR FFT ALGORITHM
+    !          FOR ANY N = (2**P)(3**Q)(5**R),
     !          SIAM J. SCI. STAT. COMP., MAY 1992.
     !
     !----------------------------------------------------------------------

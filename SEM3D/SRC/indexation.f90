@@ -82,7 +82,7 @@ contains
     ! dir : 1 if refface[1] == face[mod(node+1,4)]
     !     : -1 if refface[1] == face[mod(node-1,4)]
     !
-    ! XXX: refface and face are supposed to be the same, we don't check all
+    ! XXX: refface and face are supposed to be the same, we don''t check all
     ! the nodes for equality
     subroutine rel_orient(refface, face, node, dir)
         integer, dimension(0:3), intent(in) :: refface

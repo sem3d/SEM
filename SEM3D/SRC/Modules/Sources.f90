@@ -113,7 +113,7 @@ contains
             CompSource = Source_File (time,Sour)
         end select
         CompSource = CompSource*Sour%amplitude_factor
-        
+
 
         return
     end function CompSource
@@ -140,7 +140,7 @@ contains
         Source_Spice_Bench = (1-(1+s)*exp(-s))
 
        ! write(99,*) time, Source_Spice_Bench
-         
+
         return
     end function Source_Spice_Bench
 
@@ -231,7 +231,7 @@ contains
 
     subroutine read_source_file(Sour)
         implicit none
-        !- lecture directe d'un fichier temps-amplitude pour la source
+        ! lecture directe d''un fichier temps-amplitude pour la source
         type(Source), intent(inout)   :: Sour
         integer                       :: nb_time_step
         integer                       :: i
@@ -263,7 +263,7 @@ contains
     subroutine read_source_file_h5(Sour)
         use sem_hdf5
         implicit none
-        !- lecture directe d'un fichier temps-amplitude pour la source
+        ! lecture directe d''un fichier temps-amplitude pour la source
         type(Source), intent(inout)      :: Sour
         real(fpp), allocatable, dimension(:,:,:) :: data
         real(fpp), allocatable, dimension(:)     :: dataT
@@ -283,8 +283,7 @@ contains
         call read_subset_3d_real(fid, 'moment', imin, imax, data)
         call read_dset_1d_real(fid, 'time', dataT)
 
-        
-        ! Historique de l'amplitude du Slip
+        ! Historique de l''amplitude du Slip
         allocate(Sour%ampli(0:Sour%Nt-1))
         allocate(Sour%time(0:Sour%Nt-1))
         Sour%ampli(:) = data(:,imin(1),imin(2))

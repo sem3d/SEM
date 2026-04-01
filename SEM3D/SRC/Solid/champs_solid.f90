@@ -35,7 +35,7 @@ module champs_solid
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
     type, extends(dombase) :: domain_solid
-        ! D'abord, les données membres qui ne sont pas modifiées
+        ! D''abord, les données membres qui ne sont pas modifiées
         logical :: aniso
         integer :: nprops
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: props

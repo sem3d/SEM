@@ -98,9 +98,9 @@ contains
         p0 = dot_product(stress0,Mvector)/three
         ! volumetric strain increment
         devol = dot_product(dstrain,Mvector)
-        ! Bulk's modulus
+        ! Bulk''s modulus
         B = p0/devol*(exp(spec_vol*devol/k)-one)
-        ! Poisson's ratio
+        ! Poisson''s ratio
         nu = half*lambda/(lambda+mu)
         ! NEW shear modulus
         mu_crit = three*half*(one-two*nu)*B/(one+nu)

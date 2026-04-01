@@ -76,8 +76,8 @@ contains
     !!
     !! Protection/reprise: (Numero, champ)
     !! Elements/
-    !! x Offets : Un tableau (Nelem x Nfield) d'offset contenant la position dans
-    !!            le tableau de numero nfield des donnees de l'element Nelem
+    !! x Offets : Un tableau (Nelem x Nfield) d''offset contenant la position dans
+    !!            le tableau de numero nfield des donnees de l''element Nelem
     !! 1 : Veloc
     !! 2 : Veloc1
     !! 2 : Veloc2

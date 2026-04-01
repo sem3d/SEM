@@ -59,7 +59,7 @@ module sneu
     ! general Neumann object
     type :: New_setting
        integer                                  :: Neu_n_faces, Neu_n_edges, Neu_n_vertices
-       integer                                  :: nbtot ! nombre total de points de gauss de l'interface
+       integer                                  :: nbtot ! nb total de points de gauss de l''interface
        character                                :: material_type
        character(len=50)                        :: name
        type(face_Neu), dimension(:), pointer    :: Neu_face
@@ -67,7 +67,7 @@ module sneu
        type(vertex_Neu), dimension(:), pointer  :: Neu_vertex
        integer, dimension(:), allocatable       :: map
     end type New_setting
-       
+
     type :: Neu_object
        type(Param_Neu)                              :: Neu_Param
        type(New_setting), dimension(:), allocatable :: NeuSurface
@@ -107,14 +107,14 @@ contains
     !        NeumanSource%valuefxy(1:len_trim(Param%neu_funcxy))=Param%neu_funcxy(1:len_trim(Param%neu_funcxy))
     !        NeumanSource%valuefyz(1:len_trim(Param%neu_funcyz))=Param%neu_funcyz(1:len_trim(Param%neu_funcyz))
     !        NeumanSource%valuefxz(1:len_trim(Param%neu_funcxz))=Param%neu_funcxz(1:len_trim(Param%neu_funcxz))
- 
+
     !        Addparametricvar%nparam=0
     !        if (Param%neu_paramvar==1) then
     !           Addparametricvar%nparam =Param%neu_nparamvar
     !           Addparametricvar%paramname =Param%neu_paramname
     !           Addparametricvar%paramvalue =Param%neu_paravalue
     !        endif
- 
+
     !        if (NeumanSource%dim.eq.1) then
     !            allocate(NeumanSource%fvalue(1:1))
     !        elseif ((NeumanSource%dim.eq.2).and.(NeumanSource%source.eq."F")) then
@@ -128,7 +128,7 @@ contains
     !        endif
     !        NeumanSourcen =NeumanSource;
     !     endif
-    !  
+    !
     !    do j = 1,ngll2-2
     !        do i = 1,ngll1-2
 
@@ -174,17 +174,17 @@ contains
     !                Face%Forces(i,j,0) = -vel_i(i,j,0)*Face%Btn(i,j,0)
     !                Face%Forces(i,j,1) = -vel_i(i,j,1)*Face%Btn(i,j,1)
     !                Face%Forces(i,j,2) = -vel_i(i,j,2)*Face%Btn(i,j,2)
-    !            
+    !
     !        !    case('S')
     !        !        ! Pour le case de source surfacique
     !        !        Face%Forces(i,j,0) = triangle(dt)*Face%Btn(i,j,0)
     !        !        Face%Forces(i,j,1) = triangle(dt)*Face%Btn(i,j,1)
-    !        !        Face%Forces(i,j,2) = triangle(dt)*Face%Btn(i,j,2) 
+    !        !        Face%Forces(i,j,2) = triangle(dt)*Face%Btn(i,j,2)
 
     !            case ('A')
-    !                  
+    !
     !                  CALL ffvalue(NeumanSource , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime)
-    !                  CALL ffvalue(NeumanSourcen , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime+dt)         
+    !                  CALL ffvalue(NeumanSourcen , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime+dt)
     !                  NeumanSource%fvalue(:)=0.5*(NeumanSource%fvalue(:)+NeumanSourcen%fvalue(:))
 
     !                  if ((NeumanSource%dim==3).and.(NeumanSource%source.eq.'M')) then
@@ -213,7 +213,7 @@ contains
     !!----------------------------------------------------------------------------------
     !subroutine compute_Neu_forces_on_edge(Edge,Param,dt,ctime)
     !    ! gives the forces on faces submitted to Neumann B.C.
-    !    
+    !
     !    USE Mathfval
     !    USE parameters, ONLY: Addparametricvar
     !    implicit none
@@ -249,7 +249,7 @@ contains
     !            Addparametricvar%paramname =Param%neu_paramname
     !            Addparametricvar%paramvalue =Param%neu_paravalue
     !        endif
- 
+
     !        if (NeumanSource%dim.eq.1) then
     !            allocate(NeumanSource%fvalue(1:1))
     !        elseif ((NeumanSource%dim.eq.2).and.(NeumanSource%source.eq."F")) then
@@ -308,18 +308,18 @@ contains
     !            Edge%Forces(i,0) = -vel_i(i,0)*Edge%Btn(i,0)
     !            Edge%Forces(i,1) = -vel_i(i,1)*Edge%Btn(i,1)
     !            Edge%Forces(i,2) = -vel_i(i,2)*Edge%Btn(i,2)
-    !        
+    !
     !     !   case('S')
     !     !       ! Pour la source surfacique
     !     !       Edge%Forces(i,0) = triangle(dt)*Edge%Btn(i,0)
     !     !       Edge%Forces(i,1) = triangle(dt)*Edge%Btn(i,1)
     !     !       Edge%Forces(i,2) = triangle(dt)*Edge%Btn(i,2)
     !        case('A')
-    !              
+    !
     !              CALL ffvalue(NeumanSource , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime)
     !              CALL ffvalue(NeumanSourcen , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime+dt)
     !              NeumanSource%fvalue(:)=0.5*(NeumanSource%fvalue(:)+NeumanSourcen%fvalue(:))
-    !              
+    !
 
     !              if ((NeumanSource%dim==3).and.(NeumanSource%source.eq.'M')) then
     !                 Edge%Forces(i,0) = -(NeumanSource%fvalue(1)*Edge%Btn(i,0)+ &
@@ -371,14 +371,14 @@ contains
     !        NeumanSource%valuefxy=Param%neu_funcxy
     !        NeumanSource%valuefyz=Param%neu_funcyz
     !        NeumanSource%valuefxz=Param%neu_funcxz
- 
+
     !        Addparametricvar%nparam=0
     !        if (Param%neu_paramvar==1) then
     !            Addparametricvar%nparam =Param%neu_nparamvar
     !            Addparametricvar%paramname =Param%neu_paramname
     !            Addparametricvar%paramvalue =Param%neu_paravalue
     !        endif
- 
+
     !        if (NeumanSource%dim.eq.1) then
     !            allocate(NeumanSource%fvalue(1:1))
     !        elseif ((NeumanSource%dim.eq.2).and.(NeumanSource%source.eq."F")) then

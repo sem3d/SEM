@@ -41,7 +41,7 @@ contains
 
         nbelem = dom%nbelem
         ngll   = dom%ngll
-        if (ngll == 0) return ! Domain doesn't exist anywhere
+        if (ngll == 0) return ! Domain doesn''t exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
@@ -308,7 +308,7 @@ contains
                 do i = 0,ngll-1
                     BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     ind = dom%Idom_(i,j,k,bnum,ee)
-                    ! We should have atomic adds with openmp // here
+                    ! We should have atomic adds with openmp here
                     champs1%fpml_Forces(ind,d) = champs1%fpml_Forces(ind,d) + FFl(ee,i,j,k)
                     END_SUBELEM_LOOP()
                 enddo
@@ -533,7 +533,7 @@ contains
 
         dom%champs(i1)%fpml_Forces = 0.
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
-            ! Couplage à l'interface fluide / PML
+            ! Couplage à l''interface fluide / PML
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)
             dom%champs(i0)%fpml_VelPhi(indpml,0) = Tdomain%fdom%champs(i0)%VelPhi(indflu)

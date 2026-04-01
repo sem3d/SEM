@@ -125,7 +125,7 @@ contains
     ! and that ngll on both sides match
     !
     ! single surface element without a 3d hex associated can happen
-    ! at processor boundary. It's the role of this function to make
+    ! at processor boundary. It''s the role of this function to make
     ! sure those are correctly initialised
     subroutine apply_interface(Tdomain, inter, d0, d1, check)
         type(domain), intent(inout) :: Tdomain

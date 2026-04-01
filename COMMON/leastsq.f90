@@ -161,8 +161,8 @@ contains
     end subroutine minimize_cg
 
     subroutine cg_inv(m,n,Amat,dataval,model_val)
-        !-> inversion of the stiffness matrix, and calculation
-        !   of the corrector's coefficient
+        ! -> inversion of the stiffness matrix, and calculation
+        !    of the corrector''s coefficient
         implicit none
         integer, intent(in)  :: m,n
         real(fpp), dimension(0:m-1,0:n-1),intent(in)  :: Amat
@@ -192,7 +192,7 @@ contains
 
 
         !! list of singular values and ratio to the highest
-        if (.false.) then ! USE ONLY FOR DEBUG, CAN'T WORK WELL ON MULTIPLE PROCESSORS
+        if (.false.) then ! USE ONLY FOR DEBUG, CAN''T WORK WELL ON MULTIPLE PROCESSORS
             !! verif
             !allocate(mat_verif(m,n))
             !mat_verif=matmul(U,matmul(sigma,VT))

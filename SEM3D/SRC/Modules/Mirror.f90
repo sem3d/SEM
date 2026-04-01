@@ -151,7 +151,7 @@ contains
 
         dom%mirror_fl%n_glltot = n_glltot_fl
         dom%mirror_fl%n_gll = n_gll
-        
+
         allocate(dom%mirror_fl%map(0:n_elmtot-1,0:n_gll-1,0:n_gll-1,0:n_gll-1))
         dom%mirror_fl%map = -1
         if (n_glltot_fl>0) then
@@ -227,7 +227,7 @@ contains
                 coords_sl(1,idx_m) = x
                 coords_sl(2,idx_m) = y
                 coords_sl(3,idx_m) = z
-            end do 
+            end do
         end if
         deallocate(mirror_E, mirror_IJK, mirror_XYZ)
     end subroutine map_mirror_sl
@@ -285,7 +285,7 @@ contains
                 coords_fl(1,idx_m) = x
                 coords_fl(2,idx_m) = y
                 coords_fl(3,idx_m) = z
-            end do 
+            end do
         end if
         deallocate(mirror_E, mirror_IJK, mirror_XYZ)
     end subroutine map_mirror_fl
@@ -468,7 +468,7 @@ contains
         integer, intent(in) :: ntime
         integer :: i,j,j1,j2,ntimecur,ntimeloc,first,firstloc,recn
         real(fpp) :: t,tnt,tmp
-        
+
         if (dom%mirror_type==1) then
             ntimecur = ntime+int(t_offset/d_t)
             ntimeloc = mod(ntime,n_dcm)
@@ -704,7 +704,7 @@ contains
             dom%mirror_sl%fields(7:9,:) = veloc_sl(:,:,1)
             call write_mirror_h5_sl(dom, n-1)
         enddo
-        !! Back substitution, Solve L'*X = D**(-1)*Y.
+        ! Back substitution, Solve L^t * X = D**(-1)*Y.
         do n = nrow,nrow-nbands+2,-1
             do j = nrow-n,1,-1
                 displ_sl(:,:,j+1) = displ_sl(:,:,j)
@@ -803,7 +803,7 @@ contains
             dom%mirror_fl%fields(3,:) = veloc_fl(:,1)
             call write_mirror_h5_fl(dom, n-1)
         enddo
-        !! Back substitution, Solve L'*X = D**(-1)*Y.
+        ! Back substitution, Solve L^t*X = D**(-1)*Y.
         do n = nrow,nrow-nbands+2,-1
             do j = nrow-n,1,-1
                 displ_fl(:,j+1) = displ_fl(:,j)

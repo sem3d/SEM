@@ -85,7 +85,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
                 dVydt  = 0.d0
                 dVzdt  = 0.d0
 
-                ! Calcul de dE/dt : Pas d'IPP dans la formulation
+                ! Calcul de dE/dt : Pas d''IPP dans la formulation
                 !                   -> ww ne dépend pas de L
                 !###############################################################################
                 !###############################################################################
@@ -106,7 +106,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
                     Vx = Q(ee,L,j,k,6)
                     Vy = Q(ee,L,j,k,7)
                     Vz = Q(ee,L,j,k,8)
-                    hp  = dom%hprime(L,i) ! Ce qui varie c'est le numéro de la fonction de base
+                    hp  = dom%hprime(L,i) ! Ce qui varie c''est le numéro de la fonction de base
 
                     dE11dt = dE11dt + Vx*JXX*hp
                     dE22dt = dE22dt + Vy*JXY*hp

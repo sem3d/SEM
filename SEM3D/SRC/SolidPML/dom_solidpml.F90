@@ -42,7 +42,7 @@ contains
 
         ngll   = dom%ngll
         nbelem = dom%nbelem
-        if (ngll == 0) return ! Domain doesn't exist anywhere
+        if (ngll == 0) return ! Domain doesn''t exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
@@ -447,7 +447,7 @@ contains
 
         !$acc loop
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
-            ! Couplage à l'interface solide / PML
+            ! Couplage à l''interface solide / PML
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
             do i=0,2

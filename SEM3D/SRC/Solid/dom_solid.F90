@@ -39,7 +39,7 @@ contains
 
         ngll    = dom%ngll
         nbelem  = dom%nbelem
-        if (ngll == 0) return ! Domain doesn't exist anywhere
+        if (ngll == 0) return ! Domain doesn''t exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 
@@ -210,7 +210,7 @@ contains
         !
         type(domain_solid), intent(inout)     :: dom
         integer, intent(in)                   :: lnum
-        real(fpp), intent(inout), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: grad_La 
+        real(fpp), intent(inout), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: grad_La
         integer                  :: ngll, i, j, k
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: xlambda
         real(fpp)                :: DLambdaDX,DLambdaDY,DLambdaDZ
@@ -222,7 +222,7 @@ contains
         ngll = dom%ngll
 
         grad_La = 0d0
-        xlambda = dom%props(ee,:,:,:,cLambda,bnum) 
+        xlambda = dom%props(ee,:,:,:,cLambda,bnum)
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
@@ -693,7 +693,7 @@ contains
         !$acc&            delete(dom%champs, dom)
     end subroutine stop_domain_solid
 
-    
+
     subroutine init_material_properties_solid(dom, lnum, mat, density, lambda, mu, &
         Qkappa, Qmu, nlkp, nl_flag)
         use ssubdomains
@@ -717,13 +717,13 @@ contains
         dom%props(ee,:,:,:,cRho,bnum) = density
         dom%props(ee,:,:,:,cLambda,bnum) = lambda
         dom%props(ee,:,:,:,cMu,bnum) = mu
-        
+
         if (nl_flag) then
             if (mat%deftype.eq.MATDEF_NLKP_VS_RHO) then
                 dom%props(ee,:,:,:,cSyld,bnum) = gamma_el*mu*sqrt(3.0d0)
                 dom%props(ee,:,:,:,cCKin,bnum) = mu
                 dom%props(ee,:,:,:,cKKin,bnum) = 1.0d0/(sqrt(3.0d0)*(nlkp-gamma_el))
-                dom%props(ee,:,:,:,cRinf,bnum) = mat%DRinf 
+                dom%props(ee,:,:,:,cRinf,bnum) = mat%DRinf
                 dom%props(ee,:,:,:,cBiso,bnum) = mat%DBiso
             else
                 dom%props(ee,:,:,:,cSyld,bnum) = gamma_el*nlkp*sqrt(3.0d0)
@@ -810,7 +810,7 @@ contains
         specel%MassMat(i,j,k) = Whei*dom%props(ee,i,j,k,cRho,bnum)*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
-      
+
     subroutine forces_int_solid_mainloop(dom, i0, i1, nlflag, m_dump, m_load, m_expl, m_recalc)
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(IN) :: i0, i1
@@ -842,7 +842,7 @@ contains
                 else
                     call dispatch_forces_int_mirror_iso(dom, dom%champs(i0), dom%champs(i1), m_dump, m_expl, m_recalc)
                 endif
-            end if            
+            end if
         else
             if (aniso) then
                 if (n_solid>0) then
@@ -894,7 +894,7 @@ contains
             NGLLDISPATCHCALL_N(calcul_forces_iso_atn,,(dom,dom%ngll,var,dvdt))
         end select
     end subroutine dispatch_forces_int_iso_atn
-    
+
     subroutine dispatch_forces_int_aniso(dom, var, dvdt)
         use m_calcul_forces_aniso
         type(domain_solid), intent (INOUT) :: dom
@@ -998,7 +998,7 @@ contains
             NGLLDISPATCHCALL_N(calcul_forces_aniso,_mirror,(dom,dom%ngll,var,dvdt,m_dump,m_expl,m_recalc))
         end select
     end subroutine dispatch_forces_int_mirror_aniso
-    
+
     subroutine dispatch_forces_int_mirror_iso_atn(dom, var, dvdt, m_dump, m_expl, m_recalc)
         use m_calcul_forces_iso_atn
         type(domain_solid), intent (INOUT) :: dom
@@ -1035,7 +1035,7 @@ contains
         end select
     end subroutine dispatch_forces_int_mirror_aniso_atn
 
-    
+
 
 
 !!    ! XXX WTF?
@@ -1182,12 +1182,12 @@ contains
     end subroutine lddrk_init_solid
 
     subroutine lddrk_update_solid(dom, f0, f1, f2, dt, cb, cg)
-        
+
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: f0, f1, f2
         real(fpp), intent(in) :: cb, cg, dt
         integer :: i, n
-        
+
         ! f2  contains forces computation  ie f2 = dU/dt
         ! f1 : w(n+1) = cb*w(n) + dt*dU/dt
         ! f0 : U(n+1) = U(n) + cg*w(n+1)
@@ -1201,14 +1201,14 @@ contains
                 dom%champs(f0)%Veloc(n,i) =    dom%champs(f0)%Veloc(n,i) + cg*dom%champs(f1)%Veloc(n,i)
             end do
         end do
-        
+
     end subroutine lddrk_update_solid
 
     subroutine apply_source_solid(src, dom, i1, ft, lnum)
         use sdomain
         implicit none
         type(domain_solid),intent(inout) :: dom
-        type(Source),intent(inout) :: src 
+        type(Source),intent(inout) :: src
         real(fpp), intent(in) :: ft
         integer, intent(in) :: i1
         integer, intent(in) :: lnum

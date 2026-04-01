@@ -41,7 +41,7 @@ contains
         nbelem = dom%nbelem
 !        write(*,*) "DOM_FLUID ngll   = ", ngll
 !        write(*,*) "DOM_FLUID nbelem = ", nbelem
-        if (ngll == 0) return ! Domain doesn't exist anywhere
+        if (ngll == 0) return ! Domain doesn''t exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call init_dombase(dom)
 

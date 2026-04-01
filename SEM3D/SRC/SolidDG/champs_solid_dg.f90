@@ -11,20 +11,20 @@ module champs_solid_dg
     implicit none
 
     type :: champssolid_dg
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: Q       ! VCH*N*N*N*9*(NE/VCH)       
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: Q       ! VCH*N*N*N*9*(NE/VCH)
         real(fpp), dimension(:,:,:,:,:),   allocatable :: trace_Q ! VCH*N*N*9*(NF/VCH)
     end type champssolid_dg
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
     type, extends(dombase) :: domain_solid_dg
-        ! D'abord, les données membres qui ne sont pas modifiées
+        ! D''abord, les données membres qui ne sont pas modifiées
         logical :: aniso
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
 
         ! Champs
         type(champssolid_dg), dimension(:), allocatable :: champs
-        real(fpp), dimension(:,:), allocatable :: Qasm ! NN*9        
-        
+        real(fpp), dimension(:,:), allocatable :: Qasm ! NN*9
+
         ! VCHUNK,F,N,EB) : N: 0:
         ! N:
         ! 0: domain-local face number,

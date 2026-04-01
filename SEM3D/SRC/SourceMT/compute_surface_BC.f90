@@ -10,7 +10,7 @@ module surface_load
     real(fpp) :: Velocity_P, Velocity_S
     ! Coefficients : propriétés matériaux
     real(fpp) :: Coef_lambda, Coef_mu, rho
-    ! Vitesse de l'onde plane
+    ! Vitesse de l''onde plane
     real(fpp) :: PWSpeed
     real(fpp), dimension(0:2) :: Velocity_PW
     ! amplitude spatiale

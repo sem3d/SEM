@@ -61,13 +61,13 @@ contains
         !    times associated to each standard linear (Zener) solid of our system:
         !         gamma = 1/N(tau_eps/tau_s-1),
         !    where N is the number of SLS.
-        !- this gamma is the same as the Lombard and Piraux's kappa, or equivalent to the gamma of
+        !- this gamma is the same as the Lombard and Pirauxs''s kappa, or equivalent to the gamma of
         !    Peyrusse et al., 2014, modulo a factor (relaxed modulus/unrelaxed modulus)
         !- in fact these gammas are the modulus defect (normalized by the relaxed modulus) for each SLS;
         !-  these gamma parameters are determinated following the assumption of a constant Q on
         !   the seismic band of interest. To be generalized.
 
-        !- once we get these gamma values, everything's necessary for taking account of anelasticity,
+        !- once we get these gamma values, everything''s necessary for taking account of anelasticity,
         !    can be calculated: the relaxed modulus, the modulus defect.
         !-----------------------------------------------------------------------------------
 

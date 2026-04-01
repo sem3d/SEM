@@ -246,7 +246,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
 #ifdef ATTENUATION
 #ifndef ANISO
-                ! if the compiler is not too dumb, the previous definition won't be computed...
+                ! if the compiler is not too dumb, the previous definition won''t be computed...
                 ! ATTENUATION ISOTROPE
                 xmu = dom%props(ee,i,j,k,cMu,bnum) * dom%onemSbeta_(i,j,k,bnum,ee)
                 x2mu = 2. * xmu
@@ -301,7 +301,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xt10= szz*JZZ+sxz*JXZ+syz*JYZ
 
                 !
-                !- Multiplication par le Jacobien et le poids d'integration
+                ! Multiplication par le Jacobien et le poids d''integration
                 !
                 t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(i)
                 xt1  =  xt1 * t4

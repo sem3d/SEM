@@ -44,7 +44,8 @@ contains
 
         endif
 
-        ! pour s'assurer que le proc 0 a bien eu le temps de remettre en place tous les fichiers proteges
+        ! pour s''assurer que le proc 0 a bien eu le temps de remettre en place
+        ! tous les fichiers proteges
         call MPI_Barrier(comm, ierr)
     end subroutine init_restart
 

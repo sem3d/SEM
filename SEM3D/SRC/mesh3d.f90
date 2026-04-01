@@ -88,7 +88,7 @@ contains
         real(fpp), allocatable, dimension(:,:) :: rtemp2
         integer :: i, mat
         !
-        ! Global nodes' coordinates for each proc.
+        ! Global nodes coordinates for each proc.
         call read_dataset(fid, "local_nodes", rtemp2)
         Tdomain%n_glob_nodes = size(rtemp2,2)
         allocate (Tdomain%Coord_nodes(0:Tdomain%n_dime-1,0:Tdomain%n_glob_nodes-1))

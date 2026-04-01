@@ -21,16 +21,16 @@ module mdombase
         ! Nombre total de gll du domaine (assembles)
         integer :: nglltot
 
-        ! Nombre d'elements dans le domaine
+        ! Nombre d''elements dans le domaine
         integer :: nbelem
 
         ! Nombre de faces dans le domaine
         integer :: nbface
 
-        ! Nombre d'elements alloues dans le domaine (>=nbelem)
+        ! Nombre d''elements alloues dans le domaine (>=nbelem)
         integer :: nblocks ! nbelem_alloc == nblocks*VCHUNK
 
-        ! Pas de temps d'integration (normalement le meme pour tout domaine)
+        ! Pas de temps d''integration (normalement le meme pour tout domaine)
         real(fpp) :: dt
 
         ! Points, poids de gauss et derivees
@@ -99,7 +99,7 @@ contains
         bz%n_dirich = 0
         ! so far...
 
-        if (ngll == 0) return ! Domain doesn't exist anywhere
+        if (ngll == 0) return ! Domain doesn''t exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call compute_gll_data(ngll, bz%gllc, bz%gllw, bz%hprime, bz%htprime)
 

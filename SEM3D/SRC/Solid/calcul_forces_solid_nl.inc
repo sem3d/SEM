@@ -325,7 +325,7 @@ subroutine SUBPROCNAME2(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xt10= szz*JZZ+sxz*JXZ+syz*JYZ
 
                 !
-                !- Multiplication par le Jacobien et le poids d'integration
+                ! Multiplication par le Jacobien et le poids d''integration
                 !
                 t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(i)
                 xt1  =  xt1 * t4

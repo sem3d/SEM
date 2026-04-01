@@ -11,15 +11,15 @@
 module sinterface
     implicit none
 
-    ! Definition d'une surface (liste des éléments faces, edges, vertex)
-    ! C'est le travail de renumber_surface dans global_numbering d'attribuer
+    ! Definition d''une surface (liste des éléments faces, edges, vertex)
+    ! C''est le travail de renumber_surface dans global_numbering d''attribuer
     ! un numero implicite a chaque gll de face, edge, vertex, (interieur face,
     ! puis interieur edge puis vertex)
     ! map donne la correspondance entre numero de point sur la surface et numero
     ! de gll du domaine associé à la surface.
     type :: surf_num
         integer :: n_faces, n_edges, n_vertices, domain
-        integer :: nbtot ! nombre total de points de gauss de l'interface
+        integer :: nbtot ! nombre total de points de gauss de l''interface
         ! A list of gll points from the interface
         integer, dimension(:), allocatable :: map ! dimension(0:nbtot-1)
         ! List of faces, edges, vertices
@@ -33,8 +33,8 @@ module sinterface
     end type surf_num
 
     ! Une interface met en correspondance deux surfaces.
-    ! chaque face/edge/vertex d'une interface sont en correspondance
-    ! de fait surf0%map(i) doit correspondre au meme point de l'espace que surf1%map(i)
+    ! chaque face/edge/vertex d''une interface sont en correspondance
+    ! de fait surf0%map(i) doit correspondre au meme point de l''espace que surf1%map(i)
     type :: inter_num
         type(surf_num) :: surf0
         type(surf_num) :: surf1
@@ -59,7 +59,7 @@ contains
         call init_surface(inter%surf1)
     end subroutine init_interface
 
-    ! Free temporary memory (ie faces, edges, vertices) that we won't need during computation
+    ! Free temporary memory (ie faces, edges, vertices) that we won''t need during computation
     subroutine free_temp_surface(surf)
         type(surf_num), intent(inout) :: surf
         if (surf%n_faces>0) then

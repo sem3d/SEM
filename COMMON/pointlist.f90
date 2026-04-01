@@ -35,7 +35,7 @@ module point_list
     end type PointTable
 contains
 
-    ! Calcul la fonction de hash d'un point 3D.
+    ! Calcul la fonction de hash d''un point 3D.
     !
     ! On fait un simple xor bits a bit des parties entieres des
     ! coordonnees multipliees par scale
@@ -54,7 +54,7 @@ contains
         hash_point = hash
     end function hash_point
     
-    ! Calcule le numero d'entree dans la table de hash en fonction
+    ! Calcule le numero d''entree dans la table de hash en fonction
     ! du hash et de n_bins. Attention hash peut etre negatif
     function hash_to_index(table, hash)
         type(PointTable), intent(in) :: table

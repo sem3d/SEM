@@ -6,7 +6,7 @@
 !========================================================================
 ! Ce fichier contient la routine principale de calcul des PML solides
 !
-! L'implémentation de ces routines se trouve dans les fichiers .inc
+! L''implémentation de ces routines se trouve dans les fichiers .inc
 ! inclus par les directives #include
 !
 ! Le but de ceci est de permettre au compilateur de "voir" le nombre

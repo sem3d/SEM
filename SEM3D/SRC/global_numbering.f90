@@ -73,7 +73,7 @@ subroutine renumber_global_gll_nodes(Tdomain)
     integer :: solid_abs_count, fluid_abs_count
     ! A counter for each domain (0: global)
     integer, dimension(0:DM_MAX) :: icount ! nombre de glls    par domaine
-    integer, dimension(0:DM_MAX) :: ecount ! nombre d'elements par domaine
+    integer, dimension(0:DM_MAX) :: ecount ! nombre d''elements par domaine
     integer, dimension(0:DM_MAX) :: fcount ! nombre de faces par domaine
     integer :: ngll, n3, n0, bnum, ee, lnum, vchunk0
     integer, dimension(0:3) :: elface
@@ -375,7 +375,7 @@ subroutine renumber_surface(Tdomain, surf, dom0)
         doms = Tdomain%sFace(nfs)%domain
         ngll = domain_ngll(Tdomain, doms)
         ngll_if = ngll_if + (ngll-2)*(ngll-2)
-        ! While we're at it, check coherency...
+        ! While we''re at it, check coherency...
         if (doms/=dom0) then
             write(*,*) 'Incoherent Solid-PML interface', doms, dom0
             stop 1
@@ -386,7 +386,7 @@ subroutine renumber_surface(Tdomain, surf, dom0)
         doms = Tdomain%sEdge(nes)%domain
         ngll = domain_ngll(Tdomain, doms)
         ngll_if = ngll_if + ngll-2
-        ! While we're at it, check coherency...
+        ! While we''re at it, check coherency...
         if (doms/=dom0) then
             write(*,*) 'Incoherent Solid-PML interface', doms, dom0
             stop 1
@@ -532,7 +532,7 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
                     Tdomain%sFace(nfs0)%Iglobnum_Face(i,j) = Tdomain%sFace(nfs1)%Iglobnum_Face(i,j)
                     if (Tdomain%sFace(nfs0)%Idom(i,j)==-1) then
                         ! This
-                        idx = Tdomain%sFace(nfs1)%Idom(i,j) ! can't be -1
+                        idx = Tdomain%sFace(nfs1)%Idom(i,j) ! can''t be -1
                         imap = renum1(idx)
                         idom = inter%surf0%map(imap)
                         Tdomain%sFace(nfs0)%Idom(i,j) = idom
@@ -547,7 +547,7 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
                     Tdomain%sFace(nfs1)%Iglobnum_Face(i,j) = Tdomain%sFace(nfs0)%Iglobnum_Face(i,j)
                     if (Tdomain%sFace(nfs1)%Idom(i,j)==-1) then
                         ! This
-                        idx = Tdomain%sFace(nfs0)%Idom(i,j) ! can't be -1
+                        idx = Tdomain%sFace(nfs0)%Idom(i,j) ! can''t be -1
                         imap = renum0(idx)
                         idom = inter%surf1%map(imap)
                         Tdomain%sFace(nfs1)%Idom(i,j) = idom

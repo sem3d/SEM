@@ -11,7 +11,7 @@ module sem_c_config
     use constants, only : OUT_LAST
 
     integer, parameter :: NAME_MAX=200
-    ! Ce type doit correspondre au type sem_config_t du module read_input.c **a l'ordre pres**
+    ! Ce type doit correspondre au type sem_config_t du module read_input.c **a l''ordre pres**
     type, bind(c) :: sem_config
        type(C_PTR)    :: run_name
 
@@ -118,7 +118,7 @@ module sem_c_config
     end type sem_config
 
 
-    ! Ce type doit correspondre au type source_t de sem_input.h **a l'ordre pres**
+    ! Ce type doit correspondre au type source_t de sem_input.h **a l''ordre pres**
     type, bind(c) :: sem_source
        type(C_PTR) :: next
        real(C_DOUBLE), dimension(3) :: coords;
@@ -144,7 +144,7 @@ module sem_c_config
     end type sem_source
 
 
-    ! Ce type doit correspondre au type extended_source_t de sem_input.h **a l'ordre pres**
+    ! Ce type doit correspondre au type extended_source_t de sem_input.h **a l''ordre pres**
     type, bind(c) :: sem_extended_source
        type(C_PTR) :: next
        type(C_PTR) :: kine_file
@@ -152,7 +152,7 @@ module sem_c_config
        integer(C_INT) :: is_force
     end type sem_extended_source
 
-    ! ce type doit correspondre au type station_def_t de sem_input.h **a l'ordre pres**
+    ! ce type doit correspondre au type station_def_t de sem_input.h **a l''ordre pres**
     type, bind(c) :: sem_station
        type(C_PTR) :: next
        real(C_DOUBLE), dimension(3) :: coords;
@@ -169,7 +169,7 @@ module sem_c_config
        integer(C_INT) :: material
     end type sem_snapshot_cond
 
-    ! ce type doit correspondre au type surface_t de sem_input.h **a l'ordre pres**
+    ! ce type doit correspondre au type surface_t de sem_input.h **a l''ordre pres**
     type, bind(c) :: sem_surfaces
        type(C_PTR) :: next
        integer(C_INT):: surface_list(1:40)

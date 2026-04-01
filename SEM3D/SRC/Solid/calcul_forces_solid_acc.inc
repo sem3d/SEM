@@ -265,7 +265,7 @@ subroutine SUBPROCNAME2(ngllvar,nblocks,Forces,Depla,props, hprime, gllw, Jacob,
                     xt9 = szz*LJZY+sxz*LJXY+syz*LJYY
                     xt10= szz*LJZZ+sxz*LJXZ+syz*LJYZ
                     !
-                    !- Multiplication par le Jacobien et le poids d'integration
+                    !- Multiplication par le Jacobien et le poids d''integration
                     !
                     wi = Gllw(i)
                     wj = Gllw(j)

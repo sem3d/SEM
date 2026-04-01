@@ -29,7 +29,7 @@ contains
         real(fpp), intent(inout), dimension(0:vector%Data(i)%ndata-1) :: take
         !
 #ifdef __MPI
-        ! Won't work with stub mpi module and nvhpc/openacc because
+        ! Won''t work with stub mpi module and nvhpc/openacc because
         ! somehow the compiler changes the datatype of give/take
         integer :: dest, ierr
         dest = vector%Data(i)%dest

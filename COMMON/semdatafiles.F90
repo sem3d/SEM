@@ -211,7 +211,7 @@ contains
     end subroutine semname_define_fault_rankl
 
     subroutine semname_define_fault_rankn (rank,fnamef)
-        !SEMFILE 24 W "./Resultats/initian.III (MKA) initian.III (NOMKA)
+        !SEMFILE 24 W ./Resultats/initian.III (MKA) initian.III (NOMKA)
         implicit none
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
@@ -263,7 +263,7 @@ contains
     end subroutine semname_snap_result_file
 
 
-    !! Nom du repertoire de sortie d'un pas de temps
+    !! Nom du repertoire de sortie d''un pas de temps
     subroutine semname_snap_result_dir(isort,fnamef)
         implicit none
         integer,intent(in) :: isort

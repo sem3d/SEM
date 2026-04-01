@@ -12,7 +12,7 @@ contains
 
     subroutine define_alpha_PML(Coord, dir, ngll, vp, pml_width, pml_pos, Apow, npow, alpha)
         !- routine determines attenuation profile in an PML layer (see Festa & Vilotte)
-        !   dir = attenuation's direction, ldir_attenu = the logical giving the orientation
+        !   dir = attenuation''s direction, ldir_attenu = the logical giving the orientation
         integer, intent(in) :: dir, ngll, npow
         real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1, 0:2), intent(in) :: Coord
         real(fpp), intent(in)  :: Apow

@@ -16,7 +16,7 @@ module ssubdomains
     implicit none
     type LMC_properties
 
-        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
+        ! variables d''écrouissage kinematic et isotrope de Lemaitre et Chaboche
         real(fpp) :: sigma_yld   ! first yielding limit
         real(fpp) :: C_kin       ! variable for kinematic hardening
         real(fpp) :: kapa_kin    ! variable for kinematic hardening
@@ -67,7 +67,7 @@ module ssubdomains
         ! real(fpp) :: DSyld,DCkin,DKkin
         real(fpp) :: DRinf,DBiso
         real(fpp) :: DNlkp
-        
+
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression
         real(fpp) :: Qs, Qp

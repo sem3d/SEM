@@ -191,12 +191,12 @@ subroutine RUN_PREPARED(Tdomain)
     call global_numbering (Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
- !- allocation of different fields' sizes
+ !- allocation of different fields sizes
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
     call allocate_domain(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
- !- geometrical properties for integrals' calculations
+ !- geometrical properties for integrals calculations
     if (rg == 0) write (*,*) "--> COMPUTING SHAPE FUNCTIONS AND THEIR DERIVATIVES"
     if (Tdomain%n_nodes == 8) then
         ! Linear interpolation
@@ -509,7 +509,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
         end if
         !---------------------------------------------------------!
-        !- RECEIVERS'OUTPUTS
+        !- RECEIVERS OUTPUTS
         !---------------------------------------------------------!
         call evalueSortieCapteur(ntime, sortie_capteur)
 
@@ -634,10 +634,10 @@ end subroutine END_SEM
 subroutine START_SEM(rg)
     implicit none
     integer, intent(in) :: rg
-    ! Ce fichier sert d'indicateur de fin de calcul
+    ! Ce fichier sert d''indicateur de fin de calcul
     ! Si en fin de run on trouve :
     !   -1 : il y a eu un crash/stop ou erreur avant la fin
-    !    1 : le calcul s'est bien passe et est fini
+    !    1 : le calcul s''est bien passe et est fini
     !    0 : le calcul doit repartir en reprise pour continuer
     !
     if (rg==0) then

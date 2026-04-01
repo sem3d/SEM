@@ -12,7 +12,7 @@ contains
 
     !!\brief
     !! Carte maîtresse du traitement de surfaces. cette subroutine permet de définir les
-    !! les différents paramètres fournit comme jeux de données et notamment l'orientation
+    !! les différents paramètres fournit comme jeux de données et notamment l''orientation
     !! des différents problème associée
     !<
 
@@ -290,8 +290,8 @@ contains
     !----------------------------------------------------------------------------------
 
     !!\brief
-    !! Subroutine permettant d'associée au différentes surfaces les propriétés élastiques en fonction
-    !! des materiaux sur lesquel elles sont affectées
+    !! Subroutine permettant d''associer aux différentes surfaces les propriétés élastiques en fonction
+    !! des materiaux sur lesquels elles sont affectées
     !<
 
     subroutine define_surface_properties(Tdomain)
@@ -411,9 +411,9 @@ contains
     !----------------------------------------------------------------------------------
 
     !!\brief
-    !! Subroutine permettant de vérifier si les tags de surfaces fournit par l'utilisateur sont
-    !! sont les même que ceux lui dans les mesh4spec. Cette routine nécessite d'être paralléliser
-    !! car toutes les surfaces ne figures pas surtous les proc
+    !! Subroutine permettant de vérifier si les tags de surfaces fournit par l''utilisateur sont
+    !! sont les même que ceux lui dans les mesh4spec. Cette routine nécessite d''être parallélisee
+    !! car toutes les surfaces ne figurent pas sur tous les proc
     !<
 
     subroutine  surface_in_list(Tdomain)

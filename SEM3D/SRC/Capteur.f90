@@ -36,7 +36,7 @@ module mCapteur
         character(LEN=20) :: nom      ! nom du capteur
         integer :: n_el ! numero de la maille dans laquelle se trouve le capteur
         ! si le capteur est partage entre plusieurs mailles, une seule suffit (type_calcul=1)
-        real(fpp) :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
+        real(fpp) :: xi, eta, zeta  ! abscisses curvilignes pour le capteur en cas d''interpolation (type_calcul=1)
         integer :: numproc               ! numero du proc localisant le capteur
         integer :: icache
         real(fpp), dimension(:,:), allocatable :: valuecache
@@ -192,7 +192,7 @@ contains
                     " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta, &
                     " in domain ", Tdomain%specel(n_el)%domain
 
-                ! si c'est un nouveau run, suppression de l'eventuel fichier de sortie des capteurs
+                ! si c''est un nouveau run, suppression de l''eventuel fichier de sortie des capteurs
                 if (Tdomain%traces_format == 1) then
                     if ( .not.Tdomain%logicD%run_restart) then
                         call semname_capteur_type(capteur%nom,".txt",fnamef)
@@ -386,7 +386,7 @@ contains
             do c = 0,nCapteursOnRank-1
                 if (mod(ntime, localCapteurs(c)%periode)==0) then
                     localcapteurs(c)%icache = localcapteurs(c)%icache + 1
-                    if (localcapteurs(c)%icache>NCAPT_CACHE) then ! shouldn't happen
+                    if (localcapteurs(c)%icache>NCAPT_CACHE) then ! shouldn''t happen
                         localcapteurs(c)%icache = 1
                     endif
                 endif
@@ -549,7 +549,7 @@ contains
         else
             ! Sauvegarde au format hdf5
             if (associated(listeCapteur)) then
-                ! On ne fait rien sur ce proc si on n'a pas de capteur
+                ! On ne fait rien sur ce proc si on n''a pas de capteur
                 if (.not. traces_h5_created) then
 
                     call create_traces_h5_skel(Tdomain)
@@ -589,9 +589,9 @@ contains
     !---------------------------------------------------------------------
 
 
-    !! effectue l'interpolation des grandeurs dans la maille dans laquelle se trouve le capteur
+    !! effectue l''interpolation des grandeurs dans la maille dans laquelle se trouve le capteur
     !! la maille se trouve dans un seul proc
-    !! seul le proc gere l'ecriture
+    !! seul le proc gere l''ecriture
     !!
     subroutine sortieGrandeurCapteur_interp(Tdomain, rtime, ngll, capteur)
         !$acc routine worker
@@ -620,7 +620,7 @@ contains
 !        write(*,*) "xA", Tdomain%out_var_capt(OUT_ACCEL), Tdomain%out_var_offset(OUT_ACCEL)
 
         nl_flag = Tdomain%nl_flag
-        ! On recupere les variables de l'element associe au capteur.
+        ! On recupere les variables de l''element associe au capteur.
         select case(capteur%domain)
         case (DM_SOLID_DG)
             !call get_solid_dg_dom_var(Tdomain%sdomdg, capteur%lnum, out_variables, &
@@ -798,9 +798,9 @@ contains
 
             select case(domain_type)
                 case (DM_SOLID_CG_PML)
-                  cycle !We don't want the energy on PMLs
+                  cycle ! We don''t want the energy on PMLs
                 case (DM_FLUID_CG_PML)
-                  cycle !We don't want the energy on PMLs
+                  cycle ! We don''t want the energy on PMLs
                 case (DM_SOLID_CG)
                     !We continue calculations
                 case (DM_FLUID_CG)
@@ -946,7 +946,7 @@ contains
             inside = .true.
             if ((xi<-1_fpp) .or. eta<(-1_fpp) .or. zeta<(-1_fpp)) inside = .false.
             if ((xi>+1_fpp) .or. eta>(+1_fpp) .or. zeta>(+1_fpp)) inside = .false.
-            ! On projette sur le bord de l'element si besoin
+            ! On projette sur le bord de l''element si besoin
             if (xi<-1D0) xi = -1D0
             if (xi>+1D0) xi = +1D0
             if (eta<-1D0) eta = -1D0
