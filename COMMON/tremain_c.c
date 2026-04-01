@@ -9,7 +9,7 @@
 #include <sys/resource.h>
 
 #if 1
-int getrlimit(int resource, struct rlimit *rlim);
+//int getrlimit(int resource, struct rlimit *rlim);
 
 void tremain_c(double* res)
 {

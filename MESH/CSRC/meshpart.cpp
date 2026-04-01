@@ -1134,18 +1134,18 @@ void Mesh3DPart::write_coupling_interface(hid_t fid, const char* pfx, int d0, in
     get_face_coupling(d0, d1, cpl, tmpo);
     convert_indexes(cpl, tmpi);
     h5h_create_attr(fid, sface_num, int(tmpi.size()/2) );
-    h5h_write_dset_2d(fid, sface_data, tmpi.size()/2, 2, &tmpi[0]);
-    h5h_write_dset_2d(fid, sface_orient, tmpo.size()/2, 2, &tmpo[0]);
+    h5h_write_dset_2d(fid, sface_data, tmpi.size()/2, 2, tmpi.data());
+    h5h_write_dset_2d(fid, sface_orient, tmpo.size()/2, 2, tmpo.data());
     //
     get_edge_coupling(d0, d1, cpl);
     convert_indexes(cpl, tmpi);
     h5h_create_attr(fid, sedge_num, int(tmpi.size()/2) );
-    h5h_write_dset_2d(fid, sedge_data, tmpi.size()/2, 2, &tmpi[0]);
+    h5h_write_dset_2d(fid, sedge_data, tmpi.size()/2, 2, tmpi.data());
     //
     get_vertex_coupling(d0, d1, cpl);
     convert_indexes(cpl, tmpi);
     h5h_create_attr(fid, svert_num, int(tmpi.size()/2) );
-    h5h_write_dset_2d(fid, svert_data, tmpi.size()/2, 2, &tmpi[0]);
+    h5h_write_dset_2d(fid, svert_data, tmpi.size()/2, 2, tmpi.data());
 }
 
 void Mesh3DPart::output_int_scalar(FILE* f, int indent, const char* aname, const char* atype, int n0, const char* field)
