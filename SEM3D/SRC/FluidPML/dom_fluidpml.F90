@@ -119,7 +119,7 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_fluidpml), intent(inout) :: fpmldom
         !
-        integer :: i, ns
+        integer :: i
 
         !$acc  enter data copyin(fpmldom, fpmldom%champs) &
         !$acc  copyin(fpmldom%DumpMass, fpmldom%DumpV, fpmldom%m_Lambda, fpmldom%m_Density) &
@@ -129,10 +129,10 @@ contains
         !$acc  copyin(fpmldom%m_PMLDumpSz) &
         !$acc&
         do i = 0,1
-            !$acc enter data  copyin(fpmldom%champs(i)%fpml_Phi) &
-            !$acc copyin(fpmldom%champs(i)%fpml_VelPhi) &
-            !$acc copyin(fpmldom%champs(i)%fpml_Forces) &
-            !$acc&
+            !$acc enter data  &
+            !$acc& copyin(fpmldom%champs(i)%fpml_Phi)    &
+            !$acc& copyin(fpmldom%champs(i)%fpml_VelPhi) &
+            !$acc& copyin(fpmldom%champs(i)%fpml_Forces)
         end do
 
     end subroutine start_domain_fluidpml
@@ -142,7 +142,7 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_fluidpml), intent(inout) :: fpmldom
         !
-        integer :: i, ns
+        integer :: i
 
         !$acc  exit data delete(fpmldom, fpmldom%champs) &
         !$acc  delete(fpmldom%DumpMass, fpmldom%DumpV, fpmldom%m_Lambda, fpmldom%m_Density) &
@@ -520,47 +520,137 @@ contains
       call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%DumpV)
     end subroutine finalize_fluidpml_properties
 
-    subroutine newmark_predictor_fluidpml(dom, Tdomain, i0, i1)
+    subroutine newmark_predictor_fluidpml(dom, Tdomain, f0, f1)
         type(domain_fluidpml), intent (INOUT) :: dom
-        type(domain), intent(inout)   :: Tdomain
-        integer, intent(in) :: i0, i1
+        type (domain), intent (INOUT) :: Tdomain
+        integer, intent(in) :: f0, f1
         !
-        integer :: n, indpml, indflu
-        real(fpp) :: bega, dt
-
-        bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
-        dt = Tdomain%TimeD%dtmin
-
-        dom%champs(i1)%fpml_Forces = 0.
-        do n = 0,Tdomain%intFluPml%surf0%nbtot-1
-            ! Couplage à l''interface fluide / PML
-            indflu = Tdomain%intFluPml%surf0%map(n)
-            indpml = Tdomain%intFluPml%surf1%map(n)
-            dom%champs(i0)%fpml_VelPhi(indpml,0) = Tdomain%fdom%champs(i0)%VelPhi(indflu)
-            dom%champs(i0)%fpml_VelPhi(indpml,1) = 0.
-            dom%champs(i0)%fpml_VelPhi(indpml,2) = 0.
-        enddo
-        ! Prediction
-        dom%champs(i1)%fpml_Velphi = dom%champs(i0)%fpml_VelPhi + dt*(0.5-bega)*dom%champs(i1)%fpml_Forces
+        call newmark_predictor_fluidpml_sub(dom, Tdomain, dom%nglltot, &
+            Tdomain%fdom%nglltot, Tdomain%fdom%champs(f0)%VelPhi, &
+            dom%champs(f0)%fpml_VelPhi, dom%champs(f1)%fpml_VelPhi, &
+            dom%champs(f1)%fpml_Forces, &
+            Tdomain%intFluPml%surf0%nbtot, Tdomain%intFluPml%surf0%map, Tdomain%intFluPml%surf1%map )
     end subroutine newmark_predictor_fluidpml
+
+    subroutine newmark_predictor_fluidpml_sub(dom, Tdomain, nglltot, ngllfluid, &
+        fluid_VelPhi, fpml_VelPhi0, fpml_VelPhi1, fpml_Forces, &
+        niface, map_flu, map_pml)
+        type(domain_fluidpml), intent (INOUT) :: dom
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: nglltot, ngllfluid, niface
+        real(fpp), intent(in), dimension(0:ngllfluid) :: fluid_VelPhi
+        real(fpp), intent(inout), dimension(0:dom%nglltot,0:2) :: fpml_VelPhi0, fpml_VelPhi1, fpml_Forces
+        integer, intent(in), dimension(0:niface-1) :: map_flu, map_pml
+        !
+        integer :: n, i, indpml, indflu
+
+        fpml_Forces = 0.
+        !$acc parallel loop async(1) &
+        !$acc&  copyin(map_pml, map_flu, fluid_VelPhi) &
+        !$acc&  present(fpml_VelPhi0) &
+        !$acc&  private(indpml, indflu)
+        do n = 0,niface-1
+            ! Couplage avec l''interface fluide / PML
+            indflu = map_flu(n)
+            indpml = map_pml(n)
+            fpml_VelPhi0(indpml,0) = fluid_VelPhi(indflu)
+            fpml_VelPhi0(indpml,1) = 0.
+            fpml_VelPhi0(indpml,2) = 0.
+        enddo
+        !$acc end parallel loop
+        ! Prediction
+
+        !$acc parallel loop async(1) collapse(2) &
+        !$acc&  copyin(fpml_VelPhi0) &
+        !$acc&  copyout(fpml_VelPhi1)
+        do i = 0,2
+            do n = 0, nglltot
+                fpml_Velphi1(n,i) = fpml_VelPhi0(n,i)
+            end do
+        end do
+        !$acc end parallel loop
+    end subroutine newmark_predictor_fluidpml_sub
 
     subroutine newmark_corrector_fluidpml(dom, dt, i0, i1)
         type(domain_fluidpml), intent (INOUT) :: dom
         real(fpp), intent(in) :: dt
         integer, intent(in) :: i0, i1
         !
-        integer  :: n,  indpml
 
-        dom%champs(i0)%fpml_VelPhi(:,:) = dom%DumpV(:,0,:) * dom%champs(i0)%fpml_VelPhi(:,:) + &
-                                       dt * dom%DumpV(:,1,:) * dom%champs(i1)%fpml_Forces(:,:)
-        do n = 0, dom%n_dirich-1
-            indpml = dom%dirich(n)
-            dom%champs(i0)%fpml_VelPhi(indpml,0) = 0.
-            dom%champs(i0)%fpml_VelPhi(indpml,1) = 0.
-            dom%champs(i0)%fpml_VelPhi(indpml,2) = 0.
-        enddo
-        dom%champs(i0)%fpml_Phi = dom%champs(i0)%fpml_Phi + dt*dom%champs(i0)%fpml_VelPhi
+        call newmark_corrector_fluidpml_sub(dom, dt, dom%nglltot, &
+            dom%champs(i0)%fpml_Phi, dom%champs(i0)%fpml_VelPhi, &
+            dom%champs(i1)%fpml_Forces, dom%DumpV, &
+            dom%n_dirich, dom%dirich)
+
+
+!        integer  :: n,  indpml
+!        dom%champs(i0)%fpml_VelPhi(:,:) = dom%DumpV(:,0,:) * dom%champs(i0)%fpml_VelPhi(:,:) + &
+!                                       dt * dom%DumpV(:,1,:) * dom%champs(i1)%fpml_Forces(:,:)
+!        do n = 0, dom%n_dirich-1
+!            indpml = dom%dirich(n)
+!            dom%champs(i0)%fpml_VelPhi(indpml,0) = 0.
+!            dom%champs(i0)%fpml_VelPhi(indpml,1) = 0.
+!            dom%champs(i0)%fpml_VelPhi(indpml,2) = 0.
+!        enddo
+!        dom%champs(i0)%fpml_Phi = dom%champs(i0)%fpml_Phi + dt*dom%champs(i0)%fpml_VelPhi
     end subroutine newmark_corrector_fluidpml
+
+    subroutine newmark_corrector_fluidpml_sub(dom, dt, nglltot, &
+        fpml_Phi, fpml_VelPhi, fpml_Forces, DumpV, &
+        n_dirich, dirich )
+        type(domain_fluidpml), intent (INOUT) :: dom
+        real(fpp), intent(in) :: dt
+        integer, intent(in) :: nglltot, n_dirich
+        integer, intent(in), dimension(0:n_dirich-1) :: dirich
+        real(fpp), intent(in), dimension(0:nglltot,0:1,0:2) :: DumpV
+        real(fpp), intent(in), dimension(0:nglltot,0:2) :: fpml_Forces
+        real(fpp), intent(inout), dimension(0:nglltot,0:2) :: fpml_Phi, fpml_VelPhi
+        !
+        integer  :: n,  indpml, i, j
+
+        !! XXX tester integrer les condition dirichlet dans DumpV(dirich(n)) = 0
+        !!
+
+        !$acc  parallel loop &
+        !$acc& async(1) &
+        !$acc& collapse(2) &
+        !$acc& copyin(DumpV,fpml_Forces) &
+        !$acc& present(fpml_VelPhi) &
+        !$acc& firstprivate(nglltot,dt)
+        do i=0,2
+            do n=0,nglltot
+                fpml_VelPhi(n,i) = DumpV(n,0,i) * fpml_VelPhi(n,i) + &
+                    dt * DumpV(n,1,i) * fpml_Forces(n,i)
+            end do
+        end do
+        !$acc end parallel loop
+
+        !$acc  parallel loop &
+        !$acc& async(1) &
+        !$acc& copyin(dirich) &
+        !$acc& present(fpml_VelPhi) &
+        !$acc& firstprivate(n_dirich)
+        do n = 0, n_dirich-1
+            indpml = dirich(n)
+            fpml_VelPhi(indpml,0) = 0.
+            fpml_VelPhi(indpml,1) = 0.
+            fpml_VelPhi(indpml,2) = 0.
+        end do
+        !$acc end parallel loop
+
+        !$acc  parallel loop &
+        !$acc& async(1) &
+        !$acc& collapse(2) &
+        !$acc& copyin(fpml_VelPhi) &
+        !$acc& present(fpml_Phi) &
+        !$acc& firstprivate(nglltot,dt)
+        do i=0,2
+            do n=0,nglltot
+                fpml_Phi(n,i) = fpml_Phi(n,i) + dt* fpml_VelPhi(n,i)
+            end do
+        end do
+        !$acc end parallel loop
+    end subroutine newmark_corrector_fluidpml_sub
 
     function fluidpml_Pspeed(dom, lnum, i, j, k) result(Pspeed)
         type(domain_fluidpml), intent (IN) :: dom
