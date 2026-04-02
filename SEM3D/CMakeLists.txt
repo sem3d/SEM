@@ -139,6 +139,7 @@ else(OPT_CPML)
       ${PRJ}/SRC/SolidPML/calcul_forces_pml.F90
       ${PRJ}/SRC/SolidPML/dom_solidpml.F90
       ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
+      ${PRJ}/SRC/FluidPML/calcul_forces_fluidpml.F90
       ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     )
 set_source_files_properties(
