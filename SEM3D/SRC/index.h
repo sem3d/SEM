@@ -91,35 +91,37 @@
 #define        PMLDumpSy_(i,j,k,n,eb,ec)        m_PMLDumpSy(IND_IJKNE(i,j,k,n,eb,ec))
 #define        PMLDumpSz_(i,j,k,n,eb,ec)        m_PMLDumpSz(IND_IJKNE(i,j,k,n,eb,ec))
 
+#define NEWLINE  %_NEWLINE_%
+
 
 #define part_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
-        dS_dxi   = 0.0D+0; \
-        dS_deta  = 0.0D+0; \
-        dS_dzeta = 0.0D+0; \
-        DO L = 0, ngll-1;  \
-            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d)*dom%hprime(L,I); \
-            dS_deta  = dS_deta +Var(ee,I,L,K,d)*dom%hprime(L,J); \
-            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); \
-        END DO; \
-        dxx = dS_dxi*dom%InvGrad_(0,0,i,j,k,bnum,ee)+dS_deta*dom%InvGrad_(0,1,i,j,k,bnum,ee)+dS_dzeta*dom%InvGrad_(0,2,i,j,k,bnum,ee); \
-        dxy = dS_dxi*dom%InvGrad_(1,0,i,j,k,bnum,ee)+dS_deta*dom%InvGrad_(1,1,i,j,k,bnum,ee)+dS_dzeta*dom%InvGrad_(1,2,i,j,k,bnum,ee); \
+        dS_dxi   = 0.0D+0; NEWLINE \
+        dS_deta  = 0.0D+0; NEWLINE \
+        dS_dzeta = 0.0D+0; NEWLINE \
+        DO L = 0, ngll-1;  NEWLINE \
+            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d)*dom%hprime(L,I); NEWLINE \
+            dS_deta  = dS_deta +Var(ee,I,L,K,d)*dom%hprime(L,J); NEWLINE \
+            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); NEWLINE \
+        END DO; NEWLINE \
+        dxx = dS_dxi*dom%InvGrad_(0,0,i,j,k,bnum,ee)+dS_deta*dom%InvGrad_(0,1,i,j,k,bnum,ee)+dS_dzeta*dom%InvGrad_(0,2,i,j,k,bnum,ee); NEWLINE \
+        dxy = dS_dxi*dom%InvGrad_(1,0,i,j,k,bnum,ee)+dS_deta*dom%InvGrad_(1,1,i,j,k,bnum,ee)+dS_dzeta*dom%InvGrad_(1,2,i,j,k,bnum,ee); NEWLINE \
         dxz = dS_dxi*dom%InvGrad_(2,0,i,j,k,bnum,ee)+dS_deta*dom%InvGrad_(2,1,i,j,k,bnum,ee)+dS_dzeta*dom%InvGrad_(2,2,i,j,k,bnum,ee);
 
 
 #define local_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta) \
-        dS_dxi   = 0.0D+0; \
-        dS_deta  = 0.0D+0; \
-        dS_dzeta = 0.0D+0; \
-        DO L = 0, ngll-1;  \
-            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d)*dom%hprime(L,I); \
-            dS_deta  = dS_deta +Var(ee,I,L,K,d)*dom%hprime(L,J); \
-            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); \
+        dS_dxi   = 0.0D+0; NEWLINE \
+        dS_deta  = 0.0D+0; NEWLINE \
+        dS_dzeta = 0.0D+0; NEWLINE \
+        DO L = 0, ngll-1;  NEWLINE \
+            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d)*dom%hprime(L,I); NEWLINE \
+            dS_deta  = dS_deta +Var(ee,I,L,K,d)*dom%hprime(L,J); NEWLINE \
+            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); NEWLINE \
         END DO;
         
 #define RK4_attenu_coefs(dt,omega_tau_s,alphaval,betaval,gammaval) \
-dt_tau = -dt*omega_tau_s;\
-alphaval = 1d0 + dt_tau + 0.5d0 * dt_tau**2 + dt_tau**3 *(1d0/6d0) + dt_tau**4 *(1d0/24.d0); \
-betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(1d0/24.d0)); \
+dt_tau = -dt*omega_tau_s; NEWLINE \
+alphaval = 1d0 + dt_tau + 0.5d0 * dt_tau**2 + dt_tau**3 *(1d0/6d0) + dt_tau**4 *(1d0/24.d0); NEWLINE \
+betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(1d0/24.d0)); NEWLINE \
 gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
 
 

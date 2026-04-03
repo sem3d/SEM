@@ -100,52 +100,54 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     !$acc end parallel
 end subroutine PROCNAME
 
+
+
 #define x_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,a,b,c) \
-        dS_dxi   = 0.0D+0; \
-        dS_deta  = 0.0D+0; \
-        dS_dzeta = 0.0D+0; \
-        DO LL = 0, ngll-1;  \
-            dS_dxi   = dS_dxi  +Var(ee,LL,b,c,d,bnum)*hprime(LL,a); \
-            dS_deta  = dS_deta +Var(ee,a,LL,c,d,bnum)*hprime(LL,b); \
-            dS_dzeta = dS_dzeta+Var(ee,a,b,LL,d,bnum)*hprime(LL,c); \
+        dS_dxi   = 0.0D+0; NEWLINE \
+        dS_deta  = 0.0D+0; NEWLINE \
+        dS_dzeta = 0.0D+0; NEWLINE \
+        DO LL = 0, ngll-1;  NEWLINE \
+            dS_dxi   = dS_dxi  +Var(ee,LL,b,c,d,bnum)*hprime(LL,a); NEWLINE \
+            dS_deta  = dS_deta +Var(ee,a,LL,c,d,bnum)*hprime(LL,b); NEWLINE \
+            dS_dzeta = dS_dzeta+Var(ee,a,b,LL,d,bnum)*hprime(LL,c); NEWLINE \
         END DO;
 
 #define load_jacobian_matrix(a,b,c) \
-        LJXX = InvGrad(ee,0,0,a,b,c,bnum); \
-        LJYX = InvGrad(ee,1,0,a,b,c,bnum); \
-        LJZX = InvGrad(ee,2,0,a,b,c,bnum); \
-        LJXY = InvGrad(ee,0,1,a,b,c,bnum); \
-        LJYY = InvGrad(ee,1,1,a,b,c,bnum); \
-        LJZY = InvGrad(ee,2,1,a,b,c,bnum); \
-        LJXZ = InvGrad(ee,0,2,a,b,c,bnum); \
-        LJYZ = InvGrad(ee,1,2,a,b,c,bnum); \
+        LJXX = InvGrad(ee,0,0,a,b,c,bnum); NEWLINE \
+        LJYX = InvGrad(ee,1,0,a,b,c,bnum); NEWLINE \
+        LJZX = InvGrad(ee,2,0,a,b,c,bnum); NEWLINE \
+        LJXY = InvGrad(ee,0,1,a,b,c,bnum); NEWLINE \
+        LJYY = InvGrad(ee,1,1,a,b,c,bnum); NEWLINE \
+        LJZY = InvGrad(ee,2,1,a,b,c,bnum); NEWLINE \
+        LJXZ = InvGrad(ee,0,2,a,b,c,bnum); NEWLINE \
+        LJYZ = InvGrad(ee,1,2,a,b,c,bnum); NEWLINE \
         LJZZ = InvGrad(ee,2,2,a,b,c,bnum);
 
 #define compute_du_deta(a,b,c) \
-        x_deriv_ijke(Depla,0,dUx_dxi,dUx_deta,dUx_dzeta,a,b,c); \
-        x_deriv_ijke(Depla,1,dUy_dxi,dUy_deta,dUy_dzeta,a,b,c); \
+        x_deriv_ijke(Depla,0,dUx_dxi,dUx_deta,dUx_dzeta,a,b,c); NEWLINE \
+        x_deriv_ijke(Depla,1,dUy_dxi,dUy_deta,dUy_dzeta,a,b,c); NEWLINE \
         x_deriv_ijke(Depla,2,dUz_dxi,dUz_deta,dUz_dzeta,a,b,c);
 
 #define compute_du_dx(a,b,c) \
-        dxx=dUx_dxi*LJXX + dUx_deta*LJXY + dUx_dzeta*LJXZ; \
-        dxy=dUx_dxi*LJYX + dUx_deta*LJYY + dUx_dzeta*LJYZ; \
-        dxz=dUx_dxi*LJZX + dUx_deta*LJZY + dUx_dzeta*LJZZ; \
-        dyx=dUy_dxi*LJXX + dUy_deta*LJXY + dUy_dzeta*LJXZ; \
-        dyy=dUy_dxi*LJYX + dUy_deta*LJYY + dUy_dzeta*LJYZ; \
-        dyz=dUy_dxi*LJZX + dUy_deta*LJZY + dUy_dzeta*LJZZ; \
-        dzx=dUz_dxi*LJXX + dUz_deta*LJXY + dUz_dzeta*LJXZ; \
-        dzy=dUz_dxi*LJYX + dUz_deta*LJYY + dUz_dzeta*LJYZ; \
+        dxx=dUx_dxi*LJXX + dUx_deta*LJXY + dUx_dzeta*LJXZ; NEWLINE \
+        dxy=dUx_dxi*LJYX + dUx_deta*LJYY + dUx_dzeta*LJYZ; NEWLINE \
+        dxz=dUx_dxi*LJZX + dUx_deta*LJZY + dUx_dzeta*LJZZ; NEWLINE \
+        dyx=dUy_dxi*LJXX + dUy_deta*LJXY + dUy_dzeta*LJXZ; NEWLINE \
+        dyy=dUy_dxi*LJYX + dUy_deta*LJYY + dUy_dzeta*LJYZ; NEWLINE \
+        dyz=dUy_dxi*LJZX + dUy_deta*LJZY + dUy_dzeta*LJZZ; NEWLINE \
+        dzx=dUz_dxi*LJXX + dUz_deta*LJXY + dUz_dzeta*LJXZ; NEWLINE \
+        dzy=dUz_dxi*LJYX + dUz_deta*LJYY + dUz_dzeta*LJYZ; NEWLINE \
         dzz=dUz_dxi*LJZX + dUz_deta*LJZY + dUz_dzeta*LJZZ;
 
 #define compute_sigma(a,b,c) \
-        xmu = props(ee,a,b,c,cMu,bnum); \
-        xla = props(ee,a,b,c,cLambda,bnum); \
-        xla2mu = xla + 2. * xmu; \
-        sxx = xla2mu * DXX + xla * ( DYY + DZZ ); \
-        sxy = xmu * ( DXY + DYX ); \
-        sxz = xmu * ( DXZ + DZX ); \
-        syy = xla2mu * DYY + xla * ( DXX + DZZ ); \
-        syz = xmu * ( DYZ + DZY ); \
+        xmu = props(ee,a,b,c,cMu,bnum); NEWLINE \
+        xla = props(ee,a,b,c,cLambda,bnum); NEWLINE \
+        xla2mu = xla + 2. * xmu; NEWLINE \
+        sxx = xla2mu * DXX + xla * ( DYY + DZZ ); NEWLINE \
+        sxy = xmu * ( DXY + DYX ); NEWLINE \
+        sxz = xmu * ( DXZ + DZX ); NEWLINE \
+        syy = xla2mu * DYY + xla * ( DXX + DZZ ); NEWLINE \
+        syz = xmu * ( DYZ + DZY ); NEWLINE \
         szz = xla2mu * DZZ + xla * ( DXX + DYY );
 
 #define CC(d) props(ee,i,j,k,cAniso+d,bnum)
