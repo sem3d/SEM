@@ -51,8 +51,9 @@ contains
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: ntime
 
-        real(fpp) :: cb, cg, cc, t0, t, dt, bnum
-        integer :: l, i, ngll, ii, j, k, ee, n
+        real(fpp) :: cb, cg, cc, t0, t, dt
+        integer :: l, ngll
+        !integer :: ii, j, k, ee, n, bnum
 
         t0 = Tdomain%TimeD%rtime
         dt = Tdomain%TimeD%dtmin
@@ -146,7 +147,6 @@ contains
         integer, intent(in)         :: f1
         integer                     :: ngll
         integer                     :: n,i,j,k,ee, bnum, idx
-        real(fpp), dimension(0:8)   :: val
         real(fpp)                   :: wh
 
         ngll   = dom%ngll
@@ -629,8 +629,8 @@ contains
         integer, intent(in)  :: ntime
         real(kind=fpp), intent(in)  :: timer
         integer, intent(in) :: i1
-        integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntimecur, dom
-        real(kind=fpp) :: t, ft, val, timercur
+        integer :: ns,nel, lnum,ngll, bnum, ee, ntimecur, dom
+        real(kind=fpp) :: t, ft, timercur
 
         if (Tdomain%mirror_type==1) return
         !!!if (Tdomain%mirror_type>=1) return
