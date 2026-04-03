@@ -31,16 +31,16 @@
 #define PROC_MIRROR   GLUE(PROCNAME,_mirror)
 
 
+#undef mJacob
+#undef mInvGrad
+#define mInvGrad(i,j,a,b,c) InvGrad(ee,i,j,a,b,c,bnum)
+#define mJacob(a,b,c) Jacob(ee,a,b,c,bnum)
 
+#if defined(OPENACC) || defined(OMPTARGET) || TEST_FLUID_PML_ACC==1
+#include "calcul_fpml_acc.inc"
+#else
 #include "calcul_fpml_cpu.inc"
-
-!!!#include "calcul_fpml_common.inc"
-
-!!#if defined(OPENACC) || defined(OMPTARGET) || TEST_FLUID_PML_ACC==1
-!!#include "calcul_fpml_acc.inc"
-!!#else
-!!#include "calcul_fpml_cpu.inc"
-!!#endif
+#endif
 
 
 !! Local Variables:
