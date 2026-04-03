@@ -128,7 +128,10 @@ contains
         !$acc  copyin(fpmldom%m_PMLDumpSz) &
         !$acc&
         do i = 0,1
-            !$acc enter data  copyin(dom%champs(i)%fpml_Phi, dom%champs(i)%fpml_VelPhi, dom%champs(i)%fpml_Forces)
+            !$acc enter data  copyin(fpmldom%champs(i)%fpml_Phi) &
+            !$acc copyin(fpmldom%champs(i)%fpml_VelPhi) &
+            !$acc copyin(fpmldom%champs(i)%fpml_Forces) &
+            !$acc&
         end do
 
     end subroutine start_domain_fluidpml
@@ -148,7 +151,7 @@ contains
         !$acc  delete(fpmldom%m_PMLDumpSz) &
         !$acc&
         do i = 0,1
-            !$acc exit data  delete(dom%champs(i)%fpml_Phi, dom%champs(i)%fpml_VelPhi, dom%champs(i)%fpml_Forces)
+            !$acc exit data  delete(fpmldom%champs(i)%fpml_Phi, fpmldom%champs(i)%fpml_VelPhi, fpmldom%champs(i)%fpml_Forces)
         end do
 
     end subroutine stop_domain_fluidpml
