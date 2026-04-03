@@ -405,7 +405,7 @@ contains
 
         type(domain_solid_dg), intent (INOUT) :: dom
         real(fpp), intent(in) :: cb, cg, dt
-        integer :: n, i, j, k, ee, ngll, p
+        integer :: n, i, j, k, ee, ngll
         integer :: f0, f1, f2
         real(fpp), dimension(0:8) :: val
 

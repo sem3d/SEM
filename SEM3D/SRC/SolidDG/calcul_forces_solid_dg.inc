@@ -39,11 +39,11 @@ subroutine PROCNAME(dom,ngllvar,bnum,Q,dQdt)
     real(fpp) :: dE11dt, dE22dt, dE33dt
     real(fpp) :: dE12dt, dE13dt, dE23dt
     real(fpp) :: dVxdt, dVydt, dVzdt
-    real(fpp) :: E11, E22, E33,a
+    real(fpp) :: E11, E22, E33
     real(fpp) :: E12, E13, E23
     real(fpp) :: S11, S22, S33
     real(fpp) :: S12, S13, S23
-    real(fpp) :: Vx, Vy, Vz, tmp
+    real(fpp) :: Vx, Vy, Vz
     if (ngll/=ngllvar) stop 1
 
     dQdt = 0.d0
