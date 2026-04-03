@@ -62,13 +62,13 @@ if (OPT_OPENACC)
   endif()
 endif(OPT_OPENACC)
 
-option(OPT_OPENMP "OPENMP" OFF)
-if (OPT_OPENMP)
-  add_definitions(-DOPENMP)
+option(OPT_OMPTARGET "OMPTARGET" OFF)
+if (OPT_OMPTARGET)
+  add_definitions(-DOMPTARGET)
   set(EXTRA_IFORT_FLAGS  "${EXTRA_IFORT_FLAGS}  -qopenmp")
   set(EXTRA_GFORT_FLAGS  "${EXTRA_GFORT_FLAGS}  -fopenmp")
   set(EXTRA_NVFORT_FLAGS "${EXTRA_NVFORT_FLAGS} ") # -acc=gpu -acc=multicore,...
-endif(OPT_OPENMP)
+endif(OPT_OMPTARGET)
 
 set(OPT_MIN_GLL_OPT "4" CACHE STRING "Minimum hardcoded gll order")
 set(OPT_MAX_GLL_OPT "7" CACHE STRING "Maximum hardcoded gll order")

@@ -35,7 +35,7 @@ contains
 #define PROCNAMEBASE calcul_forces_pml_
 
 
-#if defined(OPENACC) || TEST_FORCE_PML==1
+#if defined(OPENACC) || defined(OMPTARGET) || TEST_FORCE_PML==1
 #if GENGLL4
 #undef NGLLVAL
 #define NGLLVAL 4

@@ -21,7 +21,7 @@ contains
 #define PROCNAMEBASE calcul_forces_iso_atn_
 #define PROCNAMEBASE_ATN attenuation_iso_update_
 
-#if defined(OPENACC) || TEST_FORCE==1
+#if defined(OPENACC) || defined(OMPTARGET) || TEST_FORCE==1
 #if GENGLL4
 #undef NGLLVAL
 #define NGLLVAL 4
