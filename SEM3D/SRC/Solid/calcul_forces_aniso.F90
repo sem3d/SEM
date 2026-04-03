@@ -3,22 +3,6 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
-!========================================================================
-! Ce fichier contient la routine principale de calcul des forces
-! solides pour les 4 cas isotrope/anisotrope avec ou sans atténuation.
-!
-! L''implémentation de ces routines se trouve dans les fichiers .inc
-! inclus par les directives #include
-!
-! Le but de ceci est de permettre au compilateur de "voir" le nombre
-! de ngll utilisé réellement, on spécialise les routines pour les ngll
-! 4,5,6,7,8,9. Une routine générique est fournie pour les autres
-! valeurs.
-!
-! On gagne 15 à 20% de performance ainsi.
-!
-!========================================================================
-
 #include "index.h"
 #include "gllopt.h"
 #include "optims.h"
@@ -33,90 +17,45 @@ contains
 #define ANISO
 #define PROCNAMEBASE calcul_forces_aniso_
 
-#if defined(OPENACC) || defined(OMPTARGET) || TEST_FORCE==1
 #if GENGLL4
 #undef NGLLVAL
 #define NGLLVAL 4
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL5
 #undef NGLLVAL
 #define NGLLVAL 5
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL6
 #undef NGLLVAL
 #define NGLLVAL 6
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL7
 #undef NGLLVAL
 #define NGLLVAL 7
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL8
 #undef NGLLVAL
 #define NGLLVAL 8
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL9
 #undef NGLLVAL
 #define NGLLVAL 9
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLLN
 #undef NGLLVAL
-#include "calcul_forces_solid_acc.inc"
-#endif
-
-#else
-
-#if GENGLL4
-#undef NGLLVAL
-#define NGLLVAL 4
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL5
-#undef NGLLVAL
-#define NGLLVAL 5
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL6
-#undef NGLLVAL
-#define NGLLVAL 6
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL7
-#undef NGLLVAL
-#define NGLLVAL 7
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL8
-#undef NGLLVAL
-#define NGLLVAL 8
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL9
-#undef NGLLVAL
-#define NGLLVAL 9
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLLN
-#undef NGLLVAL
-#include "calcul_forces_solid.inc"
-#endif
+#include "calcul_forces_solid_main.inc"
 #endif
 
 end module m_calcul_forces_aniso

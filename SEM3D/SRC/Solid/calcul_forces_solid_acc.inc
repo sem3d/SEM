@@ -4,29 +4,6 @@
 !!
 #include "solid_forces.h"
 
-#undef PROCNAME
-#undef PROCNAME_ATN
-
-#undef ngllvar
-!!! Generic values of ngll
-#ifndef NGLLVAL
-#define ngllvar ngll
-#define PROCNAME GLUE(PROCNAMEBASE,N)
-#else
-!!! Compilation time specified values of ngll
-#define PROCNAME GLUE(PROCNAMEBASE,NGLLVAL)
-#define ngllvar ngll0
-#endif
-
-#define PROCNAME1() PROCNAME
-#define SUBPROCNAME1  GLUE(PROCNAME,_main_acc)
-#define SUBPROCNAME2  GLUE(PROCNAME,_subloop_acc)
-#define PROCNAME_ATN  GLUE(PROCNAME,_atn_acc)
-#define PROC_MIRROR   GLUE(PROCNAME,_mirror)
-
-!!#ifdef ATTENUATION
-!!#error "ATTENUATION defined : wrong file"
-!!#endif
 #ifdef NONLINEAR
 #error "NONLINEAR defined : wrong file"
 #endif

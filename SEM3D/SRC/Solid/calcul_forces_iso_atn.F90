@@ -13,100 +13,49 @@ module m_calcul_forces_iso_atn ! wrap subroutine in module to get arg type check
     implicit none
 contains
 
-#ifndef TEST_FORCE
-#define TEST_FORCE 0
-#endif
-
+#undef ANISO
 #define ATTENUATION
 #define PROCNAMEBASE calcul_forces_iso_atn_
-#define PROCNAMEBASE_ATN attenuation_iso_update_
 
-#if defined(OPENACC) || defined(OMPTARGET) || TEST_FORCE==1
 #if GENGLL4
 #undef NGLLVAL
 #define NGLLVAL 4
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL5
 #undef NGLLVAL
 #define NGLLVAL 5
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL6
 #undef NGLLVAL
 #define NGLLVAL 6
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL7
 #undef NGLLVAL
 #define NGLLVAL 7
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL8
 #undef NGLLVAL
 #define NGLLVAL 8
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLL9
 #undef NGLLVAL
 #define NGLLVAL 9
-#include "calcul_forces_solid_acc.inc"
+#include "calcul_forces_solid_main.inc"
 #endif
 
 #if GENGLLN
 #undef NGLLVAL
-#include "calcul_forces_solid_acc.inc"
-#endif
-
-#else
-
-#if GENGLL4
-#undef NGLLVAL
-#define NGLLVAL 4
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL5
-#undef NGLLVAL
-#define NGLLVAL 5
-#include "calcul_forces_solid.inc"
-#undef NGLLVAL
-#endif
-
-#if GENGLL6
-#define NGLLVAL 6
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL7
-#undef NGLLVAL
-#define NGLLVAL 7
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL8
-#undef NGLLVAL
-#define NGLLVAL 8
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLL9
-#undef NGLLVAL
-#define NGLLVAL 9
-#include "calcul_forces_solid.inc"
-#endif
-
-#if GENGLLN
-#undef NGLLVAL
-#define NGLL_GEN
-#include "calcul_forces_solid.inc"
-#endif
-
+#include "calcul_forces_solid_main.inc"
 #endif
 
 end module m_calcul_forces_iso_atn

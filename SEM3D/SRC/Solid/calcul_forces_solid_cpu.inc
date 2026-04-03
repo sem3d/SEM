@@ -2,30 +2,23 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
+!========================================================================
+! Ce fichier contient la routine principale de calcul des forces
+! solides pour les 4 cas isotrope/anisotrope avec ou sans atténuation.
+!
+! L''implémentation de ces routines se trouve dans les fichiers .inc
+! inclus par les directives #include
+!
+! Le but de ceci est de permettre au compilateur de "voir" le nombre
+! de ngll utilisé réellement, on spécialise les routines pour les ngll
+! 4,5,6,7,8,9. Une routine générique est fournie pour les autres
+! valeurs.
+!
+! On gagne 15 à 20% de performance ainsi.
+!
+!========================================================================
+
 #include "solid_forces.h"
-
-
-#undef PROCNUM
-#undef ngllvar
-#undef PROCNAME
-#ifndef NGLLVAL
-#define ngllvar ngll
-#define PROCNAME GLUE(PROCNAMEBASE,N)
-#else
-#define ngllvar ngll0
-#define PROCNAME GLUE(PROCNAMEBASE,NGLLVAL)
-#endif
-
-
-#undef SUBPROCNAME1
-#undef SUBPROCNAME2
-#undef PROCNAME_ATN
-#undef PROCNAME_MIRROR
-
-#define SUBPROCNAME1  GLUE(PROCNAME,_main)
-#define SUBPROCNAME2  GLUE(PROCNAME,_subloop)
-#define PROCNAME_ATN  GLUE(PROCNAME,_atn)
-#define PROC_MIRROR   GLUE(PROCNAME,_mirror)
 
 
 #define USE_LOCAL_MEM
