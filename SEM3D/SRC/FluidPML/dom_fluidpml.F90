@@ -480,7 +480,7 @@ contains
         real(fpp), intent(in), dimension(0:nglltot,0:2) :: fpml_Forces
         real(fpp), intent(inout), dimension(0:nglltot,0:2) :: fpml_Phi, fpml_VelPhi
         !
-        integer  :: n,  indpml, i, j
+        integer  :: n,  indpml, i
 
         !! XXX tester integrer les condition dirichlet dans DumpV(dirich(n)) = 0
         !!

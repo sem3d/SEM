@@ -345,6 +345,7 @@ contains
             do j=0,ngll-1
                 do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,bnum,ee)
+                    divU = 0
                     if (flag_gradU .or. (out_variables(OUT_DUDX) == 1)) then
                         invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
                         call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
