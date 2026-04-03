@@ -5,6 +5,7 @@ ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
 
 set(SEM2D_SOURCES
+    ${SEMCOMMON}/pow.F90
     ${PRJ}/SRC/Element.F90
     ${PRJ}/SRC/Face.F90
     ${PRJ}/SRC/Vertex.F90
