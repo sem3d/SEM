@@ -3,25 +3,6 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
-#undef PROCNAME
-#undef PROCNAME_ATN
-
-#undef ngllvar
-!!! Generic values of ngll
-
-#ifndef NGLLVAL
-#define ngllvar ngll
-#define PROCNAME GLUE(PROCNAMEBASE,N)
-#else
-!!! Compilation time specified values of ngll
-#define PROCNAME GLUE(PROCNAMEBASE,NGLLVAL)
-#define ngllvar ngll0
-#endif
-
-#define SUBPROCNAME1  GLUE(PROCNAME,_main)
-#define SUBPROCNAME2  GLUE(PROCNAME,_subloop)
-#define PROC_MIRROR   GLUE(PROCNAME,_mirror)
-
 #define USE_LOCAL_MEM
 
 subroutine PROCNAME(dom, ngllvar, var, dvdt)

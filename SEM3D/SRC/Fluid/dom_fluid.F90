@@ -552,36 +552,66 @@ contains
         type(domain_fluid), intent (INOUT) :: dom
         integer, intent(in) :: f0, f1
         !
-        integer :: i
-        !$acc kernels async(1)
-        dom%champs(f1)%ForcesFl = 0d0
-        !$acc end kernels
-
-
+        call newmark_predictor_fluid_sub(dom%nglltot, dom%champs(f1)%ForcesFl)
+        !
     end subroutine newmark_predictor_fluid
+
+    subroutine newmark_predictor_fluid_sub(nglltot, Forcesfl)
+        integer, intent(in) :: nglltot
+        real(fpp), intent(inout), dimension(0:nglltot) :: ForcesFl
+        integer :: i
+        !$acc parallel loop async(1) &
+        !$acc& present(ForcesFl)
+        do i=0,nglltot
+            ForcesFl(i) = 0d0
+        end do
+        !$acc end parallel loop
+    end subroutine newmark_predictor_fluid_sub
 
     subroutine newmark_corrector_fluid(dom, dt, f0, f1)
         type(domain_fluid), intent (INOUT) :: dom
         real(fpp), intent(in) :: dt
         integer, intent(in) :: f0, f1
         !
-        integer  :: n,  indpml, count, nglltot
-        !
-        count = dom%n_dirich
-        nglltot = dom%nglltot
-        !$acc kernels async(1)  present(dom,dom%champs, dom%massmat) &
-        !$acc&     present(dom%champs(f1)%ForcesFl) &
-        !$acc&     present(dom%champs(f0)%VelPhi,dom%champs(f1)%Phi)
-        dom%champs(f0)%VelPhi = dom%champs(f0)%VelPhi + dt * dom%champs(f1)%ForcesFl * dom%MassMat
-        do n = 0, dom%n_dirich-1
-            indpml = dom%dirich(n)
-            dom%champs(f0)%VelPhi(indpml) = 0.
-        enddo
-        dom%champs(f0)%Phi = dom%champs(f0)%Phi + dt * dom%champs(f0)%VelPhi
-        !$acc end kernels
 
-
+        call newmark_corrector_fluid_sub(dom%nglltot, dt, dom%MassMat, &
+            dom%champs(f0)%Phi, dom%champs(f0)%VelPhi, dom%champs(f1)%ForcesFl, &
+            dom%n_dirich, dom%dirich)
     end subroutine newmark_corrector_fluid
+
+    subroutine newmark_corrector_fluid_sub(nglltot, dt, MassMat, Phi, VelPhi, ForcesFl, count, dirich)
+        integer, intent(in) :: nglltot, count
+        real(fpp), intent(in) :: dt
+        real(fpp), intent(in), dimension(0:nglltot) :: MassMat
+        real(fpp), intent(inout), dimension(0:nglltot) :: Phi, VelPhi, ForcesFl
+        integer, intent(in), dimension(0:count-1)   :: dirich
+        !
+        integer  :: n,  indpml
+        !
+        !$acc parallel loop async(1) &
+        !$acc&     copyin(dirich) &
+        !$acc&     present(ForcesFl,VelPhi) &
+        !$acc&     firstprivate(count) &
+        !$acc&     private(indpml)
+        do n = 0, count-1
+            indpml = dirich(n)
+!            VelPhi(indpml) = 0.
+            ForcesFl(indpml) = 0.
+        enddo
+        !$acc end parallel loop
+        !
+        !$acc parallel loop async(1) &
+        !$acc&     copyin(MassMat, ForcesFl) &
+        !$acc&     present(Phi,VelPhi) &
+        !$acc&     firstprivate(nglltot,dt)
+        do n=0,nglltot
+            VelPhi(n) = VelPhi(n) + dt * ForcesFl(n) * MassMat(n)
+            Phi(n) = Phi(n) + dt * VelPhi(n)
+        end do
+        !$acc end parallel loop
+
+
+    end subroutine newmark_corrector_fluid_sub
 
     function fluid_Pspeed(dom, lnum, i, j, k) result(Pspeed)
         type(domain_fluid), intent (IN) :: dom
@@ -621,6 +651,7 @@ contains
                 enddo
             enddo
         enddo
+        !$acc end parallel loop
 
     end subroutine apply_source_fluid
 

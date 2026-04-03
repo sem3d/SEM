@@ -3,25 +3,6 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
-
-#undef PROCNAME
-#undef PROCNAME_ATN
-
-#undef ngllvar
-!!! Generic values of ngll
-#ifndef NGLLVAL
-#define ngllvar ngll
-#define PROCNAME GLUE(PROCNAMEBASE,N)
-#else
-!!! Compilation time specified values of ngll
-#define PROCNAME GLUE(PROCNAMEBASE,NGLLVAL)
-#define ngllvar ngll0
-#endif
-
-#define PROCNAME1() PROCNAME
-#define SUBPROCNAME1  GLUE(PROCNAME,_main_acc)
-#define SUBPROCNAME2  GLUE(PROCNAME,_subloop_acc)
-
 subroutine PROCNAME(dom, ngllvar, var, dvdt)
     use champs_fluid
     type(domain_fluid), intent (INOUT) :: dom
@@ -186,8 +167,6 @@ subroutine SUBPROCNAME1(ngllvar,nblocks,FFl,Phi,irho,hprime,gllw,jacob,invgrad)
 end subroutine SUBPROCNAME1
 
 !!!! ROUTINES DE TRAITEMENT DES MIRROIRS
-#define PROC_MIRROR         GLUE(PROCNAME,_mirror)
-
 subroutine PROC_MIRROR(dom, ngllvar, var, dvdt, m_dump, m_expl, m_recalc)
     use champs_fluid
     type(domain_fluid), intent (INOUT) :: dom
