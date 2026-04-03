@@ -195,10 +195,40 @@ foreach(defs ${incdirs})
   list(APPEND incflags "-D${defs}")
 endforeach()
 
-separate_arguments(CUSTOM_FLAGS UNIX_COMMAND "${CMAKE_Fortran_FLAGS} -DGLLOPTMIN=${OPT_MIN_GLL_OPT} -DGLLOPTMAX=${OPT_MAX_GLL_OPT} -DGLLMAX=${OPT_MAX_GLL}")
+separate_arguments(CUSTOM_FLAGS UNIX_COMMAND "-DGLLOPTMIN=${OPT_MIN_GLL_OPT} -DGLLOPTMAX=${OPT_MAX_GLL_OPT} -DGLLMAX=${OPT_MAX_GLL}")
 list(APPEND CUSTOM_FLAGS ${incflags})
 
-set(SEM3D_SOURCES ${SEM3D_SOURCES_F})
+set(SEM3D_SOURCES )
+
+find_program(CPP_EXECUTABLE cpp)
+
+foreach(src ${SEM3D_SOURCES_F})
+    # Get path relative to source dir
+    file(RELATIVE_PATH rel ${CMAKE_SOURCE_DIR} ${src})
+
+    # Output file in build dir (same structure)
+    set(out ${CMAKE_BINARY_DIR}/${rel})
+    set(srcdep "${out}.d")
+    
+    # Ensure output directory exists
+    get_filename_component(out_dir ${out} DIRECTORY)
+    file(MAKE_DIRECTORY ${out_dir})
+
+    ## RUN CPP with -C (allow comments to leave // intact)
+    add_custom_command(
+        OUTPUT ${out}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${out_dir}
+        COMMAND ${CMAKE_COMMAND} -E touch ${srcdep}
+        COMMAND ${CPP_EXECUTABLE} -nostdinc -MT ${out} -MD -MF ${srcdep} -C ${CUSTOM_FLAGS} -o ${out} ${src}
+	COMMAND sed -i "s/ *%_NEWLINE_% */\\n/g" ${out}
+        DEPENDS ${src}
+	DEPFILE ${srcdep}
+        COMMENT "Preprocessing ${rel}"
+        VERBATIM
+    )
+
+    list(APPEND SEM3D_SOURCES ${out})
+endforeach()
 
 target_sources(sem3d.exe PRIVATE "${SEM3D_SOURCES}" "${SEM_COMMON_SRC_C}")
 

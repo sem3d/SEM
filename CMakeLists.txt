@@ -93,7 +93,7 @@ if (DEFINED ENV{HDF5_ROOT}) # Some install put modules in different places
     include_directories($ENV{HDF5_ROOT}/include/shared)
   endif ()
 endif ()
-include_directories(${PROJECT_SOURCE_DIR}/COMMON ${PROJECT_BINARY_DIR}/libs/common)
+include_directories(${PROJECT_SOURCE_DIR}/COMMON ${PROJECT_BINARY_DIR}/libs/common ${PROJECT_SOURCE_DIR}/SEM3D/SRC)
 
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
