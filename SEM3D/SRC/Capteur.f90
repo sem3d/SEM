@@ -79,7 +79,7 @@ contains
         real(fpp) :: xc, yc, zc, xi, eta, zeta
         real(fpp) :: xc0, yc0, zc0
         character(len=MAX_FILE_SIZE) :: fnamef
-        integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out, ngll
+        integer :: numproc, numproc_max, ierr, n_el, i, n_out, ngll
         real(fpp) :: dmin, glob_dmin
         real(fpp),dimension(:),allocatable :: gllc
 
@@ -115,6 +115,7 @@ contains
             end if
         end do
         nCapteursOnRank = 0
+        n_out = Tdomain%nReqOut
 
         do while (C_ASSOCIATED(station_next))
             call c_f_pointer(station_next, station_ptr)
@@ -149,7 +150,6 @@ contains
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
                 Tdomain%has_station = .true.
-                n_out = Tdomain%nReqOut
 
                 if (glob_dmin>0) then
                     do i = 0, Tdomain%n_nodes-1
@@ -352,7 +352,7 @@ contains
 
         implicit none
 
-        integer :: ntime, c, ngll, icache
+        integer :: ntime, c
         type (domain) :: TDomain
         logical :: do_flush
         real(fpp) :: rtime
@@ -368,7 +368,7 @@ contains
                 if (localCapteurs(c)%type == CPT_INTERP) then
                     call sortieGrandeurCapteur_interp(Tdomain, rtime, localCapteurs(c)%ngll, localCapteurs(c))
                 else if (localCapteurs(c)%type == CPT_ENERGY) then
-!                    call sortieGrandeurCapteur_energy(Tdomain, ngll, localCapteurs(c))
+!                    call sortieGrandeurCapteur_energy(Tdomain, localCapteurs(c)%ngll, localCapteurs(c))
                 end if
             endif
         enddo
