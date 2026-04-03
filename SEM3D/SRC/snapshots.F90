@@ -915,7 +915,7 @@ contains
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
         integer :: ngll, oldngll
-        integer :: i, j, k, n, nn, m, ind
+        integer :: i, j, k, n, m, ind
         integer :: nnodes
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
@@ -1203,7 +1203,7 @@ contains
         integer, dimension(0:), intent(in) :: out_variables
         !
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, j, nn, ne, group
+        integer :: i, nn, ne, group
         real(fpp) :: time
         character(len=11), dimension(0:8) :: R2label, R2data
 

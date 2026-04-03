@@ -102,7 +102,7 @@ contains
         integer, dimension(nmax) :: elems
         real(fpp), dimension(0:2,nmax) :: localcoord
         integer, intent(in), optional :: nsrc
-        integer :: n, nnodes, i, j, k
+        integer :: n, nnodes, i, j
         real(fpp) :: xi, eta, zeta
         logical :: ok
         integer :: n_elems

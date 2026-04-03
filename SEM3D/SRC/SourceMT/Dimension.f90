@@ -12,7 +12,7 @@ FUNCTION CheckDimension(Variables)
     !
     INTEGER                        :: CheckDimension
     CHARACTER(len=12), INTENT(in)  :: Variables
-    CHARACTER(len=4)               :: RealChar
+    CHARACTER(len=4)               :: RealChar2, RealChar
     INTEGER                        :: i, Length, ExistX, ExistY, ExistZ, ExistT
     CHARACTER(len=256)             :: FunctionName ='CheckDimension'
     CHARACTER(len=256)             :: SourceFile='Dimension'
@@ -20,8 +20,8 @@ FUNCTION CheckDimension(Variables)
     !--------------------------------------------------------------------------------
     !
     Length = LEN_TRIM(Variables)
-    RealChar = TRIM(ADJUSTL(Variables))
-    CALL LowCase(RealChar, RealChar)
+    RealChar2 = TRIM(ADJUSTL(Variables))
+    CALL LowCase(RealChar2, RealChar)
     ExistX=0
     ExistY=0
     ExistZ=0
@@ -39,7 +39,7 @@ FUNCTION CheckDimension(Variables)
             ExistT = 1
         END SELECT
     END DO
-
+    CheckDimension = 0
     IF (((ExistX+ExistY+ExistZ).eq.1).or.(((ExistX+ExistY+ExistZ).eq.0).and.(ExistT.eq.1))) THEN
         CheckDimension = 1
     ELSEIF ((ExistX+ExistY+ExistZ).eq.2) THEN
