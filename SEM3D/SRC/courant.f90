@@ -67,6 +67,8 @@ contains
         ngll_mat = 0
         use_average = Tdomain%use_avg
 
+        Tdomain%dxmax = 0
+
         do n = 0, Tdomain%n_elem -1
             dxmin = 1e10
             dxmax = 0
@@ -127,13 +129,13 @@ contains
             ngll_mat(mat) = ngll_mat(mat) + (ngll*ngll*ngll)
             avgPspeed_mat(mat) = avgPspeed_mat(mat) + sumPspeed
             dxmin_mat(mat) = min(dxmin, dxmin_mat(mat))
+            Tdomain%dxmax = max(Tdomain%dxmax, dxmax)
         enddo
-        Tdomain%dxmax = dxmax
 
         if(use_average) then
             if(rg==0) write(*,*) 'WARNING!!using average'
             dt_loc_mat = huge(1.)
-            where(ngll_mat > 0) 
+            where(ngll_mat > 0)
                     avgPspeed_mat = avgPspeed_mat/dble(ngll_mat)
                     dt_loc_mat = dxmin_mat/avgPspeed_mat
             end where
