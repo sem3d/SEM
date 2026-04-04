@@ -398,6 +398,17 @@ contains
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(in) :: f0, f1
         !
+        call newmark_predictor_solidpml_sub(dom, Tdomain, f0, f1, &
+            dom%champs(f0)%VelocPML, dom%champs(f1)%VelocPML )
+    end subroutine newmark_predictor_solidpml
+
+    subroutine newmark_predictor_solidpml_sub(dom, Tdomain, f0, f1, VelocPML0, &
+        VelocPML1)
+        type(domain_solidpml), intent (INOUT) :: dom
+        type (domain), intent (INOUT) :: Tdomain
+        integer, intent(in) :: f0, f1
+        real(fpp), intent(inout), dimension(0:dom%nglltot,0:2,0:2) :: VelocPML0, VelocPML1
+        !
         integer :: n, i, j, indsol, indpml
         real(fpp) :: bega, dt
 
@@ -424,24 +435,24 @@ contains
         !$acc   parallel async(1)  &
         !$acc&  present(Tdomain,Tdomain%spmldom,dom,dom%champs) &
         !$acc&  present(dom%champs(f0)) &
-        !$acc&  present(dom%champs(f0)%VelocPML) &
+        !$acc&  present(VelocPML0) &
         !$acc&  present(Tdomain%sdom,Tdomain%sdom%champs,Tdomain%sdom%champs(f0)) &
         !$acc&  present(Tdomain%sdom%champs(f0)%Veloc) &
         !$acc&  present(Tdomain%intSolPml) &
         !$acc&  present(Tdomain%intSolPml%surf0, Tdomain%intSolPml%surf0%map) &
         !$acc&  present(Tdomain%intSolPml%surf1, Tdomain%intSolPml%surf1%map) &
-        !$acc&  firstprivate(f0) &
-        !$acc&
-        !$acc loop private(indsol,indpml)
+        !$acc&  firstprivate(f0) private(indsol,indpml)
+
+        !$acc loop
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             ! Couplage à l'interface solide / PML
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
             do i=0,2
                 !$acc atomic write
-                dom%champs(f0)%VelocPML(indpml,i,0) = Tdomain%sdom%champs(f0)%Veloc(indsol,i)
-                dom%champs(f0)%VelocPML(indpml,i,1) = 0.
-                dom%champs(f0)%VelocPML(indpml,i,2) = 0.
+                VelocPML0(indpml,i,0) = Tdomain%sdom%champs(f0)%Veloc(indsol,i)
+                VelocPML0(indpml,i,1) = 0.
+                VelocPML0(indpml,i,2) = 0.
             end do
         enddo
         ! Prediction
@@ -450,21 +461,21 @@ contains
         !$acc   parallel async(1)  &
         !$acc&  present(dom,dom%champs) &
         !$acc&  present(dom%champs(f0),dom%champs(f1)) &
-        !$acc&  present(dom%champs(f0)%VelocPML) &
-        !$acc&  present(dom%champs(f1)%VelocPML,dom%champs(f1)%ForcesPML) &
-        !$acc&  firstprivate(f0,f1,dt,bega) &
-        !$acc&
+        !$acc&  present(VelocPML0,VelocPML1) &
+        !$acc&  present(dom%champs(f1)%ForcesPML) &
+        !$acc&  firstprivate(f0,f1,dt,bega) 
+
         !$acc loop collapse(3)
         do n = 0,dom%nglltot
             do i=0,2
                 do j=0,2
-                    dom%champs(f1)%VelocPML(n,i,j) = dom%champs(f0)%VelocPML(n,i,j) + &
+                    VelocPML1(n,i,j) = VelocPML0(n,i,j) + &
                         dt*(0.5-bega)*dom%champs(f1)%ForcesPML(n,i,j)
                 end do
             end do
         end do
         !$acc end parallel
-    end subroutine newmark_predictor_solidpml
+    end subroutine newmark_predictor_solidpml_sub
 
     subroutine newmark_corrector_solidpml(dom, dt, t, f0, f1)
         type(domain_solidpml), intent (INOUT) :: dom
@@ -479,8 +490,8 @@ contains
         !$acc&   present(dom%champs(f0)%VelocPML, dom%champs(f1)%ForcesPML) &
         !$acc&   present(dom%dirich) &
         !$acc&   firstprivate(f0,f1,dt) &
-        !$acc&   private(indpml) &
-        !$acc&
+        !$acc&   private(indpml)
+
         !$acc loop collapse(3)
         do jp = 0,2
             do id = 0,2
