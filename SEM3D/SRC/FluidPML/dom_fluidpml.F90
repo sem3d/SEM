@@ -413,12 +413,11 @@ contains
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: nglltot, ngllfluid, niface
         real(fpp), intent(in), dimension(0:ngllfluid) :: fluid_VelPhi
-        real(fpp), intent(inout), dimension(0:dom%nglltot,0:2) :: fpml_VelPhi0, fpml_VelPhi1, fpml_Forces
+        real(fpp), intent(inout), dimension(0:nglltot,0:2) :: fpml_VelPhi0, fpml_VelPhi1, fpml_Forces
         integer, intent(in), dimension(0:niface-1) :: map_flu, map_pml
         !
         integer :: n, i, indpml, indflu
 
-        fpml_Forces = 0.
         !$acc parallel loop async(1) &
         !$acc&  copyin(map_pml, map_flu, fluid_VelPhi) &
         !$acc&  present(fpml_VelPhi0) &
@@ -440,6 +439,16 @@ contains
         do i = 0,2
             do n = 0, nglltot
                 fpml_Velphi1(n,i) = fpml_VelPhi0(n,i)
+            end do
+        end do
+        !$acc end parallel loop
+
+        !$acc parallel loop async(1) collapse(2) &
+        !$acc&  present(fpml_Forces) &
+        !$acc&  firstprivate(nglltot)
+        do i = 0,2
+            do n = 0, nglltot
+                fpml_Forces(n,i) = 0
             end do
         end do
         !$acc end parallel loop
