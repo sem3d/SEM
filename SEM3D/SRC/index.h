@@ -1,6 +1,9 @@
 #ifndef INDEX_H
 #define INDEX_H
 
+#include "macrohelper.h"
+
+#if 0
 /*
   Les macros definies ci-dessous doivent permettre de changer l'ordre
   des indices des champs selon la methode d'optimisation choisie.
@@ -15,7 +18,7 @@
   Pour l'instant seule une boucle par element est prevue ainsi.
   
  */
-
+#endif
 
 #define IND_IJKE(i,j,k,eb,ec)        ec,i,j,k,eb
 #define IND_MNE(m,n,eb,ec)           ec,m,n,eb
@@ -91,7 +94,6 @@
 #define        PMLDumpSy_(i,j,k,n,eb,ec)        m_PMLDumpSy(IND_IJKNE(i,j,k,n,eb,ec))
 #define        PMLDumpSz_(i,j,k,n,eb,ec)        m_PMLDumpSz(IND_IJKNE(i,j,k,n,eb,ec))
 
-#define NEWLINE  %_NEWLINE_%
 
 
 #define part_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
@@ -125,12 +127,5 @@ betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(
 gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
 
 
-#ifdef SINGLEPRECISION
-#define MPI_REAL_FPP MPI_FLOAT
-#define H5T_REAL  H5T_NATIVE_REAL
-#else
-#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
-#define H5T_REAL  H5T_NATIVE_DOUBLE
-#endif
 
 #endif

@@ -1,0 +1,18 @@
+#ifndef MACROHELPER_H
+#define MACROHELPER_H
+
+#define GLUE2_(X,Y) X##Y
+#define GLUE(X,Y) GLUE2_(X,Y)
+#define GLUE3(X,Y,Z) GLUE(X,GLUE(Y,Z))
+
+#define NEWLINE  %_NEWLINE_%
+
+#ifdef SINGLEPRECISION
+#define MPI_REAL_FPP MPI_FLOAT
+#define H5T_REAL  H5T_NATIVE_REAL
+#else
+#define MPI_REAL_FPP MPI_DOUBLE_PRECISION
+#define H5T_REAL  H5T_NATIVE_DOUBLE
+#endif
+
+#endif

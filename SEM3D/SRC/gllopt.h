@@ -1,6 +1,8 @@
 #ifndef GLLOPT_H
 #define GLLOPT_H
 
+#include "macrohelper.h"
+
 #ifndef GLLOPTMIN
 #define GLLOPTMIN 5
 #endif
@@ -53,9 +55,9 @@
 #define STICK(x) x
 
 
-#define CALLOP(N,funcname,sfx,args) case(N);call STICK(funcname)STICK(_)STICK(N)STICK(sfx) args
+#define CALLOP(N,funcname,sfx,args) case(N);call GLUE(GLUE(funcname,_),GLUE(N,sfx)) args
 
-#define CALLDFLT(funcname,sfx,args) case default;call STICK(funcname)STICK(_)STICK(N)STICK(sfx) args
+#define CALLDFLT(funcname,sfx,args) case default;call GLUE(GLUE(funcname,_),GLUE(N,sfx)) args
 
 #if GENGLL4
 #define NGLLDISPATCHCALL_4(funcname,sfx,args) CALLOP(4,funcname,sfx,args)

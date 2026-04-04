@@ -2,8 +2,10 @@
 #define LOOPS_H
 
 #if VCHUNK>1
+#if 0
 /* ATTENTION, ne pas utiliser ces macros pour l'instant, un bug du compilateur
    intel 15 fait crasher le preprocesseur... */
+#endif
 #define ACC_DATA(xx) !$acc data xx
 #define ACC_DIR(xx)  !$acc xx
 #define OMP_SIMD(xx) !$omp simd xx
@@ -35,5 +37,4 @@
 #define END_SUBELEM_LOOP()  ;
 #endif
 
-
-#endif LOOPS_H
+#endif /* LOOPS_H */
