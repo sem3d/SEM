@@ -2,12 +2,13 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
+#include "index.h"
+#include "optims.h"
 
 module dom_solid_dg
     use constants
     use champs_solid_dg
     implicit none
-#include "index.h"
 
 contains
 

@@ -10,6 +10,8 @@
 !!\date 10/03/2009
 !!
 !<
+#include "optims.h"
+
 module lagrange_prop
     contains
     subroutine pol_lagrange(n,GLLc,k,x,y)

@@ -13,6 +13,7 @@ module dom_fluidpml
     use pml
     implicit none
 #include "index.h"
+#include "optims.h"
 #include "loops.h"
 
 contains

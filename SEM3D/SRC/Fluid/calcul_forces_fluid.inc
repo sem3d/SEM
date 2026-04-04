@@ -3,26 +3,24 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
-#include "index.h"
-#include "loops.h"
-
 #undef PROCNAME
 #undef PROCNAME_ATN
 
 #undef ngllvar
 !!! Generic values of ngll
+
 #ifndef NGLLVAL
 #define ngllvar ngll
-#define PROCNAME PROCNAMEBASE()N
+#define PROCNAME GLUE(PROCNAMEBASE,N)
 #else
 !!! Compilation time specified values of ngll
-#define PROCNAME PROCNAMEBASE()NGLLVAL
+#define PROCNAME GLUE(PROCNAMEBASE,NGLLVAL)
 #define ngllvar ngll0
 #endif
 
-#define PROCNAME1() PROCNAME
-#define SUBPROCNAME1  PROCNAME1()_main
-#define SUBPROCNAME2  PROCNAME1()_subloop
+#define SUBPROCNAME1  GLUE(PROCNAME,_main)
+#define SUBPROCNAME2  GLUE(PROCNAME,_subloop)
+#define PROC_MIRROR   GLUE(PROCNAME,_mirror)
 
 #define USE_LOCAL_MEM
 
@@ -239,7 +237,6 @@ subroutine SUBPROCNAME1(ngllvar,nblocks,bnum,hprime,htprime,gllw,InvGrad,Jacob,I
 end subroutine SUBPROCNAME1
 
 !!!! ROUTINES DE TRAITEMENT DES MIRROIRS
-#define PROC_MIRROR         PROCNAME1()_mirror
 
 subroutine PROC_MIRROR(dom, ngllvar, var, dvdt, m_dump, m_expl, m_recalc)
     use champs_fluid

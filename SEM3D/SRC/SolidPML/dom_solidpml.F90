@@ -13,8 +13,10 @@ module dom_solidpml
     use pml
     implicit none
 #include "index.h"
+#include "optims.h"
 #include "loops.h"
 #include "gllopt.h"
+
 contains
 
     subroutine allocate_champs_solidpml(dom, f)

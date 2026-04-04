@@ -7,12 +7,14 @@
 !!\brief Contient la subroutine shape8.
 !!
 !<
+#include "index.h"
+#include "optims.h"
+
 module mshape8
     use constants, only : fpp, deps
     use sdomain
     use mlinalg
     implicit none
-#include "index.h"
 
 contains
     subroutine shape8_init(Tdomain)

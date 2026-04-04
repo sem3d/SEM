@@ -2,12 +2,16 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check at build time
+! wrap subroutine in module to get arg type check at build time
+
+module m_calcul_forces_fluid
 contains
 #include "index.h"
+#include "optims.h"
+#include "loops.h"
 #include "gllopt.h"
 
-#define PROCNAMEBASE() calcul_forces_fl_
+#define PROCNAMEBASE calcul_forces_fl_
 
 #ifndef TEST_FLUID_ACC
 #define TEST_FLUID_ACC 0

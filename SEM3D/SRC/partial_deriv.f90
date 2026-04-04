@@ -2,6 +2,8 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
+#include "optims.h"
+
 module deriv3d
     use constants
 contains

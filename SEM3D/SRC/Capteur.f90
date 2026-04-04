@@ -23,6 +23,7 @@ module mCapteur
     use msnapshots, only : integrate_on_element
     use lagrange_prop
 #include "index.h"
+#include "optims.h"
     implicit none
 
     public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs

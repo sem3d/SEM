@@ -12,6 +12,7 @@ module dom_fluid
     implicit none
 #include "index.h"
 #include "gllopt.h"
+#include "optims.h"
 
 contains
 

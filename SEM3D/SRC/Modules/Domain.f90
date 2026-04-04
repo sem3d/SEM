@@ -7,6 +7,7 @@
 !!\brief Contient les definition du type domain
 !!
 !<
+#include "optims.h"
 
 module sdomain
     use selement

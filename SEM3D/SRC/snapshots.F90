@@ -1,6 +1,10 @@
 !! This file is part of SEM
 !!
 !! Copyright CEA, ECP, IPGP
+#include "index.h"
+#include "optims.h"
+#include "sem_hdf5.h"
+#undef DEBUG_CPML
 
 module msnapshots
     use sdomain
@@ -11,10 +15,7 @@ module msnapshots
     use msnapdata, only : output_var_t
     use lagrange_prop
     implicit none
-#include "index.h"
-#include "sem_hdf5.h"
 contains
-#undef DEBUG_CPML
 
     subroutine grp_write_real_2d(outputs, parent_id, name, dim1, dim2, data, ntot_nodes)
         use sem_hdf5

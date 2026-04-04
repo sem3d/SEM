@@ -2,29 +2,24 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-#include "index.h"
-#include "loops.h"
-
 
 #undef PROCNUM
 #undef ngllvar
+#undef PROCNAME
 #ifndef NGLLVAL
 #define ngllvar ngll
-#define PROCNUM() N
+#define PROCNAME GLUE(PROCNAMEBASE,N)
+
 #else
 #define ngllvar ngll0
-#define PROCNUM() NGLLVAL
+#define PROCNAME GLUE(PROCNAMEBASE,NGLLVAL)
 #endif
 
-#undef PROCNAME
-#undef PROCNAME1
 #undef PROC_PRED
 #undef PROC_MAIN
 
-#define PROCNAME PROCNAMEBASE()PROCNUM()
-#define PROCNAME1() PROCNAME
-#define PROC_PRED  PROCNAME1()_pred_acc
-#define PROC_MAIN  PROCNAME1()_main_acc
+#define PROC_PRED  GLUE(PROCNAME,_pred)
+#define PROC_MAIN  GLUE(PROCNAME,_main)
 
 #undef x_deriv_ijke
 #define x_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \

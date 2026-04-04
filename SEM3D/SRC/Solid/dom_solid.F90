@@ -8,6 +8,8 @@ module dom_solid
     use champs_solid
     implicit none
 #include "index.h"
+#include "optims.h"
+#include "loops.h"
 #include "gllopt.h"
 contains
 

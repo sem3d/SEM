@@ -5,6 +5,8 @@
 
 #include "index.h"
 #include "gllopt.h"
+#include "optims.h"
+#include "loops.h"
 
 module m_calcul_forces_aniso_atn ! wrap subroutine in module to get arg type check at build time
     use constants
@@ -13,8 +15,8 @@ contains
 
 #define ANISO
 #define ATTENUATION
-#define PROCNAMEBASE() calcul_forces_aniso_atn_
-#define PROCNAMEBASE_ATN() attenuation_aniso_update_
+#define PROCNAMEBASE calcul_forces_aniso_atn_
+#define PROCNAMEBASE_ATN attenuation_aniso_update_
 
 #if GENGLL4
 #define NGLLVAL 4

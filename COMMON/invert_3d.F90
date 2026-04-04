@@ -10,6 +10,8 @@
 !! \date
 !!
 !<
+#include "optims.h"
+
 module mlinalg
     implicit none
 contains

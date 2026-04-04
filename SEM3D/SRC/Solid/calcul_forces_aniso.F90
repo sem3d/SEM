@@ -21,6 +21,8 @@
 
 #include "index.h"
 #include "gllopt.h"
+#include "optims.h"
+#include "loops.h"
 
 module m_calcul_forces_aniso ! wrap subroutine in module to get arg type check at build time
     use constants
@@ -29,7 +31,7 @@ contains
 
 #undef ATTENUATION
 #define ANISO
-#define PROCNAMEBASE() calcul_forces_aniso_
+#define PROCNAMEBASE calcul_forces_aniso_
 
 #if defined(OPENACC) || TEST_FORCE==1
 #if GENGLL4

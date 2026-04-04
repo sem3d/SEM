@@ -6,6 +6,7 @@
 !! stub mpi module that either use the real mpi module or a fake one
 !!
 !<
+#include "optims.h"
 
 module sem_mpi
 #ifdef __MPI

@@ -2,32 +2,31 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-#include "index.h"
-#include "loops.h"
 #include "solid_forces.h"
 
 
 #undef PROCNUM
 #undef ngllvar
+#undef PROCNAME
 #ifndef NGLLVAL
 #define ngllvar ngll
-#define PROCNUM() N
+#define PROCNAME GLUE(PROCNAMEBASE,N)
 #else
 #define ngllvar ngll0
-#define PROCNUM() NGLLVAL
+#define PROCNAME GLUE(PROCNAMEBASE,NGLLVAL)
 #endif
 
-#undef PROCNAME
-#undef PROCNAME1
+
 #undef SUBPROCNAME1
 #undef SUBPROCNAME2
 #undef PROCNAME_ATN
+#undef PROCNAME_MIRROR
 
-#define PROCNAME PROCNAMEBASE()PROCNUM()
-#define PROCNAME1() PROCNAME
-#define SUBPROCNAME1  PROCNAME1()_main
-#define SUBPROCNAME2  PROCNAME1()_subloop
-#define PROCNAME_ATN  PROCNAME1()_atn
+#define SUBPROCNAME1  GLUE(PROCNAME,_main)
+#define SUBPROCNAME2  GLUE(PROCNAME,_subloop)
+#define PROCNAME_ATN  GLUE(PROCNAME,_atn)
+#define PROC_MIRROR   GLUE(PROCNAME,_mirror)
+
 
 #define USE_LOCAL_MEM
 
@@ -580,8 +579,6 @@ end subroutine PROCNAME_ATN
 #undef JZZ
 
 !!!! ROUTINES DE TRAITEMENT DES MIRROIRS
-#define PROC_MIRROR         PROCNAME1()_mirror
-
 subroutine PROC_MIRROR(dom, ngllvar, var, dvdt, m_dump, m_expl, m_recalc)
     use champs_solid
     type(domain_solid), intent (INOUT) :: dom

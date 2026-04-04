@@ -5,6 +5,8 @@
 
 #include "index.h"
 #include "gllopt.h"
+#include "optims.h"
+#include "loops.h"
 
 module m_calcul_forces_iso_atn ! wrap subroutine in module to get arg type check at build time
     use constants
@@ -16,8 +18,8 @@ contains
 #endif
 
 #define ATTENUATION
-#define PROCNAMEBASE() calcul_forces_iso_atn_
-#define PROCNAMEBASE_ATN() attenuation_iso_update_
+#define PROCNAMEBASE calcul_forces_iso_atn_
+#define PROCNAMEBASE_ATN attenuation_iso_update_
 
 #if defined(OPENACC) || TEST_FORCE==1
 #if GENGLL4
