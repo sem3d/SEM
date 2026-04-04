@@ -553,43 +553,11 @@ contains
         integer, intent(in) :: f0, f1
         !
         integer :: i
-!!         !$acc parallel loop async(1) present(dom,dom%champs) &
-!!         !$acc&   present(dom%champs(f0)%Phi,dom%champs(f0)%VelPhi) &
-!!         !$acc&   present(dom%champs(f1)%Phi,dom%champs(f1)%VelPhi,dom%champs(f1)%ForcesFl)
-!!         do i=0,dom%nglltot-1
-!!             !dom%champs(f1)%VelPhi(i)   = dom%champs(f0)%VelPhi(i)
-!!             !dom%champs(f1)%Phi(i)      = dom%champs(f0)%Phi(i)
-!!             dom%champs(f1)%ForcesFl(i) = 0d0
-!!         end do
-!!         !$acc end parallel loop
         !$acc kernels async(1)
         dom%champs(f1)%ForcesFl = 0d0
         !$acc end kernels
 
-        !! BUG!!
-!!        !$acc kernels async(1)
-!!        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
-!!        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
-!!        dom%champs(f1)%ForcesFl = 0d0
-!!        !$acc end kernels
 
-        !! OK
-!!        !$acc kernels async(1)
-!!        dom%champs(f1)%VelPhi   = dom%champs(f0)%VelPhi
-!!        !$acc end kernels
-!!        !$acc kernels async(1)
-!!        dom%champs(f1)%Phi      = dom%champs(f0)%Phi
-!!        !$acc end kernels
-!!        !$acc kernels async(1)
-!!        dom%champs(f1)%ForcesFl = 0d0
-!!        !$acc end kernels
-
-        !! OK
-!!        !$acc kernels async(1) present(dom%champs(f1)%ForcesFl)
-!!        dom%champs(f1)%VelPhi(0:dom%nglltot-1)   = dom%champs(f0)%VelPhi(0:dom%nglltot-1)
-!!        dom%champs(f1)%Phi(0:dom%nglltot-1)      = dom%champs(f0)%Phi(0:dom%nglltot-1)
-!!        dom%champs(f1)%ForcesFl(0:dom%nglltot-1) = 0d0
-!!        !$acc end kernels
     end subroutine newmark_predictor_fluid
 
     subroutine newmark_corrector_fluid(dom, dt, f0, f1)
@@ -613,9 +581,6 @@ contains
         dom%champs(f0)%Phi = dom%champs(f0)%Phi + dt * dom%champs(f0)%VelPhi
         !$acc end kernels
 
-!        !$acc update host(dom%champs(f1)%ForcesFl,dom%champs(f0)%ForcesFl) wait(1)
-!        write(*,*) "nglltot:", nglltot
-!        write(*,"(A,E16.9,E16.9,E16.9)") "src:", dom%MassMat(35850),dom%champs(f0)%ForcesFl(35850),dom%champs(f1)%ForcesFl(35850)
 
     end subroutine newmark_corrector_fluid
 
@@ -634,7 +599,7 @@ contains
         use sdomain
         implicit none
         type(domain_fluid),intent(inout) :: dom
-        type(Source),intent(inout) :: src 
+        type(Source),intent(inout) :: src
         real(fpp), intent(in) :: ft
         integer, intent(in) :: i1
         integer, intent(in) :: lnum
@@ -657,15 +622,6 @@ contains
                 enddo
             enddo
         enddo
-!!        write(*,*) "source:"
-!!        !$acc update host(dom%champs(i1)%ForcesFl) wait(1)
-!!        i=2
-!!        j=2
-!!        k=2
-!!        idx = dom%Idom_(i,j,k,bnum,ee)
-!!        val = dom%champs(i1)%ForcesFl(idx)
-!!        !val = src%ExtForce(i,j,k,0)
-!!        write(*,"(A,I2,I2,I2,A,I5,A,E16.9)") "src:",i,j,k,"idx:",idx,":",val
 
     end subroutine apply_source_fluid
 
