@@ -391,7 +391,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !---------------------------------------------------------!
     !--------------------  LOOP UPON TIME  -------------------!
     !---------------------------------------------------------!
-    do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
+    do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax
 
         protection = 0
         if (interrupt > 0) then
