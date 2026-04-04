@@ -362,8 +362,7 @@ contains
         do c = 0,nCapteursOnRank-1
             if (mod(ntime, localCapteurs(c)%periode)==0) then
                 if (localCapteurs(c)%type == CPT_INTERP) then
-                    call sortieGrandeurCapteur_interp(Tdomain, rtime, localCapteurs(c)%ngll, localCapteurs(c), &
-                        Tdomain%out_var_offset(OUT_DEPLA), Tdomain%out_var_offset(OUT_VITESSE),Tdomain%out_var_offset(OUT_ACCEL) )
+                    call sortieGrandeurCapteur_interp(Tdomain, rtime, localCapteurs(c)%ngll, localCapteurs(c))
                 else if (localCapteurs(c)%type == CPT_ENERGY) then
 !                    call sortieGrandeurCapteur_energy(Tdomain, ngll, localCapteurs(c))
                 end if
@@ -594,7 +593,7 @@ contains
     !! la maille se trouve dans un seul proc
     !! seul le proc gere l'ecriture
     !!
-    subroutine sortieGrandeurCapteur_interp(Tdomain, rtime, ngll, capteur, ffu, ffv, ffa)
+    subroutine sortieGrandeurCapteur_interp(Tdomain, rtime, ngll, capteur)
         !$acc routine worker
         use constants
         use dom_solid
@@ -608,7 +607,6 @@ contains
         type(tCapteur),intent(inout)  :: capteur
         integer, intent(in)           :: ngll
         real(fpp), intent(in)         :: rtime
-        integer :: ffu,ffv,ffa
         !
         integer                       :: i, j, k, ioff, ni, c
         real(fpp)                     :: weight
@@ -617,9 +615,9 @@ contains
         integer :: nComp
 
         ! Verification : le capteur est il gere par le proc. ?
-!        write(*,*) "xU", Tdomain%out_var_capt(OUT_DEPLA), Tdomain%out_var_offset(OUT_DEPLA), ffu
-!        write(*,*) "xV", Tdomain%out_var_capt(OUT_VITESSE), Tdomain%out_var_offset(OUT_VITESSE), ffv
-!        write(*,*) "xA", Tdomain%out_var_capt(OUT_ACCEL), Tdomain%out_var_offset(OUT_ACCEL), ffa
+!        write(*,*) "xU", Tdomain%out_var_capt(OUT_DEPLA), Tdomain%out_var_offset(OUT_DEPLA)
+!        write(*,*) "xV", Tdomain%out_var_capt(OUT_VITESSE), Tdomain%out_var_offset(OUT_VITESSE)
+!        write(*,*) "xA", Tdomain%out_var_capt(OUT_ACCEL), Tdomain%out_var_offset(OUT_ACCEL)
 
         nl_flag = Tdomain%nl_flag
         ! On recupere les variables de l'element associe au capteur.
