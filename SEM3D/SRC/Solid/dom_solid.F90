@@ -1629,4 +1629,34 @@ contains
         end do
         
     end subroutine lddrk_update_solid
+
+    subroutine apply_source_solid(src, dom, i1, ft, lnum)
+        use sdomain
+        implicit none
+        type(domain_solid),intent(inout) :: dom
+        type(Source),intent(inout) :: src 
+        real(fpp), intent(in) :: ft
+        integer, intent(in) :: i1
+        integer, intent(in) :: lnum
+        integer :: bnum, ee
+        integer :: ngll, i, j, k, i_dir, idx
+        real(kind=fpp) :: force
+
+        ngll = dom%ngll
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+
+        !$acc parallel loop gang vector collapse(4) async(1)
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        idx   = dom%Idom_(i,j,k,bnum,ee)
+                        force = dom%champs(i1)%Veloc(idx, i_dir) + ft*src%ExtForce(i,j,k,i_dir)
+                        dom%champs(i1)%Veloc(idx, i_dir) = force
+                    enddo
+                enddo
+            enddo
+        enddo
+    end subroutine apply_source_solid
 end module dom_solid
