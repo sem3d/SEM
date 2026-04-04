@@ -15,7 +15,9 @@ subroutine PROCNAME(dom, ngllvar, champs)
     !
     integer :: n
     do n = 0,dom%nblocks-1
-        call PROC_PRED(dom, ngll, dom%dt, champs, n)
+        call PROC_PRED(ngll, dom%nblocks, dom%nglltot, dom%dt, n, &
+            dom%GLLw, dom%hprime, dom%m_InvGrad, champs%fpml_VelPhi, dom%m_Idom,  &
+            dom%m_PMLVeloc, dom%m_PMLDumpSx, dom%m_PMLDumpSy, dom%m_PMLDumpSz)
         call PROC_FPML(ngll, dom%nblocks, dom%nglltot, n, 0, &
             dom%GLLw, dom%hprime, dom%m_Jacob, dom%m_InvGrad, &
             dom%m_PMLVeloc, champs%fpml_Forces, dom%m_Idom)
@@ -80,15 +82,25 @@ subroutine PROC_FPML(ngllvar, nblocks, nglltot, bnum, d, &
 end subroutine PROC_FPML
 
 
-subroutine PROC_PRED(dom, ngllvar, dt, champs1, bnum)
-    type (domain_fluidpml), intent (INOUT) :: dom
+subroutine PROC_PRED(ngllvar, nblocks, nglltot, dt, bnum, &
+    gllw, hprime, InvGrad, fpml_VelPhi, Idom, &
+    pmlveloc, dumpsx, dumpsy, dumpsz &
+    )
     real(fpp), intent(in) :: dt
-    type(champsfluidpml), intent(inout) :: champs1
-    integer, intent(in) :: bnum
+    integer, intent(in) :: nblocks, bnum, nglltot
     integer, intent(in) :: ngllvar
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
+    real(fpp), intent(in), dimension(0:ngll-1) :: gllw
+    real(fpp), intent(in), dimension(0:ngll-1,0:ngll-1) :: hprime
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: invgrad
+    real(fpp), intent(inout), dimension(0:VCHUNK-1,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: pmlveloc
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: dumpsx
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: dumpsy
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: dumpsz
+    real(fpp), intent(in), dimension(0:nglltot,0:2) :: fpml_VelPhi
+    integer, intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Idom
     !
     real(fpp) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
     integer :: i, j, k, l, ind, e, ee
@@ -106,10 +118,8 @@ subroutine PROC_PRED(dom, ngllvar, dt, champs1, bnum)
                 !$omp simd linear(ee) safelen(VCHUNK) private(ind)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ind = dom%Idom_(i,j,k,bnum,ee)
-                VelPhi(ee,i,j,k) = champs1%fpml_VelPhi(ind,0) + &
-                    champs1%fpml_VelPhi(ind,1) + &
-                    champs1%fpml_VelPhi(ind,2)
+                ind = Idom(ee,i,j,k,bnum)
+                VelPhi(ee,i,j,k) = fpml_VelPhi(ind,0) + fpml_VelPhi(ind,1) + fpml_VelPhi(ind,2)
                 END_SUBELEM_LOOP()
             enddo
         enddo
@@ -128,20 +138,20 @@ subroutine PROC_PRED(dom, ngllvar, dt, champs1, bnum)
                 dVPhi_dzeta = 0D0
 
                 DO L = 0, ngll-1
-                    dVPhi_dxi   = dVPhi_dxi  +VelPhi(ee,L,J,K)*dom%hprime(L,I)
-                    dVPhi_deta  = dVPhi_deta +VelPhi(ee,I,L,K)*dom%hprime(L,J)
-                    dVPhi_dzeta = dVPhi_dzeta+VelPhi(ee,I,J,L)*dom%hprime(L,K)
+                    dVPhi_dxi   = dVPhi_dxi  +VelPhi(ee,L,J,K)*hprime(L,I)
+                    dVPhi_deta  = dVPhi_deta +VelPhi(ee,I,L,K)*hprime(L,J)
+                    dVPhi_dzeta = dVPhi_dzeta+VelPhi(ee,I,J,L)*hprime(L,K)
                 END DO
 
-                xi1 = dom%InvGrad_(0,0,i,j,k,bnum,ee)
-                xi2 = dom%InvGrad_(1,0,i,j,k,bnum,ee)
-                xi3 = dom%InvGrad_(2,0,i,j,k,bnum,ee)
-                et1 = dom%InvGrad_(0,1,i,j,k,bnum,ee)
-                et2 = dom%InvGrad_(1,1,i,j,k,bnum,ee)
-                et3 = dom%InvGrad_(2,1,i,j,k,bnum,ee)
-                ga1 = dom%InvGrad_(0,2,i,j,k,bnum,ee)
-                ga2 = dom%InvGrad_(1,2,i,j,k,bnum,ee)
-                ga3 = dom%InvGrad_(2,2,i,j,k,bnum,ee)
+                xi1 = InvGrad(ee,0,0,i,j,k,bnum)
+                xi2 = InvGrad(ee,1,0,i,j,k,bnum)
+                xi3 = InvGrad(ee,2,0,i,j,k,bnum)
+                et1 = InvGrad(ee,0,1,i,j,k,bnum)
+                et2 = InvGrad(ee,1,1,i,j,k,bnum)
+                et3 = InvGrad(ee,2,1,i,j,k,bnum)
+                ga1 = InvGrad(ee,0,2,i,j,k,bnum)
+                ga2 = InvGrad(ee,1,2,i,j,k,bnum)
+                ga3 = InvGrad(ee,2,2,i,j,k,bnum)
                 !- in the physical domain
                 dVelPhi_dx = dVPhi_dxi*xi1 + dVPhi_deta*et1 + dVPhi_dzeta*ga1
                 dVelPhi_dy = dVPhi_dxi*xi2 + dVPhi_deta*et2 + dVPhi_dzeta*ga2
@@ -149,23 +159,20 @@ subroutine PROC_PRED(dom, ngllvar, dt, champs1, bnum)
 
                 ! prediction for (physical) velocity (which is the equivalent of a stress, here)
                 ! V_x^x
-                dom%PMLVeloc_(i,j,k,0,bnum,ee) = dom%PMLDumpSx_(i,j,k,0,bnum,ee) * &
-                    dom%PMLVeloc_(i,j,k,0,bnum,ee) + &
-                    dom%PMLDumpSx_(i,j,k,1,bnum,ee) * Dt * dVelPhi_dx
+                PMLVeloc(ee,0,i,j,k,bnum) = DumpSx(ee,0,i,j,k,bnum) * &
+                    PMLVeloc(ee,0,i,j,k,bnum) + DumpSx(ee,1,i,j,k,bnum) * Dt * dVelPhi_dx
                 ! V_x^y = 0
                 ! V_x^z = 0
                 ! V_y^x = 0
                 ! V_y^y
-                dom%PMLVeloc_(i,j,k,1,bnum,ee) = dom%PMLDumpSy_(i,j,k,0,bnum,ee) * &
-                    dom%PMLVeloc_(i,j,k,1,bnum,ee) + &
-                    dom%PMLDumpSy_(i,j,k,1,bnum,ee) * Dt * dVelPhi_dy
+                PMLVeloc(ee,1,i,j,k,bnum) = DumpSy(ee,0,i,j,k,bnum) * &
+                    PMLVeloc(ee,1,i,j,k,bnum) + DumpSy(ee,1,i,j,k,bnum) * Dt * dVelPhi_dy
                 ! V_y^z = 0
                 ! V_z^x = 0
                 ! V_z^y = 0
                 ! V_z^z
-                dom%PMLVeloc_(i,j,k,2,bnum,ee) = dom%PMLDumpSz_(i,j,k,0,bnum,ee) * &
-                    dom%PMLVeloc_(i,j,k,2,bnum,ee) + &
-                    dom%PMLDumpSz_(i,j,k,1,bnum,ee) * Dt * dVelPhi_dz
+                PMLVeloc(ee,2,i,j,k,bnum) = DumpSz(ee,0,i,j,k,bnum) * &
+                    PMLVeloc(ee,2,i,j,k,bnum) + DumpSz(ee,1,i,j,k,bnum) * Dt * dVelPhi_dz
                 END_SUBELEM_LOOP()
             enddo
         enddo
