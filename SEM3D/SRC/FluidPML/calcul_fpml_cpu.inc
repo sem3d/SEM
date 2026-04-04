@@ -16,20 +16,32 @@ subroutine PROCNAME(dom, ngllvar, champs)
     integer :: n
     do n = 0,dom%nblocks-1
         call PROC_PRED(dom, ngll, dom%dt, champs, n)
-        call PROC_FPML(dom, ngll, champs, n, 0)
-        call PROC_FPML(dom, ngll, champs, n, 1)
-        call PROC_FPML(dom, ngll, champs, n, 2)
+        call PROC_FPML(ngll, dom%nblocks, dom%nglltot, n, 0, &
+            dom%GLLw, dom%hprime, dom%m_Jacob, dom%m_InvGrad, &
+            dom%m_PMLVeloc, champs%fpml_Forces, dom%m_Idom)
+        call PROC_FPML(ngll, dom%nblocks, dom%nglltot, n, 1, &
+            dom%GLLw, dom%hprime, dom%m_Jacob, dom%m_InvGrad, &
+            dom%m_PMLVeloc, champs%fpml_Forces, dom%m_Idom)
+        call PROC_FPML(ngll, dom%nblocks, dom%nglltot, n, 2, &
+            dom%GLLw, dom%hprime, dom%m_Jacob, dom%m_InvGrad, &
+            dom%m_PMLVeloc, champs%fpml_Forces, dom%m_Idom)
     end do
 
 end subroutine PROCNAME
 
-subroutine PROC_FPML(dom, ngllvar, champs, bnum, d)
-    type (domain_fluidpml), intent (INOUT) :: dom
-    type(champsfluidpml), intent(inout) :: champs
-    integer, intent(in) :: ngllvar, bnum, d
+subroutine PROC_FPML(ngllvar, nblocks, nglltot, bnum, d, &
+    gllw, hprime, Jacob, InvGrad, PmlVeloc, fpml_Forces, Idom)
+    integer, intent(in) :: ngllvar, nblocks, nglltot, bnum, d
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
+    real(fpp), intent(in), dimension(0:ngll-1) :: gllw
+    real(fpp), intent(in), dimension(0:ngll-1,0:ngll-1) :: hprime
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: jacob
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: invgrad
+    real(fpp), intent(in), dimension(0:VCHUNK-1,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: pmlveloc
+    real(fpp), intent(inout), dimension(0:nglltot,0:2) :: fpml_Forces
+    integer, intent(in), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1) :: Idom
     !
     integer :: i, j, k, l, ind,e,ee
     real(fpp) :: acoeff
@@ -42,12 +54,11 @@ subroutine PROC_FPML(dom, ngllvar, champs, bnum, d)
             do i=0,ngll-1
                 LOOP_VECTORIZE
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                acoeff = -dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(i,j,k,bnum,ee) &
-                    * dom%PMLVeloc_(i,j,k,d,bnum,ee)
+                acoeff = -GLLw(i)*GLLw(j)*GLLw(k)*Jacob(ee,i,j,k,bnum)*PmlVeloc(ee,d,i,j,k,bnum)
                 do l = 0,ngll-1
-                    FFl(ee,l,j,k) = FFl(ee,l,j,k) + dom%hprime(l,i)*acoeff*dom%InvGrad_(d,0,i,j,k,bnum,ee)
-                    FFl(ee,i,l,k) = FFl(ee,i,l,k) + dom%hprime(l,j)*acoeff*dom%InvGrad_(d,1,i,j,k,bnum,ee)
-                    FFl(ee,i,j,l) = FFl(ee,i,j,l) + dom%hprime(l,k)*acoeff*dom%InvGrad_(d,2,i,j,k,bnum,ee)
+                    FFl(ee,l,j,k) = FFl(ee,l,j,k) + hprime(l,i)*acoeff*InvGrad(ee,d,0,i,j,k,bnum)
+                    FFl(ee,i,l,k) = FFl(ee,i,l,k) + hprime(l,j)*acoeff*InvGrad(ee,d,1,i,j,k,bnum)
+                    FFl(ee,i,j,l) = FFl(ee,i,j,l) + hprime(l,k)*acoeff*InvGrad(ee,d,2,i,j,k,bnum)
                 end do
                 END_SUBELEM_LOOP()
             end do
@@ -59,9 +70,9 @@ subroutine PROC_FPML(dom, ngllvar, champs, bnum, d)
         do j = 0,ngll-1
             do i = 0,ngll-1
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                ind = dom%Idom_(i,j,k,bnum,ee)
+                ind = Idom(ee,i,j,k,bnum)
                 ! We should have atomic adds with openmp here
-                champs%fpml_Forces(ind,d) = champs%fpml_Forces(ind,d) + FFl(ee,i,j,k)
+                fpml_Forces(ind,d) = fpml_Forces(ind,d) + FFl(ee,i,j,k)
                 END_SUBELEM_LOOP()
             enddo
         enddo
