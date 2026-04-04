@@ -567,7 +567,6 @@ contains
         !
         integer  :: n,  indpml, count, nglltot
         !
-        real(fpp) :: val
         count = dom%n_dirich
         nglltot = dom%nglltot
         !$acc kernels async(1)  present(dom,dom%champs, dom%massmat) &

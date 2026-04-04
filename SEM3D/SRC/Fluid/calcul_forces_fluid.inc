@@ -38,7 +38,6 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     integer :: nblocks
     real(fpp) :: uval
     !
-    real(fpp) :: val
 
     nblocks = dom%nblocks
 
