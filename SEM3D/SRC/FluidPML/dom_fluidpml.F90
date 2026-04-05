@@ -123,11 +123,16 @@ contains
         integer :: i
 
         !$acc  enter data copyin(fpmldom, fpmldom%champs) &
+        !$acc  copyin(fpmldom%hprime,fpmldom%gllw,fpmldom%m_Idom) &
         !$acc  copyin(fpmldom%DumpMass, fpmldom%DumpV, fpmldom%m_Lambda, fpmldom%m_Density) &
+        !$acc  copyin(fpmldom%m_InvGrad, fpmldom%m_Jacob) &
         !$acc  copyin(fpmldom%m_PMLVeloc) &
         !$acc  copyin(fpmldom%m_PMLDumpSx) &
         !$acc  copyin(fpmldom%m_PMLDumpSy) &
         !$acc  copyin(fpmldom%m_PMLDumpSz) &
+        !$acc  copyin(Tdomain%intFluPml) &
+        !$acc  copyin(Tdomain%intFluPml%surf0, Tdomain%intFluPml%surf0%map) &
+        !$acc  copyin(Tdomain%intFluPml%surf1, Tdomain%intFluPml%surf1%map) &
         !$acc&
         do i = 0,1
             !$acc enter data  &
