@@ -464,23 +464,10 @@ contains
         real(fpp), intent(in) :: dt
         integer, intent(in) :: i0, i1
         !
-
         call newmark_corrector_fluidpml_sub(dom, dt, dom%nglltot, &
             dom%champs(i0)%fpml_Phi, dom%champs(i0)%fpml_VelPhi, &
             dom%champs(i1)%fpml_Forces, dom%DumpV, &
             dom%n_dirich, dom%dirich)
-
-
-!        integer  :: n,  indpml
-!        dom%champs(i0)%fpml_VelPhi(:,:) = dom%DumpV(:,0,:) * dom%champs(i0)%fpml_VelPhi(:,:) + &
-!                                       dt * dom%DumpV(:,1,:) * dom%champs(i1)%fpml_Forces(:,:)
-!        do n = 0, dom%n_dirich-1
-!            indpml = dom%dirich(n)
-!            dom%champs(i0)%fpml_VelPhi(indpml,0) = 0.
-!            dom%champs(i0)%fpml_VelPhi(indpml,1) = 0.
-!            dom%champs(i0)%fpml_VelPhi(indpml,2) = 0.
-!        enddo
-!        dom%champs(i0)%fpml_Phi = dom%champs(i0)%fpml_Phi + dt*dom%champs(i0)%fpml_VelPhi
     end subroutine newmark_corrector_fluidpml
 
     subroutine newmark_corrector_fluidpml_sub(dom, dt, nglltot, &
@@ -550,6 +537,38 @@ contains
         ee = mod(lnum,VCHUNK)
         Pspeed = sqrt(dom%Lambda_(i,j,k,bnum,ee)/dom%Density_(i,j,k,bnum,ee))
     end function fluidpml_Pspeed
+
+    subroutine couplage_pml_fluid(Tdomain, fdom, fpmldom, i0, i1)
+        use dom_solid
+        implicit none
+        type(domain), intent(inout)  :: Tdomain
+        type(domain_fluid), intent (inout) :: fdom
+        type(domain_fluidpml), intent (inout) :: fpmldom
+        integer, intent(in) :: i0, i1
+        !
+        integer  :: n, indflu, indpml
+        !
+        !$acc  parallel loop async(1) &
+        !$acc& present(Tdomain, Tdomain%intFluPml, fdom, fpmldom) &
+        !$acc& present(Tdomain%intFluPml%surf0, Tdomain%intFluPml%surf0%map) &
+        !$acc& present(Tdomain%intFluPml%surf1, Tdomain%intFluPml%surf1%map) &
+        !$acc& present(fdom%champs,fpmldom%champs) &
+        !$acc& present(fdom%champs(i1)%ForcesFl) &
+        !$acc& present(fpmldom%champs(i1)%fpml_Forces) &
+        !$acc& firstprivate(i0,i1) &
+        !$acc& private(indflu,indpml) &
+        !$acc&
+        do n = 0,Tdomain%intFluPml%surf0%nbtot-1
+            indflu = Tdomain%intFluPml%surf0%map(n)
+            indpml = Tdomain%intFluPml%surf1%map(n)
+            fdom%champs(i1)%ForcesFl(indflu) = fdom%champs(i1)%ForcesFl(indflu) + &
+                fpmldom%champs(i1)%fpml_Forces(indpml,0) + &
+                    fpmldom%champs(i1)%fpml_Forces(indpml,1) + &
+                    fpmldom%champs(i1)%fpml_Forces(indpml,2)
+        enddo
+
+    end subroutine couplage_pml_fluid
+
 end module dom_fluidpml
 
 !! Local Variables:

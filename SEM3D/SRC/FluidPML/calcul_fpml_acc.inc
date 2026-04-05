@@ -38,7 +38,6 @@ subroutine PROC_FPML(ngllvar, nblocks, nglltot, &
     !
     integer :: i, j, k, l, d, ind,e,ee, bnum
     real(fpp), dimension(0:2,0:2) :: acoeff
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: FFl
     real(fpp) :: acoeff_ijk
 
     !$acc parallel loop &

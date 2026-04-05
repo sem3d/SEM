@@ -599,18 +599,7 @@ contains
 
         ! Couplage interface fluid / PML
         if (Tdomain%fpmldom%nglltot > 0) then
-            do n = 0,Tdomain%intFluPml%surf0%nbtot-1
-                indflu = Tdomain%intFluPml%surf0%map(n)
-                indpml = Tdomain%intFluPml%surf1%map(n)
-                Tdomain%fdom%champs(i1)%ForcesFl(indflu) = Tdomain%fdom%champs(i1)%ForcesFl(indflu) + &
-#ifdef CPML
-                    Tdomain%fpmldom%champs(i1)%ForcesFl(indpml)
-#else
-                Tdomain%fpmldom%champs(i1)%fpml_Forces(indpml,0) + &
-                    Tdomain%fpmldom%champs(i1)%fpml_Forces(indpml,1) + &
-                    Tdomain%fpmldom%champs(i1)%fpml_Forces(indpml,2)
-#endif
-            enddo
+            call couplage_pml_fluid(Tdomain, Tdomain%fdom, Tdomain%fpmldom, i0, i1)
         endif
 
         return

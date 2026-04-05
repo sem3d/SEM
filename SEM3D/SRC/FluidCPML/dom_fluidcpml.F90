@@ -828,6 +828,25 @@ contains
         ee = mod(lnum,VCHUNK)
         Pspeed = sqrt(dom%Lambda_(i,j,k,bnum,ee)*dom%IDensity_(i,j,k,bnum,ee))
     end function fluidpml_Pspeed
+
+    subroutine couplage_pml_fluid(Tdomain, fdom, fpmldom, i0, i1)
+        use dom_fluid
+        implicit none
+        type(domain), intent(inout)  :: Tdomain
+        type(domain_fluid), intent (inout) :: fdom
+        type(domain_fluidpml), intent (inout) :: fpmldom
+        integer, intent(in) :: i0, i1
+        !
+        integer  :: n, indflu, indpml
+        !
+        do n = 0,Tdomain%intFluPml%surf0%nbtot-1
+            indflu = Tdomain%intFluPml%surf0%map(n)
+            indpml = Tdomain%intFluPml%surf1%map(n)
+            fdom%champs(i1)%ForcesFl(indflu) = fdom%champs(i1)%ForcesFl(indflu) + &
+                fpmldom%champs(i1)%ForcesFl(indpml)
+        enddo
+    end subroutine couplage_pml_fluid
+
 end module dom_fluidpml
 
 !! Local Variables:
