@@ -403,7 +403,7 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         Tdomain%SF%SFPml_Btn, &
         Tdomain%fpmldom%nglltot, Tdomain%fpmldom%champs(f0)%fpml_VelPhi, &
         Tdomain%spmldom%nglltot, Tdomain%spmldom%champs(f1)%ForcesPML &
-    )
+        )
 #endif
 end subroutine FtoS_coupling
 
@@ -428,7 +428,8 @@ subroutine FtoS_coupling_sf_sub(ngll_sf, mapS, mapF, btn, &
     !$acc& copyin(mapF,mapS,btn) &
     !$acc& private(idxS,idxF) &
     !$acc& firstprivate(ngll_sf) &
-    !$acc& present(VelPhi, VelocS)
+    !$acc& copyin(VelPhi,VelocS) &
+    !$acc& copyout(VelocS)
     do i = 0,ngll_sf-1
         idxS = mapS(i)
         idxF = mapF(i)
@@ -459,9 +460,10 @@ subroutine FtoS_coupling_sfpml_sub(ngll_sf_pml, mapS, mapF, btn, &
     !$acc parallel loop &
     !$acc& async(1) &
     !$acc& copyin(mapF,mapS,btn) &
+    !$acc& copyin(fpml_VelPhi) &
+    !$acc& present(fpml_VelPhi, ForcesPML) &
     !$acc& private(idxS,idxF) &
-    !$acc& firstprivate(ngll_sf_pml) &
-    !$acc& present(fpml_VelPhi, ForcesPML)
+    !$acc& firstprivate(ngll_sf_pml)
     do i = 0,ngll_sf_pml-1
         idxS = mapS(i)
         idxF = mapF(i)
