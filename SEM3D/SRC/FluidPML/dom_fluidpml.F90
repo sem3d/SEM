@@ -125,7 +125,7 @@ contains
         !$acc  enter data copyin(fpmldom, fpmldom%champs) &
         !$acc  copyin(fpmldom%hprime,fpmldom%gllw,fpmldom%m_Idom) &
         !$acc  copyin(fpmldom%DumpMass, fpmldom%DumpV, fpmldom%m_Lambda, fpmldom%m_Density) &
-        !$acc  copyin(fpmldom%m_InvGrad, fpmldom%m_Jacob) &
+        !$acc  copyin(fpmldom%m_InvGrad, fpmldom%m_Jacob, fpmldom%dirich) &
         !$acc  copyin(fpmldom%m_PMLVeloc) &
         !$acc  copyin(fpmldom%m_PMLDumpSx) &
         !$acc  copyin(fpmldom%m_PMLDumpSy) &

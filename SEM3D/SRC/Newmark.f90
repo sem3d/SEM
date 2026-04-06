@@ -485,7 +485,7 @@ contains
 
         type(domain), intent(inout)  :: Tdomain
         integer, intent(in) :: i0, i1, ntime
-        integer  :: n, indflu, indpml
+        integer  :: n
         logical :: m_dump, m_load, m_expl, m_recalc
         ! DOMAIN FLUID
         if (Tdomain%fdom%nbelem>0) then
