@@ -237,7 +237,111 @@ subroutine StoF_coupling(Tdomain, f0, f1)
     ! from solid to fluid: velocity (dot) normal
     use sdomain
     implicit none
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: f0, f1
+#ifdef CPML
+    call StoF_coupling_cpml(Tdomain, f0, f1)
+#else
+    call StoF_coupling_sf_sub(Tdomain%SF%intSolFlu%surf0%nbtot, &
+        Tdomain%SF%intSolFlu%surf0%map, &
+        Tdomain%SF%intSolFlu%surf1%map, &
+        Tdomain%SF%SF_Btn, &
+        Tdomain%fdom%nglltot, Tdomain%fdom%champs(f1)%ForcesFl, &
+        Tdomain%sdom%nglltot, Tdomain%sdom%champs(f0)%Veloc &
+        )
+    call StoF_coupling_sfpml_sub(Tdomain%SF%intSolFluPml%surf0%nbtot, &
+        Tdomain%SF%intSolFluPml%surf0%map, &
+        Tdomain%SF%intSolFluPml%surf1%map, &
+        Tdomain%SF%SFPml_Btn, &
+        Tdomain%fpmldom%nglltot, Tdomain%fpmldom%champs(f1)%fpml_Forces, &
+        Tdomain%spmldom%nglltot, Tdomain%spmldom%champs(f0)%VelocPML &
+    )
+#endif
+end subroutine StoF_coupling
 
+#ifndef CPML
+subroutine StoF_coupling_sf_sub(ngll_sf, mapS, mapF, btn, &
+    ngllf, ForcesFl, nglls, VelocS)
+    ! from solid to fluid: velocity (dot) normal
+    use sdomain
+    implicit none
+
+    integer, intent(in) :: nglls, ngllf, ngll_sf
+    integer, intent(in), dimension(0:ngll_sf-1) :: mapS, mapF
+    real(fpp), dimension(0:2,0:ngll_sf-1) :: btn
+    real(fpp), dimension(0:ngllf) :: ForcesFl
+    real(fpp), dimension(0:nglls,0:2) :: VelocS
+    !
+    integer  :: i,j
+    integer :: idxS, idxF
+
+
+    !$acc parallel loop &
+    !$acc& async(1) &
+    !$acc& private(idxS,idxF) &
+    !$acc& firstprivate(ngll_sf) &
+    !$acc& copyin(mapF,mapS,btn) &
+    !$acc& present(ForcesFl, VelocS)
+    do i = 0,ngll_sf-1
+        idxS = mapS(i)
+        idxF = mapF(i)
+        do j = 0,2
+            !$acc atomic update
+            ForcesFl(idxF) = ForcesFl(idxF) + BtN(j,i) * VelocS(idxS,j)
+        enddo
+    enddo
+    !$acc end parallel loop
+end subroutine StoF_coupling_sf_sub
+
+subroutine StoF_coupling_sfpml_sub(ngll_sf_pml, mapS, mapF, btn, &
+    ngllf, fpml_Forces, nglls, VelocPML)
+    ! from solid to fluid: velocity (dot) normal
+    use sdomain
+    implicit none
+    !
+    integer, intent(in) :: nglls, ngllf, ngll_sf_pml
+    integer, intent(in), dimension(0:ngll_sf_pml-1) :: mapS, mapF
+    real(fpp), dimension(0:2,0:ngll_sf_pml-1) :: btn
+    real(fpp), dimension(0:ngllf,0:2) :: fpml_Forces
+    real(fpp), dimension(0:nglls,0:2,0:2) :: VelocPML
+    !
+    integer  :: i,j
+    integer :: idxS, idxF
+    real(fpp) :: vn1, vn2, vn3
+    !
+    !$acc parallel loop &
+    !$acc& async(1) &
+    !$acc& copyin(mapF,mapS,btn) &
+    !$acc& private(idxS,idxF,vn1,vn2,vn3) &
+    !$acc& firstprivate(ngll_sf_pml) &
+    !$acc& present(fpml_Forces, VelocPML)
+    do i = 0,ngll_sf_pml-1
+        idxS = mapS(i)
+        idxF = mapF(i)
+        vn1 = 0.
+        vn2 = 0.
+        vn3 = 0.
+        do j = 0,2
+            vn1 = vn1 + BtN(j,i) * VelocPML(idxS,j,0)
+            vn2 = vn2 + BtN(j,i) * VelocPML(idxS,j,1)
+            vn3 = vn3 + BtN(j,i) * VelocPML(idxS,j,2)
+        enddo
+        !$acc atomic update
+        fpml_Forces(idxF,0) = fpml_Forces(idxF,0) + vn1
+        !$acc atomic update
+        fpml_Forces(idxF,1) = fpml_Forces(idxF,1) + vn2
+        !$acc atomic update
+        fpml_Forces(idxF,2) = fpml_Forces(idxF,2) + vn3
+    enddo
+    !$acc end parallel loop
+end subroutine StoF_coupling_sfpml_sub
+#endif
+
+#ifdef CPML
+subroutine StoF_coupling_cpml(Tdomain, f0, f1)
+    ! from solid to fluid: velocity (dot) normal
+    use sdomain
+    implicit none
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: f0, f1
     !
@@ -246,11 +350,7 @@ subroutine StoF_coupling(Tdomain, f0, f1)
     integer :: idxS, idxF
     real(fpp) :: vn
     real(fpp), dimension(0:2) :: btn
-#ifdef CPML
     real(fpp) :: mu(0:2)
-#else
-    real(fpp) :: vn1, vn2, vn3
-#endif
 
     ngll_sf = Tdomain%SF%intSolFlu%surf0%nbtot
     ngll_sf_pml = Tdomain%SF%intSolFluPml%surf0%nbtot
@@ -261,13 +361,8 @@ subroutine StoF_coupling(Tdomain, f0, f1)
         BtN = Tdomain%SF%SF_Btn(:,i)
         vn = 0.
         do j = 0,2
-#ifdef CPML
             Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) &
                                                      + (BtN(j) * Tdomain%sdom%champs(f0)%Depla(idxS,j))
-#else
-            Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) &
-                                                     + (BtN(j) * Tdomain%sdom%champs(f0)%Veloc(idxS,j))
-#endif
         enddo
     enddo
 
@@ -275,29 +370,115 @@ subroutine StoF_coupling(Tdomain, f0, f1)
         idxS = Tdomain%SF%intSolFluPml%surf0%map(i)
         idxF = Tdomain%SF%intSolFluPml%surf1%map(i)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
-#ifdef CPML
         ! u_f.n = [M(t)*u_s].n (32) from Ref3. with u_f = grad(phi)
         call compute_convolution_StoF(Tdomain%spmldom, f0, idxS, i, mu)
         vn = (BtN(0) * mu(0)) + (BtN(1) * mu(1)) + (BtN(2) * mu(2))
         Tdomain%fpmldom%champs(f1)%ForcesFl(idxF) = Tdomain%fpmldom%champs(f1)%ForcesFl(idxF) + vn
-#else
-        vn1 = 0.
-        vn2 = 0.
-        vn3 = 0.
-        do j = 0,2
-            vn1 = vn1 + (BtN(j) * Tdomain%spmldom%champs(f0)%VelocPML(idxS,j,0))
-            vn2 = vn2 + (BtN(j) * Tdomain%spmldom%champs(f0)%VelocPML(idxS,j,1))
-            vn3 = vn3 + (BtN(j) * Tdomain%spmldom%champs(f0)%VelocPML(idxS,j,2))
-        enddo
-        Tdomain%fpmldom%champs(f1)%fpml_Forces(idxF,0) = Tdomain%fpmldom%champs(f1)%fpml_Forces(idxF,0) + vn1
-        Tdomain%fpmldom%champs(f1)%fpml_Forces(idxF,1) = Tdomain%fpmldom%champs(f1)%fpml_Forces(idxF,1) + vn2
-        Tdomain%fpmldom%champs(f1)%fpml_Forces(idxF,2) = Tdomain%fpmldom%champs(f1)%fpml_Forces(idxF,2) + vn3
-#endif
     enddo
-end subroutine StoF_coupling
+end subroutine StoF_coupling_cpml
+#endif
+
 !----------------------------------------------------------------
 !----------------------------------------------------------------
 subroutine FtoS_coupling(Tdomain, f0, f1)
+    ! from fluid to solid: normal times pressure (= -rho . VelPhi)
+    use sdomain
+    implicit none
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: f0, f1
+    !
+#ifdef CPML
+    call FtoS_coupling_cpml(Tdomain, f0, f1)
+#else
+    call FtoS_coupling_sf_sub(Tdomain%SF%intSolFlu%surf0%nbtot, &
+        Tdomain%SF%intSolFlu%surf0%map, &
+        Tdomain%SF%intSolFlu%surf1%map, &
+        Tdomain%SF%SF_Btn, &
+        Tdomain%fdom%nglltot, Tdomain%fdom%champs(f0)%VelPhi, &
+        Tdomain%sdom%nglltot, Tdomain%sdom%champs(f1)%Veloc &
+        )
+    call FtoS_coupling_sfpml_sub(Tdomain%SF%intSolFluPml%surf0%nbtot, &
+        Tdomain%SF%intSolFluPml%surf0%map, &
+        Tdomain%SF%intSolFluPml%surf1%map, &
+        Tdomain%SF%SFPml_Btn, &
+        Tdomain%fpmldom%nglltot, Tdomain%fpmldom%champs(f0)%fpml_VelPhi, &
+        Tdomain%spmldom%nglltot, Tdomain%spmldom%champs(f1)%ForcesPML &
+    )
+#endif
+end subroutine FtoS_coupling
+
+#ifndef CPML
+subroutine FtoS_coupling_sf_sub(ngll_sf, mapS, mapF, btn, &
+    ngllf, VelPhi, nglls, VelocS)
+    ! from fluid to solid: normal times pressure (= -rho . VelPhi)
+    use sdomain
+    implicit none
+    !
+    integer, intent(in) :: nglls, ngllf, ngll_sf
+    integer, intent(in), dimension(0:ngll_sf-1) :: mapS, mapF
+    real(fpp), dimension(0:2,0:ngll_sf-1) :: btn
+    real(fpp), dimension(0:ngllf) :: VelPhi
+    real(fpp), dimension(0:nglls,0:2) :: VelocS
+    !
+    integer :: i,j
+    integer :: idxS, idxF
+
+    !$acc parallel loop &
+    !$acc& async(1) &
+    !$acc& copyin(mapF,mapS,btn) &
+    !$acc& private(idxS,idxF) &
+    !$acc& firstprivate(ngll_sf) &
+    !$acc& present(VelPhi, VelocS)
+    do i = 0,ngll_sf-1
+        idxS = mapS(i)
+        idxF = mapF(i)
+        do j = 0,2
+            ! Le potentiel Phi est tel que dPhi/dt = -p
+            !$acc atomic update
+            VelocS(idxS,j) = VelocS(idxS,j) - BtN(j,i) * VelPhi(idxF)
+        enddo
+    enddo
+    !$acc end parallel loop
+end subroutine FtoS_coupling_sf_sub
+
+subroutine FtoS_coupling_sfpml_sub(ngll_sf_pml, mapS, mapF, btn, &
+    ngllf, fpml_VelPhi, nglls, ForcesPML)
+    ! from fluid to solid: normal times pressure (= -rho . VelPhi)
+    use sdomain
+    implicit none
+    !
+    integer, intent(in) :: nglls, ngllf, ngll_sf_pml
+    integer, intent(in), dimension(0:ngll_sf_pml-1) :: mapS, mapF
+    real(fpp), dimension(0:2,0:ngll_sf_pml-1) :: btn
+    real(fpp), dimension(0:ngllf,0:2) :: fpml_VelPhi
+    real(fpp), dimension(0:nglls,0:2,0:2) :: ForcesPML
+    !
+    integer :: i,j
+    integer :: idxS, idxF
+
+    !$acc parallel loop &
+    !$acc& async(1) &
+    !$acc& copyin(mapF,mapS,btn) &
+    !$acc& private(idxS,idxF) &
+    !$acc& firstprivate(ngll_sf_pml) &
+    !$acc& present(fpml_VelPhi, ForcesPML)
+    do i = 0,ngll_sf_pml-1
+        idxS = mapS(i)
+        idxF = mapF(i)
+        do j = 0,2
+            !$acc atomic update
+            ForcesPML(idxS,j,0) = ForcesPML(idxS,j,0) - BtN(j,i)*fpml_VelPhi(idxF,0)
+            !$acc atomic update
+            ForcesPML(idxS,j,1) = ForcesPML(idxS,j,1) - BtN(j,i)*fpml_VelPhi(idxF,1)
+            !$acc atomic update
+            ForcesPML(idxS,j,2) = ForcesPML(idxS,j,2) - BtN(j,i)*fpml_VelPhi(idxF,2)
+        enddo
+    enddo
+    !$acc end parallel loop
+end subroutine FtoS_coupling_sfpml_sub
+#else
+!! CPML
+subroutine FtoS_coupling_cpml(Tdomain, f0, f1)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     use sdomain
     implicit none
@@ -309,9 +490,7 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
     integer :: ngll_sf, ngll_sf_pml
     integer :: i,j
     integer :: idxS, idxF
-#ifdef CPML
     real(fpp) :: nphi(0:2)
-#endif
 
     ngll_sf = Tdomain%SF%intSolFlu%surf0%nbtot
     ngll_sf_pml = Tdomain%SF%intSolFluPml%surf0%nbtot
@@ -321,15 +500,9 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         idxF = Tdomain%SF%intSolFlu%surf1%map(i)
         BtN = Tdomain%SF%SF_Btn(:,i)
         do j = 0,2
-#ifdef CPML
             ! Le potentiel Phi est tel que d2Phi/dt2 = -p
             Tdomain%sdom%champs(f1)%Veloc(idxS,j) = Tdomain%sdom%champs(f1)%Veloc(idxS,j) &
                                                      - (BtN(j) * Tdomain%fdom%champs(f0)%ForcesFl(idxF))
-#else
-            ! Le potentiel Phi est tel que dPhi/dt = -p
-            Tdomain%sdom%champs(f1)%Veloc(idxS,j) = Tdomain%sdom%champs(f1)%Veloc(idxS,j) &
-                                                     - (BtN(j) * Tdomain%fdom%champs(f0)%VelPhi(idxF))
-#endif
         enddo
     enddo
 
@@ -337,25 +510,45 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         idxS = Tdomain%SF%intSolFluPml%surf0%map(i)
         idxF = Tdomain%SF%intSolFluPml%surf1%map(i)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
-#ifdef CPML
         ! sigma_s.n = [N(t)*Phi].n (32) from Ref3.
         call compute_convolution_FtoS(Tdomain%fpmldom, f0, idxF, i, nphi)
         Tdomain%spmldom%champs(f1)%Forces(idxS,0) = Tdomain%spmldom%champs(f1)%Forces(idxS,0) - (BtN(0)*nphi(0))
         Tdomain%spmldom%champs(f1)%Forces(idxS,1) = Tdomain%spmldom%champs(f1)%Forces(idxS,1) - (BtN(1)*nphi(1))
         Tdomain%spmldom%champs(f1)%Forces(idxS,2) = Tdomain%spmldom%champs(f1)%Forces(idxS,2) - (BtN(2)*nphi(2))
-#else
-        do j = 0,2
-            Tdomain%spmldom%champs(f1)%ForcesPML(idxS,j,0) = Tdomain%spmldom%champs(f1)%ForcesPML(idxS,j,0) &
-                                                          - (BtN(j)*Tdomain%fpmldom%champs(f0)%fpml_VelPhi(idxF,0))
-            Tdomain%spmldom%champs(f1)%ForcesPML(idxS,j,1) = Tdomain%spmldom%champs(f1)%ForcesPML(idxS,j,1) &
-                                                          - (BtN(j)*Tdomain%fpmldom%champs(f0)%fpml_VelPhi(idxF,1))
-            Tdomain%spmldom%champs(f1)%ForcesPML(idxS,j,2) = Tdomain%spmldom%champs(f1)%ForcesPML(idxS,j,2) &
-                                                          - (BtN(j)*Tdomain%fpmldom%champs(f0)%fpml_VelPhi(idxF,2))
-        enddo
-#endif
     enddo
 end subroutine FtoS_coupling
+#endif
+
 !-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+subroutine start_sf_coupling(Tdomain)
+    use sdomain
+    implicit none
+    type(domain), intent(inout) :: Tdomain
+
+    !$acc enter data &
+    !$acc& copyin(Tdomain%SF,Tdomain%SF%SF_Btn,Tdomain%SF%intSolFlu) &
+    !$acc& copyin(Tdomain%SF%intSolFlu%surf0,Tdomain%SF%intSolFlu%surf1) &
+    !$acc& copyin(Tdomain%SF%intSolFlu%surf0%map,Tdomain%SF%intSolFlu%surf1%map) &
+    !$acc& copyin(Tdomain%SF%SFPml_Btn,Tdomain%SF%intSolFluPml) &
+    !$acc& copyin(Tdomain%SF%intSolFluPml%surf0,Tdomain%SF%intSolFluPml%surf1) &
+    !$acc& copyin(Tdomain%SF%intSolFluPml%surf0%map,Tdomain%SF%intSolFluPml%surf1%map) &
+    !$acc
+end subroutine start_sf_coupling
+!-----------------------------------------------------------------------------
+subroutine stop_sf_coupling(Tdomain)
+    use sdomain
+    implicit none
+    type(domain), intent(inout) :: Tdomain
+    !$acc exit data &
+    !$acc& delete(Tdomain%SF,Tdomain%SF%SF_Btn,Tdomain%SF%intSolFlu) &
+    !$acc& delete(Tdomain%SF%intSolFlu%surf0,Tdomain%SF%intSolFlu%surf1) &
+    !$acc& delete(Tdomain%SF%intSolFlu%surf0%map,Tdomain%SF%intSolFlu%surf1%map) &
+    !$acc& delete(Tdomain%SF%SFPml_Btn,Tdomain%SF%intSolFluPml) &
+    !$acc& delete(Tdomain%SF%intSolFluPml%surf0,Tdomain%SF%intSolFluPml%surf1) &
+    !$acc& delete(Tdomain%SF%intSolFluPml%surf0%map,Tdomain%SF%intSolFluPml%surf1%map) &
+    !$acc
+end subroutine stop_sf_coupling
 !-----------------------------------------------------------------------------
 end module sf_coupling
 !! Local Variables:

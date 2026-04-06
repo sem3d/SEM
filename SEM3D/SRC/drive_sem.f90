@@ -349,6 +349,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use dom_solidpml, only : start_domain_solidpml, stop_domain_solidpml
     use dom_fluid, only : start_domain_fluid, stop_domain_fluid
     use dom_fluidpml, only : start_domain_fluidpml, stop_domain_fluidpml
+    use sf_coupling, only : start_sf_coupling, stop_sf_coupling
     implicit none
 
     type(domain), intent(inout) :: Tdomain
@@ -420,6 +421,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     call start_domain_solidpml(Tdomain, Tdomain%spmldom)
     call start_domain_fluid(Tdomain, Tdomain%fdom)
     call start_domain_fluidpml(Tdomain, Tdomain%fpmldom)
+    call start_sf_coupling(Tdomain)
     do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax
 
         protection = 0
@@ -546,6 +548,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     enddo
     call flushAllCapteurs(Tdomain)
 
+    call stop_sf_coupling(Tdomain)
     call stop_domain_solid(Tdomain, Tdomain%sdom)
     call stop_domain_solidpml(Tdomain, Tdomain%spmldom)
     call stop_domain_fluid(Tdomain, Tdomain%fdom)
