@@ -11,4 +11,5 @@ Guide de référence
    format_mesh_hdf5.rst
    format_unv.rst
    format_msh.rst
+   anisotropic_solid.rst
    

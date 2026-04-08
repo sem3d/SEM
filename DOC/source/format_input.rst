@@ -515,8 +515,8 @@ Chaque mot-clé peut prendre les valeurs 0, 1, 2 ou 3 avec pour signification :
 ================  =======  =================  =================================================================
 Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  =================================================================
-enP               bool     0                  énergie ondes P
-enK               bool     0                  énergie ondes S
+enP               bool     0                  énergie potentielle
+enK               bool     0                  énergie cinétique
 evol              bool     0                  déformation volumétrique
 pre               bool     1                  pression
 dis               bool     0                  vecteur des déplacements
@@ -526,6 +526,7 @@ edev              bool     0                  tenseur des déformations déviato
 sdev              bool     0                  tenseur des contraintes déviatoriques
 eTotal            bool     0                  energies de l'ensemble des domaines (sauf PML). Energie P, Energie S, Residu PS, Energie Cinetique, Somme des Energies
 dudx              bool     0                  Gradient des déplacements (dux/dx, dux/dy, ..., duz/dz)
+enD               bool     0                  Decomposition d'énergie en ondes P,S et résiduelle
 ================  =======  =================  =================================================================
 
 

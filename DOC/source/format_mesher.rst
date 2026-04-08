@@ -321,7 +321,8 @@ Description des mot-clefs de ``deftype`` :
 - ``Lambda_Mu_Rho`` : ...
 - ``Vp_Vs_Rho``
 - ``E_nu_Rho`` : Module d'Young, coefficient de Poisson, Densité
-- ``Hooke_Rho`` : (Non-implémentée) Cijkl, Rho.
+- ``Hooke_Rho`` : Cijkl, Rho.
+- ``CStar``: input pour le code homofft
   
 Description des mot-clefs de ``spacedef`` :
 
