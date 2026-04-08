@@ -507,6 +507,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) then
             !$acc update host(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%Veloc, Tdomain%sdom%champs(1)%Veloc) async(2) wait(1)
             !$acc update host(Tdomain%fdom%champs(0)%Phi, Tdomain%fdom%champs(0)%VelPhi, Tdomain%fdom%champs(1)%ForcesFl) async(2) wait(1)
+            !$acc update host(Tdomain%spmldom%champs(0)%VelocPml, Tdomain%spmldom%champs(1)%ForcesPml) async(2) wait(1)
+            !$acc update host(Tdomain%fpmldom%champs(0)%fpml_Phi, Tdomain%fpmldom%champs(1)%fpml_VelPhi) async(2) wait(1)
             !$acc wait(2)
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
         end if
@@ -526,6 +528,9 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         if (protection /= 0 .and. Tdomain%logicD%save_restart) then
             if(Tdomain%rank == 0) print*," SAVING PROT"
             !$acc update host(Tdomain%sdom%champs(0)%Depla, Tdomain%sdom%champs(0)%Veloc, Tdomain%sdom%champs(1)%Veloc) async(2) wait(1)
+            !$acc update host(Tdomain%fdom%champs(0)%Phi, Tdomain%fdom%champs(0)%VelPhi, Tdomain%fdom%champs(1)%ForcesFl) async(2) wait(1)
+            !$acc update host(Tdomain%spmldom%champs(0)%VelocPml, Tdomain%spmldom%champs(1)%ForcesPml) async(2) wait(1)
+            !$acc update host(Tdomain%fpmldom%champs(0)%fpml_Phi, Tdomain%fpmldom%champs(1)%fpml_VelPhi) async(2) wait(1)
             !$acc wait(2)
 
             call flushAllCapteurs(Tdomain)
