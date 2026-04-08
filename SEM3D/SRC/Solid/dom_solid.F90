@@ -411,22 +411,22 @@ contains
                                 sigma(4) = DXX*CC( 3) + DYY*CC( 8) + DZZ*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
                                 sigma(5) = DXX*CC( 4) + DYY*CC( 9) + DZZ*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
                                 sigma(6) = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
-                                sigma(4) = sigma(4)/M_SQRT2
-                                sigma(5) = sigma(5)/M_SQRT2
-                                sigma(6) = sigma(6)/M_SQRT2
+                                ! sigma(1:3) are physical normal stresses; sigma(4:6) are Mandel
+                                ! shear stresses (= sqrt(2)*sigma_ij), kept unscaled to match
+                                ! the Mandel strain vector below for the dot product.
 
-                                ! Compute strain vector in Voigt notation
+                                ! Strain vector in Mandel notation: normal=eps_ii, shear=sqrt(2)*eps_ij
                                 epsilon(1) = DXX
                                 epsilon(2) = DYY
                                 epsilon(3) = DZZ
                                 epsilon(4) = EYZ
                                 epsilon(5) = EXZ
                                 epsilon(6) = EXY
+                                ! W = 0.5 * sigma_tilde . epsilon_tilde (Mandel dot product)
+                                ! = 0.5*(sxx*exx + syy*eyy + szz*ezz + 2*syz*eyz + 2*sxz*exz + 2*sxy*exy)
                                 U = 0.0d0
                                 do ic = 1, 6
-                                    do jc = 1, 6
-                                        U = U + sigma(ic) * epsilon(jc)
-                                    end do
+                                    U = U + sigma(ic) * epsilon(ic)
                                 end do
                                 P_energy(i,j,k) = 0.5d0*U
                             else
@@ -685,25 +685,24 @@ contains
                         sigma(4) = dUx_dx*CC( 3) + dUy_dy*CC( 8) + dUz_dz*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
                         sigma(5) = dUx_dx*CC( 4) + dUy_dy*CC( 9) + dUz_dz*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
                         sigma(6) = dUx_dx*CC( 5) + dUy_dy*CC(10) + dUz_dz*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
-                        sigma(4) = sigma(4)/M_SQRT2
-                        sigma(5) = sigma(5)/M_SQRT2
-                        sigma(6) = sigma(6)/M_SQRT2
+                        ! sigma(1:3) are physical normal stresses; sigma(4:6) are Mandel
+                        ! shear stresses (= sqrt(2)*sigma_ij), kept unscaled to match
+                        ! the Mandel strain vector below for the dot product.
 
-                        ! Compute strain vector in Voigt notation
+                        ! Strain vector in Mandel notation: normal=eps_ii, shear=sqrt(2)*eps_ij
                         epsilon(1) = dUx_dx
                         epsilon(2) = dUy_dy
                         epsilon(3) = dUz_dz
                         epsilon(4) = EYZ
                         epsilon(5) = EXZ
                         epsilon(6) = EXY
+                        ! W = 0.5 * sigma_tilde . epsilon_tilde (Mandel dot product)
+                        ! = 0.5*(sxx*exx + syy*eyy + szz*ezz + 2*syz*eyz + 2*sxz*exz + 2*sxy*exy)
                         U = 0.0d0
                         do ic = 1, 6
-                            do jc = 1, 6
-                                U = U + 0.5d0 * sigma(ic) * epsilon(jc)
-                            end do
+                            U = U + sigma(ic) * epsilon(ic)
                         end do
-
-                        P_energy(i,j,k) = U
+                        P_energy(i,j,k) = 0.5d0*U
                     else
                         P_energy(i,j,k)   = 0
                         D_energy(i,j,k,:) = 0
