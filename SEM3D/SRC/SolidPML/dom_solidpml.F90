@@ -346,6 +346,15 @@ contains
         call define_alpha_PML(coords, 1, ngll, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wy)
         call define_alpha_PML(coords, 2, ngll, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wz)
 
+        if (lnum==0) then
+        DO K=0,ngll-1
+            DO J=0,ngll-1
+                DO I=0,ngll-1
+                    write(*,*) "Alpha", i,j,k,wx(i,j,k),wy(i,j,k),wz(i,j,k)
+                END DO
+            END DO
+        END DO
+        endif
         !- M-PMLs
         if(Tdomain%logicD%MPML)then
             allocate(temp_PMLx(0:ngll-1,0:ngll-1,0:ngll-1))

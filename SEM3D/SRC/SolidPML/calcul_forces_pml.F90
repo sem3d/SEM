@@ -28,14 +28,15 @@ module m_calcul_forces_pml ! wrap subroutine in module to get arg type check at 
     implicit none
 contains
 
-#ifndef TEST_FORCE_PML
-#define TEST_FORCE_PML 0
+#ifndef TEST_SOLID_PML_ACC
+#define TEST_SOLID_PML_ACC USE_ACC_FOR_CPU
 #endif
+
 
 #define PROCNAMEBASE calcul_forces_pml_
 
 
-#if defined(OPENACC) || defined(OMPTARGET) || TEST_FORCE_PML==1
+#if defined(OPENACC) || defined(OMPTARGET) || TEST_SOLID_PML_ACC==1
 #if GENGLL4
 #undef NGLLVAL
 #define NGLLVAL 4

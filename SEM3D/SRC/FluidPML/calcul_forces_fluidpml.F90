@@ -29,9 +29,11 @@ module m_calcul_forces_fluid_pml ! wrap subroutine in module to get arg type che
     implicit none
 contains
 
-#define TEST_FLUID_PML_ACC 0
-#define PROCNAMEBASE calcul_forces_fpml_
+#ifndef TEST_FLUID_PML_ACC
+#define TEST_FLUID_PML_ACC USE_ACC_FOR_CPU
+#endif
 
+#define PROCNAMEBASE calcul_forces_fpml_
 
 #if GENGLL4
 #undef NGLLVAL

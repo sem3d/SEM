@@ -11,8 +11,8 @@
 #undef PROCNAME
 #undef ngllvar
 
-#ifndef TEST_FORCE_ACC
-#define TEST_FORCE_ACC 0
+#ifndef TEST_SOLID_ACC
+#define TEST_SOLID_ACC USE_ACC_FOR_CPU
 #endif
 
 !!! Generic values of ngll
@@ -26,7 +26,7 @@
 #endif
 
 #undef SFX
-#if defined(OPENACC) || defined(OMPTARGET) || TEST_FORCE_ACC==1
+#if defined(OPENACC) || defined(OMPTARGET) || TEST_SOLID_ACC==1
 #define SFX _acc
 #else
 #define SFX _cpu
@@ -42,7 +42,7 @@
 #define PROCNAME_ATN  GLUE3(PROCNAME,_atn,SFX)
 #define PROC_MIRROR   GLUE(PROCNAME,_mirror)
 
-#if defined(OPENACC) || defined(OMPTARGET) || TEST_FORCE_ACC==1
+#if defined(OPENACC) || defined(OMPTARGET) || TEST_SOLID_ACC==1
 #include "calcul_forces_solid_acc.inc"
 #else
 #include "calcul_forces_solid_cpu.inc"

@@ -14,7 +14,7 @@ contains
 #define PROCNAMEBASE calcul_forces_fl_
 
 #ifndef TEST_FLUID_ACC
-#define TEST_FLUID_ACC 0
+#define TEST_FLUID_ACC USE_ACC_FOR_CPU
 #endif
 
 #if GENGLL4
