@@ -55,7 +55,7 @@ contains
             nblocks = dom%nblocks
             allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-#if defined(OPENACC) || TEST_FLUID_ACC==1
+#if defined(OPENACC) || USE_ACC_FOR_CPU==1
             ntemps = nblocks
 #else
             ntemps = 1
@@ -355,7 +355,7 @@ contains
         ee = mod(specel%lnum,VCHUNK)
 
         ! Fluid : inertial term ponderation by the inverse of the bulk modulus
-
+        !XXX ? lambda discontinuous ?? can we divide ?
         specel%MassMat(i,j,k) = Whei*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluid

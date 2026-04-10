@@ -79,7 +79,7 @@ contains
             endif
             dom%nprops = nprops
             allocate (dom%props (0:VCHUNK-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nprops, 0:nblocks-1))
-#if defined(OPENACC) || TEST_FORCE==1
+#if defined(OPENACC) ||USE_ACC_FOR_CPU==1
             ntemps = nblocks
 #else
             ntemps = 1
