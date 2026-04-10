@@ -3,24 +3,6 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
-#undef PROCNUM
-#undef ngllvar
-#undef PROCNAME
-#ifndef NGLLVAL
-#define ngllvar ngll
-#define PROCNAME GLUE(PROCNAMEBASE,N)
-
-#else
-#define ngllvar ngll0
-#define PROCNAME GLUE(PROCNAMEBASE,NGLLVAL)
-#endif
-
-#undef PROC_PRED
-#undef PROC_MAIN
-
-#define PROC_PRED  GLUE(PROCNAME,_pred)
-#define PROC_MAIN  GLUE(PROCNAME,_main)
-
 #undef x_deriv_ijke
 #define x_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
         dS_dxi   = 0.0D+0; \
