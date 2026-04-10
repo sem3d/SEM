@@ -1529,7 +1529,7 @@ contains
 
 #else
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
-                                dt = 2_fpp*Tdomain%TimeD%dtmin
+                                dt = 0.5_fpp*Tdomain%TimeD%dtmin
                                 dx = ((1_fpp/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
                                 dy = ((1_fpp/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
                                 dz = ((1_fpp/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,bnum,ee))-1.)/dt
@@ -1545,7 +1545,7 @@ contains
                         do i = 0,ngll-1
                             idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (outputs%domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%fdom%Idom_(i,j,k,bnum,ee))
+                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%fdom%Idom_(i,j,k,bnum,ee))/Tdomain%fdom%Lambda_(i,j,k,bnum,ee)
                             endif
                         end do
                     end do
@@ -1576,7 +1576,13 @@ contains
                                     dxi_k_pml(2 + 3*idx) = Tdomain%fpmldom%dxi_k_2(i, j, k, i2)
                                 end if
 #else
-                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,bnum,ee))
+                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,bnum,ee)) &
+                                    /Tdomain%fpmldom%Lambda_(i,j,k,bnum,ee)
+                                dt = 0.5_fpp*Tdomain%TimeD%dtmin
+                                dx = ((Tdomain%fpmldom%Density_(i,j,k,bnum,ee)/Tdomain%fpmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
+                                dy = ((Tdomain%fpmldom%Density_(i,j,k,bnum,ee)/Tdomain%fpmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
+                                dz = ((Tdomain%fpmldom%Density_(i,j,k,bnum,ee)/Tdomain%fpmldom%PMLDumpSz_(i,j,k,1,bnum,ee))-1.)/dt
+                                dumpsx(idx) = dx+dy+dz
 #endif
                             endif
                         end do
