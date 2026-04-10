@@ -15,49 +15,84 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
     integer, parameter :: ngll=NGLLVAL
 #endif
     !
-    integer :: i,j,k,ee,bnum,idx
-    integer :: nblocks
-    real(fpp) :: uval
+    integer :: bnum
+    integer :: nblocks, nglltot
     !
-
     nblocks = dom%nblocks
-
+    nglltot = dom%nglltot
+    !
     ! FLUID
     do bnum = 0, nblocks-1
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    BEGIN_SUBELEM_LOOP1(ee)
-                    idx = dom%Idom_(i,j,k,bnum,ee)
-                    dom%Phi(ee,i,j,k,0) = var%Phi(idx)
-                    dom%ForcesFl(ee,i,j,k,0) = 0d0
-                    END_SUBELEM_LOOP()
-                enddo
-            enddo
-        enddo
-
+        call PROC_INIT(ngllvar, nblocks, nglltot, bnum, dom%m_Idom, dom%Phi, dom%ForcesFl, var%Phi)
         ! internal forces
-        call SUBPROCNAME1(ngllvar, nblocks, bnum, dom%hprime, dom%htprime, dom%gllw, &
+        call PROC_MAIN(ngllvar, nblocks, bnum, dom%hprime, dom%htprime, dom%gllw, &
             dom%m_InvGrad(:,:,:,:,:,:,bnum), dom%m_Jacob(:,:,:,:,bnum), dom%m_IDensity(:,:,:,:,bnum), &
             dom%ForcesFl(:,:,:,:,0), dom%Phi(:,:,:,:,0))
+        ! assemble fields
+        call PROC_ASSM(ngllvar, nblocks, nglltot, bnum, dom%m_Idom, dom%ForcesFl, dvdt%ForcesFl)
 
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    BEGIN_SUBELEM_LOOP1(ee)
-                    e = bnum*VCHUNK+ee
-                    idx = dom%Idom_(i,j,k,bnum,ee)
-                    uval = dvdt%ForcesFl(idx)
-                    uval = uval - dom%ForcesFl(ee,i,j,k,0)
-                    dvdt%ForcesFl(idx) = uval
-                    END_SUBELEM_LOOP()
-                enddo
-            enddo
-        enddo
     enddo
 end subroutine PROCNAME
 
-subroutine SUBPROCNAME1(ngllvar,nblocks,bnum,hprime,htprime,gllw,InvGrad,Jacob,IDensity,FFl,Phi)
+subroutine PROC_INIT(ngllvar,nblocks,nglltot,bnum,idom,Phi,FFl,vPhi)
+    use champs_fluid
+    implicit none
+
+    integer, intent(in) :: ngllvar, nglltot,bnum
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    integer, intent(in) :: nblocks
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:0), intent(out) :: FFl
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(out) :: Phi
+    real(fpp), dimension(0:nglltot), intent(in) :: vPhi
+    integer, dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(in) :: idom
+    !
+    integer :: idx,i,j,k,ee
+    !
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
+                LOOP_VECTORIZE
+                BEGIN_SUBELEM_LOOP1(ee)
+                idx = Idom(ee,i,j,k,bnum)
+                Phi(ee,i,j,k,0) = vPhi(idx)
+                FFl(ee,i,j,k,0) = 0d0
+                END_SUBELEM_LOOP()
+            enddo
+        enddo
+    enddo
+    !
+end subroutine PROC_INIT
+
+subroutine PROC_ASSM(ngllvar,nblocks,nglltot,bnum,idom,FFl,vForces)
+    use champs_fluid
+    implicit none
+
+    integer, intent(in) :: ngllvar, nglltot, bnum
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    integer, intent(in) :: nblocks
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:0), intent(out) :: FFl
+    real(fpp), dimension(0:nglltot), intent(inout) :: vForces
+    integer, dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(in) :: idom
+    !
+    integer :: idx,i,j,k,ee
+    !
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
+                BEGIN_SUBELEM_LOOP1(ee)
+                idx = Idom(ee,i,j,k,bnum)
+                vForces(idx) = vForces(idx) - FFl(ee,i,j,k,0)
+                END_SUBELEM_LOOP()
+            enddo
+        enddo
+    enddo
+end subroutine PROC_ASSM
+
+subroutine PROC_MAIN(ngllvar,nblocks,bnum,hprime,htprime,gllw,InvGrad,Jacob,IDensity,FFl,Phi)
     use sdomain
     use deriv3d
     implicit none
@@ -78,7 +113,7 @@ subroutine SUBPROCNAME1(ngllvar,nblocks,bnum,hprime,htprime,gllw,InvGrad,Jacob,I
     real(fpp) :: dPhi_dX,dPhi_dY,dPhi_dZ
     real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
     real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
-    integer :: i,j,k,l,ei,ee
+    integer :: i,j,k,l,ee
     real(fpp) :: sx,sy,sz,t4
     real(fpp) :: xt1,xt6,xt10
     !real(fpp), parameter :: zero = 0d0
@@ -93,7 +128,7 @@ subroutine SUBPROCNAME1(ngllvar,nblocks,bnum,hprime,htprime,gllw,InvGrad,Jacob,I
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-                BEGIN_SUBELEM_LOOP(ei,ee,bnum)
+                BEGIN_SUBELEM_LOOP1(ee)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 dPhi_dxi   = 0D0
                 dPhi_deta  = 0D0
@@ -214,7 +249,7 @@ subroutine SUBPROCNAME1(ngllvar,nblocks,bnum,hprime,htprime,gllw,InvGrad,Jacob,I
     enddo
 #endif
     !=-=-=-=-=-=-=-=-=-=-
-end subroutine SUBPROCNAME1
+end subroutine PROC_MAIN
 
 !!!! ROUTINES DE TRAITEMENT DES MIRROIRS
 

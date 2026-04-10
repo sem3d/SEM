@@ -30,8 +30,9 @@
 #endif
 
 
-#define SUBPROCNAME1  GLUE3(PROCNAME,_main,SFX)
-#define SUBPROCNAME2  GLUE3(PROCNAME,_subloop,SFX)
+#define PROC_MAIN  GLUE3(PROCNAME,_main,SFX)
+#define PROC_INIT  GLUE3(PROCNAME,_init,SFX)
+#define PROC_ASSM  GLUE3(PROCNAME,_assm,SFX)
 #define PROC_MIRROR   GLUE(PROCNAME,_mirror)
 
 #if defined(OPENACC) || defined(OMPTARGET) || TEST_FLUID_ACC==1

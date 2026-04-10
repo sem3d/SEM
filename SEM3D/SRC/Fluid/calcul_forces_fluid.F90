@@ -5,6 +5,7 @@
 ! wrap subroutine in module to get arg type check at build time
 
 module m_calcul_forces_fluid
+implicit none
 contains
 #include "index.h"
 #include "optims.h"

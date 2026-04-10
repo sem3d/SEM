@@ -14,54 +14,105 @@ subroutine PROCNAME(dom, ngllvar, var, dvdt)
 #endif
     !
     integer :: i,j,k,ee,bnum,idx
-    integer :: nblocks
+    integer :: nblocks, nglltot
     real(fpp) :: uval
     !
     real(fpp) :: val
 
     nblocks = dom%nblocks
+    nglltot = dom%nglltot
 
-    ! FLUID
-    !$acc parallel loop  collapse(5) async(1)
+    ! initialize fields
+    call PROC_INIT(ngllvar, nblocks, nglltot, dom%m_Idom, dom%Phi, dom%ForcesFl, var%Phi)
+    ! internal forces
+    call PROC_MAIN(ngllvar, nblocks, dom%ForcesFl, dom%Phi, dom%m_IDensity, &
+        dom%hprime, dom%gllw, dom%m_Jacob, dom%m_InvGrad)
+    ! assemble fields
+    call PROC_ASSM(ngllvar, nblocks, nglltot, dom%m_Idom, dom%ForcesFl, dvdt%ForcesFl)
+    !
+end subroutine PROCNAME
+
+subroutine PROC_INIT(ngllvar,nblocks,nglltot,idom,Phi,FFl,vPhi)
+    use champs_fluid
+    implicit none
+
+    integer, intent(in) :: ngllvar, nglltot
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    integer, intent(in) :: nblocks
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(out) :: FFl
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(out) :: Phi
+    real(fpp), dimension(0:nglltot), intent(in) :: vPhi
+    integer, dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(in) :: idom
+    !
+    integer :: idx,i,j,k,ee,bnum
+    !
+    !$acc parallel loop &
+    !$acc& collapse(5) &
+    !$acc& async(1) &
+    !$acc& copyin(idom,vPhi) &
+    !$acc& present(phi,ffl) &
+    !$acc& private(idx) &
+    !$acc& firstprivate(nblocks)
     do bnum = 0, nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
-                        idx = dom%m_Idom(ee,i,j,k,bnum)
-                        dom%Phi(ee,i,j,k,bnum) = var%Phi(idx)
-                        dom%ForcesFl(ee,i,j,k,bnum) = 0d0
+                        idx = Idom(ee,i,j,k,bnum)
+                        Phi(ee,i,j,k,bnum) = vPhi(idx)
+                        FFl(ee,i,j,k,bnum) = 0d0
                     enddo
                 enddo
             enddo
         enddo
     enddo
+end subroutine PROC_INIT
 
-    ! internal forces
-    call SUBPROCNAME1(ngllvar, nblocks, dom%ForcesFl, dom%Phi, dom%m_IDensity, &
-        dom%hprime, dom%gllw, dom%m_Jacob, dom%m_InvGrad)
+subroutine PROC_ASSM(ngllvar,nblocks,nglltot,idom,FFl,vForces)
+    use champs_fluid
+    implicit none
 
-    !$acc parallel loop  collapse(5) async(1)
+    integer, intent(in) :: ngllvar, nglltot
+#ifdef NGLLVAL
+    integer, parameter :: ngll=NGLLVAL
+#endif
+    integer, intent(in) :: nblocks
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(out) :: FFl
+    real(fpp), dimension(0:nglltot), intent(inout) :: vForces
+    integer, dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1), intent(in) :: idom
+    !
+    integer :: idx,i,j,k,ee,bnum
+    !
+    !$acc parallel loop &
+    !$acc& collapse(5) &
+    !$acc& async(1) &
+    !$acc& copyin(idom,FFl) &
+    !$acc& present(vForces) &
+    !$acc& private(idx) &
+    !$acc& firstprivate(nblocks)
     do bnum = 0, nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
                     do ee = 0, VCHUNK-1
-                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        idx = Idom(i,j,k,bnum,ee)
                         if ((i==0).or.(j==0).or.(k==0).or.(i==ngll-1).or.(j==ngll-1).or.(k==ngll-1)) then
                             !$acc atomic update
-                            dvdt%ForcesFl(idx) = dvdt%ForcesFl(idx) - dom%ForcesFl(ee,i,j,k,bnum)
+                            vForces(idx) = vForces(idx) - FFl(ee,i,j,k,bnum)
                         else
-                            dvdt%ForcesFl(idx) = dvdt%ForcesFl(idx) - dom%ForcesFl(ee,i,j,k,bnum)
+                            vForces(idx) = vForces(idx) - Ffl(ee,i,j,k,bnum)
                         end if
                     enddo
                 enddo
             enddo
         enddo
     enddo
-end subroutine PROCNAME
+    !
+end subroutine PROC_ASSM
 
-subroutine SUBPROCNAME1(ngllvar,nblocks,FFl,Phi,irho,hprime,gllw,jacob,invgrad)
+subroutine PROC_MAIN(ngllvar,nblocks,FFl,Phi,irho,hprime,gllw,jacob,invgrad)
     use champs_fluid
     implicit none
 
@@ -89,7 +140,15 @@ subroutine SUBPROCNAME1(ngllvar,nblocks,FFl,Phi,irho,hprime,gllw,jacob,invgrad)
 #ifdef NGLLVAL
     if (ngll/=ngll0) stop 1
 #endif
-    !$acc parallel loop collapse(5) async(1)
+    !$acc parallel loop &
+    !$acc& collapse(5) &
+    !$acc& async(1) &
+    !$acc& copyin(Phi,invgrad,jacob,irho,hprime,gllw) &
+    !$acc& present(FFL) &
+    !$acc& private(L,dPhi_dxi,dPhi_deta,dPhi_dzeta) &
+    !$acc& private(dPhi_dX,dPhi_dY,dPhi_dZ) &
+    !$acc& private(xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3) &
+    !$acc& firstprivate(nblocks)
     do bnum = 0, nblocks-1
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -164,7 +223,7 @@ subroutine SUBPROCNAME1(ngllvar,nblocks,FFl,Phi,irho,hprime,gllw,jacob,invgrad)
         enddo
     enddo
     !=-=-=-=-=-=-=-=-=-=-
-end subroutine SUBPROCNAME1
+end subroutine PROC_MAIN
 
 !!!! ROUTINES DE TRAITEMENT DES MIRROIRS
 subroutine PROC_MIRROR(dom, ngllvar, var, dvdt, m_dump, m_expl, m_recalc)
