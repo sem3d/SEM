@@ -358,6 +358,7 @@ contains
         real(fpp) :: rtime
         rtime = TDomain%timeD%rtime
         do_flush = .false.
+        ! Here, icache is the next position to write, starts at 1
         do c = 0,nCapteursOnRank-1
             !$acc update device(localCapteurs(c)%icache) async(2)
         enddo
@@ -377,20 +378,14 @@ contains
             if (localcapteurs(c)%icache==NCAPT_CACHE) then
                 do_flush = .true.
             end if
+            if (mod(ntime, localCapteurs(c)%periode)==0) then
+                ! same test as above, marks which trace has been updated
+                localcapteurs(c)%icache = localcapteurs(c)%icache + 1
+            endif
         enddo
         if (do_flush) then
+            ! This resets icache to 1 for all traces
             call flushAllCapteurs(Tdomain)
-            !! flushAllCapteurs resets icache for all to 1
-        else
-            ! update counters (always on cpu)
-            do c = 0,nCapteursOnRank-1
-                if (mod(ntime, localCapteurs(c)%periode)==0) then
-                    localcapteurs(c)%icache = localcapteurs(c)%icache + 1
-                    if (localcapteurs(c)%icache>NCAPT_CACHE) then ! shouldn''t happen
-                        localcapteurs(c)%icache = 1
-                    endif
-                endif
-            enddo
         endif
     end subroutine save_capteur
 
@@ -416,7 +411,7 @@ contains
         character (len=MAX_FILE_SIZE) :: fnamef
         character (len=40) :: dname
         integer(HID_T) :: fid, dset_id
-        integer :: hdferr, n_out
+        integer :: hdferr, n_out, c
 
         call init_hdf5()
 
@@ -426,15 +421,14 @@ contains
 
         n_out = Tdomain%nReqOut+1
 
-        capteur=>listeCapteur
-        do while (associated(capteur))
+        do c = 0,nCapteursOnRank-1
+            capteur=>localCapteurs(c)
             dname = dset_capteur_name(capteur)
             call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
                 int(n_out,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
             call h5dclose_f(dset_id, hdferr)
             dname = dset_capteur_posname(capteur)
             call write_dataset(fid, trim(adjustl(dname)), capteur%Coord)
-            capteur=>capteur%suivant
         enddo
 
         call h5fclose_f(fid, hdferr)
@@ -507,25 +501,27 @@ contains
         character (len=40) :: dname
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: dset_id, fid
-        integer :: hdferr
+        integer :: hdferr, c
 
         call semname_tracefile_h5(Tdomain%rank, fnamef)
 
         call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
 
-        capteur=>listeCapteur
-        do while (associated(capteur))
-            !write(*,*) "Capteur:", capteur%nom
+        do c = 0,nCapteursOnRank-1
+
+            capteur=>localCapteurs(c)
+!        do while (associated(capteur))
             dname = dset_capteur_name(capteur)
             if (capteur%icache==1) then
-                capteur=>capteur%suivant
+ !               capteur=>capteur%suivant
                 cycle
             endif
+!            write(*,*) "Capteur:", capteur%nom, dname
             call h5dopen_f(fid, trim(dname), dset_id, hdferr)
             call append_dataset_2d(dset_id, capteur%valuecache(:,1:capteur%icache-1), hdferr)
             call h5dclose_f(dset_id, hdferr)
             capteur%icache=1
-            capteur=>capteur%suivant
+            !capteur=>capteur%suivant
         enddo
 
         call h5fclose_f(fid, hdferr)
