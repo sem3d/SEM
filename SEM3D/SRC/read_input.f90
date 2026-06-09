@@ -25,16 +25,18 @@ contains
         ! Complete the material definition with optional material.spec
         call read_material_spec(Tdomain)
 
-        Tdomain%any_sdom = .false.
-        Tdomain%any_fdom = .false.
-        Tdomain%any_spml = .false.
-        Tdomain%any_fpml = .false.
-        Tdomain%any_sdomdg = .false.
-        Tdomain%sdom%ngll    = 0
-        Tdomain%sdomdg%ngll  = 0
-        Tdomain%fdom%ngll    = 0
-        Tdomain%spmldom%ngll = 0
-        Tdomain%fpmldom%ngll = 0
+        Tdomain%any_sdom     = .false.
+        Tdomain%any_fdom     = .false.
+        Tdomain%any_fanisodom = .false.
+        Tdomain%any_spml     = .false.
+        Tdomain%any_fpml     = .false.
+        Tdomain%any_sdomdg   = .false.
+        Tdomain%sdom%ngll      = 0
+        Tdomain%sdomdg%ngll    = 0
+        Tdomain%fdom%ngll      = 0
+        Tdomain%fanisodom%ngll = 0
+        Tdomain%spmldom%ngll   = 0
+        Tdomain%fpmldom%ngll   = 0
 
         do mat = 0, Tdomain%n_mat-1
             dom = Tdomain%sSubDomain(mat)%dom
@@ -51,6 +53,9 @@ contains
             case (DM_SOLID_CG_PML)
                 Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_spml = .true.
+            case (DM_FLUID_CG_ANISO)
+                Tdomain%fanisodom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                Tdomain%any_fanisodom = .true.
             case (DM_FLUID_CG_PML)
                 Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_fpml = .true.
