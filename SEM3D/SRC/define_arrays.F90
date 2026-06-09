@@ -18,6 +18,7 @@ module mdefinitions
     use dom_solid
     use dom_solid_dg
     use dom_fluid
+    use dom_fluid_aniso
     use dom_solidpml
     use dom_fluidpml
     implicit none
@@ -51,7 +52,9 @@ contains
             else if (Tdomain%specel(n)%domain==DM_SOLID_CG_PML) then
                 Tdomain%spmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID_CG    ) then
-                Tdomain%fdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
+                Tdomain%fdom%Idom_(:,:,:,bnum,ee)      = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_FLUID_CG_ANISO) then
+                Tdomain%fanisodom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID_CG_PML) then
                 Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_SOLID_DG) then
@@ -426,7 +429,8 @@ contains
 
         if (Tdomain%sdom%nglltot    /= 0) Tdomain%sdom%MassMat(:) = 1d0/Tdomain%sdom%MassMat(:)
         if (Tdomain%sdomdg%nglltot  /= 0) Tdomain%sdomdg%MassMat(:) = 1d0/Tdomain%sdomdg%MassMat(:)
-        if (Tdomain%fdom%nglltot    /= 0) Tdomain%fdom%MassMat(:) = 1d0/Tdomain%fdom%MassMat(:)
+        if (Tdomain%fdom%nglltot      /= 0) Tdomain%fdom%MassMat(:)      = 1d0/Tdomain%fdom%MassMat(:)
+        if (Tdomain%fanisodom%nglltot /= 0) Tdomain%fanisodom%MassMat(:) = 1d0/Tdomain%fanisodom%MassMat(:)
         if (Tdomain%spmldom%nglltot /= 0) Tdomain%spmldom%MassMat(:) = 1d0/Tdomain%spmldom%MassMat(:)
         if (Tdomain%fpmldom%nglltot /= 0) Tdomain%fpmldom%MassMat(:) = 1d0/Tdomain%fpmldom%MassMat(:)
 
@@ -438,6 +442,7 @@ contains
         if (Tdomain%sdom%nglltot /= 0) call init_domain_solid(Tdomain, Tdomain%sdom)
         if (Tdomain%sdomdg%nglltot /= 0) call init_domain_solid_dg(Tdomain, Tdomain%sdomdg)
         if (Tdomain%fdom%nglltot /= 0) call init_domain_fluid(Tdomain, Tdomain%fdom)
+        if (Tdomain%fanisodom%nglltot /= 0) call init_domain_fluid_aniso(Tdomain, Tdomain%fanisodom)
         if (Tdomain%spmldom%nglltot /= 0) call init_domain_solidpml(Tdomain, Tdomain%spmldom)
         if (Tdomain%fpmldom%nglltot /= 0) call init_domain_fluidpml(Tdomain, Tdomain%fpmldom)
     end subroutine init_domains
@@ -686,6 +691,14 @@ contains
             call init_material_properties_solid_dg(Tdomain%sdomdg,specel%lnum,mat,rho,lambda,mu)
         case (DM_FLUID_CG)
             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
+        case (DM_FLUID_CG_ANISO)
+            if (mat%material_definition == MATERIAL_CONSTANT) then
+                Cij = 0.d0
+                Cij(1,1,:,:,:) = lambda
+                Cij(2,2,:,:,:) = lambda
+                Cij(3,3,:,:,:) = lambda
+            end if
+            call init_material_properties_fluid_aniso_from_Cij(Tdomain, specel, mat, rho, Cij)
         case (DM_SOLID_CG_PML)
             call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,mat,rho,lambda,mu)
         case (DM_FLUID_CG_PML)
@@ -729,6 +742,8 @@ contains
                             call init_local_mass_solidpml(Tdomain%spmldom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID_CG)
                             call init_local_mass_fluid(Tdomain%fdom,specel,i,j,k,ind,Whei)
+                        case (DM_FLUID_CG_ANISO)
+                            call init_local_mass_fluid_aniso(Tdomain%fanisodom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID_CG_PML)
                             call init_local_mass_fluidpml(Tdomain%fpmldom,specel,i,j,k,ind,Whei)
                         case default
@@ -769,6 +784,33 @@ contains
 !        end if
 !
 !    end function materialIsConstant
+
+    subroutine init_material_properties_fluid_aniso_from_Cij(Tdomain, specel, mat, rho, Cij)
+        ! Maps the Cij tensor read from file (acoustic anisotropy) to the 6-component
+        ! Kij tensor used by domain_fluid_aniso.
+        ! Convention: Kij(0:5) = K11,K22,K33,K12,K13,K23
+        ! From the Cij stiffness matrix (Voigt notation), for acoustic anisotropy the
+        ! directional bulk moduli are taken as the upper-left 3x3 block:
+        !   K11=C11, K22=C22, K33=C33, K12=C12, K13=C13, K23=C23
+        use dom_fluid_aniso
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        type(element), intent(inout) :: specel
+        type(subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: rho
+        real(fpp), intent(in), dimension(1:6,1:6,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
+        !
+        real(fpp), dimension(0:5,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Kij
+
+        Kij(0,:,:,:) = Cij(1,1,:,:,:)  ! K11
+        Kij(1,:,:,:) = Cij(2,2,:,:,:)  ! K22
+        Kij(2,:,:,:) = Cij(3,3,:,:,:)  ! K33
+        Kij(3,:,:,:) = Cij(1,2,:,:,:)  ! K12
+        Kij(4,:,:,:) = Cij(1,3,:,:,:)  ! K13
+        Kij(5,:,:,:) = Cij(2,3,:,:,:)  ! K23
+
+        call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, rho, Kij)
+    end subroutine init_material_properties_fluid_aniso_from_Cij
 
 end module mdefinitions
 !----------------------------------------------------------------------------------

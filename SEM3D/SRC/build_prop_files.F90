@@ -285,9 +285,11 @@ contains
         zs=rzel*nelz
         close(unit)
 
-        if (Nd*(Nd+1)/2+1 /= 22) then
+        ! 22 = elastic (Nd=6): C11..C66 + rho
+        ! 7  = acoustic aniso (Nd=3): K11,K22,K33,K12,K13,K23 + rho
+        if (Nd*(Nd+1)/2+1 /= 22 .and. Nd*(Nd+1)/2+1 /= 7) then
             write(*,*) "Error: unsupported Cstar component count on proc", rg, "value =", Nd*(Nd+1)/2+1
-            stop "Acoustic Cstar is not yet coded"
+            stop "Unsupported Cstar dimension (expected 7 for acoustic or 22 for elastic)"
         end if
                                           
         if (icode /= -82) stop 'Unsupported icode in reading CStar file'

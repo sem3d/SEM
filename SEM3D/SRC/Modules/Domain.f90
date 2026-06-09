@@ -30,6 +30,7 @@ module sdomain
     use champs_solid_dg
     use champs_solidpml
     use champs_fluid
+    use champs_fluid_aniso
     use champs_fluidpml
     use constants
     use msnapdata, only : output_var_t
@@ -82,7 +83,7 @@ module sdomain
        integer :: n_hexa_local !< Nombre de subelements hexa dans le proc(division aux GLLs)
        integer :: ngll
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
-       logical :: any_sdom, any_fdom, any_spml, any_fpml, any_sdomdg
+       logical :: any_sdom, any_fdom, any_spml, any_fpml, any_sdomdg, any_fanisodom
 
        real(fpp) :: dxmax
 
@@ -108,10 +109,11 @@ module sdomain
        real(fpp) :: MPML_coeff
 
        ! Domains
-       type(domain_solid)    :: sdom
-       type(domain_solidpml) :: spmldom
-       type(domain_fluid)    :: fdom
-       type(domain_fluidpml) :: fpmldom
+       type(domain_solid)       :: sdom
+       type(domain_solidpml)    :: spmldom
+       type(domain_fluid)       :: fdom
+       type(domain_fluid_aniso) :: fanisodom
+       type(domain_fluidpml)    :: fpmldom
        type(domain_solid_dg)    :: sdomdg
 
        ! Interface Solide / PML
@@ -152,6 +154,8 @@ contains
             domain_from_type_char = DM_SOLID_DG
         case('E')
             domain_from_type_char = DM_FLUID_DG
+        case('A')
+            domain_from_type_char = DM_FLUID_CG_ANISO
         case default
             stop "Unknown material type"
         end select
@@ -174,6 +178,8 @@ contains
             domain_nglltot = Tdomain%fpmldom%nglltot
         case(DM_SOLID_DG)
             domain_nglltot = Tdomain%sdomdg%nglltot
+        case(DM_FLUID_CG_ANISO)
+            domain_nglltot = Tdomain%fanisodom%nglltot
         case default
             stop "Unknown Domain, nglltot"
         end select
@@ -196,6 +202,8 @@ contains
             domain_ngll = Tdomain%fpmldom%ngll
         case(DM_SOLID_DG)
             domain_ngll = Tdomain%sdomdg%ngll
+        case(DM_FLUID_CG_ANISO)
+            domain_ngll = Tdomain%fanisodom%ngll
         case default
             stop "Unknown Domain, ngll"
         end select
@@ -228,6 +236,10 @@ contains
             ngll = Tdomain%sdomdg%ngll
             allocate(GLLc(0:ngll-1))
             GLLc = Tdomain%sdomdg%GLLc
+        case (DM_FLUID_CG_ANISO)
+            ngll = Tdomain%fanisodom%ngll
+            allocate(GLLc(0:ngll-1))
+            GLLc = Tdomain%fanisodom%GLLc
         case default
             stop "Unknown Domain, gllc"
         end select
@@ -260,6 +272,10 @@ contains
             ngll = Tdomain%sdomdg%ngll
             allocate(gllw(0:ngll-1))
             gllw = Tdomain%sdomdg%GLLw
+        case (DM_FLUID_CG_ANISO)
+            ngll = Tdomain%fanisodom%ngll
+            allocate(gllw(0:ngll-1))
+            gllw = Tdomain%fanisodom%GLLw
         case default
             stop "Unknown Domain, gllw"
         end select

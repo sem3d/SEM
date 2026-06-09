@@ -61,6 +61,9 @@ public:
             case 'E':
                 m_type = DM_FLUID_DG;
                 break;
+            case 'A':
+                m_type = DM_FLUID_CG_ANISO;
+                break;
             default:
                 m_type = DM_SOLID_CG;
                 break;
@@ -109,6 +112,8 @@ public:
             return 'D';
         case DM_FLUID_DG:
             return 'E';
+        case DM_FLUID_CG_ANISO:
+            return 'A';
         default:
             return 'X';
         };
