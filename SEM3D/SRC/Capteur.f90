@@ -478,6 +478,7 @@ contains
         use dom_solid
         use dom_solid_dg
         use dom_fluid
+        use dom_fluid_aniso
         use dom_solidpml
         use dom_fluidpml
         implicit none
@@ -571,6 +572,9 @@ contains
                 dUdX, nl_flag, eps_dev_pl)
             case (DM_FLUID_CG)
               call get_fluid_dom_var(Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
+                fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev, dUdX)
+            case (DM_FLUID_CG_ANISO)
+              call get_fluid_aniso_dom_var(Tdomain%fanisodom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev, dUdX)
             case (DM_SOLID_CG_PML)
               call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
@@ -701,6 +705,7 @@ contains
         use sdomain
         use dom_solid
         use dom_fluid
+        use dom_fluid_aniso
         use dom_solidpml
         use dom_fluidpml
         implicit none
@@ -743,6 +748,8 @@ contains
                 case (DM_SOLID_CG)
                     !We continue calculations
                 case (DM_FLUID_CG)
+                    !We continue calculations
+                case (DM_FLUID_CG_ANISO)
                     !We continue calculations
                 case default
                     stop "unknown domain"
@@ -790,7 +797,22 @@ contains
                         enddo
                     enddo
                     call get_fluid_dom_elem_energy(Tdomain%fdom, el%lnum, P_energy, K_energy, D_energy)
-                    
+
+                    call integrate_on_element(ngll, jac, GLLw, P_energy, elem_P_En)
+                    call integrate_on_element(ngll, jac, GLLw, K_energy, elem_K_En)
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,0), elem_D_En(0))
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,1), elem_D_En(1))
+                    call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,2), elem_D_En(2))
+                case (DM_FLUID_CG_ANISO)
+                    do k = 0, ngll-1
+                        do j = 0, ngll-1
+                            do i = 0, ngll-1
+                                jac(i,j,k) = Tdomain%fanisodom%Jacob_ (i,j,k,bnum,ee)
+                            enddo
+                        enddo
+                    enddo
+                    call get_fluid_aniso_dom_elem_energy(Tdomain%fanisodom, el%lnum, P_energy, K_energy, D_energy)
+
                     call integrate_on_element(ngll, jac, GLLw, P_energy, elem_P_En)
                     call integrate_on_element(ngll, jac, GLLw, K_energy, elem_K_En)
                     call integrate_on_element(ngll, jac, GLLw, D_energy(:,:,:,0), elem_D_En(0))

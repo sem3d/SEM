@@ -19,9 +19,10 @@ module champs_fluid_aniso
     implicit none
 
     type champsfluid_aniso
-        real(fpp), dimension(:), allocatable :: ForcesP  ! force residual (rhs of weak form)
-        real(fpp), dimension(:), allocatable :: P        ! pressure (primary unknown)
-        real(fpp), dimension(:), allocatable :: VelP     ! dp/dt
+        real(fpp), dimension(:), allocatable   :: ForcesP  ! force residual (rhs of weak form)
+        real(fpp), dimension(:), allocatable   :: P        ! pressure (primary unknown)
+        real(fpp), dimension(:), allocatable   :: VelP     ! dp/dt
+        real(fpp), dimension(:,:), allocatable :: Vel      ! particle velocity (0:2, 0:nglltot)
     end type champsfluid_aniso
 
     type, extends(dombase) :: domain_fluid_aniso

@@ -20,10 +20,12 @@ contains
         allocate(dom%champs(i)%ForcesP(0:dom%nglltot))
         allocate(dom%champs(i)%P      (0:dom%nglltot))
         allocate(dom%champs(i)%VelP   (0:dom%nglltot))
+        allocate(dom%champs(i)%Vel  (0:2, 0:dom%nglltot))
 
         dom%champs(i)%ForcesP = 0d0
         dom%champs(i)%P       = 0d0
         dom%champs(i)%VelP    = 0d0
+        dom%champs(i)%Vel     = 0d0
     end subroutine allocate_champs_fluid_aniso
 
     subroutine allocate_dom_fluid_aniso(Tdomain, dom)
@@ -69,6 +71,7 @@ contains
             if (allocated(dom%champs(i)%ForcesP)) deallocate(dom%champs(i)%ForcesP)
             if (allocated(dom%champs(i)%P      )) deallocate(dom%champs(i)%P      )
             if (allocated(dom%champs(i)%VelP   )) deallocate(dom%champs(i)%VelP   )
+            if (allocated(dom%champs(i)%Vel    )) deallocate(dom%champs(i)%Vel    )
         end do
         call deallocate_dombase(dom)
     end subroutine deallocate_dom_fluid_aniso
@@ -159,6 +162,7 @@ contains
         dom%champs(f1)%VelP    = dom%champs(f0)%VelP
         dom%champs(f1)%P       = dom%champs(f0)%P
         dom%champs(f1)%ForcesP = 0d0
+        dom%champs(f1)%Vel     = dom%champs(f0)%Vel
     end subroutine newmark_predictor_fluid_aniso
 
     subroutine newmark_corrector_fluid_aniso(dom, dt, f0, f1)
@@ -166,7 +170,8 @@ contains
         real(fpp), intent(in) :: dt
         integer, intent(in) :: f0, f1
         !
-        integer :: n, inddir
+        integer :: n, inddir, ind
+        real(fpp), allocatable :: FVel(:,:)
 
         ! acc = ForcesP * MassMat_inv  (MassMat stores 1/M after inversion in define_arrays)
         dom%champs(f0)%ForcesP = dom%champs(f1)%ForcesP * dom%MassMat
@@ -176,6 +181,15 @@ contains
             dom%champs(f0)%VelP(inddir) = 0d0
         enddo
         dom%champs(f0)%P = dom%champs(f0)%P + dt * dom%champs(f0)%VelP
+
+        ! Update particle velocity: rho dv/dt = -grad(p)
+        allocate(FVel(0:2, 0:dom%nglltot))
+        FVel = 0d0
+        call compute_vel_forces_fluid_aniso(dom, f0, FVel)
+        do ind = 0, dom%nglltot-1
+            dom%champs(f0)%Vel(:,ind) = dom%champs(f0)%Vel(:,ind) + dt * dom%MassMat(ind) * FVel(:,ind)
+        enddo
+        deallocate(FVel)
     end subroutine newmark_corrector_fluid_aniso
 
     function fluid_aniso_Pspeed(dom, lnum, i, j, k) result(Pspeed)
@@ -202,6 +216,119 @@ contains
                    abs(K13)+abs(K23)+abs(K33))
         Pspeed = sqrt(maxK / rho)
     end function fluid_aniso_Pspeed
+
+    subroutine compute_vel_forces_fluid_aniso(dom, fidx, FVel)
+        ! Assembles the weak gradient: FVel(d,ind) -= int w*J * dP/dXd dOmega
+        ! Called once per timestep from the corrector to update particle velocity.
+        type(domain_fluid_aniso), intent(in) :: dom
+        integer, intent(in) :: fidx
+        real(fpp), dimension(0:2, 0:dom%nglltot), intent(inout) :: FVel
+        !
+        integer :: bnum, ee, i, j, k, l, ind, ngll
+        real(fpp) :: dP_dxi, dP_deta, dP_dzeta, dP_dX, dP_dY, dP_dZ
+        real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3, wJ
+
+        ngll = dom%ngll
+        do bnum = 0, dom%nblocks-1
+            do ee = 0, VCHUNK-1
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            dP_dxi=0d0; dP_deta=0d0; dP_dzeta=0d0
+                            do l = 0,ngll-1
+                                dP_dxi   = dP_dxi   + dom%hprime(l,i)*dom%champs(fidx)%P(dom%Idom_(l,j,k,bnum,ee))
+                                dP_deta  = dP_deta  + dom%hprime(l,j)*dom%champs(fidx)%P(dom%Idom_(i,l,k,bnum,ee))
+                                dP_dzeta = dP_dzeta + dom%hprime(l,k)*dom%champs(fidx)%P(dom%Idom_(i,j,l,bnum,ee))
+                            enddo
+                            xi1=dom%InvGrad_(0,0,i,j,k,bnum,ee); xi2=dom%InvGrad_(1,0,i,j,k,bnum,ee); xi3=dom%InvGrad_(2,0,i,j,k,bnum,ee)
+                            et1=dom%InvGrad_(0,1,i,j,k,bnum,ee); et2=dom%InvGrad_(1,1,i,j,k,bnum,ee); et3=dom%InvGrad_(2,1,i,j,k,bnum,ee)
+                            ga1=dom%InvGrad_(0,2,i,j,k,bnum,ee); ga2=dom%InvGrad_(1,2,i,j,k,bnum,ee); ga3=dom%InvGrad_(2,2,i,j,k,bnum,ee)
+                            dP_dX = dP_dxi*xi1 + dP_deta*et1 + dP_dzeta*ga1
+                            dP_dY = dP_dxi*xi2 + dP_deta*et2 + dP_dzeta*ga2
+                            dP_dZ = dP_dxi*xi3 + dP_deta*et3 + dP_dzeta*ga3
+                            wJ = dom%Jacob_(i,j,k,bnum,ee)*dom%gllw(i)*dom%gllw(j)*dom%gllw(k)
+                            ind = dom%Idom_(i,j,k,bnum,ee)
+                            FVel(0,ind) = FVel(0,ind) - wJ*dP_dX
+                            FVel(1,ind) = FVel(1,ind) - wJ*dP_dY
+                            FVel(2,ind) = FVel(2,ind) - wJ*dP_dZ
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+    end subroutine compute_vel_forces_fluid_aniso
+
+    subroutine get_fluid_aniso_dom_var(dom, lnum, out_variables, &
+        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev, dUdX)
+        type(domain_fluid_aniso), intent(inout) :: dom
+        integer, intent(in) :: lnum
+        integer, dimension(0:), intent(in) :: out_variables
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldU, fieldV, fieldA
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:8) :: dUdX
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: fieldP
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: P_energy, K_energy, eps_vol
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: D_energy
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: eps_dev, sig_dev
+        !
+        integer :: ngll, i, j, k, ind, bnum, ee
+        real(fpp) :: p_val, K_eff, rho_val
+
+        bnum = lnum/VCHUNK
+        ee   = mod(lnum,VCHUNK)
+        ngll = dom%ngll
+
+        fieldU=0d0; fieldV=0d0; fieldA=0d0; fieldP=0d0
+        P_energy=0d0; K_energy=0d0; D_energy=0d0
+        eps_vol=0d0; eps_dev=0d0; sig_dev=0d0; dUdX=0d0
+
+        do k=0,ngll-1; do j=0,ngll-1; do i=0,ngll-1
+            ind = dom%Idom_(i,j,k,bnum,ee)
+            p_val = dom%champs(0)%P(ind)
+            fieldP(i,j,k)   = p_val
+            fieldV(i,j,k,0) = dom%champs(0)%Vel(0,ind)
+            fieldV(i,j,k,1) = dom%champs(0)%Vel(1,ind)
+            fieldV(i,j,k,2) = dom%champs(0)%Vel(2,ind)
+            K_eff = (dom%m_Kij(IND_DIJKE(0,i,j,k,bnum,ee)) + &
+                     dom%m_Kij(IND_DIJKE(1,i,j,k,bnum,ee)) + &
+                     dom%m_Kij(IND_DIJKE(2,i,j,k,bnum,ee))) / 3d0
+            rho_val = dom%m_Rho(IND_IJKE(i,j,k,bnum,ee))
+            P_energy(i,j,k) = 0.5d0*p_val*p_val/K_eff
+            K_energy(i,j,k) = 0.5d0*rho_val*(fieldV(i,j,k,0)**2 + fieldV(i,j,k,1)**2 + fieldV(i,j,k,2)**2)
+        enddo; enddo; enddo
+    end subroutine get_fluid_aniso_dom_var
+
+    subroutine get_fluid_aniso_dom_elem_energy(dom, lnum, P_energy, K_energy, D_energy)
+        type(domain_fluid_aniso), intent(inout) :: dom
+        integer, intent(in) :: lnum
+        real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy
+        real(fpp), dimension(:,:,:,:), allocatable, intent(inout) :: D_energy
+        !
+        integer :: ngll, i, j, k, ind, bnum, ee
+        real(fpp) :: p_val, K_eff, rho_val, vx, vy, vz
+
+        bnum = lnum/VCHUNK
+        ee   = mod(lnum,VCHUNK)
+        ngll = dom%ngll
+
+        if (.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if (.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+        if (.not. allocated(D_energy)) allocate(D_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        D_energy = 0d0
+
+        do k=0,ngll-1; do j=0,ngll-1; do i=0,ngll-1
+            ind = dom%Idom_(i,j,k,bnum,ee)
+            p_val   = dom%champs(0)%P(ind)
+            vx      = dom%champs(0)%Vel(0,ind)
+            vy      = dom%champs(0)%Vel(1,ind)
+            vz      = dom%champs(0)%Vel(2,ind)
+            K_eff   = (dom%m_Kij(IND_DIJKE(0,i,j,k,bnum,ee)) + &
+                       dom%m_Kij(IND_DIJKE(1,i,j,k,bnum,ee)) + &
+                       dom%m_Kij(IND_DIJKE(2,i,j,k,bnum,ee))) / 3d0
+            rho_val = dom%m_Rho(IND_IJKE(i,j,k,bnum,ee))
+            P_energy(i,j,k) = 0.5d0*p_val*p_val/K_eff
+            K_energy(i,j,k) = 0.5d0*rho_val*(vx*vx + vy*vy + vz*vz)
+        enddo; enddo; enddo
+    end subroutine get_fluid_aniso_dom_elem_energy
 
 end module dom_fluid_aniso
 

@@ -889,6 +889,7 @@ contains
         use dom_solid
         use dom_solid_dg
         use dom_fluid
+        use dom_fluid_aniso
         use dom_solidpml
         use dom_fluidpml
 
@@ -989,6 +990,10 @@ contains
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
                         fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, &
                         sig_dev, dUdX)
+                case (DM_FLUID_CG_ANISO)
+                    call get_fluid_aniso_dom_var(Tdomain%fanisodom, el%lnum, out_variables, &
+                        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, &
+                        sig_dev, dUdX)
                 case (DM_SOLID_CG_PML)
                     call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
                         fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev)
@@ -1022,7 +1027,9 @@ contains
                             case (DM_SOLID_CG_PML)
                                 jac(i,j,k) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
-                                jac(i,j,k) = Tdomain%fdom%Jacob_   (i,j,k,bnum,ee)
+                                jac(i,j,k) = Tdomain%fdom%Jacob_      (i,j,k,bnum,ee)
+                            case (DM_FLUID_CG_ANISO)
+                                jac(i,j,k) = Tdomain%fanisodom%Jacob_ (i,j,k,bnum,ee)
                             case (DM_FLUID_CG_PML)
                                 jac(i,j,k) = Tdomain%fpmldom%Jacob_(i,j,k,bnum,ee)
                             case default
@@ -1516,6 +1523,7 @@ contains
 
     subroutine write_constant_fields(Tdomain, fid, outputs)
         use dom_solid
+        use dom_fluid_aniso
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
@@ -1686,6 +1694,17 @@ contains
                         end do
                     end do
                 end do
+            case (DM_FLUID_CG_ANISO)
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                            if (outputs%domains(idx)==domain_type) then
+                                mass(idx) = Tdomain%fanisodom%MassMat(Tdomain%fanisodom%Idom_(i,j,k,bnum,ee))
+                            endif
+                        end do
+                    end do
+                end do
             case (DM_FLUID_CG_PML)
                 do k = 0,ngll-1
                     do j = 0,ngll-1
@@ -1743,7 +1762,9 @@ contains
                             case (DM_SOLID_CG_PML)
                                 jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
-                                jac(idx) = Tdomain%fdom%Jacob_   (i,j,k,bnum,ee)
+                                jac(idx) = Tdomain%fdom%Jacob_      (i,j,k,bnum,ee)
+                            case (DM_FLUID_CG_ANISO)
+                                jac(idx) = Tdomain%fanisodom%Jacob_ (i,j,k,bnum,ee)
                             case (DM_FLUID_CG_PML)
                                 jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,bnum,ee)
                             case default
@@ -1773,6 +1794,8 @@ contains
                                 dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
                                 dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
+                            case (DM_FLUID_CG_ANISO)
+                                dens(idx) = Tdomain%fanisodom%m_Rho(IND_IJKE(i,j,k,bnum,ee))
                             case (DM_FLUID_CG_PML)
 #ifdef CPML
                                 dens(idx) = 0. ! Tdomain%fpmldom%Density_(i,j,k,bnum,ee) ! TODO
@@ -1811,6 +1834,10 @@ contains
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
                                 lamb(idx) = Tdomain%fdom%Lambda_        (i,j,k,bnum,ee)
+                            case (DM_FLUID_CG_ANISO)
+                                lamb(idx) = (Tdomain%fanisodom%m_Kij(IND_DIJKE(0,i,j,k,bnum,ee)) + &
+                                             Tdomain%fanisodom%m_Kij(IND_DIJKE(1,i,j,k,bnum,ee)) + &
+                                             Tdomain%fanisodom%m_Kij(IND_DIJKE(2,i,j,k,bnum,ee))) / 3d0
                             case (DM_FLUID_CG_PML)
                                 lamb(idx) = Tdomain%fpmldom%Lambda_     (i,j,k,bnum,ee)
                             case default
@@ -1846,6 +1873,8 @@ contains
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
                                 mu(idx) = -1d0
+                            case (DM_FLUID_CG_ANISO)
+                                mu(idx) = -1d0
                             case (DM_FLUID_CG_PML)
                                 mu(idx) = -1d0
                             case default
@@ -1875,6 +1904,8 @@ contains
                             case (DM_SOLID_CG_PML)
                                 kappa(idx) = -1d0
                             case (DM_FLUID_CG)
+                                kappa(idx) = -1d0
+                            case (DM_FLUID_CG_ANISO)
                                 kappa(idx) = -1d0
                             case (DM_FLUID_CG_PML)
                                 kappa(idx) = -1d0
@@ -1930,6 +1961,8 @@ contains
                                            case (DM_SOLID_CG_PML)
                                                 C11(idx) = -1d0
                                            case (DM_FLUID_CG)
+                                                C11(idx) = -1d0
+                                           case (DM_FLUID_CG_ANISO)
                                                 C11(idx) = -1d0
                                            case (DM_FLUID_CG_PML)
                                                 C11(idx) = -1d0
