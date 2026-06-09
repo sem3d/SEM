@@ -89,6 +89,9 @@ contains
                             case (DM_FLUID_CG_PML)
                                 Tdomain%fpmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
                                 Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
+                            case (DM_FLUID_CG_ANISO)
+                                Tdomain%fanisodom%Jacob_  (        i,j,k,bnum,ee) = Jac
+                                Tdomain%fanisodom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case default
                                 stop "unknown domain"
                         end select

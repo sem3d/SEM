@@ -45,4 +45,7 @@ time_scheme {
 out_variables {
     pre = 1;   # pressure
     enP = 1;   # P-wave energy
+    enK = 1;    # S-wave energy (scalar field)
+    vel   = 1;   #  velocity (vector field)
+    eTotal = 1; # Total energy
 };
