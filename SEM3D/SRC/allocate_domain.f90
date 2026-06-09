@@ -22,6 +22,7 @@ module sdomain_alloc
     use dom_solid_dg
     use dom_solidpml
     use dom_fluid
+    use dom_fluid_aniso
     use dom_fluidpml
     implicit none
 contains
@@ -41,13 +42,15 @@ subroutine allocate_domain (Tdomain)
     allocate(Tdomain%sdom     %champs(0:Tdomain%TimeD%nsubsteps))
     allocate(Tdomain%sdomdg   %champs(0:Tdomain%TimeD%nsubsteps))
     allocate(Tdomain%spmldom  %champs(0:Tdomain%TimeD%nsubsteps))
-    allocate(Tdomain%fdom     %champs(0:Tdomain%TimeD%nsubsteps))
-    allocate(Tdomain%fpmldom  %champs(0:Tdomain%TimeD%nsubsteps))
-    if(Tdomain%any_sdom)   call allocate_dom_solid   (Tdomain, Tdomain%sdom)
-    if(Tdomain%any_sdomdg) call allocate_dom_solid_dg(Tdomain, Tdomain%sdomdg)
-    if(Tdomain%any_fdom)   call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
-    if(Tdomain%any_spml)   call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
-    if(Tdomain%any_fpml)   call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
+    allocate(Tdomain%fdom      %champs(0:Tdomain%TimeD%nsubsteps))
+    allocate(Tdomain%fanisodom %champs(0:Tdomain%TimeD%nsubsteps))
+    allocate(Tdomain%fpmldom   %champs(0:Tdomain%TimeD%nsubsteps))
+    if(Tdomain%any_sdom)      call allocate_dom_solid      (Tdomain, Tdomain%sdom)
+    if(Tdomain%any_sdomdg)    call allocate_dom_solid_dg   (Tdomain, Tdomain%sdomdg)
+    if(Tdomain%any_fdom)      call allocate_dom_fluid      (Tdomain, Tdomain%fdom)
+    if(Tdomain%any_fanisodom) call allocate_dom_fluid_aniso(Tdomain, Tdomain%fanisodom)
+    if(Tdomain%any_spml)      call allocate_dom_solidpml   (Tdomain, Tdomain%spmldom)
+    if(Tdomain%any_fpml)      call allocate_dom_fluidpml   (Tdomain, Tdomain%fpmldom)
 
     do n = 0,Tdomain%n_elem-1
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)

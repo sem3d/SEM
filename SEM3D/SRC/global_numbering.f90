@@ -110,11 +110,12 @@ subroutine renumber_global_gll_nodes(Tdomain)
             enddo
         enddo
     enddo
-    Tdomain%sdom   %nbelem = ecount(DM_SOLID_CG)
-    Tdomain%sdomdg %nbelem = ecount(DM_SOLID_DG)
-    Tdomain%fdom   %nbelem = ecount(DM_FLUID_CG)
-    Tdomain%spmldom%nbelem = ecount(DM_SOLID_CG_PML)
-    Tdomain%fpmldom%nbelem = ecount(DM_FLUID_CG_PML)
+    Tdomain%sdom     %nbelem = ecount(DM_SOLID_CG)
+    Tdomain%sdomdg   %nbelem = ecount(DM_SOLID_DG)
+    Tdomain%fdom     %nbelem = ecount(DM_FLUID_CG)
+    Tdomain%fanisodom%nbelem = ecount(DM_FLUID_CG_ANISO)
+    Tdomain%spmldom  %nbelem = ecount(DM_SOLID_CG_PML)
+    Tdomain%fpmldom  %nbelem = ecount(DM_FLUID_CG_PML)
 
     !Faces Inner GLL points
     do n = 0,Tdomain%n_face-1
@@ -135,11 +136,12 @@ subroutine renumber_global_gll_nodes(Tdomain)
             enddo
         enddo
     enddo
-    Tdomain%sdom   %nbface = fcount(DM_SOLID_CG)
-    Tdomain%sdomdg %nbface = fcount(DM_SOLID_DG)
-    Tdomain%fdom   %nbface = fcount(DM_FLUID_CG)
-    Tdomain%spmldom%nbface = fcount(DM_SOLID_CG_PML)
-    Tdomain%fpmldom%nbface = fcount(DM_FLUID_CG_PML)
+    Tdomain%sdom     %nbface = fcount(DM_SOLID_CG)
+    Tdomain%sdomdg   %nbface = fcount(DM_SOLID_DG)
+    Tdomain%fdom     %nbface = fcount(DM_FLUID_CG)
+    Tdomain%fanisodom%nbface = fcount(DM_FLUID_CG_ANISO)
+    Tdomain%spmldom  %nbface = fcount(DM_SOLID_CG_PML)
+    Tdomain%fpmldom  %nbface = fcount(DM_FLUID_CG_PML)
 
     !Edges Inner GLL points
     do n = 0,Tdomain%n_edge-1
@@ -168,11 +170,12 @@ subroutine renumber_global_gll_nodes(Tdomain)
 
     ! total number of GLL points (= degrees of freedom)
     Tdomain%n_glob_points   = icount(0)
-    Tdomain%sdom%nglltot    = icount(DM_SOLID_CG)
-    Tdomain%sdomdg%nglltot  = icount(DM_SOLID_DG)
-    Tdomain%fdom%nglltot    = icount(DM_FLUID_CG)
-    Tdomain%spmldom%nglltot = icount(DM_SOLID_CG_PML)
-    Tdomain%fpmldom%nglltot = icount(DM_FLUID_CG_PML)
+    Tdomain%sdom%nglltot      = icount(DM_SOLID_CG)
+    Tdomain%sdomdg%nglltot    = icount(DM_SOLID_DG)
+    Tdomain%fdom%nglltot      = icount(DM_FLUID_CG)
+    Tdomain%fanisodom%nglltot = icount(DM_FLUID_CG_ANISO)
+    Tdomain%spmldom%nglltot   = icount(DM_SOLID_CG_PML)
+    Tdomain%fpmldom%nglltot   = icount(DM_FLUID_CG_PML)
 
     !Recollecting at the element level, from faces, edges and vertices.
     do n = 0,Tdomain%n_elem-1
@@ -578,7 +581,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                     case (DM_SOLID_DG)
                         Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
                         nsoldg = nsoldg + 1
-                    case (DM_FLUID_CG)
+                    case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
                         Comm_data%Data(n)%IGiveF(nflu) = idx
                         nflu = nflu + 1
                     case (DM_SOLID_CG_PML)
@@ -608,7 +611,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                 case (DM_SOLID_DG)
                     Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
                     nsoldg = nsoldg + 1
-                case (DM_FLUID_CG)
+                case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
                     Comm_data%Data(n)%IGiveF(nflu) = idx
                     nflu = nflu + 1
                 case (DM_SOLID_CG_PML)
@@ -634,7 +637,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
             case (DM_SOLID_DG)
                 Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
                 nsoldg = nsoldg + 1
-            case (DM_FLUID_CG)
+            case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
                 Comm_data%Data(n)%IGiveF(nflu) = idx
                 nflu = nflu + 1
             case (DM_SOLID_CG_PML)
@@ -702,7 +705,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsoldg = nsoldg + temp
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + temp
-            case (DM_FLUID_CG)
+            case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
                 nflu = nflu + temp
             case default
                 stop "unknown domain"
@@ -723,7 +726,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsoldg = nsoldg + temp
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + temp
-            case (DM_FLUID_CG)
+            case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
                 nflu = nflu + temp
             case default
                 stop "unknown domain"
@@ -741,7 +744,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsoldg = nsoldg + 1
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + 1
-            case (DM_FLUID_CG)
+            case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
                 nflu = nflu + 1
             case default
                 stop "unknown domain"
@@ -922,7 +925,7 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
         count = 0
         n2 = surface%nbtot
         select case(dom)
-        case (DM_FLUID_CG)
+        case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
             n1 = Tdomain%Comm_data%Data(n)%nflu
             if (n1>0.and.n2>0) then
                 count = intersect_arrays(n1, Tdomain%Comm_data%Data(n)%IGiveF, n2, surface%map, igive)
@@ -953,7 +956,7 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
             allocate(comm_data%Data(n)%IGiveSDG(0:count-1))
             comm_data%Data(n)%IGiveSDG = igive
             comm_data%Data(n)%nsoldg = count
-        case (DM_FLUID_CG)
+        case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
             allocate(comm_data%Data(n)%IGiveF(0:count-1))
             comm_data%Data(n)%IGiveF = igive
             comm_data%Data(n)%nflu = count
