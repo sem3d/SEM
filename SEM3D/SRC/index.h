@@ -70,6 +70,7 @@
 #define  plstrain_(n,i,j,k,eb,ec) m_plstrain(IND_NIJKE(n,i,j,k,eb,ec))
 
 #define       Cij_(m,i,j,k,eb,ec)      m_Cij(IND_DIJKE(m,i,j,k,eb,ec))
+#define       Kij_(m,i,j,k,eb,ec)      m_Kij(IND_DIJKE(m,i,j,k,eb,ec))
 #define InvGrad_(m,n,i,j,k,eb,ec) m_InvGrad(IND_MNIJKE(m,n,i,j,k,eb,ec))
 
 #define  PMLVeloc_(i,j,k,n,eb,ec)  m_PMLVeloc(IND_IJKNE(i,j,k,n,eb,ec))
