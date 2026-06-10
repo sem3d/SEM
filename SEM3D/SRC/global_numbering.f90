@@ -545,7 +545,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
 
-    integer :: n,ncomm,nsol,nsolpml,nflu,nflupml,nsoldg
+    integer :: n,ncomm,nsol,nsolpml,nflu,nflupml,nsoldg,nfluaniso
     integer :: i,j,k,nf,ne,nv,idx
     integer :: dom, ngll
 
@@ -564,6 +564,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
         nsolpml = 0
         nflu = 0
         nflupml = 0
+        nfluaniso = 0
 
         ! Remplissage des Igive
         ! Faces
@@ -581,9 +582,12 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                     case (DM_SOLID_DG)
                         Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
                         nsoldg = nsoldg + 1
-                    case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
+                    case (DM_FLUID_CG)
                         Comm_data%Data(n)%IGiveF(nflu) = idx
                         nflu = nflu + 1
+                    case (DM_FLUID_CG_ANISO)
+                        Comm_data%Data(n)%IGiveFAniso(nfluaniso) = idx
+                        nfluaniso = nfluaniso + 1
                     case (DM_SOLID_CG_PML)
                         Comm_data%Data(n)%IGiveSPML(nsolpml) = idx
                         nsolpml = nsolpml + 1
@@ -611,9 +615,12 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                 case (DM_SOLID_DG)
                     Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
                     nsoldg = nsoldg + 1
-                case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
+                case (DM_FLUID_CG)
                     Comm_data%Data(n)%IGiveF(nflu) = idx
                     nflu = nflu + 1
+                case (DM_FLUID_CG_ANISO)
+                    Comm_data%Data(n)%IGiveFAniso(nfluaniso) = idx
+                    nfluaniso = nfluaniso + 1
                 case (DM_SOLID_CG_PML)
                     Comm_data%Data(n)%IGiveSPML(nsolpml) = idx
                     nsolpml = nsolpml + 1
@@ -637,9 +644,12 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
             case (DM_SOLID_DG)
                 Comm_data%Data(n)%IGiveSDG(nsoldg) = idx
                 nsoldg = nsoldg + 1
-            case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
+            case (DM_FLUID_CG)
                 Comm_data%Data(n)%IGiveF(nflu) = idx
                 nflu = nflu + 1
+            case (DM_FLUID_CG_ANISO)
+                Comm_data%Data(n)%IGiveFAniso(nfluaniso) = idx
+                nfluaniso = nfluaniso + 1
             case (DM_SOLID_CG_PML)
                 Comm_data%Data(n)%IGiveSPML(nsolpml) = idx
                 nsolpml = nsolpml + 1
@@ -660,7 +670,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
-    integer :: n_data, n_comm, nsol, nsolpml, nflu, nflupml, nsoldg
+    integer :: n_data, n_comm, nsol, nsolpml, nflu, nflupml, nsoldg, nfluaniso
     integer :: n, nf, ne, nv, i, temp
     integer :: dom, ngll
 
@@ -689,6 +699,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         nsoldg = 0
         nflupml = 0
         nflu = 0
+        nfluaniso = 0
 
         ! Faces
         do i = 0,Tdomain%sComm(n)%nb_faces-1
@@ -705,8 +716,10 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsoldg = nsoldg + temp
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + temp
-            case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
+            case (DM_FLUID_CG)
                 nflu = nflu + temp
+            case (DM_FLUID_CG_ANISO)
+                nfluaniso = nfluaniso + temp
             case default
                 stop "unknown domain"
             end select
@@ -726,8 +739,10 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsoldg = nsoldg + temp
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + temp
-            case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
+            case (DM_FLUID_CG)
                 nflu = nflu + temp
+            case (DM_FLUID_CG_ANISO)
+                nfluaniso = nfluaniso + temp
             case default
                 stop "unknown domain"
             end select
@@ -744,8 +759,10 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nsoldg = nsoldg + 1
             case (DM_FLUID_CG_PML)
                 nflupml = nflupml + 1
-            case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
+            case (DM_FLUID_CG)
                 nflu = nflu + 1
+            case (DM_FLUID_CG_ANISO)
+                nfluaniso = nfluaniso + 1
             case default
                 stop "unknown domain"
             end select
@@ -756,7 +773,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         ! eg: DumpMass and MassMatSolPml acount for 6 real, compared to 9 for forcesPml
         ! for fluid we need only 4 during computation but 6 for mass exchange (but only
         ! to simplify code since 2 are really needed)
-        n_data = 3*nsol+3*nsoldg + 9*nsolpml+1*nflu+6*nflupml
+        n_data = 3*nsol+3*nsoldg + 9*nsolpml+1*nflu+1*nfluaniso+6*nflupml
         ! Initialisation et allocation de Comm_vector_DumpMassAndMMSP
         Comm_data%Data(n_comm)%src = Tdomain%rank
         Comm_data%Data(n_comm)%dest = Tdomain%sComm(n)%dest
@@ -767,6 +784,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         Comm_data%Data(n_comm)%nsolpml = nsolpml
         Comm_data%Data(n_comm)%nflu = nflu
         Comm_data%Data(n_comm)%nflupml = nflupml
+        Comm_data%Data(n_comm)%nfluaniso = nfluaniso
         allocate(Comm_data%Data(n_comm)%Give(0:n_data-1))
         allocate(Comm_data%Data(n_comm)%Take(0:n_data-1))
         allocate(Comm_data%Data(n_comm)%IGiveS(0:nsol-1))
@@ -774,6 +792,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         allocate(Comm_data%Data(n_comm)%IGiveSPML(0:nsolpml-1))
         allocate(Comm_data%Data(n_comm)%IGiveF(0:nflu-1))
         allocate(Comm_data%Data(n_comm)%IGiveFPML(0:nflupml-1))
+        allocate(Comm_data%Data(n_comm)%IGiveFAniso(0:nfluaniso-1))
 
 !        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLS ", nsol
 !        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLF ", nflu

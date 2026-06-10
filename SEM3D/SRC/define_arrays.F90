@@ -349,8 +349,16 @@ contains
                 end if
 
                 ! Domain FLUID
-                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%MassMat, k)
+                if (Tdomain%Comm_data%Data(n)%nflu>0) then
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%MassMat, k)
+                end if
+
+                ! Domain FLUID ANISO
+                if (Tdomain%Comm_data%Data(n)%nfluaniso>0) then
+                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%MassMat, k)
+                end if
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
@@ -399,8 +407,16 @@ contains
                 end if
 
                 ! Domain FLUID
-                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveF,  Tdomain%fdom%MassMat, k)
+                if (Tdomain%Comm_data%Data(n)%nflu>0) then
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%MassMat, k)
+                end if
+
+                ! Domain FLUID ANISO
+                if (Tdomain%Comm_data%Data(n)%nfluaniso>0) then
+                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%MassMat, k)
+                end if
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
