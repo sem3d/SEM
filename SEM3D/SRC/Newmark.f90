@@ -717,10 +717,17 @@ contains
                     do k = 0,ngll-1
                         do j = 0,ngll-1
                             do i = 0,ngll-1
-                                idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
-                                val = Tdomain%fdom%champs(i1)%ForcesFl(idx)
-                                val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
-                                Tdomain%fdom%champs(i1)%ForcesFl(idx) = val
+                                if (dom == DM_FLUID_CG) then
+                                    idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
+                                    val = Tdomain%fdom%champs(i1)%ForcesFl(idx)
+                                    val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
+                                    Tdomain%fdom%champs(i1)%ForcesFl(idx) = val
+                                else if (dom == DM_FLUID_CG_ANISO) then
+                                    idx = Tdomain%fanisodom%Idom_(i,j,k,bnum,ee)
+                                    val = Tdomain%fanisodom%champs(i1)%ForcesP(idx)
+                                    val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
+                                    Tdomain%fanisodom%champs(i1)%ForcesP(idx) = val
+                                end if
                             enddo
                         enddo
                     enddo
