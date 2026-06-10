@@ -94,6 +94,7 @@ MODULE constants
     integer, parameter :: MATDEF_VTI_ANISO     = 14
     integer, parameter :: MATDEF_HOOKE_ANISO   = 15
     integer, parameter :: CSTAR                = 16
+    integer, parameter :: MATDEF_FLUID_ANISO   = 17
     ! Heterogeneous damping
     integer, parameter :: MATDEF_VP_VS_RHO_D     = 7
     integer, parameter :: MATDEF_E_NU_RHO_D      = 8

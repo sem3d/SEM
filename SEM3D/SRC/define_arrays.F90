@@ -545,49 +545,53 @@ contains
                     v1 = mat%Sspeed
                 end select
             case( MATERIAL_FILE )
-                ! XXX interpolate rho/v0/v1 from file
-                call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), v0)
-                call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), v1)
-                call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3), rho)
-                select case(mat%deftype)
-                case(MATDEF_VP_VS_RHO_D,MATDEF_E_NU_RHO_D,MATDEF_LAMBDA_MU_RHO_D,&
-                    MATDEF_KAPPA_MU_RHO_D,MATDEF_HOOKE_RHO_D,MATDEF_NLKP_VS_RHO_D,&
-                    MATDEF_NU_VS_RHO_D)
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), Qk)
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), Qm)
-                case (MATDEF_VTI_ANISO)
-                    ! v0, v1, rho call dans le commun 
-                    aniso=.true.
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), v0h)
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), v1h)
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), eta)
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), Qk)
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(8), Qm)
-                case (MATDEF_HOOKE_ANISO, CSTAR)
-                    aniso=.true.
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1),Cij(1,1,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2),Cij(2,2,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3),Cij(3,3,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4),Cij(4,4,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5),Cij(5,5,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6),Cij(6,6,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7),Cij(1,2,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(8),Cij(1,3,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(9),Cij(1,4,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(10),Cij(1,5,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(11),Cij(1,6,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(12),Cij(2,3,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(13),Cij(2,4,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(14),Cij(2,5,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(15),Cij(2,6,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(16),Cij(3,4,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(17),Cij(3,5,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(18),Cij(3,6,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(19),Cij(4,5,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(20),Cij(4,6,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(21),Cij(5,6,:,:,:))
-                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(22), rho)
-                end select
+                ! MATDEF_FLUID_ANISO fields are Kij components (not Vp/Vs/Rho),
+                ! so skip the generic v0/v1/rho reads for that type.
+                if (mat%deftype /= MATDEF_FLUID_ANISO) then
+                    ! XXX interpolate rho/v0/v1 from file
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), v0)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), v1)
+                    call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3), rho)
+                    select case(mat%deftype)
+                    case(MATDEF_VP_VS_RHO_D,MATDEF_E_NU_RHO_D,MATDEF_LAMBDA_MU_RHO_D,&
+                        MATDEF_KAPPA_MU_RHO_D,MATDEF_HOOKE_RHO_D,MATDEF_NLKP_VS_RHO_D,&
+                        MATDEF_NU_VS_RHO_D)
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), Qk)
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), Qm)
+                    case (MATDEF_VTI_ANISO)
+                        ! v0, v1, rho call dans le commun
+                        aniso=.true.
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), v0h)
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), v1h)
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), eta)
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), Qk)
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(8), Qm)
+                    case (MATDEF_HOOKE_ANISO, CSTAR)
+                        aniso=.true.
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1),Cij(1,1,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2),Cij(2,2,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3),Cij(3,3,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4),Cij(4,4,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5),Cij(5,5,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6),Cij(6,6,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7),Cij(1,2,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(8),Cij(1,3,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(9),Cij(1,4,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(10),Cij(1,5,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(11),Cij(1,6,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(12),Cij(2,3,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(13),Cij(2,4,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(14),Cij(2,5,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(15),Cij(2,6,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(16),Cij(3,4,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(17),Cij(3,5,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(18),Cij(3,6,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(19),Cij(4,5,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(20),Cij(4,6,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(21),Cij(5,6,:,:,:))
+                        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(22), rho)
+                    end select
+                end if
         end select
 
         select case(mat%deftype)
@@ -713,8 +717,10 @@ contains
                 Cij(1,1,:,:,:) = lambda
                 Cij(2,2,:,:,:) = lambda
                 Cij(3,3,:,:,:) = lambda
+                call init_material_properties_fluid_aniso_from_Cij(Tdomain, specel, mat, rho, Cij)
+            else if (mat%material_definition == MATERIAL_FILE) then
+                call init_material_properties_fluid_aniso_from_file(Tdomain, specel, mat)
             end if
-            call init_material_properties_fluid_aniso_from_Cij(Tdomain, specel, mat, rho, Cij)
         case (DM_SOLID_CG_PML)
             call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,mat,rho,lambda,mu)
         case (DM_FLUID_CG_PML)
@@ -827,6 +833,27 @@ contains
 
         call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, rho, Kij)
     end subroutine init_material_properties_fluid_aniso_from_Cij
+
+    subroutine init_material_properties_fluid_aniso_from_file(Tdomain, specel, mat)
+        use dom_fluid_aniso
+        use build_prop_files
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        type(element), intent(inout) :: specel
+        type(subdomain), intent(in) :: mat
+        !
+        real(fpp), dimension(0:5,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Kij
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: rho
+
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), Kij(0,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), Kij(1,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3), Kij(2,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), Kij(3,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), Kij(4,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), Kij(5,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), rho)
+        call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, rho, Kij)
+    end subroutine init_material_properties_fluid_aniso_from_file
 
 end module mdefinitions
 !----------------------------------------------------------------------------------

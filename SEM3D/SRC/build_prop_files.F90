@@ -75,6 +75,14 @@ contains
             mat%prop_field(6)%propName = "Eta"
             mat%prop_field(7)%propName = "Qkappa"
             mat%prop_field(8)%propName = "Qmu"
+        case(MATDEF_FLUID_ANISO)
+            mat%prop_field(1)%propName = "K11"
+            mat%prop_field(2)%propName = "K22"
+            mat%prop_field(3)%propName = "K33"
+            mat%prop_field(4)%propName = "K12"
+            mat%prop_field(5)%propName = "K13"
+            mat%prop_field(6)%propName = "K23"
+            mat%prop_field(7)%propName = "Rho"
         case(MATDEF_HOOKE_ANISO,CSTAR)
             mat%prop_field(1)%propName = "C11"
             mat%prop_field(2)%propName = "C22"
