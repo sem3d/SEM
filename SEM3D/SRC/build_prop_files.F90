@@ -75,7 +75,7 @@ contains
             mat%prop_field(6)%propName = "Eta"
             mat%prop_field(7)%propName = "Qkappa"
             mat%prop_field(8)%propName = "Qmu"
-        case(MATDEF_FLUID_ANISO)
+        case(MATDEF_FLUID_ANISO, CSTAR_FLUID)
             mat%prop_field(1)%propName = "K11"
             mat%prop_field(2)%propName = "K22"
             mat%prop_field(3)%propName = "K33"
@@ -140,7 +140,7 @@ contains
         end select
 
         select case (mat%deftype)
-            case(CSTAR)
+            case(CSTAR, CSTAR_FLUID)
                 call init_prop_file_field_Cstar(mat)
             case default
                 do i = 1,mat%n_prop
@@ -253,7 +253,8 @@ contains
         integer, parameter :: num_comp = 22
         integer, parameter :: ntriu = 21
         integer :: i, j, k, a, b, kk, comp, ielx, iely, ielz, idx, Nd
-        integer :: nelx, nely, nelz, nelements  
+        integer :: ncomp
+        integer :: nelx, nely, nelz, nelements
         integer :: iheader, reclen, icode, ndeg, len_int,len_real
         real(4) :: rxel, ryel, rzel, xs, ys, zs, xs_whole_domain, ys_whole_domain, zs_whole_domain
         integer :: nx, ny, nz, len
@@ -301,6 +302,7 @@ contains
         end if
                                           
         if (icode /= -82) stop 'Unsupported icode in reading CStar file'
+        ncomp = Nd*(Nd+1)/2+1
 
         ix(0) = floor(mat%MinBound_Loc(0)/rxel)
         ix(1) = ceiling(mat%MaxBound_Loc(0)/rxel)
@@ -340,7 +342,7 @@ contains
                                                  
         allocate(buffer(Nd*(Nd+1)/2+1,ndeg+1,ndeg+1,ndeg+1) )
         !allocate(elemtmp(ndeg+1,ndeg+1,ndeg+1,22,nelx+1,nely+1,nelz+1), stat=ios)
-        allocate(elemtmp(22,cx+1,cy+1,cz+1), stat=ios)
+        allocate(elemtmp(ncomp,cx+1,cy+1,cz+1), stat=ios)
         if (ios /= 0) then
             print *, "Allocation failed!"
             stop
@@ -384,8 +386,15 @@ contains
         cy = iy(1)-iy(0)
         cz = iz(1)-iz(0)
         
-        mapping = [1, 7, 8, 9, 10, 11, 2, 12, 13, 14, 15, 3, 16, 17, 18, 4, 19, 20, 5, 21, 6, 22]
-        !mapping = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+        if (ncomp == 22) then
+            ! Elastic Nd=6: upper-triangle row-major C11,C12,...,C66,Rho
+            ! mapped to prop_field order C11,C22,C33,C44,C55,C66,C12,...,Rho
+            mapping(1:22) = [1, 7, 8, 9, 10, 11, 2, 12, 13, 14, 15, 3, 16, 17, 18, 4, 19, 20, 5, 21, 6, 22]
+        else
+            ! Acoustic Nd=3: upper-triangle row-major K11,K12,K13,K22,K23,K33,Rho
+            ! mapped to prop_field order K11,K22,K33,K12,K13,K23,Rho
+            mapping(1:7) = [1, 4, 5, 2, 6, 3, 7]
+        end if
         ! fill mat struct
         do j = 1,mat%n_prop
             i = mapping(j)

@@ -116,7 +116,7 @@ contains
                 case (MATDEF_HOOKE_ANISO, CSTAR)
                     nprop = 22
                     Tdomain%aniso=.true.
-                case (MATDEF_FLUID_ANISO)
+                case (MATDEF_FLUID_ANISO, CSTAR_FLUID)
                     nprop = 7
                 end select
 

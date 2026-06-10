@@ -547,7 +547,7 @@ contains
             case( MATERIAL_FILE )
                 ! MATDEF_FLUID_ANISO fields are Kij components (not Vp/Vs/Rho),
                 ! so skip the generic v0/v1/rho reads for that type.
-                if (mat%deftype /= MATDEF_FLUID_ANISO) then
+                if (mat%deftype /= MATDEF_FLUID_ANISO .and. mat%deftype /= CSTAR_FLUID) then
                     ! XXX interpolate rho/v0/v1 from file
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), v0)
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), v1)

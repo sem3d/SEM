@@ -33,7 +33,8 @@ const keyword_t str_mat_descrs[] = {
     {14, "VTI_Aniso" },
     {15, "Hooke_Aniso" },
     {16, "Cstar" },
-    {17, "Fluid_Aniso" }
+    {17, "Fluid_Aniso" },
+    {18, "Cstar_Fluid" }
 };
 
 const keyword_t str_mat_spatial[] = {

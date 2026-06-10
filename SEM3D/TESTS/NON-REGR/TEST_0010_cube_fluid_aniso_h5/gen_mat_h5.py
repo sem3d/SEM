@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Generate test HDF5 material file for fluid anisotropic domain (constant Kij).
+"""Generate test HDF5 material file for fluid anisotropic domain.
 
-Values match TEST_0009: Vp=1500 m/s, Rho=1000 kg/m3
-  K11 = K22 = K33 = rho * Vp^2 = 2.25e9 Pa
-  K12 = K13 = K23 = 0 (isotropic)
+Anisotropic: different wave speeds along each axis.
+  Vx = 1500 m/s  ->  K11 = rho * Vx^2 = 2.250e9 Pa
+  Vy = 1200 m/s  ->  K22 = rho * Vy^2 = 1.440e9 Pa
+  Vz =  900 m/s  ->  K33 = rho * Vz^2 = 8.100e8 Pa
+  K12 = K13 = K23 = 0  (orthorhombic, no axis coupling)
+  Rho = 1000 kg/m3
 """
 import numpy as np
 import h5py
@@ -13,17 +16,16 @@ XMIN = np.array([0.0, 0.0, 0.0])
 XMAX = np.array([500.0, 500.0, 500.0])
 NPTS = 2  # 2 points per axis: minimum for trilinear interpolation
 
-K_diag = 1000.0 * 1500.0**2   # 2.25e9 Pa
-K_off  = 0.0
-RHO    = 1000.0                # kg/m3
+RHO = 1000.0
+VX, VY, VZ = 1500.0, 1200.0, 900.0
 
 components = {
-    "K11": K_diag,
-    "K22": K_diag,
-    "K33": K_diag,
-    "K12": K_off,
-    "K13": K_off,
-    "K23": K_off,
+    "K11": RHO * VX**2,   # 2.250e9 Pa
+    "K22": RHO * VY**2,   # 1.440e9 Pa
+    "K33": RHO * VZ**2,   # 8.100e8 Pa
+    "K12": 0.0,
+    "K13": 0.0,
+    "K23": 0.0,
     "Rho": RHO,
 }
 
@@ -38,3 +40,5 @@ with h5py.File(OUTFILE, "w") as f:
         grp.create_dataset("samples", data=data)
 
 print(f"Written: {OUTFILE}")
+for name, value in components.items():
+    print(f"  {name} = {value:.4e}")
