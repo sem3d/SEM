@@ -322,8 +322,14 @@ Description des mot-clefs de ``deftype`` :
 - ``Vp_Vs_Rho``
 - ``E_nu_Rho`` : Module d'Young, coefficient de Poisson, Densité
 - ``Hooke_Rho`` : Cijkl, Rho.
-- ``CStar``: input pour le code homofft
-  
+- ``CStar``: input pour le code homofft (solide anisotrope, 21 composantes + Rho).
+- ``Fluid_Aniso``: tenseur de module volumique anisotrope :math:`K_{ij}` + densité (7 propriétés),
+  lu depuis un fichier HDF5 avec des groupes ``K11``, ``K22``, ``K33``, ``K12``, ``K13``,
+  ``K23``, ``Rho``. Voir :ref:`anisotropic_fluid`.
+- ``Cstar_Fluid``: format binaire Cstar de homofft restreint au cas acoustique (Nd=3),
+  7 composantes par point (K11, K12, K13, K22, K23, K33, Rho).
+  Voir :ref:`anisotropic_fluid`.
+
 Description des mot-clefs de ``spacedef`` :
 
 - ``constant`` : les valeurs sont précisées dans la suite de la section ``material``

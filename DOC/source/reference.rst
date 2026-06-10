@@ -12,4 +12,5 @@ Guide de référence
    format_unv.rst
    format_msh.rst
    anisotropic_solid.rst
-   
+   anisotropic_fluid.rst
+
