@@ -246,109 +246,121 @@ contains
     end subroutine init_prop_file_field
 
     subroutine init_prop_file_field_Cstar(mat)
-        !use, intrinsic :: iso_c_binding
+        use splib, only: ZELEGL
         type(subdomain), intent(inout) :: mat
-        real(fpp), dimension(0:2) :: xxr
- 
+
         integer, parameter :: num_comp = 22
         integer, parameter :: ntriu = 21
-        integer :: i, j, k, a, b, kk, comp, ielx, iely, ielz, idx, Nd
+        integer :: i, j, k, kk, ielx, iely, ielz, Nd
         integer :: ncomp
-        integer :: nelx, nely, nelz, nelements
-        integer :: iheader, reclen, icode, ndeg, len_int,len_real
+        integer :: nelx, nely, nelz
+        integer :: iheader, icode, ndeg, len_int, len_real
         real(4) :: rxel, ryel, rzel, xs, ys, zs, xs_whole_domain, ys_whole_domain, zs_whole_domain
-        integer :: nx, ny, nz, len
-        integer :: triu_idx(2, ntriu)
-        integer :: iindo(2, ntriu)
+        integer :: len
         integer, dimension(2) :: ix, iy, iz
         integer :: cx, cy, cz
         integer :: mapping(22)
-         
-        real(4), dimension(:,:,:,:)  , allocatable :: buffer
-        real(4), dimension(:,:,:,:), allocatable :: elemtmp
+
+        real(4), dimension(:,:,:,:), allocatable :: buffer
+        real(fpp), dimension(:,:,:,:), allocatable :: elemtmp, fbuf, tmp1, tmp2
         integer, dimension(3) :: list
-        integer :: l, m
         integer :: irec, ier, nelem_needed
         integer :: rg
 
-        ! File I/O
+        ! GLL -> uniform grid interpolation
+        integer :: iu, ju, ku, ig, jg, kg, lx, ly, lz
+        real(kind(0d0)), dimension(:), allocatable :: GLLc_d, VN_d
+        real(fpp), dimension(:,:), allocatable :: H
+        real(kind(0d0)) :: xi_u, h_val
+
         integer :: unit, ios
-        character(len=256) :: filename
 
         if (.not. mat%present) return
         call MPI_Comm_rank(MPI_COMM_WORLD, rg, ier)
-        
-        inquire(iolength=len_int) i
-        inquire(iolength=len_real)rxel
-        len=8*len_int+6*len_real
 
-        open(newunit=unit, file= trim(mat%prop_field(1)%propFilePath), form='unformatted', access='direct',status='old', action='read', iostat=ios, recl=len)
+        inquire(iolength=len_int) i
+        inquire(iolength=len_real) rxel
+        len = 8*len_int + 6*len_real
+
+        open(newunit=unit, file=trim(mat%prop_field(1)%propFilePath), form='unformatted', &
+             access='direct', status='old', action='read', iostat=ios, recl=len)
         if (ios /= 0) then
-          write(*,*) "Could not open file:", trim(mat%prop_field(1)%propFilePath)
-          stop 1
+            write(*,*) "Could not open file:", trim(mat%prop_field(1)%propFilePath)
+            stop 1
         end if
-       
-        read(unit,rec=1) icode,iheader,len,Nd,ndeg,nelx,nely,nelz,rxel,ryel,rzel,xs_whole_domain,ys_whole_domain,zs_whole_domain
-        xs=rxel*nelx
-        ys=ryel*nely
-        zs=rzel*nelz
+
+        read(unit,rec=1) icode,iheader,len,Nd,ndeg,nelx,nely,nelz, &
+                         rxel,ryel,rzel,xs_whole_domain,ys_whole_domain,zs_whole_domain
+        xs = rxel*nelx; ys = ryel*nely; zs = rzel*nelz
         close(unit)
 
-        ! 22 = elastic (Nd=6): C11..C66 + rho
-        ! 7  = acoustic aniso (Nd=3): K11,K22,K33,K12,K13,K23 + rho
         if (Nd*(Nd+1)/2+1 /= 22 .and. Nd*(Nd+1)/2+1 /= 7) then
             write(*,*) "Error: unsupported Cstar component count on proc", rg, "value =", Nd*(Nd+1)/2+1
             stop "Unsupported Cstar dimension (expected 7 for acoustic or 22 for elastic)"
         end if
-                                          
         if (icode /= -82) stop 'Unsupported icode in reading CStar file'
+        if (ndeg < 1) stop 'Cstar: ndeg < 1 not supported'
         ncomp = Nd*(Nd+1)/2+1
 
         ix(0) = floor(mat%MinBound_Loc(0)/rxel)
         ix(1) = ceiling(mat%MaxBound_Loc(0)/rxel)
-
         iy(0) = floor(mat%MinBound_Loc(1)/ryel)
         iy(1) = ceiling(mat%MaxBound_Loc(1)/ryel)
-
         iz(0) = floor(mat%MinBound_Loc(2)/rzel)
         iz(1) = ceiling(mat%MaxBound_Loc(2)/rzel)
-        
+
         cx = ix(1)-ix(0)
         cy = iy(1)-iy(0)
         cz = iz(1)-iz(0)
-        nelem_needed = (ix(1)-ix(0))*(iy(1)-iy(0))*(iz(1)-iz(0))
-        write(*,*) "Cstar read header on proc", rg
-        write(*,*) "icode :", icode
-        write(*,*) "iheader :", iheader
-        write(*,*) "len :", len
-        write(*,*) "Nd :", Nd
-        write(*,*) "ndeg :", ndeg
-        write(*,*) "n el :", nelx, nely, nelz, cx, cy, cz
-        write(*,*) "step in :", rxel, ryel, rzel
-        write(*,*) "domain size :", xs, ys, zs, xs_whole_domain,ys_whole_domain, zs_whole_domain
-        write(*,*) "finished "
-        write(*,*) "BB min from mat strucutre :", mat%MinBound_Loc
-        write(*,*) "BB max from mat strucutre :", mat%MaxBound_Loc
+        nelem_needed = cx*cy*cz
 
-        write(*,*) "x y z start in struuctured: ", ix(0), iy(0), iz(0)
-        write(*,*) "x y z end in structured: ", ix(1), iy(1), iz(1)
+        write(*,*) "Cstar read header on proc", rg
+        write(*,*) "icode :", icode, " iheader :", iheader, " len :", len
+        write(*,*) "Nd :", Nd, " ndeg :", ndeg
+        write(*,*) "n el global:", nelx, nely, nelz, " local:", cx, cy, cz
+        write(*,*) "step in :", rxel, ryel, rzel
+        write(*,*) "domain size :", xs, ys, zs, xs_whole_domain, ys_whole_domain, zs_whole_domain
+        write(*,*) "BB min from mat structure :", mat%MinBound_Loc
+        write(*,*) "BB max from mat structure :", mat%MaxBound_Loc
+        write(*,*) "x y z start in structured: ", ix(0), iy(0), iz(0)
+        write(*,*) "x y z end in structured:   ", ix(1), iy(1), iz(1)
         write(*,*) "Number of elements to be read :", nelem_needed
-       
-        open(newunit=unit, file=trim(mat%prop_field(1)%propFilePath),status='old',access='direct',form='unformatted',recl=len, iostat=ios)
+        write(*,*) "Output uniform grid size: ", cx*ndeg+1, cy*ndeg+1, cz*ndeg+1
+
+        ! Build GLL nodes and Lagrange interpolation matrix
+        ! H(ig, iu) = L_ig(xi_u), xi_u = -1 + 2*iu/ndeg  (uniform points in [-1,1])
+        allocate(GLLc_d(0:ndeg), VN_d(0:ndeg))
+        call ZELEGL(ndeg, GLLc_d, VN_d)
+        allocate(H(0:ndeg, 0:ndeg))
+        do iu = 0, ndeg
+            xi_u = -1.d0 + 2.d0*dble(iu)/dble(ndeg)
+            do ig = 0, ndeg
+                h_val = 1.d0
+                do kg = 0, ndeg
+                    if (kg /= ig) h_val = h_val * (xi_u - GLLc_d(kg)) / (GLLc_d(ig) - GLLc_d(kg))
+                enddo
+                H(ig, iu) = real(h_val, fpp)
+            enddo
+        enddo
+        deallocate(GLLc_d, VN_d)
+
+        open(newunit=unit, file=trim(mat%prop_field(1)%propFilePath), status='old', &
+             access='direct', form='unformatted', recl=len, iostat=ios)
         if (ios /= 0) then
-            write(*,*) "Could not open file:",trim(mat%prop_field(1)%propFilePath)
+            write(*,*) "Could not open file:", trim(mat%prop_field(1)%propFilePath)
             stop 1
         end if
-                                                 
-        allocate(buffer(Nd*(Nd+1)/2+1,ndeg+1,ndeg+1,ndeg+1) )
-        !allocate(elemtmp(ndeg+1,ndeg+1,ndeg+1,22,nelx+1,nely+1,nelz+1), stat=ios)
-        allocate(elemtmp(ncomp,cx+1,cy+1,cz+1), stat=ios)
+
+        allocate(buffer(ncomp, ndeg+1, ndeg+1, ndeg+1))
+        allocate(elemtmp(ncomp, 0:cx*ndeg, 0:cy*ndeg, 0:cz*ndeg), stat=ios)
         if (ios /= 0) then
-            print *, "Allocation failed!"
+            write(*,*) "Allocation failed for elemtmp!"
             stop
         endif
-        buffer = -1
-        elemtmp = 10
+        allocate(fbuf(ncomp, 0:ndeg, 0:ndeg, 0:ndeg))
+        allocate(tmp1(ncomp, 0:ndeg, 0:ndeg, 0:ndeg))
+        allocate(tmp2(ncomp, 0:ndeg, 0:ndeg, 0:ndeg))
+
         cz = 0
         do ielz = iz(0), iz(1)-1
             cy = 0
@@ -358,34 +370,57 @@ contains
                     list(0) = ielx+1
                     list(1) = iely+1
                     list(2) = ielz+1
-                    irec=iheader+list(0)+(list(1)-1)*nelx+(list(2)-1)*nelx*nely
-                    !write(*,*) irec, list
-                    read(unit,rec=irec,iostat=ier) buffer
-                    if (ier /= 0) then
-                        write(*,*) 'READ error at irec=', irec, ' ier=', ier
-                    end if
-                    do kk=1,Nd*(Nd+1)/2+1
-                        !if (buffer(kk,1,1,1)<0) then
-                        !    !buffer(kk,1,1,1) = 0
-                        !endif
-                        !if (buffer(kk,1,1,1) > 1d13) then
-                        !    !buffer(kk,1,1,1) = 1d13
-                        !endif
-                        elemtmp(kk,cx+1,cy+1,cz+1)=buffer(kk,1,1,1)
+                    irec = iheader + list(0) + (list(1)-1)*nelx + (list(2)-1)*nelx*nely
+                    read(unit, rec=irec, iostat=ier) buffer
+                    if (ier /= 0) write(*,*) 'READ error at irec=', irec, ' ier=', ier
+
+                    ! Type conversion: real(4) buffer (1-indexed) -> real(fpp) fbuf (0-indexed)
+                    fbuf = real(buffer, fpp)
+
+                    ! Tensor-product Lagrange interpolation: GLL nodes -> uniform sub-grid
+                    ! Pass 1 (x): tmp1(kk,iu,jg,kg) = sum_ig fbuf(kk,ig,jg,kg)*H(ig,iu)
+                    tmp1 = 0._fpp
+                    do ig = 0, ndeg
+                        do iu = 0, ndeg
+                            tmp1(:,iu,:,:) = tmp1(:,iu,:,:) + H(ig,iu) * fbuf(:,ig,:,:)
+                        enddo
                     enddo
+
+                    ! Pass 2 (y): tmp2(kk,iu,ju,kg) = sum_jg tmp1(kk,iu,jg,kg)*H(jg,ju)
+                    tmp2 = 0._fpp
+                    do jg = 0, ndeg
+                        do ju = 0, ndeg
+                            tmp2(:,:,ju,:) = tmp2(:,:,ju,:) + H(jg,ju) * tmp1(:,:,jg,:)
+                        enddo
+                    enddo
+
+                    ! Pass 3 (z): fbuf(kk,iu,ju,ku) = sum_kg tmp2(kk,iu,ju,kg)*H(kg,ku)
+                    fbuf = 0._fpp
+                    do kg = 0, ndeg
+                        do ku = 0, ndeg
+                            fbuf(:,:,:,ku) = fbuf(:,:,:,ku) + H(kg,ku) * tmp2(:,:,:,kg)
+                        enddo
+                    enddo
+
+                    lx = cx*ndeg
+                    ly = cy*ndeg
+                    lz = cz*ndeg
+                    elemtmp(:, lx:lx+ndeg, ly:ly+ndeg, lz:lz+ndeg) = fbuf
+
                     cx = cx+1
                 end do
                 cy = cy+1
             end do
-            cz = cz+1     
+            cz = cz+1
         end do
-     
+
         close(unit)
-        
+        deallocate(buffer, fbuf, tmp1, tmp2, H)
+
         cx = ix(1)-ix(0)
         cy = iy(1)-iy(0)
         cz = iz(1)-iz(0)
-        
+
         if (ncomp == 22) then
             ! Elastic Nd=6: upper-triangle row-major C11,C12,...,C66,Rho
             ! mapped to prop_field order C11,C22,C33,C44,C55,C66,C12,...,Rho
@@ -395,8 +430,8 @@ contains
             ! mapped to prop_field order K11,K22,K33,K12,K13,K23,Rho
             mapping(1:7) = [1, 4, 5, 2, 6, 3, 7]
         end if
-        ! fill mat struct
-        do j = 1,mat%n_prop
+
+        do j = 1, mat%n_prop
             i = mapping(j)
             mat%prop_field(i)%MinBound(0) = ix(0)*rxel
             mat%prop_field(i)%MaxBound(0) = ix(1)*rxel
@@ -405,64 +440,22 @@ contains
             mat%prop_field(i)%MinBound(2) = iz(0)*rzel
             mat%prop_field(i)%MaxBound(2) = iz(1)*rzel
 
-            !mat%prop_field(i)%NN(0) = (ix(1)-ix(0))*(ndeg+1) + 1
-            !mat%prop_field(i)%NN(1) = (iy(1)-iy(0))*(ndeg+1) + 1
-            !mat%prop_field(i)%NN(2) = (iz(1)-iz(0))*(ndeg+1) + 1
-            mat%prop_field(i)%NN(0) = (ix(1)-ix(0))
-            mat%prop_field(i)%NN(1) = (iy(1)-iy(0))
-            mat%prop_field(i)%NN(2) = (iz(1)-iz(0))
-            !write(*,*) mat%prop_field(i)%MinBound
-            !write(*,*) mat%prop_field(i)%NN
+            mat%prop_field(i)%NN(0) = cx*ndeg + 1
+            mat%prop_field(i)%NN(1) = cy*ndeg + 1
+            mat%prop_field(i)%NN(2) = cz*ndeg + 1
 
-            do k = 0,2
-                mat%prop_field(i)%imin(k) = gindex(mat%MinBound_Loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))
-                mat%prop_field(i)%imax(k) = gindex(mat%Maxbound_Loc(k), mat%prop_field(i)%NN(k), mat%prop_field(i)%MinBound(k), mat%prop_field(i)%MaxBound(k))+1
-                mat%prop_field(i)%step(k) = (mat%prop_field(i)%MaxBound(k)-mat%prop_field(i)%MinBound(k))/(mat%prop_field(i)%NN(k)-1)
-                !write(*,*) "prop: ", i, "k: ", k, "imin: ",mat%prop_field(i)%imin(k), "imax: ",mat%prop_field(i)%imax(k), "step: ",mat%prop_field(i)%step(k)
-                if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
-                if (mat%prop_field(i)%imin(k)<0) then
-                    mat%prop_field(i)%imin(k) = 0
-                    if (mat%prop_field(i)%imax(k)<1) mat%prop_field(i)%imax(k) = 1
-                end if
-                if (mat%prop_field(i)%imax(k)>=mat%prop_field(i)%NN(k)) then
-                    mat%prop_field(i)%imax(k) = mat%prop_field(i)%NN(k)-1
-                    if (mat%prop_field(i)%imin(k)>(mat%prop_field(i)%imax(k)-1)) mat%prop_field(i)%imin(k) = mat%prop_field(i)%imax(k)-1
-                endif
-                if ((mat%prop_field(i)%imax(k)-mat%prop_field(i)%imin(k))<1) mat%prop_field(i)%imax(k) = mat%prop_field(i)%imin(k)
-                if (mat%is_sph) then
-                    mat%prop_field(i)%imin(k)=0
-                    mat%prop_field(i)%imax(k)=mat%prop_field(i)%NN(k)-1
-                end if
+            do k = 0, 2
+                mat%prop_field(i)%step(k) = (mat%prop_field(i)%MaxBound(k) - mat%prop_field(i)%MinBound(k)) / &
+                                            real(mat%prop_field(i)%NN(k) - 1, fpp)
+                mat%prop_field(i)%imin(k) = 0
+                mat%prop_field(i)%imax(k) = mat%prop_field(i)%NN(k) - 1
             end do
-            ! --------    
-            allocate(mat%prop_field(i)%var(0:cx-1,0:cy-1,0:cz-1)) 
-        end do
-        
-        ! populate the elements for all properties with optimal cache locality
-        do ielz = 0, cz -1
-            do iely = 0, cy -1
-                do ielx = 0, cx -1
-                    do j = 1,mat%n_prop
-                        i = mapping(j)
-                        mat%prop_field(i)%var(ielx,iely,ielz) = elemtmp(j,ielx+1,iely+1,ielz+1)
-                    end do
-                end do
-            end do
-        end do
-        
-        do j = 1,mat%n_prop
-            i = mapping(j)
-            ! ------- check this thing here...
-            !if (i == 4) .OR. (i==5) .OR. (i==6) then
-            !    mat%prop_field(i)%var = mat%prop_field(i)%var/2
-            !end if 
-        end do
-        
-        !interp to reagular grid
-        write(*,*) "Cstar readed routine end on proc", rg
-        !stop 1
 
-        deallocate(buffer)
+            allocate(mat%prop_field(i)%var(0:cx*ndeg, 0:cy*ndeg, 0:cz*ndeg))
+            mat%prop_field(i)%var = elemtmp(j, 0:cx*ndeg, 0:cy*ndeg, 0:cz*ndeg)
+        end do
+
+        write(*,*) "Cstar read routine end on proc", rg
         deallocate(elemtmp)
     end subroutine init_prop_file_field_Cstar
 
