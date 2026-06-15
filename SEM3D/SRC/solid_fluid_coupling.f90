@@ -235,6 +235,14 @@ contains
 
 subroutine StoF_coupling(Tdomain, f0, f1)
     ! from solid to fluid: velocity (dot) normal
+    !
+    ! NOTE (anisotropic-density fluid, DM_FLUID_CG_ANISO): the solid<->fluid coupling needs
+    ! NO tensor-specific change. Pressure is p = -dPhi/dt (scalar) and StoF injects the
+    ! solid normal velocity; the anisotropic inverse-density tensor is already carried by
+    ! the volume kernel (boundary flux s.n = v.n). To support a solid<->aniso-fluid
+    ! interface, the SF enumeration must build intSolFlu maps pointing into Tdomain%fanisodom
+    ! and the lines below must target fanisodom (Phi/VelPhi/ForcesFl) instead of fdom.
+    ! Not wired here yet: requires the mesh-side SF interface detection for the aniso domain.
     use sdomain
     implicit none
 

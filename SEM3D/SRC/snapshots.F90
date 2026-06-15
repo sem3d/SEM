@@ -1795,7 +1795,10 @@ contains
                             case (DM_FLUID_CG)
                                 dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
                             case (DM_FLUID_CG_ANISO)
-                                dens(idx) = Tdomain%fanisodom%m_Rho(IND_IJKE(i,j,k,bnum,ee))
+                                ! isotropic-equivalent density = 3 / trace(rho^{-1})
+                                dens(idx) = 3d0/(Tdomain%fanisodom%IDensTensor_(0,i,j,k,bnum,ee) + &
+                                                 Tdomain%fanisodom%IDensTensor_(1,i,j,k,bnum,ee) + &
+                                                 Tdomain%fanisodom%IDensTensor_(2,i,j,k,bnum,ee))
                             case (DM_FLUID_CG_PML)
 #ifdef CPML
                                 dens(idx) = 0. ! Tdomain%fpmldom%Density_(i,j,k,bnum,ee) ! TODO
@@ -1835,9 +1838,7 @@ contains
                             case (DM_FLUID_CG)
                                 lamb(idx) = Tdomain%fdom%Lambda_        (i,j,k,bnum,ee)
                             case (DM_FLUID_CG_ANISO)
-                                lamb(idx) = (Tdomain%fanisodom%m_Kij(IND_DIJKE(0,i,j,k,bnum,ee)) + &
-                                             Tdomain%fanisodom%m_Kij(IND_DIJKE(1,i,j,k,bnum,ee)) + &
-                                             Tdomain%fanisodom%m_Kij(IND_DIJKE(2,i,j,k,bnum,ee))) / 3d0
+                                lamb(idx) = Tdomain%fanisodom%Lambda_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG_PML)
                                 lamb(idx) = Tdomain%fpmldom%Lambda_     (i,j,k,bnum,ee)
                             case default

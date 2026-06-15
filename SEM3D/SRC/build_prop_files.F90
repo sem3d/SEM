@@ -426,8 +426,13 @@ contains
             ! mapped to prop_field order C11,C22,C33,C44,C55,C66,C12,...,Rho
             mapping(1:22) = [1, 7, 8, 9, 10, 11, 2, 12, 13, 14, 15, 3, 16, 17, 18, 4, 19, 20, 5, 21, 6, 22]
         else
-            ! Acoustic Nd=3: upper-triangle row-major K11,K12,K13,K22,K23,K33,Rho
-            ! mapped to prop_field order K11,K22,K33,K12,K13,K23,Rho
+            ! Acoustic Nd=3 (DENSITY formulation, Capdeville & Cance 2015): the 6-component
+            ! tensor is the effective inverse-density rho*^{-1}_ij and the 7th value is the
+            ! effective inverse bulk modulus 1/kappa* (homofft get_iso_param_acoustic3d).
+            ! Byte layout: upper-triangle row-major (11,12,13,22,23,33) then 1/kappa*,
+            ! mapped to prop_field order (11,22,33,12,13,23) then 1/kappa*.
+            ! The prop_field keys keep the legacy K../Rho names for HDF5 I/O compatibility;
+            ! their physical meaning is set in init_material_properties_fluid_aniso_from_file.
             mapping(1:7) = [1, 4, 5, 2, 6, 3, 7]
         end if
 

@@ -289,7 +289,7 @@ contains
                 ! Domain FLUID ANISO
                 if (Tdomain%Comm_data%Data(n)%nfluaniso>0) then
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%champs(f1)%ForcesP, k)
+                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%champs(f1)%ForcesFl, k)
                 end if
 
                 ! Domain FLUID PML
@@ -338,7 +338,7 @@ contains
                 ! Domain FLUID ANISO
                 if (Tdomain%Comm_data%Data(n)%nfluaniso>0) then
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%champs(f1)%ForcesP, k)
+                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%champs(f1)%ForcesFl, k)
                 end if
 
                 ! Domain FLUID PML
@@ -724,9 +724,9 @@ contains
                                     Tdomain%fdom%champs(i1)%ForcesFl(idx) = val
                                 else if (dom == DM_FLUID_CG_ANISO) then
                                     idx = Tdomain%fanisodom%Idom_(i,j,k,bnum,ee)
-                                    val = Tdomain%fanisodom%champs(i1)%ForcesP(idx)
+                                    val = Tdomain%fanisodom%champs(i1)%ForcesFl(idx)
                                     val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
-                                    Tdomain%fanisodom%champs(i1)%ForcesP(idx) = val
+                                    Tdomain%fanisodom%champs(i1)%ForcesFl(idx) = val
                                 end if
                             enddo
                         enddo

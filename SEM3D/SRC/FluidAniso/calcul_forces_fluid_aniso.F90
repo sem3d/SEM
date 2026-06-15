@@ -2,45 +2,44 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-
-module m_calcul_forces_fluid_aniso
+module m_calcul_forces_fluid_aniso ! wrap subroutine in module to get arg type check at build time
 contains
 #include "index.h"
 
-    subroutine calcul_forces_fluid_aniso(dom,ngll,bnum,FFl,P)
+    subroutine calcul_forces_fluid_aniso(dom,ngll,bnum,FFl,Phi)
         use sdomain
         use deriv3d
         implicit none
-        type(domain_fluid_aniso), intent(INOUT) :: dom
+        type(domain_fluid_aniso), intent (INOUT) :: dom
         integer, intent(in) :: ngll
         integer, intent(in) :: bnum
         !
         integer :: nblocks
         real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: FFl
-        real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in)  :: P
+        real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Phi
         nblocks = dom%nblocks
         select case(ngll)
         case(4)
             call calcul_forces_fluid_aniso_4(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_Kij,FFl,P)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensTensor,FFl,Phi)
         case(5)
             call calcul_forces_fluid_aniso_5(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_Kij,FFl,P)
-        case(6)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensTensor,FFl,Phi)
+        case (6)
             call calcul_forces_fluid_aniso_6(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_Kij,FFl,P)
-        case(7)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensTensor,FFl,Phi)
+        case (7)
             call calcul_forces_fluid_aniso_7(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_Kij,FFl,P)
-        case(8)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensTensor,FFl,Phi)
+        case (8)
             call calcul_forces_fluid_aniso_8(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_Kij,FFl,P)
-        case(9)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensTensor,FFl,Phi)
+        case (9)
             call calcul_forces_fluid_aniso_9(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_Kij,FFl,P)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensTensor,FFl,Phi)
         case default
             call calcul_forces_fluid_aniso_n(ngll,nblocks,bnum,dom%hprime,dom%htprime,dom%gllw, &
-                dom%m_InvGrad,dom%m_Jacob,dom%m_Kij,FFl,P)
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensTensor,FFl,Phi)
         end select
     end subroutine calcul_forces_fluid_aniso
 

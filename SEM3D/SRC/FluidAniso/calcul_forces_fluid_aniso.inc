@@ -2,6 +2,11 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
+!! Anisotropic-density acoustic kernel: computes the weak-form internal forces of
+!!     (1/kappa) phi_tt = d_i( rho^{-1}_ij d_j phi )
+!! i.e. the "fluid-equivalent stress" is  s_i = rho^{-1}_ij d_j phi  with the symmetric
+!! inverse-density tensor m_IDensTensor (0:5 -> 11,22,33,12,13,23). This generalises the
+!! scalar  s_i = (1/rho) d_i phi  of the regular fluid (calcul_forces_fluid.inc).
 
 #include "index.h"
 
@@ -18,7 +23,7 @@
 
 #define USE_LOCAL_MEM
 
-subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_Kij,FFl,P)
+subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_IDensTensor,FFl,Phi)
     use sdomain
     use deriv3d
     implicit none
@@ -29,21 +34,21 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
 #endif
     integer, intent(in) :: bnum,nblocks
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: FFl
-    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in)  :: P
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in)  :: Phi
     real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime,htprime
     real(fpp), dimension(0:ngll-1), intent(in) :: gllw
     real(fpp), dimension(IND_MNIJKE(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_InvGrad
     real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)),            intent(in) :: m_Jacob
-    ! Kij components: 0=K11 1=K22 2=K33 3=K12 4=K13 5=K23
-    real(fpp), dimension(IND_DIJKE(0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)),       intent(in) :: m_Kij
+    ! Inverse-density tensor comps: 0=11 1=22 2=33 3=12 4=13 5=23
+    real(fpp), dimension(IND_DIJKE(0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)),        intent(in) :: m_IDensTensor
     !
-    real(fpp) :: dP_dX,dP_dY,dP_dZ
-    real(fpp) :: dP_dxi,dP_deta,dP_dzeta
+    real(fpp) :: dPhi_dX,dPhi_dY,dPhi_dZ
+    real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
     real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     integer :: i,j,k,l,ei,ee
     real(fpp) :: sx,sy,sz,t4
     real(fpp) :: xt1,xt6,xt10
-    real(fpp) :: K11,K22,K33,K12,K13,K23
+    real(fpp) :: B11,B22,B33,B12,B13,B23
 #ifdef USE_LOCAL_MEM
     real(fpp) :: t41,t11,t51,t12,t61,t13,F1
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t6,t10
@@ -51,11 +56,11 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
 #ifdef NGLLVAL
     if (ngll/=ngll0) stop 1
 #endif
-    !dir$ ASSUME_ALIGNED P: 32
+    !dir$ ASSUME_ALIGNED PHI: 32
     !dir$ ASSUME_ALIGNED FFL: 32
     !dir$ ASSUME_ALIGNED m_InvGrad: 32
     !dir$ ASSUME_ALIGNED m_Jacob: 32
-    !dir$ ASSUME_ALIGNED m_Kij: 32
+    !dir$ ASSUME_ALIGNED m_IDensTensor: 32
     !dir$ ASSUME_ALIGNED hprime: 32
     !dir$ ASSUME_ALIGNED htprime: 32
     !dir$ ASSUME_ALIGNED gllw: 32
@@ -66,15 +71,15 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
 !$omp simd linear(ee)
 #endif
                 BEGIN_SUBELEM_LOOP(ei,ee,bnum)
-                ! Reference-space gradient of P
-                dP_dxi   = 0D0
-                dP_deta  = 0D0
-                dP_dzeta = 0D0
+                ! Reference-space gradient of phi
+                dPhi_dxi   = 0D0
+                dPhi_deta  = 0D0
+                dPhi_dzeta = 0D0
                 !dir$ loop count (5)
                 DO L = 0, ngll-1
-                    dP_dxi   = dP_dxi   + P(ee,L,J,K)*hprime(L,I)
-                    dP_deta  = dP_deta  + P(ee,I,L,K)*hprime(L,J)
-                    dP_dzeta = dP_dzeta + P(ee,I,J,L)*hprime(L,K)
+                    dPhi_dxi   = dPhi_dxi  +Phi(ee,L,J,K)*hprime(L,I)
+                    dPhi_deta  = dPhi_deta +Phi(ee,I,L,K)*hprime(L,J)
+                    dPhi_dzeta = dPhi_dzeta+Phi(ee,I,J,L)*hprime(L,K)
                 END DO
 
                 xi1 = InvGrad_(0,0,i,j,k,bnum,ee)
@@ -86,47 +91,49 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
                 ga1 = InvGrad_(0,2,i,j,k,bnum,ee)
                 ga2 = InvGrad_(1,2,i,j,k,bnum,ee)
                 ga3 = InvGrad_(2,2,i,j,k,bnum,ee)
+                !- physical-space gradient of phi
+                dPhi_dx = dPhi_dxi*xi1 + dPhi_deta*et1 + dPhi_dzeta*ga1
+                dPhi_dy = dPhi_dxi*xi2 + dPhi_deta*et2 + dPhi_dzeta*ga2
+                dPhi_dz = dPhi_dxi*xi3 + dPhi_deta*et3 + dPhi_dzeta*ga3
 
-                ! Physical-space gradient of P
-                dP_dx = dP_dxi*xi1 + dP_deta*et1 + dP_dzeta*ga1
-                dP_dy = dP_dxi*xi2 + dP_deta*et2 + dP_dzeta*ga2
-                dP_dz = dP_dxi*xi3 + dP_deta*et3 + dP_dzeta*ga3
+                ! fluid-equivalent stress = physical velocity = rho^{-1}_ij d_j phi
+                B11 = IDensTensor_(0,i,j,k,bnum,ee)
+                B22 = IDensTensor_(1,i,j,k,bnum,ee)
+                B33 = IDensTensor_(2,i,j,k,bnum,ee)
+                B12 = IDensTensor_(3,i,j,k,bnum,ee)
+                B13 = IDensTensor_(4,i,j,k,bnum,ee)
+                B23 = IDensTensor_(5,i,j,k,bnum,ee)
 
-                ! Apply anisotropic stiffness tensor Kij: q = Kij * grad(P)
-                K11 = Kij_(0,i,j,k,bnum,ee)
-                K22 = Kij_(1,i,j,k,bnum,ee)
-                K33 = Kij_(2,i,j,k,bnum,ee)
-                K12 = Kij_(3,i,j,k,bnum,ee)
-                K13 = Kij_(4,i,j,k,bnum,ee)
-                K23 = Kij_(5,i,j,k,bnum,ee)
+                sx = B11*dPhi_dX + B12*dPhi_dY + B13*dPhi_dZ
+                sy = B12*dPhi_dX + B22*dPhi_dY + B23*dPhi_dZ
+                sz = B13*dPhi_dX + B23*dPhi_dY + B33*dPhi_dZ
 
-                sx = K11*dP_dX + K12*dP_dY + K13*dP_dZ
-                sy = K12*dP_dX + K22*dP_dY + K23*dP_dZ
-                sz = K13*dP_dX + K23*dP_dY + K33*dP_dZ
-
-                ! Project back to reference coordinates and weight
-                xt1  = sx*xi1 + sy*xi2 + sz*xi3
-                xt6  = sx*et1 + sy*et2 + sz*et3
+                !       F1
+                xt1 = sx*xi1 + sy*xi2 + sz*xi3
+                !       F2
+                xt6 = sx*et1 + sy*et2 + sz*et3
+                !       F3
                 xt10 = sx*ga1 + sy*ga2 + sz*ga3
 
-                t4   = Jacob_(i,j,k,bnum,ee) * gllw(i)
-                xt1  = xt1 * t4
+                !- Multiply by Jacobian and weight
+                t4  = Jacob_(i,j,k,bnum,ee) * gllw(i)
+                xt1 = xt1 * t4
 
-                t4   = Jacob_(i,j,k,bnum,ee) * gllw(j)
-                xt6  = xt6 * t4
+                t4  = Jacob_(i,j,k,bnum,ee) * gllw(j)
+                xt6 = xt6 * t4
 
                 t4   = Jacob_(i,j,k,bnum,ee) * gllw(k)
                 xt10 = xt10 * t4
 
 #ifdef USE_LOCAL_MEM
-                t1(ee,i,j,k)  = xt1
-                t6(ee,j,i,k)  = xt6
+                t1(ee,i,j,k) = xt1
+                t6(ee,j,i,k) = xt6
                 t10(ee,k,i,j) = xt10
 #else
                 DO L = 0, ngll-1
-                    FFl(ee,L,j,k) = FFl(ee,L,j,k) + hprime(L,I)*xt1*gllw(j)*gllw(k)
-                    FFl(ee,i,L,k) = FFl(ee,i,L,k) + hprime(L,J)*xt6*gllw(i)*gllw(k)
-                    FFl(ee,i,j,L) = FFl(ee,i,j,L) + hprime(L,K)*xt10*gllw(i)*gllw(j)
+                    FFl(ee,L,j,k) = FFl(ee,L,j,k) + hprime(L,I)*xt1*gllw(j) * gllw(k)
+                    FFl(ee,i,L,k) = FFl(ee,i,L,k) + hprime(L,J)*xt6*gllw(i) * gllw(k)
+                    FFl(ee,i,j,L) = FFl(ee,i,j,L) + hprime(L,K)*xt10*gllw(i) * gllw(j)
                 ENDDO
 #endif
 

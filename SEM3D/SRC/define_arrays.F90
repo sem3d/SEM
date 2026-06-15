@@ -545,8 +545,9 @@ contains
                     v1 = mat%Sspeed
                 end select
             case( MATERIAL_FILE )
-                ! MATDEF_FLUID_ANISO fields are Kij components (not Vp/Vs/Rho),
-                ! so skip the generic v0/v1/rho reads for that type.
+                ! MATDEF_FLUID_ANISO / CSTAR_FLUID fields are the inverse-density tensor
+                ! rho^{-1}_ij and 1/kappa (density formulation, Capdeville & Cance 2015),
+                ! not Vp/Vs/Rho, so skip the generic v0/v1/rho reads for that type.
                 if (mat%deftype /= MATDEF_FLUID_ANISO .and. mat%deftype /= CSTAR_FLUID) then
                     ! XXX interpolate rho/v0/v1 from file
                     call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), v0)
@@ -713,11 +714,7 @@ contains
             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
         case (DM_FLUID_CG_ANISO)
             if (mat%material_definition == MATERIAL_CONSTANT) then
-                Cij = 0.d0
-                Cij(1,1,:,:,:) = lambda
-                Cij(2,2,:,:,:) = lambda
-                Cij(3,3,:,:,:) = lambda
-                call init_material_properties_fluid_aniso_from_Cij(Tdomain, specel, mat, rho, Cij)
+                call init_material_properties_fluid_aniso_const(Tdomain, specel, mat, rho, lambda)
             else if (mat%material_definition == MATERIAL_FILE) then
                 call init_material_properties_fluid_aniso_from_file(Tdomain, specel, mat)
             end if
@@ -807,34 +804,35 @@ contains
 !
 !    end function materialIsConstant
 
-    subroutine init_material_properties_fluid_aniso_from_Cij(Tdomain, specel, mat, rho, Cij)
-        ! Maps the Cij tensor read from file (acoustic anisotropy) to the 6-component
-        ! Kij tensor used by domain_fluid_aniso.
-        ! Convention: Kij(0:5) = K11,K22,K33,K12,K13,K23
-        ! From the Cij stiffness matrix (Voigt notation), for acoustic anisotropy the
-        ! directional bulk moduli are taken as the upper-left 3x3 block:
-        !   K11=C11, K22=C22, K33=C33, K12=C12, K13=C13, K23=C23
+    subroutine init_material_properties_fluid_aniso_const(Tdomain, specel, mat, rho, lambda)
+        ! Constant (isotropic) acoustic material: the inverse-density tensor is isotropic,
+        ! rho^{-1}_ij = (1/rho) delta_ij, and the scalar bulk modulus is lambda (= kappa).
+        ! Anisotropy in the density (Capdeville & Cance 2015); see dom_fluid_aniso.F90.
         use dom_fluid_aniso
         implicit none
         type(domain), intent(inout) :: Tdomain
         type(element), intent(inout) :: specel
         type(subdomain), intent(in) :: mat
         real(fpp), intent(in), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: rho
-        real(fpp), intent(in), dimension(1:6,1:6,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Cij
+        real(fpp), intent(in), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: lambda
         !
-        real(fpp), dimension(0:5,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Kij
+        real(fpp), dimension(0:5,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: IDens
 
-        Kij(0,:,:,:) = Cij(1,1,:,:,:)  ! K11
-        Kij(1,:,:,:) = Cij(2,2,:,:,:)  ! K22
-        Kij(2,:,:,:) = Cij(3,3,:,:,:)  ! K33
-        Kij(3,:,:,:) = Cij(1,2,:,:,:)  ! K12
-        Kij(4,:,:,:) = Cij(1,3,:,:,:)  ! K13
-        Kij(5,:,:,:) = Cij(2,3,:,:,:)  ! K23
+        IDens(0,:,:,:) = 1d0/rho   ! rho^{-1}_11
+        IDens(1,:,:,:) = 1d0/rho   ! rho^{-1}_22
+        IDens(2,:,:,:) = 1d0/rho   ! rho^{-1}_33
+        IDens(3,:,:,:) = 0d0       ! rho^{-1}_12
+        IDens(4,:,:,:) = 0d0       ! rho^{-1}_13
+        IDens(5,:,:,:) = 0d0       ! rho^{-1}_23
 
-        call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, rho, Kij)
-    end subroutine init_material_properties_fluid_aniso_from_Cij
+        call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, IDens, lambda)
+    end subroutine init_material_properties_fluid_aniso_const
 
     subroutine init_material_properties_fluid_aniso_from_file(Tdomain, specel, mat)
+        ! Reads the acoustic Cstar produced by homofft (Capdeville & Cance 2015):
+        !   prop_field(1:6) = effective inverse-density tensor rho*^{-1}_ij (11,22,33,12,13,23)
+        !   prop_field(7)   = effective inverse bulk modulus 1/kappa*
+        ! Stored as m_IDensTensor = rho*^{-1}_ij and m_Lambda = kappa* = 1/(prop_field 7).
         use dom_fluid_aniso
         use build_prop_files
         implicit none
@@ -842,17 +840,18 @@ contains
         type(element), intent(inout) :: specel
         type(subdomain), intent(in) :: mat
         !
-        real(fpp), dimension(0:5,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: Kij
-        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: rho
+        real(fpp), dimension(0:5,0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: IDens
+        real(fpp), dimension(0:mat%NGLL-1,0:mat%NGLL-1,0:mat%NGLL-1) :: invkappa, lambda
 
-        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), Kij(0,:,:,:))
-        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), Kij(1,:,:,:))
-        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3), Kij(2,:,:,:))
-        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), Kij(3,:,:,:))
-        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), Kij(4,:,:,:))
-        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), Kij(5,:,:,:))
-        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), rho)
-        call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, rho, Kij)
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(1), IDens(0,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(2), IDens(1,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(3), IDens(2,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(4), IDens(3,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(5), IDens(4,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), IDens(5,:,:,:))
+        call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), invkappa)
+        lambda = 1d0/invkappa
+        call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, IDens, lambda)
     end subroutine init_material_properties_fluid_aniso_from_file
 
 end module mdefinitions

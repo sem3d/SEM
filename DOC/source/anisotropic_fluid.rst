@@ -6,7 +6,7 @@
 Anisotropic Fluid Formulation in SEM3D
 ======================================================
 
-Acoustic Wave Equation with Anisotropic Bulk Modulus Tensor
+Acoustic Wave Propagation with Anisotropy Carried by the DENSITY
 
 .. contents:: Contents
    :local:
@@ -16,122 +16,152 @@ Acoustic Wave Equation with Anisotropic Bulk Modulus Tensor
 Introduction
 ============
 
-This document describes the implementation of the anisotropic acoustic
-domain :code:`DM_FLUID_CG_ANISO` in :program:`SEM3D`, as found in
-:file:`SEM3D/SRC/FluidAniso/`.  The domain generalises the standard
-acoustic (isotropic fluid) domain by replacing the scalar bulk modulus
-:math:`\kappa` with a symmetric positive-definite 3×3 tensor
-:math:`\mathbf{K}`.
+This document describes the anisotropic acoustic domain
+:code:`DM_FLUID_CG_ANISO` in :program:`SEM3D`
+(:file:`SEM3D/SRC/FluidAniso/`).
 
-This formulation is appropriate for media where acoustic wave speed
-depends on propagation direction — for example, effective media derived
-from heterogeneous microstructures via homogenisation (:program:`homofft`).
+Unlike a naive "anisotropic bulk modulus" model, this domain places the
+anisotropy in the **density**, not in the bulk modulus. This is the physically
+correct effective behaviour obtained when one homogenises a finely layered or
+rough acoustic medium: the homogenisation produces an **anisotropic effective
+mass matrix** (an anisotropic inverse density), while the effective bulk
+modulus stays scalar.
+
+.. note::
+
+   **Reference.** P. Cance and Y. Capdeville, *Validity of the acoustic
+   approximation for elastic waves in heterogeneous media*, **Geophysics**
+   80(4), T161–T173, 2015 (doi:10.1190/geo2014-0397.1). The paper shows that
+   small-scale heterogeneities give rise to a *natural acoustic effective
+   anisotropy through an anisotropic effective mass matrix* — i.e. anisotropy
+   in the density. This domain is the SEM3D counterpart of that result and is
+   designed to consume the effective model produced by :program:`homofft`
+   (acoustic ``compute_effectiveL_r_3d``).
+
+The domain is implemented as a from-scratch counterpart of the regular fluid
+domain (:file:`SEM3D/SRC/Fluid/`), in the **velocity-potential** formulation,
+generalising the regular fluid's scalar inverse density
+:math:`\mathrm{IDensity}=1/\rho` to a symmetric positive-definite tensor.
 
 
 Governing Equation
-==================
+===================
 
-The anisotropic acoustic wave equation for the pressure field :math:`P` is:
+The unknown is the velocity potential :math:`\varphi`. With scalar bulk
+modulus :math:`\kappa` and symmetric inverse-density tensor
+:math:`\rho^{-1}_{ij}`:
 
 .. math::
 
-   \rho \, \frac{\partial^2 P}{\partial t^2}
+   \frac{1}{\kappa}\,\frac{\partial^2 \varphi}{\partial t^2}
    = \frac{\partial}{\partial x_i}
-     \left( K_{ij} \frac{\partial P}{\partial x_j} \right),
+     \left( \rho^{-1}_{ij}\,\frac{\partial \varphi}{\partial x_j} \right),
+   \qquad
+   v_i = \rho^{-1}_{ij}\,\frac{\partial \varphi}{\partial x_j},
 
-where :math:`\rho` is the density and :math:`\mathbf{K}` is the symmetric
-anisotropic bulk modulus tensor.  Einstein summation convention applies
-(:math:`i,j \in \{x,y,z\}`).
+with Einstein summation (:math:`i,j \in \{x,y,z\}`). The physical particle
+velocity :math:`v_i` is the contraction of the inverse-density tensor with the
+potential gradient. The pressure is :math:`p = -\dot\varphi`.
 
-In the isotropic limit (:math:`K_{ij} = \kappa\,\delta_{ij}`) this reduces
-to the standard acoustic wave equation :math:`\rho \ddot P = \kappa\,\nabla^2 P`
-with wave speed :math:`c = \sqrt{\kappa/\rho}`.
+In the isotropic limit (:math:`\rho^{-1}_{ij} = \rho^{-1}\delta_{ij}`) this
+reduces to the standard acoustic equation of the regular fluid domain,
+:math:`\kappa^{-1}\ddot\varphi = \nabla\cdot(\rho^{-1}\nabla\varphi)`, with
+wave speed :math:`c = \sqrt{\kappa/\rho}`.
+
+Comparison with the regular fluid
+---------------------------------
+
+============================  ==============================  ==============================
+Term                          Regular fluid (``Fluid``)       Anisotropic fluid (``FluidAniso``)
+============================  ==============================  ==============================
+Inertial / mass term          :math:`1/\kappa` (scalar)       :math:`1/\kappa` (scalar)
+Spatial operator coefficient  :math:`1/\rho` (scalar)         :math:`\rho^{-1}_{ij}` (tensor)
+Mass matrix                   :math:`\int J/\kappa`           :math:`\int J/\kappa` (identical)
+Particle velocity             :math:`\rho^{-1}\nabla\varphi`  :math:`\rho^{-1}_{ij}\partial_j\varphi`
+============================  ==============================  ==============================
+
+The mass matrix is therefore identical to the regular fluid; the only
+generalisation is that the scalar :math:`1/\rho` inside the spatial operator
+becomes the inverse-density tensor.
 
 
 Weak Form and Internal Forces
-------------------------------
+-----------------------------
 
-The spectral-element discretisation is based on the weak form.  Multiplying
-by a test function :math:`\varphi` and integrating by parts over an element
-:math:`\Omega_e`:
-
-.. math::
-
-   \int_{\Omega_e}
-     \mathbf{K}\,\nabla P \cdot \nabla\varphi \; dV.
-
-The integrand defines the internal force vector.  In the code
-(:file:`calcul_forces_fluid_aniso.inc`) this is assembled as:
+Multiplying by a test function and integrating by parts over an element gives
+the internal-force integrand assembled in
+:file:`calcul_forces_fluid_aniso.inc`:
 
 .. math::
 
-   \mathbf{q} = \mathbf{K}\,\nabla P,
+   \mathbf{s} = \boldsymbol{\rho}^{-1}\,\nabla\varphi,
    \qquad
-   \text{i.e.}\quad
-   \begin{pmatrix} q_x \\ q_y \\ q_z \end{pmatrix}
+   \begin{pmatrix} s_x \\ s_y \\ s_z \end{pmatrix}
    =
    \begin{pmatrix}
-     K_{11} & K_{12} & K_{13} \\
-     K_{12} & K_{22} & K_{23} \\
-     K_{13} & K_{23} & K_{33}
+     \rho^{-1}_{11} & \rho^{-1}_{12} & \rho^{-1}_{13} \\
+     \rho^{-1}_{12} & \rho^{-1}_{22} & \rho^{-1}_{23} \\
+     \rho^{-1}_{13} & \rho^{-1}_{23} & \rho^{-1}_{33}
    \end{pmatrix}
    \begin{pmatrix}
-     \partial P/\partial x \\
-     \partial P/\partial y \\
-     \partial P/\partial z
+     \partial \varphi/\partial x \\
+     \partial \varphi/\partial y \\
+     \partial \varphi/\partial z
    \end{pmatrix}.
 
-The resulting flux :math:`\mathbf{q}` is then projected back to reference
-coordinates and accumulated into the element force vector via the standard
-SEM transpose-differentiation step.
+The flux :math:`\mathbf{s}` (which is also the particle velocity) is projected
+back to reference coordinates and accumulated into the element force vector via
+the standard SEM transpose-differentiation step — exactly as in the regular
+fluid kernel, but with the scalar :math:`1/\rho` replaced by the tensor.
 
 
-The Kij Tensor
-==============
+The inverse-density tensor
+==========================
 
 Storage convention
 ------------------
 
-The six independent components of :math:`\mathbf{K}` are stored in the
-array ``m_Kij(0:5,...)`` following the index ordering:
+The six independent components of :math:`\rho^{-1}_{ij}` are stored in
+``m_IDensTensor(0:5,...)``; the scalar bulk modulus :math:`\kappa` is stored in
+``m_Lambda``:
 
 .. math::
 
    \begin{array}{cl}
-     \texttt{m\_Kij(0)} & K_{11} \\
-     \texttt{m\_Kij(1)} & K_{22} \\
-     \texttt{m\_Kij(2)} & K_{33} \\
-     \texttt{m\_Kij(3)} & K_{12} \\
-     \texttt{m\_Kij(4)} & K_{13} \\
-     \texttt{m\_Kij(5)} & K_{23} \\
+     \texttt{m\_IDensTensor(0)} & \rho^{-1}_{11} \\
+     \texttt{m\_IDensTensor(1)} & \rho^{-1}_{22} \\
+     \texttt{m\_IDensTensor(2)} & \rho^{-1}_{33} \\
+     \texttt{m\_IDensTensor(3)} & \rho^{-1}_{12} \\
+     \texttt{m\_IDensTensor(4)} & \rho^{-1}_{13} \\
+     \texttt{m\_IDensTensor(5)} & \rho^{-1}_{23} \\
+     \texttt{m\_Lambda}         & \kappa \\
    \end{array}
+
+The tensor must be symmetric positive-definite for the scheme to be stable.
 
 Relation to wave speeds
 -----------------------
 
-For an orthorhombic medium (:math:`K_{12}=K_{13}=K_{23}=0`) the tensor is
-diagonal and the wave speeds along the principal axes are:
+For an orthorhombic medium (:math:`\rho^{-1}_{12}=\rho^{-1}_{13}=\rho^{-1}_{23}=0`)
+the principal-axis wave speeds are:
 
 .. math::
 
-   V_x = \sqrt{\frac{K_{11}}{\rho}}, \quad
-   V_y = \sqrt{\frac{K_{22}}{\rho}}, \quad
-   V_z = \sqrt{\frac{K_{33}}{\rho}}.
+   V_x = \sqrt{\kappa\,\rho^{-1}_{11}}, \quad
+   V_y = \sqrt{\kappa\,\rho^{-1}_{22}}, \quad
+   V_z = \sqrt{\kappa\,\rho^{-1}_{33}}.
 
-Equivalently, given velocities one sets:
+Equivalently, given speeds and a scalar bulk modulus :math:`\kappa`:
 
 .. math::
 
-   K_{11} = \rho V_x^2, \quad
-   K_{22} = \rho V_y^2, \quad
-   K_{33} = \rho V_z^2.
+   \rho^{-1}_{11} = V_x^2/\kappa, \quad
+   \rho^{-1}_{22} = V_y^2/\kappa, \quad
+   \rho^{-1}_{33} = V_z^2/\kappa.
 
-Isotropic limit
----------------
-
-When :math:`K_{11}=K_{22}=K_{33}=\kappa` and
-:math:`K_{12}=K_{13}=K_{23}=0`, the domain is equivalent to a standard
-isotropic fluid with bulk modulus :math:`\kappa`.
+The CFL phase speed used in :func:`fluid_aniso_Pspeed` is
+:math:`\sqrt{\kappa\,\lambda_{\max}(\boldsymbol{\rho}^{-1})}`, bounded above via
+the Gershgorin radius of the symmetric tensor.
 
 
 Material Input Formats
@@ -140,31 +170,38 @@ Material Input Formats
 Two input formats are supported, selected via the ``deftype`` keyword in
 ``material.spec``.
 
+.. warning::
+
+   The values supplied are the **inverse-density tensor** and the **inverse
+   bulk modulus**, not a stiffness tensor and a density. For historical I/O
+   compatibility the HDF5 group / ``prop_field`` keys retain the legacy names
+   ``K11..K23`` and ``Rho``, but their physical content is now
+   :math:`\rho^{-1}_{ij}` and :math:`1/\kappa` respectively. The
+   interpretation is fixed in
+   :func:`init_material_properties_fluid_aniso_from_file`.
+
 Fluid_Aniso (HDF5 file)
 -----------------------
 
 ``deftype = Fluid_Aniso;`` (constant index 17)
 
-All seven properties are read from a single HDF5 file specified by
-``filename``.  The file must contain one named group per component:
+Seven datasets are read from a single HDF5 file:
 
-============  ===================================  =======================
-Group name    Description                          Unit
-============  ===================================  =======================
-``K11``       Diagonal component :math:`K_{11}`   Pa
-``K22``       Diagonal component :math:`K_{22}`   Pa
-``K33``       Diagonal component :math:`K_{33}`   Pa
-``K12``       Off-diagonal :math:`K_{12}`          Pa
-``K13``       Off-diagonal :math:`K_{13}`          Pa
-``K23``       Off-diagonal :math:`K_{23}`          Pa
-``Rho``       Density :math:`\rho`                 kg/m³
-============  ===================================  =======================
+============  ==============================================  =======================
+Group name    Physical content                                Unit
+============  ==============================================  =======================
+``K11``       :math:`\rho^{-1}_{11}`                          m³/kg
+``K22``       :math:`\rho^{-1}_{22}`                          m³/kg
+``K33``       :math:`\rho^{-1}_{33}`                          m³/kg
+``K12``       :math:`\rho^{-1}_{12}`                          m³/kg
+``K13``       :math:`\rho^{-1}_{13}`                          m³/kg
+``K23``       :math:`\rho^{-1}_{23}`                          m³/kg
+``Rho``       :math:`1/\kappa` (inverse bulk modulus)         Pa⁻¹
+============  ==============================================  =======================
 
-Each group must expose the standard SEM material-file attributes:
-
-- ``xMinGlob`` — float64 array of size 3, minimum coordinates of the grid
-- ``xMaxGlob`` — float64 array of size 3, maximum coordinates of the grid
-- ``samples``  — float64 dataset with shape ``(nx, ny, nz)``, :math:`n \geq 2`
+Each group exposes the standard SEM material-file attributes ``xMinGlob``,
+``xMaxGlob`` (float64[3]) and a ``samples`` dataset of shape ``(nx,ny,nz)``,
+:math:`n\geq 2`.
 
 Example ``material.spec``::
 
@@ -175,21 +212,22 @@ Example ``material.spec``::
     filename = "mat_fluid_aniso.h5";
   };
 
-A minimal Python script to generate the HDF5 file for an orthorhombic
-medium with :math:`V_x=1500`, :math:`V_y=1200`, :math:`V_z=900` m/s and
-:math:`\rho=1000` kg/m³:
+Python generator for an orthorhombic medium with :math:`V_x=1500`,
+:math:`V_y=1200`, :math:`V_z=900` m/s and bulk modulus
+:math:`\kappa=2.25\times10^{9}` Pa:
 
 .. code-block:: python
 
    import numpy as np, h5py
 
-   RHO = 1000.0
+   KAPPA = 2.25e9                      # scalar bulk modulus [Pa]
+   inv_kappa = 1.0/KAPPA               # stored under legacy key "Rho"
    components = {
-       "K11": RHO * 1500.0**2,   # 2.25e9 Pa
-       "K22": RHO * 1200.0**2,   # 1.44e9 Pa
-       "K33": RHO *  900.0**2,   # 8.10e8 Pa
+       "K11": 1500.0**2/KAPPA,         # rho^{-1}_11 = Vx^2/kappa
+       "K22": 1200.0**2/KAPPA,         # rho^{-1}_22 = Vy^2/kappa
+       "K33":  900.0**2/KAPPA,         # rho^{-1}_33 = Vz^2/kappa
        "K12": 0.0, "K13": 0.0, "K23": 0.0,
-       "Rho": RHO,
+       "Rho": inv_kappa,               # 1/kappa  (NOT density)
    }
    with h5py.File("mat_fluid_aniso.h5", "w") as f:
        for name, value in components.items():
@@ -203,21 +241,28 @@ Cstar_Fluid (binary file from homofft)
 
 ``deftype = Cstar_Fluid;`` (constant index 18)
 
-The seven properties are read from a binary Cstar file produced by the
-:program:`homofft` homogenisation program, using its acoustic output
-(``Nd = 3``).  The binary format is the same as the elastic ``CStar``
-format but restricted to the :math:`3\times 3` upper-triangle, giving
-7 values per grid point (6 Kij components + density).
-
-The on-disk component order (upper-triangle row-major of the 3×3 tensor)
-is:
+The acoustic ``Cstar`` produced by :program:`homofft` (``Nd = 3``) is read
+directly. Per :file:`homo/src/cut_cstar3d.f90` (``get_iso_param_acoustic3d``),
+homofft writes, per grid point, the effective **inverse-density tensor**
+:math:`\rho^{*-1}_{ij}` (the ``LIJ`` matrix) plus the effective **inverse bulk
+modulus** :math:`1/\kappa^{*}` (``invkappa``). The on-disk component order is
+the upper-triangle row-major of the symmetric tensor followed by the scalar:
 
 .. math::
 
-   K_{11},\; K_{12},\; K_{13},\; K_{22},\; K_{23},\; K_{33},\; \rho
+   \rho^{*-1}_{11},\; \rho^{*-1}_{12},\; \rho^{*-1}_{13},\;
+   \rho^{*-1}_{22},\; \rho^{*-1}_{23},\; \rho^{*-1}_{33},\; 1/\kappa^{*}
 
-which is mapped internally to the ``prop_field`` convention
-``(K11, K22, K33, K12, K13, K23, Rho)`` used by the rest of the domain.
+mapped internally (``build_prop_files.F90``) to the ``prop_field`` order
+:math:`(\rho^{-1}_{11},\rho^{-1}_{22},\rho^{-1}_{33},\rho^{-1}_{12},
+\rho^{-1}_{13},\rho^{-1}_{23},\,1/\kappa)`. SEM3D stores
+``m_IDensTensor = `` :math:`\rho^{*-1}` and
+``m_Lambda = `` :math:`\kappa^{*} = 1/(\text{7th value})`.
+
+This is the contract that lets :program:`homofft` and :program:`SEM3D`
+"talk": the same ``Cstar`` written by homogenisation is consumed without
+reinterpretation. A round-trip check (values written by homofft vs. values
+loaded into ``m_IDensTensor`` / ``m_Lambda``) is the recommended verification.
 
 Example ``material.spec``::
 
@@ -225,8 +270,27 @@ Example ``material.spec``::
     domain   = fluid;
     deftype  = Cstar_Fluid;
     spacedef = file;
-    filename = "mat_cstar_fluid.h5";
+    filename = "mat_cstar_fluid";
   };
+
+
+Solid–Fluid Coupling
+====================
+
+At a solid–fluid interface the usual conditions hold: continuity of normal
+displacement and of traction (pressure). In the velocity-potential
+formulation the fluid displacement is :math:`u^f_i = \rho^{-1}_{ij}\partial_j\varphi`,
+so the normal projection used in the solid→fluid term involves the **normal
+contraction of the inverse-density tensor**, :math:`n_i\rho^{-1}_{ij}`, instead
+of the scalar :math:`1/\rho` of the isotropic case; the fluid→solid term uses
+the pressure :math:`p=-\dot\varphi`. See
+:file:`SEM3D/SRC/solid_fluid_coupling.f90`.
+
+.. note::
+
+   Coupling of the anisotropic fluid through a :abbr:`PML (Perfectly Matched
+   Layer)` is not covered in this formulation; only the non-PML interface is
+   supported.
 
 
 Implementation Notes
@@ -238,17 +302,16 @@ Source files
 =================================================  ==============================================
 File                                               Purpose
 =================================================  ==============================================
-:file:`SEM3D/SRC/FluidAniso/dom_fluid_aniso.F90`  Domain type, ``m_Kij``/``m_Rho`` storage,
-                                                   ``init_material_properties_fluid_aniso``
+:file:`SEM3D/SRC/FluidAniso/champs_fluid_aniso.f90`  Domain type: ``m_IDensTensor`` (:math:`\rho^{-1}`),
+                                                   ``m_Lambda`` (:math:`\kappa`), champs ``Phi,VelPhi,ForcesFl``
+:file:`SEM3D/SRC/FluidAniso/dom_fluid_aniso.F90`   Alloc, material init, mass, forces, Newmark,
+                                                   velocity (tensor), Pspeed, energy diagnostics
 :file:`SEM3D/SRC/FluidAniso/calcul_forces_fluid_aniso.inc`
-                                                   Internal force kernel (vectorised with VCHUNK)
-:file:`SEM3D/SRC/build_prop_files.F90`             Property name registration and file reading
-                                                   for ``Fluid_Aniso`` and ``Cstar_Fluid``
-:file:`SEM3D/SRC/define_arrays.F90`                Dispatch to ``init_material_properties_fluid_aniso``
-                                                   for both ``MATERIAL_CONSTANT`` and
-                                                   ``MATERIAL_FILE`` paths
-:file:`COMMON/constants.F90`                       Constants ``MATDEF_FLUID_ANISO = 17``,
-                                                   ``CSTAR_FLUID = 18``
+                                                   Internal-force kernel (vectorised with VCHUNK)
+:file:`SEM3D/SRC/build_prop_files.F90`             Property registration / Cstar reading
+:file:`SEM3D/SRC/define_arrays.F90`                Material dispatch (constant and file paths);
+                                                   ``..._from_file`` sets :math:`\kappa = 1/(1/\kappa)`
+:file:`COMMON/constants.F90`                       ``MATDEF_FLUID_ANISO = 17``, ``CSTAR_FLUID = 18``
 =================================================  ==============================================
 
 Material-type identifiers
@@ -256,24 +319,24 @@ Material-type identifiers
 
 .. code-block:: fortran
 
-   integer, parameter :: MATDEF_FLUID_ANISO = 17  ! HDF5 Kij groups
+   integer, parameter :: MATDEF_FLUID_ANISO = 17  ! HDF5: rho^{-1} groups + 1/kappa
    integer, parameter :: CSTAR_FLUID        = 18  ! homofft binary Cstar (acoustic)
 
 Domain identifier
 -----------------
 
-The character ``'A'`` in ``material.input`` activates the
-``DM_FLUID_CG_ANISO`` domain (domain index 7).  When ``material.spec`` is
-used instead, set ``domain = fluid`` together with one of the two
-``deftype`` values above.
+The character ``'A'`` in ``material.input`` activates ``DM_FLUID_CG_ANISO``
+(domain index 7). With ``material.spec``, set ``domain = fluid`` together with
+one of the two ``deftype`` values above.
 
 
 Test Cases
 ==========
 
-- :file:`SEM3D/TESTS/NON-REGR/TEST_0009_cube_fluid_aniso` — constant
-  material defined in ``material.input``; isotropic-equivalent properties.
-- :file:`SEM3D/TESTS/NON-REGR/TEST_0010_cube_fluid_aniso_h5` — spatially
-  varying material read from an HDF5 file; truly anisotropic with
-  :math:`V_x=1500`, :math:`V_y=1200`, :math:`V_z=900` m/s.
-  The HDF5 file is generated by ``gen_mat_h5.py`` in the test directory.
+- :file:`SEM3D/TESTS/NON-REGR/TEST_0009_cube_fluid_aniso` — constant material;
+  isotropic-equivalent (:math:`\rho^{-1}_{ij}=\rho^{-1}\delta_{ij}`) so the
+  result must match the regular fluid domain.
+- :file:`SEM3D/TESTS/NON-REGR/TEST_0010_cube_fluid_aniso_h5` — spatially varying
+  material from HDF5; truly anisotropic density. The HDF5 file is generated by
+  ``gen_mat_h5.py`` in the test directory (regenerate it with the
+  inverse-density / ``1/kappa`` convention above).
