@@ -941,8 +941,8 @@ contains
             call write_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs(0)%Phi)
         end if
         if (Tdomain%fanisodom%nglltot.gt.0) then
-            call write_dataset(elem_id, "faniso_VelP", Tdomain%fanisodom%champs(0)%VelP)
-            call write_dataset(elem_id, "faniso_P",    Tdomain%fanisodom%champs(0)%P)
+            call write_dataset(elem_id, "faniso_VelPhi", Tdomain%fanisodom%champs(0)%VelPhi)
+            call write_dataset(elem_id, "faniso_Phi",    Tdomain%fanisodom%champs(0)%Phi)
         end if
         if (Tdomain%spmldom%nglltot.gt.0) then
 #ifdef CPML
