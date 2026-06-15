@@ -43,7 +43,8 @@ subroutine global_numbering(Tdomain)
     call renumber_interface(Tdomain, Tdomain%intSolPml, DM_SOLID_CG, DM_SOLID_CG_PML)
     call renumber_interface(Tdomain, Tdomain%intFluPml, DM_FLUID_CG, DM_FLUID_CG_PML)
     if (Tdomain%logicD%SF_local_present) then
-        call renumber_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG)
+        call renumber_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, &
+            merge(DM_FLUID_CG_ANISO, DM_FLUID_CG, Tdomain%SF%fluid_is_aniso))
         call renumber_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_CG_PML, DM_FLUID_CG_PML)
     end if
     do k=0,size(Tdomain%sSurfaces)-1
@@ -1013,7 +1014,8 @@ subroutine prepare_comm_surface(Tdomain, comm_data)
     Comm_data%ncomm = ncomm
 
     ! Compte le nb de points GLL commun entre Tdomain%SF%intSolFlu%surf1 et les points de Tdomain
-    call build_comms_surface(Tdomain, comm_data, Tdomain%SF%intSolFlu%surf1, DM_FLUID_CG)
+    call build_comms_surface(Tdomain, comm_data, Tdomain%SF%intSolFlu%surf1, &
+        merge(DM_FLUID_CG_ANISO, DM_FLUID_CG, Tdomain%SF%fluid_is_aniso))
     call build_comms_surface(Tdomain, comm_data, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_CG_PML)
 
     do n = 0, comm_data%ncomm-1

@@ -72,14 +72,30 @@ contains
         call apply_mat_to_faces(Tdomain)
         call apply_mat_to_edges(Tdomain)
         call apply_mat_to_vertices(Tdomain)
+        ! Detect a solid <-> anisotropic-density fluid interface (uniform aniso region):
+        ! the mesher writes it into the "sf" group (it cannot know a material is aniso),
+        ! so route intSolFlu to DM_FLUID_CG_ANISO when its fluid side is aniso.
+        Tdomain%SF%fluid_is_aniso = .false.
+        do i = 0, Tdomain%SF%intSolFlu%surf1%n_faces-1
+            if (Tdomain%sFace(Tdomain%SF%intSolFlu%surf1%if_faces(i))%domain == DM_FLUID_CG_ANISO) then
+                Tdomain%SF%fluid_is_aniso = .true.
+                exit
+            end if
+        end do
+
         call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID_CG, DM_SOLID_CG_PML, .false.)
         call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID_CG, DM_FLUID_CG_PML, .false.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .false.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_CG_PML, DM_FLUID_CG_PML, .false.)
         call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID_CG, DM_SOLID_CG_PML, .true.)
         call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID_CG, DM_FLUID_CG_PML, .true.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .true.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_CG_PML, DM_FLUID_CG_PML, .true.)
+        if (Tdomain%SF%fluid_is_aniso) then
+            call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG_ANISO, .false.)
+            call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG_ANISO, .true.)
+        else
+            call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .false.)
+            call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .true.)
+        end if
 
     end subroutine read_material_file
 

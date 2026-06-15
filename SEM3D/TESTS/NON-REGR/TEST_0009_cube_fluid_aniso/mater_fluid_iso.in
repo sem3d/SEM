@@ -1,0 +1,8 @@
+# Regular (isotropic) acoustic fluid domain (type 'F') -- reference for the
+# isotropic-equivalent sanity check of the anisotropic-density domain (type 'A').
+# Same Vp and Rho as mater.in: the FluidAniso constant case builds
+# rho^{-1}_ij = (1/rho) delta_ij and kappa = rho*Vp^2, so both domains must
+# produce identical seismograms (up to machine precision).
+# Format: type Vp Vs Rho Qp Qmu
+1
+F 1500.0 0.0 1000.0 0.0 0.0

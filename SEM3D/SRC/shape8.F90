@@ -131,7 +131,8 @@ contains
 
         ! Solid-Fluid interfaces : normal vectors
         if(Tdomain%logicD%SF_local_present)then
-            call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, DM_FLUID_CG, Tdomain%SF%SF_BtN)
+            call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, &
+                merge(DM_FLUID_CG_ANISO, DM_FLUID_CG, Tdomain%SF%fluid_is_aniso), Tdomain%SF%SF_BtN)
             call compute_normals(Tdomain, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_CG_PML, Tdomain%SF%SFpml_BtN)
 !            call dump_sf_btn(Tdomain,"BEFORE  ")
             call exchange_sf_normals(Tdomain)

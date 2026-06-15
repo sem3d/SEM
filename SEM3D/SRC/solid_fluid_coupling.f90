@@ -239,10 +239,10 @@ subroutine StoF_coupling(Tdomain, f0, f1)
     ! NOTE (anisotropic-density fluid, DM_FLUID_CG_ANISO): the solid<->fluid coupling needs
     ! NO tensor-specific change. Pressure is p = -dPhi/dt (scalar) and StoF injects the
     ! solid normal velocity; the anisotropic inverse-density tensor is already carried by
-    ! the volume kernel (boundary flux s.n = v.n). To support a solid<->aniso-fluid
-    ! interface, the SF enumeration must build intSolFlu maps pointing into Tdomain%fanisodom
-    ! and the lines below must target fanisodom (Phi/VelPhi/ForcesFl) instead of fdom.
-    ! Not wired here yet: requires the mesh-side SF interface detection for the aniso domain.
+    ! the volume kernel (boundary flux s.n = v.n). When Tdomain%SF%fluid_is_aniso is set
+    ! (detected in read_input for a uniformly-aniso fluid region), intSolFlu has been
+    ! renumbered against DM_FLUID_CG_ANISO and the loops below target Tdomain%fanisodom.
+    ! Mixed regular+aniso fluid touching the same solid, and aniso PML, are not supported.
     use sdomain
     implicit none
 
@@ -267,16 +267,22 @@ subroutine StoF_coupling(Tdomain, f0, f1)
         idxS = Tdomain%SF%intSolFlu%surf0%map(i)
         idxF = Tdomain%SF%intSolFlu%surf1%map(i)
         BtN = Tdomain%SF%SF_Btn(:,i)
+        ! normal velocity (or displacement, CPML) of the solid side
         vn = 0.
         do j = 0,2
 #ifdef CPML
-            Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) &
-                                                     + (BtN(j) * Tdomain%sdom%champs(f0)%Depla(idxS,j))
+            vn = vn + (BtN(j) * Tdomain%sdom%champs(f0)%Depla(idxS,j))
 #else
-            Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) &
-                                                     + (BtN(j) * Tdomain%sdom%champs(f0)%Veloc(idxS,j))
+            vn = vn + (BtN(j) * Tdomain%sdom%champs(f0)%Veloc(idxS,j))
 #endif
         enddo
+        ! Inject into the fluid: no tensor math needed (anisotropy is in the volume
+        ! kernel); only the target domain differs (aniso-density vs regular fluid).
+        if (Tdomain%SF%fluid_is_aniso) then
+            Tdomain%fanisodom%champs(f1)%ForcesFl(idxF) = Tdomain%fanisodom%champs(f1)%ForcesFl(idxF) + vn
+        else
+            Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) + vn
+        end if
     enddo
 
     do i = 0,ngll_sf_pml-1
@@ -317,6 +323,7 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
     integer :: ngll_sf, ngll_sf_pml
     integer :: i,j
     integer :: idxS, idxF
+    real(fpp) :: pf
 #ifdef CPML
     real(fpp) :: nphi(0:2)
 #endif
@@ -328,16 +335,24 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         idxS = Tdomain%SF%intSolFlu%surf0%map(i)
         idxF = Tdomain%SF%intSolFlu%surf1%map(i)
         BtN = Tdomain%SF%SF_Btn(:,i)
-        do j = 0,2
+        ! Pressure proxy from the fluid side (p scalar, density-anisotropy agnostic):
+        !   non-CPML: dPhi/dt = -p   ;   CPML: d2Phi/dt2 = -p
+        if (Tdomain%SF%fluid_is_aniso) then
 #ifdef CPML
-            ! Le potentiel Phi est tel que d2Phi/dt2 = -p
-            Tdomain%sdom%champs(f1)%Veloc(idxS,j) = Tdomain%sdom%champs(f1)%Veloc(idxS,j) &
-                                                     - (BtN(j) * Tdomain%fdom%champs(f0)%ForcesFl(idxF))
+            pf = Tdomain%fanisodom%champs(f0)%ForcesFl(idxF)
 #else
-            ! Le potentiel Phi est tel que dPhi/dt = -p
-            Tdomain%sdom%champs(f1)%Veloc(idxS,j) = Tdomain%sdom%champs(f1)%Veloc(idxS,j) &
-                                                     - (BtN(j) * Tdomain%fdom%champs(f0)%VelPhi(idxF))
+            pf = Tdomain%fanisodom%champs(f0)%VelPhi(idxF)
 #endif
+        else
+#ifdef CPML
+            pf = Tdomain%fdom%champs(f0)%ForcesFl(idxF)
+#else
+            pf = Tdomain%fdom%champs(f0)%VelPhi(idxF)
+#endif
+        end if
+        do j = 0,2
+            Tdomain%sdom%champs(f1)%Veloc(idxS,j) = Tdomain%sdom%champs(f1)%Veloc(idxS,j) &
+                                                     - (BtN(j) * pf)
         enddo
     enddo
 
