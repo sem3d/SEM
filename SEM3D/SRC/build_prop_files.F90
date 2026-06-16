@@ -265,7 +265,7 @@ contains
 
         real(4), dimension(:,:,:,:), allocatable :: buffer
         real(fpp), dimension(:,:,:,:), allocatable :: elemtmp, fbuf, tmp1, tmp2
-        integer, dimension(3) :: list
+        integer, dimension(0:2) :: list
         integer :: irec, ier, nelem_needed
         integer :: rg
 
@@ -304,12 +304,16 @@ contains
         if (ndeg < 1) stop 'Cstar: ndeg < 1 not supported'
         ncomp = Nd*(Nd+1)/2+1
 
-        ix(0) = floor(mat%MinBound_Loc(0)/rxel)
-        ix(1) = ceiling(mat%MaxBound_Loc(0)/rxel)
-        iy(0) = floor(mat%MinBound_Loc(1)/ryel)
-        iy(1) = ceiling(mat%MaxBound_Loc(1)/ryel)
-        iz(0) = floor(mat%MinBound_Loc(2)/rzel)
-        iz(1) = ceiling(mat%MaxBound_Loc(2)/rzel)
+        ! Structured-grid element indices are measured from the homofft whole-domain
+        ! origin (xs/ys/zs_whole_domain in the header), NOT from x=0. Without this offset
+        ! a mesh with negative coordinates yields negative record numbers (irec<=0) and the
+        ! direct-access read fails (ier=25), leaving the buffer uninitialised -> NaN material.
+        ix(0) = floor((mat%MinBound_Loc(0) - xs_whole_domain)/rxel)
+        ix(1) = ceiling((mat%MaxBound_Loc(0) - xs_whole_domain)/rxel)
+        iy(0) = floor((mat%MinBound_Loc(1) - ys_whole_domain)/ryel)
+        iy(1) = ceiling((mat%MaxBound_Loc(1) - ys_whole_domain)/ryel)
+        iz(0) = floor((mat%MinBound_Loc(2) - zs_whole_domain)/rzel)
+        iz(1) = ceiling((mat%MaxBound_Loc(2) - zs_whole_domain)/rzel)
 
         cx = ix(1)-ix(0)
         cy = iy(1)-iy(0)
@@ -374,7 +378,11 @@ contains
                     list(2) = ielz+1
                     irec = iheader + list(0) + (list(1)-1)*nelx + (list(2)-1)*nelx*nely
                     read(unit, rec=irec, iostat=ier) buffer
-                    if (ier /= 0) write(*,*) 'READ error at irec=', irec, ' ier=', ier
+                    if (ier /= 0) then
+                        write(*,*) 'FATAL: Cstar READ failed at irec=', irec, &
+                                   ' (list=', list, ') ier=', ier
+                        stop 'Cstar: record out of range - check domain origin/bounds'
+                    end if
 
                     ! Type conversion: real(4) buffer (1-indexed) -> real(fpp) fbuf (0-indexed)
                     fbuf = real(buffer, fpp)
@@ -440,12 +448,14 @@ contains
 
         do j = 1, mat%n_prop
             i = mapping(j)
-            mat%prop_field(i)%MinBound(0) = ix(0)*rxel
-            mat%prop_field(i)%MaxBound(0) = ix(1)*rxel
-            mat%prop_field(i)%MinBound(1) = iy(0)*ryel
-            mat%prop_field(i)%MaxBound(1) = iy(1)*ryel
-            mat%prop_field(i)%MinBound(2) = iz(0)*rzel
-            mat%prop_field(i)%MaxBound(2) = iz(1)*rzel
+            ! Add the whole-domain origin back so the prop-field bounds are in the SEM
+            ! mesh physical frame used by interpolate_elem_field (mirror of the offset above).
+            mat%prop_field(i)%MinBound(0) = ix(0)*rxel + xs_whole_domain
+            mat%prop_field(i)%MaxBound(0) = ix(1)*rxel + xs_whole_domain
+            mat%prop_field(i)%MinBound(1) = iy(0)*ryel + ys_whole_domain
+            mat%prop_field(i)%MaxBound(1) = iy(1)*ryel + ys_whole_domain
+            mat%prop_field(i)%MinBound(2) = iz(0)*rzel + zs_whole_domain
+            mat%prop_field(i)%MaxBound(2) = iz(1)*rzel + zs_whole_domain
 
             mat%prop_field(i)%NN(0) = cx*ndeg + 1
             mat%prop_field(i)%NN(1) = cy*ndeg + 1
