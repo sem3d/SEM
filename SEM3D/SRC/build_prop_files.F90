@@ -76,13 +76,15 @@ contains
             mat%prop_field(7)%propName = "Qkappa"
             mat%prop_field(8)%propName = "Qmu"
         case(MATDEF_FLUID_ANISO, CSTAR_FLUID)
-            mat%prop_field(1)%propName = "K11"
-            mat%prop_field(2)%propName = "K22"
-            mat%prop_field(3)%propName = "K33"
-            mat%prop_field(4)%propName = "K12"
-            mat%prop_field(5)%propName = "K13"
-            mat%prop_field(6)%propName = "K23"
-            mat%prop_field(7)%propName = "Rho"
+            ! Acoustic anisotropy (Capdeville & Cances 2015, DENSITY formulation):
+            ! iRho.. = effective inverse-density tensor rho*^{-1}_ij ; iKappa = 1/kappa*
+            mat%prop_field(1)%propName = "iRho11"
+            mat%prop_field(2)%propName = "iRho22"
+            mat%prop_field(3)%propName = "iRho33"
+            mat%prop_field(4)%propName = "iRho12"
+            mat%prop_field(5)%propName = "iRho13"
+            mat%prop_field(6)%propName = "iRho23"
+            mat%prop_field(7)%propName = "iKappa"
         case(MATDEF_HOOKE_ANISO,CSTAR)
             mat%prop_field(1)%propName = "C11"
             mat%prop_field(2)%propName = "C22"
@@ -431,7 +433,7 @@ contains
             ! effective inverse bulk modulus 1/kappa* (homofft get_iso_param_acoustic3d).
             ! Byte layout: upper-triangle row-major (11,12,13,22,23,33) then 1/kappa*,
             ! mapped to prop_field order (11,22,33,12,13,23) then 1/kappa*.
-            ! The prop_field keys keep the legacy K../Rho names for HDF5 I/O compatibility;
+            ! The prop_field keys are iRho11..iRho23 (inverse-density tensor) and iKappa (1/kappa*);
             ! their physical meaning is set in init_material_properties_fluid_aniso_from_file.
             mapping(1:7) = [1, 4, 5, 2, 6, 3, 7]
         end if
