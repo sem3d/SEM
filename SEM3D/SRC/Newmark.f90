@@ -661,7 +661,7 @@ contains
         real(kind=fpp), intent(in)  :: timer
         integer, intent(in) :: i1
         integer :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee, ntimecur, dom
-        real(kind=fpp) :: t, ft, val, force, timercur
+        real(kind=fpp) :: t, ft, val, force, timercur, fint
 
         if (Tdomain%mirror_type==1) return
         !!!if (Tdomain%mirror_type>=1) return
@@ -727,6 +727,27 @@ contains
                                     val = Tdomain%fanisodom%champs(i1)%ForcesFl(idx)
                                     val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
                                     Tdomain%fanisodom%champs(i1)%ForcesFl(idx) = val
+                                end if
+                            enddo
+                        enddo
+                    enddo
+                else if(Tdomain%sSource(ns)%i_type_source == 7)then    ! pressure source in fluid
+                    ! p = -VelPhi and the source enters at the phi-acceleration (ForcesFl) level,
+                    ! so injecting the running time integral int(f dt) makes the pressure-equation
+                    ! source equal f(t) instead of its derivative (cf. fluidpulse, type 3).
+                    Tdomain%sSource(ns)%time_integral = Tdomain%sSource(ns)%time_integral + ft*Tdomain%TimeD%dtmin
+                    fint = Tdomain%sSource(ns)%time_integral
+                    do k = 0,ngll-1
+                        do j = 0,ngll-1
+                            do i = 0,ngll-1
+                                if (dom == DM_FLUID_CG) then
+                                    idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
+                                    Tdomain%fdom%champs(i1)%ForcesFl(idx) = &
+                                        Tdomain%fdom%champs(i1)%ForcesFl(idx) + fint*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
+                                else if (dom == DM_FLUID_CG_ANISO) then
+                                    idx = Tdomain%fanisodom%Idom_(i,j,k,bnum,ee)
+                                    Tdomain%fanisodom%champs(i1)%ForcesFl(idx) = &
+                                        Tdomain%fanisodom%champs(i1)%ForcesFl(idx) + fint*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
                                 end if
                             enddo
                         enddo

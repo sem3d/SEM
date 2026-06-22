@@ -41,7 +41,8 @@ const keyword_t kw_source_type[] = {
     { 4, "dirac_proj"},
     { 5, "gaussian"},
     { 6, "strain_source"},
-    { 7, NULL },
+    { 7, "pressure"},
+    { 8, NULL },
 };
 
 const keyword_t kw_pml_type[] = {

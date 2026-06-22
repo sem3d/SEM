@@ -187,6 +187,11 @@ contains
                     call source_excit_pulse_fluid(Tdomain, nels, Tdomain%sSource(nsour), ngll, GLLc)
                 else if(Tdomain%sSource(nsour)%i_type_source == 2)then
                     call source_excit_moment(Tdomain%sSource(nsour), ngll, GLLc)
+                else if (Tdomain%sSource(nsour)%i_type_source == 7) then
+                    ! pressure source in fluid: same spatial weighting as fluidpulse (-w/kappa);
+                    ! the time integral int(f dt) is applied in external_forces so that the
+                    ! pressure-equation source equals f(t) (p = -VelPhi, source enters at phi-accel level)
+                    call source_excit_pulse_fluid(Tdomain, nels, Tdomain%sSource(nsour), ngll, GLLc)
                 end if  ! end i_type_source
                 deallocate(GLLc)
             end if

@@ -31,6 +31,7 @@ module ssources
        real(fpp)                   :: ts                        ! time shift
        integer                     :: i_time_function           ! source type (ricker, gabor, etc.)
        integer                     :: Nt                        ! Nb of time samples (for a source file)
+       real(fpp)                   :: time_integral             ! running int(f dt) for pressure source (i_type_source==7)
 
        ! MOMENT SOURCE
        real(fpp), dimension(0:2,0:2)             :: InvGrad     ! Inverse Jacobian

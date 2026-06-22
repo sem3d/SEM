@@ -290,6 +290,7 @@ contains
             Tdomain%Ssource(nsrc)%Ysource = src%coords(2)
             Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
             Tdomain%Ssource(nsrc)%i_type_source = src%type
+            Tdomain%Ssource(nsrc)%time_integral = 0._fpp   ! pressure source (type 7): running int(f dt)
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
             if (src%func .eq. 5) then
                 Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
