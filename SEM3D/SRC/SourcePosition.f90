@@ -78,8 +78,12 @@ subroutine SourcePosition (Tdomain)
                 is_fluid = .true.
                 is_solid = .false.
             end if
-            if(Tdomain%sSource(n_src)%i_type_source == 3 .and. is_solid) n_el = -1
-            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. is_fluid) n_el = -1
+            ! fluid sources: 3 (fluidpulse) and 7 (pressure). Reject them in a solid,
+            ! and reject any non-fluid source type in a fluid.
+            if((Tdomain%sSource(n_src)%i_type_source == 3 .or. &
+                Tdomain%sSource(n_src)%i_type_source == 7) .and. is_solid) n_el = -1
+            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. &
+               Tdomain%sSource(n_src)%i_type_source /= 7 .and. is_fluid) n_el = -1
         endif
 
         Tdomain%Ssource(n_src)%elem = n_el
