@@ -220,7 +220,6 @@ contains
             pf%imin(k) = gindex(min_bound_loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))
             pf%imax(k) = gindex(max_bound_loc(k), pf%NN(k), pf%MinBound(k), pf%MaxBound(k))+1
             pf%step(k) = (pf%MaxBound(k)-pf%MinBound(k))/(pf%NN(k)-1)
-            write(*,*) "k: ", k, "imin: ",pf%imin(k), "imax: ",pf%imax(k), "step: ",pf%step(k)
             if ((pf%imax(k)-pf%imin(k))<1) pf%imin(k) = pf%imax(k)-1
             if (pf%imin(k)<0) then
                 pf%imin(k) = 0
