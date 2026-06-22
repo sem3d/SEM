@@ -1506,6 +1506,43 @@ contains
 
 
             end if
+            ! anisotropic-density fluid: density tensor rho_ij + bulk modulus kappa
+            if (Tdomain%any_fanisodom) then
+                write(61,"(a)") '<Attribute Name="rho11" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="rho11" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/rho11</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="rho22" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="rho22" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/rho22</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="rho33" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="rho33" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/rho33</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="rho12" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="rho12" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/rho12</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="rho13" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="rho13" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/rho13</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="rho23" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="rho23" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/rho23</DataItem>'
+                write(61,"(a)") '</Attribute>'
+
+                write(61,"(a)") '<Attribute Name="kappa" Center="Node" AttributeType="Scalar">'
+                write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="kappa" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
+                        '">geometry',group,'.h5:/Kappa</DataItem>'
+                write(61,"(a)") '</Attribute>'
+            end if
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar">'
             write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" NumberType="Int"  Dimensions="',nn, &
@@ -1544,6 +1581,8 @@ contains
         real(fpp), dimension(:),allocatable :: C44, C45, C46
         real(fpp), dimension(:),allocatable :: C55, C56
         real(fpp), dimension(:),allocatable :: C66
+        real(fpp), dimension(:),allocatable :: rho11, rho22, rho33, rho12, rho13, rho23
+        real(fpp) :: rB11, rB22, rB33, rB12, rB13, rB23, rdet
         real(fpp), dimension(:,:,:,:), allocatable :: grad_La
         real(fpp), dimension(:,:,:,:), allocatable :: grad_Mu
         real(fpp), dimension(:,:),allocatable :: grad_La_n,grad_Mu_n 
@@ -1589,6 +1628,14 @@ contains
 
             allocate(C66(0:nnodes-1))
 
+        end if
+        if (Tdomain%any_fanisodom) then
+            allocate(rho11(0:nnodes-1))
+            allocate(rho22(0:nnodes-1))
+            allocate(rho33(0:nnodes-1))
+            allocate(rho12(0:nnodes-1))
+            allocate(rho13(0:nnodes-1))
+            allocate(rho23(0:nnodes-1))
         end if
         if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
             allocate(grad_La_n(0:2,0:nnodes-1))
@@ -1907,7 +1954,7 @@ contains
                             case (DM_FLUID_CG)
                                 kappa(idx) = -1d0
                             case (DM_FLUID_CG_ANISO)
-                                kappa(idx) = -1d0
+                                kappa(idx) = Tdomain%fanisodom%Lambda_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG_PML)
                                 kappa(idx) = -1d0
                             case default
@@ -1975,6 +2022,50 @@ contains
                 end do
             end do
         end if
+        !!! rho_ij for the anisotropic-density fluid (Capdeville & Cance 2015):
+        !!! m_IDensTensor stores the inverse-density tensor rho^{-1}_ij; output the density
+        !!! tensor rho_ij = (rho^{-1})^{-1} (the quantity itself, not its inverse). kappa is
+        !!! filled above directly from m_Lambda. det~0 -> -1 (skip, do not abort).
+        if (Tdomain%any_fanisodom) then
+            do n = 0,Tdomain%n_elem-1
+                if (.not. Tdomain%specel(n)%OUTPUT) cycle
+                ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+                bnum = Tdomain%specel(n)%lnum/VCHUNK
+                ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                            if (Tdomain%specel(n)%domain == DM_FLUID_CG_ANISO) then
+                                rB11 = Tdomain%fanisodom%IDensTensor_(0,i,j,k,bnum,ee)
+                                rB22 = Tdomain%fanisodom%IDensTensor_(1,i,j,k,bnum,ee)
+                                rB33 = Tdomain%fanisodom%IDensTensor_(2,i,j,k,bnum,ee)
+                                rB12 = Tdomain%fanisodom%IDensTensor_(3,i,j,k,bnum,ee)
+                                rB13 = Tdomain%fanisodom%IDensTensor_(4,i,j,k,bnum,ee)
+                                rB23 = Tdomain%fanisodom%IDensTensor_(5,i,j,k,bnum,ee)
+                                rdet = rB11*(rB22*rB33-rB23*rB23) &
+                                     - rB12*(rB12*rB33-rB23*rB13) &
+                                     + rB13*(rB12*rB23-rB22*rB13)
+                                if (abs(rdet) <= tiny(1._fpp)) then
+                                    rho11(idx) = -1d0; rho22(idx) = -1d0; rho33(idx) = -1d0
+                                    rho12(idx) = -1d0; rho13(idx) = -1d0; rho23(idx) = -1d0
+                                else
+                                    rho11(idx) =  (rB22*rB33 - rB23*rB23)/rdet
+                                    rho22(idx) =  (rB11*rB33 - rB13*rB13)/rdet
+                                    rho33(idx) =  (rB11*rB22 - rB12*rB12)/rdet
+                                    rho12(idx) = -(rB12*rB33 - rB13*rB23)/rdet
+                                    rho13(idx) =  (rB12*rB23 - rB13*rB22)/rdet
+                                    rho23(idx) = -(rB11*rB23 - rB12*rB13)/rdet
+                                end if
+                            else
+                                rho11(idx) = -1d0; rho22(idx) = -1d0; rho33(idx) = -1d0
+                                rho12(idx) = -1d0; rho13(idx) = -1d0; rho23(idx) = -1d0
+                            end if
+                        end do
+                    end do
+                end do
+            end do
+        end if
         call grp_write_real_1d(outputs, fid, "Mass", nnodes, mass, nnodes_tot)
 #ifdef CPML
 #ifdef DEBUG_CPML
@@ -2020,6 +2111,15 @@ contains
 
             call grp_write_real_1d(outputs, fid, "C66", nnodes, C66,  nnodes_tot)
         end if
+        if (Tdomain%any_fanisodom) then
+            ! density tensor rho_ij (kappa is written above as "Kappa")
+            call grp_write_real_1d(outputs, fid, "rho11", nnodes, rho11, nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "rho22", nnodes, rho22, nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "rho33", nnodes, rho33, nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "rho12", nnodes, rho12, nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "rho13", nnodes, rho13, nnodes_tot)
+            call grp_write_real_1d(outputs, fid, "rho23", nnodes, rho23, nnodes_tot)
+        end if
         ! GRAD LAMBDA
         if (Tdomain%out_var_snap(OUT_GRAD_LA) == 1) then
             call grp_write_real_2d(outputs, fid, "GradLa_gll", 3, nnodes, grad_La_n, nnodes_tot)
@@ -2063,6 +2163,13 @@ contains
         if(allocated(C56)) deallocate(C56)
 
         if(allocated(C66)) deallocate(C66)
+
+        if(allocated(rho11)) deallocate(rho11)
+        if(allocated(rho22)) deallocate(rho22)
+        if(allocated(rho33)) deallocate(rho33)
+        if(allocated(rho12)) deallocate(rho12)
+        if(allocated(rho13)) deallocate(rho13)
+        if(allocated(rho23)) deallocate(rho23)
 
 #ifdef CPML
 
