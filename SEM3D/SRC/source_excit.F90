@@ -108,6 +108,10 @@ contains
             lambda = interp_lag(Tdomain%fpmldom%ngll,Tdomain%fpmldom%GLLc,xi,eta,zeta,&
                 Tdomain%fpmldom%Lambda_(:,:,:,bnum,ee))
         end if
+        if(Tdomain%specel(nels)%domain==DM_FLUID_CG_ANISO) then
+            lambda = interp_lag(Tdomain%fanisodom%ngll,Tdomain%fanisodom%GLLc,xi,eta,zeta,&
+                Tdomain%fanisodom%Lambda_(:,:,:,bnum,ee))
+        end if
         src%ExtForce(:,:,:,0) = -src%ExtForce(:,:,:,0)/lambda
         ! point source = moment tensor M (explosion is a special case: M(i,j) = delta _(ij))
 
