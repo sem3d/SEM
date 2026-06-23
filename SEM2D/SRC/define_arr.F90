@@ -23,6 +23,7 @@ subroutine define_arrays(Tdomain)
 
     use sdomain
     use scompute_coeff_HDG
+    use build_prop_files_2d
     use mpi
 
     implicit none
@@ -312,6 +313,13 @@ subroutine define_arrays(Tdomain)
                    duux,duuz,wx_prime,wz_prime,Whei,RKmod,Jac,Rmu,Rlam)
 
     enddo
+
+    ! anisotropic-from-file materials: read Cstar.h5 and override the mass +
+    ! force-kernel coefficients on aniso elements HERE, before the mass is assembled to
+    ! faces/vertices (so rho-from-Cstar / 1-over-kappa propagate into the global mass).
+    call read_aniso_material_2d(Tdomain)      ! Cij2d, Density(=Rho), IDensTensor2d, invKappa2d
+    call build_aniso_acoeff_2d(Tdomain)       ! elastic: Acoeff + mass (rho from Cstar)
+    call build_aniso_fluid_coeff_2d(Tdomain)  ! fluid:   AcoeffFl + mass (1/kappa)
 
 
     ! Communication inside the processor - Assembling Masses

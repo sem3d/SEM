@@ -84,11 +84,21 @@ subroutine Newmark (Tdomain)
             mat = Tdomain%specel(n)%mat_index
             if (.not. Tdomain%specel(n)%PML ) then
                 call get_Displ_fv2el (Tdomain,n)
-                call compute_InternalForces_Elem (Tdomain%specel(n), &
-                    Tdomain%sSubDomain(mat)%hprimex,  &
-                    Tdomain%sSubDomain(mat)%hTprimex, &
-                    Tdomain%sSubDomain(mat)%hprimez,  &
-                    Tdomain%sSubDomain(mat)%hTprimez)
+                if (allocated(Tdomain%specel(n)%AcoeffFl)) then
+                    ! fluid-aniso velocity potential rides in component 0 of the gathered
+                    ! field; scalar (1/kappa)phi_tt = div(rho^-1 grad phi).
+                    call compute_InternalForcesFl_Elem (Tdomain%specel(n), &
+                        Tdomain%sSubDomain(mat)%hprimex,  &
+                        Tdomain%sSubDomain(mat)%hTprimex, &
+                        Tdomain%sSubDomain(mat)%hprimez,  &
+                        Tdomain%sSubDomain(mat)%hTprimez)
+                else
+                    call compute_InternalForces_Elem (Tdomain%specel(n), &
+                        Tdomain%sSubDomain(mat)%hprimex,  &
+                        Tdomain%sSubDomain(mat)%hTprimex, &
+                        Tdomain%sSubDomain(mat)%hprimez,  &
+                        Tdomain%sSubDomain(mat)%hTprimez)
+                end if
 
             elseif (Tdomain%specel(n)%CPML) then
                 call compute_InternalForces_CPML_Elem (Tdomain%specel(n), &

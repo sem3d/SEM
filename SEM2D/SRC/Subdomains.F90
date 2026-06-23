@@ -30,6 +30,12 @@ module ssubdomains
 
        character(len=1) :: material_type
 
+       ! anisotropic-from-file metadata (set from material.spec)
+       integer :: deftype = -1               ! COMMON MATDEF_* code (-1 = legacy/isotropic)
+       integer :: material_definition = 0    ! 0 = constant (legacy), 1 = file (material.spec)
+       integer :: n_prop = 0                 ! number of properties in the Cstar file
+       character(len=256) :: prop_file = ""  ! path to the Cstar.h5 (or binary) material file
+
     end type Subdomain
 
 contains

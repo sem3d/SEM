@@ -365,8 +365,60 @@ subroutine read_material_file(Tdomain)
         call Lame_coefficients (Tdomain%sSubDomain(i))
     enddo
 
+    ! overlay anisotropic-from-file metadata from material.spec
+    call read_material_aniso_spec(Tdomain)
+
 end subroutine read_material_file
 
+!---------------------------------------------------------------------------
+subroutine read_material_aniso_spec(Tdomain)
+    ! Read material.spec via the shared COMMON parser and record the
+    ! anisotropic-from-file metadata on the subdomains (deftype, file, n_prop).
+    ! The actual tensor is read later (read_aniso_material_2d). Subdomains without
+    ! a material.spec entry, or constant/isotropic ones, keep what read_material_file produced.
+    use iso_c_binding
+    use sem_c_config
+    implicit none
+    type(domain), intent(inout) :: Tdomain
+    type(sem_material_list) :: matlist
+    type(sem_material), pointer :: matdesc
+    integer :: code, num, nprop
+    logical :: present_spec
+
+    inquire(file="material.spec", exist=present_spec)
+    if (.not. present_spec) return   ! optional: isotropic runs keep working unchanged
+
+    call read_sem_materials(matlist, Tdomain%Mpi_var%my_rank, "material.spec"//C_NULL_CHAR, code)
+    if (.not. c_associated(matlist%head)) return
+    call c_f_pointer(matlist%head, matdesc)
+    do while(associated(matdesc))
+        num = matdesc%num
+        if (num >= 0 .and. num <= Tdomain%n_mat-1) then
+            Tdomain%sSubDomain(num)%deftype = matdesc%deftype
+            if (matdesc%defspatial == 1) then          ! spacedef = file
+                Tdomain%sSubDomain(num)%material_definition = 1
+                select case (matdesc%deftype)
+                case (MATDEF_HOOKE_ANISO, CSTAR)
+                    nprop = 7                          ! 2D elastic: C11,C12,C13,C22,C23,C33,Rho
+                case (MATDEF_FLUID_ANISO, CSTAR_FLUID)
+                    nprop = 4                          ! 2D acoustic: iRho11,iRho12,iRho22,iKappa
+                case default
+                    nprop = 0
+                end select
+                Tdomain%sSubDomain(num)%n_prop = nprop
+                Tdomain%sSubDomain(num)%prop_file = trim(fromcstr(matdesc%filename0))
+                if (Tdomain%Mpi_var%my_rank == 0) then
+                    write(*,'(a,i0,a,i0,a,i0,2a)') ' [aniso/BlockA] subdomain ', num, &
+                         ': deftype=', matdesc%deftype, ' n_prop=', nprop, &
+                         ' file=', trim(Tdomain%sSubDomain(num)%prop_file)
+                end if
+            else
+                Tdomain%sSubDomain(num)%material_definition = 0   ! constant (legacy path)
+            end if
+        end if
+        call c_f_pointer(matdesc%next, matdesc)
+    end do
+end subroutine read_material_aniso_spec
 
 end module sdomain
 

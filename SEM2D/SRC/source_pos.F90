@@ -77,6 +77,10 @@ subroutine SourcePosition(Tdomain)
                 call source_excit_strain(Tdomain, Tdomain%sSource(nsour))
             else if  (Tdomain%sSource(nsour)%i_type_source == 5) then
                 call source_space_gaussian(Tdomain, Tdomain%sSource(nsour))
+            else if (Tdomain%sSource(nsour)%i_type_source == 3) then ! fluidpulse (fluid)
+                call source_excit_fluid(Tdomain, Tdomain%sSource(nsour))
+            else if (Tdomain%sSource(nsour)%i_type_source == 7) then ! pressure: not available in 2D
+                stop "source type 7 (pressure) is not implemented for the 2D fluid -- use type 3 (fluidpulse)"
             endif
         end if
     enddo
@@ -113,6 +117,45 @@ subroutine source_excit_pulse(Tdomain, src)
     enddo
 
 end subroutine source_excit_pulse
+
+! ###########################################################
+!>
+!! \brief Fluid (velocity-potential) source for i_type_source = 3 (fluidpulse).
+!! Injects the Lagrange weight into component 0 (the phi equation); component 1 is
+!! left at 0. Since phi rides in component 0, Compute_external_forces adds
+!! CompSource(t)*ExtForce to Forces(:,:,0). (Type 7 / pressure is rejected upstream.)
+!<
+subroutine source_excit_fluid(Tdomain, src)
+    use sdomain
+    use constants
+    use ssources
+    use ssubdomains
+    implicit none
+    type(Domain), intent(inout) :: Tdomain
+    type(Subdomain), pointer :: mat
+    type(Source), intent(inout) :: src
+    integer :: n, i, j, ngllx, ngllz, nmat, nnelem
+    real(fpp) :: weta, wxi
+
+    do n = 0, src%ine-1
+        nnelem = src%Elem(n)%nr
+        nmat = Tdomain%specel(nnelem)%mat_index
+        mat => Tdomain%sSubdomain(nmat)
+        ngllx = mat%ngllx
+        ngllz = mat%ngllz
+
+        allocate(src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
+        do j = 0,ngllz-1
+            call pol_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta, weta)
+            do i = 0,ngllx-1
+                call pol_lagrange (ngllx, mat%GLLcx, i, src%Elem(n)%xi, wxi )
+                src%Elem(n)%ExtForce (i,j,0) = wxi*weta   ! into the phi equation (component 0)
+                src%Elem(n)%ExtForce (i,j,1) = 0._fpp
+            enddo
+        enddo
+    enddo
+
+end subroutine source_excit_fluid
 
 
 ! Following subroutine added for testing JP proposition

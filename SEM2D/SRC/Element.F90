@@ -28,6 +28,19 @@ module selement
        real(fpp), dimension(:,:,:), allocatable :: Forces,Stress,Veloc,Displ,Accel,V0
        real(fpp), dimension(:,:,:), allocatable :: ACoeff
        real(fpp), dimension(:,:,:,:), allocatable :: InvGrad
+       ! 2D Voigt stiffness tensor (3,3,0:ngllx-1,0:ngllz-1) for anisotropic-from-file
+       ! elastic elements; allocated only on such elements.
+       real(fpp), dimension(:,:,:,:), allocatable :: Cij2d
+       ! Anisotropic-density fluid, velocity-potential formulation:
+       ! (1/kappa) phi_tt = div(rho^-1 grad phi); v = rho^-1 grad phi; pressure p = -VelPhi.
+       ! Allocated only on fluid-aniso elements.
+       real(fpp), dimension(:,:,:,:), allocatable :: IDensTensor2d ! (2,2,0:ngllx-1,0:ngllz-1) = rho^-1_ij
+       real(fpp), dimension(:,:), allocatable :: invKappa2d        ! (0:ngllx-1,0:ngllz-1) = 1/kappa*
+       real(fpp), dimension(:,:), allocatable :: Phi, VelPhi       ! potential (interior nodes) and d(phi)/dt
+       real(fpp), dimension(:,:), allocatable :: ForcesFl          ! scalar RHS (full element nodes)
+       ! scalar stiffness coeffs A_fl (0:2 -> (1,1),(1,2),(2,2)) and 1/kappa mass
+       real(fpp), dimension(:,:,:), allocatable :: AcoeffFl
+       real(fpp), dimension(:,:), allocatable :: MassMatFl
        logical :: OUTPUT, is_source
 
        ! PML allocation
@@ -336,6 +349,40 @@ contains
 
         return
     end subroutine compute_InternalForces_Elem
+
+    ! ###########################################################
+    !>
+    !! \brief Fluid-aniso (velocity potential) scalar internal "force"
+    !!   ForcesFl = d_xi(fluxxi) + d_eta(fluxeta), with
+    !!     fluxxi  = AcoeffFl(0)*dphi_dxi + AcoeffFl(1)*dphi_deta
+    !!     fluxeta = AcoeffFl(1)*dphi_dxi + AcoeffFl(2)*dphi_deta
+    !!   AcoeffFl = -Whei*Jac * G^T rho^-1 G (built in build_aniso_fluid_coeff_2d).
+    !! The potential phi rides in component 0 of the gathered field
+    !! Elem%Forces(:,:,0) (component 1 unused). On entry Forces(:,:,0)=gathered phi;
+    !! on exit Forces(:,:,0)=RHS and Forces(:,:,1)=0. Scalar analogue of
+    !! compute_InternalForces_Elem; called instead of it for fluid-aniso elements.
+    !<
+    subroutine compute_InternalForcesFl_Elem (Elem, hprime, hTprime, hprimez, hTprimez)
+        implicit none
+        type (Element), intent (INOUT) :: Elem
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: phil, dphi_dxi, dphi_deta, s0, fl
+
+        phil = Elem%Forces(:,:,0)
+        dphi_dxi  = MATMUL ( hTprime, phil )
+        dphi_deta = MATMUL ( phil, hprimez )
+
+        s0 = Elem%AcoeffFl(:,:,0)*dphi_dxi + Elem%AcoeffFl(:,:,1)*dphi_deta
+        fl = MATMUL ( hprime, s0 )
+
+        s0 = Elem%AcoeffFl(:,:,1)*dphi_dxi + Elem%AcoeffFl(:,:,2)*dphi_deta
+        fl = fl + MATMUL ( s0, hTprimez )
+
+        Elem%Forces(:,:,0) = fl
+        Elem%Forces(:,:,1) = 0._fpp
+        return
+    end subroutine compute_InternalForcesFl_Elem
 
 
 
