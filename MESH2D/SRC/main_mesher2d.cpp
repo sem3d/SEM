@@ -531,6 +531,15 @@ struct Material2D {
     int    ngll;
     double dt;
     double qp, qs;
+    // PML descriptor (type=='P' only), as read by Domain.F90 read_material_file:
+    //   Filtering npow Apow Px Left Pz Down omegac kc
+    bool   is_pml;
+    bool   px, left, pz, down;  // PML in x / on x-min side ; PML in z / on z-min side
+    int    npow;
+    double apow, omegac, kc;
+    Material2D() : type('S'), vp(0), vs(0), rho(0), ngll(5), dt(0), qp(0), qs(0),
+                   is_pml(false), px(false), left(false), pz(false), down(false),
+                   npow(2), apow(10.), omegac(0.), kc(0.) {}
 };
 
 // mater.in (2D): a header-commented file, then
@@ -561,17 +570,33 @@ static void read_materials_2d(const char* fname, vector<Material2D>& mats)
 // material.input (2D), read by Domain.F90 read_material_file:
 //   n_mat
 //   <type> <Vp> <Vs> <Rho> <NGLLx> <mid> <NGLLz> <Dt> <Qp> <Qs>      (n_mat lines)
-// (PML descriptor block appended in stage 3.)
+//   [if any 'P' material:]
+//   <two comment/header lines>
+//   <Filtering npow Apow Px Left Pz Down omegac kc>                  (one per 'P', in order)
 static void write_materials_2d(const char* fname, const vector<Material2D>& mats)
 {
     FILE* f = fopen(fname, "w");
     if (!f) {printf("ERR: cannot write %s\n", fname); exit(1);}
     fprintf(f, "%ld\n", mats.size());
+    int npml = 0;
     for(size_t k=0;k<mats.size();++k) {
         const Material2D& m = mats[k];
         fprintf(f, "%c %g %g %g %d %d %d %g %g %g\n",
                 m.type, m.vp, m.vs, m.rho,
                 m.ngll, m.ngll, m.ngll, m.dt, m.qp, m.qs);
+        if (m.is_pml) npml++;
+    }
+    if (npml>0) {
+        fprintf(f, "# Specifications for PMLs\n");
+        fprintf(f, "# Filtering, npow, Apow, Px, Left, Pz, Down, omegac, kc\n");
+        for(size_t k=0;k<mats.size();++k) {
+            const Material2D& m = mats[k];
+            if (!m.is_pml) continue;
+            fprintf(f, "F %d %g %c %c %c %c %g %g\n",
+                    m.npow, m.apow,
+                    m.px?'T':'F', m.left?'T':'F', m.pz?'T':'F', m.down?'T':'F',
+                    m.omegac, m.kc);
+        }
     }
     fclose(f);
 }
@@ -583,18 +608,28 @@ struct RectMesh2D {
     int    nlayers;
     vector<double> thickness;
     vector<int>    nsteps;
-    int    has_pml;
-    int    elem_shape;   // 4 = Quad4
+    int    npml;          // number of PML element layers (0 = no PML)
+    bool   pml_W, pml_E, pml_U, pml_D; // PML present on each side
+    int    ngll_pml;      // NGLL for PML elements (<=0 -> use base material NGLL)
+    int    npow;          // PML attenuation exponent
+    double apow, omegac, kc;
+    int    elem_shape;    // 4 = Quad4
     int    nelemx, nelemz;
+    // PML material cache: key (layer,W,E,U,D) -> material index (appended to mats)
+    map<int,int> pml_cache;
 
     void read_params(const char* fname);
-    void build(Mesh2D& mesh);
+    void apply_pml_borders();
+    int  get_mat(vector<Material2D>& mats, int layer, bool W, bool E, bool U, bool D);
+    void build(Mesh2D& mesh, vector<Material2D>& mats);
     int  pointidx(int i, int zlev) const { return i + zlev*(nelemx+1); }
 };
 
 // mat.dat (2D) = the 3D mat.dat without the y-block:
 //   xmin / xmax / xstep / zmax / nlayers / (thickness nsteps) x nlayers /
-//   pml_bool / pml_top pml_bottom (or dummy) / ngllPML (or dummy) / mesh_type
+//   has_pml (npml) / pml_top pml_bottom / ngllPML [npow Apow omegac kc] / mesh_type
+// Lateral PML (W,E) is always on when npml>0 (as in the 3D mesher default). pml_top/pml_bottom
+// toggle the U/D sides. When has_pml=0 the next two lines are dummies.
 void RectMesh2D::read_params(const char* fname)
 {
     FILE* f = fopen(fname, "r");
@@ -613,29 +648,86 @@ void RectMesh2D::read_params(const char* fname)
         sscanf(buffer, "%lf %d", &thickness[k], &nsteps[k]);
         if (thickness[k]<=0. || nsteps[k]<1) {printf("ERR: bad layer %d (thick=%g nsteps=%d)\n", k, thickness[k], nsteps[k]); exit(1);}
     }
-    getData_line(&buffer,&n,f); sscanf(buffer, "%d", &has_pml);
-    getData_line(&buffer,&n,f); // pml_top pml_bottom (or dummy)
-    getData_line(&buffer,&n,f); // ngllPML (or dummy)
+
+    npml = 0;
+    getData_line(&buffer,&n,f); sscanf(buffer, "%d", &npml);
+    if (npml<0) {printf("ERR: has_pml=%d must be >=0\n", npml); exit(1);}
+
+    int pml_top=0, pml_bottom=1;
+    getData_line(&buffer,&n,f); sscanf(buffer, "%d %d", &pml_top, &pml_bottom);
+
+    ngll_pml=0; npow=2; apow=10.; omegac=0.; kc=0.;
+    getData_line(&buffer,&n,f); sscanf(buffer, "%d %d %lf %lf %lf", &ngll_pml, &npow, &apow, &omegac, &kc);
+
     getData_line(&buffer,&n,f); elem_shape=4; sscanf(buffer, "%d", &elem_shape);
     if (elem_shape!=4) {printf("ERR: only mesh_type 4 (Quad4) is supported on the fly\n"); exit(1);}
+
+    pml_W = pml_E = (npml>0);
+    pml_U = (npml>0 && pml_top);
+    pml_D = (npml>0 && pml_bottom);
 
     if(buffer) free(buffer);
     fclose(f);
 }
 
-void RectMesh2D::build(Mesh2D& mesh)
+// Extend the domain outward by npml element layers on each active PML side (mirrors the 3D
+// RectMesh::apply_pml_borders). The top/bottom extension grows the first/last layer.
+void RectMesh2D::apply_pml_borders()
 {
-    if (has_pml) {
-        printf("ERR: PML on-the-fly generation is not yet implemented in mesher2D (stage 3).\n");
-        exit(1);
+    if (npml<=0) return;
+    if (pml_E) xmax += npml*xstep;
+    if (pml_W) xmin -= npml*xstep;
+    if (pml_U) {
+        double zstep = thickness[0]/nsteps[0];
+        zmax        += npml*zstep;
+        thickness[0]+= npml*zstep;
+        nsteps[0]   += npml;
     }
+    if (pml_D) {
+        int ll = nlayers-1;
+        double zstep = thickness[ll]/nsteps[ll];
+        thickness[ll]+= npml*zstep;
+        nsteps[ll]   += npml;
+    }
+}
+
+// Return the material index for an element in layer `layer` touching the given PML sides.
+// Non-PML elements keep their layer index; PML elements get a derived 'P' material (created
+// once per (layer, side-combination) and cached).
+int RectMesh2D::get_mat(vector<Material2D>& mats, int layer, bool W, bool E, bool U, bool D)
+{
+    bool px = W || E;
+    bool pz = U || D;
+    if (!px && !pz) return layer;
+
+    int key = layer*16 + (W?1:0) + (E?2:0) + (U?4:0) + (D?8:0);
+    map<int,int>::iterator it = pml_cache.find(key);
+    if (it != pml_cache.end()) return it->second;
+
+    Material2D m = mats[layer];   // copy base properties (vp/vs/rho/dt)
+    m.type   = 'P';
+    m.ngll   = (ngll_pml>0) ? ngll_pml : mats[layer].ngll;
+    m.is_pml = true;
+    m.px = px;  m.left = W;        // left side = x-min
+    m.pz = pz;  m.down = D;        // down side = z-min
+    m.npow = npow;  m.apow = apow;  m.omegac = omegac;  m.kc = kc;
+
+    int idx = mats.size();
+    mats.push_back(m);
+    pml_cache[key] = idx;
+    return idx;
+}
+
+void RectMesh2D::build(Mesh2D& mesh, vector<Material2D>& mats)
+{
+    apply_pml_borders();
     if (!(xmin<xmax)) {printf("ERR: need xmin<xmax (%g,%g)\n", xmin, xmax); exit(1);}
 
     nelemx = int((xmax-xmin)/xstep);
     nelemz = 0;
     for(int k=0;k<nlayers;++k) nelemz += nsteps[k];
     if (nelemx<1 || nelemz<1) {printf("ERR: empty grid %dx%d\n", nelemx, nelemz); exit(1);}
-    printf("Creating grid mesh %d x %d with linear (Quad4) elements\n", nelemx, nelemz);
+    printf("Creating grid mesh %d x %d with linear (Quad4) elements (npml=%d)\n", nelemx, nelemz, npml);
 
     // Nodes: z-levels from top (zmax) downward, shared interface rows not duplicated.
     double layerzmax = zmax;
@@ -653,7 +745,7 @@ void RectMesh2D::build(Mesh2D& mesh)
         layerzmax -= thickness[nl];
     }
 
-    // Elements: layer nl -> material index nl. zlev increases downward.
+    // Elements: zlev increases downward. PML sides flagged on the outer npml rings.
     int k = 0; // global z-cell index
     for(int nl=0;nl<nlayers;++nl) {
         for(int kl=0;kl<nsteps[nl];++kl) {
@@ -666,7 +758,12 @@ void RectMesh2D::build(Mesh2D& mesh)
                 Quad4* qd = new Quad4(q);
                 qd->check_orient(mesh.m_px, mesh.m_py);
                 mesh.m_quads.push_back(qd);
-                mesh.m_mat1.push_back(nl);
+
+                bool W = pml_W && (i < npml);
+                bool E = pml_E && (i > nelemx-npml-1);
+                bool U = pml_U && (k < npml) && (nl==0);
+                bool D = pml_D && (k > nelemz-npml-1) && (nl==nlayers-1);
+                mesh.m_mat1.push_back(get_mat(mats, nl, W,E,U,D));
             }
             k++;
         }
@@ -674,7 +771,9 @@ void RectMesh2D::build(Mesh2D& mesh)
     mesh.m_mat2 = mesh.m_mat1;
     mesh.m_nprocs = 1;
     mesh.m_procs.assign(mesh.m_quads.size(), 0);
-    mesh.m_mat_max = nlayers-1;
+    mesh.m_mat_max = 0;
+    for(size_t e=0;e<mesh.m_mat1.size();++e)
+        if (mesh.m_mat1[e]>mesh.m_mat_max) mesh.m_mat_max = mesh.m_mat1[e];
 }
 
 // On-the-fly axis-aligned quad grid built from mat.dat + mater.in; writes material.input.
@@ -690,7 +789,7 @@ void handle_on_the_fly(Mesh2D& mesh)
                desc.nlayers, mats.size());
         exit(1);
     }
-    desc.build(mesh);
+    desc.build(mesh, mats);   // appends derived PML materials to mats
 
     write_materials_2d("material.input", mats);
     printf("Wrote material.input (%ld materials)\n", mats.size());

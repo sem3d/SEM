@@ -1,0 +1,12 @@
+# on-the-fly, single material + PML (npml=2) on left/right/bottom (free surface on top)
+# base grid 10 x 6 over [0,0.05]x[0,0.03]; extended to 14 x 8 by the 2 PML rings on W/E/D.
+0.0        # xmin
+0.05       # xmax
+0.005      # xstep    -> base nelemx = 10
+0.03       # zmax (top)
+1          # nlayers
+0.03 6     # layer 0: thickness  nsteps  -> base nelemz = 6
+2          # has_pml = npml (2 PML element layers)
+0 1        # pml_top pml_bottom  (no top PML, yes bottom PML; W/E always on when npml>0)
+5 2 10. 0. 0.   # ngllPML  npow  Apow  omegac  kc
+4          # mesh_type (Quad4)

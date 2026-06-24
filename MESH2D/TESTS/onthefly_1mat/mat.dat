@@ -1,0 +1,11 @@
+# on-the-fly, single material, no PML  -> 10 x 6 Quad4 over [0,0.05]x[0,0.03]
+0.0        # xmin
+0.05       # xmax
+0.005      # xstep   -> nelemx = 10
+0.03       # zmax (top)
+1          # nlayers
+0.03 6     # layer 0: thickness  nsteps  -> nelemz = 6
+0          # has_pml (npml; 0 = none)
+0 0        # pml_top pml_bottom (dummy)
+0          # ngllPML ... (dummy)
+4          # mesh_type (Quad4)

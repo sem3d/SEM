@@ -1,0 +1,11 @@
+# on-the-fly, single material, no PML, partitioned for 4 procs -> 20 x 12 Quad4
+0.0        # xmin
+0.05       # xmax
+0.0025     # xstep   -> nelemx = 20
+0.03       # zmax (top)
+1          # nlayers
+0.03 12    # layer 0: thickness  nsteps  -> nelemz = 12
+0          # has_pml (npml; 0 = none)
+0 0        # pml_top pml_bottom (dummy)
+0          # ngllPML ... (dummy)
+4          # mesh_type (Quad4)
