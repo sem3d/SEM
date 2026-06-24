@@ -522,13 +522,178 @@ static void getData_line(char** buffer, size_t* linesize, FILE* f)
     if (nc<=0 && *buffer) (*buffer)[0] = 0;
 }
 
-// On-the-fly axis-aligned quad grid built from mat.dat + mater.in.
-// Implemented in stage 2 (see log/plans/2026-06-24_sem2d-onthefly-mesher.md).
+// One SEM2D material as carried by mater.in / material.input.
+// The 2D solver (Domain.F90 read_material_file) needs NGLL and Dt per material, unlike the
+// 3D mesher which reads those from input.spec -- so the 2D material file format differs.
+struct Material2D {
+    char   type;            // S solid, F fluid, P pml
+    double vp, vs, rho;
+    int    ngll;
+    double dt;
+    double qp, qs;
+};
+
+// mater.in (2D): a header-commented file, then
+//   n_mat
+//   <type> <Vp> <Vs> <Rho> <NGLL> <Dt> <Qp> <Qs>      (n_mat lines)
+static void read_materials_2d(const char* fname, vector<Material2D>& mats)
+{
+    FILE* f = fopen(fname, "r");
+    if (!f) {printf("ERR: cannot open %s\n", fname); exit(1);}
+    char* buffer=NULL; size_t n=0;
+    int nmat=0;
+    getData_line(&buffer, &n, f);
+    sscanf(buffer, "%d", &nmat);
+    if (nmat<=0 || nmat>1000) {printf("ERR: bad material count %d in %s\n", nmat, fname); exit(1);}
+    for(int k=0;k<nmat;++k) {
+        Material2D m;
+        m.type='S'; m.vp=m.vs=m.rho=0.; m.ngll=5; m.dt=0.; m.qp=0.; m.qs=0.;
+        getData_line(&buffer, &n, f);
+        int c = sscanf(buffer, " %c %lf %lf %lf %d %lf %lf %lf",
+                       &m.type, &m.vp, &m.vs, &m.rho, &m.ngll, &m.dt, &m.qp, &m.qs);
+        if (c<5) {printf("ERR: material line %d in %s has too few fields (%d)\n", k, fname, c); exit(1);}
+        mats.push_back(m);
+    }
+    if(buffer) free(buffer);
+    fclose(f);
+}
+
+// material.input (2D), read by Domain.F90 read_material_file:
+//   n_mat
+//   <type> <Vp> <Vs> <Rho> <NGLLx> <mid> <NGLLz> <Dt> <Qp> <Qs>      (n_mat lines)
+// (PML descriptor block appended in stage 3.)
+static void write_materials_2d(const char* fname, const vector<Material2D>& mats)
+{
+    FILE* f = fopen(fname, "w");
+    if (!f) {printf("ERR: cannot write %s\n", fname); exit(1);}
+    fprintf(f, "%ld\n", mats.size());
+    for(size_t k=0;k<mats.size();++k) {
+        const Material2D& m = mats[k];
+        fprintf(f, "%c %g %g %g %d %d %d %g %g %g\n",
+                m.type, m.vp, m.vs, m.rho,
+                m.ngll, m.ngll, m.ngll, m.dt, m.qp, m.qs);
+    }
+    fclose(f);
+}
+
+// Axis-aligned 2D rectangular grid built from mat.dat (the 2D analog of the 3D RectMesh).
+// The vertical (layered) direction is z, stored in Mesh2D::m_py.
+struct RectMesh2D {
+    double xmin, xmax, xstep, zmax;
+    int    nlayers;
+    vector<double> thickness;
+    vector<int>    nsteps;
+    int    has_pml;
+    int    elem_shape;   // 4 = Quad4
+    int    nelemx, nelemz;
+
+    void read_params(const char* fname);
+    void build(Mesh2D& mesh);
+    int  pointidx(int i, int zlev) const { return i + zlev*(nelemx+1); }
+};
+
+// mat.dat (2D) = the 3D mat.dat without the y-block:
+//   xmin / xmax / xstep / zmax / nlayers / (thickness nsteps) x nlayers /
+//   pml_bool / pml_top pml_bottom (or dummy) / ngllPML (or dummy) / mesh_type
+void RectMesh2D::read_params(const char* fname)
+{
+    FILE* f = fopen(fname, "r");
+    if (!f) {printf("ERR: cannot open %s\n", fname); exit(1);}
+    char* buffer=NULL; size_t n=0;
+
+    getData_line(&buffer,&n,f); sscanf(buffer, "%lf", &xmin);
+    getData_line(&buffer,&n,f); sscanf(buffer, "%lf", &xmax);
+    getData_line(&buffer,&n,f); sscanf(buffer, "%lf", &xstep);
+    getData_line(&buffer,&n,f); sscanf(buffer, "%lf", &zmax);
+    getData_line(&buffer,&n,f); sscanf(buffer, "%d",  &nlayers);
+    if (nlayers<1 || nlayers>200) {printf("ERR: bad nlayers=%d in %s\n", nlayers, fname); exit(1);}
+    thickness.resize(nlayers); nsteps.resize(nlayers);
+    for(int k=0;k<nlayers;++k) {
+        getData_line(&buffer,&n,f);
+        sscanf(buffer, "%lf %d", &thickness[k], &nsteps[k]);
+        if (thickness[k]<=0. || nsteps[k]<1) {printf("ERR: bad layer %d (thick=%g nsteps=%d)\n", k, thickness[k], nsteps[k]); exit(1);}
+    }
+    getData_line(&buffer,&n,f); sscanf(buffer, "%d", &has_pml);
+    getData_line(&buffer,&n,f); // pml_top pml_bottom (or dummy)
+    getData_line(&buffer,&n,f); // ngllPML (or dummy)
+    getData_line(&buffer,&n,f); elem_shape=4; sscanf(buffer, "%d", &elem_shape);
+    if (elem_shape!=4) {printf("ERR: only mesh_type 4 (Quad4) is supported on the fly\n"); exit(1);}
+
+    if(buffer) free(buffer);
+    fclose(f);
+}
+
+void RectMesh2D::build(Mesh2D& mesh)
+{
+    if (has_pml) {
+        printf("ERR: PML on-the-fly generation is not yet implemented in mesher2D (stage 3).\n");
+        exit(1);
+    }
+    if (!(xmin<xmax)) {printf("ERR: need xmin<xmax (%g,%g)\n", xmin, xmax); exit(1);}
+
+    nelemx = int((xmax-xmin)/xstep);
+    nelemz = 0;
+    for(int k=0;k<nlayers;++k) nelemz += nsteps[k];
+    if (nelemx<1 || nelemz<1) {printf("ERR: empty grid %dx%d\n", nelemx, nelemz); exit(1);}
+    printf("Creating grid mesh %d x %d with linear (Quad4) elements\n", nelemx, nelemz);
+
+    // Nodes: z-levels from top (zmax) downward, shared interface rows not duplicated.
+    double layerzmax = zmax;
+    int k0 = 0;
+    for(int nl=0;nl<nlayers;++nl) {
+        double zstep = thickness[nl]/nsteps[nl];
+        for(int k=k0;k<=nsteps[nl];++k) {
+            double z = layerzmax - k*zstep;
+            for(int i=0;i<=nelemx;++i) {
+                mesh.m_px.push_back(xmin + i*xstep);
+                mesh.m_py.push_back(z);
+            }
+        }
+        k0 = 1;
+        layerzmax -= thickness[nl];
+    }
+
+    // Elements: layer nl -> material index nl. zlev increases downward.
+    int k = 0; // global z-cell index
+    for(int nl=0;nl<nlayers;++nl) {
+        for(int kl=0;kl<nsteps[nl];++kl) {
+            for(int i=0;i<nelemx;++i) {
+                int q[4];
+                q[0] = pointidx(i,   k+1); // bottom-left
+                q[1] = pointidx(i+1, k+1); // bottom-right
+                q[2] = pointidx(i+1, k  ); // top-right
+                q[3] = pointidx(i,   k  ); // top-left
+                Quad4* qd = new Quad4(q);
+                qd->check_orient(mesh.m_px, mesh.m_py);
+                mesh.m_quads.push_back(qd);
+                mesh.m_mat1.push_back(nl);
+            }
+            k++;
+        }
+    }
+    mesh.m_mat2 = mesh.m_mat1;
+    mesh.m_nprocs = 1;
+    mesh.m_procs.assign(mesh.m_quads.size(), 0);
+    mesh.m_mat_max = nlayers-1;
+}
+
+// On-the-fly axis-aligned quad grid built from mat.dat + mater.in; writes material.input.
 void handle_on_the_fly(Mesh2D& mesh)
 {
-    printf("ERR: 'On the fly' generation is not yet implemented in mesher2D.\n");
-    printf("     Use option 3 (.unv) or 4 (HDF5) for now.\n");
-    exit(1);
+    vector<Material2D> mats;
+    read_materials_2d("mater.in", mats);
+
+    RectMesh2D desc;
+    desc.read_params("mat.dat");
+    if (desc.nlayers > (int)mats.size()) {
+        printf("ERR: mat.dat has %d layers but mater.in only defines %ld materials\n",
+               desc.nlayers, mats.size());
+        exit(1);
+    }
+    desc.build(mesh);
+
+    write_materials_2d("material.input", mats);
+    printf("Wrote material.input (%ld materials)\n", mats.size());
 }
 
 // Mesh2D::read_mesh ingests a single file (its own node/element numbering); it is not a

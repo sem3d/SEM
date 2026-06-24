@@ -1,0 +1,5 @@
+# 2D mater.in for mesher2D on-the-fly
+# n_mat
+1
+# type  Vp      Vs    Rho     NGLL  Dt       Qp   Qs
+F 1500.0 0.0 1000.0 5 1.0e-8 0.0 0.0
