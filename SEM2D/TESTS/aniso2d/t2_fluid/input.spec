@@ -4,7 +4,7 @@
 run_name = "t2_fluid";
 
 sim_time = 5.0e-5;
-mesh_file = "mesh4spec";          # generate with the 2D mesher for [0,0.05]x[0,0.03]
+mesh_file = "sem/mesh4spec";          # generate with the 2D mesher for [0,0.05]x[0,0.03]
 mat_file  = "material.input";
 dim = 2;
 

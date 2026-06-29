@@ -19,8 +19,20 @@
 #include "metis.h"
 #include "h5helper.h"
 #include "read_unv.hpp"
+#include <sys/stat.h>
+#include <sys/types.h>
+#include "../../COMMON/read_input.h"
+#include "../../COMMON/sem_input.h"
 
 using namespace std;
+
+static void ensure_parent_dir(const string& path) {
+    size_t pos = path.find_last_of('/');
+    if (pos != string::npos) {
+        string dir = path.substr(0, pos);
+        mkdir(dir.c_str(), 0777);
+    }
+}
 
 class Point {
     public:
@@ -822,6 +834,14 @@ int main(int argc, char** argv)
     char* buffer=NULL;
     size_t linesize=0;
     string basename = "mesh4spec"; // matches mesh_file in input.spec
+    if (access("input.spec", F_OK) == 0) {
+        sem_config_t config;
+        int err;
+        read_sem_config(&config, 0, 2, "input.spec", &err);
+        if (err > 0 && config.mesh_file) {
+            basename = config.mesh_file;
+        }
+    }
 
     printf("-------------------------------------------------\n");
     printf("-----                                       -----\n");
@@ -860,6 +880,7 @@ int main(int argc, char** argv)
 
     if (NPROCS>1) mesh.partition_metis(NPROCS);
 
+    ensure_parent_dir(basename);
     mesh.write_proc_field(basename+".h5");
     for(int k=0;k<NPROCS;++k) {
         snprintf(fname, 1024,"%s.%04d.h5", basename.c_str(), k);

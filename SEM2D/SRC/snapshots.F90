@@ -352,7 +352,7 @@ contains
         write(61,"(a)") '<Grid CollectionType="Spatial" GridType="Collection">'
         !!! XXX: recuperer le nom par semname_*
         do rg=0,n_procs-1
-            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf"/>'
+            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf" xpointer="xpointer(//Xdmf/Domain/Grid)"/>'
         end do
         write(61,"(a)") '</Grid>'
         write(61,"(a)") '</Domain>'
@@ -375,6 +375,9 @@ contains
         ne = Tdomain%n_quad
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
+        write(61,"(a)") '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
+        write(61,"(a)") '<Xdmf Version="2.0">'
+        write(61,"(a)") '<Domain>'
         write(61,"(a)") '<Grid CollectionType="Temporal" GridType="Collection">'
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" Datatype="Int"  Dimensions="',ne, &
             '">geometry',rg,'.h5:/Material</DataItem>'
@@ -455,6 +458,8 @@ contains
             time = time+Tdomain%TimeD%time_snapshots
         end do
         write(61,"(a)") '</Grid>'
+        write(61,"(a)") '</Domain>'
+        write(61,"(a)") '</Xdmf>'
         close(61)
     end subroutine write_xdmf
 
