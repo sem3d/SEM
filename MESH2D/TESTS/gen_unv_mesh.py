@@ -55,7 +55,7 @@ lines.append("-1")
 # ---- 2467 : one element group -> material 0 --------------------------------
 nelem = nx * nz
 lines += ["-1", "2467"]
-lines.append(f"{1:>10d}         0         0         0         0         0{nelem:>10d}")
+lines.append(f"{1:>10d}         0         0         0         0         0         0{nelem:>10d}")
 lines.append("mat0")
 ent = []
 for e in range(1, nelem + 1):
