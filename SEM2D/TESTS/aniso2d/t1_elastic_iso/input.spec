@@ -13,6 +13,7 @@ snapshots {
 };
 
 save_traces = true;
+station_file = "stations.txt";
 traces_format = hdf5;
 
 prorep = false;

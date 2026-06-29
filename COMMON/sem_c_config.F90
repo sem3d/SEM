@@ -280,9 +280,10 @@ contains
         character(kind=c_char),pointer,dimension(:) :: ctemp
         integer(kind=c_size_t), dimension(1) :: clen
         integer(kind=c_size_t) :: i
+        fromcstr=''
+        if (.not. c_associated(cstr)) return
         clen(1) = strlen(cstr)
         call c_f_pointer(cstr, ctemp, clen)
-        fromcstr=''
         do i=1,clen(1)
             fromcstr(i:i) = ctemp(i)
         end do

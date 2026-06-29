@@ -237,11 +237,14 @@ end subroutine dump_trace
 subroutine read_receiver_file(Tdomain)
     use sdomain
     use semdatafiles
+    implicit none
     type(domain), intent(inout) :: Tdomain
     real(fpp) :: xrec, zrec
     character(Len=100) :: recname
     character(Len=MAX_FILE_SIZE) :: fnamef
-    integer :: i
+    character(Len=256) :: line
+    integer :: i, ios
+    real(fpp) :: val1, val2
 
     if (.not. Tdomain%logicD%save_trace) then
         return
@@ -250,15 +253,44 @@ subroutine read_receiver_file(Tdomain)
     call semname_read_inputmesh_parametrage(Tdomain%station_file,fnamef)
     open(14,file=fnamef, status="old")
 
-    read (14,*) Tdomain%n_receivers
-    read (14,*)
-    allocate (Tdomain%sReceiver(0:Tdomain%n_receivers-1))
-    do i = 0, Tdomain%n_receivers-1
-        read(14,*) recname, xrec, zrec
-        Tdomain%sReceiver(i)%Xrec = xrec
-        Tdomain%sReceiver(i)%Zrec = zrec
-        Tdomain%sReceiver(i)%name = recname
-    enddo
+    ! Auto-detect format: read first line and check if it contains at least 2 values
+    read(14, '(A)', iostat=ios) line
+    if (ios /= 0) then
+        close(14)
+        return
+    end if
+
+    read(line, *, iostat=ios) val1, val2
+    if (ios == 0) then
+        ! New format: no header, 2 columns of floats (X, Z)
+        rewind(14)
+        Tdomain%n_receivers = 0
+        do
+            read(14, *, iostat=ios) val1, val2
+            if (ios /= 0) exit
+            Tdomain%n_receivers = Tdomain%n_receivers + 1
+        end do
+        rewind(14)
+        allocate (Tdomain%sReceiver(0:Tdomain%n_receivers-1))
+        do i = 0, Tdomain%n_receivers-1
+            read(14,*) xrec, zrec
+            Tdomain%sReceiver(i)%Xrec = xrec
+            Tdomain%sReceiver(i)%Zrec = zrec
+            write(Tdomain%sReceiver(i)%name, '(A,I4.4)') 'rec_', i
+        enddo
+    else
+        ! Legacy format: 1st line is n_receivers, 2nd is blank, then name, X, Z
+        rewind(14)
+        read (14,*) Tdomain%n_receivers
+        read (14,*)
+        allocate (Tdomain%sReceiver(0:Tdomain%n_receivers-1))
+        do i = 0, Tdomain%n_receivers-1
+            read(14,*) recname, xrec, zrec
+            Tdomain%sReceiver(i)%Xrec = xrec
+            Tdomain%sReceiver(i)%Zrec = zrec
+            Tdomain%sReceiver(i)%name = recname
+        enddo
+    end if
     close (14)
 
 end subroutine read_receiver_file

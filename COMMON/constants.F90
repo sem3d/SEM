@@ -147,7 +147,7 @@ MODULE constants
         "DUDX      ", &
         "GradLambda", &
         "GradMu    ", &
-        "EnergyD" /)
+        "EnergyD   " /)
     integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9, 3, 3, 3 /)
 
     integer, parameter :: CPT_INTERP = 0
