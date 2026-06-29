@@ -29,13 +29,13 @@ VX, VY, VZ = 1500.0, 1200.0, 900.0
 
 inv_kappa = 1.0 / KAPPA
 components = {
-    "K11": VX**2 / KAPPA,      # rho^{-1}_11  -> rho_11 = 1000.0   kg/m^3
-    "K22": VY**2 / KAPPA,      # rho^{-1}_22  -> rho_22 = 1562.5   kg/m^3
-    "K33": VZ**2 / KAPPA,      # rho^{-1}_33  -> rho_33 = 2777.78  kg/m^3
-    "K12": 0.0,
-    "K13": 0.0,
-    "K23": 0.0,
-    "Rho": inv_kappa,          # 1/kappa  (inverse bulk modulus, NOT density)
+    "iRho11": VX**2 / KAPPA,   # rho^{-1}_11  -> rho_11 = 1000.0   kg/m^3
+    "iRho22": VY**2 / KAPPA,   # rho^{-1}_22  -> rho_22 = 1562.5   kg/m^3
+    "iRho33": VZ**2 / KAPPA,   # rho^{-1}_33  -> rho_33 = 2777.78  kg/m^3
+    "iRho12": 0.0,
+    "iRho13": 0.0,
+    "iRho23": 0.0,
+    "iKappa": inv_kappa,       # 1/kappa  (solver inverts: lambda = 1/iKappa)
 }
 
 shape = (NPTS, NPTS, NPTS)
@@ -52,5 +52,5 @@ print(f"Written: {OUTFILE}   (kappa = {KAPPA:.3e} Pa, density formulation)")
 for name, value in components.items():
     print(f"  {name} = {value:.6e}")
 print("Wave speeds: Vx=%.0f Vy=%.0f Vz=%.0f m/s  (V_i = sqrt(kappa * rho^-1_ii))"
-      % (np.sqrt(KAPPA*components['K11']), np.sqrt(KAPPA*components['K22']),
-         np.sqrt(KAPPA*components['K33'])))
+      % (np.sqrt(KAPPA*components['iRho11']), np.sqrt(KAPPA*components['iRho22']),
+         np.sqrt(KAPPA*components['iRho33'])))
