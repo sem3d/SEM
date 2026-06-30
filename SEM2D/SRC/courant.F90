@@ -60,9 +60,9 @@ subroutine Compute_Courant (Tdomain)
                             if (dx < dxmin ) then
                                 dxmin = dx
                             endif
-                            if(abs(dx)<1.e-5) then
-                                print *,'idef',idef0,idef1,Tdomain%Globcoord(0:1,idef0)
-                            endif
+                            !if(abs(dx)<1.e-5) then
+                            !    print *,'idef',idef0,idef1,Tdomain%Globcoord(0:1,idef0)
+                            !endif
                         enddo
                     enddo
                 endif
