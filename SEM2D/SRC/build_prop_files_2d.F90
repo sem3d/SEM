@@ -178,7 +178,7 @@ contains
                     end do
                 end do
                 if (Tdomain%Mpi_var%my_rank == 0) &
-                    write(*,'(a,i0,a)') ' [aniso/BlockB] elastic Cstar tensor read & interpolated to GLL (subdomain ', mat, ')'
+                    write(*,'(a,i0,a)') ' [aniso] elastic Cstar tensor read & interpolated to GLL (subdomain ', mat, ')'
             case (MATDEF_FLUID_ANISO, CSTAR_FLUID)
                 any_aniso = .true.
                 ! allocate fluid-aniso (velocity-potential) fields on this subdomain's elements
@@ -227,7 +227,7 @@ contains
                     end do
                 end do
                 if (Tdomain%Mpi_var%my_rank == 0) &
-                    write(*,'(a,i0,a)') ' [aniso/BlockD-D1] fluid-aniso material read & interpolated to GLL (subdomain ', mat, ')'
+                    write(*,'(a,i0,a)') ' [aniso] fluid-aniso material read & interpolated to GLL (subdomain ', mat, ')'
             end select
         end do
 
@@ -238,7 +238,7 @@ contains
         ! are called separately from define_arrays, AFTER this read but BEFORE the mass is
         ! assembled to faces/vertices, so the aniso mass (rho from Cstar / 1/kappa) propagates.
         if (any_aniso .and. Tdomain%Mpi_var%my_rank == 0) &
-            write(*,*) ' [aniso/Phase2] Cstar material read & interpolated to GLL.'
+            write(*,*) ' [aniso] Cstar material read & interpolated to GLL.'
     end subroutine read_aniso_material_2d
 
     !-----------------------------------------------------------------------
@@ -264,7 +264,7 @@ contains
             ! Scope: continuous Galerkin, non-PML only.
             if (Tdomain%specel(n)%PML .or. Tdomain%specel(n)%type_DG /= GALERKIN_CONT) then
                 if (Tdomain%Mpi_var%my_rank == 0) &
-                    write(*,'(a,i0,a)') ' [aniso/BlockC] WARNING: aniso element ', n, &
+                    write(*,'(a,i0,a)') ' [aniso] WARNING: aniso element ', n, &
                         ' is PML/DG -- not supported yet, left on the isotropic path.'
                 cycle
             end if
@@ -301,7 +301,7 @@ contains
             nover = nover + 1
         end do
         if (nover > 0 .and. Tdomain%Mpi_var%my_rank == 0) &
-            write(*,'(a,i0,a)') ' [aniso/BlockC] CG Acoeff + mass rebuilt from Cstar on ', nover, ' element(s).'
+            write(*,'(a,i0,a)') ' [aniso] CG Acoeff + mass rebuilt from Cstar on ', nover, ' element(s).'
     end subroutine build_aniso_acoeff_2d
 
     !-----------------------------------------------------------------------
@@ -323,7 +323,7 @@ contains
             mat = Tdomain%specel(n)%mat_index
             if (Tdomain%specel(n)%PML .or. Tdomain%specel(n)%type_DG /= GALERKIN_CONT) then
                 if (Tdomain%Mpi_var%my_rank == 0) &
-                    write(*,'(a,i0,a)') ' [aniso/BlockD-D2] WARNING: fluid-aniso element ', n, &
+                    write(*,'(a,i0,a)') ' [aniso] WARNING: fluid-aniso element ', n, &
                         ' is PML/DG -- not supported, skipped.'
                 cycle
             end if
@@ -357,7 +357,7 @@ contains
             nover = nover + 1
         end do
         if (nover > 0 .and. Tdomain%Mpi_var%my_rank == 0) &
-            write(*,'(a,i0,a)') ' [aniso/BlockD-D2] fluid-aniso mass(1/kappa) + stiffness built on ', nover, ' element(s).'
+            write(*,'(a,i0,a)') ' [aniso] fluid-aniso mass(1/kappa) + stiffness built on ', nover, ' element(s).'
     end subroutine build_aniso_fluid_coeff_2d
 
 end module build_prop_files_2d

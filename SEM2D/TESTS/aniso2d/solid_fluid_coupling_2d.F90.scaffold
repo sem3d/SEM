@@ -1,12 +1,11 @@
 !! ============================================================================
-!! D4 SCAFFOLD -- solid <-> fluid-aniso coupling for SEM2D (Phase 2, Block D4).
+!! SCAFFOLD -- solid <-> fluid-aniso coupling for SEM2D.
 !!
-!! STATUS: UNVERIFIED, NOT in CMakeLists on purpose (so it cannot break the build
-!! of the working Blocks A-D3-D5). This is a starting point for the cluster work,
-!! NOT a finished module. Filename ends in ".scaffold" -- rename to .F90 and add to
-!! SEM2D/CMakeLists.txt only when integrating D4.
+!! STATUS: UNVERIFIED, NOT in CMakeLists on purpose. This is a starting point
+!! for the cluster work, NOT a finished module. Filename ends in ".scaffold" --
+!! rename to .F90 and add to SEM2D/CMakeLists.txt only when integrating.
 !!
-!! PREREQUISITE (D4.0, NOT done): the solid displacement and the fluid potential must
+!! PREREQUISITE (NOT done): the solid displacement and the fluid potential must
 !! NOT share the same DOF at changing_media (solid<->fluid) faces/vertices. With the
 !! current approach A (phi in component 0, shared CG face/vertex objects) the assembly
 !! SUMS Ux(solid)+phi(fluid) at the interface -> WRONG. This coupling operator is only
@@ -124,7 +123,7 @@ contains
             end do
         end do
         !!TODO: verify signs/time-levels for energy consistency (compare to SEM3D StoF/FtoS
-        !!      and the reflection/transmission gate in TESTS/aniso2d/README.md Test 4).
+        !!      and the reflection/transmission check in TESTS/aniso2d/README.md Test 4).
         !!TODO: this assumes e_sol/e_flu interior arrays carry the interface DOFs separately;
         !!      under shared CG faces (no D4.0 split) it is INCORRECT.
     end subroutine apply_sf_coupling_2d

@@ -408,7 +408,7 @@ subroutine read_material_aniso_spec(Tdomain)
                 Tdomain%sSubDomain(num)%n_prop = nprop
                 Tdomain%sSubDomain(num)%prop_file = trim(fromcstr(matdesc%filename0))
                 if (Tdomain%Mpi_var%my_rank == 0) then
-                    write(*,'(a,i0,a,i0,a,i0,2a)') ' [aniso/BlockA] subdomain ', num, &
+                    write(*,'(a,i0,a,i0,a,i0,2a)') ' [aniso] subdomain ', num, &
                          ': deftype=', matdesc%deftype, ' n_prop=', nprop, &
                          ' file=', trim(Tdomain%sSubDomain(num)%prop_file)
                 end if
