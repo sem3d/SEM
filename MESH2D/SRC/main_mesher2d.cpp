@@ -288,10 +288,11 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
                 }
                 // Check edges
                 edge_idx_t e = quad->get_edge_from_node(k);
-                int edge_num = get<0>(info.m_edge_map[e]);
-                if (edge_num>0) {
+                auto edge_it = info.m_edge_map.find(e);
+                if (edge_it != info.m_edge_map.end()) {
+                    int edge_num = get<0>(edge_it->second);
                     Comm_proc& comm = info.m_comm[m_procs[qn]];
-                    comm.m_edges_map[e]=edge_comm_info_t(edge_num,1);
+                    comm.m_edges_map[e] = edge_comm_info_t(edge_num, 1);
                 }
             }
         }
@@ -480,14 +481,34 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
     h5h_write_dset_2d(fid, "edges", 4, info.m_quadedges);
     // With linear Quad, vertices==elements
     h5h_write_dset_2d(fid, "vertices", 4, info.m_quadvertices);
+    map<int, int> elem_map;
+    int local_elem_counter = 0;
+    for(int qn=0; qn<m_quads.size(); ++qn) {
+        if (rk == -1 || rk == m_procs[qn]) {
+            elem_map[qn] = local_elem_counter++;
+        }
+    }
+
     vector<int> edges_elems, edges_wf, edges_vertices;
     for(auto it = info.m_edges.begin(); it != info.m_edges.end(); it++) {
         edge_idx_t e = *it;
         edges_vertices.push_back(info.m_vert_map[info.m_node_map[get<0>(e)]]);
         edges_vertices.push_back(info.m_vert_map[info.m_node_map[get<1>(e)]]);
         edge_info_t ei = info.m_edge_map[e];
-        edges_elems.push_back(get<1>(ei));
-        edges_elems.push_back(get<2>(ei));
+        int el0 = get<1>(ei);
+        int el1 = get<2>(ei);
+        if (el0 != -1 && elem_map.find(el0) != elem_map.end()) {
+            el0 = elem_map[el0];
+        } else {
+            el0 = -1;
+        }
+        if (el1 != -1 && elem_map.find(el1) != elem_map.end()) {
+            el1 = elem_map[el1];
+        } else {
+            el1 = -1;
+        }
+        edges_elems.push_back(el0);
+        edges_elems.push_back(el1);
         edges_wf.push_back(get<3>(ei));
         edges_wf.push_back(get<4>(ei));
     }
@@ -512,14 +533,68 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
         hid_t grp = H5Gcreate(fid, grp_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
         h5h_write_attr_int(grp, "processor", it->first);
-        h5h_write_dset(grp, "vertices", comm.m_vertices);
-        h5h_write_dset(grp, "edges", comm.m_edges);
-        h5h_write_dset(grp, "coherency", comm.m_coherency);
+        h5h_write_dset_empty(grp, "vertices", comm.m_vertices);
+        h5h_write_dset_empty(grp, "edges", comm.m_edges);
+        h5h_write_dset_empty(grp, "coherency", comm.m_coherency);
         H5Gclose(grp);
         comm_count++;
     }
 
     H5Fclose(fid);
+
+    if (info.n_elements() <= 0) {
+        return;
+    }
+
+    // Automatically generate a companion .xmf file for visual inspection of the mesh in ParaView
+    string xmf_name = fname;
+    size_t h5_pos = xmf_name.rfind(".h5");
+    if (h5_pos != string::npos) {
+        xmf_name.replace(h5_pos, 3, ".xmf");
+    } else {
+        xmf_name += ".xmf";
+    }
+
+    string h5_filename = fname;
+    size_t slash_pos = h5_filename.find_last_of('/');
+    if (slash_pos != string::npos) {
+        h5_filename = h5_filename.substr(slash_pos + 1);
+    }
+
+    FILE* fx = fopen(xmf_name.c_str(), "w");
+    if (fx) {
+        fprintf(fx, "<?xml version=\"1.0\" ?>\n");
+        fprintf(fx, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\">\n");
+        fprintf(fx, "<Xdmf Version=\"2.0\">\n");
+        fprintf(fx, "  <Domain>\n");
+        fprintf(fx, "    <Grid Name=\"mesh.%04d\" GridType=\"Uniform\">\n", rk);
+        fprintf(fx, "      <Topology Type=\"Quadrilateral\" NumberOfElements=\"%d\">\n", info.n_elements());
+        fprintf(fx, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d 4\">\n", info.n_elements());
+        fprintf(fx, "          %s:/elements\n", h5_filename.c_str());
+        fprintf(fx, "        </DataItem>\n");
+        fprintf(fx, "      </Topology>\n");
+        fprintf(fx, "      <Geometry Type=\"XY\">\n");
+        fprintf(fx, "        <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%d 2\">\n", info.n_vertices());
+        fprintf(fx, "          %s:/nodes\n", h5_filename.c_str());
+        fprintf(fx, "        </DataItem>\n");
+        fprintf(fx, "      </Geometry>\n");
+        fprintf(fx, "      <Attribute Name=\"MaterialID\" AttributeType=\"Scalar\" Center=\"Cell\">\n");
+        fprintf(fx, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d 3\" ItemType=\"HyperSlab\">\n", info.n_elements());
+        fprintf(fx, "          <DataItem Format=\"XML\" Dimensions=\"3 3\">\n");
+        fprintf(fx, "            0 0 0\n");
+        fprintf(fx, "            1 1 1\n");
+        fprintf(fx, "            %d 1 3\n", info.n_elements());
+        fprintf(fx, "          </DataItem>\n");
+        fprintf(fx, "          <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%d 3\">\n", info.n_elements());
+        fprintf(fx, "            %s:/material\n", h5_filename.c_str());
+        fprintf(fx, "          </DataItem>\n");
+        fprintf(fx, "        </DataItem>\n");
+        fprintf(fx, "      </Attribute>\n");
+        fprintf(fx, "    </Grid>\n");
+        fprintf(fx, "  </Domain>\n");
+        fprintf(fx, "</Xdmf>\n");
+        fclose(fx);
+    }
 }
 
 // Read a line from f, skipping comment lines that start with '#'.
