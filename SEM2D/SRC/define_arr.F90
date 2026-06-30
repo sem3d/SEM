@@ -496,6 +496,7 @@ subroutine define_arrays(Tdomain)
     enddo
 
     ! Exchanging datas Lambda and Mu for DG faces
+    if (Tdomain%type_flux .EQ. FLUX_GODUNOV) then
     do i_proc = 0, Tdomain%n_communications - 1
         allocate (Tdomain%sWall(i_proc)%Send_data_2(0:Tdomain%sWall(i_proc)%n_points-1,0:1))
         allocate (Tdomain%sWall(i_proc)%Receive_data_2(0:Tdomain%sWall(i_proc)%n_points-1,0:1))
@@ -541,6 +542,7 @@ subroutine define_arrays(Tdomain)
         deallocate (Tdomain%sWall(i_proc)%Send_data_2)
         deallocate (Tdomain%sWall(i_proc)%Receive_data_2)
     enddo
+    endif
 
 
     ! Transmission des coeffs Mu et Lambda aux faces
