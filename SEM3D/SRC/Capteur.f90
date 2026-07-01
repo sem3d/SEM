@@ -655,7 +655,7 @@ contains
                 do k = 0,ngll - 1
                     weight = capteur%outx(i)*capteur%outy(j)*capteur%outz(k)
                     if (Tdomain%out_var_capt(OUT_DEPLA) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_DEPLA)+1
+                        ioff = Tdomain%out_var_offset(OUT_DEPLA)+2
                         nComp = OUT_VAR_DIMS_3D(OUT_DEPLA)-1
                         do c=0,nComp
                             !$acc atomic update
@@ -665,7 +665,7 @@ contains
                     end if
 
                     if (Tdomain%out_var_capt(OUT_VITESSE) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_VITESSE)+1
+                        ioff = Tdomain%out_var_offset(OUT_VITESSE)+2
                         nComp = OUT_VAR_DIMS_3D(OUT_VITESSE)-1
                         do c=0,nComp
                             !$acc atomic update
@@ -675,7 +675,7 @@ contains
                     end if
 
                     if (Tdomain%out_var_capt(OUT_ACCEL) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_ACCEL)+1
+                        ioff = Tdomain%out_var_offset(OUT_ACCEL)+2
                         nComp = OUT_VAR_DIMS_3D(OUT_ACCEL)-1
                         do c=0,nComp
                             !$acc atomic update
@@ -685,26 +685,26 @@ contains
                     end if
 
                     if (Tdomain%out_var_capt(OUT_PRESSION) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_PRESSION)+1
+                        ioff = Tdomain%out_var_offset(OUT_PRESSION)+2
                         !$acc atomic update
                         capteur%valuecache(ioff,ni) &
                             = capteur%valuecache(ioff,ni) + weight*capteur%fieldP(i,j,k)
                     end if
 
                     if (Tdomain%out_var_capt(OUT_ENERGYP) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_ENERGYP)+1
+                        ioff = Tdomain%out_var_offset(OUT_ENERGYP)+2
                         !$acc atomic update
                         capteur%valuecache(ioff,ni) = capteur%valuecache(ioff,ni) + weight*capteur%P_energy(i,j,k)
                     end if
 
                     if (Tdomain%out_var_capt(OUT_ENERGYS) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_ENERGYS)+1
+                        ioff = Tdomain%out_var_offset(OUT_ENERGYS)+2
                         !$acc atomic update
                         capteur%valuecache(ioff,ni) = capteur%valuecache(ioff,ni) + weight*capteur%S_energy(i,j,k)
                     end if
 
                     if (Tdomain%out_var_capt(OUT_DUDX) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_DUDX)+1
+                        ioff = Tdomain%out_var_offset(OUT_DUDX)+2
                         nComp = OUT_VAR_DIMS_3D(OUT_DUDX)-1
                         do c=0,nComp
                             !$acc atomic update
@@ -713,13 +713,13 @@ contains
                     end if
 
                     if (Tdomain%out_var_capt(OUT_EPS_VOL) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_EPS_VOL)+1
+                        ioff = Tdomain%out_var_offset(OUT_EPS_VOL)+2
                         !$acc atomic update
                         capteur%valuecache(ioff,ni) = capteur%valuecache(ioff,ni) + weight*capteur%eps_vol(i,j,k)
                     end if
 
                     if (Tdomain%out_var_capt(OUT_EPS_DEV) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_EPS_DEV)+1
+                        ioff = Tdomain%out_var_offset(OUT_EPS_DEV)+2
                         nComp = OUT_VAR_DIMS_3D(OUT_EPS_DEV)-1
                         do c=0,nComp
                             !$acc atomic update
@@ -728,7 +728,7 @@ contains
                     end if
 
                     if (Tdomain%out_var_capt(OUT_EPS_DEV_PL) == 1) then
-                        ioff=Tdomain%out_var_offset(OUT_EPS_DEV_PL)+1
+                        ioff=Tdomain%out_var_offset(OUT_EPS_DEV_PL)+2
                         nComp = OUT_VAR_DIMS_3D(OUT_EPS_DEV_PL)-1
                         do c=0,nComp
                             !$acc atomic update
@@ -737,7 +737,7 @@ contains
                     end if
 
                     if (Tdomain%out_var_capt(OUT_STRESS_DEV) == 1) then
-                        ioff = Tdomain%out_var_offset(OUT_STRESS_DEV)+1
+                        ioff = Tdomain%out_var_offset(OUT_STRESS_DEV)+2
                         nComp = OUT_VAR_DIMS_3D(OUT_STRESS_DEV)-1
                         do c=0,nComp
                             !$acc atomic update
