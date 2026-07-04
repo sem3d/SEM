@@ -74,7 +74,7 @@ subroutine Compute_Courant (Tdomain)
     enddo
 
 
-    print*,'dt_loc',dt_loc,dxmin
+    !print*,'dt_loc',dt_loc,dxmin
     call MPI_AllReduce (dt_loc, dt_min, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
 
     dt = courant * dt_min

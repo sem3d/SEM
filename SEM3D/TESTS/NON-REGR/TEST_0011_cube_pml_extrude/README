@@ -1,0 +1,46 @@
+TEST_0011_cube_pml_extrude
+==========================
+
+Demonstrates PML added to an *imported* mesh by extrusion, via the optional
+pml.input file read by the 3D mesher. This is the general-mesh counterpart of
+the "on the fly" PML (mat.dat), which only works for the structured grid.
+
+Pipeline
+--------
+1. gen_cube_h5.py writes cube.h5: a bare [0,300]^3 cube, 6^3 Hexa8, one solid
+   material, NO PML.
+2. The mesher (menu option 4, HDF5) reads cube.h5 and material.input, then sees
+   pml.input and extrudes PML element layers on the requested sides, deriving
+   the PML materials, rewriting material.input and appending PML blocks to
+   material.spec.
+3. sem3d runs the resulting mesh4spec.
+
+Files
+-----
+  gen_cube_h5.py   mesh generator (bare cube, no PML)
+  mesh.input       stdin for the mesher (1 proc, option 4, cube.h5)
+  pml.input        PML sides + thickness: x-/x+/y-/y+ = 3 layers, z- = 3 layers,
+                   z+ left free (free surface)
+  material.input   base materials in (1 solid); rewritten by the mesher with the
+                   derived PML materials appended
+  material.spec    optional; the mesher appends `copy`+`domain=solidpml` blocks
+  input.spec       sem3d config (ricker pulse at the cube centre 150,150,150)
+  stations.txt     two receivers inside the physical domain
+  run.sh           driver: gen mesh -> mesher -> (optional) sem3d
+
+Run
+---
+  MESHER=/path/to/build/MESH/mesher ./run.sh
+  # add SEM3D=/path/to/build/SEM3D/sem3d to also run the solver
+
+Expected mesher result
+----------------------
+Bare cube = 216 solid elements. After extrusion (3 layers on 5 sides, corners
+and edges combined) the mesh has 5 active sides, so every PML side-combination
+that occurs on those 5 faces is created as a distinct PML material; the physical
+(non-PML) element count stays 216. Waves from the central pulse should leave the
+domain through the five PML faces without visible reflection; the z+ face is a
+true free surface.
+
+Reference: compare against TEST_0001_cube_pulse_ricker, whose PML is instead
+built on the fly from mat.dat over the same geometry.

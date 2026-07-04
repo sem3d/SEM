@@ -1,0 +1,4 @@
+# PML by extrusion (2D): x-, x+, z- ; z+ free surface
+x- 3
+x+ 3
+z- 3

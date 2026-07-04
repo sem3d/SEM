@@ -1,0 +1,7 @@
+# PML by extrusion. Format:  <side> <n_elements> [step]
+# sides: x- x+ y- y+ z- z+  (z+ left free = free surface)
+x- 3
+x+ 3
+y- 3
+y+ 3
+z- 3

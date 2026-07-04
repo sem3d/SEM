@@ -41,6 +41,7 @@ add_library(mesh3d
   ${PRJ}/CSRC/earth_mesh.cpp
   ${PRJ}/CSRC/point3d.cpp
   ${PRJ}/CSRC/mesh_grid.cpp
+  ${PRJ}/CSRC/mesh_pml_extrude.cpp
   ${PRJ}/CSRC/mesh_common.cpp
   ${PRJ}/CSRC/reader_abaqus.cpp
   ${PRJ}/CSRC/reader_ideas.cpp

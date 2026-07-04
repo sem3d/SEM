@@ -1,0 +1,14 @@
+6
+S 3000 1700 2000 5 5 5 1e-08 0 0
+P 3000 1700 2000 5 5 5 1e-08 0 0
+P 3000 1700 2000 5 5 5 1e-08 0 0
+P 3000 1700 2000 5 5 5 1e-08 0 0
+P 3000 1700 2000 5 5 5 1e-08 0 0
+P 3000 1700 2000 5 5 5 1e-08 0 0
+# Specifications for PMLs
+# Filtering, npow, Apow, Px, Left, Pz, Down, omegac, kc
+F 2 10 T T F F 0 0
+F 2 10 T F F F 0 0
+F 2 10 F F T T 0 0
+F 2 10 T T T T 0 0
+F 2 10 T F T T 0 0

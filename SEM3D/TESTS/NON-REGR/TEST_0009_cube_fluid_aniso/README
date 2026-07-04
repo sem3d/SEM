@@ -1,0 +1,74 @@
+Description
+===========
+
+Test do domínio acústico anisotrópico DM_FLUID_CG_ANISO, tipo 'A'.
+Formulação em potencial de velocidade, anisotropia na DENSIDADE
+(Capdeville & Cance 2015).
+
+Nprocs : 4
+
+Maillage
+--------
+
+Comando ::
+
+  mesher < mesh.input
+
+Cubo 500x500x500 m, células de 50m (10x10x10 = 1000 elementos), ngll=5.
+Sem PML — tempo de simulação curto para evitar reflexões de borda.
+
+Parâmetros físicos
+------------------
+
+- ρ = 1000 kg/m³  (caso constante → ρ⁻¹_ij = (1/ρ) δij, isotrópico-equivalente)
+- κ = ρ*Vp² = 2.25×10⁹ Pa  (módulo de compressão escalar)
+- Vp = 1500 m/s (água)
+
+Equação resolvida (formulação em potencial φ, anisotropia na densidade):
+
+  (1/κ) ∂²φ/∂t² = ∂/∂xi( ρ⁻¹_ij ∂φ/∂xj ) ,   v_i = ρ⁻¹_ij ∂φ/∂xj ,   p = -∂φ/∂t
+
+Source
+------
+
+fluidpulse ricker, f=5 Hz, amplitude=1e9, posição (250,250,250).
+
+Duração : 0.15 s — ondas chegam às estações antes das reflexões de borda.
+
+Capteurs
+--------
+
+Along x-axis (R1..R3):  (350,250,250), (400,250,250), (450,250,250)
+Along y-axis (R4..R5):  (250,350,250), (250,450,250)
+
+Validation
+----------
+
+1. Isotropy check: tempos de chegada em R1 e R4 devem ser iguais (mesma distância
+   d=100m do centro), confirmando ρ⁻¹_11 = ρ⁻¹_22 no limite isotrópico.
+
+2. Travel time: t_arr ≈ d/Vp, com Vp = sqrt(κ·ρ⁻¹) = sqrt(κ/ρ). Para d=100m:
+   t≈0.067s; d=150m: t≈0.100s; d=200m: t≈0.133s.
+
+3. Equivalência ao DM_FLUID_CG (fluido regular)  — sanity check principal:
+   como o caso constante reduz a ρ⁻¹_ij = (1/ρ)δij e κ = ρVp², os sismogramas do
+   domínio 'A' (FluidAniso) e do domínio 'F' (Fluid regular) com os mesmos Vp e ρ
+   devem coincidir até erro de máquina. Procedimento::
+
+     # 1) run anisotrópico (mater.in, tipo 'A')
+     cp mater.in material.input ; mpirun -n 4 sem3d.exe ; mv res res_aniso
+     # 2) run isotrópico de referência (mater_fluid_iso.in, tipo 'F')
+     cp mater_fluid_iso.in material.input ; mpirun -n 4 sem3d.exe ; mv res res_iso
+     # 3) comparar os traces
+     python compare_aniso_vs_iso.py res_aniso/traces*.h5 res_iso/traces*.h5
+
+   O script reporta a maior diferença relativa e passa se for ≤ 1e-9.
+
+Notas
+-----
+
+- Para o caso anisotrópico geral (ρ⁻¹_11 ≠ ρ⁻¹_22 ≠ ρ⁻¹_33) usar:
+  - material.spec com deftype = Fluid_Aniso (HDF5) — ver TEST_0010, ou
+  - deftype = Cstar_Fluid com o Cstar acústico (Nd=3) do homofft, que grava
+    o tensor inverso-densidade ρ*⁻¹ e 1/κ* por ponto GLL.
+- O caso MATERIAL_CONSTANT (mater.in tipo 'A') constrói ρ⁻¹_ij = (1/ρ)δij e κ = ρVp².

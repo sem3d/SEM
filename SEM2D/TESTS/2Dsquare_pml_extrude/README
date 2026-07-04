@@ -1,0 +1,44 @@
+2Dsquare_pml_extrude
+====================
+
+Demonstrates PML added to an *imported* 2D mesh by extrusion, via the optional
+pml.input file read by the 2D mesher (mesher2D). It is the general-mesh
+counterpart of the "on the fly" PML (mat.dat, used by 2Dsquare_absorbingBC):
+here the mesh has no PML, and the mesher grows the PML layers itself.
+
+Note: in 2D the vertical axis is z (stored as the second node coordinate), so
+pml.input uses the sides x-, x+, z-, z+. There is no y axis (y-/y+ are rejected).
+
+Pipeline
+--------
+1. gen_mesh2d.py writes mesh_input.h5: a bare [0,500]x[0,300] domain, 10x6
+   Quad4, one solid material, NO PML.
+2. mesher2D (menu option 4, HDF5) reads the mesh, reads mater.in as the base
+   materials, sees pml.input and extrudes PML element layers on the requested
+   sides, deriving the PML materials and writing material.input.
+3. sem2d runs the resulting mesh4spec.
+
+Files
+-----
+  gen_mesh2d.py    mesh generator (bare quad grid, no PML)
+  mesh.input       stdin for mesher2D (1 proc, option 4, mesh_input.h5)
+  mater.in         base materials (1 solid) with NGLL/Dt per material
+  pml.input        PML sides + thickness: x-/x+ = 4 layers, z- = 4 layers,
+                   z+ left free (free surface)
+  input.spec       sem2d config (ricker pulse at the domain centre 250,150)
+  capteurs.dat     receivers inside the physical domain
+  run.sh           driver: gen mesh -> mesher2D -> (optional) sem2d
+
+Run
+---
+  MESHER2D=/path/to/build/MESH2D/mesher2D ./run.sh
+  # add SEM2D=/path/to/build/SEM2D/sem2d to also run the solver
+
+Expected mesher result
+----------------------
+Bare grid = 60 quads. After extrusion (4 layers on x-, x+, z-, plus the two
+bottom corners W+D and E+D), the physical (non-PML) quad count stays 60 and the
+material.input lists the base material plus the derived PML materials (W, E, D,
+W+D, E+D). The pulse should be absorbed at the three PML edges while the top
+(z+) behaves as a free surface. Compare with 2Dsquare_absorbingBC for the
+on-the-fly PML equivalent.

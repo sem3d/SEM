@@ -227,6 +227,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
                npow, apow, pX, wX, pY, wY, pZ, wZ, rmat);
 
         m_materials[mat].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
+        m_materials[mat].associated_material = rmat;
     }
     free(buffer);
     return nmats;

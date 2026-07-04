@@ -1,3 +1,5 @@
+# mesher2D — test suite
+
 Exercises every `mesher2D` input path: on-the-fly grid generation (with variations)
 and the external-mesh readers (`.unv`, HDF5). Run them all after building SEM:
 
@@ -47,3 +49,18 @@ mesher only generates `material.input` on the on-the-fly path).
   written. Parity check: both should yield the same partitioned mesh as
   `onthefly_1mat` (same 10x6 geometry, single material).
 
+--------------------------------------------------------------------------------
+## Manual run of a single test
+
+    cd onthefly_pml
+    ../../../build/MESH2D/mesher2D < mesh.input
+    h5dump -A mesh4spec.0000.h5         # attributes: n_elements, n_materials, ...
+    cat material.input
+
+--------------------------------------------------------------------------------
+## Feeding a mesh into the SEM2D solver
+
+The on-the-fly tests produce both `mesh4spec.NNNN.h5` and `material.input`. Point an
+`input.spec` at `mesh_file = "mesh4spec"` / `mat_file = "material.input"` and run
+SEM2D in the same directory. The `aniso2d/` suite uses this for the physics gates;
+these tests focus on the mesher output itself.

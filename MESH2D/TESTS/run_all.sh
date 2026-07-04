@@ -48,5 +48,8 @@ run_case onthefly_mpi    4 ""
 run_case unv_input  1 "$PY $HERE/gen_unv_mesh.py mesh.unv"
 run_case hdf5_input 1 "$PY $HERE/gen_hdf5_mesh.py mesh_input.h5"
 
+# imported mesh + PML added by extrusion (pml.input); base grid has no PML
+run_case hdf5_pml   1 "$PY $HERE/gen_hdf5_mesh.py mesh_input.h5"
+
 echo
 echo "Done. Inspect each dir's outputmesh.log + material.input, and h5dump mesh4spec.0000.h5."

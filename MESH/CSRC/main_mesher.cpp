@@ -6,6 +6,7 @@
 //mat.dat
 #include <cstdio>
 #include <cstdlib>
+#include <unistd.h>
 #include "material.h"
 #include "mesh.h"
 #include "meshpart.h"
@@ -17,6 +18,7 @@
 #include "read_input.h"
 #include "sem_input.h"
 #include "earth_mesh.h"
+#include "mesh_pml_extrude.h"
 
 void handle_on_the_fly(Mesh3D& mesh)
 {
@@ -184,6 +186,20 @@ int main(int argc, char**argv)
     default:
         break;
     };
+
+    // Optional: add PML layers to an imported mesh via pml.input (cases 2/3/4).
+    // Case 1 (on the fly) already gets its PML from mat.dat, so pml.input is ignored there.
+    if (choice==2 || choice==3 || choice==4) {
+        PmlSpec pmlspec;
+        if (read_pml_input("pml.input", pmlspec) && pmlspec.any()) {
+            size_t n_base = mesh.n_materials();
+            extrude_pml(mesh, pmlspec);
+            mesh.write_materials("material.input");
+            append_pml_material_spec("material.spec", mesh, n_base);
+        }
+    } else if (choice==1 && access("pml.input", F_OK)==0) {
+        printf("WARNING: pml.input ignored for 'on the fly' meshes (PML comes from mat.dat)\n");
+    }
 
     //mesh.write_materials("material.input");
     mesh.define_associated_materials();

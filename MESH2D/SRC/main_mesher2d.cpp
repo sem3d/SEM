@@ -5,6 +5,8 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <cmath>
 #include <string>
 #include <vector>
 #include <map>
@@ -882,6 +884,209 @@ void handle_on_the_fly(Mesh2D& mesh)
     printf("Wrote material.input (%ld materials)\n", mats.size());
 }
 
+// ===================================================================
+// PML by extrusion of boundary edges, driven by an optional pml.input.
+// The 2D analog of the 3D mesher's mesh_pml_extrude. Sides: x-, x+, z-, z+
+// (z is the vertical axis, stored in Mesh2D::m_py). Processed x then z so a
+// W+D corner PML is created when the z- pass meets the z-min edge of an
+// x-column. y-/y+ are 3D-only and rejected.
+enum Pml2Side { P2_XM=0, P2_XP, P2_ZM, P2_ZP, P2_NSIDES };
+
+struct PmlSpec2D {
+    int    n[P2_NSIDES];
+    double step[P2_NSIDES];
+    int    npow;
+    double apow, omegac, kc;
+    PmlSpec2D():npow(2),apow(10.),omegac(0.),kc(0.) {
+        for(int k=0;k<P2_NSIDES;++k){ n[k]=0; step[k]=0.; }
+    }
+    bool any() const { for(int k=0;k<P2_NSIDES;++k) if(n[k]>0) return true; return false; }
+};
+
+static bool read_pml_input_2d(const char* fname, PmlSpec2D& spec)
+{
+    FILE* f = fopen(fname, "r");
+    if (!f) return false;
+    char* buffer=NULL; size_t n=0;
+    while (true) {
+        getData_line(&buffer, &n, f);
+        if (!buffer || buffer[0]==0) break;
+        char tok[64]={0};
+        if (sscanf(buffer, "%63s", tok)!=1) continue;
+        if (!strcmp(tok,"pmlparams")) {
+            sscanf(buffer, "%*s %d %lf %lf %lf", &spec.npow, &spec.apow, &spec.omegac, &spec.kc);
+            continue;
+        }
+        int nn=0; double step=0.;
+        int c = sscanf(buffer, "%*s %d %lf", &nn, &step);
+        int s=-1;
+        if (!strcmp(tok,"x-")) s=P2_XM;
+        else if (!strcmp(tok,"x+")) s=P2_XP;
+        else if (!strcmp(tok,"z-")) s=P2_ZM;
+        else if (!strcmp(tok,"z+")) s=P2_ZP;
+        else if (!strcmp(tok,"y-") || !strcmp(tok,"y+")) {
+            printf("ERR pml.input: side '%s' is 3D-only; 2D has no y axis\n", tok); exit(1);
+        } else { printf("ERR pml.input: unknown side '%s'\n", tok); exit(1); }
+        if (c<1 || nn<0) { printf("ERR pml.input: bad count for '%s'\n", tok); exit(1); }
+        spec.n[s]=nn; spec.step[s]=(c>=2)?step:0.;
+    }
+    if (buffer) free(buffer);
+    printf("Read pml.input: x-=%d x+=%d z-=%d z+=%d\n",
+           spec.n[P2_XM], spec.n[P2_XP], spec.n[P2_ZM], spec.n[P2_ZP]);
+    return true;
+}
+
+struct MatInfo2D { int base; bool W,E,D,U; MatInfo2D():base(-1),W(false),E(false),D(false),U(false){} };
+
+struct PmlExtruder2D {
+    Mesh2D& mesh;
+    vector<Material2D>& mats;
+    const PmlSpec2D& spec;
+    vector<MatInfo2D> minfo;
+    map<int,int> matcache;              // (base<<4|flags) -> material index
+    map<pair<int,int>,int> newnode;     // (orig node, layer) -> new node id
+
+    PmlExtruder2D(Mesh2D& m, vector<Material2D>& mt, const PmlSpec2D& s):mesh(m),mats(mt),spec(s) {
+        minfo.resize(mats.size());
+        for(size_t k=0;k<mats.size();++k) {
+            MatInfo2D& mi=minfo[k];
+            if (mats[k].is_pml) { mi.base=(int)k; mi.W=mats[k].left&&mats[k].px; mi.E=mats[k].px&&!mats[k].left;
+                                  mi.D=mats[k].down&&mats[k].pz; mi.U=mats[k].pz&&!mats[k].down; }
+            else mi.base=(int)k;
+        }
+    }
+
+    double coord(int node, int axis) const { return axis==0 ? mesh.m_px[node] : mesh.m_py[node]; }
+
+    int newpt(int orig, int layer, int axis, double delta) {
+        pair<int,int> key(orig,layer);
+        map<pair<int,int>,int>::iterator it=newnode.find(key);
+        if (it!=newnode.end()) return it->second;
+        double x=mesh.m_px[orig], y=mesh.m_py[orig];
+        if (axis==0) x += delta*layer; else y += delta*layer;
+        int id = mesh.m_px.size();
+        mesh.m_px.push_back(x); mesh.m_py.push_back(y);
+        newnode[key]=id;
+        return id;
+    }
+
+    int get_or_make_pml(int src_mat, int side) {
+        MatInfo2D si = minfo[src_mat];
+        int base=si.base;
+        bool W=si.W,E=si.E,D=si.D,U=si.U;
+        bool* flag[P2_NSIDES]={&W,&E,&D,&U};
+        if (*flag[side]) return src_mat;
+        *flag[side]=true;
+        bool px=W||E, left=W, pz=D||U, down=D;
+        int key = (base<<4) | (px?1:0)|(left?2:0)|(pz?4:0)|(down?8:0);
+        map<int,int>::iterator it=matcache.find(key);
+        if (it!=matcache.end()) return it->second;
+        Material2D m = mats[base];
+        m.type='P'; m.is_pml=true;
+        m.px=px; m.left=left; m.pz=pz; m.down=down;
+        m.npow=spec.npow; m.apow=spec.apow; m.omegac=spec.omegac; m.kc=spec.kc;
+        int idx=mats.size();
+        mats.push_back(m);
+        MatInfo2D ni; ni.base=base; ni.W=W;ni.E=E;ni.D=D;ni.U=U;
+        minfo.push_back(ni);
+        matcache[key]=idx;
+        printf("  PML material %d (base %d) flags W%d E%d D%d U%d\n", idx, base, W,E,D,U);
+        return idx;
+    }
+
+    void emit_quad(int i0, int i1, int o0, int o1, int mat) {
+        int q[4] = { i0, i1, o1, o0 };      // around the quad; check_orient fixes winding
+        Quad4* qd = new Quad4(q);
+        qd->check_orient(mesh.m_px, mesh.m_py);
+        mesh.m_quads.push_back(qd);
+        mesh.m_mat1.push_back(mat);
+    }
+
+    void extrude_side(int side) {
+        int nlay = spec.n[side];
+        if (nlay<=0) return;
+        int axis = (side==P2_XM||side==P2_XP) ? 0 : 1;
+        double sgn = (side==P2_XM||side==P2_ZM) ? -1. : 1.;
+        newnode.clear();
+        // bbox along axis
+        double lo=coord(0,axis), hi=lo;
+        size_t nn = mesh.m_px.size();
+        for(size_t k=0;k<nn;++k){ double c=coord((int)k,axis); if(c<lo)lo=c; if(c>hi)hi=c; }
+        double ext=hi-lo; if(ext<=0.){printf("ERR: degenerate 2D mesh\n"); exit(1);}
+        double plane=(sgn<0.)?lo:hi;
+        double tol=1e-6*ext;
+        // Quad edges as ordered node-index pairs (local): bottom,right,top,left
+        static const int EDGE[4][2]={{0,1},{1,2},{3,2},{0,3}};
+        struct BEdge { int a,b,mat; };
+        vector<BEdge> edges;
+        double step=spec.step[side], tstep=0.;
+        size_t nq0 = mesh.m_quads.size();
+        for(size_t e=0;e<nq0;++e) {
+            Quad* q=mesh.m_quads[e];
+            if (q->get_nb_nodes()!=4) { printf("ERR: 2D PML extrusion supports only Quad4\n"); exit(1); }
+            // element extent along axis
+            double emin=coord(q->get_node_id(0),axis), emax=emin;
+            for(int k=1;k<4;++k){ double c=coord(q->get_node_id(k),axis); if(c<emin)emin=c; if(c>emax)emax=c; }
+            for(int ed=0;ed<4;++ed) {
+                int a=q->get_node_id(EDGE[ed][0]), b=q->get_node_id(EDGE[ed][1]);
+                if (fabs(coord(a,axis)-plane)<=tol && fabs(coord(b,axis)-plane)<=tol) {
+                    double th=emax-emin;
+                    if (tstep<=0.) tstep=th;
+                    else if (step<=0. && fabs(th-tstep)>1e-3*tstep) {
+                        printf("ERR: boundary elements on side %d non-uniform (%g vs %g); set explicit step\n",
+                               side, th, tstep); exit(1);
+                    }
+                    BEdge be={a,b,mesh.m_mat1[e]}; edges.push_back(be);
+                }
+            }
+        }
+        if (edges.empty()) { printf("WARNING: no boundary edges on side %d, skipped\n", side); return; }
+        if (step<=0.) step=tstep;
+        double delta=sgn*step;
+        printf("Side %d: %zu boundary edges, %d layers, step=%g\n", side, edges.size(), nlay, step);
+        for(size_t i=0;i<edges.size();++i) {
+            int mat = get_or_make_pml(edges[i].mat, side);
+            int a=edges[i].a, b=edges[i].b;
+            for(int l=1;l<=nlay;++l) {
+                int i0=(l==1)?a:newpt(a,l-1,axis,delta);
+                int i1=(l==1)?b:newpt(b,l-1,axis,delta);
+                int o0=newpt(a,l,axis,delta);
+                int o1=newpt(b,l,axis,delta);
+                emit_quad(i0,i1,o0,o1,mat);
+            }
+        }
+    }
+
+    void run() { for(int s=0;s<P2_NSIDES;++s) extrude_side(s); }
+};
+
+// Read mater.in as the base materials, add PML by extrusion per pml.input,
+// rewrite material.input. Returns true if extrusion happened.
+static bool extrude_pml_from_input(Mesh2D& mesh)
+{
+    PmlSpec2D spec;
+    if (!read_pml_input_2d("pml.input", spec) || !spec.any()) return false;
+    vector<Material2D> mats;
+    read_materials_2d("mater.in", mats);
+    if (mesh.m_mat_max >= (int)mats.size()) {
+        printf("ERR: mesh references material %d but mater.in defines only %ld\n",
+               mesh.m_mat_max, mats.size());
+        exit(1);
+    }
+    printf("Extruding 2D PML layers onto imported mesh...\n");
+    PmlExtruder2D ex(mesh, mats, spec);
+    ex.run();
+    // Refresh derived mesh bookkeeping after adding quads.
+    mesh.m_mat2 = mesh.m_mat1;
+    mesh.m_procs.assign(mesh.m_quads.size(), 0);
+    mesh.m_mat_max = 0;
+    for(size_t e=0;e<mesh.m_mat1.size();++e)
+        if (mesh.m_mat1[e]>mesh.m_mat_max) mesh.m_mat_max=mesh.m_mat1[e];
+    write_materials_2d("material.input", mats);
+    printf("Wrote material.input (%ld materials)\n", mats.size());
+    return true;
+}
+
 // Mesh2D::read_mesh ingests a single file (its own node/element numbering); it is not a
 // merging reader, so we read exactly one .unv / HDF5 file (as the original mesh2dc did).
 void handle_ideas_file(Mesh2D& mesh)
@@ -952,6 +1157,14 @@ int main(int argc, char** argv)
         printf("ERR: unknown mesh source %d\n", choice);
         exit(1);
     };
+
+    // Optional PML extrusion for imported meshes (cases 3/4). Case 1 already
+    // builds its PML from mat.dat, so pml.input is ignored there.
+    if (choice==3 || choice==4) {
+        extrude_pml_from_input(mesh);
+    } else if (choice==1 && access("pml.input", F_OK)==0) {
+        printf("WARNING: pml.input ignored for 'on the fly' meshes (PML comes from mat.dat)\n");
+    }
 
     if (NPROCS>1) mesh.partition_metis(NPROCS);
 
