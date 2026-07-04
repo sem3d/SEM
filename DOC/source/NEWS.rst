@@ -1,9 +1,24 @@
 .. -*- coding: utf-8; mode:rst -*-
 
+Version en cours
+----------------
+
+- Ajout de PML par extrusion sur les maillages importés (UNV, Abaqus, HDF5),
+  via un fichier ``pml.input`` optionnel, pour les mailleurs 3D
+  (:program:`mesher`) et 2D (:program:`mesher2D`). Voir :ref:`pml.input`.
+
+- Unification du format des fichiers ``mater.in`` / ``material.input`` entre
+  SEM2D et SEM3D. En 2D, le NGLL est désormais lu depuis ``input.spec``
+  (``ngll=``) et le pas de temps calculé par le nombre de Courant (comme en 3D) ;
+  ces deux champs ne figurent plus par matériau. Le bloc PML utilise la même
+  description par coordonnées (posX/widthX/...) que le 3D. **Incompatible avec
+  les anciens fichiers 2D** : ajouter ``ngll=`` dans ``input.spec`` et régénérer
+  ``material.input``.
+
 Version 2020.03.0
 -----------------
 
-- Nombre de GLL enlev� des fichiers mat.dat et mater.in
+- Nombre de GLL enlev� des fichiers mat.dat et mater.in
 
 - ngll defini dans input.spec (un seul valeur)
 

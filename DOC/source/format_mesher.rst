@@ -67,7 +67,9 @@ Voici un second exemple de fichier mat.dat qui spécifie 3 couches de PML dans l
 Format de mater.in
 ==================
 
-Le fichier ``mater.in`` décrit combien de matériaux sont utilisés dans le modèle :: 
+**Format commun à SEM2D et SEM3D.**
+
+Le fichier ``mater.in`` décrit combien de matériaux sont utilisés dans le modèle ::
 
   1
   S  6300.00  2500.00   2800. 630. 250.
@@ -77,9 +79,100 @@ Le fichier ``mater.in`` décrit combien de matériaux sont utilisés dans le mod
 La deuxième ligne décrit le type de matériau (``S`` matériau solide et
 ``F`` matériau fluide). Pour chaque matériau, on déclare
 successivement, la vitesse de propagation de l'onde de pression,
-vitesse de l'onde de cisaillement, la densité du matériau, 
+vitesse de l'onde de cisaillement, la densité du matériau,
 et les paramètres :math:`Q_\kappa` et :math:`Q_\mu`
 pour l'atténuation des ondes P et S.
+
+Le nombre de points de Gauss (NGLL) n'est **pas** indiqué ici : il est commun à
+tout le domaine et provient de ``input.spec`` (paramètre ``ngll=``), en 2D comme
+en 3D. Le pas de temps n'y figure pas non plus : il est calculé à partir du
+paramètre ``courant`` de ``input.spec``.
+
+
+.. _pml.input:
+
+Format de pml.input (PML par extrusion)
+=======================================
+
+Le fichier ``pml.input`` est **facultatif**. Il permet d'ajouter des couches de
+PML à un maillage **importé** (UNV, Abaqus, HDF5) qui n'en contient pas, sans
+avoir à régénérer le maillage à la source. C'est le pendant, pour les maillages
+externes, des PML « on the fly » définies dans ``mat.dat`` (qui ne concernent
+que la grille cartésienne automatique).
+
+En l'absence de fichier ``pml.input``, **aucune PML n'est ajoutée** au maillage
+importé (comportement inchangé).
+
+La fonctionnalité est disponible pour les deux mailleurs :
+
+- :program:`mesher` (3D) : côtés ``x-`` ``x+`` ``y-`` ``y+`` ``z-`` ``z+`` ;
+- :program:`mesher2D` (2D) : côtés ``x-`` ``x+`` ``z-`` ``z+`` seulement
+  (``z`` est l'axe vertical ; ``y-``/``y+`` sont rejetés).
+
+Si ``pml.input`` est présent lorsqu'on importe un maillage (choix 2, 3 ou 4 du
+menu), le mailleur :
+
+1. détecte les faces (3D) / arêtes (2D) de bord situées sur le côté demandé ;
+2. les extrude vers l'extérieur du nombre de couches d'éléments indiqué ;
+3. crée les matériaux PML dérivés (en copiant les propriétés du matériau
+   adjacent) et réécrit ``material.input`` ; en 3D, si ``material.spec`` existe,
+   des blocs ``material N { copy = base; domain = solidpml; }`` y sont ajoutés.
+
+Pour un maillage « on the fly » (choix 1), ``pml.input`` est ignoré (les PML
+proviennent alors de ``mat.dat``).
+
+Format du fichier
+-----------------
+
+Une ligne par côté à traiter, les lignes de commentaire commençant par ``#`` ::
+
+  # <côté>  <nb d'éléments>  [épaisseur totale optionnelle]
+  x- 3
+  x+ 3 250.     # 3 couches réparties sur 250 m d'épaisseur totale
+  y- 3
+  y+ 3
+  z- 3          # z+ absent => surface libre en haut
+
+- **côté** : ``x-`` ``x+`` ``y-`` ``y+`` ``z-`` ``z+`` (un côté absent = pas de PML).
+- **nb d'éléments** : nombre de couches d'éléments PML extrudées sur ce côté.
+- **épaisseur totale** (optionnelle) : épaisseur totale de la PML sur ce côté,
+  répartie sur les ``nb d'éléments`` couches (chaque couche fait donc
+  épaisseur/nb). Si omise, chaque couche prend la taille de l'élément de bord
+  (PML conforme au maillage), avec vérification d'uniformité : si les éléments
+  du bord n'ont pas tous la même taille, il faut fournir une épaisseur explicite.
+
+En 2D, on peut de plus préciser les paramètres d'atténuation communs à toutes
+les PML créées ::
+
+  pmlparams <npow> <Apow>   # défaut : 2 10.
+
+(Les PML utilisent le type choisi dans ``input.spec`` via la section
+``pml_infos { pml_type = PML|CPML|... }``.)
+
+Coins et arêtes
+---------------
+
+Les côtés sont traités dans un ordre fixe (x, puis y, puis z). Les coins et les
+arêtes sont donc générés **automatiquement** : lorsque la passe en ``y``
+rencontre la face ``y-`` d'une colonne PML déjà créée en ``x``, elle produit un
+matériau PML de coin combinant les directions (par ex. ``W+S``). Il n'y a rien à
+déclarer pour les coins.
+
+Limitations (v1)
+----------------
+
+- Seuls les éléments à 8 nœuds (Hexa8 en 3D) et à 4 nœuds (Quad4 en 2D) sont
+  supportés (Hexa27 / Quad8 : erreur explicite).
+- Le côté choisi doit être un plan aligné sur un axe (il coïncide avec le plan
+  de la boîte englobante de ce côté) ; une surface non plane (topographie) ne
+  peut pas être extrudée.
+
+Exemples
+--------
+
+- 3D : ``SEM/SEM3D/TESTS/NON-REGR/TEST_0011_cube_pml_extrude`` ;
+- 2D : ``SEM/SEM2D/TESTS/2Dsquare_pml_extrude`` ;
+- mailleur seul (2D) : ``SEM/MESH2D/TESTS/hdf5_pml``.
 
 
 Format de material.input (version obsolète)
@@ -174,7 +267,12 @@ Pour le cas où le maillage n'est pas automatique, le fichier a par exemple l'al
 Format de material.input (nouvelle version)
 ===========================================
 
-Le format de ``material.input`` a été modifié. 
+**Format commun à SEM2D et SEM3D** (depuis l'unification du format 2D avec le
+3D). En 2D, l'axe vertical est ``z`` : les champs ``posY``/``widthY`` du bloc PML
+valent toujours 0, et les directions d'atténuation (gauche/droite, haut/bas) sont
+déduites du signe des largeurs ``widthX``/``widthZ``.
+
+Le format de ``material.input`` a été modifié.
 Voici un exemple de sa nouvelle présentation, suivi d'explications sur les paramètres qui interviennent : ::
 
     21

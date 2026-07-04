@@ -40,6 +40,7 @@ module sdomain
        integer :: n_elem, n_face, n_vertex, n_source, n_glob_nodes, n_line ,n_receivers, n_mortar
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
        integer :: type_timeInteg, type_elem, type_flux, type_bc, pml_type, capt_loc_type, Implicitness
+       integer :: ngll  ! nombre de points de Gauss par direction (lu depuis input.spec, commun a tout le domaine)
 
        integer, dimension (:), pointer :: Line_index, Communication_list
        integer :: n_quad ! Total number of quad elements to output (including subelements)
@@ -116,10 +117,10 @@ subroutine read_material_file(Tdomain)
     type(domain), intent(inout) :: Tdomain
     character(Len=MAX_FILE_SIZE) :: fnamef
     !
-    real(fpp) :: dtmin
     integer   :: i, j, mat, mat2, npml, nmortar, ngll1, ngll2
-    integer   :: w_face, w_face2, n_aus, k_aus
+    integer   :: w_face, w_face2, n_aus, k_aus, assocMat
     real(fpp) :: Qp, Qs
+    real(fpp) :: pX, wX, pY, wY, pZ, wZ
 
     ! Read material properties
     npml = 0
@@ -134,12 +135,15 @@ subroutine read_material_file(Tdomain)
         stop 1
     end if
     do i = 0, Tdomain%n_mat-1
+        ! Format unifie avec SEM3D : <type> <Vp> <Vs> <Rho> <Qp> <Qs>.
+        ! Le nombre de points de Gauss (NGLL) vient de input.spec (commun a tout le domaine)
+        ! et le pas de temps Dt est calcule par Compute_Courant.
         read (13,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
             Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%dDensity, &
-            Tdomain%sSubDomain(i)%NGLLx, n_aus, Tdomain%sSubDomain(i)%NGLLz, Tdomain%sSubDomain(i)%Dt, &
             Qp, Qs
-        Tdomain%sSubDomain(i)%n_loc_dim = 2
-        if ( Tdomain%sSubDomain(i)%NGLLx == Tdomain%sSubDomain(i)%NGLLz)  Tdomain%sSubDomain(i)%n_loc_dim = 1
+        Tdomain%sSubDomain(i)%NGLLx = Tdomain%ngll
+        Tdomain%sSubDomain(i)%NGLLz = Tdomain%ngll
+        Tdomain%sSubDomain(i)%n_loc_dim = 1
         if (Tdomain%sSubDomain(i)%material_type == "P" )  then
             npml = npml + 1
         endif
@@ -163,11 +167,20 @@ subroutine read_material_file(Tdomain)
         read(13,*); read(13,*)
         do i = 0,Tdomain%n_mat-1
             if (Tdomain%sSubdomain(i)%material_type == "P" ) then
-                read (13,*) Tdomain%sSubdomain(i)%Filtering,  Tdomain%sSubdomain(i)%npow, Tdomain%sSubdomain(i)%Apow, &
-                    Tdomain%sSubdomain(i)%Px, Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Pz,  &
-                    Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq, Tdomain%sSubdomain(i)%k
-                ! Warning : The variable "Filtering" is no longer used : the kind of PML|FPML|CPML|ADEPML is
-                ! assigned directly in the file : input.spec :
+                ! Format unifie avec SEM3D : npow Apow posX widthX posY widthY posZ widthZ mat.
+                ! Les directions d'attenuation (Px/Left/Pz/Down) sont deduites du signe des largeurs
+                ! d'extrusion (widthX pour X, widthZ pour Z ; posY/widthY ignores en 2D).
+                read (13,*) Tdomain%sSubdomain(i)%npow, Tdomain%sSubdomain(i)%Apow, &
+                    pX, wX, pY, wY, pZ, wZ, assocMat
+                Tdomain%sSubdomain(i)%Px   = (wX /= 0._fpp)
+                Tdomain%sSubdomain(i)%Left = (wX <  0._fpp)
+                Tdomain%sSubdomain(i)%Pz   = (wZ /= 0._fpp)
+                Tdomain%sSubdomain(i)%Down = (wZ <  0._fpp)
+                ! CPML/FPML : Filtering et les parametres freq/k ne sont plus dans material.input
+                ! (format 3D). PML standard par defaut ; le type PML vient de input.spec (pml_type).
+                Tdomain%sSubdomain(i)%Filtering = .false.
+                Tdomain%sSubdomain(i)%freq = 0._fpp
+                Tdomain%sSubdomain(i)%k    = 0._fpp
                 Tdomain%sSubdomain(i)%pml_type = Tdomain%pml_type
             endif
         enddo
@@ -349,17 +362,9 @@ subroutine read_material_file(Tdomain)
         endif
     enddo
 
-    dtmin =1e20
-    do i = 0,Tdomain%n_mat-1
-        if (Tdomain%sSubDomain(i)%Dt < dtmin ) dtmin = Tdomain%sSubDomain(i)%Dt
-    enddo
-    Tdomain%TimeD%dtmin = dtmin
-    if (dtmin > 0) then
-        Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/dtmin)
-    else
-        write (*,*) "Your dt min is zero : verify it"
-        stop
-    endif
+    ! Le pas de temps (Dt, dtmin, ntimeMax) est calcule par Compute_Courant (main.F90),
+    ! appele juste apres la lecture du maillage, a partir du parametre 'courant' de input.spec
+    ! -- comme en 3D. Il n'est donc plus lu depuis material.input.
 
     do i = 0, Tdomain%n_mat-1
         call Lame_coefficients (Tdomain%sSubDomain(i))

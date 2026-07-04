@@ -5,6 +5,7 @@ run_name = "Square_Absorbing_BC";
 sim_time = 2.;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
+ngll = 5;   # NGLL commun a tout le domaine (lu depuis input.spec, comme en 3D)
 
 snapshots {
     save_snap = true;

@@ -1,4 +1,4 @@
 1
-S  3200.00  1700.00  1700.  5  0  5  .000050000  0.0  0.0
-# File in which material properties are stored
-# For any material, put type, Vp, Vs, rho, ngllx, nglly, ngllz, dt, Qp, Qs
+S 3200.00 1700.00 1700. 0.0 0.0
+# material.input (formato unifie 2D=3D): type Vp Vs Rho Qk Qmu
+# NGLL vient de input.spec (ngll=), Dt calcule par le courant

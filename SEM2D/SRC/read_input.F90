@@ -104,6 +104,7 @@ subroutine read_input (Tdomain)
     Tdomain%TimeD%beta = config%beta
     Tdomain%TimeD%gamma = config%gamma
     Tdomain%TimeD%courant = config%courant
+    Tdomain%ngll = config%ngll
     Tdomain%type_elem = config%type_elem
     Tdomain%type_flux = config%type_flux
     Tdomain%type_bc   = config%type_bc

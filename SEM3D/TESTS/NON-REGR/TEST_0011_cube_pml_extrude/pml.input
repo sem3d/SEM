@@ -1,5 +1,10 @@
-# PML by extrusion. Format:  <side> <n_elements> [step]
-# sides: x- x+ y- y+ z- z+  (z+ left free = free surface)
+# PML par extrusion des bords.  Un cote par ligne :
+#   <cote>  <n_elements>  [epaisseur_totale]
+# cotes : x- x+ y- y+ z- z+   (un cote absent = pas de PML de ce cote)
+# n_elements    : nombre de couches d'elements PML extrudees
+# epaisseur_totale (optionnel) : epaisseur totale de la PML sur ce cote,
+#   repartie sur les n_elements couches. Si omise, chaque couche prend la
+#   taille de l'element de bord (PML conforme au maillage).
 x- 3
 x+ 3
 y- 3

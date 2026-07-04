@@ -22,11 +22,13 @@ Files
 -----
   gen_mesh2d.py    mesh generator (bare quad grid, no PML)
   mesh.input       stdin for mesher2D (1 proc, option 4, mesh_input.h5)
-  mater.in         base materials (1 solid) with NGLL/Dt per material
+  mater.in         base materials (1 solid), format unified with 3D:
+                   type Vp Vs Rho Qk Qmu  (no NGLL/Dt)
   pml.input        PML sides + thickness: x-/x+ = 4 layers, z- = 4 layers,
                    z+ left free (free surface)
-  input.spec       sem2d config (ricker pulse at the domain centre 250,150)
-  capteurs.dat     receivers inside the physical domain
+  input.spec       sem2d config; needs ngll= (NGLL is global, as in 3D) and a
+                   pml_infos { pml_type = PML; } section. Ricker pulse at 250,150.
+  capteurs.dat     receivers inside the physical domain (2 columns: X Z)
   run.sh           driver: gen mesh -> mesher2D -> (optional) sem2d
 
 Run

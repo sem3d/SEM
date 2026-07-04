@@ -1,5 +1,5 @@
 # single solid material; PML materials are derived automatically by mesher2D
 # n_mat
 1
-# type  Vp      Vs      Rho     NGLL  Dt       Qp   Qs
-S 3000.0 1700.0 2000.0 5 1.0e-8 0.0 0.0
+# type  Vp  Vs  Rho  Qk  Qmu
+S 3000.0 1700.0 2000.0 0.0 0.0

@@ -21,9 +21,9 @@ using namespace std;
 // ---- pml.input parsing --------------------------------------------------
 // Format (comments start with '#'):
 //   x- 5
-//   x+ 5 250.       # optional explicit extrusion step
+//   x+ 5 250.       # optional TOTAL PML thickness on this side (here 5 layers over 250 m)
 //   z- 4
-// A side is off unless listed. Missing step -> auto (boundary element size).
+// A side is off unless listed. Missing 3rd value -> per-layer size = boundary element size.
 static int side_from_token(const char* tok)
 {
     if (!strcmp(tok,"x-")) return PML_XM;
@@ -229,9 +229,12 @@ void PmlExtruder::extrude_side(int side, int n, double step_override)
     double tol = 1e-6*ext;
 
     // Collect boundary faces on this side; determine step.
+    // The optional pml.input value is the TOTAL PML thickness on this side -> per-layer
+    // step = total/n. When omitted, the boundary element size is used (conforming PML).
     struct BFace { index_t f[4]; int mat; };
     vector<BFace> faces;
-    double step=step_override, tstep=0.;
+    double step = (step_override>0.) ? step_override/n : 0.;
+    double tstep=0.;
     size_t n0 = mesh.n_elems();
     for(size_t e=0;e<n0;++e) {
         index_t nodes[8]; mesh.get_elem_nodes((index_t)e, nodes);
@@ -246,7 +249,7 @@ void PmlExtruder::extrude_side(int side, int n, double step_override)
         if (tstep<=0.) tstep=th;
         else if (step_override<=0. && fabs(th-tstep) > 1e-3*tstep) {
             printf("ERR: boundary elements on side %d have non-uniform size (%g vs %g). "
-                   "Give an explicit step in pml.input.\n", side, th, tstep);
+                   "Give an explicit total PML thickness in pml.input.\n", side, th, tstep);
             exit(1);
         }
         BFace bf;

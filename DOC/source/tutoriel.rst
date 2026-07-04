@@ -488,6 +488,11 @@ s'appuie sur un fichier externe ``mat.dat``, donnant quelques
 informations sur le maillage à générer : nombre de matériaux, présence
 d'éléments PML, type de matériau (solide ou fluide).
 
+Pour un maillage **importé** (Abaqus, UNV ou HDF5) qui ne contient pas de PML,
+on peut ajouter des couches de PML par extrusion des bords à l'aide d'un fichier
+``pml.input`` optionnel (valable pour :program:`mesher` en 3D et
+:program:`mesher2D` en 2D). Voir :ref:`pml.input`.
+
 
 Préparation d'un cas de calcul
 ------------------------------

@@ -6,6 +6,11 @@ sim_time = 2.;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 dim=2;
+ngll=5;
+
+pml_infos {
+    pml_type = PML;
+};
 
 snapshots {
     save_snap = true;
@@ -24,9 +29,9 @@ restart_iter=0;
 
 # pulse at the centre of the physical [0,500]x[0,300] domain
 source {
-    coords = 250. 150. 0.;
+    coords = 250. 150.;
     type = impulse;
-    dir = x;
+    dir = 1. 0.;
     func = ricker;
     tau = .3;
     freq = 4.;

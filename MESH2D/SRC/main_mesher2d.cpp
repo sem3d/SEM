@@ -612,28 +612,29 @@ static void getData_line(char** buffer, size_t* linesize, FILE* f)
 }
 
 // One SEM2D material as carried by mater.in / material.input.
-// The 2D solver (Domain.F90 read_material_file) needs NGLL and Dt per material, unlike the
-// 3D mesher which reads those from input.spec -- so the 2D material file format differs.
+// The file format is unified with SEM3D: NGLL comes from input.spec and Dt from
+// Compute_Courant, so neither is stored per material. PMLs are described by the
+// same coordinate block as 3D (pos/width per axis + associated material index).
 struct Material2D {
     char   type;            // S solid, F fluid, P pml
     double vp, vs, rho;
-    int    ngll;
-    double dt;
     double qp, qs;
-    // PML descriptor (type=='P' only), as read by Domain.F90 read_material_file:
-    //   Filtering npow Apow Px Left Pz Down omegac kc
+    // PML descriptor (type=='P' only). The 2D solver derives the attenuation sides
+    // (Px/Left/Pz/Down) from the signs of the extrusion widths.
     bool   is_pml;
-    bool   px, left, pz, down;  // PML in x / on x-min side ; PML in z / on z-min side
     int    npow;
-    double apow, omegac, kc;
-    Material2D() : type('S'), vp(0), vs(0), rho(0), ngll(5), dt(0), qp(0), qs(0),
-                   is_pml(false), px(false), left(false), pz(false), down(false),
-                   npow(2), apow(10.), omegac(0.), kc(0.) {}
+    double apow;
+    double xpos, xwidth;    // interface position and signed extrusion width along x
+    double zpos, zwidth;    // ... along z (2D vertical axis)
+    int    assoc;           // adjacent non-PML material index (0-based)
+    Material2D() : type('S'), vp(0), vs(0), rho(0), qp(0), qs(0),
+                   is_pml(false), npow(2), apow(10.),
+                   xpos(0.), xwidth(0.), zpos(0.), zwidth(0.), assoc(-1) {}
 };
 
-// mater.in (2D): a header-commented file, then
+// mater.in (2D) -- identical to SEM3D:
 //   n_mat
-//   <type> <Vp> <Vs> <Rho> <NGLL> <Dt> <Qp> <Qs>      (n_mat lines)
+//   <type> <Vp> <Vs> <Rho> <Qk> <Qmu>      (n_mat lines)
 static void read_materials_2d(const char* fname, vector<Material2D>& mats)
 {
     FILE* f = fopen(fname, "r");
@@ -645,23 +646,22 @@ static void read_materials_2d(const char* fname, vector<Material2D>& mats)
     if (nmat<=0 || nmat>1000) {printf("ERR: bad material count %d in %s\n", nmat, fname); exit(1);}
     for(int k=0;k<nmat;++k) {
         Material2D m;
-        m.type='S'; m.vp=m.vs=m.rho=0.; m.ngll=5; m.dt=0.; m.qp=0.; m.qs=0.;
         getData_line(&buffer, &n, f);
-        int c = sscanf(buffer, " %c %lf %lf %lf %d %lf %lf %lf",
-                       &m.type, &m.vp, &m.vs, &m.rho, &m.ngll, &m.dt, &m.qp, &m.qs);
-        if (c<5) {printf("ERR: material line %d in %s has too few fields (%d)\n", k, fname, c); exit(1);}
+        int c = sscanf(buffer, " %c %lf %lf %lf %lf %lf",
+                       &m.type, &m.vp, &m.vs, &m.rho, &m.qp, &m.qs);
+        if (c<4) {printf("ERR: material line %d in %s has too few fields (%d)\n", k, fname, c); exit(1);}
         mats.push_back(m);
     }
     if(buffer) free(buffer);
     fclose(f);
 }
 
-// material.input (2D), read by Domain.F90 read_material_file:
+// material.input (2D) -- identical layout to SEM3D, read by Domain.F90 read_material_file:
 //   n_mat
-//   <type> <Vp> <Vs> <Rho> <NGLLx> <mid> <NGLLz> <Dt> <Qp> <Qs>      (n_mat lines)
+//   <type> <Vp> <Vs> <Rho> <Qp> <Qs>                                   (n_mat lines)
 //   [if any 'P' material:]
 //   <two comment/header lines>
-//   <Filtering npow Apow Px Left Pz Down omegac kc>                  (one per 'P', in order)
+//   <npow Apow posX widthX posY widthY posZ widthZ mat>                (one per 'P', in order)
 static void write_materials_2d(const char* fname, const vector<Material2D>& mats)
 {
     FILE* f = fopen(fname, "w");
@@ -670,21 +670,18 @@ static void write_materials_2d(const char* fname, const vector<Material2D>& mats
     int npml = 0;
     for(size_t k=0;k<mats.size();++k) {
         const Material2D& m = mats[k];
-        fprintf(f, "%c %g %g %g %d %d %d %g %g %g\n",
-                m.type, m.vp, m.vs, m.rho,
-                m.ngll, m.ngll, m.ngll, m.dt, m.qp, m.qs);
+        fprintf(f, "%c %g %g %g %g %g\n", m.type, m.vp, m.vs, m.rho, m.qp, m.qs);
         if (m.is_pml) npml++;
     }
     if (npml>0) {
-        fprintf(f, "# Specifications for PMLs\n");
-        fprintf(f, "# Filtering, npow, Apow, Px, Left, Pz, Down, omegac, kc\n");
+        fprintf(f, "# PML properties\n");
+        fprintf(f, "# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat\n");
         for(size_t k=0;k<mats.size();++k) {
             const Material2D& m = mats[k];
             if (!m.is_pml) continue;
-            fprintf(f, "F %d %g %c %c %c %c %g %g\n",
-                    m.npow, m.apow,
-                    m.px?'T':'F', m.left?'T':'F', m.pz?'T':'F', m.down?'T':'F',
-                    m.omegac, m.kc);
+            // posY/widthY are always 0 in 2D.
+            fprintf(f, "%d %g %g %g %g %g %g %g %d\n",
+                    m.npow, m.apow, m.xpos, m.xwidth, 0., 0., m.zpos, m.zwidth, m.assoc);
         }
     }
     fclose(f);
@@ -704,6 +701,8 @@ struct RectMesh2D {
     double apow, omegac, kc;
     int    elem_shape;    // 4 = Quad4
     int    nelemx, nelemz;
+    // Domain bounds before PML extension (interface positions for the PML descriptors)
+    double xmin0, xmax0, zmin0, zmax0, zstepU, zstepD;
     // PML material cache: key (layer,W,E,U,D) -> material index (appended to mats)
     map<int,int> pml_cache;
 
@@ -763,6 +762,11 @@ void RectMesh2D::read_params(const char* fname)
 // RectMesh::apply_pml_borders). The top/bottom extension grows the first/last layer.
 void RectMesh2D::apply_pml_borders()
 {
+    // Capture the physical-domain bounds (PML/solid interface) before extending.
+    xmin0 = xmin; xmax0 = xmax; zmax0 = zmax;
+    zmin0 = zmax; for(int k=0;k<nlayers;++k) zmin0 -= thickness[k];
+    zstepU = thickness[0]/nsteps[0];
+    zstepD = thickness[nlayers-1]/nsteps[nlayers-1];
     if (npml<=0) return;
     if (pml_E) xmax += npml*xstep;
     if (pml_W) xmin -= npml*xstep;
@@ -793,13 +797,17 @@ int RectMesh2D::get_mat(vector<Material2D>& mats, int layer, bool W, bool E, boo
     map<int,int>::iterator it = pml_cache.find(key);
     if (it != pml_cache.end()) return it->second;
 
-    Material2D m = mats[layer];   // copy base properties (vp/vs/rho/dt)
+    Material2D m = mats[layer];   // copy base properties (vp/vs/rho)
     m.type   = 'P';
-    m.ngll   = (ngll_pml>0) ? ngll_pml : mats[layer].ngll;
     m.is_pml = true;
-    m.px = px;  m.left = W;        // left side = x-min
-    m.pz = pz;  m.down = D;        // down side = z-min
-    m.npow = npow;  m.apow = apow;  m.omegac = omegac;  m.kc = kc;
+    m.npow = npow;  m.apow = apow;
+    m.assoc = layer;
+    // PML descriptor as pos/width per axis (signs give the attenuation direction),
+    // identical to the 3D convention.
+    if (W) { m.xpos = xmin0; m.xwidth = -npml*xstep; }
+    if (E) { m.xpos = xmax0; m.xwidth =  npml*xstep; }
+    if (U) { m.zpos = zmax0; m.zwidth =  npml*zstepU; }
+    if (D) { m.zpos = zmin0; m.zwidth = -npml*zstepD; }
 
     int idx = mats.size();
     mats.push_back(m);
@@ -917,7 +925,7 @@ static bool read_pml_input_2d(const char* fname, PmlSpec2D& spec)
             sscanf(buffer, "%*s %d %lf %lf %lf", &spec.npow, &spec.apow, &spec.omegac, &spec.kc);
             continue;
         }
-        int nn=0; double step=0.;
+        int nn=0; double step=0.;  // step = optional TOTAL PML thickness on this side
         int c = sscanf(buffer, "%*s %d %lf", &nn, &step);
         int s=-1;
         if (!strcmp(tok,"x-")) s=P2_XM;
@@ -950,9 +958,11 @@ struct PmlExtruder2D {
         minfo.resize(mats.size());
         for(size_t k=0;k<mats.size();++k) {
             MatInfo2D& mi=minfo[k];
-            if (mats[k].is_pml) { mi.base=(int)k; mi.W=mats[k].left&&mats[k].px; mi.E=mats[k].px&&!mats[k].left;
-                                  mi.D=mats[k].down&&mats[k].pz; mi.U=mats[k].pz&&!mats[k].down; }
-            else mi.base=(int)k;
+            if (mats[k].is_pml) {
+                mi.base = (mats[k].assoc>=0) ? mats[k].assoc : (int)k;
+                mi.W = mats[k].xwidth<0; mi.E = mats[k].xwidth>0;
+                mi.D = mats[k].zwidth<0; mi.U = mats[k].zwidth>0;
+            } else mi.base=(int)k;
         }
     }
 
@@ -970,7 +980,7 @@ struct PmlExtruder2D {
         return id;
     }
 
-    int get_or_make_pml(int src_mat, int side) {
+    int get_or_make_pml(int src_mat, int side, double pos, double width, int axis) {
         MatInfo2D si = minfo[src_mat];
         int base=si.base;
         bool W=si.W,E=si.E,D=si.D,U=si.U;
@@ -981,10 +991,13 @@ struct PmlExtruder2D {
         int key = (base<<4) | (px?1:0)|(left?2:0)|(pz?4:0)|(down?8:0);
         map<int,int>::iterator it=matcache.find(key);
         if (it!=matcache.end()) return it->second;
-        Material2D m = mats[base];
+        Material2D m = mats[base];          // base properties (vp/vs/rho/qp/qs)
         m.type='P'; m.is_pml=true;
-        m.px=px; m.left=left; m.pz=pz; m.down=down;
-        m.npow=spec.npow; m.apow=spec.apow; m.omegac=spec.omegac; m.kc=spec.kc;
+        m.npow=spec.npow; m.apow=spec.apow; m.assoc=base;
+        // carry the source material's borders (for corners) and overlay this side's
+        m.xpos=mats[src_mat].xpos; m.xwidth=mats[src_mat].xwidth;
+        m.zpos=mats[src_mat].zpos; m.zwidth=mats[src_mat].zwidth;
+        if (axis==0) { m.xpos=pos; m.xwidth=width; } else { m.zpos=pos; m.zwidth=width; }
         int idx=mats.size();
         mats.push_back(m);
         MatInfo2D ni; ni.base=base; ni.W=W;ni.E=E;ni.D=D;ni.U=U;
@@ -1019,7 +1032,10 @@ struct PmlExtruder2D {
         static const int EDGE[4][2]={{0,1},{1,2},{3,2},{0,3}};
         struct BEdge { int a,b,mat; };
         vector<BEdge> edges;
-        double step=spec.step[side], tstep=0.;
+        // The optional pml.input value is the TOTAL PML thickness on this side -> per-layer
+        // step = total/nlay. When omitted, the boundary element size is used.
+        double step = (spec.step[side]>0.) ? spec.step[side]/nlay : 0.;
+        double tstep=0.;
         size_t nq0 = mesh.m_quads.size();
         for(size_t e=0;e<nq0;++e) {
             Quad* q=mesh.m_quads[e];
@@ -1033,7 +1049,7 @@ struct PmlExtruder2D {
                     double th=emax-emin;
                     if (tstep<=0.) tstep=th;
                     else if (step<=0. && fabs(th-tstep)>1e-3*tstep) {
-                        printf("ERR: boundary elements on side %d non-uniform (%g vs %g); set explicit step\n",
+                        printf("ERR: boundary elements on side %d non-uniform (%g vs %g); set explicit total PML thickness\n",
                                side, th, tstep); exit(1);
                     }
                     BEdge be={a,b,mesh.m_mat1[e]}; edges.push_back(be);
@@ -1043,9 +1059,10 @@ struct PmlExtruder2D {
         if (edges.empty()) { printf("WARNING: no boundary edges on side %d, skipped\n", side); return; }
         if (step<=0.) step=tstep;
         double delta=sgn*step;
+        double width=delta*nlay;   // signed total PML thickness on this side
         printf("Side %d: %zu boundary edges, %d layers, step=%g\n", side, edges.size(), nlay, step);
         for(size_t i=0;i<edges.size();++i) {
-            int mat = get_or_make_pml(edges[i].mat, side);
+            int mat = get_or_make_pml(edges[i].mat, side, plane, width, axis);
             int a=edges[i].a, b=edges[i].b;
             for(int l=1;l<=nlay;++l) {
                 int i0=(l==1)?a:newpt(a,l-1,axis,delta);

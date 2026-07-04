@@ -1,4 +1,5 @@
-# PML by extrusion (2D): x-, x+, z- ; z+ free surface
+# PML par extrusion (2D).  <cote> <n_elements> [epaisseur_totale]
+# cotes : x- x+ z- z+ ; epaisseur omise => taille de l'element de bord.
 x- 3
 x+ 3
 z- 3

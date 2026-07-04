@@ -1,4 +1,8 @@
-# PML by extrusion (2D). sides: x- x+ z- z+  (z = vertical)
+# PML par extrusion des bords (2D ; z = axe vertical).
+#   <cote>  <n_elements>  [epaisseur_totale]
+# cotes : x- x+ z- z+   (un cote absent = pas de PML de ce cote)
+# epaisseur_totale (optionnel) : epaisseur totale de la PML sur ce cote ;
+#   si omise, chaque couche prend la taille de l'element de bord.
 x- 4
 x+ 4
 z- 4
