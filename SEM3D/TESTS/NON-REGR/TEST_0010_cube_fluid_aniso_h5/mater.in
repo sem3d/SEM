@@ -1,5 +1,5 @@
-# Anisotropic acoustic fluid domain (type 'A')
+# Anisotropic acoustic fluid: base type 'F', anisotropy via material.spec (deftype=Fluid_Aniso)
 # Format: type Vp Vs Rho Qp Qmu
 # Kij = rho*Vp^2 * delta_ij (isotropic limit: K11=K22=K33=2.25e9 Pa, off-diag=0)
 1
-A 1500.0 0.0 1000.0 0.0 0.0
+F 1500.0 0.0 1000.0 0.0 0.0

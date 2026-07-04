@@ -33,10 +33,6 @@ bool read_pml_input(const std::string& fname, PmlSpec& spec);
 // PML materials to mesh.m_materials (so a subsequent write_materials emits them).
 void extrude_pml(Mesh3D& mesh, const PmlSpec& spec);
 
-// If fname exists, append a `material N { copy=base; domain=solidpml; }` block
-// for every PML material with index >= first_new. No-op if the file is absent.
-void append_pml_material_spec(const std::string& fname, Mesh3D& mesh, size_t first_new);
-
 #endif
 /* Local Variables:                                                        */
 /* mode: c++                                                               */

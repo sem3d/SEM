@@ -134,6 +134,12 @@ contains
                     Tdomain%aniso=.true.
                 case (MATDEF_FLUID_ANISO, CSTAR_FLUID)
                     nprop = 7
+                    ! Anisotropie fluide pilotee par le deftype (comme pour les solides) :
+                    ! le materiau est declare 'F' (DM_FLUID_CG) dans material.input, et la
+                    ! presence d'un deftype fluide-anisotrope l'aiguille vers le domaine
+                    ! fluide anisotrope. Le type 'A' n'est donc plus necessaire.
+                    Tdomain%sSubdomain(num)%dom = DM_FLUID_CG_ANISO
+                    Tdomain%aniso = .true.
                 end select
 
                 ! check for spherical material

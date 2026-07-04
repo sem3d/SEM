@@ -143,8 +143,7 @@ int PmlExtruder::get_or_make_pml(int src_mat, int side, double pos, double width
     if (cached>=0) return cached;
 
     Material nm(mesh.m_materials[base]);
-    if (nm.m_type==DM_SOLID_DG || nm.m_type==DM_SOLID_CG) nm.m_type = DM_SOLID_CG_PML;
-    if (nm.m_type==DM_FLUID_DG || nm.m_type==DM_FLUID_CG) nm.m_type = DM_FLUID_CG_PML;
+    nm.m_type = pml_domain_for(mesh.m_materials[base]); // solid/fluid PML from any base
     nm.cinitial_type = nm.material_char();
     nm.set_pml_borders(xpos,xwidth,ypos,ywidth,zpos,zwidth);
     nm.associated_material = base;
@@ -292,27 +291,6 @@ void extrude_pml(Mesh3D& mesh, const PmlSpec& spec)
     printf("Extruding PML layers onto imported mesh...\n");
     PmlExtruder ex(mesh);
     ex.run(spec);
-}
-
-void append_pml_material_spec(const string& fname, Mesh3D& mesh, size_t first_new)
-{
-    FILE* f = fopen(fname.c_str(), "r");   // only touch material.spec if it exists
-    if (!f) return;
-    fclose(f);
-    f = fopen(fname.c_str(), "a");
-    if (!f) { printf("WARNING: cannot append to %s\n", fname.c_str()); return; }
-    fprintf(f, "\n# PML materials added by pml.input extrusion\n");
-    int appended=0;
-    for(size_t k=first_new; k<mesh.m_materials.size(); ++k) {
-        const Material& m = mesh.m_materials[k];
-        if (!m.is_pml()) continue;
-        int base = (m.associated_material>=0) ? m.associated_material : (int)k;
-        const char* dom = (m.domain()==DM_FLUID_CG_PML) ? "fluidpml" : "solidpml";
-        fprintf(f, "material %zu {\n    copy = %d;\n    domain = %s;\n};\n", k, base, dom);
-        appended++;
-    }
-    fclose(f);
-    printf("Appended %d PML material block(s) to %s\n", appended, fname.c_str());
 }
 
 /* Local Variables:                                                        */

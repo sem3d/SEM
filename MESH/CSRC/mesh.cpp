@@ -176,13 +176,13 @@ void Mesh3D::write_materials(const std::string& str)
     write_materials_v2(str);
 }
 
-int Mesh3D::read_materials(const std::string& str)
+int Mesh3D::read_materials(const std::string& str, bool read_pml_desc)
 {
     printf("Reading Materials\n");
-    return read_materials_v2(str);
+    return read_materials_v2(str, read_pml_desc);
 }
 
-int Mesh3D::read_materials_v2(const std::string& str)
+int Mesh3D::read_materials_v2(const std::string& str, bool read_pml_desc)
 {
     int         nmats;
     char         type;
@@ -216,18 +216,23 @@ int Mesh3D::read_materials_v2(const std::string& str)
             pml_nums.push_back(m_materials.size()-1);
         }
     }
-    printf("\nReading PML descriptions:\n");
-    for(int k=0;k<npmls;++k) {
-        int npow, rmat;
-        double apow, pX, wX, pY, wY, pZ, wZ;
-        getData_line(&buffer, &linesize, f);
-        sscanf(buffer, "%d %lf %lf %lf %lf %lf %lf %lf %d", &npow, &apow, &pX, &wX, &pY, &wY, &pZ, &wZ, &rmat);
-        int mat = pml_nums[k];
-        printf("mat=%2d : npow=%2d apow=%3.0lf  PX=%5.1lf WX=%5.1lf PY=%5.1lf WY=%5.1lf PZ=%5.1lf WZ=%5.1lf M=%d\n", mat,
-               npow, apow, pX, wX, pY, wY, pZ, wZ, rmat);
+    // The PML descriptor block is optional: when materials are declared in mater.in
+    // (base format, PMLs flagged as P/L but without descriptors), read_pml_desc is false
+    // and the descriptors (pos/width/assoc) are derived from the mesh geometry instead.
+    if (read_pml_desc && npmls>0) {
+        printf("\nReading PML descriptions:\n");
+        for(int k=0;k<npmls;++k) {
+            int npow, rmat;
+            double apow, pX, wX, pY, wY, pZ, wZ;
+            getData_line(&buffer, &linesize, f);
+            sscanf(buffer, "%d %lf %lf %lf %lf %lf %lf %lf %d", &npow, &apow, &pX, &wX, &pY, &wY, &pZ, &wZ, &rmat);
+            int mat = pml_nums[k];
+            printf("mat=%2d : npow=%2d apow=%3.0lf  PX=%5.1lf WX=%5.1lf PY=%5.1lf WY=%5.1lf PZ=%5.1lf WZ=%5.1lf M=%d\n", mat,
+                   npow, apow, pX, wX, pY, wY, pZ, wZ, rmat);
 
-        m_materials[mat].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
-        m_materials[mat].associated_material = rmat;
+            m_materials[mat].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
+            m_materials[mat].associated_material = rmat;
+        }
     }
     free(buffer);
     return nmats;

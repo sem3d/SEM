@@ -198,10 +198,7 @@ int RectMesh::get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, b
     if (pml_mat>=0) return pml_mat;
 
     Material new_mat(mat);
-    if (new_mat.m_type==DM_SOLID_DG) new_mat.m_type = DM_SOLID_CG_PML;
-    if (new_mat.m_type==DM_FLUID_DG) new_mat.m_type = DM_FLUID_CG_PML;
-    if (new_mat.m_type==DM_SOLID_CG) new_mat.m_type = DM_SOLID_CG_PML;
-    if (new_mat.m_type==DM_FLUID_CG) new_mat.m_type = DM_FLUID_CG_PML;
+    new_mat.m_type = pml_domain_for(mat); // solid/fluid PML from any base (S/F/A/random)
     new_mat.cinitial_type = new_mat.material_char();
     double xw=0., yw=0., zw=0.;
     double xp=0., yp=0., zp=0.;

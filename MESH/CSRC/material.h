@@ -62,7 +62,10 @@ public:
                 m_type = DM_FLUID_DG;
                 break;
             case 'A':
-                m_type = DM_FLUID_CG_ANISO;
+                // Deprecated: anisotropic fluid is now declared 'F' with the anisotropy
+                // carried by material.spec (deftype). 'A' is kept as a fluid alias so that
+                // legacy files still load; the mesher never emits it.
+                m_type = DM_FLUID_CG;
                 break;
             default:
                 m_type = DM_SOLID_CG;
@@ -174,6 +177,27 @@ static inline bool is_dm_pml(int dom) {
     default:
         return false;
     }
+}
+
+// PML domain to use for a PML derived from an arbitrary non-PML base material.
+// A PML is always isotropic; the base only tells us whether it is fluid-like
+// (-> fluid PML) or solid-like (-> solid PML). Covers S/D (solid), F/E/A and any
+// zero-shear medium (fluid). Random media are declared S/F, so they are covered too.
+static inline material_type_t pml_domain_for(const Material& base) {
+    switch (base.domain()) {
+    case DM_FLUID_CG:
+    case DM_FLUID_DG:
+    case DM_FLUID_CG_ANISO:
+    case DM_FLUID_CG_PML:
+        return DM_FLUID_CG_PML;
+    case DM_SOLID_CG:
+    case DM_SOLID_DG:
+    case DM_SOLID_CG_PML:
+        return DM_SOLID_CG_PML;
+    default:
+        break;
+    }
+    return (base.Sspeed == 0.) ? DM_FLUID_CG_PML : DM_SOLID_CG_PML;
 }
 
 #endif

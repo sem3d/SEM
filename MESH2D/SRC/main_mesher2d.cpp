@@ -798,7 +798,7 @@ int RectMesh2D::get_mat(vector<Material2D>& mats, int layer, bool W, bool E, boo
     if (it != pml_cache.end()) return it->second;
 
     Material2D m = mats[layer];   // copy base properties (vp/vs/rho)
-    m.type   = 'P';
+    m.type   = 'P';               // 2D PML is always 'P'; fluid PML => Sspeed==0 (from base)
     m.is_pml = true;
     m.npow = npow;  m.apow = apow;
     m.assoc = layer;
@@ -992,7 +992,10 @@ struct PmlExtruder2D {
         map<int,int>::iterator it=matcache.find(key);
         if (it!=matcache.end()) return it->second;
         Material2D m = mats[base];          // base properties (vp/vs/rho/qp/qs)
-        m.type='P'; m.is_pml=true;
+        // 2D PML is always type 'P'; the solver treats it as acoustic (fluid) when
+        // Sspeed==0, which is inherited from a fluid base (vs=0). No 'L' char in 2D.
+        m.type = 'P';
+        m.is_pml=true;
         m.npow=spec.npow; m.apow=spec.apow; m.assoc=base;
         // carry the source material's borders (for corners) and overlay this side's
         m.xpos=mats[src_mat].xpos; m.xwidth=mats[src_mat].xwidth;
@@ -1077,12 +1080,57 @@ struct PmlExtruder2D {
     void run() { for(int s=0;s<P2_NSIDES;++s) extrude_side(s); }
 };
 
-// Read mater.in as the base materials, add PML by extrusion per pml.input,
-// rewrite material.input. Returns true if extrusion happened.
-static bool extrude_pml_from_input(Mesh2D& mesh)
+static bool mats_have_pml_2d(const vector<Material2D>& mats)
 {
-    PmlSpec2D spec;
-    if (!read_pml_input_2d("pml.input", spec) || !spec.any()) return false;
+    for (size_t k=0;k<mats.size();++k) if (mats[k].type=='P') return true;
+    return false;
+}
+
+// PMLs already present in the imported mesh (declared 'P' in mater.in without descriptors):
+// derive each PML material's pos/width and associated interior material from the geometry.
+static void derive_pml_descriptors_2d(Mesh2D& mesh, vector<Material2D>& mats)
+{
+    size_t nmat=mats.size(), nq=mesh.m_quads.size();
+    const double BIG=1e300;
+    vector<double> mnx(nmat,BIG),mxx(nmat,-BIG),mnz(nmat,BIG),mxz(nmat,-BIG);
+    double ixmn=BIG,ixmx=-BIG,izmn=BIG,izmx=-BIG;
+    map<int,int> node_interior_mat;
+    for(size_t e=0;e<nq;++e){
+        int mat=mesh.m_mat1[e];
+        bool pml = (mat>=0 && mat<(int)nmat && mats[mat].type=='P');
+        Quad* q=mesh.m_quads[e];
+        for(int i=0;i<q->get_nb_nodes();++i){
+            int nd=q->get_node_id(i);
+            double x=mesh.m_px[nd], z=mesh.m_py[nd];
+            if(x<mnx[mat])mnx[mat]=x; if(x>mxx[mat])mxx[mat]=x;
+            if(z<mnz[mat])mnz[mat]=z; if(z>mxz[mat])mxz[mat]=z;
+            if(!pml){ if(x<ixmn)ixmn=x; if(x>ixmx)ixmx=x; if(z<izmn)izmn=z; if(z>izmx)izmx=z; node_interior_mat[nd]=mat; }
+        }
+    }
+    if(ixmx<ixmn){printf("ERR: 2D mesh has PML materials but no interior (non-PML) elements\n");exit(1);}
+    double tx=1e-6*(ixmx-ixmn), tz=1e-6*(izmx-izmn);
+    for(size_t k=0;k<nmat;++k){
+        if(mats[k].type!='P' || mxx[k]<mnx[k]) continue;
+        double xp=0,xw=0,zp=0,zw=0;
+        if(mnx[k]<ixmn-tx){xp=ixmn;xw=mnx[k]-ixmn;} else if(mxx[k]>ixmx+tx){xp=ixmx;xw=mxx[k]-ixmx;}
+        if(mnz[k]<izmn-tz){zp=izmn;zw=mnz[k]-izmn;} else if(mxz[k]>izmx+tz){zp=izmx;zw=mxz[k]-izmx;}
+        mats[k].is_pml=true; mats[k].xpos=xp; mats[k].xwidth=xw; mats[k].zpos=zp; mats[k].zwidth=zw;
+        int assoc=-1;
+        for(size_t e=0;e<nq&&assoc<0;++e){ if(mesh.m_mat1[e]!=(int)k)continue; Quad*q=mesh.m_quads[e];
+            for(int i=0;i<q->get_nb_nodes();++i){ map<int,int>::iterator it=node_interior_mat.find(q->get_node_id(i));
+                if(it!=node_interior_mat.end()){assoc=it->second;break;} } }
+        mats[k].assoc=assoc;
+        printf("PML material %zu (from geometry): x(pos=%g,w=%g) z(pos=%g,w=%g) assoc=%d\n",k,xp,xw,zp,zw,assoc);
+        if(assoc<0) printf("  WARNING: could not infer associated interior material for PML %zu\n",k);
+    }
+}
+
+// Imported-mesh material handling (cases 3/4). If mater.in is absent, do nothing (legacy:
+// the user supplies material.input). Otherwise read mater.in and either derive descriptors
+// for pre-declared PML materials, or extrude PML from pml.input; then write material.input.
+static void handle_imported_materials(Mesh2D& mesh)
+{
+    if (access("mater.in", F_OK)!=0) return;
     vector<Material2D> mats;
     read_materials_2d("mater.in", mats);
     if (mesh.m_mat_max >= (int)mats.size()) {
@@ -1090,10 +1138,20 @@ static bool extrude_pml_from_input(Mesh2D& mesh)
                mesh.m_mat_max, mats.size());
         exit(1);
     }
-    printf("Extruding 2D PML layers onto imported mesh...\n");
-    PmlExtruder2D ex(mesh, mats, spec);
-    ex.run();
-    // Refresh derived mesh bookkeeping after adding quads.
+    if (mats_have_pml_2d(mats)) {
+        printf("Mesh already declares PML materials; deriving descriptors from geometry...\n");
+        derive_pml_descriptors_2d(mesh, mats);
+        if (access("pml.input", F_OK)==0)
+            printf("WARNING: pml.input ignored (the mesh already declares PML materials in mater.in)\n");
+    } else {
+        PmlSpec2D spec;
+        if (read_pml_input_2d("pml.input", spec) && spec.any()) {
+            printf("Extruding 2D PML layers onto imported mesh...\n");
+            PmlExtruder2D ex(mesh, mats, spec);
+            ex.run();
+        }
+    }
+    // Refresh derived mesh bookkeeping (quads may have been added by extrusion).
     mesh.m_mat2 = mesh.m_mat1;
     mesh.m_procs.assign(mesh.m_quads.size(), 0);
     mesh.m_mat_max = 0;
@@ -1101,7 +1159,6 @@ static bool extrude_pml_from_input(Mesh2D& mesh)
         if (mesh.m_mat1[e]>mesh.m_mat_max) mesh.m_mat_max=mesh.m_mat1[e];
     write_materials_2d("material.input", mats);
     printf("Wrote material.input (%ld materials)\n", mats.size());
-    return true;
 }
 
 // Mesh2D::read_mesh ingests a single file (its own node/element numbering); it is not a
@@ -1175,10 +1232,10 @@ int main(int argc, char** argv)
         exit(1);
     };
 
-    // Optional PML extrusion for imported meshes (cases 3/4). Case 1 already
-    // builds its PML from mat.dat, so pml.input is ignored there.
+    // Imported meshes (cases 3/4): materials/PML from mater.in (+ pml.input or pre-declared
+    // PML). Case 1 already builds its PML from mat.dat, so pml.input is ignored there.
     if (choice==3 || choice==4) {
-        extrude_pml_from_input(mesh);
+        handle_imported_materials(mesh);
     } else if (choice==1 && access("pml.input", F_OK)==0) {
         printf("WARNING: pml.input ignored for 'on the fly' meshes (PML comes from mat.dat)\n");
     }

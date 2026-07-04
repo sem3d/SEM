@@ -51,8 +51,8 @@ public:
     index_t add_elem(int mat_idx, const Elem& el);
     index_t add_elem_mrrs(int mat_idx, int pos_mrrs, const Elem& el);
 
-    int read_materials(const std::string& fname);
-    int read_materials_v2(const std::string& fname);
+    int read_materials(const std::string& fname, bool read_pml_desc = true);
+    int read_materials_v2(const std::string& fname, bool read_pml_desc = true);
     void write_materials(const std::string& fname);
     void write_materials_v2(const std::string& fname);
     void define_associated_materials();

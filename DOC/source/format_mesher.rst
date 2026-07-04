@@ -88,6 +88,14 @@ tout le domaine et provient de ``input.spec`` (paramètre ``ngll=``), en 2D comm
 en 3D. Le pas de temps n'y figure pas non plus : il est calculé à partir du
 paramètre ``courant`` de ``input.spec``.
 
+**Anisotropie.** Il n'y a pas de type de matériau anisotrope dédié : un milieu
+anisotrope (solide ou fluide) se déclare avec son type de base ``S``/``F``, et
+l'anisotropie est portée par ``material.spec`` (``deftype`` de type ``*_Aniso`` /
+``Cstar*``), exactement comme les autres propriétés variables. L'ancien type ``A``
+(fluide anisotrope) est déprécié — il reste accepté comme alias de ``F`` mais n'est
+plus émis. Le mailleur lit ``material.spec`` pour graver le bon domaine (fluide
+anisotrope) dans le maillage.
+
 
 .. _pml.input:
 
@@ -109,14 +117,25 @@ La fonctionnalité est disponible pour les deux mailleurs :
 - :program:`mesher2D` (2D) : côtés ``x-`` ``x+`` ``z-`` ``z+`` seulement
   (``z`` est l'axe vertical ; ``y-``/``y+`` sont rejetés).
 
-Si ``pml.input`` est présent lorsqu'on importe un maillage (choix 2, 3 ou 4 du
-menu), le mailleur :
+**Sélection de la source des PML (maillages importés, choix 2/3/4).** Le mailleur
+lit d'abord ``mater.in`` :
 
-1. détecte les faces (3D) / arêtes (2D) de bord situées sur le côté demandé ;
-2. les extrude vers l'extérieur du nombre de couches d'éléments indiqué ;
-3. crée les matériaux PML dérivés (en copiant les propriétés du matériau
-   adjacent) et réécrit ``material.input`` ; en 3D, si ``material.spec`` existe,
-   des blocs ``material N { copy = base; domain = solidpml; }`` y sont ajoutés.
+- **si ``mater.in`` déclare déjà des matériaux PML** (type ``P``/``L``), le maillage
+  importé contient déjà les éléments PML : le mailleur en **déduit les descripteurs**
+  (positions/largeurs et matériau associé) à partir de la géométrie et **ignore
+  ``pml.input``** ;
+- **sinon**, si ``pml.input`` est présent, le mailleur :
+
+  1. détecte les faces (3D) / arêtes (2D) de bord situées sur le côté demandé ;
+  2. les extrude vers l'extérieur du nombre de couches d'éléments indiqué ;
+  3. crée les matériaux PML dérivés en copiant les propriétés isotropes du matériau
+     adjacent.
+
+Dans les deux cas, **seul ``material.input`` est (ré)écrit**. Les PML y sont des
+matériaux isotropes standard (``P``/``L``) ; ``material.spec``, s'il existe, ne
+définit que les matériaux intérieurs (aucun bloc PML n'y est ajouté). Une PML est
+toujours **isotrope** : elle reprend le Vp/Vs/Rho du matériau de bord, même si
+celui-ci est aléatoire ou anisotrope.
 
 Pour un maillage « on the fly » (choix 1), ``pml.input`` est ignoré (les PML
 proviennent alors de ``mat.dat``).

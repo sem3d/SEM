@@ -15,6 +15,20 @@ Version en cours
   les anciens fichiers 2D** : ajouter ``ngll=`` dans ``input.spec`` et régénérer
   ``material.input``.
 
+- PML pour tous les types de matériaux. Le mailleur dérive une PML isotrope
+  standard (solide/fluide) pour n'importe quel matériau de bord (S, F, aléatoire,
+  anisotrope) ; la PML reprend le Vp/Vs/Rho du matériau adjacent. Seul
+  ``material.input`` est produit (plus d'ajout de blocs dans ``material.spec``).
+
+- Le type de matériau fluide anisotrope ``A`` est déprécié : l'anisotropie (solide
+  ou fluide) se déclare avec le type de base ``S``/``F`` et un ``deftype``
+  anisotrope dans ``material.spec`` (comme les solides). ``A`` reste accepté comme
+  alias de ``F``.
+
+- Sélection de la source des PML pour les maillages importés : si ``mater.in``
+  déclare déjà des matériaux PML, leurs descripteurs sont déduits de la géométrie
+  (et ``pml.input`` est ignoré) ; sinon ``pml.input`` déclenche l'extrusion.
+
 Version 2020.03.0
 -----------------
 

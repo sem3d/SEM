@@ -11,8 +11,8 @@ Pipeline
    material, NO PML.
 2. The mesher (menu option 4, HDF5) reads cube.h5 and material.input, then sees
    pml.input and extrudes PML element layers on the requested sides, deriving
-   the PML materials, rewriting material.input and appending PML blocks to
-   material.spec.
+   the (standard isotropic) PML materials and rewriting material.input. Only
+   material.input is written; material.spec is left untouched.
 3. sem3d runs the resulting mesh4spec.
 
 Files
@@ -22,8 +22,8 @@ Files
   pml.input        PML sides + thickness: x-/x+/y-/y+ = 3 layers, z- = 3 layers,
                    z+ left free (free surface)
   material.input   base materials in (1 solid); rewritten by the mesher with the
-                   derived PML materials appended
-  material.spec    optional; the mesher appends `copy`+`domain=solidpml` blocks
+                   derived (isotropic) PML materials appended
+  material.spec    optional; defines only the interior material (not touched by the mesher)
   input.spec       sem3d config (ricker pulse at the cube centre 150,150,150)
   stations.txt     two receivers inside the physical domain
   run.sh           driver: gen mesh -> mesher -> (optional) sem3d

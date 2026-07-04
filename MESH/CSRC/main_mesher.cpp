@@ -19,6 +19,100 @@
 #include "sem_input.h"
 #include "earth_mesh.h"
 #include "mesh_pml_extrude.h"
+#include "sem_materials.h"
+
+// Defined in COMMON/read_material.c (C linkage), also linked into the mesher.
+extern "C" void read_sem_materials(sem_material_list_t* materials, int rank,
+                                   const char* mater_in, int* err);
+
+// Anisotropy is declared only in material.spec (like solids). But the mesher bakes the
+// element/face domains into the mesh from the material type, so it must learn which fluid
+// materials are anisotropic to bake DM_FLUID_CG_ANISO. We read material.spec and upgrade
+// the domain of fluid materials whose deftype is a fluid-anisotropic one (Fluid_Aniso=17,
+// Cstar_Fluid=18). material.input still carries the base 'F'; the solver re-derives the
+// aniso domain from the same material.spec.
+static void upgrade_domains_from_spec(Mesh3D& mesh)
+{
+    if (access("material.spec", F_OK) != 0) return;
+    sem_material_list_t mats; int err = 0;
+    read_sem_materials(&mats, 0, "material.spec", &err);
+    if (err <= 0) return;
+    for (sem_material_t* m = mats.head; m != NULL; m = m->next) {
+        bool fluid_aniso = (m->deftype == 17 || m->deftype == 18); // Fluid_Aniso, Cstar_Fluid
+        if (fluid_aniso && m->num >= 0 && (size_t)m->num < mesh.n_materials()) {
+            mesh.m_materials[m->num].m_type = DM_FLUID_CG_ANISO;
+        }
+    }
+}
+
+static bool mesh_has_pml_materials(const Mesh3D& mesh)
+{
+    for (size_t k=0;k<mesh.m_materials.size();++k)
+        if (is_dm_pml(mesh.m_materials[k].domain())) return true;
+    return false;
+}
+
+// For an imported mesh whose PML materials are already present (declared P/L in mater.in
+// but without descriptors), fill each PML material's pos/width and associated material from
+// the geometry: pos/width come from how far the PML material's elements extend beyond the
+// interior (non-PML) domain on each axis; the associated interior material is inferred from
+// a shared node.
+static void derive_pml_descriptors_from_geometry(Mesh3D& mesh)
+{
+    size_t nmat = mesh.m_materials.size();
+    size_t ne = mesh.n_elems();
+    const double BIG = 1e300;
+    std::vector<double> mnx(nmat,BIG), mxx(nmat,-BIG), mny(nmat,BIG), mxy(nmat,-BIG), mnz(nmat,BIG), mxz(nmat,-BIG);
+    double ixmn=BIG,ixmx=-BIG,iymn=BIG,iymx=-BIG,izmn=BIG,izmx=-BIG;
+    std::map<index_t,int> node_interior_mat; // node -> a non-PML material (for assoc)
+
+    for (size_t e=0;e<ne;++e) {
+        int mat = mesh.m_mat[e];
+        bool pml = is_dm_pml(mesh.m_materials[mat].domain());
+        index_t nodes[8]; mesh.get_elem_nodes((index_t)e, nodes);
+        for (int i=0;i<8;++i) {
+            double x=mesh.m_xco[nodes[i]], y=mesh.m_yco[nodes[i]], z=mesh.m_zco[nodes[i]];
+            if (x<mnx[mat])mnx[mat]=x; if (x>mxx[mat])mxx[mat]=x;
+            if (y<mny[mat])mny[mat]=y; if (y>mxy[mat])mxy[mat]=y;
+            if (z<mnz[mat])mnz[mat]=z; if (z>mxz[mat])mxz[mat]=z;
+            if (!pml) {
+                if (x<ixmn)ixmn=x; if (x>ixmx)ixmx=x;
+                if (y<iymn)iymn=y; if (y>iymx)iymx=y;
+                if (z<izmn)izmn=z; if (z>izmx)izmx=z;
+                node_interior_mat[nodes[i]] = mat;
+            }
+        }
+    }
+    if (ixmx<ixmn) { printf("ERR: mesh has PML materials but no interior (non-PML) elements\n"); exit(1); }
+    double tx=1e-6*(ixmx-ixmn), ty=1e-6*(iymx-iymn), tz=1e-6*(izmx-izmn);
+
+    for (size_t k=0;k<nmat;++k) {
+        if (!is_dm_pml(mesh.m_materials[k].domain())) continue;
+        if (mxx[k]<mnx[k]) continue; // material unused in the mesh
+        double xp=0,xw=0,yp=0,yw=0,zp=0,zw=0;
+        if      (mnx[k] < ixmn-tx) { xp=ixmn; xw=mnx[k]-ixmn; }
+        else if (mxx[k] > ixmx+tx) { xp=ixmx; xw=mxx[k]-ixmx; }
+        if      (mny[k] < iymn-ty) { yp=iymn; yw=mny[k]-iymn; }
+        else if (mxy[k] > iymx+ty) { yp=iymx; yw=mxy[k]-iymx; }
+        if      (mnz[k] < izmn-tz) { zp=izmn; zw=mnz[k]-izmn; }
+        else if (mxz[k] > izmx+tz) { zp=izmx; zw=mxz[k]-izmx; }
+        mesh.m_materials[k].set_pml_borders(xp,xw,yp,yw,zp,zw);
+
+        int assoc = -1;
+        for (size_t e=0;e<ne && assoc<0;++e) {
+            if (mesh.m_mat[e]!=(int)k) continue;
+            index_t nodes[8]; mesh.get_elem_nodes((index_t)e, nodes);
+            for (int i=0;i<8;++i) {
+                std::map<index_t,int>::iterator it=node_interior_mat.find(nodes[i]);
+                if (it!=node_interior_mat.end()) { assoc=it->second; break; }
+            }
+        }
+        mesh.m_materials[k].associated_material = assoc;
+        printf("PML material %zu (from geometry): x(pos=%g,w=%g) y(pos=%g,w=%g) z(pos=%g,w=%g) assoc=%d\n",
+               k, xp,xw,yp,yw,zp,zw, assoc);
+        if (assoc<0) printf("  WARNING: could not infer associated interior material for PML %zu\n", k);
+    }
+}
 
 void handle_on_the_fly(Mesh3D& mesh)
 {
@@ -166,15 +260,18 @@ int main(int argc, char**argv)
         mesh.write_materials("material.input");
         break;
     case 2:
-        mesh.read_materials("material.input");
+        if (access("mater.in", F_OK)==0) mesh.read_materials("mater.in", false);
+        else mesh.read_materials("material.input");
         handle_abaqus_file(mesh);
         break;
     case 3:
-        mesh.read_materials("material.input");
+        if (access("mater.in", F_OK)==0) mesh.read_materials("mater.in", false);
+        else mesh.read_materials("material.input");
         handle_ideas_file(mesh);
         break;
     case 4:
-        mesh.read_materials("material.input");
+        if (access("mater.in", F_OK)==0) mesh.read_materials("mater.in", false);
+        else mesh.read_materials("material.input");
         handle_hdf5_file(mesh);
         break;
     case 5:
@@ -187,16 +284,28 @@ int main(int argc, char**argv)
         break;
     };
 
-    // Optional: add PML layers to an imported mesh via pml.input (cases 2/3/4).
-    // Case 1 (on the fly) already gets its PML from mat.dat, so pml.input is ignored there.
+    // Anisotropy is declared in material.spec; bake the aniso domain into the mesh.
+    upgrade_domains_from_spec(mesh);
+
+    // PML source selection for imported meshes (cases 2/3/4):
+    //  - if PML materials are already defined (mater.in flagged them P/L, so the imported
+    //    mesh already contains the PML elements) -> derive their descriptors from geometry
+    //    and ignore pml.input;
+    //  - otherwise, if pml.input exists -> extrude PML layers.
+    // Only material.input is (re)written; PMLs are standard isotropic P/L materials there,
+    // so material.spec (if any) only needs to define the interior materials.
+    // Case 1 (on the fly) keeps its PML from mat.dat; pml.input is ignored there.
     if (choice==2 || choice==3 || choice==4) {
-        PmlSpec pmlspec;
-        if (read_pml_input("pml.input", pmlspec) && pmlspec.any()) {
-            size_t n_base = mesh.n_materials();
-            extrude_pml(mesh, pmlspec);
-            mesh.write_materials("material.input");
-            append_pml_material_spec("material.spec", mesh, n_base);
+        if (mesh_has_pml_materials(mesh)) {
+            derive_pml_descriptors_from_geometry(mesh);
+            if (access("pml.input", F_OK)==0)
+                printf("WARNING: pml.input ignored (the mesh already declares PML materials in mater.in)\n");
+        } else {
+            PmlSpec pmlspec;
+            if (read_pml_input("pml.input", pmlspec) && pmlspec.any())
+                extrude_pml(mesh, pmlspec);
         }
+        mesh.write_materials("material.input");
     } else if (choice==1 && access("pml.input", F_OK)==0) {
         printf("WARNING: pml.input ignored for 'on the fly' meshes (PML comes from mat.dat)\n");
     }
