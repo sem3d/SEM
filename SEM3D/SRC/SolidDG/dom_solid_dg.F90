@@ -62,7 +62,7 @@ contains
                 call allocate_champs_solid_dg(dom, i)
             end do
         endif
-        if(Tdomain%rank==0) write(*,*) "INFO - solid DG domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+        if(Tdomain%rank==0) write(*,*) "INFO - solid DG domain (rank 0, local) : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid_dg
 
     subroutine compute_trace_numbering (Tdomain, dom)

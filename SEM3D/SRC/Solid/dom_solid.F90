@@ -142,7 +142,7 @@ contains
                 call allocate_champs_solid(dom, i)
             end do
         endif
-        if(Tdomain%rank==0) write(*,*) "INFO - solid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+        if(Tdomain%rank==0) write(*,*) "INFO - solid domain (rank 0, local) : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid
 
     subroutine deallocate_dom_solid (dom,nl_flag)

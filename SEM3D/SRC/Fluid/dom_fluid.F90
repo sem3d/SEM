@@ -60,7 +60,7 @@ contains
                 call allocate_champs_fluid(dom, i)
             end do
         endif
-        if(Tdomain%rank==0) write(*,*) "INFO - fluid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+        if(Tdomain%rank==0) write(*,*) "INFO - fluid domain (rank 0, local) : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluid
 
     subroutine deallocate_dom_fluid (dom)

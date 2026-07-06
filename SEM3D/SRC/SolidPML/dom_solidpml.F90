@@ -81,7 +81,7 @@ contains
             dom%DumpV(dom%nglltot,1,:) = 1d0
             dom%DumpMass(dom%nglltot,:) = 1d0
         endif
-        if(Tdomain%rank==0) write(*,*) "INFO - solid pml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+        if(Tdomain%rank==0) write(*,*) "INFO - solid pml domain (rank 0, local) : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)

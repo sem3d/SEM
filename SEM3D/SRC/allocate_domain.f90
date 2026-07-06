@@ -61,6 +61,9 @@ subroutine allocate_domain (Tdomain)
     enddo
 end subroutine allocate_domain
 
+!! Reports, from rank 0, the model-wide (all-ranks) number of elements, GLL points and DOF
+!! per domain type, plus a load-balance line (min/max of per-rank DOF). DOF/GLL differs by
+!! domain (solid 3, fluid 1, PML/DG more) and reflects the relative computational weight.
 end module sdomain_alloc
 
 !! Local Variables:

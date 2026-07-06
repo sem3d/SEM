@@ -77,7 +77,7 @@ contains
             dom%DumpV(dom%nglltot,1,:) = 1d0
             dom%DumpMass(dom%nglltot,:) = 1d0
         endif
-        if(Tdomain%rank==0) write(*,*) "INFO - fluid pml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+        if(Tdomain%rank==0) write(*,*) "INFO - fluid pml domain (rank 0, local) : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluidpml
 
     subroutine deallocate_dom_fluidpml (dom)

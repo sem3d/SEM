@@ -418,6 +418,11 @@ subroutine allocate_domain (Tdomain)
   return
 end subroutine allocate_domain
 
+!! Reports, from rank 0, the model-wide (all-ranks) elements / GLL points / DOF per logical
+!! domain (derived from each element's acoustic/PML/DG flags), plus a load-balance line
+!! (min/max of per-rank DOF). SEM2D has no aggregated domain objects, so we iterate elements
+!! and sum ngllx*ngllz (element-summed, with inter-element duplication). DOF/GLL is the number
+!! of primary integrated components (solid 2, fluid 1, split PML and DG more).
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

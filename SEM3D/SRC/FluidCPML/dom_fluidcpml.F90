@@ -119,7 +119,7 @@ contains
         dom%cpml_integ = Tdomain%config%cpml_integ_type
         dom%cpml_one_root = Tdomain%config%cpml_one_root
         dom%alphamax = 0.
-        if(Tdomain%rank==0) write(*,*) "INFO - fluidpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+        if(Tdomain%rank==0) write(*,*) "INFO - fluidpml domain (rank 0, local) : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
         nbtot_SF = Tdomain%SF%intSolFluPml%surf0%nbtot
         call allocate_dombase_cpml(dom, nbtot_SF)

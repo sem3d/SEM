@@ -118,7 +118,7 @@ contains
             dom%MasUMat = 0d0
 
         endif
-        if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+        if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain (rank 0, local) : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
         if (Tdomain%logicD%save_snapshots) then
             allocate(dom%FDump(0:dom%nglltot, 0:2))

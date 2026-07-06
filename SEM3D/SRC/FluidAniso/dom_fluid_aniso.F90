@@ -57,7 +57,7 @@ contains
             end do
         endif
 
-        if (Tdomain%rank==0) write(*,*) "INFO - fluid aniso domain : ", &
+        if (Tdomain%rank==0) write(*,*) "INFO - fluid aniso domain (rank 0, local) : ", &
             dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluid_aniso
 
