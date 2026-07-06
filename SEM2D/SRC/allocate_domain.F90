@@ -415,6 +415,7 @@ subroutine allocate_domain (Tdomain)
       enddo
   endif
 
+  call report_domain_totals_2d(Tdomain)
   return
 end subroutine allocate_domain
 
@@ -423,6 +424,71 @@ end subroutine allocate_domain
 !! (min/max of per-rank DOF). SEM2D has no aggregated domain objects, so we iterate elements
 !! and sum ngllx*ngllz (element-summed, with inter-element duplication). DOF/GLL is the number
 !! of primary integrated components (solid 2, fluid 1, split PML and DG more).
+subroutine report_domain_totals_2d(Tdomain)
+    use sdomain
+    use constants
+    use mpi
+    implicit none
+    type(domain), intent(in) :: Tdomain
+    integer, parameter :: ND = 6
+    ! order: 1 solid CG, 2 fluid CG, 3 solid PML, 4 fluid PML, 5 solid DG, 6 fluid DG
+    integer(kind=8) :: loc(3,ND), tot(3,ND)
+    integer(kind=8) :: rk_ndof, sum_ndof, min_ndof, max_ndof
+    integer         :: dof(ND), ierr, d, n, cat, nprocs, ngll2, ng2dof
+    logical         :: is_pml, is_dg, is_ac
+    character(len=12) :: nm(ND)
+    real(kind=8)    :: avg
+    dof = (/ 2, 1, 4, 2, 5, 3 /)   ! primary integrated DOF per GLL (see field allocations)
+    nm  = (/ 'solid CG    ', 'fluid CG    ', 'solid PML   ', &
+             'fluid PML   ', 'solid DG    ', 'fluid DG    ' /)
+
+    loc = 0
+    do n = 0, Tdomain%n_elem-1
+        ngll2  = Tdomain%specel(n)%ngllx * Tdomain%specel(n)%ngllz
+        is_ac  = Tdomain%specel(n)%acoustic
+        is_pml = Tdomain%specel(n)%PML .or. Tdomain%specel(n)%CPML .or. Tdomain%specel(n)%ADEPML
+        is_dg  = Tdomain%specel(n)%type_DG /= GALERKIN_CONT
+        if (is_dg) then
+            cat = merge(6,5,is_ac)
+        else if (is_pml) then
+            cat = merge(4,3,is_ac)
+        else
+            cat = merge(2,1,is_ac)
+        end if
+        ng2dof = ngll2 * dof(cat)
+        loc(1,cat) = loc(1,cat) + 1
+        loc(2,cat) = loc(2,cat) + ngll2
+        loc(3,cat) = loc(3,cat) + ng2dof
+    end do
+    rk_ndof = sum(loc(3,:))
+
+    call MPI_Reduce(loc,     tot,      3*ND, MPI_INTEGER8, MPI_SUM, 0, Tdomain%communicateur, ierr)
+    call MPI_Reduce(rk_ndof, sum_ndof, 1,    MPI_INTEGER8, MPI_SUM, 0, Tdomain%communicateur, ierr)
+    call MPI_Reduce(rk_ndof, min_ndof, 1,    MPI_INTEGER8, MPI_MIN, 0, Tdomain%communicateur, ierr)
+    call MPI_Reduce(rk_ndof, max_ndof, 1,    MPI_INTEGER8, MPI_MAX, 0, Tdomain%communicateur, ierr)
+    call MPI_Comm_size(Tdomain%communicateur, nprocs, ierr)
+
+    if (Tdomain%Mpi_Var%my_rank == 0) then
+        write(*,*)
+        write(*,*) "===== Domain summary (all ranks) : elements / GLL points / DOF ====="
+        do d = 1, ND
+            if (tot(1,d) > 0) then
+                write(*,'(A,A,I12,A,I14,A,I14,A,F6.2,A)') "  ", nm(d), &
+                    tot(1,d), " elem", tot(2,d), " gll", tot(3,d), " dof (", &
+                    100.0d0*real(tot(3,d),8)/max(sum_ndof,1_8), " % dof)"
+            end if
+        end do
+        write(*,'(A,I12,A,I14,A,I14,A)') "  TOTAL       ", &
+            sum(tot(1,:)), " elem", sum(tot(2,:)), " gll", sum_ndof, " dof"
+        if (nprocs > 1) then
+            avg = real(sum_ndof,8)/nprocs
+            write(*,'(A,I14,A,I14,A,F14.1,A,F6.2)') "  DOF/rank  min=", min_ndof, &
+                "  max=", max_ndof, "  avg=", avg, "  imbalance(max/avg)=", real(max_ndof,8)/max(avg,1.0d0)
+        end if
+        write(*,*)
+    end if
+end subroutine report_domain_totals_2d
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
