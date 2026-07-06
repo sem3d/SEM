@@ -41,7 +41,6 @@ contains
         use dom_solid
         use dom_solid_dg
         use dom_fluid
-        use dom_fluid_aniso
         use dom_solidpml
         use dom_fluidpml
         use mpi
@@ -112,8 +111,6 @@ contains
                             Pspeed = solidpml_pspeed(Tdomain%spmldom, lnum, i, j, k)
                         case (DM_FLUID_CG)
                             Pspeed = fluid_pspeed(Tdomain%fdom, lnum, i, j, k)
-                        case (DM_FLUID_CG_ANISO)
-                            Pspeed = fluid_aniso_pspeed(Tdomain%fanisodom, lnum, i, j, k)
                         case (DM_FLUID_CG_PML)
                             Pspeed = fluidpml_pspeed(Tdomain%fpmldom, lnum, i, j, k)
                         end select

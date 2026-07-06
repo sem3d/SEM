@@ -43,8 +43,7 @@ subroutine global_numbering(Tdomain)
     call renumber_interface(Tdomain, Tdomain%intSolPml, DM_SOLID_CG, DM_SOLID_CG_PML)
     call renumber_interface(Tdomain, Tdomain%intFluPml, DM_FLUID_CG, DM_FLUID_CG_PML)
     if (Tdomain%logicD%SF_local_present) then
-        call renumber_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, &
-            merge(DM_FLUID_CG_ANISO, DM_FLUID_CG, Tdomain%SF%fluid_is_aniso))
+        call renumber_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG)
         call renumber_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_CG_PML, DM_FLUID_CG_PML)
     end if
     do k=0,size(Tdomain%sSurfaces)-1
@@ -114,7 +113,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
     Tdomain%sdom     %nbelem = ecount(DM_SOLID_CG)
     Tdomain%sdomdg   %nbelem = ecount(DM_SOLID_DG)
     Tdomain%fdom     %nbelem = ecount(DM_FLUID_CG)
-    Tdomain%fanisodom%nbelem = ecount(DM_FLUID_CG_ANISO)
     Tdomain%spmldom  %nbelem = ecount(DM_SOLID_CG_PML)
     Tdomain%fpmldom  %nbelem = ecount(DM_FLUID_CG_PML)
 
@@ -140,7 +138,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
     Tdomain%sdom     %nbface = fcount(DM_SOLID_CG)
     Tdomain%sdomdg   %nbface = fcount(DM_SOLID_DG)
     Tdomain%fdom     %nbface = fcount(DM_FLUID_CG)
-    Tdomain%fanisodom%nbface = fcount(DM_FLUID_CG_ANISO)
     Tdomain%spmldom  %nbface = fcount(DM_SOLID_CG_PML)
     Tdomain%fpmldom  %nbface = fcount(DM_FLUID_CG_PML)
 
@@ -174,7 +171,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
     Tdomain%sdom%nglltot      = icount(DM_SOLID_CG)
     Tdomain%sdomdg%nglltot    = icount(DM_SOLID_DG)
     Tdomain%fdom%nglltot      = icount(DM_FLUID_CG)
-    Tdomain%fanisodom%nglltot = icount(DM_FLUID_CG_ANISO)
     Tdomain%spmldom%nglltot   = icount(DM_SOLID_CG_PML)
     Tdomain%fpmldom%nglltot   = icount(DM_FLUID_CG_PML)
 
@@ -546,7 +542,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
 
-    integer :: n,ncomm,nsol,nsolpml,nflu,nflupml,nsoldg,nfluaniso
+    integer :: n,ncomm,nsol,nsolpml,nflu,nflupml,nsoldg
     integer :: i,j,k,nf,ne,nv,idx
     integer :: dom, ngll
 
@@ -565,7 +561,6 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
         nsolpml = 0
         nflu = 0
         nflupml = 0
-        nfluaniso = 0
 
         ! Remplissage des Igive
         ! Faces
@@ -586,9 +581,6 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                     case (DM_FLUID_CG)
                         Comm_data%Data(n)%IGiveF(nflu) = idx
                         nflu = nflu + 1
-                    case (DM_FLUID_CG_ANISO)
-                        Comm_data%Data(n)%IGiveFAniso(nfluaniso) = idx
-                        nfluaniso = nfluaniso + 1
                     case (DM_SOLID_CG_PML)
                         Comm_data%Data(n)%IGiveSPML(nsolpml) = idx
                         nsolpml = nsolpml + 1
@@ -619,9 +611,6 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                 case (DM_FLUID_CG)
                     Comm_data%Data(n)%IGiveF(nflu) = idx
                     nflu = nflu + 1
-                case (DM_FLUID_CG_ANISO)
-                    Comm_data%Data(n)%IGiveFAniso(nfluaniso) = idx
-                    nfluaniso = nfluaniso + 1
                 case (DM_SOLID_CG_PML)
                     Comm_data%Data(n)%IGiveSPML(nsolpml) = idx
                     nsolpml = nsolpml + 1
@@ -648,9 +637,6 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
             case (DM_FLUID_CG)
                 Comm_data%Data(n)%IGiveF(nflu) = idx
                 nflu = nflu + 1
-            case (DM_FLUID_CG_ANISO)
-                Comm_data%Data(n)%IGiveFAniso(nfluaniso) = idx
-                nfluaniso = nfluaniso + 1
             case (DM_SOLID_CG_PML)
                 Comm_data%Data(n)%IGiveSPML(nsolpml) = idx
                 nsolpml = nsolpml + 1
@@ -671,7 +657,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
-    integer :: n_data, n_comm, nsol, nsolpml, nflu, nflupml, nsoldg, nfluaniso
+    integer :: n_data, n_comm, nsol, nsolpml, nflu, nflupml, nsoldg
     integer :: n, nf, ne, nv, i, temp
     integer :: dom, ngll
 
@@ -700,7 +686,6 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         nsoldg = 0
         nflupml = 0
         nflu = 0
-        nfluaniso = 0
 
         ! Faces
         do i = 0,Tdomain%sComm(n)%nb_faces-1
@@ -719,8 +704,6 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + temp
             case (DM_FLUID_CG)
                 nflu = nflu + temp
-            case (DM_FLUID_CG_ANISO)
-                nfluaniso = nfluaniso + temp
             case default
                 stop "unknown domain"
             end select
@@ -742,8 +725,6 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + temp
             case (DM_FLUID_CG)
                 nflu = nflu + temp
-            case (DM_FLUID_CG_ANISO)
-                nfluaniso = nfluaniso + temp
             case default
                 stop "unknown domain"
             end select
@@ -762,8 +743,6 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + 1
             case (DM_FLUID_CG)
                 nflu = nflu + 1
-            case (DM_FLUID_CG_ANISO)
-                nfluaniso = nfluaniso + 1
             case default
                 stop "unknown domain"
             end select
@@ -774,7 +753,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         ! eg: DumpMass and MassMatSolPml acount for 6 real, compared to 9 for forcesPml
         ! for fluid we need only 4 during computation but 6 for mass exchange (but only
         ! to simplify code since 2 are really needed)
-        n_data = 3*nsol+3*nsoldg + 9*nsolpml+1*nflu+1*nfluaniso+6*nflupml
+        n_data = 3*nsol+3*nsoldg + 9*nsolpml+1*nflu+6*nflupml
         ! Initialisation et allocation de Comm_vector_DumpMassAndMMSP
         Comm_data%Data(n_comm)%src = Tdomain%rank
         Comm_data%Data(n_comm)%dest = Tdomain%sComm(n)%dest
@@ -785,7 +764,6 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         Comm_data%Data(n_comm)%nsolpml = nsolpml
         Comm_data%Data(n_comm)%nflu = nflu
         Comm_data%Data(n_comm)%nflupml = nflupml
-        Comm_data%Data(n_comm)%nfluaniso = nfluaniso
         allocate(Comm_data%Data(n_comm)%Give(0:n_data-1))
         allocate(Comm_data%Data(n_comm)%Take(0:n_data-1))
         allocate(Comm_data%Data(n_comm)%IGiveS(0:nsol-1))
@@ -793,7 +771,6 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         allocate(Comm_data%Data(n_comm)%IGiveSPML(0:nsolpml-1))
         allocate(Comm_data%Data(n_comm)%IGiveF(0:nflu-1))
         allocate(Comm_data%Data(n_comm)%IGiveFPML(0:nflupml-1))
-        allocate(Comm_data%Data(n_comm)%IGiveFAniso(0:nfluaniso-1))
 
 !        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLS ", nsol
 !        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLF ", nflu
@@ -945,7 +922,7 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
         count = 0
         n2 = surface%nbtot
         select case(dom)
-        case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
+        case (DM_FLUID_CG)
             n1 = Tdomain%Comm_data%Data(n)%nflu
             if (n1>0.and.n2>0) then
                 count = intersect_arrays(n1, Tdomain%Comm_data%Data(n)%IGiveF, n2, surface%map, igive)
@@ -976,7 +953,7 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
             allocate(comm_data%Data(n)%IGiveSDG(0:count-1))
             comm_data%Data(n)%IGiveSDG = igive
             comm_data%Data(n)%nsoldg = count
-        case (DM_FLUID_CG, DM_FLUID_CG_ANISO)
+        case (DM_FLUID_CG)
             allocate(comm_data%Data(n)%IGiveF(0:count-1))
             comm_data%Data(n)%IGiveF = igive
             comm_data%Data(n)%nflu = count
@@ -1014,8 +991,7 @@ subroutine prepare_comm_surface(Tdomain, comm_data)
     Comm_data%ncomm = ncomm
 
     ! Compte le nb de points GLL commun entre Tdomain%SF%intSolFlu%surf1 et les points de Tdomain
-    call build_comms_surface(Tdomain, comm_data, Tdomain%SF%intSolFlu%surf1, &
-        merge(DM_FLUID_CG_ANISO, DM_FLUID_CG, Tdomain%SF%fluid_is_aniso))
+    call build_comms_surface(Tdomain, comm_data, Tdomain%SF%intSolFlu%surf1, DM_FLUID_CG)
     call build_comms_surface(Tdomain, comm_data, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_CG_PML)
 
     do n = 0, comm_data%ncomm-1

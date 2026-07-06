@@ -1,7 +1,9 @@
 Description
 ===========
 
-Test do domínio acústico anisotrópico DM_FLUID_CG_ANISO, tipo 'A'.
+Test do material acústico anisotrópico (deftype=Fluid_Aniso, material.spec),
+caso constante/isotrópico-equivalente, no domínio fluido regular (DM_FLUID_CG
+com dom%aniso=.true. — não existe mais um domínio dedicado).
 Formulação em potencial de velocidade, anisotropia na DENSIDADE
 (Capdeville & Cance 2015).
 
@@ -50,15 +52,19 @@ Validation
 2. Travel time: t_arr ≈ d/Vp, com Vp = sqrt(κ·ρ⁻¹) = sqrt(κ/ρ). Para d=100m:
    t≈0.067s; d=150m: t≈0.100s; d=200m: t≈0.133s.
 
-3. Equivalência ao DM_FLUID_CG (fluido regular)  — sanity check principal:
-   como o caso constante reduz a ρ⁻¹_ij = (1/ρ)δij e κ = ρVp², os sismogramas do
-   domínio 'A' (FluidAniso) e do domínio 'F' (Fluid regular) com os mesmos Vp e ρ
-   devem coincidir até erro de máquina. Procedimento::
+3. Equivalência ao fluido isotrópico comum — sanity check principal: como o caso
+   constante reduz a ρ⁻¹_ij = (1/ρ)δij e κ = ρVp², os sismogramas do material
+   Fluid_Aniso (deftype em material.spec) e do material isotrópico comum
+   (sem deftype, mesmo Vp e ρ) devem coincidir até erro de máquina. Ambos usam
+   o mesmo domínio DM_FLUID_CG; a diferença é só o dom%aniso interno. Procedimento::
 
-     # 1) run anisotrópico (mater.in, tipo 'A')
+     # 1) run anisotrópico (mater.in + material.spec com deftype=Fluid_Aniso)
      cp mater.in material.input ; mpirun -n 4 sem3d.exe ; mv res res_aniso
-     # 2) run isotrópico de referência (mater_fluid_iso.in, tipo 'F')
+     # 2) run isotrópico de referência (mater_fluid_iso.in; material.spec REMOVIDO,
+     #    senão o deftype=Fluid_Aniso continuaria valendo para material 0)
+     mv material.spec material.spec.bak
      cp mater_fluid_iso.in material.input ; mpirun -n 4 sem3d.exe ; mv res res_iso
+     mv material.spec.bak material.spec
      # 3) comparar os traces
      python compare_aniso_vs_iso.py res_aniso/traces*.h5 res_iso/traces*.h5
 
@@ -71,4 +77,6 @@ Notas
   - material.spec com deftype = Fluid_Aniso (HDF5) — ver TEST_0010, ou
   - deftype = Cstar_Fluid com o Cstar acústico (Nd=3) do homofft, que grava
     o tensor inverso-densidade ρ*⁻¹ e 1/κ* por ponto GLL.
-- O caso MATERIAL_CONSTANT (mater.in tipo 'A') constrói ρ⁻¹_ij = (1/ρ)δij e κ = ρVp².
+- O caso MATERIAL_CONSTANT (material.spec: deftype=Fluid_Aniso, spacedef=constant)
+  constrói ρ⁻¹_ij = (1/ρ)δij e κ = ρVp² a partir do mesmo Vp/Vs/Rho do material.spec
+  (mirror de MATDEF_VP_VS_RHO em define_arrays.F90).

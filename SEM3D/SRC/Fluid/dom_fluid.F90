@@ -2,6 +2,12 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
+!! Also carries anisotropic-density materials (Capdeville & Cance 2015):
+!!     (1/kappa) phi_tt = d_i( rho^{-1}_ij d_j phi ) ,   v_i = rho^{-1}_ij d_j phi
+!! selected per-domain by dom%aniso (mirrors dom_solid's Cij_/aniso split), generalising
+!! the isotropic scalar IDensity_=1/rho to the symmetric tensor m_IDensTensor. See
+!! calcul_forces_fluid_aniso.inc for the kernel and DOC/source/anisotropic_fluid.rst for
+!! the physics writeup.
 
 module dom_fluid
     use sdomain
@@ -37,6 +43,7 @@ contains
 
         ngll   = dom%ngll
         nbelem = dom%nbelem
+        dom%aniso = Tdomain%aniso
 !        write(*,*) "DOM_FLUID ngll   = ", ngll
 !        write(*,*) "DOM_FLUID nbelem = ", nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
@@ -53,6 +60,14 @@ contains
             nblocks = dom%nblocks
             allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+            if (dom%aniso) then
+                ! Anisotropic-density materials (Capdeville & Cance 2015): rho^{-1}_ij
+                ! tensor, mirrors dom_solid%Cij_ -- allocated model-wide whenever any
+                ! material (solid or fluid) is aniso. Isotropic fluid elements in the
+                ! same run still fill it with the diagonal special case (see
+                ! init_material_properties_fluid).
+                allocate(dom%m_IDensTensor(IND_DIJKE(0:5,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)))
+            end if
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
@@ -70,6 +85,7 @@ contains
         integer :: i
         if(allocated(dom%m_IDensity)) deallocate(dom%m_IDensity)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
+        if(allocated(dom%m_IDensTensor)) deallocate(dom%m_IDensTensor)
 
         do i=0,1
             if(allocated(dom%champs(i)%ForcesFl)) deallocate(dom%champs(i)%ForcesFl)
@@ -96,6 +112,34 @@ contains
         Veloc(:,:,:,2) = dphi_dz(:,:,:) * idensity(:,:,:)
     end subroutine fluid_velocity
 
+    subroutine fluid_aniso_velocity(ngll,hprime,InvGrad,IDensTensor,phi,veloc)
+        ! Physical particle velocity in the anisotropic-density fluid: v_i = rho^{-1}_ij d_j phi
+        implicit none
+        integer, intent(in) :: ngll
+        real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
+        real(fpp), dimension(0:5,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: IDensTensor
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: phi
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(out) :: Veloc
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dphi_dx,dphi_dy,dphi_dz
+        integer :: i,j,k
+        real(fpp) :: B11,B22,B33,B12,B13,B23,gx,gy,gz
+
+        call physical_part_deriv(ngll,hprime,InvGrad,phi,dphi_dx,dphi_dy,dphi_dz)
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    B11 = IDensTensor(0,i,j,k); B22 = IDensTensor(1,i,j,k); B33 = IDensTensor(2,i,j,k)
+                    B12 = IDensTensor(3,i,j,k); B13 = IDensTensor(4,i,j,k); B23 = IDensTensor(5,i,j,k)
+                    gx = dphi_dx(i,j,k); gy = dphi_dy(i,j,k); gz = dphi_dz(i,j,k)
+                    Veloc(i,j,k,0) = B11*gx + B12*gy + B13*gz
+                    Veloc(i,j,k,1) = B12*gx + B22*gy + B23*gz
+                    Veloc(i,j,k,2) = B13*gx + B23*gy + B33*gz
+                enddo
+            enddo
+        enddo
+    end subroutine fluid_aniso_velocity
+
     subroutine get_fluid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev, dUdX)
         use deriv3d
@@ -119,6 +163,7 @@ contains
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: sig_dev
         real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,divU!
         real(fpp), dimension(0:2,0:2) :: invgrad_ijk
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: gx,gy,gz
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
         integer :: bnum, ee
@@ -180,23 +225,43 @@ contains
         end if
 
         if (out_variables(OUT_VITESSE) == 1.or.flag_gradU) then
+            if (dom%aniso) then
 #ifdef CPML
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
-                 dom%IDensity_(:,:,:,bnum,ee),vphi,fieldV)
+                call fluid_aniso_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                     dom%m_IDensTensor(IND_DIJKE(0:5,:,:,:,bnum,ee)),vphi,fieldV)
 #else
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
-                 dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
+                call fluid_aniso_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                     dom%m_IDensTensor(IND_DIJKE(0:5,:,:,:,bnum,ee)),phi,fieldV)
 #endif
+            else
+#ifdef CPML
+                call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                     dom%IDensity_(:,:,:,bnum,ee),vphi,fieldV)
+#else
+                call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                     dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
+#endif
+            end if
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
+            if (dom%aniso) then
 #ifdef CPML
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
-                 dom%IDensity_(:,:,:,bnum,ee),-fieldP,fieldA)
+                call fluid_aniso_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                     dom%m_IDensTensor(IND_DIJKE(0:5,:,:,:,bnum,ee)),-fieldP,fieldA)
 #else
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
-                 dom%IDensity_(:,:,:,bnum,ee),vphi,fieldA)
+                call fluid_aniso_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                     dom%m_IDensTensor(IND_DIJKE(0:5,:,:,:,bnum,ee)),vphi,fieldA)
 #endif
+            else
+#ifdef CPML
+                call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                     dom%IDensity_(:,:,:,bnum,ee),-fieldP,fieldA)
+#else
+                call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                     dom%IDensity_(:,:,:,bnum,ee),vphi,fieldA)
+#endif
+            end if
         end if
 
         if (flag_gradU) then
@@ -250,15 +315,31 @@ contains
         end if
 
         if (out_variables(OUT_ENERGYK) == 1) then
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
-                             dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
-            do k=0,ngll-1
-                do j=0,ngll-1
-                    do i=0,ngll-1
-                        K_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
+            if (dom%aniso) then
+                ! K_energy = 1/2 (grad phi).(rho^{-1} grad phi) = 1/2 v.(grad phi)
+                call fluid_aniso_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                                 dom%m_IDensTensor(IND_DIJKE(0:5,:,:,:,bnum,ee)),phi,fieldV)
+                call physical_part_deriv(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),phi,gx,gy,gz)
+                do k=0,ngll-1
+                    do j=0,ngll-1
+                        do i=0,ngll-1
+                            K_energy(i,j,k) = 0.5d0*(fieldV(i,j,k,0)*gx(i,j,k) + &
+                                                     fieldV(i,j,k,1)*gy(i,j,k) + &
+                                                     fieldV(i,j,k,2)*gz(i,j,k))
+                        enddo
                     enddo
                 enddo
-            enddo
+            else
+                call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                                 dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
+                do k=0,ngll-1
+                    do j=0,ngll-1
+                        do i=0,ngll-1
+                            K_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
+                        enddo
+                    enddo
+                enddo
+            end if
         end if
 
         if (out_variables(OUT_ENERGYD) == 1) then
@@ -279,14 +360,16 @@ contains
 
     subroutine get_fluid_dom_elem_energy(dom, lnum, P_energy, K_energy, D_energy)
 
+        use deriv3d
         implicit none
-        !    
+        !
         type(domain_fluid), intent(inout)          :: dom
         integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable, intent(inout) :: P_energy, K_energy
         real(fpp), dimension(:,:,:,:), allocatable, intent(inout) :: D_energy
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: fieldV
         real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: fieldP
+        real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: gx,gy,gz
         real(fpp), dimension(:,:,:), allocatable   :: phi
         integer                  :: ngll, i, j, k, ind
         !
@@ -321,19 +404,37 @@ contains
         P_energy = -1
         D_energy = 0
 
-        call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
-                            dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
-
-        ! Then, get the energies.
-        do k=0,ngll-1
-            do j=0,ngll-1
-                do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,bnum,ee)
-                    P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)/dom%Lambda_(i,j,k,bnum,ee)
-                    K_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
+        if (dom%aniso) then
+            call fluid_aniso_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                                dom%m_IDensTensor(IND_DIJKE(0:5,:,:,:,bnum,ee)),phi,fieldV)
+            call physical_part_deriv(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),phi,gx,gy,gz)
+            ! Then, get the energies.
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,bnum,ee)
+                        P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)/dom%Lambda_(i,j,k,bnum,ee)
+                        ! K_energy = 1/2 (grad phi).(rho^{-1} grad phi) = 1/2 v.(grad phi)
+                        K_energy(i,j,k) = 0.5d0*(fieldV(i,j,k,0)*gx(i,j,k) + &
+                                                 fieldV(i,j,k,1)*gy(i,j,k) + &
+                                                 fieldV(i,j,k,2)*gz(i,j,k))
+                    enddo
                 enddo
             enddo
-        enddo
+        else
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                                dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
+            ! Then, get the energies.
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,bnum,ee)
+                        P_energy(i,j,k) = 0.5*fieldP(i,j,k)*fieldP(i,j,k)/dom%Lambda_(i,j,k,bnum,ee)
+                        K_energy(i,j,k) = 0.5*(fieldV(i,j,k,0)**2+fieldV(i,j,k,1)**2+fieldV(i,j,k,2)**2)/dom%IDensity_(i,j,k,bnum,ee)
+                    enddo
+                enddo
+            enddo
+        end if
 
         deallocate(phi)
     end subroutine get_fluid_dom_elem_energy
@@ -360,6 +461,25 @@ contains
         dom%IDensity_(:,:,:,bnum,ee) = 1d0/density
         dom%Lambda_ (:,:,:,bnum,ee) = lambda
     end subroutine init_material_properties_fluid
+
+    subroutine init_material_properties_fluid_aniso(dom, lnum, mat, IDens, lambda)
+        ! IDens(0:5) = inverse-density tensor rho^{-1}_ij at each GLL point (11,22,33,12,13,23)
+        ! lambda     = scalar bulk modulus kappa
+        type(domain_fluid), intent(inout) :: dom
+        integer, intent(in) :: lnum
+        type(subdomain), intent(in) :: mat
+        real(fpp), intent(in), dimension(0:5,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: IDens
+        real(fpp), intent(in), dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: lambda
+        !
+        integer :: bnum, ee, m
+        bnum = lnum/VCHUNK
+        ee   = mod(lnum,VCHUNK)
+
+        do m = 0, 5
+            dom%m_IDensTensor(IND_DIJKE(m,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,bnum,ee)) = IDens(m,:,:,:)
+        end do
+        dom%Lambda_(:,:,:,bnum,ee) = lambda
+    end subroutine init_material_properties_fluid_aniso
 
     subroutine init_local_mass_fluid(dom,specel,i,j,k,ind,Whei)
         type(domain_fluid), intent (INOUT) :: dom
@@ -547,10 +667,26 @@ contains
         integer, intent(in) :: lnum, i, j, k
         !
         real(fpp) :: Pspeed
+        real(fpp) :: B11,B22,B33,B12,B13,B23,maxB
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
-        Pspeed = sqrt(dom%Lambda_(i,j,k,bnum,ee)*dom%IDensity_(i,j,k,bnum,ee))
+        if (dom%aniso) then
+            ! Upper bound on phase velocity: sqrt(kappa * lambda_max(rho^{-1})), with
+            ! lambda_max(rho^{-1}) bounded above by the Gershgorin radius of the tensor.
+            B11 = dom%m_IDensTensor(IND_DIJKE(0,i,j,k,bnum,ee))
+            B22 = dom%m_IDensTensor(IND_DIJKE(1,i,j,k,bnum,ee))
+            B33 = dom%m_IDensTensor(IND_DIJKE(2,i,j,k,bnum,ee))
+            B12 = dom%m_IDensTensor(IND_DIJKE(3,i,j,k,bnum,ee))
+            B13 = dom%m_IDensTensor(IND_DIJKE(4,i,j,k,bnum,ee))
+            B23 = dom%m_IDensTensor(IND_DIJKE(5,i,j,k,bnum,ee))
+            maxB = max(abs(B11)+abs(B12)+abs(B13), &
+                       abs(B12)+abs(B22)+abs(B23), &
+                       abs(B13)+abs(B23)+abs(B33))
+            Pspeed = sqrt(maxB * dom%Lambda_(i,j,k,bnum,ee))
+        else
+            Pspeed = sqrt(dom%Lambda_(i,j,k,bnum,ee)*dom%IDensity_(i,j,k,bnum,ee))
+        end if
     end function fluid_Pspeed
 end module dom_fluid
 

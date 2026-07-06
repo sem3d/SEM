@@ -286,12 +286,6 @@ contains
                         Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%champs(f1)%ForcesFl, k)
                 end if
 
-                ! Domain FLUID ANISO
-                if (Tdomain%Comm_data%Data(n)%nfluaniso>0) then
-                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%champs(f1)%ForcesFl, k)
-                end if
-
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
@@ -335,12 +329,6 @@ contains
                         Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%champs(f1)%ForcesFl, k)
                 end if
 
-                ! Domain FLUID ANISO
-                if (Tdomain%Comm_data%Data(n)%nfluaniso>0) then
-                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%champs(f1)%ForcesFl, k)
-                end if
-
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
@@ -362,7 +350,6 @@ contains
     !-------------------------------------------------------------------------------
     subroutine Newmark_Predictor(Tdomain)
         use dom_fluid
-        use dom_fluid_aniso
         use dom_fluidpml
         use dom_solid
         use dom_solid_dg
@@ -393,13 +380,6 @@ contains
             call stat_stoptick(STAT_FFLU)
         endif
 
-        ! Elements fluide anisotrope
-        if (Tdomain%fanisodom%nglltot /= 0) then
-            call stat_starttick(STAT_FFLU)
-            call newmark_predictor_fluid_aniso(Tdomain%fanisodom,0,1)
-            call stat_stoptick(STAT_FFLU)
-        endif
-
         ! Elements solide pml
         if (Tdomain%spmldom%nglltot /= 0) then
             call stat_starttick(STAT_PSOL)
@@ -421,7 +401,6 @@ contains
     !-------------------------------------------------------------------------------
     subroutine Newmark_Corrector_F(Tdomain)
         use dom_fluid
-        use dom_fluid_aniso
         use dom_fluidpml
         use stat, only : stat_starttick, stat_stoptick, STAT_PFLU, STAT_FFLU
         implicit none
@@ -440,13 +419,6 @@ contains
         if (Tdomain%fdom%nglltot /= 0) then
             call stat_starttick(STAT_FFLU)
             call newmark_corrector_fluid(Tdomain%fdom, dt, 0, 1)
-            call stat_stoptick(STAT_FFLU)
-        endif
-
-        ! Elements fluide anisotrope
-        if (Tdomain%fanisodom%nglltot /= 0) then
-            call stat_starttick(STAT_FFLU)
-            call newmark_corrector_fluid_aniso(Tdomain%fanisodom, dt, 0, 1)
             call stat_stoptick(STAT_FFLU)
         endif
 
@@ -498,7 +470,6 @@ contains
         use dom_solid_dg
         use dom_solidpml
         use dom_fluid
-        use dom_fluid_aniso
         use dom_fluidpml
         use smirror
         use stat, only : stat_starttick, stat_stoptick, STAT_FFLU, STAT_PFLU, STAT_FSOL, STAT_PSOL, STAT_FSOL_DG
@@ -507,15 +478,6 @@ contains
         type(domain), intent(inout)  :: Tdomain
         integer, intent(in) :: i0, i1, ntime
         integer  :: n, indsol, indflu, indpml
-
-        ! DOMAIN FLUID ANISOTROPE
-        if (Tdomain%fanisodom%nbelem>0) then
-            call stat_starttick(STAT_FFLU)
-            do n = 0, Tdomain%fanisodom%nblocks-1
-                call forces_int_fluid_aniso(Tdomain%fanisodom, Tdomain%fanisodom%champs(i1), n)
-            enddo
-            call stat_stoptick(STAT_FFLU)
-        endif
 
         ! DOMAIN FLUID
         if (Tdomain%fdom%nbelem>0) then
@@ -722,11 +684,6 @@ contains
                                     val = Tdomain%fdom%champs(i1)%ForcesFl(idx)
                                     val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
                                     Tdomain%fdom%champs(i1)%ForcesFl(idx) = val
-                                else if (dom == DM_FLUID_CG_ANISO) then
-                                    idx = Tdomain%fanisodom%Idom_(i,j,k,bnum,ee)
-                                    val = Tdomain%fanisodom%champs(i1)%ForcesFl(idx)
-                                    val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
-                                    Tdomain%fanisodom%champs(i1)%ForcesFl(idx) = val
                                 end if
                             enddo
                         enddo
@@ -744,10 +701,6 @@ contains
                                     idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
                                     Tdomain%fdom%champs(i1)%ForcesFl(idx) = &
                                         Tdomain%fdom%champs(i1)%ForcesFl(idx) + fint*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
-                                else if (dom == DM_FLUID_CG_ANISO) then
-                                    idx = Tdomain%fanisodom%Idom_(i,j,k,bnum,ee)
-                                    Tdomain%fanisodom%champs(i1)%ForcesFl(idx) = &
-                                        Tdomain%fanisodom%champs(i1)%ForcesFl(idx) + fint*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
                                 end if
                             enddo
                         enddo

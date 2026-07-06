@@ -889,7 +889,6 @@ contains
         use dom_solid
         use dom_solid_dg
         use dom_fluid
-        use dom_fluid_aniso
         use dom_solidpml
         use dom_fluidpml
 
@@ -990,10 +989,6 @@ contains
                     call get_fluid_dom_var(Tdomain%fdom, el%lnum, out_variables,        &
                         fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, &
                         sig_dev, dUdX)
-                case (DM_FLUID_CG_ANISO)
-                    call get_fluid_aniso_dom_var(Tdomain%fanisodom, el%lnum, out_variables, &
-                        fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, &
-                        sig_dev, dUdX)
                 case (DM_SOLID_CG_PML)
                     call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
                         fieldU, fieldV, fieldA, fieldP, P_energy, K_energy, D_energy, eps_vol, eps_dev, sig_dev)
@@ -1028,8 +1023,6 @@ contains
                                 jac(i,j,k) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
                                 jac(i,j,k) = Tdomain%fdom%Jacob_      (i,j,k,bnum,ee)
-                            case (DM_FLUID_CG_ANISO)
-                                jac(i,j,k) = Tdomain%fanisodom%Jacob_ (i,j,k,bnum,ee)
                             case (DM_FLUID_CG_PML)
                                 jac(i,j,k) = Tdomain%fpmldom%Jacob_(i,j,k,bnum,ee)
                             case default
@@ -1507,7 +1500,7 @@ contains
 
             end if
             ! anisotropic-density fluid: density tensor rho_ij + bulk modulus kappa
-            if (Tdomain%any_fanisodom) then
+            if (Tdomain%any_fdom .and. Tdomain%fdom%aniso) then
                 write(61,"(a)") '<Attribute Name="rho11" Center="Node" AttributeType="Scalar">'
                 write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="rho11" Format="HDF" NumberType="Float" Precision="4" Dimensions="',nn, &
                         '">geometry',group,'.h5:/rho11</DataItem>'
@@ -1560,7 +1553,6 @@ contains
 
     subroutine write_constant_fields(Tdomain, fid, outputs)
         use dom_solid
-        use dom_fluid_aniso
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
@@ -1629,7 +1621,7 @@ contains
             allocate(C66(0:nnodes-1))
 
         end if
-        if (Tdomain%any_fanisodom) then
+        if (Tdomain%any_fdom .and. Tdomain%fdom%aniso) then
             allocate(rho11(0:nnodes-1))
             allocate(rho22(0:nnodes-1))
             allocate(rho33(0:nnodes-1))
@@ -1741,17 +1733,6 @@ contains
                         end do
                     end do
                 end do
-            case (DM_FLUID_CG_ANISO)
-                do k = 0,ngll-1
-                    do j = 0,ngll-1
-                        do i = 0,ngll-1
-                            idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (outputs%domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%fanisodom%MassMat(Tdomain%fanisodom%Idom_(i,j,k,bnum,ee))
-                            endif
-                        end do
-                    end do
-                end do
             case (DM_FLUID_CG_PML)
                 do k = 0,ngll-1
                     do j = 0,ngll-1
@@ -1810,8 +1791,6 @@ contains
                                 jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
                                 jac(idx) = Tdomain%fdom%Jacob_      (i,j,k,bnum,ee)
-                            case (DM_FLUID_CG_ANISO)
-                                jac(idx) = Tdomain%fanisodom%Jacob_ (i,j,k,bnum,ee)
                             case (DM_FLUID_CG_PML)
                                 jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,bnum,ee)
                             case default
@@ -1840,12 +1819,14 @@ contains
                             case (DM_SOLID_CG_PML)
                                 dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
-                                dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
-                            case (DM_FLUID_CG_ANISO)
-                                ! isotropic-equivalent density = 3 / trace(rho^{-1})
-                                dens(idx) = 3d0/(Tdomain%fanisodom%IDensTensor_(0,i,j,k,bnum,ee) + &
-                                                 Tdomain%fanisodom%IDensTensor_(1,i,j,k,bnum,ee) + &
-                                                 Tdomain%fanisodom%IDensTensor_(2,i,j,k,bnum,ee))
+                                if (Tdomain%fdom%aniso) then
+                                    ! isotropic-equivalent density = 3 / trace(rho^{-1})
+                                    dens(idx) = 3d0/(Tdomain%fdom%IDensTensor_(0,i,j,k,bnum,ee) + &
+                                                     Tdomain%fdom%IDensTensor_(1,i,j,k,bnum,ee) + &
+                                                     Tdomain%fdom%IDensTensor_(2,i,j,k,bnum,ee))
+                                else
+                                    dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
+                                end if
                             case (DM_FLUID_CG_PML)
 #ifdef CPML
                                 dens(idx) = 0. ! Tdomain%fpmldom%Density_(i,j,k,bnum,ee) ! TODO
@@ -1884,8 +1865,6 @@ contains
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
                                 lamb(idx) = Tdomain%fdom%Lambda_        (i,j,k,bnum,ee)
-                            case (DM_FLUID_CG_ANISO)
-                                lamb(idx) = Tdomain%fanisodom%Lambda_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG_PML)
                                 lamb(idx) = Tdomain%fpmldom%Lambda_     (i,j,k,bnum,ee)
                             case default
@@ -1921,8 +1900,6 @@ contains
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
                             case (DM_FLUID_CG)
                                 mu(idx) = -1d0
-                            case (DM_FLUID_CG_ANISO)
-                                mu(idx) = -1d0
                             case (DM_FLUID_CG_PML)
                                 mu(idx) = -1d0
                             case default
@@ -1952,9 +1929,11 @@ contains
                             case (DM_SOLID_CG_PML)
                                 kappa(idx) = -1d0
                             case (DM_FLUID_CG)
-                                kappa(idx) = -1d0
-                            case (DM_FLUID_CG_ANISO)
-                                kappa(idx) = Tdomain%fanisodom%Lambda_(i,j,k,bnum,ee)
+                                if (Tdomain%fdom%aniso) then
+                                    kappa(idx) = Tdomain%fdom%Lambda_(i,j,k,bnum,ee)
+                                else
+                                    kappa(idx) = -1d0
+                                end if
                             case (DM_FLUID_CG_PML)
                                 kappa(idx) = -1d0
                             case default
@@ -2010,8 +1989,6 @@ contains
                                                 C11(idx) = -1d0
                                            case (DM_FLUID_CG)
                                                 C11(idx) = -1d0
-                                           case (DM_FLUID_CG_ANISO)
-                                                C11(idx) = -1d0
                                            case (DM_FLUID_CG_PML)
                                                 C11(idx) = -1d0
                                            case default
@@ -2026,7 +2003,7 @@ contains
         !!! m_IDensTensor stores the inverse-density tensor rho^{-1}_ij; output the density
         !!! tensor rho_ij = (rho^{-1})^{-1} (the quantity itself, not its inverse). kappa is
         !!! filled above directly from m_Lambda. det~0 -> -1 (skip, do not abort).
-        if (Tdomain%any_fanisodom) then
+        if (Tdomain%any_fdom .and. Tdomain%fdom%aniso) then
             do n = 0,Tdomain%n_elem-1
                 if (.not. Tdomain%specel(n)%OUTPUT) cycle
                 ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
@@ -2036,13 +2013,13 @@ contains
                     do j = 0,ngll-1
                         do i = 0,ngll-1
                             idx = outputs%irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (Tdomain%specel(n)%domain == DM_FLUID_CG_ANISO) then
-                                rB11 = Tdomain%fanisodom%IDensTensor_(0,i,j,k,bnum,ee)
-                                rB22 = Tdomain%fanisodom%IDensTensor_(1,i,j,k,bnum,ee)
-                                rB33 = Tdomain%fanisodom%IDensTensor_(2,i,j,k,bnum,ee)
-                                rB12 = Tdomain%fanisodom%IDensTensor_(3,i,j,k,bnum,ee)
-                                rB13 = Tdomain%fanisodom%IDensTensor_(4,i,j,k,bnum,ee)
-                                rB23 = Tdomain%fanisodom%IDensTensor_(5,i,j,k,bnum,ee)
+                            if (Tdomain%specel(n)%domain == DM_FLUID_CG) then
+                                rB11 = Tdomain%fdom%IDensTensor_(0,i,j,k,bnum,ee)
+                                rB22 = Tdomain%fdom%IDensTensor_(1,i,j,k,bnum,ee)
+                                rB33 = Tdomain%fdom%IDensTensor_(2,i,j,k,bnum,ee)
+                                rB12 = Tdomain%fdom%IDensTensor_(3,i,j,k,bnum,ee)
+                                rB13 = Tdomain%fdom%IDensTensor_(4,i,j,k,bnum,ee)
+                                rB23 = Tdomain%fdom%IDensTensor_(5,i,j,k,bnum,ee)
                                 rdet = rB11*(rB22*rB33-rB23*rB23) &
                                      - rB12*(rB12*rB33-rB23*rB13) &
                                      + rB13*(rB12*rB23-rB22*rB13)
@@ -2111,7 +2088,7 @@ contains
 
             call grp_write_real_1d(outputs, fid, "C66", nnodes, C66,  nnodes_tot)
         end if
-        if (Tdomain%any_fanisodom) then
+        if (Tdomain%any_fdom .and. Tdomain%fdom%aniso) then
             ! density tensor rho_ij (kappa is written above as "Kappa")
             call grp_write_real_1d(outputs, fid, "rho11", nnodes, rho11, nnodes_tot)
             call grp_write_real_1d(outputs, fid, "rho22", nnodes, rho22, nnodes_tot)

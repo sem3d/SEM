@@ -18,7 +18,6 @@ module mdefinitions
     use dom_solid
     use dom_solid_dg
     use dom_fluid
-    use dom_fluid_aniso
     use dom_solidpml
     use dom_fluidpml
     implicit none
@@ -53,8 +52,6 @@ contains
                 Tdomain%spmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID_CG    ) then
                 Tdomain%fdom%Idom_(:,:,:,bnum,ee)      = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_FLUID_CG_ANISO) then
-                Tdomain%fanisodom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID_CG_PML) then
                 Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_SOLID_DG) then
@@ -354,12 +351,6 @@ contains
                         Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%MassMat, k)
                 end if
 
-                ! Domain FLUID ANISO
-                if (Tdomain%Comm_data%Data(n)%nfluaniso>0) then
-                    call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%MassMat, k)
-                end if
-
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
 #ifndef CPML
@@ -412,12 +403,6 @@ contains
                         Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%MassMat, k)
                 end if
 
-                ! Domain FLUID ANISO
-                if (Tdomain%Comm_data%Data(n)%nfluaniso>0) then
-                    call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%IGiveFAniso, Tdomain%fanisodom%MassMat, k)
-                end if
-
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
 #ifndef CPML
@@ -446,7 +431,6 @@ contains
         if (Tdomain%sdom%nglltot    /= 0) Tdomain%sdom%MassMat(:) = 1d0/Tdomain%sdom%MassMat(:)
         if (Tdomain%sdomdg%nglltot  /= 0) Tdomain%sdomdg%MassMat(:) = 1d0/Tdomain%sdomdg%MassMat(:)
         if (Tdomain%fdom%nglltot      /= 0) Tdomain%fdom%MassMat(:)      = 1d0/Tdomain%fdom%MassMat(:)
-        if (Tdomain%fanisodom%nglltot /= 0) Tdomain%fanisodom%MassMat(:) = 1d0/Tdomain%fanisodom%MassMat(:)
         if (Tdomain%spmldom%nglltot /= 0) Tdomain%spmldom%MassMat(:) = 1d0/Tdomain%spmldom%MassMat(:)
         if (Tdomain%fpmldom%nglltot /= 0) Tdomain%fpmldom%MassMat(:) = 1d0/Tdomain%fpmldom%MassMat(:)
 
@@ -458,7 +442,6 @@ contains
         if (Tdomain%sdom%nglltot /= 0) call init_domain_solid(Tdomain, Tdomain%sdom)
         if (Tdomain%sdomdg%nglltot /= 0) call init_domain_solid_dg(Tdomain, Tdomain%sdomdg)
         if (Tdomain%fdom%nglltot /= 0) call init_domain_fluid(Tdomain, Tdomain%fdom)
-        if (Tdomain%fanisodom%nglltot /= 0) call init_domain_fluid_aniso(Tdomain, Tdomain%fanisodom)
         if (Tdomain%spmldom%nglltot /= 0) call init_domain_solidpml(Tdomain, Tdomain%spmldom)
         if (Tdomain%fpmldom%nglltot /= 0) call init_domain_fluidpml(Tdomain, Tdomain%fpmldom)
     end subroutine init_domains
@@ -522,7 +505,10 @@ contains
                 !    si le flag gradient est actif alors on peut changer les proprietes
                 rho = mat%Ddensity
                 select case(mat%deftype)
-                case(MATDEF_VP_VS_RHO,MATDEF_VP_VS_RHO_D)
+                case(MATDEF_VP_VS_RHO,MATDEF_VP_VS_RHO_D,MATDEF_FLUID_ANISO,CSTAR_FLUID)
+                    ! Constant fluid-aniso is the isotropic special case (Kij=rho*Vp^2*delta_ij),
+                    ! described by the same Vp/Vs/Rho triple as MATDEF_VP_VS_RHO; see
+                    ! init_material_properties_fluid_aniso_const.
                     v0 = mat%Pspeed
                     v1 = mat%Sspeed
                 case(MATDEF_E_NU_RHO,MATDEF_E_NU_RHO_D)
@@ -596,7 +582,7 @@ contains
         end select
 
         select case(mat%deftype)
-        case(MATDEF_VP_VS_RHO,MATDEF_VP_VS_RHO_D)
+        case(MATDEF_VP_VS_RHO,MATDEF_VP_VS_RHO_D,MATDEF_FLUID_ANISO,CSTAR_FLUID)
             nlkp = 1.0d40
             mu = rho * v1**2
             lambda = rho*(v0**2 - 2d0 *v1**2)
@@ -711,12 +697,14 @@ contains
         case (DM_SOLID_DG)
             call init_material_properties_solid_dg(Tdomain%sdomdg,specel%lnum,mat,rho,lambda,mu)
         case (DM_FLUID_CG)
-            call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
-        case (DM_FLUID_CG_ANISO)
-            if (mat%material_definition == MATERIAL_CONSTANT) then
-                call init_material_properties_fluid_aniso_const(Tdomain, specel, mat, rho, lambda)
-            else if (mat%material_definition == MATERIAL_FILE) then
-                call init_material_properties_fluid_aniso_from_file(Tdomain, specel, mat)
+            if (mat%deftype==MATDEF_FLUID_ANISO .or. mat%deftype==CSTAR_FLUID) then
+                if (mat%material_definition == MATERIAL_CONSTANT) then
+                    call init_material_properties_fluid_aniso_const(Tdomain, specel, mat, rho, lambda)
+                else if (mat%material_definition == MATERIAL_FILE) then
+                    call init_material_properties_fluid_aniso_from_file(Tdomain, specel, mat)
+                end if
+            else
+                call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
             end if
         case (DM_SOLID_CG_PML)
             call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,mat,rho,lambda,mu)
@@ -761,8 +749,6 @@ contains
                             call init_local_mass_solidpml(Tdomain%spmldom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID_CG)
                             call init_local_mass_fluid(Tdomain%fdom,specel,i,j,k,ind,Whei)
-                        case (DM_FLUID_CG_ANISO)
-                            call init_local_mass_fluid_aniso(Tdomain%fanisodom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID_CG_PML)
                             call init_local_mass_fluidpml(Tdomain%fpmldom,specel,i,j,k,ind,Whei)
                         case default
@@ -807,8 +793,7 @@ contains
     subroutine init_material_properties_fluid_aniso_const(Tdomain, specel, mat, rho, lambda)
         ! Constant (isotropic) acoustic material: the inverse-density tensor is isotropic,
         ! rho^{-1}_ij = (1/rho) delta_ij, and the scalar bulk modulus is lambda (= kappa).
-        ! Anisotropy in the density (Capdeville & Cance 2015); see dom_fluid_aniso.F90.
-        use dom_fluid_aniso
+        ! Anisotropy in the density (Capdeville & Cance 2015); see dom_fluid.F90.
         implicit none
         type(domain), intent(inout) :: Tdomain
         type(element), intent(inout) :: specel
@@ -825,7 +810,7 @@ contains
         IDens(4,:,:,:) = 0d0       ! rho^{-1}_13
         IDens(5,:,:,:) = 0d0       ! rho^{-1}_23
 
-        call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, IDens, lambda)
+        call init_material_properties_fluid_aniso(Tdomain%fdom, specel%lnum, mat, IDens, lambda)
     end subroutine init_material_properties_fluid_aniso_const
 
     subroutine init_material_properties_fluid_aniso_from_file(Tdomain, specel, mat)
@@ -833,7 +818,6 @@ contains
         !   prop_field(1:6) = effective inverse-density tensor rho*^{-1}_ij (11,22,33,12,13,23)
         !   prop_field(7)   = effective inverse bulk modulus 1/kappa*
         ! Stored as m_IDensTensor = rho*^{-1}_ij and m_Lambda = kappa* = 1/(prop_field 7).
-        use dom_fluid_aniso
         use build_prop_files
         implicit none
         type(domain), intent(inout) :: Tdomain
@@ -851,7 +835,7 @@ contains
         call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(6), IDens(5,:,:,:))
         call interpolate_elem_field(Tdomain, specel, mat, mat%prop_field(7), invkappa)
         lambda = 1d0/invkappa
-        call init_material_properties_fluid_aniso(Tdomain%fanisodom, specel%lnum, mat, IDens, lambda)
+        call init_material_properties_fluid_aniso(Tdomain%fdom, specel%lnum, mat, IDens, lambda)
     end subroutine init_material_properties_fluid_aniso_from_file
 
 end module mdefinitions

@@ -89,9 +89,6 @@ contains
                             case (DM_FLUID_CG_PML)
                                 Tdomain%fpmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
                                 Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
-                            case (DM_FLUID_CG_ANISO)
-                                Tdomain%fanisodom%Jacob_  (        i,j,k,bnum,ee) = Jac
-                                Tdomain%fanisodom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case default
                                 stop "unknown domain"
                         end select
@@ -132,7 +129,7 @@ contains
         ! Solid-Fluid interfaces : normal vectors
         if(Tdomain%logicD%SF_local_present)then
             call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, &
-                merge(DM_FLUID_CG_ANISO, DM_FLUID_CG, Tdomain%SF%fluid_is_aniso), Tdomain%SF%SF_BtN)
+                DM_FLUID_CG, Tdomain%SF%SF_BtN)
             call compute_normals(Tdomain, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_CG_PML, Tdomain%SF%SFpml_BtN)
 !            call dump_sf_btn(Tdomain,"BEFORE  ")
             call exchange_sf_normals(Tdomain)

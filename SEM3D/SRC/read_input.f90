@@ -27,14 +27,12 @@ contains
 
         Tdomain%any_sdom     = .false.
         Tdomain%any_fdom     = .false.
-        Tdomain%any_fanisodom = .false.
         Tdomain%any_spml     = .false.
         Tdomain%any_fpml     = .false.
         Tdomain%any_sdomdg   = .false.
         Tdomain%sdom%ngll      = 0
         Tdomain%sdomdg%ngll    = 0
         Tdomain%fdom%ngll      = 0
-        Tdomain%fanisodom%ngll = 0
         Tdomain%spmldom%ngll   = 0
         Tdomain%fpmldom%ngll   = 0
 
@@ -53,9 +51,6 @@ contains
             case (DM_SOLID_CG_PML)
                 Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_spml = .true.
-            case (DM_FLUID_CG_ANISO)
-                Tdomain%fanisodom%ngll = Tdomain%sSubDomain(mat)%NGLL
-                Tdomain%any_fanisodom = .true.
             case (DM_FLUID_CG_PML)
                 Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                 Tdomain%any_fpml = .true.
@@ -72,16 +67,6 @@ contains
         call apply_mat_to_faces(Tdomain)
         call apply_mat_to_edges(Tdomain)
         call apply_mat_to_vertices(Tdomain)
-        ! Detect a solid <-> anisotropic-density fluid interface (uniform aniso region):
-        ! the mesher writes it into the "sf" group (it cannot know a material is aniso),
-        ! so route intSolFlu to DM_FLUID_CG_ANISO when its fluid side is aniso.
-        Tdomain%SF%fluid_is_aniso = .false.
-        do i = 0, Tdomain%SF%intSolFlu%surf1%n_faces-1
-            if (Tdomain%sFace(Tdomain%SF%intSolFlu%surf1%if_faces(i))%domain == DM_FLUID_CG_ANISO) then
-                Tdomain%SF%fluid_is_aniso = .true.
-                exit
-            end if
-        end do
 
         call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID_CG, DM_SOLID_CG_PML, .false.)
         call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID_CG, DM_FLUID_CG_PML, .false.)
@@ -89,13 +74,12 @@ contains
         call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID_CG, DM_SOLID_CG_PML, .true.)
         call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID_CG, DM_FLUID_CG_PML, .true.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_CG_PML, DM_FLUID_CG_PML, .true.)
-        if (Tdomain%SF%fluid_is_aniso) then
-            call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG_ANISO, .false.)
-            call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG_ANISO, .true.)
-        else
-            call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .false.)
-            call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .true.)
-        end if
+        ! Anisotropic-density fluid is no longer a distinct domain type (it's dom%aniso on
+        ! DM_FLUID_CG, mirroring dom_solid) so the solid<->fluid interface is always
+        ! DM_SOLID_CG <-> DM_FLUID_CG; solid_fluid_coupling.f90 picks the tensor vs scalar
+        ! coupling formula at runtime from Tdomain%fdom%aniso.
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .true.)
 
     end subroutine read_material_file
 
@@ -118,6 +102,13 @@ contains
             select case(matdesc%defspatial)
             case (0) ! CONSTANT
                 Tdomain%sSubdomain(num)%material_definition = MATERIAL_CONSTANT
+                ! Mirrors the aniso flag set below for FILE materials: a constant aniso
+                ! deftype (e.g. Fluid_Aniso with uniform Kij) must also flip Tdomain%aniso,
+                ! or dom%aniso stays false and the isotropic kernel is used by mistake.
+                select case(matdesc%deftype)
+                case (MATDEF_VTI_ANISO, MATDEF_HOOKE_ANISO, CSTAR, MATDEF_FLUID_ANISO, CSTAR_FLUID)
+                    Tdomain%aniso = .true.
+                end select
             case (1) ! FILE
                 Tdomain%sSubdomain(num)%material_definition = MATERIAL_FILE
                 nprop = 3
@@ -135,10 +126,9 @@ contains
                 case (MATDEF_FLUID_ANISO, CSTAR_FLUID)
                     nprop = 7
                     ! Anisotropie fluide pilotee par le deftype (comme pour les solides) :
-                    ! le materiau est declare 'F' (DM_FLUID_CG) dans material.input, et la
-                    ! presence d'un deftype fluide-anisotrope l'aiguille vers le domaine
-                    ! fluide anisotrope. Le type 'A' n'est donc plus necessaire.
-                    Tdomain%sSubdomain(num)%dom = DM_FLUID_CG_ANISO
+                    ! le materiau reste declare 'F' (DM_FLUID_CG) ; la presence d'un deftype
+                    ! fluide-anisotrope met juste Tdomain%aniso a .true., exactement comme
+                    ! MATDEF_HOOKE_ANISO pour les solides. Pas de domaine dedie.
                     Tdomain%aniso = .true.
                 end select
 

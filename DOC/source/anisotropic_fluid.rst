@@ -16,11 +16,14 @@ Acoustic Wave Propagation with Anisotropy Carried by the DENSITY
 Introduction
 ============
 
-This document describes the anisotropic acoustic domain
-:code:`DM_FLUID_CG_ANISO` in :program:`SEM3D`
-(:file:`SEM3D/SRC/FluidAniso/`).
+This document describes anisotropic-density acoustic materials in
+:program:`SEM3D`'s regular fluid domain (:code:`DM_FLUID_CG`,
+:file:`SEM3D/SRC/Fluid/`). Anisotropy is a per-model flag (``dom%aniso``) on
+that domain, not a separate domain type — the same pattern the solid domain
+already uses for isotropic vs. Hooke-anisotropic elastic materials (there is
+no dedicated "SolidAniso" domain either).
 
-Unlike a naive "anisotropic bulk modulus" model, this domain places the
+Unlike a naive "anisotropic bulk modulus" model, this places the
 anisotropy in the **density**, not in the bulk modulus. This is the physically
 correct effective behaviour obtained when one homogenises a finely layered or
 rough acoustic medium: the homogenisation produces an **anisotropic effective
@@ -34,14 +37,15 @@ modulus stays scalar.
    80(4), T161–T173, 2015 (doi:10.1190/geo2014-0397.1). The paper shows that
    small-scale heterogeneities give rise to a *natural acoustic effective
    anisotropy through an anisotropic effective mass matrix* — i.e. anisotropy
-   in the density. This domain is the SEM3D counterpart of that result and is
+   in the density. This is the SEM3D counterpart of that result and is
    designed to consume the effective model produced by :program:`homofft`
    (acoustic ``compute_effectiveL_r_3d``).
 
-The domain is implemented as a from-scratch counterpart of the regular fluid
-domain (:file:`SEM3D/SRC/Fluid/`), in the **velocity-potential** formulation,
-generalising the regular fluid's scalar inverse density
-:math:`\mathrm{IDensity}=1/\rho` to a symmetric positive-definite tensor.
+It reuses the regular fluid domain's **velocity-potential** formulation
+unchanged, generalising the scalar inverse density
+:math:`\mathrm{IDensity}=1/\rho` to a symmetric positive-definite tensor
+(``m_IDensTensor``), allocated on that same domain whenever ``dom%aniso`` is
+set.
 
 
 Governing Equation
@@ -72,7 +76,7 @@ Comparison with the regular fluid
 ---------------------------------
 
 ============================  ==============================  ==============================
-Term                          Regular fluid (``Fluid``)       Anisotropic fluid (``FluidAniso``)
+Term                          ``dom%aniso = .false.``         ``dom%aniso = .true.``
 ============================  ==============================  ==============================
 Inertial / mass term          :math:`1/\kappa` (scalar)       :math:`1/\kappa` (scalar)
 Spatial operator coefficient  :math:`1/\rho` (scalar)         :math:`\rho^{-1}_{ij}` (tensor)
@@ -90,7 +94,7 @@ Weak Form and Internal Forces
 
 Multiplying by a test function and integrating by parts over an element gives
 the internal-force integrand assembled in
-:file:`calcul_forces_fluid_aniso.inc`:
+:file:`SEM3D/SRC/Fluid/calcul_forces_fluid_aniso.inc`:
 
 .. math::
 
@@ -167,8 +171,28 @@ the Gershgorin radius of the symmetric tensor.
 Material Input Formats
 ======================
 
-Two input formats are supported, selected via the ``deftype`` keyword in
+Three input formats are supported, selected via the ``deftype`` keyword in
 ``material.spec``.
+
+Fluid_Aniso (constant, isotropic-equivalent)
+---------------------------------------------
+
+``deftype = Fluid_Aniso; spacedef = constant;`` with ``rho``/``vp``/``vs``.
+This is the special case :math:`\rho^{-1}_{ij}=\rho^{-1}\delta_{ij}`,
+:math:`\kappa=\rho V_p^2` (mirrors the plain ``Vp/Vs/Rho`` isotropic material
+in :file:`define_arrays.F90`) — useful for verifying the tensor kernel reduces
+exactly to the scalar one. Example::
+
+  material 0 {
+    domain   = fluid;
+    deftype  = Fluid_Aniso;
+    spacedef = constant;
+    rho = 1000.0;
+    vp  = 1500.0;
+    vs  = 0.0;
+  };
+
+See :file:`SEM3D/TESTS/NON-REGR/TEST_0009_cube_fluid_aniso`.
 
 .. warning::
 
@@ -302,13 +326,21 @@ Source files
 =================================================  ==============================================
 File                                               Purpose
 =================================================  ==============================================
-:file:`SEM3D/SRC/FluidAniso/champs_fluid_aniso.f90`  Domain type: ``m_IDensTensor`` (:math:`\rho^{-1}`),
-                                                   ``m_Lambda`` (:math:`\kappa`), champs ``Phi,VelPhi,ForcesFl``
-:file:`SEM3D/SRC/FluidAniso/dom_fluid_aniso.F90`   Alloc, material init, mass, forces, Newmark,
-                                                   velocity (tensor), Pspeed, energy diagnostics
-:file:`SEM3D/SRC/FluidAniso/calcul_forces_fluid_aniso.inc`
-                                                   Internal-force kernel (vectorised with VCHUNK)
+:file:`SEM3D/SRC/Fluid/champs_fluid.f90`           Domain type ``domain_fluid``: ``aniso`` flag,
+                                                   ``m_IDensTensor`` (:math:`\rho^{-1}`, aniso only),
+                                                   ``m_IDensity`` (:math:`1/\rho`, iso), ``m_Lambda``
+                                                   (:math:`\kappa`, shared), champs ``Phi,VelPhi,ForcesFl``
+:file:`SEM3D/SRC/Fluid/dom_fluid.F90`              Alloc, material init, mass, forces, Newmark,
+                                                   velocity (scalar or tensor per ``dom%aniso``),
+                                                   Pspeed, energy diagnostics
+:file:`SEM3D/SRC/Fluid/calcul_forces_fluid.F90`    Dispatches on ``dom%aniso`` (outside the
+                                                   vectorised loop) to the scalar or tensor kernel
+:file:`SEM3D/SRC/Fluid/calcul_forces_fluid_aniso.inc`
+                                                   Tensor internal-force kernel (vectorised with VCHUNK)
 :file:`SEM3D/SRC/build_prop_files.F90`             Property registration / Cstar reading
+:file:`SEM3D/SRC/read_input.f90`                   ``read_material_spec``: a ``Fluid_Aniso``/
+                                                   ``Cstar_Fluid`` deftype sets ``Tdomain%aniso=.true.``
+                                                   (constant or file); no domain override
 :file:`SEM3D/SRC/define_arrays.F90`                Material dispatch (constant and file paths);
                                                    ``..._from_file`` sets :math:`\kappa = 1/(1/\kappa)`
 :file:`COMMON/constants.F90`                       ``MATDEF_FLUID_ANISO = 17``, ``CSTAR_FLUID = 18``
@@ -325,9 +357,12 @@ Material-type identifiers
 Domain identifier
 -----------------
 
-The character ``'A'`` in ``material.input`` activates ``DM_FLUID_CG_ANISO``
-(domain index 7). With ``material.spec``, set ``domain = fluid`` together with
-one of the two ``deftype`` values above.
+There is no dedicated domain or ``material.input`` character for the
+anisotropic-density fluid (unlike, historically, the retired ``'A'`` char).
+Materials always declare ``domain = fluid`` (``DM_FLUID_CG``, ``'F'`` in
+``material.input``); setting ``deftype`` to one of the values above in
+``material.spec`` is what flips ``Tdomain%aniso`` / ``dom%aniso`` and
+activates the tensor kernel for that run.
 
 
 Test Cases

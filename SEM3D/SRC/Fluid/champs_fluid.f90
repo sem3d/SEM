@@ -2,6 +2,10 @@
 !!\file champs_fluid.f90
 !!\brief Contient la définition du type champs pour un domaine fluide
 !!
+!! Anisotropic-density materials (Capdeville & Cance 2015) are handled in this
+!! same domain, mirroring dom_solid: m_IDensTensor generalises the scalar
+!! m_IDensity = 1/rho to a symmetric tensor rho^{-1}_ij (6 indep comps: 11, 22,
+!! 33, 12, 13, 23), selected by the `aniso` flag (allocated only if .true.).
 !<
 
 module champs_fluid
@@ -30,8 +34,12 @@ module champs_fluid
 
     type, extends(dombase) :: domain_fluid
         ! D'abord, les données membres qui ne sont pas modifiées
+        logical :: aniso
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_IDensity ! Inverse of density
+        ! Anisotropic-density materials only (allocated iff aniso): rho^{-1}_ij,
+        ! index 0=11, 1=22, 2=33, 3=12, 4=13, 5=23
+        real(fpp), dimension (:,:,:,:,:,:), allocatable :: m_IDensTensor
         ! Mirror
         !!! GB logical :: use_mirror
         integer :: mirror_type

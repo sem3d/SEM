@@ -95,10 +95,6 @@ contains
                 ngllx = Tdomain%fdom%ngll
                 nglly = Tdomain%fdom%ngll
                 ngllz = Tdomain%fdom%ngll
-            case (DM_FLUID_CG_ANISO)
-                ngllx = Tdomain%fanisodom%ngll
-                nglly = Tdomain%fanisodom%ngll
-                ngllz = Tdomain%fanisodom%ngll
             case (DM_SOLID_CG_PML)
                 ngllx = Tdomain%spmldom%ngll
                 nglly = Tdomain%spmldom%ngll
@@ -203,15 +199,6 @@ contains
                 ! pour Phi : 11
                 offset(11) = offset(11) + ngll
                 ! pour Veloc : 12
-                offset(12) = offset(12) + 0
-            case (DM_FLUID_CG_ANISO)
-                ! VelP : 9
-                offset(9) = offset(9) + ngll
-                ! (unused) : 10
-                offset(10) = offset(10) + 0
-                ! P : 11
-                offset(11) = offset(11) + ngll
-                ! (unused) : 12
                 offset(12) = offset(12) + 0
             case (DM_FLUID_CG_PML)
                 ! pour VelPhi : 9
@@ -939,10 +926,6 @@ contains
         if (Tdomain%fdom%nglltot.gt.0) then
             call write_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs(0)%VelPhi)
             call write_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs(0)%Phi)
-        end if
-        if (Tdomain%fanisodom%nglltot.gt.0) then
-            call write_dataset(elem_id, "faniso_VelPhi", Tdomain%fanisodom%champs(0)%VelPhi)
-            call write_dataset(elem_id, "faniso_Phi",    Tdomain%fanisodom%champs(0)%Phi)
         end if
         if (Tdomain%spmldom%nglltot.gt.0) then
 #ifdef CPML

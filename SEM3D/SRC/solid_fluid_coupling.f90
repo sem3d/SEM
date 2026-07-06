@@ -236,13 +236,11 @@ contains
 subroutine StoF_coupling(Tdomain, f0, f1)
     ! from solid to fluid: velocity (dot) normal
     !
-    ! NOTE (anisotropic-density fluid, DM_FLUID_CG_ANISO): the solid<->fluid coupling needs
-    ! NO tensor-specific change. Pressure is p = -dPhi/dt (scalar) and StoF injects the
-    ! solid normal velocity; the anisotropic inverse-density tensor is already carried by
-    ! the volume kernel (boundary flux s.n = v.n). When Tdomain%SF%fluid_is_aniso is set
-    ! (detected in read_input for a uniformly-aniso fluid region), intSolFlu has been
-    ! renumbered against DM_FLUID_CG_ANISO and the loops below target Tdomain%fanisodom.
-    ! Mixed regular+aniso fluid touching the same solid, and aniso PML, are not supported.
+    ! NOTE (anisotropic-density fluid): the solid<->fluid coupling needs NO tensor-specific
+    ! change. Pressure is p = -dPhi/dt (scalar) and StoF injects the solid normal velocity;
+    ! the anisotropic inverse-density tensor is already carried by the volume kernel
+    ! (boundary flux s.n = v.n). Anisotropic-density fluid is just dom%aniso on the regular
+    ! fluid domain (Tdomain%fdom) now, not a separate domain, so no dispatch is needed here.
     use sdomain
     implicit none
 
@@ -276,13 +274,8 @@ subroutine StoF_coupling(Tdomain, f0, f1)
             vn = vn + (BtN(j) * Tdomain%sdom%champs(f0)%Veloc(idxS,j))
 #endif
         enddo
-        ! Inject into the fluid: no tensor math needed (anisotropy is in the volume
-        ! kernel); only the target domain differs (aniso-density vs regular fluid).
-        if (Tdomain%SF%fluid_is_aniso) then
-            Tdomain%fanisodom%champs(f1)%ForcesFl(idxF) = Tdomain%fanisodom%champs(f1)%ForcesFl(idxF) + vn
-        else
-            Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) + vn
-        end if
+        ! Inject into the fluid: no tensor math needed (anisotropy is in the volume kernel).
+        Tdomain%fdom%champs(f1)%ForcesFl(idxF) = Tdomain%fdom%champs(f1)%ForcesFl(idxF) + vn
     enddo
 
     do i = 0,ngll_sf_pml-1
@@ -337,19 +330,11 @@ subroutine FtoS_coupling(Tdomain, f0, f1)
         BtN = Tdomain%SF%SF_Btn(:,i)
         ! Pressure proxy from the fluid side (p scalar, density-anisotropy agnostic):
         !   non-CPML: dPhi/dt = -p   ;   CPML: d2Phi/dt2 = -p
-        if (Tdomain%SF%fluid_is_aniso) then
 #ifdef CPML
-            pf = Tdomain%fanisodom%champs(f0)%ForcesFl(idxF)
+        pf = Tdomain%fdom%champs(f0)%ForcesFl(idxF)
 #else
-            pf = Tdomain%fanisodom%champs(f0)%VelPhi(idxF)
+        pf = Tdomain%fdom%champs(f0)%VelPhi(idxF)
 #endif
-        else
-#ifdef CPML
-            pf = Tdomain%fdom%champs(f0)%ForcesFl(idxF)
-#else
-            pf = Tdomain%fdom%champs(f0)%VelPhi(idxF)
-#endif
-        end if
         do j = 0,2
             Tdomain%sdom%champs(f1)%Veloc(idxS,j) = Tdomain%sdom%champs(f1)%Veloc(idxS,j) &
                                                      - (BtN(j) * pf)

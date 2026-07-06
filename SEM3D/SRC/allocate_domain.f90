@@ -22,7 +22,6 @@ module sdomain_alloc
     use dom_solid_dg
     use dom_solidpml
     use dom_fluid
-    use dom_fluid_aniso
     use dom_fluidpml
     implicit none
 contains
@@ -43,12 +42,10 @@ subroutine allocate_domain (Tdomain)
     allocate(Tdomain%sdomdg   %champs(0:Tdomain%TimeD%nsubsteps))
     allocate(Tdomain%spmldom  %champs(0:Tdomain%TimeD%nsubsteps))
     allocate(Tdomain%fdom      %champs(0:Tdomain%TimeD%nsubsteps))
-    allocate(Tdomain%fanisodom %champs(0:Tdomain%TimeD%nsubsteps))
     allocate(Tdomain%fpmldom   %champs(0:Tdomain%TimeD%nsubsteps))
     if(Tdomain%any_sdom)      call allocate_dom_solid      (Tdomain, Tdomain%sdom)
     if(Tdomain%any_sdomdg)    call allocate_dom_solid_dg   (Tdomain, Tdomain%sdomdg)
     if(Tdomain%any_fdom)      call allocate_dom_fluid      (Tdomain, Tdomain%fdom)
-    if(Tdomain%any_fanisodom) call allocate_dom_fluid_aniso(Tdomain, Tdomain%fanisodom)
     if(Tdomain%any_spml)      call allocate_dom_solidpml   (Tdomain, Tdomain%spmldom)
     if(Tdomain%any_fpml)      call allocate_dom_fluidpml   (Tdomain, Tdomain%fpmldom)
 
@@ -69,24 +66,23 @@ end subroutine allocate_domain
 subroutine report_domain_totals(Tdomain)
     use mpi
     type(domain), intent(in) :: Tdomain
-    integer, parameter :: ND = 6
-    ! order: 1 solid, 2 solid DG, 3 fluid, 4 fluid aniso, 5 solid PML, 6 fluid PML
+    integer, parameter :: ND = 5
+    ! order: 1 solid, 2 solid DG, 3 fluid (iso or aniso, see dom%aniso), 4 solid PML, 5 fluid PML
     integer(kind=8) :: loc(3,ND), tot(3,ND)              ! (nbelem, nglltot, ndof) per domain
     integer(kind=8) :: rk_ndof, sum_ndof, min_ndof, max_ndof
     integer         :: dof(ND), ierr, d, nprocs
     character(len=12) :: nm(ND)
     real(fpp)       :: avg
-    dof = (/ 3, 9, 1, 1, 9, 3 /)     ! DOF per GLL point (see champs_* field allocations)
+    dof = (/ 3, 9, 1, 9, 3 /)     ! DOF per GLL point (see champs_* field allocations)
     nm  = (/ 'solid       ', 'solid DG    ', 'fluid       ', &
-             'fluid aniso ', 'solid PML   ', 'fluid PML   ' /)
+             'solid PML   ', 'fluid PML   ' /)
 
     loc = 0
     if (Tdomain%any_sdom)      then; loc(1,1)=Tdomain%sdom%nbelem;      loc(2,1)=Tdomain%sdom%nglltot;      endif
     if (Tdomain%any_sdomdg)    then; loc(1,2)=Tdomain%sdomdg%nbelem;    loc(2,2)=Tdomain%sdomdg%nglltot;    endif
     if (Tdomain%any_fdom)      then; loc(1,3)=Tdomain%fdom%nbelem;      loc(2,3)=Tdomain%fdom%nglltot;      endif
-    if (Tdomain%any_fanisodom) then; loc(1,4)=Tdomain%fanisodom%nbelem; loc(2,4)=Tdomain%fanisodom%nglltot; endif
-    if (Tdomain%any_spml)      then; loc(1,5)=Tdomain%spmldom%nbelem;   loc(2,5)=Tdomain%spmldom%nglltot;   endif
-    if (Tdomain%any_fpml)      then; loc(1,6)=Tdomain%fpmldom%nbelem;   loc(2,6)=Tdomain%fpmldom%nglltot;   endif
+    if (Tdomain%any_spml)      then; loc(1,4)=Tdomain%spmldom%nbelem;   loc(2,4)=Tdomain%spmldom%nglltot;   endif
+    if (Tdomain%any_fpml)      then; loc(1,5)=Tdomain%fpmldom%nbelem;   loc(2,5)=Tdomain%fpmldom%nglltot;   endif
     do d = 1, ND
         loc(3,d) = loc(2,d) * int(dof(d), kind=8)
     end do

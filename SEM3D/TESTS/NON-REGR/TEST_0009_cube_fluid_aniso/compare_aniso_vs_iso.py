@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Isotropic-equivalent sanity check for the anisotropic-density fluid domain.
+"""Isotropic-equivalent sanity check for the anisotropic-density fluid material.
 
 Compares two SEM3D trace HDF5 files element by element:
-  - one produced by the FluidAniso domain (type 'A', mater.in), and
-  - one produced by the regular Fluid domain (type 'F', mater_fluid_iso.in),
-run on the *same* mesh / source / stations with the same Vp and Rho.
+  - one produced with the fluid-aniso material (deftype=Fluid_Aniso in
+    material.spec, mater.in), and
+  - one produced with the plain isotropic fluid material (no material.spec,
+    mater_fluid_iso.in),
+run on the *same* mesh / source / stations with the same Vp and Rho. Both use
+the same DM_FLUID_CG domain (dom%aniso just flips the kernel internally).
 
-Because the FluidAniso constant case reduces to rho^{-1}_ij = (1/rho) delta_ij
+Because the fluid-aniso constant case reduces to rho^{-1}_ij = (1/rho) delta_ij
 and kappa = rho*Vp^2, the two runs must agree to machine precision. This script
 walks every dataset common to both files and reports the maximum absolute and
 RMS differences; it exits non-zero if any difference exceeds --tol.
@@ -15,10 +18,13 @@ Usage:
     python compare_aniso_vs_iso.py traces_aniso.h5 traces_iso.h5 [--tol 1e-9]
 
 Typical workflow on the cluster:
-    # 1) aniso run (uses mater.in, type 'A')
+    # 1) aniso run (mater.in + material.spec with deftype=Fluid_Aniso)
     cp mater.in material.input ; mpirun -n 4 sem3d.exe ; mv res res_aniso
-    # 2) iso run (regular fluid, type 'F')
+    # 2) iso run (regular fluid; move material.spec out of the way first, or
+    #    its deftype=Fluid_Aniso would still apply to material 0)
+    mv material.spec material.spec.bak
     cp mater_fluid_iso.in material.input ; mpirun -n 4 sem3d.exe ; mv res res_iso
+    mv material.spec.bak material.spec
     # 3) compare the trace files written under each res*/ directory
     python compare_aniso_vs_iso.py res_aniso/traces*.h5 res_iso/traces*.h5
 """

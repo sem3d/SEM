@@ -17,11 +17,6 @@ module solid_fluid
         type(inter_num) :: intSolFluPml ! 0: spml 1: fpml
         real(fpp), allocatable, dimension(:,:) :: SF_BtN
         real(fpp), allocatable, dimension(:,:) :: SFPml_BtN
-        ! .true. when the fluid side of intSolFlu is the anisotropic-density domain
-        ! DM_FLUID_CG_ANISO (whole region uniformly aniso). Set in read_input from the
-        ! interface face domains; routes renumbering, normals, comms and the StoF/FtoS
-        ! coupling to Tdomain%fanisodom instead of Tdomain%fdom. (Non-PML only.)
-        logical :: fluid_is_aniso = .false.
     end type SF_object
 
 end module solid_fluid

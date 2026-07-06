@@ -112,8 +112,7 @@ MODULE constants
     integer, parameter :: DM_SOLID_CG_PML = 2
     integer, parameter :: DM_FLUID_CG = 3
     integer, parameter :: DM_FLUID_CG_PML = 1
-    integer, parameter :: DM_FLUID_CG_ANISO = 7
-    integer, parameter :: DM_MAX = 7
+    integer, parameter :: DM_MAX = 6
 
     ! VARIABLES DE SORTIES
     integer, parameter :: OUT_ENERGYP      = 0

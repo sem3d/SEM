@@ -12,13 +12,12 @@ module scomms
        integer :: nsend ! Taille a echanger pour une communication (<=ndata)
        ! Nombre de point de gauss a echanger pour chaque domaine
        integer :: nsol, nsoldg, nsolpml
-       integer :: nflu, nflupml, nfluaniso
+       integer :: nflu, nflupml
        ! si on echange 4 ddl pour solpml et 2 pour sol alors ndata=2*nsol+4*nsolpml...
        integer :: src, dest
        integer :: ncomm ! bookeeping numero de la structure comm associee
        real(fpp), dimension(:), allocatable :: Give, Take
        integer, dimension(:), allocatable :: IGiveS, IGiveSPML, IGiveF, IGiveFPML, IGiveSDG
-       integer, dimension(:), allocatable :: IGiveFAniso
     end type exchange_vector
 
     type :: comm_vector
