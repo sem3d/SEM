@@ -691,6 +691,29 @@ contains
         case (DM_SOLID_CG)
             if (mat%deftype==MATDEF_VTI_ANISO .or. mat%deftype==MATDEF_HOOKE_ANISO .or. mat%deftype==CSTAR) then
                 call init_material_tensor_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Qk,Qm,Cij)
+            else if (Tdomain%aniso) then
+                ! dom_solid's kernel dispatch reads a single domain-wide dom%aniso flag (set
+                ! whenever ANY material in the model -- solid or fluid -- is aniso), so every
+                ! solid element must have Cij_ filled, even a plain isotropic one, or the
+                ! tensor kernel reads uninitialized memory for it. Isotropic special case in
+                ! Mandel/Voigt notation (factor 2 on shear terms), the inverse of what
+                ! lambda_from_Cij/mu_from_Cij already assume.
+                Cij = 0d0
+                Cij(1,1,:,:,:) = lambda + 2d0*mu
+                Cij(2,2,:,:,:) = lambda + 2d0*mu
+                Cij(3,3,:,:,:) = lambda + 2d0*mu
+                Cij(1,2,:,:,:) = lambda
+                Cij(1,3,:,:,:) = lambda
+                Cij(2,3,:,:,:) = lambda
+                Cij(4,4,:,:,:) = 2d0*mu
+                Cij(5,5,:,:,:) = 2d0*mu
+                Cij(6,6,:,:,:) = 2d0*mu
+                do i = 2,6
+                    do j = 1,i-1
+                        Cij(i,j,:,:,:) = Cij(j,i,:,:,:)
+                    end do
+                end do
+                call init_material_tensor_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Qk,Qm,Cij)
             else
                 call init_material_properties_solid(Tdomain%sdom,specel%lnum,mat,rho,lambda,mu,Qk,Qm,nlkp,Tdomain%nl_flag)
             end if
@@ -703,6 +726,12 @@ contains
                 else if (mat%material_definition == MATERIAL_FILE) then
                     call init_material_properties_fluid_aniso_from_file(Tdomain, specel, mat)
                 end if
+            else if (Tdomain%aniso) then
+                ! Same reasoning as solid above: dom_fluid's kernel dispatch is also a single
+                ! domain-wide dom%aniso flag, so a plain isotropic fluid material must still
+                ! get m_IDensTensor filled (diagonal special case rho^-1_ij=(1/rho)delta_ij)
+                ! whenever the model has any aniso material at all.
+                call init_material_properties_fluid_aniso_const(Tdomain, specel, mat, rho, lambda)
             else
                 call init_material_properties_fluid(Tdomain%fdom,specel%lnum,mat,rho,lambda)
             end if
