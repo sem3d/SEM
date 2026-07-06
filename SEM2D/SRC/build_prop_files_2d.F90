@@ -242,6 +242,27 @@ contains
     end subroutine read_aniso_material_2d
 
     !-----------------------------------------------------------------------
+    !> Nearest-isotropic (Voigt) projection of a 2D Voigt tensor Cij2d onto Lame
+    !! parameters (lambda, mu). Same Voigt average as homofft (homo/src/cut_cstar.f90:231)
+    !! so a PML built from this matches the isotropic reference medium the
+    !! homogenisation used. NOTE the convention: SEM2D's Cij2d stores the shear entry
+    !! WITHOUT the factor 2 (C(3,3)=mu in the isotropic limit -- see build_aniso_acoeff_2d),
+    !! whereas homo stores C(3,3)=2*mu; hence the 4*C(3,3) here vs homo's 2*C(3,3).
+    !! Voigt indices: 1=xx, 2=zz, 3=xz. Stability-guarded so the resulting PML medium
+    !! stays physical (mu>=0, lambda+2mu>0 -> vp real & >0). Reduces EXACTLY to (lambda,mu)
+    !! for an isotropic input (C11=C22=lambda+2mu, C12=lambda, C33=mu).
+    pure subroutine project_iso_cij2d(C, lambda, mu)
+        real(fpp), dimension(3,3), intent(in) :: C
+        real(fpp), intent(out)                :: lambda, mu
+        real(fpp) :: K
+        K  = 0.25_fpp  * (C(1,1) + 2._fpp*C(1,2) + C(2,2))                       ! lambda + mu
+        mu = 0.125_fpp * (C(1,1) + C(2,2) - 2._fpp*C(1,2) + 4._fpp*C(3,3))       ! Voigt mu
+        if (mu < 0._fpp) mu = 0._fpp             ! ponytail: physical floor, homogenised mu>0
+        lambda = K - mu
+        if (lambda + 2._fpp*mu <= 0._fpp) lambda = tiny(lambda)  ! ponytail: keep vp real
+    end subroutine project_iso_cij2d
+
+    !-----------------------------------------------------------------------
     !> Overwrite the CG (non-PML) Acoeff of every elastic aniso element
     !! with the full-Cij contraction  A = -Whei*Jac * D * C * D^T, where
     !!   D = [ xix 0 xiz ; etax 0 etaz ; 0 xiz xix ; 0 etaz etax ]   (4x3)
@@ -261,11 +282,14 @@ contains
         do n = 0, Tdomain%n_elem-1
             if (.not. allocated(Tdomain%specel(n)%Cij2d)) cycle   ! only elastic aniso elements
             mat = Tdomain%specel(n)%mat_index
-            ! Scope: continuous Galerkin, non-PML only.
+            ! Scope: continuous Galerkin, non-PML only. PML elements are handled
+            ! upstream in define_arrays via the isotropic projection (project_iso_cij2d
+            ! -> Lambda/Mu), so their absorbing medium matches the physical interface;
+            ! only DG (genuinely unsupported) still warrants a warning.
             if (Tdomain%specel(n)%PML .or. Tdomain%specel(n)%type_DG /= GALERKIN_CONT) then
-                if (Tdomain%Mpi_var%my_rank == 0) &
+                if (Tdomain%specel(n)%type_DG /= GALERKIN_CONT .and. Tdomain%Mpi_var%my_rank == 0) &
                     write(*,'(a,i0,a)') ' [aniso] WARNING: aniso element ', n, &
-                        ' is PML/DG -- not supported yet, left on the isotropic path.'
+                        ' is DG -- full-tensor kernel not supported, left on the isotropic path.'
                 cycle
             end if
             ngllx = Tdomain%specel(n)%ngllx
@@ -310,21 +334,53 @@ contains
     !!   AcoeffFl(:,:,0:2) = -Whei*Jac * G^T rho^-1 G   (2x2 symmetric: (1,1),(1,2),(2,2))
     !!   MassMatFl(:,:)    =  Whei * (1/kappa) * Jac
     !! with G = [[xix,etax],[xiz,etaz]]. Reduces to the standard acoustic operator
-    !! when rho^-1 = (1/rho) I. CG non-PML only.
+    !! when rho^-1 = (1/rho) I. CG interior uses the full tensor rho^-1; CG PML uses the
+    !! isotropic projection (1/Density) I for the split-field velocity-potential PML.
     subroutine build_aniso_fluid_coeff_2d(Tdomain)
         type(domain), intent(inout) :: Tdomain
         integer :: n, mat, i, j, ngllx, ngllz, nover
-        real(fpp) :: xix, xiz, etax, etaz, Jac, w
+        real(fpp) :: xix, xiz, etax, etaz, Jac, w, rinv
         real(fpp), dimension(2,2) :: G, R, A
 
         nover = 0
         do n = 0, Tdomain%n_elem-1
             if (.not. allocated(Tdomain%specel(n)%IDensTensor2d)) cycle   ! fluid-aniso only
             mat = Tdomain%specel(n)%mat_index
-            if (Tdomain%specel(n)%PML .or. Tdomain%specel(n)%type_DG /= GALERKIN_CONT) then
+            ! DG is genuinely unsupported.
+            if (Tdomain%specel(n)%type_DG /= GALERKIN_CONT) then
                 if (Tdomain%Mpi_var%my_rank == 0) &
                     write(*,'(a,i0,a)') ' [aniso] WARNING: fluid-aniso element ', n, &
-                        ' is PML/DG -- not supported, skipped.'
+                        ' is DG -- velocity-potential kernel not supported, skipped.'
+                cycle
+            end if
+            ! PML fluid-aniso: ISOTROPIC velocity-potential PML. AcoeffFl uses the projected
+            ! isotropic inverse density R = (1/Density) I (Density = rho_iso, set in
+            ! define_arrays). Mass (1/kappa) + DumpMass were overridden in the define_arrays
+            ! PML block. The split-field kernels (Prediction_Elem_PML_VelPhi /
+            ! compute_InternalForcesFl_PML_Elem) consume AcoeffFl. Do NOT touch MassMat here.
+            if (Tdomain%specel(n)%PML) then
+                ngllx = Tdomain%specel(n)%ngllx
+                ngllz = Tdomain%specel(n)%ngllz
+                if (.not. allocated(Tdomain%specel(n)%AcoeffFl)) &
+                    allocate(Tdomain%specel(n)%AcoeffFl(0:ngllx-1,0:ngllz-1,0:2))
+                do j = 0, ngllz-1
+                    do i = 0, ngllx-1
+                        xix  = Tdomain%specel(n)%InvGrad(i,j,0,0)
+                        xiz  = Tdomain%specel(n)%InvGrad(i,j,1,0)
+                        etax = Tdomain%specel(n)%InvGrad(i,j,0,1)
+                        etaz = Tdomain%specel(n)%InvGrad(i,j,1,1)
+                        Jac  = Tdomain%specel(n)%Jacob(i,j)
+                        w    = Tdomain%sSubDomain(mat)%GLLwx(i) * Tdomain%sSubDomain(mat)%GLLwz(j)
+                        rinv = 1._fpp / Tdomain%specel(n)%Density(i,j)   ! isotropic rho^-1
+                        G(1,1)=xix; G(1,2)=etax
+                        G(2,1)=xiz; G(2,2)=etaz
+                        A = -w*Jac*rinv * matmul(transpose(G), G)
+                        Tdomain%specel(n)%AcoeffFl(i,j,0) = A(1,1)
+                        Tdomain%specel(n)%AcoeffFl(i,j,1) = A(1,2)
+                        Tdomain%specel(n)%AcoeffFl(i,j,2) = A(2,2)
+                    end do
+                end do
+                nover = nover + 1
                 cycle
             end if
             ngllx = Tdomain%specel(n)%ngllx

@@ -35,6 +35,7 @@ subroutine define_arrays(Tdomain)
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
     real(fpp) :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI,Omega_c,dxdxi,dzdeta, Dt
+    real(fpp) :: trR, ik   ! fluid-aniso isotropic projection (inverse-density trace, 1/kappa)
     real(fpp), external :: pow
     real(fpp), dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real(fpp), dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
@@ -48,6 +49,13 @@ subroutine define_arrays(Tdomain)
 
     PI = 4. * atan(1.)
 
+    ! Anisotropic-from-file materials: read Cstar.h5 into Cij2d/Density (elastic) and
+    ! IDensTensor2d/invKappa2d (fluid) BEFORE the element loop, so the isotropic
+    ! projection below can feed proper per-GLL Lambda/Mu/Density into the (unchanged)
+    ! PML Acoeff + damping machinery. The full-tensor CG kernels are (re)built after
+    ! the loop by build_aniso_*_coeff_2d. read_aniso_material_2d only uses GlobCoord.
+    call read_aniso_material_2d(Tdomain)
+
     ! Attribute elastic properties from material
 
     do n = 0, Tdomain%n_elem - 1
@@ -56,13 +64,47 @@ subroutine define_arrays(Tdomain)
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
 
-        do j = 0, ngllz - 1
-            do i = 0, ngllx - 1
-                Tdomain%specel(n)%Density(i,j) = Tdomain%sSubDomain(mat)%Ddensity
-                Tdomain%specel(n)%Lambda(i,j) = Tdomain%sSubDomain(mat)%DLambda
-                Tdomain%specel(n)%Mu(i,j) = Tdomain%sSubDomain(mat)%DMu
+        ! Material (lambda,mu,rho) per GLL. Anisotropic-from-file elements use the
+        ! per-GLL nearest-isotropic projection of the Cstar tensor: for CG this is a
+        ! stepping stone (build_aniso_*_coeff_2d rebuilds the full-tensor kernel after
+        ! the loop); for PML it IS the material -- so the PML host medium and its
+        ! absorbing profile match the physical medium at the interface (edge-clamped
+        ! Cstar) instead of an unrelated placeholder. Isotropic elements keep the
+        ! subdomain constants. NB: read_aniso_material_2d already ran (before the loop)
+        ! and set Density = Cstar Rho on elastic aniso elements -- do NOT clobber it.
+        if (allocated(Tdomain%specel(n)%Cij2d)) then                 ! elastic aniso
+            do j = 0, ngllz - 1
+                do i = 0, ngllx - 1
+                    call project_iso_cij2d(Tdomain%specel(n)%Cij2d(:,:,i,j), &
+                                           Tdomain%specel(n)%Lambda(i,j), &
+                                           Tdomain%specel(n)%Mu(i,j))
+                    ! Density already set from Cstar Rho by read_aniso_material_2d
+                enddo
             enddo
-        enddo
+        else if (allocated(Tdomain%specel(n)%IDensTensor2d)) then    ! fluid aniso
+            do j = 0, ngllz - 1
+                do i = 0, ngllx - 1
+                    ! nearest-isotropic inverse density = (1/2) trace(rho^-1);
+                    ! acoustic PML: mu=0, lambda = kappa = 1/invKappa.
+                    trR = Tdomain%specel(n)%IDensTensor2d(1,1,i,j) &
+                        + Tdomain%specel(n)%IDensTensor2d(2,2,i,j)
+                    if (trR < tiny(trR)) trR = tiny(trR)   ! ponytail: div-guard, physical trR>0
+                    ik  = Tdomain%specel(n)%invKappa2d(i,j)
+                    if (ik  < tiny(ik))  ik  = tiny(ik)
+                    Tdomain%specel(n)%Density(i,j) = 2._fpp / trR
+                    Tdomain%specel(n)%Mu(i,j)      = 0._fpp
+                    Tdomain%specel(n)%Lambda(i,j)  = 1._fpp / ik
+                enddo
+            enddo
+        else                                                         ! isotropic
+            do j = 0, ngllz - 1
+                do i = 0, ngllx - 1
+                    Tdomain%specel(n)%Density(i,j) = Tdomain%sSubDomain(mat)%Ddensity
+                    Tdomain%specel(n)%Lambda(i,j)  = Tdomain%sSubDomain(mat)%DLambda
+                    Tdomain%specel(n)%Mu(i,j)      = Tdomain%sSubDomain(mat)%DMu
+                enddo
+            enddo
+        endif
 
         ! For Atmospheric Waveguide :
         !call modify_atmospheric_rho(Tdomain,n)
@@ -306,6 +348,14 @@ subroutine define_arrays(Tdomain)
 
                 Tdomain%specel(n)%DumpMass(:,:,0) = 0.5 * Tdomain%specel(n)%Density * Whei * Tdomain%sSubdomain(mat)%Dt * wx * Jac
                 Tdomain%specel(n)%DumpMass(:,:,1) = 0.5 * Tdomain%specel(n)%Density * Whei * Tdomain%sSubdomain(mat)%Dt * wz * Jac
+                ! Fluid-aniso PML (velocity potential): the mass density is 1/kappa, not rho.
+                ! Override MassMat + DumpMass so the (reused) DumpVx/DumpVz assembly builds a
+                ! 1/kappa-based inverse mass. build_aniso_fluid_coeff_2d leaves MassMat alone here.
+                if (allocated(Tdomain%specel(n)%invKappa2d)) then
+                    Tdomain%specel(n)%MassMat = Whei * Tdomain%specel(n)%invKappa2d * Jac
+                    Tdomain%specel(n)%DumpMass(:,:,0) = 0.5 * Tdomain%specel(n)%invKappa2d * Whei * Tdomain%sSubdomain(mat)%Dt * wx * Jac
+                    Tdomain%specel(n)%DumpMass(:,:,1) = 0.5 * Tdomain%specel(n)%invKappa2d * Whei * Tdomain%sSubdomain(mat)%Dt * wz * Jac
+                end if
             endif
 
         endif
@@ -314,10 +364,11 @@ subroutine define_arrays(Tdomain)
 
     enddo
 
-    ! anisotropic-from-file materials: read Cstar.h5 and override the mass +
-    ! force-kernel coefficients on aniso elements HERE, before the mass is assembled to
-    ! faces/vertices (so rho-from-Cstar / 1-over-kappa propagate into the global mass).
-    call read_aniso_material_2d(Tdomain)      ! Cij2d, Density(=Rho), IDensTensor2d, invKappa2d
+    ! anisotropic-from-file materials: override the mass + force-kernel coefficients on
+    ! CG aniso elements HERE, before the mass is assembled to faces/vertices (so
+    ! rho-from-Cstar / 1-over-kappa propagate into the global mass). The Cstar read +
+    ! per-GLL isotropic projection (Lambda/Mu/Density) already happened before the loop,
+    ! so PML aniso elements are done; these builders only touch CG.
     call build_aniso_acoeff_2d(Tdomain)       ! elastic: Acoeff + mass (rho from Cstar)
     call build_aniso_fluid_coeff_2d(Tdomain)  ! fluid:   AcoeffFl + mass (1/kappa)
 

@@ -59,6 +59,10 @@ subroutine Newmark (Tdomain)
                 if (Tdomain%specel(n)%CPML) then
                     call Prediction_Elem_CPML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
                         Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
+                else if (allocated(Tdomain%specel(n)%AcoeffFl)) then
+                    ! fluid-aniso velocity-potential PML (isotropic): scalar split-field, VelPhi in comp 0
+                    call Prediction_Elem_PML_VelPhi (Tdomain%specel(n),alpha, bega, dt, Vxloc, &
+                        Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
                 else
                     call Prediction_Elem_PML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
                         Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
@@ -105,6 +109,11 @@ subroutine Newmark (Tdomain)
                     Tdomain%sSubDomain(mat)%hprimex,  &
                     Tdomain%sSubDomain(mat)%hTprimex, &
                     Tdomain%sSubDomain(mat)%hprimez,  &
+                    Tdomain%sSubDomain(mat)%hTprimez)
+            elseif (allocated(Tdomain%specel(n)%AcoeffFl)) then
+                ! fluid-aniso velocity-potential PML (isotropic): scalar split-field force
+                call compute_InternalForcesFl_PML_Elem (Tdomain%specel(n), &
+                    Tdomain%sSubDomain(mat)%hprimex, &
                     Tdomain%sSubDomain(mat)%hTprimez)
             else
                 call compute_InternalForces_PML_Elem (Tdomain%specel(n), &

@@ -934,6 +934,73 @@ contains
         return
     end subroutine compute_InternalForces_PML_Elem
 
+    ! ###########################################################
+    !>
+    !! \brief Split-field PML prediction for the fluid velocity-POTENTIAL domain
+    !!  (isotropic PML absorbing an anisotropic fluid interior). Scalar analogue of
+    !!  Prediction_Elem_PML_Veloc: the potential's velocity VelPhi rides in component 0
+    !!  (Veloc(:,:,0)); the reference fluxes sxi,seta = G^T rho^-1 G . grad(VelPhi) are
+    !!  split by inner derivative (xi -> Stress1, damped x; eta -> Stress2, damped z) and
+    !!  stored in Stress(:,:,0:1). AcoeffFl already carries -Whei*Jac*rho_iso^-1*metric.
+    !<
+    subroutine Prediction_Elem_PML_VelPhi (Elem, alpha, bega, dt, Vxloc, Hmatz, HTmat)
+        implicit none
+        type (Element), intent (INOUT) :: Elem
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: HTmat
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: Hmatz
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) :: Vxloc
+        real(fpp), intent (IN) :: bega, dt, alpha
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: dV_dxi, dV_deta
+        integer :: ngllx, ngllz
+
+        ngllx = Elem%ngllx; ngllz = Elem%ngllz
+
+        ! Predict VelPhi (component 0) in the element interior; boundary GLLs were gathered
+        ! into Vxloc by get_PMLprediction_fv2el.
+        Vxloc(1:ngllx-2,1:ngllz-2) = (0.5+alpha) * Elem%Veloc(:,:,0) + dt*(0.5-bega)*Elem%Accel(:,:,0) &
+                                   + (0.5-alpha) * Elem%V0(:,:,0)
+
+        dV_dxi  = MATMUL (HTmat, Vxloc)
+        dV_deta = MATMUL (Vxloc, Hmatz)
+
+        ! sxi = AcoeffFl(0)*dV_dxi + AcoeffFl(1)*dV_deta   (Stress(:,:,0))
+        Elem%Stress1(:,:,0) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,0) &
+                            + Elem%DumpSx(:,:,1) * Dt * Elem%AcoeffFl(:,:,0) * dV_dxi
+        Elem%Stress2(:,:,0) = Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,0) &
+                            + Elem%DumpSz(:,:,1) * Dt * Elem%AcoeffFl(:,:,1) * dV_deta
+        ! seta = AcoeffFl(1)*dV_dxi + AcoeffFl(2)*dV_deta  (Stress(:,:,1))
+        Elem%Stress1(:,:,1) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,1) &
+                            + Elem%DumpSx(:,:,1) * Dt * Elem%AcoeffFl(:,:,1) * dV_dxi
+        Elem%Stress2(:,:,1) = Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,1) &
+                            + Elem%DumpSz(:,:,1) * Dt * Elem%AcoeffFl(:,:,2) * dV_deta
+
+        Elem%Stress(:,:,0) = Elem%Stress1(:,:,0) + Elem%Stress2(:,:,0)
+        Elem%Stress(:,:,1) = Elem%Stress1(:,:,1) + Elem%Stress2(:,:,1)
+        return
+    end subroutine Prediction_Elem_PML_VelPhi
+
+    ! ###########################################################
+    !>
+    !! \brief Split-field PML internal force for the fluid velocity-potential domain.
+    !!  Scalar analogue of compute_InternalForces_PML_Elem: F = d_xi(sxi) + d_eta(seta),
+    !!  split by OUTER derivative into Forces1 (d_xi, damped x) and Forces2 (d_eta, damped z),
+    !!  both in component 0 (component 1 = 0 so the reused 2-component PML assembly/correction
+    !!  leaves it untouched). AcoeffFl already carries the -Whei*Jac quadrature weight.
+    !<
+    subroutine compute_InternalForcesFl_PML_Elem (Elem, hprime, hTprimez)
+        implicit none
+        type (Element), intent (INOUT) :: Elem
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
+
+        Elem%Forces1(:,:,0) = MATMUL (hprime, Elem%Stress(:,:,0))     ! d_xi sxi
+        Elem%Forces2(:,:,0) = MATMUL (Elem%Stress(:,:,1), hTprimez)   ! d_eta seta
+        Elem%Forces1(:,:,1) = 0._fpp
+        Elem%Forces2(:,:,1) = 0._fpp
+        Elem%Forces = Elem%Forces1 + Elem%Forces2
+        return
+    end subroutine compute_InternalForcesFl_PML_Elem
+
 
 
     ! ###########################################################
