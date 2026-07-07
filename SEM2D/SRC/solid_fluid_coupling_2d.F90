@@ -1,10 +1,15 @@
 !! ============================================================================
 !! solid <-> fluid-aniso coupling for SEM2D.
 !!
-!! STATUS: EXPERIMENTAL -- vertex DOFs at S-F corners are not coupled (small
-!! but nonzero contribution). S-F faces split across MPI ranks are not handled
-!! (ensure mesh partitioning places the full interface on one rank). Verified
-!! for single-rank CG non-PML runs only.
+!! STATUS: WIP -- NOT YET STABLE. The separated interface DOF now feeds back to the
+!! element volume (predictor scatter + Displ update), but the explicit StoF/FtoS
+!! exchange BLOWS UP: the fluid inverse-mass (kappa/vol) makes the round-trip gain
+!! dt^2.M_sol.M_flu.BtN^2 exceed the stability limit. SEM3D stays stable because its
+!! FtoS is a DIRECT velocity increment (Veloc -= BtN.VelPhi) and its solid corrector
+!! ACCUMULATES (Veloc = Veloc + dt.F), whereas the 2D face corrector OVERWRITES
+!! (Veloc = V0 + dt.Forces). Next: match SEM3D's SF_Btn scaling + FtoS-as-direct-velocity
+!! with an accumulating interface corrector. Do NOT trust S-F results until this is fixed.
+!! Other v1 limits: vertex DOFs at S-F corners not coupled; single MPI rank; CG non-PML.
 !!
 !! DOF separation is done at the face level: per-side (_sol/_flu) split arrays on
 !! every is_sf_iface face carry the solid displacement and the fluid potential
@@ -227,17 +232,21 @@ contains
 
             ! ---- Allocate and initialise split face DOF arrays ----
             Tdomain%sFace(nf)%is_sf_iface = .true.
+            allocate(Tdomain%sFace(nf)%Displ_sol (1:ngll-2, 0:1))
             allocate(Tdomain%sFace(nf)%Veloc_sol(1:ngll-2, 0:1))
             allocate(Tdomain%sFace(nf)%V0_sol   (1:ngll-2, 0:1))
             allocate(Tdomain%sFace(nf)%Forces_sol(1:ngll-2, 0:1))
             allocate(Tdomain%sFace(nf)%MassMat_sol(1:ngll-2))
+            allocate(Tdomain%sFace(nf)%Displ_flu (1:ngll-2, 0:1))
             allocate(Tdomain%sFace(nf)%Veloc_flu(1:ngll-2, 0:1))
             allocate(Tdomain%sFace(nf)%V0_flu   (1:ngll-2, 0:1))
             allocate(Tdomain%sFace(nf)%Forces_flu(1:ngll-2, 0:1))
             allocate(Tdomain%sFace(nf)%MassMat_flu(1:ngll-2))
+            Tdomain%sFace(nf)%Displ_sol  = 0._fpp
             Tdomain%sFace(nf)%Veloc_sol  = 0._fpp
             Tdomain%sFace(nf)%V0_sol     = 0._fpp
             Tdomain%sFace(nf)%Forces_sol = 0._fpp
+            Tdomain%sFace(nf)%Displ_flu  = 0._fpp
             Tdomain%sFace(nf)%Veloc_flu  = 0._fpp
             Tdomain%sFace(nf)%V0_flu     = 0._fpp
             Tdomain%sFace(nf)%Forces_flu = 0._fpp
@@ -278,21 +287,38 @@ contains
     !-----------------------------------------------------------------------
     !> Apply the interface coupling each Newmark step (after internal forces, before
     !! the corrector). Mirror of SEM3D StoF + FtoS, on the split face DOFs.
+    !> Staggered coupling, mirroring SEM3D Newmark order (non-CPML):
+    !!   StoF -> fluid corrector -> FtoS (uses the NEW VelPhi) -> [solid corrector runs later].
+    !! Called after force assembly, before the main face corrector loop (which then does the
+    !! SOLID side only for interface faces). Explicit (both-before-corrector) coupling was
+    !! unstable; this staggering is what keeps the exchange energy-stable.
     subroutine apply_sf_coupling_2d(Tdomain)
         type(domain), intent(inout) :: Tdomain
-        integer :: m, p, nf
-        real(fpp) :: vn, pf
+        integer :: m, p, nf, mat
+        real(fpp) :: vn, pf, dt
 
         do m = 1, n_sfi
-            nf = sfi(m)%nface
+            nf  = sfi(m)%nface
+            mat = Tdomain%sFace(nf)%mat_index
+            dt  = Tdomain%sSubdomain(mat)%dt
             do p = 1, sfi(m)%ngll-2    ! interior face nodes only; vertex DOFs skipped
-                ! StoF: solid normal velocity -> fluid phi RHS
+                ! (1) StoF: solid normal velocity -> fluid phi RHS (uses old Veloc_sol)
                 vn = sfi(m)%BtN(0,p) * Tdomain%sFace(nf)%Veloc_sol(p,0) &
                    + sfi(m)%BtN(1,p) * Tdomain%sFace(nf)%Veloc_sol(p,1)
                 Tdomain%sFace(nf)%Forces_flu(p,0) = Tdomain%sFace(nf)%Forces_flu(p,0) + vn
 
-                ! FtoS: fluid pressure = -VelPhi -> solid force (outward normal convention)
-                pf = Tdomain%sFace(nf)%Veloc_flu(p,0)   ! VelPhi = -pressure
+                ! (2) fluid corrector at this node: accel = M^-1.F, Veloc, Displ
+                Tdomain%sFace(nf)%Forces_flu(p,0) = Tdomain%sFace(nf)%MassMat_flu(p) * &
+                    Tdomain%sFace(nf)%Forces_flu(p,0)
+                Tdomain%sFace(nf)%Veloc_flu(p,0)  = Tdomain%sFace(nf)%V0_flu(p,0) + &
+                    dt * Tdomain%sFace(nf)%Forces_flu(p,0)
+                Tdomain%sFace(nf)%Displ_flu(p,0)  = Tdomain%sFace(nf)%Displ_flu(p,0) + &
+                    dt * Tdomain%sFace(nf)%Veloc_flu(p,0)
+                Tdomain%sFace(nf)%Veloc_flu(p,1) = 0._fpp
+                Tdomain%sFace(nf)%Displ_flu(p,1) = 0._fpp
+
+                ! (3) FtoS: fluid pressure (= -VelPhi) -> solid force, using the NEW VelPhi
+                pf = Tdomain%sFace(nf)%Veloc_flu(p,0)
                 Tdomain%sFace(nf)%Forces_sol(p,0) = Tdomain%sFace(nf)%Forces_sol(p,0) &
                                                    - sfi(m)%BtN(0,p) * pf
                 Tdomain%sFace(nf)%Forces_sol(p,1) = Tdomain%sFace(nf)%Forces_sol(p,1) &

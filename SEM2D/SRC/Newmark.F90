@@ -77,9 +77,12 @@ subroutine Newmark (Tdomain)
             mat = Tdomain%sFace(n)%mat_index
             dt = Tdomain%sSubdomain(mat)%dt
             if (Tdomain%sFace(n)%is_sf_iface) then
-                ! Save predictor velocity for each side
-                Tdomain%sFace(n)%V0_sol = Tdomain%sFace(n)%Veloc_sol
-                Tdomain%sFace(n)%V0_flu = Tdomain%sFace(n)%Veloc_flu
+                ! Per-side predictor (mirror Prediction_Face_Veloc): working displacement
+                ! into Forces_*, save current velocity into V0_*.
+                Tdomain%sFace(n)%Forces_sol = Tdomain%sFace(n)%Displ_sol
+                Tdomain%sFace(n)%V0_sol     = Tdomain%sFace(n)%Veloc_sol
+                Tdomain%sFace(n)%Forces_flu = Tdomain%sFace(n)%Displ_flu
+                Tdomain%sFace(n)%V0_flu     = Tdomain%sFace(n)%Veloc_flu
             else if (.not. Tdomain%sFace(n)%PML) then
                 call Prediction_Face_Veloc (Tdomain%sFace(n))
             end if
@@ -507,16 +510,18 @@ subroutine Newmark (Tdomain)
         do nf = 0, Tdomain%n_face-1
             mat = Tdomain%sFace(nf)%mat_index
             if (Tdomain%sFace(nf)%is_sf_iface) then
-                ! Separate mass-weighted corrector for each side
+                ! SOLID side only (fluid side + StoF/FtoS already done, staggered, in
+                ! apply_sf_coupling_2d). Mirror Correction_Face_Veloc: accel = M^-1.F,
+                ! Veloc = V0 + dt.accel, Displ = Displ + dt.Veloc. Displ closes the feedback.
                 dt = Tdomain%sSubdomain(mat)%dt
                 do p = 1, Tdomain%sFace(nf)%ngll-2
-                    Tdomain%sFace(nf)%Veloc_sol(p,:) = Tdomain%sFace(nf)%V0_sol(p,:) + &
-                        dt * Tdomain%sFace(nf)%MassMat_sol(p) * Tdomain%sFace(nf)%Forces_sol(p,:)
+                    Tdomain%sFace(nf)%Forces_sol(p,:) = Tdomain%sFace(nf)%MassMat_sol(p) * &
+                        Tdomain%sFace(nf)%Forces_sol(p,:)
+                    Tdomain%sFace(nf)%Veloc_sol(p,:)  = Tdomain%sFace(nf)%V0_sol(p,:) + &
+                        dt * Tdomain%sFace(nf)%Forces_sol(p,:)
+                    Tdomain%sFace(nf)%Displ_sol(p,:)  = Tdomain%sFace(nf)%Displ_sol(p,:) + &
+                        dt * Tdomain%sFace(nf)%Veloc_sol(p,:)
                 end do
-                Tdomain%sFace(nf)%Veloc_flu(:,0) = Tdomain%sFace(nf)%V0_flu(:,0) + dt * &
-                    Tdomain%sFace(nf)%MassMat_flu * Tdomain%sFace(nf)%Forces_flu(:,0)
-                ! component 1 of Veloc_flu stays zero (scalar phi equation)
-                Tdomain%sFace(nf)%Veloc_flu(:,1) = 0._fpp
             else if (.not. Tdomain%sFace(nf)%PML) then
                 call Correction_Face_Veloc (Tdomain%sFace(nf),Tdomain%sFace(nf)%ngll, Tdomain%sSubDomain(mat)%Dt)
             else

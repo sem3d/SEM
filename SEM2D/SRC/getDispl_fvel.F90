@@ -20,42 +20,58 @@
 subroutine get_Displ_fv2el(Tdomain,n)
     use sdomain
     implicit none
-    type (Domain), intent (INOUT) :: Tdomain
+    type (Domain), intent (INOUT), target :: Tdomain
     integer, intent (IN) :: n
 
     type(element), pointer :: el
     type(face), pointer :: fc
+    real(fpp), dimension(:,:), pointer :: fsrc
     integer :: nx,nz,nv
 
     el => Tdomain%specel(n)
     nx = el%ngllx;  nz = el%ngllz
 
+    ! For a solid-fluid interface face, the two neighbour elements carry SEPARATE
+    ! boundary DOFs: scatter Forces_sol into the solid element, Forces_flu into the
+    ! fluid element (el%acoustic picks the side), instead of the shared fc%Forces.
     fc => Tdomain%sFace(el%Near_Face(0))
+    if (fc%is_sf_iface) then
+        if (el%acoustic) then; fsrc => fc%Forces_flu; else; fsrc => fc%Forces_sol; endif
+    else; fsrc => fc%Forces; endif
     if ( fc%near_element(0) == n .or. fc%coherency) then
-        el%Forces(1:nx-2,0,0:1) =  fc%Forces(:,0:1)
+        el%Forces(1:nx-2,0,0:1) =  fsrc(:,0:1)
     else
-        el%Forces(1:nx-2,0,0:1) =  fc%Forces(nx-2:1:-1,0:1)
+        el%Forces(1:nx-2,0,0:1) =  fsrc(nx-2:1:-1,0:1)
     endif
 
     fc => Tdomain%sFace(el%Near_Face(1))
+    if (fc%is_sf_iface) then
+        if (el%acoustic) then; fsrc => fc%Forces_flu; else; fsrc => fc%Forces_sol; endif
+    else; fsrc => fc%Forces; endif
     if ( fc%near_element(0) == n.or. fc%coherency) then
-        el%Forces(nx-1,1:nz-2,0:1) =  fc%Forces(:,0:1)
+        el%Forces(nx-1,1:nz-2,0:1) =  fsrc(:,0:1)
     else
-        el%Forces(nx-1,1:nz-2,0:1) =  fc%Forces(nz-2:1:-1,0:1)
+        el%Forces(nx-1,1:nz-2,0:1) =  fsrc(nz-2:1:-1,0:1)
     endif
 
     fc => Tdomain%sFace(el%Near_Face(2))
+    if (fc%is_sf_iface) then
+        if (el%acoustic) then; fsrc => fc%Forces_flu; else; fsrc => fc%Forces_sol; endif
+    else; fsrc => fc%Forces; endif
     if ( fc%near_element(0) == n.or. fc%coherency) then
-        el%Forces(1:nx-2,nz-1,0:1) =  fc%Forces(:,0:1)
+        el%Forces(1:nx-2,nz-1,0:1) =  fsrc(:,0:1)
     else
-        el%Forces(1:nx-2,nz-1,0:1) =  fc%Forces(nx-2:1:-1,0:1)
+        el%Forces(1:nx-2,nz-1,0:1) =  fsrc(nx-2:1:-1,0:1)
     endif
 
     fc => Tdomain%sFace(el%Near_Face(3))
+    if (fc%is_sf_iface) then
+        if (el%acoustic) then; fsrc => fc%Forces_flu; else; fsrc => fc%Forces_sol; endif
+    else; fsrc => fc%Forces; endif
     if ( fc%near_element(0) == n.or. fc%coherency) then
-        el%Forces(0,1:nz-2,0:1) =  fc%Forces(:,0:1)
+        el%Forces(0,1:nz-2,0:1) =  fsrc(:,0:1)
     else
-        el%Forces(0,1:nz-2,0:1) =  fc%Forces(nz-2:1:-1,0:1)
+        el%Forces(0,1:nz-2,0:1) =  fsrc(nz-2:1:-1,0:1)
     endif
 
     nv = el%Near_Vertex(0)
