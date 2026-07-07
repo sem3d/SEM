@@ -47,6 +47,16 @@ module sfaces
        real(fpp), dimension (0:1)    :: Coeff_integr_ends
        integer, dimension (0:1) :: pos_in_VertMat
        logical :: is_computed, changing_media, acoustic, mortar
+       ! Solid-fluid interface split DOFs (allocated only when is_sf_iface)
+       logical :: is_sf_iface = .false.
+       real(fpp), dimension(:,:), allocatable :: Veloc_sol  ! (1:ngll-2, 0:1) solid velocity
+       real(fpp), dimension(:,:), allocatable :: V0_sol     ! (1:ngll-2, 0:1) solid predictor save
+       real(fpp), dimension(:,:), allocatable :: Forces_sol ! (1:ngll-2, 0:1) solid force accumulator
+       real(fpp), dimension(:),   allocatable :: MassMat_sol! (1:ngll-2) solid-side inverse mass
+       real(fpp), dimension(:,:), allocatable :: Veloc_flu  ! (1:ngll-2, 0:1) fluid VelPhi (comp 0)
+       real(fpp), dimension(:,:), allocatable :: V0_flu     ! (1:ngll-2, 0:1)
+       real(fpp), dimension(:,:), allocatable :: Forces_flu ! (1:ngll-2, 0:1) fluid phi RHS
+       real(fpp), dimension(:),   allocatable :: MassMat_flu! (1:ngll-2) fluid-side inverse mass
 
     end type face
 

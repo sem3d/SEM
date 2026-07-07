@@ -115,8 +115,6 @@ public:
             return 'D';
         case DM_FLUID_DG:
             return 'E';
-        case DM_FLUID_CG_ANISO:
-            return 'A';
         default:
             return 'X';
         };

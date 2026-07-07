@@ -41,6 +41,7 @@ subroutine  sem()
     use treceivers
     use sglobal_energy
     use snewmark
+    use solid_fluid_coupling_2d
     use smidpoint
     use srungekutta
 
@@ -130,6 +131,9 @@ subroutine  sem()
 
     if (rg == 0) write (*,*) " Compute mass matrix and internal forces coefficients"
     call define_arrays (Tdomain)
+
+    if (rg == 0) write (*,*) " Build solid-fluid interface coupling"
+    call build_sf_interface_2d (Tdomain)
 
     ! initialisation des temps
     Tdomain%TimeD%rtime = 0

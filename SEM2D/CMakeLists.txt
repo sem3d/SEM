@@ -61,6 +61,7 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/smoothing_exp.F90
     ${PRJ}/SRC/source_pos.F90
     ${PRJ}/SRC/wall_transfer.F90
+    ${PRJ}/SRC/solid_fluid_coupling_2d.F90
 )
 
 

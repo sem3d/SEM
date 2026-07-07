@@ -14,6 +14,7 @@
 module snewmark
     use sdomain
     use mpi
+    use solid_fluid_coupling_2d
     implicit none
 contains
 
@@ -25,6 +26,7 @@ subroutine Newmark (Tdomain)
     ! local variables
     integer :: ns, ncc, i, j, n, ngllx, ngllz, mat, nelem, nf, w_face, nv_aus, nf_aus, nv
     integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
+    integer :: p   ! S-F interface face-node index
     integer, dimension (MPI_STATUS_SIZE) :: status
     real(fpp) :: bega, gam1, alpha, dt, timelocal
 
@@ -74,7 +76,13 @@ subroutine Newmark (Tdomain)
         do n = 0, Tdomain%n_face-1
             mat = Tdomain%sFace(n)%mat_index
             dt = Tdomain%sSubdomain(mat)%dt
-            if (.not. Tdomain%sFace(n)%PML)  call Prediction_Face_Veloc (Tdomain%sFace(n))
+            if (Tdomain%sFace(n)%is_sf_iface) then
+                ! Save predictor velocity for each side
+                Tdomain%sFace(n)%V0_sol = Tdomain%sFace(n)%Veloc_sol
+                Tdomain%sFace(n)%V0_flu = Tdomain%sFace(n)%Veloc_flu
+            else if (.not. Tdomain%sFace(n)%PML) then
+                call Prediction_Face_Veloc (Tdomain%sFace(n))
+            end if
         enddo
 
         do n= 0, Tdomain%n_vertex-1
@@ -130,22 +138,40 @@ subroutine Newmark (Tdomain)
         ! Communication of Forces
 
         do nf = 0, Tdomain%n_face-1
-            nelem = Tdomain%sFace(nf)%Near_element(0)
-            w_face = Tdomain%sFace(nf)%Which_face(0)
-            Tdomain%sFace(nf)%Forces = 0
-            call getInternalF_el2f (Tdomain,nelem,nf,w_face,.true.)
-            if (Tdomain%sFace(nf)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
-                Tdomain%sFace(nf)%Forces1 = 0; Tdomain%sFace(nf)%Forces2 = 0
-                call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,.true.)
-            endif
-            nelem = Tdomain%sFace(nf)%Near_element(1)
-            if (nelem > -1) then
-                w_face = Tdomain%sFace(nf)%Which_face(1)
-                call getInternalF_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
+            if (Tdomain%sFace(nf)%is_sf_iface) then
+                ! S-F interface: route solid/fluid contributions separately.
+                ! Face%Forces is left zeroed; normal CG correction is skipped.
+                Tdomain%sFace(nf)%Forces = 0
+                Tdomain%sFace(nf)%Forces_sol = 0._fpp
+                Tdomain%sFace(nf)%Forces_flu = 0._fpp
+                nelem = Tdomain%sFace(nf)%Near_element(0)
+                w_face = Tdomain%sFace(nf)%Which_face(0)
+                call route_sf_el2f(Tdomain, nelem, nf, w_face, .true., &
+                    .not. allocated(Tdomain%specel(nelem)%AcoeffFl))
+                nelem = Tdomain%sFace(nf)%Near_element(1)
+                if (nelem > -1) then
+                    w_face = Tdomain%sFace(nf)%Which_face(1)
+                    call route_sf_el2f(Tdomain, nelem, nf, w_face, Tdomain%sFace(nf)%coherency, &
+                        .not. allocated(Tdomain%specel(nelem)%AcoeffFl))
+                end if
+            else
+                nelem = Tdomain%sFace(nf)%Near_element(0)
+                w_face = Tdomain%sFace(nf)%Which_face(0)
+                Tdomain%sFace(nf)%Forces = 0
+                call getInternalF_el2f (Tdomain,nelem,nf,w_face,.true.)
                 if (Tdomain%sFace(nf)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
-                    call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
+                    Tdomain%sFace(nf)%Forces1 = 0; Tdomain%sFace(nf)%Forces2 = 0
+                    call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,.true.)
                 endif
-            endif
+                nelem = Tdomain%sFace(nf)%Near_element(1)
+                if (nelem > -1) then
+                    w_face = Tdomain%sFace(nf)%Which_face(1)
+                    call getInternalF_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
+                    if (Tdomain%sFace(nf)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+                        call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
+                    endif
+                endif
+            end if
         enddo
 
         do nv = 0, Tdomain%n_vertex-1
@@ -196,6 +222,9 @@ subroutine Newmark (Tdomain)
 
 
 
+
+        ! Solid-fluid interface coupling (after force assembly, before MPI)
+        if (n_sfi > 0) call apply_sf_coupling_2d(Tdomain)
 
         ! Communicate forces among processors
 
@@ -477,7 +506,18 @@ subroutine Newmark (Tdomain)
 
         do nf = 0, Tdomain%n_face-1
             mat = Tdomain%sFace(nf)%mat_index
-            if (.not. Tdomain%sFace(nf)%PML) then
+            if (Tdomain%sFace(nf)%is_sf_iface) then
+                ! Separate mass-weighted corrector for each side
+                dt = Tdomain%sSubdomain(mat)%dt
+                do p = 1, Tdomain%sFace(nf)%ngll-2
+                    Tdomain%sFace(nf)%Veloc_sol(p,:) = Tdomain%sFace(nf)%V0_sol(p,:) + &
+                        dt * Tdomain%sFace(nf)%MassMat_sol(p) * Tdomain%sFace(nf)%Forces_sol(p,:)
+                end do
+                Tdomain%sFace(nf)%Veloc_flu(:,0) = Tdomain%sFace(nf)%V0_flu(:,0) + dt * &
+                    Tdomain%sFace(nf)%MassMat_flu * Tdomain%sFace(nf)%Forces_flu(:,0)
+                ! component 1 of Veloc_flu stays zero (scalar phi equation)
+                Tdomain%sFace(nf)%Veloc_flu(:,1) = 0._fpp
+            else if (.not. Tdomain%sFace(nf)%PML) then
                 call Correction_Face_Veloc (Tdomain%sFace(nf),Tdomain%sFace(nf)%ngll, Tdomain%sSubDomain(mat)%Dt)
             else
                 if (Tdomain%sFace(nf)%CPML) then
@@ -508,6 +548,62 @@ subroutine Newmark (Tdomain)
 
     return
 end subroutine Newmark
+
+    !> Route element boundary forces to the solid or fluid split array on an S-F face.
+    !! is_sol=.true. -> writes to Forces_sol; is_sol=.false. -> writes to Forces_flu.
+    subroutine route_sf_el2f(Tdomain, n_elem, n_face, w_face, logic, is_sol)
+        use sdomain
+        implicit none
+        type(Domain), intent(INOUT), target :: Tdomain
+        integer, intent(IN) :: n_elem, n_face, w_face
+        logical, intent(IN) :: logic, is_sol
+        integer :: ngll, ngllx, ngllz, i
+        real(fpp), dimension(:,:), pointer :: Fdest
+
+        ngll  = Tdomain%sFace(n_face)%ngll
+        ngllx = Tdomain%specel(n_elem)%ngllx
+        ngllz = Tdomain%specel(n_elem)%ngllz
+        if (is_sol) then
+            Fdest => Tdomain%sFace(n_face)%Forces_sol
+        else
+            Fdest => Tdomain%sFace(n_face)%Forces_flu
+        end if
+
+        if (logic) then
+            if (w_face == 0) then
+                Fdest(1:ngll-2,0:1) = Fdest(1:ngll-2,0:1) + &
+                    Tdomain%specel(n_elem)%Forces(1:ngll-2,0,0:1)
+            else if (w_face == 1) then
+                Fdest(1:ngll-2,0:1) = Fdest(1:ngll-2,0:1) + &
+                    Tdomain%specel(n_elem)%Forces(ngllx-1,1:ngll-2,0:1)
+            else if (w_face == 2) then
+                Fdest(1:ngll-2,0:1) = Fdest(1:ngll-2,0:1) + &
+                    Tdomain%specel(n_elem)%Forces(1:ngll-2,ngllz-1,0:1)
+            else
+                Fdest(1:ngll-2,0:1) = Fdest(1:ngll-2,0:1) + &
+                    Tdomain%specel(n_elem)%Forces(0,1:ngll-2,0:1)
+            end if
+        else
+            if (w_face == 0) then
+                do i = 1, ngll-2
+                    Fdest(i,0:1) = Fdest(i,0:1) + Tdomain%specel(n_elem)%Forces(ngll-1-i,0,0:1)
+                end do
+            else if (w_face == 1) then
+                do i = 1, ngll-2
+                    Fdest(i,0:1) = Fdest(i,0:1) + Tdomain%specel(n_elem)%Forces(ngllx-1,ngll-1-i,0:1)
+                end do
+            else if (w_face == 2) then
+                do i = 1, ngll-2
+                    Fdest(i,0:1) = Fdest(i,0:1) + Tdomain%specel(n_elem)%Forces(ngll-1-i,ngllz-1,0:1)
+                end do
+            else
+                do i = 1, ngll-2
+                    Fdest(i,0:1) = Fdest(i,0:1) + Tdomain%specel(n_elem)%Forces(0,ngll-1-i,0:1)
+                end do
+            end if
+        end if
+        nullify(Fdest)
+    end subroutine route_sf_el2f
 
 end module snewmark
 

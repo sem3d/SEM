@@ -19,31 +19,6 @@
 #include "sem_input.h"
 #include "earth_mesh.h"
 #include "mesh_pml_extrude.h"
-#include "sem_materials.h"
-
-// Defined in COMMON/read_material.c (C linkage), also linked into the mesher.
-extern "C" void read_sem_materials(sem_material_list_t* materials, int rank,
-                                   const char* mater_in, int* err);
-
-// Anisotropy is declared only in material.spec (like solids). But the mesher bakes the
-// element/face domains into the mesh from the material type, so it must learn which fluid
-// materials are anisotropic to bake DM_FLUID_CG_ANISO. We read material.spec and upgrade
-// the domain of fluid materials whose deftype is a fluid-anisotropic one (Fluid_Aniso=17,
-// Cstar_Fluid=18). material.input still carries the base 'F'; the solver re-derives the
-// aniso domain from the same material.spec.
-static void upgrade_domains_from_spec(Mesh3D& mesh)
-{
-    if (access("material.spec", F_OK) != 0) return;
-    sem_material_list_t mats; int err = 0;
-    read_sem_materials(&mats, 0, "material.spec", &err);
-    if (err <= 0) return;
-    for (sem_material_t* m = mats.head; m != NULL; m = m->next) {
-        bool fluid_aniso = (m->deftype == 17 || m->deftype == 18); // Fluid_Aniso, Cstar_Fluid
-        if (fluid_aniso && m->num >= 0 && (size_t)m->num < mesh.n_materials()) {
-            mesh.m_materials[m->num].m_type = DM_FLUID_CG_ANISO;
-        }
-    }
-}
 
 static bool mesh_has_pml_materials(const Mesh3D& mesh)
 {
@@ -284,8 +259,12 @@ int main(int argc, char**argv)
         break;
     };
 
-    // Anisotropy is declared in material.spec; bake the aniso domain into the mesh.
-    upgrade_domains_from_spec(mesh);
+    // Anisotropy (Fluid_Aniso/Cstar_Fluid deftype, like Hooke_Aniso for solids) is a
+    // material.spec-only, runtime concern: fluid materials stay tagged 'F'/DM_FLUID_CG in
+    // the mesh and material.input, exactly like anisotropic solids stay 'S'/DM_SOLID_CG.
+    // No mesh-side domain upgrade needed (there used to be one baking DM_FLUID_CG_ANISO
+    // here; that domain no longer exists in the solver -- aniso is dom%aniso on the
+    // regular fluid domain now).
 
     // PML source selection for imported meshes (cases 2/3/4):
     //  - if PML materials are already defined (mater.in flagged them P/L, so the imported
