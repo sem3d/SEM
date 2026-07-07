@@ -43,14 +43,16 @@ contains
     !> Enumerate solid<->fluid-aniso interface faces and build BtN + the per-side
     !! face-GLL -> element-(i,j) maps. Call once at init (after define_arrays).
     subroutine build_sf_interface_2d(Tdomain)
-        use shape_lin, only: compute_Jacobian_1D
+        use shape_lin, only: compute_Jacobian_1D, n_from_vertices
         type(domain), intent(inout) :: Tdomain
         integer :: nf, e0, e1, esol, eflu, nfound, k
-        integer :: wf_sol, wf_flu, mat_sol
+        integer :: wf_sol, wf_flu, mat_sol, mat_flu
         integer :: ngll, ngllx_sol, ngllz_sol, ngllx_flu, ngllz_flu
-        integer :: p
+        integer :: p, is, js
         logical :: a0, a1, logic_sol, logic_flu
-        real(fpp) :: Jac1D, sign_n
+        real(fpp) :: Jac1D, sign_n, mfac
+        real(fpp) :: fn(0:1)   ! outward face normal from Near_Element(0)
+        logical :: flu_aniso   ! fluid side is aniso-from-file (invKappa2d allocated)
 
         ! ---- count S-F interface faces ----
         nfound = 0
@@ -199,19 +201,26 @@ contains
                 sign_n = -1._fpp
             end if
             mat_sol = Tdomain%specel(esol)%mat_index
+            mat_flu = Tdomain%specel(eflu)%mat_index
+            ! Face%Normal is NOT allocated for interior CG faces, so compute the outward
+            ! normal from the face vertices (same as shape4.F90): unit normal, flipped to
+            ! point outward from Near_Element(0). sign_n then reorients it solid->fluid.
+            call n_from_vertices(Tdomain, fn, Tdomain%sFace(nf)%Near_Vertex(0), &
+                                 Tdomain%sFace(nf)%Near_Vertex(1))
+            if (Tdomain%sFace(nf)%Which_Face(0) >= 2) fn = -fn
             ! p=0 and p=ngll-1 are vertex DOFs; skip (BtN stays 0 for vertices).
             do p = 1, ngll-2
                 if (wf_sol == 0 .or. wf_sol == 2) then
                     ! face varies in i (x) direction
-                    sfi(k)%BtN(0,p) = sign_n * Tdomain%sFace(nf)%Normal(0) * Jac1D * &
+                    sfi(k)%BtN(0,p) = sign_n * fn(0) * Jac1D * &
                                        Tdomain%sSubdomain(mat_sol)%GLLwx(p)
-                    sfi(k)%BtN(1,p) = sign_n * Tdomain%sFace(nf)%Normal(1) * Jac1D * &
+                    sfi(k)%BtN(1,p) = sign_n * fn(1) * Jac1D * &
                                        Tdomain%sSubdomain(mat_sol)%GLLwx(p)
                 else
                     ! wf=1 or 3: face varies in j (z) direction
-                    sfi(k)%BtN(0,p) = sign_n * Tdomain%sFace(nf)%Normal(0) * Jac1D * &
+                    sfi(k)%BtN(0,p) = sign_n * fn(0) * Jac1D * &
                                        Tdomain%sSubdomain(mat_sol)%GLLwz(p)
-                    sfi(k)%BtN(1,p) = sign_n * Tdomain%sFace(nf)%Normal(1) * Jac1D * &
+                    sfi(k)%BtN(1,p) = sign_n * fn(1) * Jac1D * &
                                        Tdomain%sSubdomain(mat_sol)%GLLwz(p)
                 end if
             end do
@@ -233,15 +242,30 @@ contains
             Tdomain%sFace(nf)%V0_flu     = 0._fpp
             Tdomain%sFace(nf)%Forces_flu = 0._fpp
 
-            ! ---- MassMat per side (from element%MassMat at face boundary nodes) ----
-            ! Both solid CG and fluid-aniso CG store the inverse mass in element%MassMat
-            ! (used by the GALERKIN_CONT corrector, Element.F90). Accumulate from the
-            ! solid element -> MassMat_sol, and from the fluid element -> MassMat_flu.
+            ! ---- Per-side INVERSE mass at the interface face nodes ----
+            ! element%MassMat is CG interior-only (1:ngll-2) AND already inverted after
+            ! define_arrays, so it cannot be indexed at boundary face nodes (is/js may be
+            ! 0 or ngll-1). Recompute the LOCAL nodal mass from the surviving element
+            ! fields and invert: solid = Whei*Density*Jac ; fluid = Whei*invKappa2d*Jac
+            ! (Whei(i,j) = GLLwx(i)*GLLwz(j), matching define_arr.F90).
+            ! fluid nodal "mass" factor = 1/kappa (velocity-potential formulation):
+            ! aniso-from-file stores it in invKappa2d; isotropic fluid has kappa = Lambda
+            ! (mu=0), so 1/kappa = 1/Lambda.
+            flu_aniso = allocated(Tdomain%specel(eflu)%invKappa2d)
             do p = 1, ngll-2
-                Tdomain%sFace(nf)%MassMat_sol(p) = &
-                    Tdomain%specel(esol)%MassMat(sfi(k)%is_sol(p), sfi(k)%js_sol(p))
-                Tdomain%sFace(nf)%MassMat_flu(p) = &
-                    Tdomain%specel(eflu)%MassMat(sfi(k)%is_flu(p), sfi(k)%js_flu(p))
+                is = sfi(k)%is_sol(p);  js = sfi(k)%js_sol(p)
+                Tdomain%sFace(nf)%MassMat_sol(p) = 1._fpp / ( &
+                    Tdomain%sSubdomain(mat_sol)%GLLwx(is) * Tdomain%sSubdomain(mat_sol)%GLLwz(js) * &
+                    Tdomain%specel(esol)%Density(is,js) * Tdomain%specel(esol)%Jacob(is,js) )
+                is = sfi(k)%is_flu(p);  js = sfi(k)%js_flu(p)
+                if (flu_aniso) then
+                    mfac = Tdomain%specel(eflu)%invKappa2d(is,js)
+                else
+                    mfac = 1._fpp / Tdomain%specel(eflu)%Lambda(is,js)   ! iso: kappa = Lambda
+                end if
+                Tdomain%sFace(nf)%MassMat_flu(p) = 1._fpp / ( &
+                    Tdomain%sSubdomain(mat_flu)%GLLwx(is) * Tdomain%sSubdomain(mat_flu)%GLLwz(js) * &
+                    mfac * Tdomain%specel(eflu)%Jacob(is,js) )
             end do
 
         end do
