@@ -179,13 +179,12 @@ static inline bool is_dm_pml(int dom) {
 
 // PML domain to use for a PML derived from an arbitrary non-PML base material.
 // A PML is always isotropic; the base only tells us whether it is fluid-like
-// (-> fluid PML) or solid-like (-> solid PML). Covers S/D (solid), F/E/A and any
+// (-> fluid PML) or solid-like (-> solid PML). Covers S/D (solid), F/E and any
 // zero-shear medium (fluid). Random media are declared S/F, so they are covered too.
 static inline material_type_t pml_domain_for(const Material& base) {
     switch (base.domain()) {
     case DM_FLUID_CG:
     case DM_FLUID_DG:
-    case DM_FLUID_CG_ANISO:
     case DM_FLUID_CG_PML:
         return DM_FLUID_CG_PML;
     case DM_SOLID_CG:

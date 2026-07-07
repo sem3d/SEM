@@ -1,0 +1,14 @@
+# on-the-fly, two layers (solid over fluid), no PML  -> 10 x 6 Quad4 over [0,0.05]x[0,0.03]
+# layer 0 = top    z in [0.015,0.03] -> material 0 (solid)
+# layer 1 = bottom z in [0,0.015]    -> material 1 (fluid)
+0.0        # xmin
+0.05       # xmax
+0.005      # xstep    -> nelemx = 10
+0.03       # zmax (top)
+2          # nlayers
+0.015 3    # layer 0 (top):    thickness  nsteps
+0.015 3    # layer 1 (bottom): thickness  nsteps  -> nelemz = 6
+0          # has_pml (npml; 0 = none)
+0 0        # pml_top pml_bottom (dummy)
+0          # ngllPML ... (dummy)
+4          # mesh_type (Quad4)

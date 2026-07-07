@@ -147,12 +147,12 @@ subroutine Newmark (Tdomain)
                 nelem = Tdomain%sFace(nf)%Near_element(0)
                 w_face = Tdomain%sFace(nf)%Which_face(0)
                 call route_sf_el2f(Tdomain, nelem, nf, w_face, .true., &
-                    .not. allocated(Tdomain%specel(nelem)%AcoeffFl))
+                    .not. Tdomain%specel(nelem)%acoustic)
                 nelem = Tdomain%sFace(nf)%Near_element(1)
                 if (nelem > -1) then
                     w_face = Tdomain%sFace(nf)%Which_face(1)
                     call route_sf_el2f(Tdomain, nelem, nf, w_face, Tdomain%sFace(nf)%coherency, &
-                        .not. allocated(Tdomain%specel(nelem)%AcoeffFl))
+                        .not. Tdomain%specel(nelem)%acoustic)
                 end if
             else
                 nelem = Tdomain%sFace(nf)%Near_element(0)

@@ -59,9 +59,9 @@ contains
             e0 = Tdomain%sFace(nf)%Near_Element(0)
             e1 = Tdomain%sFace(nf)%Near_Element(1)
             if (e0 < 0 .or. e1 < 0) cycle
-            a0 = allocated(Tdomain%specel(e0)%AcoeffFl)
-            a1 = allocated(Tdomain%specel(e1)%AcoeffFl)
-            if (a0 .eqv. a1) cycle
+            a0 = Tdomain%specel(e0)%acoustic   ! .true. = fluid, .false. = solid
+            a1 = Tdomain%specel(e1)%acoustic
+            if (a0 .eqv. a1) cycle             ! need exactly one fluid side
             nfound = nfound + 1
         end do
         n_sfi = nfound
@@ -75,9 +75,9 @@ contains
             e0 = Tdomain%sFace(nf)%Near_Element(0)
             e1 = Tdomain%sFace(nf)%Near_Element(1)
             if (e0 < 0 .or. e1 < 0) cycle
-            a0 = allocated(Tdomain%specel(e0)%AcoeffFl)
-            a1 = allocated(Tdomain%specel(e1)%AcoeffFl)
-            if (a0 .eqv. a1) cycle
+            a0 = Tdomain%specel(e0)%acoustic   ! .true. = fluid, .false. = solid
+            a1 = Tdomain%specel(e1)%acoustic
+            if (a0 .eqv. a1) cycle             ! need exactly one fluid side
             k = k + 1
             sfi(k)%nface = nf
             if (a0) then

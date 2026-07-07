@@ -10,3 +10,6 @@ build
 BUILD*
 build*
 DOC/Makefile
+*.vel
+*.h5
+*.xmf
