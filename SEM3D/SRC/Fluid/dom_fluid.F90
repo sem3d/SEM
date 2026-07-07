@@ -399,7 +399,7 @@ contains
         !Allocation
         if(.not. allocated(K_energy)) allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-        if(.not. allocated(P_energy)) allocate(D_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        if(.not. allocated(D_energy)) allocate(D_energy(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         K_energy = -1       
         P_energy = -1
         D_energy = 0
