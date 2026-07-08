@@ -611,6 +611,14 @@ static void getData_line(char** buffer, size_t* linesize, FILE* f)
     if (nc<=0 && *buffer) (*buffer)[0] = 0;
 }
 
+// Apow is dimensionless: alpha(x) = Apow*Vp/L*(x/L)^npow already carries Vp
+// and L separately, so Apow depends only on npow and the target reflection
+// coefficient Rc (Collino & Tsogka 2001): Apow = (npow+1)/2 * ln(1/Rc).
+// Mirrors pml_apow_from_rc() in MESH/CSRC/material.h (3D mesher).
+static inline double pml_apow_from_rc(int npow, double Rc) {
+    return 0.5*(npow+1)*log(1.0/Rc);
+}
+
 // One SEM2D material as carried by mater.in / material.input.
 // The file format is unified with SEM3D: NGLL comes from input.spec and Dt from
 // Compute_Courant, so neither is stored per material. PMLs are described by the
@@ -628,7 +636,7 @@ struct Material2D {
     double zpos, zwidth;    // ... along z (2D vertical axis)
     int    assoc;           // adjacent non-PML material index (0-based)
     Material2D() : type('S'), vp(0), vs(0), rho(0), qp(0), qs(0),
-                   is_pml(false), npow(2), apow(10.),
+                   is_pml(false), npow(2), apow(pml_apow_from_rc(2, 1e-3)),
                    xpos(0.), xwidth(0.), zpos(0.), zwidth(0.), assoc(-1) {}
 };
 
@@ -698,7 +706,8 @@ struct RectMesh2D {
     bool   pml_W, pml_E, pml_U, pml_D; // PML present on each side
     int    ngll_pml;      // NGLL for PML elements (<=0 -> use base material NGLL)
     int    npow;          // PML attenuation exponent
-    double apow, omegac, kc;
+    double apow;          // computed from Rc: (npow+1)/2 * ln(1/Rc)
+    double Rc, omegac, kc;
     int    elem_shape;    // 4 = Quad4
     int    nelemx, nelemz;
     // Domain bounds before PML extension (interface positions for the PML descriptors)
@@ -715,9 +724,11 @@ struct RectMesh2D {
 
 // mat.dat (2D) = the 3D mat.dat without the y-block:
 //   xmin / xmax / xstep / zmax / nlayers / (thickness nsteps) x nlayers /
-//   has_pml (npml) / pml_top pml_bottom / ngllPML [npow Apow omegac kc] / mesh_type
+//   has_pml (npml) / pml_top pml_bottom / ngllPML [npow Rc omegac kc] / mesh_type
 // Lateral PML (W,E) is always on when npml>0 (as in the 3D mesher default). pml_top/pml_bottom
 // toggle the U/D sides. When has_pml=0 the next two lines are dummies.
+// Apow is derived from Rc (target reflection coefficient), not given directly --
+// mirrors the 3D mesher (Collino & Tsogka: Apow = (npow+1)/2 * ln(1/Rc)).
 void RectMesh2D::read_params(const char* fname)
 {
     FILE* f = fopen(fname, "r");
@@ -744,8 +755,9 @@ void RectMesh2D::read_params(const char* fname)
     int pml_top=0, pml_bottom=1;
     getData_line(&buffer,&n,f); sscanf(buffer, "%d %d", &pml_top, &pml_bottom);
 
-    ngll_pml=0; npow=2; apow=10.; omegac=0.; kc=0.;
-    getData_line(&buffer,&n,f); sscanf(buffer, "%d %d %lf %lf %lf", &ngll_pml, &npow, &apow, &omegac, &kc);
+    ngll_pml=0; npow=2; Rc=1e-3; omegac=0.; kc=0.;
+    getData_line(&buffer,&n,f); sscanf(buffer, "%d %d %lf %lf %lf", &ngll_pml, &npow, &Rc, &omegac, &kc);
+    apow = pml_apow_from_rc(npow, Rc);
 
     getData_line(&buffer,&n,f); elem_shape=4; sscanf(buffer, "%d", &elem_shape);
     if (elem_shape!=4) {printf("ERR: only mesh_type 4 (Quad4) is supported on the fly\n"); exit(1);}
@@ -904,8 +916,9 @@ struct PmlSpec2D {
     int    n[P2_NSIDES];
     double step[P2_NSIDES];
     int    npow;
-    double apow, omegac, kc;
-    PmlSpec2D():npow(2),apow(10.),omegac(0.),kc(0.) {
+    double apow;          // computed from Rc: (npow+1)/2 * ln(1/Rc)
+    double Rc, omegac, kc;
+    PmlSpec2D():npow(2),apow(pml_apow_from_rc(2,1e-3)),Rc(1e-3),omegac(0.),kc(0.) {
         for(int k=0;k<P2_NSIDES;++k){ n[k]=0; step[k]=0.; }
     }
     bool any() const { for(int k=0;k<P2_NSIDES;++k) if(n[k]>0) return true; return false; }
@@ -922,7 +935,8 @@ static bool read_pml_input_2d(const char* fname, PmlSpec2D& spec)
         char tok[64]={0};
         if (sscanf(buffer, "%63s", tok)!=1) continue;
         if (!strcmp(tok,"pmlparams")) {
-            sscanf(buffer, "%*s %d %lf %lf %lf", &spec.npow, &spec.apow, &spec.omegac, &spec.kc);
+            sscanf(buffer, "%*s %d %lf %lf %lf", &spec.npow, &spec.Rc, &spec.omegac, &spec.kc);
+            spec.apow = pml_apow_from_rc(spec.npow, spec.Rc);
             continue;
         }
         int nn=0; double step=0.;  // step = optional TOTAL PML thickness on this side
