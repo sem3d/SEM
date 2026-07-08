@@ -44,6 +44,10 @@ bool read_pml_input(const string& fname, PmlSpec& spec)
         getData_line(&buffer, &linesize, f);
         if (!buffer || buffer[0]==0) break;
         char tok[64]; int n=0; double step=0.;
+        if (sscanf(buffer, "%63s", tok)==1 && !strcmp(tok,"pmlparams")) {
+            sscanf(buffer, "%*s %d %lf", &spec.npow, &spec.Rc);
+            continue;
+        }
         int c = sscanf(buffer, "%63s %d %lf", tok, &n, &step);
         if (c<2) continue;
         int s = side_from_token(tok);
@@ -53,9 +57,9 @@ bool read_pml_input(const string& fname, PmlSpec& spec)
         spec.step[s] = (c>=3) ? step : 0.;
     }
     if (buffer) free(buffer);
-    printf("Read pml.input: x-=%d x+=%d y-=%d y+=%d z-=%d z+=%d\n",
+    printf("Read pml.input: x-=%d x+=%d y-=%d y+=%d z-=%d z+=%d (npow=%d Rc=%g)\n",
            spec.n[PML_XM], spec.n[PML_XP], spec.n[PML_YM],
-           spec.n[PML_YP], spec.n[PML_ZM], spec.n[PML_ZP]);
+           spec.n[PML_YP], spec.n[PML_ZM], spec.n[PML_ZP], spec.npow, spec.Rc);
     return true;
 }
 
@@ -85,6 +89,8 @@ public:
 private:
     Mesh3D& mesh;
     vector<MatInfo> minfo;
+    int npow;
+    double apow;
     // (original boundary node, layer) -> extruded node id
     map<pair<index_t,int>, index_t> newnode;
 
@@ -147,6 +153,8 @@ int PmlExtruder::get_or_make_pml(int src_mat, int side, double pos, double width
     nm.cinitial_type = nm.material_char();
     nm.set_pml_borders(xpos,xwidth,ypos,ywidth,zpos,zwidth);
     nm.associated_material = base;
+    nm.npow = npow;
+    nm.apow = apow;
 
     int newidx = mesh.m_materials.size();
     bm.m_pml_num[idx] = newidx;               // bm still valid (push_back below)
@@ -280,6 +288,8 @@ void PmlExtruder::extrude_side(int side, int n, double step_override)
 
 void PmlExtruder::run(const PmlSpec& spec)
 {
+    npow = spec.npow;
+    apow = pml_apow_from_rc(npow, spec.Rc);
     for(int side=0; side<PML_NSIDES; ++side) {
         extrude_side(side, spec.n[side], spec.step[side]);
     }

@@ -232,6 +232,8 @@ int Mesh3D::read_materials_v2(const std::string& str, bool read_pml_desc)
 
             m_materials[mat].set_pml_borders(pX, wX, pY, wY, pZ, wZ);
             m_materials[mat].associated_material = rmat;
+            m_materials[mat].npow = npow;
+            m_materials[mat].apow = apow;
         }
     }
     free(buffer);
@@ -299,7 +301,8 @@ void Mesh3D::write_materials_v2(const std::string& str)
         const Material& mat = m_materials[k];
 
         if (!mat.is_pml()) continue;
-        fprintf(f, "2 10. %8.1lf %8.1lf %8.1lf %8.1lf %8.1lf %8.1lf %2d\n",
+        fprintf(f, "%d %g %8.1lf %8.1lf %8.1lf %8.1lf %8.1lf %8.1lf %2d\n",
+                mat.npow, mat.apow,
                 mat.xpos, mat.xwidth,
                 mat.ypos, mat.ywidth,
                 mat.zpos, mat.zwidth, mat.associated_material);

@@ -7,8 +7,16 @@
 #ifndef _MATERIAL_H_
 #define _MATERIAL_H_
 #include <cassert>
+#include <cmath>
 #include <vector>
 #include "sem_materials.h"
+
+// Apow is dimensionless: alpha(x) = Apow*Vp/L*(x/L)^npow already carries Vp
+// and L separately, so Apow depends only on npow and the target reflection
+// coefficient Rc (Collino & Tsogka 2001): Apow = (npow+1)/2 * ln(1/Rc).
+inline double pml_apow_from_rc(int npow, double Rc) {
+    return 0.5*(npow+1)*log(1.0/Rc);
+}
 
 class Material {
 public:
@@ -31,6 +39,8 @@ public:
                                   zpos(mat.zpos),
                                   zwidth(mat.zwidth),
                                   associated_material(mat.associated_material),
+                                  npow(mat.npow),
+                                  apow(mat.apow),
                                   m_pml_num(mat.m_pml_num)
         {
         }
@@ -40,7 +50,8 @@ public:
              double Qp, double Qmu_):
         ctype(type), cinitial_type(type),
         rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
-        xpos(0.), xwidth(0.), ypos(0.), ywidth(0.), zpos(0.), zwidth(0.), associated_material(-1)
+        xpos(0.), xwidth(0.), ypos(0.), ywidth(0.), zpos(0.), zwidth(0.), associated_material(-1),
+        npow(2), apow(pml_apow_from_rc(2, 1e-3))
         {
             switch (type) {
             case 'P':
@@ -135,6 +146,8 @@ public:
     double ypos, ywidth;
     double zpos, zwidth;
     int associated_material;
+    int npow;
+    double apow;
 
     int m_lambdaSwitch;
 
