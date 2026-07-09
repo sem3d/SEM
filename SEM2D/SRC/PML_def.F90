@@ -65,7 +65,7 @@ subroutine PML_definition (Tdomain)
     do n = 0, Tdomain%n_face-1
         n_el0 = Tdomain%sFace(n)%Near_Element(0)
         n_el1 = Tdomain%sFace(n)%Near_Element(1)
-        if (n_el1 == -1) then
+        if (n_el1 == -1 .and. .not. Tdomain%sFace(n)%is_sf_iface) then
             if (Tdomain%type_bc == DG_BC_ABS) then
                 Tdomain%sFace(n)%abs      = .true.
                 Tdomain%sFace(n)%freesurf = .false.

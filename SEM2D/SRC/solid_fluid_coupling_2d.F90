@@ -1,25 +1,29 @@
 !! ============================================================================
-!! solid <-> fluid-aniso coupling for SEM2D.
+!! Solid <-> POTENTIAL-fluid coupling for SEM2D (faithful port of SEM3D).
 !!
-!! STATUS: WIP -- NOT YET STABLE. The separated interface DOF now feeds back to the
-!! element volume (predictor scatter + Displ update), but the explicit StoF/FtoS
-!! exchange BLOWS UP: the fluid inverse-mass (kappa/vol) makes the round-trip gain
-!! dt^2.M_sol.M_flu.BtN^2 exceed the stability limit. SEM3D stays stable because its
-!! FtoS is a DIRECT velocity increment (Veloc -= BtN.VelPhi) and its solid corrector
-!! ACCUMULATES (Veloc = Veloc + dt.F), whereas the 2D face corrector OVERWRITES
-!! (Veloc = V0 + dt.Forces). Next: match SEM3D's SF_Btn scaling + FtoS-as-direct-velocity
-!! with an accumulating interface corrector. Do NOT trust S-F results until this is fixed.
-!! Other v1 limits: vertex DOFs at S-F corners not coupled; single MPI rank; CG non-PML.
+!! STATUS: WORKING (validated 2026-07-09 on t4/t5: stable, arrivals match the native
+!! iso reference within 0.2us, fluid amplitude obeys p = rho.c.v within ~6%).
 !!
-!! DOF separation is done at the face level: per-side (_sol/_flu) split arrays on
-!! every is_sf_iface face carry the solid displacement and the fluid potential
-!! separately, so the CG assembly never SUMS Ux(solid)+phi(fluid) at the interface.
+!! SCOPE: only solid <-> POTENTIAL-fluid (Fluid_Aniso / Cstar-fluid) interfaces. The
+!! ISO fluid is a DISPLACEMENT formulation (elastic kernel, mu=0) and couples natively
+!! through shared CG DOFs -- it is deliberately NOT split (sf_needs_split).
 !!
-!! PHYSICS (mirror of SEM3D solid_fluid_coupling.f90, anisotropy-agnostic at the
-!! interface -- rho^-1 lives only in the volume kernel):
-!!   StoF: Forces_flu(idxF) += sum_j BtN(j) * Veloc_sol(idxS,j)
-!!   FtoS: Forces_sol(idxS,j) -= BtN(j) * VelPhi_flu(idxF)        [VelPhi = -pressure]
-!! BtN = outward unit normal (solid->fluid) * line-Jacobian * GLL weight on the face.
+!! ARCHITECTURE (approach B): at setup, each interface face AND its vertices are
+!! DUPLICATED so the solid and fluid sides own separate one-sided objects updated by
+!! the STANDARD face/vertex machinery (predictor/assembly/corrector). The coupling is
+!! then the exact SEM3D non-CPML sequence (Newmark.F90):
+!!   1. sf_stof (after assembly, before correctors):
+!!        fluid Forces += BtN . Veloc_solid(old)          [natural BC of the psi eq.]
+!!   2. fluid interface DOFs corrected normally in the main loop (VelPhi becomes NEW);
+!!      solid interface DOFs are SKIPPED (deferred).
+!!   3. sf_ftos: solid Forces -= BtN . VelPhi(new)        [pressure load, p = -VelPhi]
+!!      (mirror of SEM3D FtoS: champs(f1)%Veloc there is the FORCE accumulator).
+!!   4. deferred standard correction of the solid interface faces/vertices
+!!      (M^-1 and dt applied by the correctors themselves).
+!! BtN = unit normal OUTWARD FROM THE FLUID * line-Jacobian * 1D GLL weight (mirror of
+!! SEM3D SF_BtN orientation), covering face-interior nodes AND endpoint vertices.
+!!
+!! Limits: single MPI rank (interface must lie on one rank); CG non-PML interfaces.
 !! ============================================================================
 module solid_fluid_coupling_2d
 
@@ -28,304 +32,261 @@ module solid_fluid_coupling_2d
     use selement
     implicit none
 
-    type sf_iface_2d
-        integer :: nface = -1            ! the changing_media face
-        integer :: e_sol = -1, e_flu = -1   ! solid-side, fluid-side element
-        integer :: wf_sol = -1, wf_flu = -1 ! which local face on each element
-        integer :: ngll = 0
-        ! local element (i,j) indices of the face GLL points, per side:
-        integer, allocatable :: is_sol(:), js_sol(:)
-        integer, allocatable :: is_flu(:), js_flu(:)
-        real(fpp), allocatable :: BtN(:,:) ! (0:1,0:ngll-1) outward normal * lineJac * weight
-    end type sf_iface_2d
 
-    type(sf_iface_2d), allocatable :: sfi(:)
-    integer :: n_sfi = 0
+    ! (B.4) split-DOF coupling: paired solid/fluid faces + endpoint vertices, with BtN.
+    type sfpair_t
+        integer :: fsol = -1, fflu = -1, ngll = 0
+        integer :: vsol(0:1) = -1, vflu(0:1) = -1
+        real(fpp), allocatable :: btn(:,:)   ! (0:1, 0:ngll-1) = normal*lineJac*GLLw at face nodes
+    end type sfpair_t
+    type(sfpair_t), allocatable :: sfp(:)
+    integer :: n_sfp = 0
 
 contains
 
     !-----------------------------------------------------------------------
-    !> Enumerate solid<->fluid-aniso interface faces and build BtN + the per-side
-    !! face-GLL -> element-(i,j) maps. Call once at init (after define_arrays).
-    subroutine build_sf_interface_2d(Tdomain)
-        use shape_lin, only: compute_Jacobian_1D, n_from_vertices
-        type(domain), intent(inout) :: Tdomain
-        integer :: nf, e0, e1, esol, eflu, nfound, k
-        integer :: wf_sol, wf_flu, mat_sol, mat_flu
-        integer :: ngll, ngllx_sol, ngllz_sol, ngllx_flu, ngllz_flu
-        integer :: p, is, js
-        logical :: a0, a1, logic_sol, logic_flu
-        real(fpp) :: Jac1D, sign_n, mfac
-        real(fpp) :: fn(0:1)   ! outward face normal from Near_Element(0)
-        logical :: flu_aniso   ! fluid side is aniso-from-file (invKappa2d allocated)
-
-        ! ---- count S-F interface faces ----
-        nfound = 0
-        do nf = 0, Tdomain%n_face-1
-            if (.not. Tdomain%sFace(nf)%changing_media) cycle
-            e0 = Tdomain%sFace(nf)%Near_Element(0)
-            e1 = Tdomain%sFace(nf)%Near_Element(1)
-            if (e0 < 0 .or. e1 < 0) cycle
-            a0 = Tdomain%specel(e0)%acoustic   ! .true. = fluid, .false. = solid
-            a1 = Tdomain%specel(e1)%acoustic
-            if (a0 .eqv. a1) cycle             ! need exactly one fluid side
-            nfound = nfound + 1
-        end do
-        n_sfi = nfound
-        if (n_sfi == 0) return
-        allocate(sfi(n_sfi))
-
-        ! ---- fill sf_iface_2d entries ----
-        k = 0
-        do nf = 0, Tdomain%n_face-1
-            if (.not. Tdomain%sFace(nf)%changing_media) cycle
-            e0 = Tdomain%sFace(nf)%Near_Element(0)
-            e1 = Tdomain%sFace(nf)%Near_Element(1)
-            if (e0 < 0 .or. e1 < 0) cycle
-            a0 = Tdomain%specel(e0)%acoustic   ! .true. = fluid, .false. = solid
-            a1 = Tdomain%specel(e1)%acoustic
-            if (a0 .eqv. a1) cycle             ! need exactly one fluid side
-            k = k + 1
-            sfi(k)%nface = nf
-            if (a0) then
-                sfi(k)%e_flu = e0;  sfi(k)%e_sol = e1
-            else
-                sfi(k)%e_flu = e1;  sfi(k)%e_sol = e0
-            end if
-            ngll = Tdomain%sFace(nf)%ngll
-            sfi(k)%ngll = ngll
-
-            ! ---- wf_sol / wf_flu ----
-            ! Which_face(0) is the face index from Near_Element(0)'s perspective.
-            ! Match e_sol/e_flu to Near_Element(0/1).
-            if (sfi(k)%e_sol == e0) then
-                wf_sol = Tdomain%sFace(nf)%Which_face(0)
-                wf_flu = Tdomain%sFace(nf)%Which_face(1)
-            else
-                wf_sol = Tdomain%sFace(nf)%Which_face(1)
-                wf_flu = Tdomain%sFace(nf)%Which_face(0)
-            end if
-            sfi(k)%wf_sol = wf_sol
-            sfi(k)%wf_flu = wf_flu
-
-            ! ---- logic flags for (i,j) mapping ----
-            ! Near_Element(0) -> logic=.true.; Near_Element(1) -> logic=coherency
-            if (sfi(k)%e_sol == e0) then
-                logic_sol = .true.
-            else
-                logic_sol = Tdomain%sFace(nf)%coherency
-            end if
-            if (sfi(k)%e_flu == e0) then
-                logic_flu = .true.
-            else
-                logic_flu = Tdomain%sFace(nf)%coherency
-            end if
-
-            esol = sfi(k)%e_sol;  eflu = sfi(k)%e_flu
-            ngllx_sol = Tdomain%specel(esol)%ngllx
-            ngllz_sol = Tdomain%specel(esol)%ngllz
-            ngllx_flu = Tdomain%specel(eflu)%ngllx
-            ngllz_flu = Tdomain%specel(eflu)%ngllz
-
-            allocate(sfi(k)%is_sol(0:ngll-1), sfi(k)%js_sol(0:ngll-1))
-            allocate(sfi(k)%is_flu(0:ngll-1), sfi(k)%js_flu(0:ngll-1))
-            allocate(sfi(k)%BtN(0:1, 0:ngll-1))
-            sfi(k)%BtN = 0._fpp
-
-            ! ---- (i,j) maps for p=0:ngll-1 ----
-            ! wf=0->j=0; wf=1->i=ngllx-1; wf=2->j=ngllz-1; wf=3->i=0
-            ! logic=.true.  -> p maps directly (no reversal)
-            ! logic=.false. -> p is reversed (ngll-1-p)
-            do p = 0, ngll-1
-                ! Solid
-                select case (wf_sol)
-                case (0)
-                    if (logic_sol) then
-                        sfi(k)%is_sol(p) = p;           sfi(k)%js_sol(p) = 0
-                    else
-                        sfi(k)%is_sol(p) = ngll-1-p;    sfi(k)%js_sol(p) = 0
-                    end if
-                case (1)
-                    if (logic_sol) then
-                        sfi(k)%is_sol(p) = ngllx_sol-1; sfi(k)%js_sol(p) = p
-                    else
-                        sfi(k)%is_sol(p) = ngllx_sol-1; sfi(k)%js_sol(p) = ngll-1-p
-                    end if
-                case (2)
-                    if (logic_sol) then
-                        sfi(k)%is_sol(p) = p;            sfi(k)%js_sol(p) = ngllz_sol-1
-                    else
-                        sfi(k)%is_sol(p) = ngll-1-p;    sfi(k)%js_sol(p) = ngllz_sol-1
-                    end if
-                case (3)
-                    if (logic_sol) then
-                        sfi(k)%is_sol(p) = 0;            sfi(k)%js_sol(p) = p
-                    else
-                        sfi(k)%is_sol(p) = 0;            sfi(k)%js_sol(p) = ngll-1-p
-                    end if
-                end select
-                ! Fluid
-                select case (wf_flu)
-                case (0)
-                    if (logic_flu) then
-                        sfi(k)%is_flu(p) = p;            sfi(k)%js_flu(p) = 0
-                    else
-                        sfi(k)%is_flu(p) = ngll-1-p;    sfi(k)%js_flu(p) = 0
-                    end if
-                case (1)
-                    if (logic_flu) then
-                        sfi(k)%is_flu(p) = ngllx_flu-1; sfi(k)%js_flu(p) = p
-                    else
-                        sfi(k)%is_flu(p) = ngllx_flu-1; sfi(k)%js_flu(p) = ngll-1-p
-                    end if
-                case (2)
-                    if (logic_flu) then
-                        sfi(k)%is_flu(p) = p;            sfi(k)%js_flu(p) = ngllz_flu-1
-                    else
-                        sfi(k)%is_flu(p) = ngll-1-p;    sfi(k)%js_flu(p) = ngllz_flu-1
-                    end if
-                case (3)
-                    if (logic_flu) then
-                        sfi(k)%is_flu(p) = 0;            sfi(k)%js_flu(p) = p
-                    else
-                        sfi(k)%is_flu(p) = 0;            sfi(k)%js_flu(p) = ngll-1-p
-                    end if
-                end select
-            end do
-
-            ! ---- BtN for interior nodes p=1:ngll-2 ----
-            ! BtN(c,p) = sign_n * Normal(c) * Jac1D * GLLw1d(p)
-            ! where Normal is the unit outward normal from Near_Element(0).
-            ! sign_n = +1 if e_sol==Near_Element(0) (normal points solid->fluid), -1 otherwise.
-            ! Jac1D = face_length/2 = arc-length Jacobian for [-1,1] reference segment.
-            ! GLLw1d: for wf=0,2 (face along x), use GLLwx; for wf=1,3, use GLLwz.
-            call compute_Jacobian_1D(Tdomain, nf, Jac1D)
-            if (sfi(k)%e_sol == e0) then
-                sign_n = 1._fpp
-            else
-                sign_n = -1._fpp
-            end if
-            mat_sol = Tdomain%specel(esol)%mat_index
-            mat_flu = Tdomain%specel(eflu)%mat_index
-            ! Face%Normal is NOT allocated for interior CG faces, so compute the outward
-            ! normal from the face vertices (same as shape4.F90): unit normal, flipped to
-            ! point outward from Near_Element(0). sign_n then reorients it solid->fluid.
-            call n_from_vertices(Tdomain, fn, Tdomain%sFace(nf)%Near_Vertex(0), &
-                                 Tdomain%sFace(nf)%Near_Vertex(1))
-            if (Tdomain%sFace(nf)%Which_Face(0) >= 2) fn = -fn
-            ! p=0 and p=ngll-1 are vertex DOFs; skip (BtN stays 0 for vertices).
-            do p = 1, ngll-2
-                if (wf_sol == 0 .or. wf_sol == 2) then
-                    ! face varies in i (x) direction
-                    sfi(k)%BtN(0,p) = sign_n * fn(0) * Jac1D * &
-                                       Tdomain%sSubdomain(mat_sol)%GLLwx(p)
-                    sfi(k)%BtN(1,p) = sign_n * fn(1) * Jac1D * &
-                                       Tdomain%sSubdomain(mat_sol)%GLLwx(p)
-                else
-                    ! wf=1 or 3: face varies in j (z) direction
-                    sfi(k)%BtN(0,p) = sign_n * fn(0) * Jac1D * &
-                                       Tdomain%sSubdomain(mat_sol)%GLLwz(p)
-                    sfi(k)%BtN(1,p) = sign_n * fn(1) * Jac1D * &
-                                       Tdomain%sSubdomain(mat_sol)%GLLwz(p)
-                end if
-            end do
-
-            ! ---- Allocate and initialise split face DOF arrays ----
-            Tdomain%sFace(nf)%is_sf_iface = .true.
-            allocate(Tdomain%sFace(nf)%Displ_sol (1:ngll-2, 0:1))
-            allocate(Tdomain%sFace(nf)%Veloc_sol(1:ngll-2, 0:1))
-            allocate(Tdomain%sFace(nf)%V0_sol   (1:ngll-2, 0:1))
-            allocate(Tdomain%sFace(nf)%Forces_sol(1:ngll-2, 0:1))
-            allocate(Tdomain%sFace(nf)%MassMat_sol(1:ngll-2))
-            allocate(Tdomain%sFace(nf)%Displ_flu (1:ngll-2, 0:1))
-            allocate(Tdomain%sFace(nf)%Veloc_flu(1:ngll-2, 0:1))
-            allocate(Tdomain%sFace(nf)%V0_flu   (1:ngll-2, 0:1))
-            allocate(Tdomain%sFace(nf)%Forces_flu(1:ngll-2, 0:1))
-            allocate(Tdomain%sFace(nf)%MassMat_flu(1:ngll-2))
-            Tdomain%sFace(nf)%Displ_sol  = 0._fpp
-            Tdomain%sFace(nf)%Veloc_sol  = 0._fpp
-            Tdomain%sFace(nf)%V0_sol     = 0._fpp
-            Tdomain%sFace(nf)%Forces_sol = 0._fpp
-            Tdomain%sFace(nf)%Displ_flu  = 0._fpp
-            Tdomain%sFace(nf)%Veloc_flu  = 0._fpp
-            Tdomain%sFace(nf)%V0_flu     = 0._fpp
-            Tdomain%sFace(nf)%Forces_flu = 0._fpp
-
-            ! ---- Per-side INVERSE mass at the interface face nodes ----
-            ! element%MassMat is CG interior-only (1:ngll-2) AND already inverted after
-            ! define_arrays, so it cannot be indexed at boundary face nodes (is/js may be
-            ! 0 or ngll-1). Recompute the LOCAL nodal mass from the surviving element
-            ! fields and invert: solid = Whei*Density*Jac ; fluid = Whei*invKappa2d*Jac
-            ! (Whei(i,j) = GLLwx(i)*GLLwz(j), matching define_arr.F90).
-            ! fluid nodal "mass" factor = 1/kappa (velocity-potential formulation):
-            ! aniso-from-file stores it in invKappa2d; isotropic fluid has kappa = Lambda
-            ! (mu=0), so 1/kappa = 1/Lambda.
-            flu_aniso = allocated(Tdomain%specel(eflu)%invKappa2d)
-            do p = 1, ngll-2
-                is = sfi(k)%is_sol(p);  js = sfi(k)%js_sol(p)
-                Tdomain%sFace(nf)%MassMat_sol(p) = 1._fpp / ( &
-                    Tdomain%sSubdomain(mat_sol)%GLLwx(is) * Tdomain%sSubdomain(mat_sol)%GLLwz(js) * &
-                    Tdomain%specel(esol)%Density(is,js) * Tdomain%specel(esol)%Jacob(is,js) )
-                is = sfi(k)%is_flu(p);  js = sfi(k)%js_flu(p)
-                if (flu_aniso) then
-                    mfac = Tdomain%specel(eflu)%invKappa2d(is,js)
-                else
-                    mfac = 1._fpp / Tdomain%specel(eflu)%Lambda(is,js)   ! iso: kappa = Lambda
-                end if
-                Tdomain%sFace(nf)%MassMat_flu(p) = 1._fpp / ( &
-                    Tdomain%sSubdomain(mat_flu)%GLLwx(is) * Tdomain%sSubdomain(mat_flu)%GLLwz(js) * &
-                    mfac * Tdomain%specel(eflu)%Jacob(is,js) )
-            end do
-
-        end do
-
-        if (Tdomain%Mpi_var%my_rank == 0) &
-            write(*,'(a,i0,a)') ' [aniso] solid-fluid coupling: ', n_sfi, ' interface face(s) found.'
-
-    end subroutine build_sf_interface_2d
+    !> True when the (e0,e1) pair is a solid <-> POTENTIAL-fluid interface: exactly one
+    !! side acoustic AND that side's subdomain is a potential formulation (Fluid_Aniso /
+    !! Cstar fluid). ISO fluid (displacement, mu=0 elastic) returns false: it couples
+    !! natively through shared CG DOFs.
+    logical function sf_needs_split(Tdomain, e0, e1) result(res)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: e0, e1
+        integer :: eflu, dfl
+        logical :: a0, a1
+        res = .false.
+        a0 = Tdomain%specel(e0)%acoustic; a1 = Tdomain%specel(e1)%acoustic
+        if (a0 .eqv. a1) return
+        if (a0) then; eflu = e0; else; eflu = e1; end if
+        dfl = Tdomain%sSubDomain(Tdomain%specel(eflu)%mat_index)%deftype
+        res = (dfl == MATDEF_FLUID_ANISO .or. dfl == CSTAR_FLUID)
+    end function sf_needs_split
 
     !-----------------------------------------------------------------------
-    !> Apply the interface coupling each Newmark step (after internal forces, before
-    !! the corrector). Mirror of SEM3D StoF + FtoS, on the split face DOFs.
-    !> Staggered coupling, mirroring SEM3D Newmark order (non-CPML):
-    !!   StoF -> fluid corrector -> FtoS (uses the NEW VelPhi) -> [solid corrector runs later].
-    !! Called after force assembly, before the main face corrector loop (which then does the
-    !! SOLID side only for interface faces). Explicit (both-before-corrector) coupling was
-    !! unstable; this staggering is what keeps the exchange energy-stable.
-    subroutine apply_sf_coupling_2d(Tdomain)
+    !> (B.1) Duplicate each solid-fluid interface face so the solid and fluid elements own
+    !! SEPARATE one-sided face objects (Near_Element(1)=-1), instead of sharing one Face.
+    !! MUST run after read_mesh (acoustic/changing_media set) and BEFORE global_numbering.
+    !! No-op when there is no S-F interface (other models untouched). Sets is_sf_iface so
+    !! PML_definition does NOT flag the split faces as free-surface.
+    subroutine split_sf_interface_faces(Tdomain)
         type(domain), intent(inout) :: Tdomain
-        integer :: m, p, nf, mat
-        real(fpp) :: vn, pf, dt
+        type(face), dimension(:), pointer :: newf
+        integer :: nf, e0, e1, esol, eflu, nnew, idx, oldn, ed, wf0, wf1
+        logical :: a0, a1
 
-        do m = 1, n_sfi
-            nf  = sfi(m)%nface
-            mat = Tdomain%sFace(nf)%mat_index
-            dt  = Tdomain%sSubdomain(mat)%dt
-            do p = 1, sfi(m)%ngll-2    ! interior face nodes only; vertex DOFs skipped
-                ! (1) StoF: solid normal velocity -> fluid phi RHS (uses old Veloc_sol)
-                vn = sfi(m)%BtN(0,p) * Tdomain%sFace(nf)%Veloc_sol(p,0) &
-                   + sfi(m)%BtN(1,p) * Tdomain%sFace(nf)%Veloc_sol(p,1)
-                Tdomain%sFace(nf)%Forces_flu(p,0) = Tdomain%sFace(nf)%Forces_flu(p,0) + vn
+        ! Only solid <-> POTENTIAL-fluid interfaces are split. The ISO fluid is a
+        ! displacement formulation (elastic kernel, mu=0): its interface couples natively
+        ! through the shared CG DOFs and must NOT be split (see 2026-07-09 solution plan).
+        nnew = 0
+        do nf = 0, Tdomain%n_face-1
+            if (.not. Tdomain%sFace(nf)%changing_media) cycle
+            e0 = Tdomain%sFace(nf)%Near_Element(0); e1 = Tdomain%sFace(nf)%Near_Element(1)
+            if (e0 < 0 .or. e1 < 0) cycle
+            if (.not. sf_needs_split(Tdomain, e0, e1)) cycle
+            nnew = nnew + 1
+        end do
+        if (nnew == 0) return
+        allocate(sfp(nnew)); n_sfp = 0   ! record solid/fluid face pairs while splitting
 
-                ! (2) fluid corrector at this node: accel = M^-1.F, Veloc, Displ
-                Tdomain%sFace(nf)%Forces_flu(p,0) = Tdomain%sFace(nf)%MassMat_flu(p) * &
-                    Tdomain%sFace(nf)%Forces_flu(p,0)
-                Tdomain%sFace(nf)%Veloc_flu(p,0)  = Tdomain%sFace(nf)%V0_flu(p,0) + &
-                    dt * Tdomain%sFace(nf)%Forces_flu(p,0)
-                Tdomain%sFace(nf)%Displ_flu(p,0)  = Tdomain%sFace(nf)%Displ_flu(p,0) + &
-                    dt * Tdomain%sFace(nf)%Veloc_flu(p,0)
-                Tdomain%sFace(nf)%Veloc_flu(p,1) = 0._fpp
-                Tdomain%sFace(nf)%Displ_flu(p,1) = 0._fpp
+        oldn = Tdomain%n_face
+        allocate(newf(0:oldn+nnew-1))
+        newf(0:oldn-1) = Tdomain%sFace(0:oldn-1)   ! deep copy (Face allocatable comps not yet allocated)
 
-                ! (3) FtoS: fluid pressure (= -VelPhi) -> solid force, using the NEW VelPhi
-                pf = Tdomain%sFace(nf)%Veloc_flu(p,0)
-                Tdomain%sFace(nf)%Forces_sol(p,0) = Tdomain%sFace(nf)%Forces_sol(p,0) &
-                                                   - sfi(m)%BtN(0,p) * pf
-                Tdomain%sFace(nf)%Forces_sol(p,1) = Tdomain%sFace(nf)%Forces_sol(p,1) &
-                                                   - sfi(m)%BtN(1,p) * pf
+        idx = oldn - 1
+        do nf = 0, oldn-1
+            if (.not. newf(nf)%changing_media) cycle
+            e0 = newf(nf)%Near_Element(0); e1 = newf(nf)%Near_Element(1)
+            if (e0 < 0 .or. e1 < 0) cycle
+            if (.not. sf_needs_split(Tdomain, e0, e1)) cycle
+            a0 = Tdomain%specel(e0)%acoustic
+            if (a0) then; eflu = e0; esol = e1; else; eflu = e1; esol = e0; end if
+            wf0 = newf(nf)%Which_face(0); wf1 = newf(nf)%Which_face(1)
+            ! mark the two interface-endpoint vertices for the (B.2) vertex split
+            Tdomain%sVertex(newf(nf)%Near_Vertex(0))%is_sf_vertex = .true.
+            Tdomain%sVertex(newf(nf)%Near_Vertex(1))%is_sf_vertex = .true.
+
+            idx = idx + 1
+            newf(idx) = newf(nf)                       ! duplicate for the FLUID side
+
+            ! SOLID side keeps face nf (one-sided)
+            newf(nf)%Near_Element(0) = esol; newf(nf)%Near_Element(1) = -1
+            newf(nf)%Which_face(0) = merge(wf0, wf1, esol == e0); newf(nf)%Which_face(1) = -1
+            newf(nf)%mat_index = Tdomain%specel(esol)%mat_index
+            newf(nf)%is_sf_iface = .true.; newf(nf)%changing_media = .false.
+
+            ! FLUID side -> new face idx (one-sided)
+            newf(idx)%Near_Element(0) = eflu; newf(idx)%Near_Element(1) = -1
+            newf(idx)%Which_face(0) = merge(wf0, wf1, eflu == e0); newf(idx)%Which_face(1) = -1
+            newf(idx)%mat_index = Tdomain%specel(eflu)%mat_index
+            newf(idx)%is_sf_iface = .true.; newf(idx)%changing_media = .false.
+
+            ! repoint the fluid element's Near_Face from nf -> idx
+            do ed = 0, 3
+                if (Tdomain%specel(eflu)%Near_Face(ed) == nf) then
+                    Tdomain%specel(eflu)%Near_Face(ed) = idx
+                    exit
+                end if
             end do
+
+            ! record the pair (BtN + endpoint vertices filled later)
+            n_sfp = n_sfp + 1
+            sfp(n_sfp)%fsol = nf; sfp(n_sfp)%fflu = idx
+            sfp(n_sfp)%ngll = newf(nf)%ngll
         end do
 
-    end subroutine apply_sf_coupling_2d
+        deallocate(Tdomain%sFace)
+        Tdomain%sFace => newf
+        Tdomain%n_face = oldn + nnew
+        if (Tdomain%Mpi_var%my_rank == 0) &
+            write(*,'(a,i0,a,i0)') ' [sf] split ', nnew, ' interface faces -> n_face = ', Tdomain%n_face
+
+        ! ---- (B.2) split the interface VERTICES so solid- and fluid-side entities own
+        !      separate vertex objects (removes the solid-velocity + fluid-potential mixing).
+        block
+            type(vertex), dimension(:), pointer :: newv
+            integer, allocatable :: vmap(:)
+            integer :: nv, oldnv, nvsplit, vidx, kk, ov
+            oldnv = Tdomain%n_vertex
+            nvsplit = 0
+            do nv = 0, oldnv-1
+                if (Tdomain%sVertex(nv)%is_sf_vertex) nvsplit = nvsplit + 1
+            end do
+            if (nvsplit == 0) return
+            allocate(newv(0:oldnv+nvsplit-1))
+            newv(0:oldnv-1) = Tdomain%sVertex(0:oldnv-1)
+            allocate(vmap(0:oldnv-1)); vmap = -1
+            vidx = oldnv - 1
+            do nv = 0, oldnv-1
+                if (.not. newv(nv)%is_sf_vertex) cycle
+                vidx = vidx + 1
+                newv(vidx) = newv(nv)          ! fluid-side copy of the vertex
+                newv(vidx)%is_sf_vertex = .false.   ! flag stays ONLY on the solid side
+                vmap(nv) = vidx
+            end do
+            ! repoint FLUID (acoustic) elements' Near_Vertex to the fluid copy
+            do kk = 0, Tdomain%n_elem-1
+                if (.not. Tdomain%specel(kk)%acoustic) cycle
+                do nv = 0, 3
+                    ov = Tdomain%specel(kk)%Near_Vertex(nv)
+                    if (vmap(ov) >= 0) then
+                        newv(vmap(ov))%mat_index = Tdomain%specel(kk)%mat_index
+                        Tdomain%specel(kk)%Near_Vertex(nv) = vmap(ov)
+                    end if
+                end do
+            end do
+            ! repoint FLUID faces' Near_Vertex (Near_Element(0) is the fluid element)
+            do kk = 0, Tdomain%n_face-1
+                if (Tdomain%sFace(kk)%Near_Element(0) < 0) cycle
+                if (.not. Tdomain%specel(Tdomain%sFace(kk)%Near_Element(0))%acoustic) cycle
+                do nv = 0, 1
+                    ov = Tdomain%sFace(kk)%Near_Vertex(nv)
+                    if (vmap(ov) >= 0) Tdomain%sFace(kk)%Near_Vertex(nv) = vmap(ov)
+                end do
+            end do
+            deallocate(Tdomain%sVertex)
+            Tdomain%sVertex => newv
+            Tdomain%n_vertex = oldnv + nvsplit
+            deallocate(vmap)
+            ! fill the endpoint vertex pairs (solid face keeps Vsol, fluid face has Vflu)
+            do kk = 1, n_sfp
+                sfp(kk)%vsol(0:1) = Tdomain%sFace(sfp(kk)%fsol)%Near_Vertex(0:1)
+                sfp(kk)%vflu(0:1) = Tdomain%sFace(sfp(kk)%fflu)%Near_Vertex(0:1)
+            end do
+            if (Tdomain%Mpi_var%my_rank == 0) &
+                write(*,'(a,i0,a,i0)') ' [sf] split ', nvsplit, ' interface vertices -> n_vertex = ', Tdomain%n_vertex
+        end block
+    end subroutine split_sf_interface_faces
+
+
+    !-----------------------------------------------------------------------
+    !> (B.4) Compute BtN = normal(solid->fluid) * lineJac * GLLw at every interface-face node
+    !! (interior + endpoints). Call after geometry is built (shape/define_arrays).
+    subroutine build_sf_coupling(Tdomain)
+        use shape_lin, only: compute_Jacobian_1D, n_from_vertices
+        type(domain), intent(inout) :: Tdomain
+        integer :: m, p, fsol, ngll, mat, wf
+        real(fpp) :: fn(0:1), Jac1D
+        if (n_sfp == 0) return
+        do m = 1, n_sfp
+            fsol = sfp(m)%fsol; ngll = sfp(m)%ngll
+            wf = Tdomain%sFace(fsol)%Which_face(0); mat = Tdomain%sFace(fsol)%mat_index
+            allocate(sfp(m)%btn(0:1, 0:ngll-1)); sfp(m)%btn = 0._fpp
+            call n_from_vertices(Tdomain, fn, Tdomain%sFace(fsol)%Near_Vertex(0), &
+                                 Tdomain%sFace(fsol)%Near_Vertex(1))
+            if (wf >= 2) fn = -fn                       ! outward from the solid element
+            fn = -fn   ! flip: outward from the FLUID (mirror SEM3D SF_BtN orientation),
+                       ! so StoF/FtoS below can use SEM3D's formulas verbatim.
+            call compute_Jacobian_1D(Tdomain, fsol, Jac1D)
+            do p = 0, ngll-1
+                if (wf == 0 .or. wf == 2) then
+                    sfp(m)%btn(0,p) = fn(0)*Jac1D*Tdomain%sSubdomain(mat)%GLLwx(p)
+                    sfp(m)%btn(1,p) = fn(1)*Jac1D*Tdomain%sSubdomain(mat)%GLLwx(p)
+                else
+                    sfp(m)%btn(0,p) = fn(0)*Jac1D*Tdomain%sSubdomain(mat)%GLLwz(p)
+                    sfp(m)%btn(1,p) = fn(1)*Jac1D*Tdomain%sSubdomain(mat)%GLLwz(p)
+                end if
+            end do
+        end do
+        if (Tdomain%Mpi_var%my_rank == 0) &
+            write(*,'(a,i0,a)') ' [sf] coupling built on ', n_sfp, ' face pairs'
+    end subroutine build_sf_coupling
+
+    !> StoF: inject the solid normal velocity into the fluid RHS. Call AFTER assembly,
+    !! BEFORE the (standard) corrector loop. Handles face-interior nodes + endpoint vertices.
+    subroutine sf_stof(Tdomain)
+        type(domain), intent(inout) :: Tdomain
+        integer :: m, p, ngll, fsol, fflu
+        real(fpp) :: vn
+        do m = 1, n_sfp
+            ngll = sfp(m)%ngll; fsol = sfp(m)%fsol; fflu = sfp(m)%fflu
+            do p = 1, ngll-2
+                vn = sfp(m)%btn(0,p)*Tdomain%sFace(fsol)%Veloc(p,0) &
+                   + sfp(m)%btn(1,p)*Tdomain%sFace(fsol)%Veloc(p,1)
+                Tdomain%sFace(fflu)%Forces(p,0) = Tdomain%sFace(fflu)%Forces(p,0) + vn
+            end do
+            call stof_vertex(Tdomain, sfp(m)%vsol(0), sfp(m)%vflu(0), sfp(m)%btn(:,0))
+            call stof_vertex(Tdomain, sfp(m)%vsol(1), sfp(m)%vflu(1), sfp(m)%btn(:,ngll-1))
+        end do
+    end subroutine sf_stof
+
+    subroutine stof_vertex(Tdomain, vs, vf, btn)
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: vs, vf
+        real(fpp), intent(in) :: btn(0:1)
+        Tdomain%sVertex(vf)%Forces(0) = Tdomain%sVertex(vf)%Forces(0) &
+            + btn(0)*Tdomain%sVertex(vs)%Veloc(0) + btn(1)*Tdomain%sVertex(vs)%Veloc(1)
+    end subroutine stof_vertex
+
+    !> FtoS: the fluid pressure (p = -VelPhi) loads the solid as a FORCE contribution
+    !! (mirror SEM3D FtoS_coupling: champs(f1)%Veloc there is the FORCE accumulator --
+    !! newmark_predictor_solid zeroes it, newmark_corrector_solid applies M^-1 and dt).
+    !! Timing (SEM3D order): AFTER the fluid DOFs are corrected (VelPhi is NEW), BEFORE
+    !! the solid interface DOFs are corrected -- so those corrections are DEFERRED in
+    !! Newmark and run right after this call, via the standard correctors.
+    subroutine sf_ftos(Tdomain)
+        type(domain), intent(inout) :: Tdomain
+        integer :: m, p, ngll, fsol, fflu
+        real(fpp) :: vphi
+        do m = 1, n_sfp
+            ngll = sfp(m)%ngll; fsol = sfp(m)%fsol; fflu = sfp(m)%fflu
+            do p = 1, ngll-2
+                vphi = Tdomain%sFace(fflu)%Veloc(p,0)      ! NEW VelPhi (fluid corrected)
+                Tdomain%sFace(fsol)%Forces(p,0) = Tdomain%sFace(fsol)%Forces(p,0) - sfp(m)%btn(0,p)*vphi
+                Tdomain%sFace(fsol)%Forces(p,1) = Tdomain%sFace(fsol)%Forces(p,1) - sfp(m)%btn(1,p)*vphi
+            end do
+            call ftos_vertex(Tdomain, sfp(m)%vsol(0), sfp(m)%vflu(0), sfp(m)%btn(:,0))
+            call ftos_vertex(Tdomain, sfp(m)%vsol(1), sfp(m)%vflu(1), sfp(m)%btn(:,ngll-1))
+        end do
+    end subroutine sf_ftos
+
+    subroutine ftos_vertex(Tdomain, vs, vf, btn)
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: vs, vf
+        real(fpp), intent(in) :: btn(0:1)
+        real(fpp) :: vphi
+        vphi = Tdomain%sVertex(vf)%Veloc(0)                ! NEW VelPhi at the fluid vertex
+        Tdomain%sVertex(vs)%Forces(0) = Tdomain%sVertex(vs)%Forces(0) - btn(0)*vphi
+        Tdomain%sVertex(vs)%Forces(1) = Tdomain%sVertex(vs)%Forces(1) - btn(1)*vphi
+    end subroutine ftos_vertex
 
 end module solid_fluid_coupling_2d

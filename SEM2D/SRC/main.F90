@@ -89,6 +89,9 @@ subroutine  sem()
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
     call compute_GLL (Tdomain)
 
+    if (rg == 0) write (*,*) "Split solid-fluid interface faces (separate DOFs)"
+    call split_sf_interface_faces (Tdomain)
+
     if (rg == 0) write (*,*) "Define a global numbering for the collocation points"
     call global_numbering (Tdomain)
 
@@ -133,7 +136,7 @@ subroutine  sem()
     call define_arrays (Tdomain)
 
     if (rg == 0) write (*,*) " Build solid-fluid interface coupling"
-    call build_sf_interface_2d (Tdomain)
+    call build_sf_coupling (Tdomain)
 
     ! initialisation des temps
     Tdomain%TimeD%rtime = 0

@@ -20,6 +20,7 @@ module svertices
     type :: vertex
 
        logical :: PML, Abs, reflex, CPML, ADEPML, is_computed
+       logical :: is_sf_vertex = .false.   ! diagnostic: interface endpoint (solid+fluid mix)
        integer :: Glob_Numbering, mat_index, Type_DG
        real(fpp) :: MassMat, CoeffAssem
        real(fpp), dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2

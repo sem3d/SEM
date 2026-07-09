@@ -76,16 +76,7 @@ subroutine Newmark (Tdomain)
         do n = 0, Tdomain%n_face-1
             mat = Tdomain%sFace(n)%mat_index
             dt = Tdomain%sSubdomain(mat)%dt
-            if (Tdomain%sFace(n)%is_sf_iface) then
-                ! Per-side predictor (mirror Prediction_Face_Veloc): working displacement
-                ! into Forces_*, save current velocity into V0_*.
-                Tdomain%sFace(n)%Forces_sol = Tdomain%sFace(n)%Displ_sol
-                Tdomain%sFace(n)%V0_sol     = Tdomain%sFace(n)%Veloc_sol
-                Tdomain%sFace(n)%Forces_flu = Tdomain%sFace(n)%Displ_flu
-                Tdomain%sFace(n)%V0_flu     = Tdomain%sFace(n)%Veloc_flu
-            else if (.not. Tdomain%sFace(n)%PML) then
-                call Prediction_Face_Veloc (Tdomain%sFace(n))
-            end if
+            if (.not. Tdomain%sFace(n)%PML)  call Prediction_Face_Veloc (Tdomain%sFace(n))
         enddo
 
         do n= 0, Tdomain%n_vertex-1
@@ -141,40 +132,22 @@ subroutine Newmark (Tdomain)
         ! Communication of Forces
 
         do nf = 0, Tdomain%n_face-1
-            if (Tdomain%sFace(nf)%is_sf_iface) then
-                ! S-F interface: route solid/fluid contributions separately.
-                ! Face%Forces is left zeroed; normal CG correction is skipped.
-                Tdomain%sFace(nf)%Forces = 0
-                Tdomain%sFace(nf)%Forces_sol = 0._fpp
-                Tdomain%sFace(nf)%Forces_flu = 0._fpp
-                nelem = Tdomain%sFace(nf)%Near_element(0)
-                w_face = Tdomain%sFace(nf)%Which_face(0)
-                call route_sf_el2f(Tdomain, nelem, nf, w_face, .true., &
-                    .not. Tdomain%specel(nelem)%acoustic)
-                nelem = Tdomain%sFace(nf)%Near_element(1)
-                if (nelem > -1) then
-                    w_face = Tdomain%sFace(nf)%Which_face(1)
-                    call route_sf_el2f(Tdomain, nelem, nf, w_face, Tdomain%sFace(nf)%coherency, &
-                        .not. Tdomain%specel(nelem)%acoustic)
-                end if
-            else
-                nelem = Tdomain%sFace(nf)%Near_element(0)
-                w_face = Tdomain%sFace(nf)%Which_face(0)
-                Tdomain%sFace(nf)%Forces = 0
-                call getInternalF_el2f (Tdomain,nelem,nf,w_face,.true.)
+            nelem = Tdomain%sFace(nf)%Near_element(0)
+            w_face = Tdomain%sFace(nf)%Which_face(0)
+            Tdomain%sFace(nf)%Forces = 0
+            call getInternalF_el2f (Tdomain,nelem,nf,w_face,.true.)
+            if (Tdomain%sFace(nf)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+                Tdomain%sFace(nf)%Forces1 = 0; Tdomain%sFace(nf)%Forces2 = 0
+                call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,.true.)
+            endif
+            nelem = Tdomain%sFace(nf)%Near_element(1)
+            if (nelem > -1) then
+                w_face = Tdomain%sFace(nf)%Which_face(1)
+                call getInternalF_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
                 if (Tdomain%sFace(nf)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
-                    Tdomain%sFace(nf)%Forces1 = 0; Tdomain%sFace(nf)%Forces2 = 0
-                    call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,.true.)
+                    call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
                 endif
-                nelem = Tdomain%sFace(nf)%Near_element(1)
-                if (nelem > -1) then
-                    w_face = Tdomain%sFace(nf)%Which_face(1)
-                    call getInternalF_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
-                    if (Tdomain%sFace(nf)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
-                        call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
-                    endif
-                endif
-            end if
+            endif
         enddo
 
         do nv = 0, Tdomain%n_vertex-1
@@ -227,7 +200,7 @@ subroutine Newmark (Tdomain)
 
 
         ! Solid-fluid interface coupling (after force assembly, before MPI)
-        if (n_sfi > 0) call apply_sf_coupling_2d(Tdomain)
+        call sf_stof(Tdomain)   ! StoF: solid normal velocity -> fluid RHS (before correctors)
 
         ! Communicate forces among processors
 
@@ -509,20 +482,12 @@ subroutine Newmark (Tdomain)
 
         do nf = 0, Tdomain%n_face-1
             mat = Tdomain%sFace(nf)%mat_index
+            ! Solid-side S-F interface faces are DEFERRED: corrected after sf_ftos below,
+            ! so FtoS uses the NEW VelPhi (fluid side corrects normally in this loop).
             if (Tdomain%sFace(nf)%is_sf_iface) then
-                ! SOLID side only (fluid side + StoF/FtoS already done, staggered, in
-                ! apply_sf_coupling_2d). Mirror Correction_Face_Veloc: accel = M^-1.F,
-                ! Veloc = V0 + dt.accel, Displ = Displ + dt.Veloc. Displ closes the feedback.
-                dt = Tdomain%sSubdomain(mat)%dt
-                do p = 1, Tdomain%sFace(nf)%ngll-2
-                    Tdomain%sFace(nf)%Forces_sol(p,:) = Tdomain%sFace(nf)%MassMat_sol(p) * &
-                        Tdomain%sFace(nf)%Forces_sol(p,:)
-                    Tdomain%sFace(nf)%Veloc_sol(p,:)  = Tdomain%sFace(nf)%V0_sol(p,:) + &
-                        dt * Tdomain%sFace(nf)%Forces_sol(p,:)
-                    Tdomain%sFace(nf)%Displ_sol(p,:)  = Tdomain%sFace(nf)%Displ_sol(p,:) + &
-                        dt * Tdomain%sFace(nf)%Veloc_sol(p,:)
-                end do
-            else if (.not. Tdomain%sFace(nf)%PML) then
+                if (.not. Tdomain%specel(Tdomain%sFace(nf)%Near_Element(0))%acoustic) cycle
+            endif
+            if (.not. Tdomain%sFace(nf)%PML) then
                 call Correction_Face_Veloc (Tdomain%sFace(nf),Tdomain%sFace(nf)%ngll, Tdomain%sSubDomain(mat)%Dt)
             else
                 if (Tdomain%sFace(nf)%CPML) then
@@ -535,6 +500,8 @@ subroutine Newmark (Tdomain)
 
         do nv= 0, Tdomain%n_vertex-1
             mat = Tdomain%sVertex(nv)%mat_index
+            ! Solid-side S-F interface vertices are DEFERRED (corrected after sf_ftos).
+            if (Tdomain%sVertex(nv)%is_sf_vertex) cycle
             if (.not. Tdomain%sVertex(nv)%PML) then
                 call Correction_Vertex_Veloc (Tdomain%sVertex(nv), Tdomain%sSubDomain(mat)%Dt)
             else
@@ -546,6 +513,22 @@ subroutine Newmark (Tdomain)
             endif
         enddo
 
+        ! S-F coupling, SEM3D order: fluid DOFs are corrected (VelPhi new) -> FtoS adds the
+        ! pressure load to the solid interface FORCES -> deferred standard correction of the
+        ! solid interface faces/vertices (M^-1 and dt applied by the correctors themselves).
+        call sf_ftos(Tdomain)
+        do nf = 0, Tdomain%n_face-1
+            if (.not. Tdomain%sFace(nf)%is_sf_iface) cycle
+            if (Tdomain%specel(Tdomain%sFace(nf)%Near_Element(0))%acoustic) cycle
+            mat = Tdomain%sFace(nf)%mat_index
+            call Correction_Face_Veloc (Tdomain%sFace(nf),Tdomain%sFace(nf)%ngll, Tdomain%sSubDomain(mat)%Dt)
+        enddo
+        do nv = 0, Tdomain%n_vertex-1
+            if (.not. Tdomain%sVertex(nv)%is_sf_vertex) cycle
+            mat = Tdomain%sVertex(nv)%mat_index
+            call Correction_Vertex_Veloc (Tdomain%sVertex(nv), Tdomain%sSubDomain(mat)%Dt)
+        enddo
+
     endif   ! if Velocity Scheme
 
 
@@ -554,61 +537,6 @@ subroutine Newmark (Tdomain)
     return
 end subroutine Newmark
 
-    !> Route element boundary forces to the solid or fluid split array on an S-F face.
-    !! is_sol=.true. -> writes to Forces_sol; is_sol=.false. -> writes to Forces_flu.
-    subroutine route_sf_el2f(Tdomain, n_elem, n_face, w_face, logic, is_sol)
-        use sdomain
-        implicit none
-        type(Domain), intent(INOUT), target :: Tdomain
-        integer, intent(IN) :: n_elem, n_face, w_face
-        logical, intent(IN) :: logic, is_sol
-        integer :: ngll, ngllx, ngllz, i
-        real(fpp), dimension(:,:), pointer :: Fdest
-
-        ngll  = Tdomain%sFace(n_face)%ngll
-        ngllx = Tdomain%specel(n_elem)%ngllx
-        ngllz = Tdomain%specel(n_elem)%ngllz
-        if (is_sol) then
-            Fdest => Tdomain%sFace(n_face)%Forces_sol
-        else
-            Fdest => Tdomain%sFace(n_face)%Forces_flu
-        end if
-
-        if (logic) then
-            if (w_face == 0) then
-                Fdest(1:ngll-2,0:1) = Fdest(1:ngll-2,0:1) + &
-                    Tdomain%specel(n_elem)%Forces(1:ngll-2,0,0:1)
-            else if (w_face == 1) then
-                Fdest(1:ngll-2,0:1) = Fdest(1:ngll-2,0:1) + &
-                    Tdomain%specel(n_elem)%Forces(ngllx-1,1:ngll-2,0:1)
-            else if (w_face == 2) then
-                Fdest(1:ngll-2,0:1) = Fdest(1:ngll-2,0:1) + &
-                    Tdomain%specel(n_elem)%Forces(1:ngll-2,ngllz-1,0:1)
-            else
-                Fdest(1:ngll-2,0:1) = Fdest(1:ngll-2,0:1) + &
-                    Tdomain%specel(n_elem)%Forces(0,1:ngll-2,0:1)
-            end if
-        else
-            if (w_face == 0) then
-                do i = 1, ngll-2
-                    Fdest(i,0:1) = Fdest(i,0:1) + Tdomain%specel(n_elem)%Forces(ngll-1-i,0,0:1)
-                end do
-            else if (w_face == 1) then
-                do i = 1, ngll-2
-                    Fdest(i,0:1) = Fdest(i,0:1) + Tdomain%specel(n_elem)%Forces(ngllx-1,ngll-1-i,0:1)
-                end do
-            else if (w_face == 2) then
-                do i = 1, ngll-2
-                    Fdest(i,0:1) = Fdest(i,0:1) + Tdomain%specel(n_elem)%Forces(ngll-1-i,ngllz-1,0:1)
-                end do
-            else
-                do i = 1, ngll-2
-                    Fdest(i,0:1) = Fdest(i,0:1) + Tdomain%specel(n_elem)%Forces(0,ngll-1-i,0:1)
-                end do
-            end if
-        end if
-        nullify(Fdest)
-    end subroutine route_sf_el2f
 
 end module snewmark
 
