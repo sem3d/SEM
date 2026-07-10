@@ -22,7 +22,7 @@ restart_iter = 0;
 
 # explosion (isotropic moment) source, well inside the domain
 source {
-    coords = 0.025  0.015 ;
+    coords = 0.02375  0.01875 ;
     type = moment;
     moment = 1.0 1.0 0.0 ;        # Mxx Mzz Mxz (2D)
     func = ricker;

@@ -20,10 +20,11 @@ enum PmlSide { PML_XM=0, PML_XP, PML_YM, PML_YP, PML_ZM, PML_ZP, PML_NSIDES };
 
 struct PmlSpec {
     int    n[PML_NSIDES];     // number of element layers per side (0 = off)
-    double step[PML_NSIDES];  // extrusion step per side (<=0 -> auto from boundary element size)
+    double step[PML_NSIDES];  // total PML thickness per side (<=0 -> auto: one boundary element)
+    double ratio[PML_NSIDES]; // geometric grading ratio per side (1 = uniform; >1 = layers grow outward, finer near the domain)
     int    npow;              // damping profile power (optional "pmlparams" line, default 2)
     double Rc;                // target reflection coefficient (default 1e-3)
-    PmlSpec():npow(2),Rc(1e-3) { for(int k=0;k<PML_NSIDES;++k) { n[k]=0; step[k]=0.; } }
+    PmlSpec():npow(2),Rc(1e-3) { for(int k=0;k<PML_NSIDES;++k) { n[k]=0; step[k]=0.; ratio[k]=1.; } }
     bool any() const { for(int k=0;k<PML_NSIDES;++k) if(n[k]>0) return true; return false; }
 };
 

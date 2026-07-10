@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <cassert>
 #include <map>
 #include <vector>
 #include <utility>
@@ -19,11 +20,12 @@
 using namespace std;
 
 // ---- pml.input parsing --------------------------------------------------
-// Format (comments start with '#'):
-//   x- 5
-//   x+ 5 250.       # optional TOTAL PML thickness on this side (here 5 layers over 250 m)
-//   z- 4
-// A side is off unless listed. Missing 3rd value -> per-layer size = boundary element size.
+// Format (comments start with '#'):  <side> [thickness] [n_elements] [ratio]
+//   x- 250.         # 250 m thick, 1 element
+//   x+ 250. 5       # 250 m thick, split into 5 elements
+//   y- 250. 5 1.3   # + geometric grading 1.3 (finer near the domain, coarser outward)
+//   z-              # thickness omitted -> one boundary element (conforming), warns
+// A side is off unless listed. Thickness is the primary knob; if given it must be > 0.
 static int side_from_token(const char* tok)
 {
     if (!strcmp(tok,"x-")) return PML_XM;
@@ -43,18 +45,29 @@ bool read_pml_input(const string& fname, PmlSpec& spec)
     while (true) {
         getData_line(&buffer, &linesize, f);
         if (!buffer || buffer[0]==0) break;
-        char tok[64]; int n=0; double step=0.;
+        char tok[64]; int n=1; double thick=0., ratio=1.;
         if (sscanf(buffer, "%63s", tok)==1 && !strcmp(tok,"pmlparams")) {
             sscanf(buffer, "%*s %d %lf", &spec.npow, &spec.Rc);
             continue;
         }
-        int c = sscanf(buffer, "%63s %d %lf", tok, &n, &step);
-        if (c<2) continue;
+        // <side> [thickness] [n_elements] [ratio]
+        //   thickness  : TOTAL PML thickness on this side (the primary knob).
+        //                Omitted -> one boundary element (conforming), with a warning
+        //                nudge, since thickness matters more than the element count.
+        //   n_elements : layers to split the thickness into (default 1).
+        //   ratio      : geometric grading (default 1 = uniform; >1 = finer near domain).
+        int c = sscanf(buffer, "%63s %lf %d %lf", tok, &thick, &n, &ratio);
+        if (c<1) continue;
         int s = side_from_token(tok);
         if (s<0) { printf("ERR pml.input: unknown side '%s'\n", tok); exit(1); }
-        if (n<0)  { printf("ERR pml.input: negative count for '%s'\n", tok); exit(1); }
-        spec.n[s]    = n;
-        spec.step[s] = (c>=3) ? step : 0.;
+        if (c>=2 && thick<=0.) { printf("ERR pml.input: PML thickness for '%s' must be > 0 (got %g)\n", tok, thick); exit(1); }
+        if (c>=3 && n<1)       { printf("ERR pml.input: element count for '%s' must be >= 1 (got %d)\n", tok, n); exit(1); }
+        if (c>=4 && ratio<=0.) { printf("ERR pml.input: grading ratio for '%s' must be > 0 (got %g)\n", tok, ratio); exit(1); }
+        if (c<2) printf("WARNING pml.input: no thickness for '%s'; using one boundary element. "
+                        "Set a thickness -- it matters more than the element count.\n", tok);
+        spec.n[s]     = (c>=3) ? n : 1;
+        spec.step[s]  = (c>=2) ? thick : 0.; // 0 -> auto (one boundary element) in extrude_side
+        spec.ratio[s] = (c>=4) ? ratio : 1.;
     }
     if (buffer) free(buffer);
     printf("Read pml.input: x-=%d x+=%d y-=%d y+=%d z-=%d z+=%d (npow=%d Rc=%g)\n",
@@ -104,8 +117,8 @@ private:
     }
     void seed_materials();
     int  get_or_make_pml(int src_mat, int side, double pos, double width, int axis);
-    index_t extruded_node(index_t orig, int layer, int axis, double delta);
-    void extrude_side(int side, int n, double step_override);
+    index_t extruded_node(index_t orig, int layer, int axis, double offset);
+    void extrude_side(int side, int n, double step_override, double ratio);
     void emit_hex(const index_t nodes8[8], int mat);
 };
 
@@ -169,13 +182,13 @@ int PmlExtruder::get_or_make_pml(int src_mat, int side, double pos, double width
     return newidx;
 }
 
-index_t PmlExtruder::extruded_node(index_t orig, int layer, int axis, double delta)
+index_t PmlExtruder::extruded_node(index_t orig, int layer, int axis, double offset)
 {
     pair<index_t,int> key(orig, layer);
     map<pair<index_t,int>,index_t>::iterator it = newnode.find(key);
     if (it!=newnode.end()) return it->second;
     double xyz[3]; set_coord(xyz, orig);
-    xyz[axis] += delta*layer;
+    xyz[axis] += offset; // absolute (already signed) offset of this layer plane
     index_t nid = mesh.add_node(xyz[0], xyz[1], xyz[2]);
     newnode[key] = nid;
     return nid;
@@ -212,7 +225,7 @@ void PmlExtruder::emit_hex(const index_t nodes8[8], int mat)
     mesh.add_elem(mat, el);
 }
 
-void PmlExtruder::extrude_side(int side, int n, double step_override)
+void PmlExtruder::extrude_side(int side, int n, double step_override, double ratio)
 {
     if (n<=0) return;
     if (mesh.nodes_per_elem()!=8) {
@@ -240,7 +253,6 @@ void PmlExtruder::extrude_side(int side, int n, double step_override)
     // step = total/n. When omitted, the boundary element size is used (conforming PML).
     struct BFace { index_t f[4]; int mat; };
     vector<BFace> faces;
-    double step = (step_override>0.) ? step_override/n : 0.;
     double tstep=0.;
     size_t n0 = mesh.n_elems();
     for(size_t e=0;e<n0;++e) {
@@ -265,10 +277,26 @@ void PmlExtruder::extrude_side(int side, int n, double step_override)
         faces.push_back(bf);
     }
     if (faces.empty()) { printf("WARNING: no boundary faces found for side %d, skipped\n", side); return; }
-    if (step<=0.) step=tstep;
-    double delta = sgn*step;
-    double width = sgn*step*n;
-    printf("Side %d: %zu boundary faces, %d layers, step=%g\n", side, faces.size(), n, step);
+
+    // Total PML thickness on this side: explicit if given, else n boundary elements.
+    double total = (step_override>0.) ? step_override : tstep*n;
+    // Per-layer cumulative offsets off[0..n] (off[0]=0, off[n]=total).
+    // Uniform when ratio==1; otherwise a geometric progression h_L = h1*ratio^(L-1),
+    // with h1 = total*(r-1)/(r^n-1) so the layers grade from fine (near the domain)
+    // to coarse (outer) while summing exactly to total.
+    vector<double> off(n+1, 0.);
+    if (fabs(ratio-1.) < 1e-9) {
+        for(int l=1;l<=n;++l) off[l] = total*l/n;
+    } else {
+        double rn = pow(ratio, n);
+        double h1 = total*(ratio-1.)/(rn-1.);
+        double h = h1;
+        for(int l=1;l<=n;++l) { off[l] = off[l-1] + h; h *= ratio; }
+    }
+    assert(fabs(off[n]-total) < 1e-9*total); // geometric series must reconstruct the total
+    double width = sgn*off[n];
+    printf("Side %d: %zu boundary faces, %d layers, total=%g ratio=%g (h1=%g h_n=%g)\n",
+           side, faces.size(), n, total, ratio, off[1], off[n]-off[n-1]);
 
     for(size_t i=0;i<faces.size();++i) {
         const BFace& bf = faces[i];
@@ -276,8 +304,8 @@ void PmlExtruder::extrude_side(int side, int n, double step_override)
         index_t nodes8[8];
         for(int l=1;l<=n;++l) {
             for(int k=0;k<4;++k) {
-                nodes8[k]   = (l==1) ? bf.f[k] : extruded_node(bf.f[k], l-1, axis, delta);
-                nodes8[k+4] = extruded_node(bf.f[k], l, axis, delta);
+                nodes8[k]   = (l==1) ? bf.f[k] : extruded_node(bf.f[k], l-1, axis, sgn*off[l-1]);
+                nodes8[k+4] = extruded_node(bf.f[k], l, axis, sgn*off[l]);
             }
             emit_hex(nodes8, mat);
         }
@@ -291,7 +319,7 @@ void PmlExtruder::run(const PmlSpec& spec)
     npow = spec.npow;
     apow = pml_apow_from_rc(npow, spec.Rc);
     for(int side=0; side<PML_NSIDES; ++side) {
-        extrude_side(side, spec.n[side], spec.step[side]);
+        extrude_side(side, spec.n[side], spec.step[side], spec.ratio[side]);
     }
 }
 

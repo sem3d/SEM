@@ -26,7 +26,7 @@ restart_iter = 0;
 
 # explosion (isotropic moment) source, inside the SOLID top layer, off element boundaries
 source {
-    coords = 0.0225  0.0225 ;
+    coords = 0.02375  0.02375 ;
     type = moment;
     moment = 1.0 1.0 0.0 ;             # Mxx Mzz Mxz (2D)
     func = ricker;
