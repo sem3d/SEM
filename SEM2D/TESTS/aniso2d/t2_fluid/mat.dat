@@ -1,11 +1,11 @@
-# 2D mat.dat for mesher2D on-the-fly (domain [0,0.05] x [0,0.03], 10 x 6 Quad4)
+# single medium, 20 x 12 Quad4 over [0,0.05]x[0,0.03]  (for MPI 4-rank tests)
 0.0        # xmin
 0.05       # xmax
-0.005      # xstep   -> nelemx = 10
-0.03       # zmax (top of the layered column)
-1          # nlayers (= number of materials used)
-0.03 6     # layer 0: thickness  nsteps  -> nelemz = 6
-0          # has_pml (0 = none)
-0 0        # pml_top pml_bottom (dummy when has_pml=0)
-0          # ngllPML            (dummy when has_pml=0)
-4          # mesh_type (4 = Quad4)
+0.0025     # xstep    -> nelemx = 20
+0.03       # zmax
+1          # nlayers
+0.03 12    # layer 0: thickness  nsteps  -> nelemz = 12
+0          # has_pml
+0 0        # pml_top pml_bottom
+0          # ngllPML
+4          # mesh_type (Quad4)

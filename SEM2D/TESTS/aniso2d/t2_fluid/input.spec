@@ -23,7 +23,7 @@ restart_iter = 0;
 
 # pressure pulse in the fluid (fluidpulse = type 3; type 7/pressure is rejected in 2D)
 source {
-    coords = 0.025  0.015 ;
+    coords = 0.02375  0.01875 ;
     type = fluidpulse;
     func = ricker;
     tau = 1.5e-5;

@@ -440,6 +440,17 @@ void Mesh2D::partition_metis(int nproc)
     vector<idx_t> vwgt(ne, 1);
     vector<idx_t> vsize(ne, 1);
     vector<idx_t> adjwgt(xadj[ne],1);
+    // Keep material interfaces (e.g. solid<->fluid) intact across the partition: give the
+    // dual-graph edges that cross a material boundary a heavy weight so METIS avoids cutting
+    // them. The solid-fluid coupling is not cross-rank aware, so a cut interface would break
+    // it; for a full-width interface this forces strip (vertical) decomposition instead.
+    {
+        long nheavy = 0;
+        for (idx_t i = 0; i < ne; ++i)
+            for (idx_t k = xadj[i]; k < xadj[i+1]; ++k)
+                if (m_mat1[i] != m_mat1[adjncy[k]]) { adjwgt[k] = 1000; ++nheavy; }
+        printf("partition: %ld material-interface dual-edges kept heavy (uncut)\n", nheavy);
+    }
     vector<real_t> tpwgts(nproc);
     idx_t edgecut;
     idx_t ncon=1;
