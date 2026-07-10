@@ -24,6 +24,12 @@ contains
         call read_material_file_v2(Tdomain)
         ! Complete the material definition with optional material.spec
         call read_material_spec(Tdomain)
+        ! Extruded PML materials inherit the constitutive definition (incl. random
+        ! fields from file) of the base material they were extruded from, so a PML
+        ! abutting a heterogeneous medium becomes heterogeneous too (frozen at the
+        ! face by interpolate_elem_field). Must run after read_material_spec (which
+        ! sets the base FILE definition) and before init_materials.
+        call inherit_pml_material_from_base(Tdomain)
 
         Tdomain%any_sdom     = .false.
         Tdomain%any_fdom     = .false.
@@ -82,6 +88,44 @@ contains
         call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID_CG, DM_FLUID_CG, .true.)
 
     end subroutine read_material_file
+
+    ! An extruded PML material is written to material.input as a plain constant
+    ! material (mean Vp/Vs/Rho of its base), so a PML abutting a heterogeneous /
+    ! anisotropic medium defined from files (material.spec) is homogeneous. Here we
+    ! let each PML inherit the constitutive DEFINITION of its base material: if the
+    ! base is MATERIAL_FILE (any deftype -- iso, VTI, Hooke, Cstar...), the PML reads
+    ! the same random field. interpolate_elem_field freezes the sampling coordinate
+    ! at the PML interface plane (pml_pos) along the PML axis, so the field varies
+    ! transversely and is constant through the PML depth ("frozen at the face").
+    ! For anisotropic bases the field is reduced to isotropic lambda/mu (Voigt,
+    ! lambda_from_Cij/mu_from_Cij) per GLL before the solid-PML domain consumes it,
+    ! so the PML stays isotropic as intended.
+    subroutine inherit_pml_material_from_base(Tdomain)
+        type(domain), intent(inout) :: Tdomain
+        integer :: p, b, k
+        do p = 0, Tdomain%n_mat-1
+            if (.not. is_pml(Tdomain%sSubdomain(p))) cycle
+            b = Tdomain%sSubdomain(p)%assoc_mat
+            if (b < 0 .or. b > Tdomain%n_mat-1) cycle
+            if (Tdomain%sSubdomain(b)%material_definition /= MATERIAL_FILE) cycle
+            ! inherit the file-based definition; keep the PML geometry (pml_pos/width,
+            ! npow/Apow) and domain (DM_*_PML) untouched.
+            Tdomain%sSubdomain(p)%material_definition = MATERIAL_FILE
+            Tdomain%sSubdomain(p)%deftype             = Tdomain%sSubdomain(b)%deftype
+            Tdomain%sSubdomain(p)%is_sph              = Tdomain%sSubdomain(b)%is_sph
+            Tdomain%sSubdomain(p)%sph_args            = Tdomain%sSubdomain(b)%sph_args
+            Tdomain%sSubdomain(p)%n_prop              = Tdomain%sSubdomain(b)%n_prop
+            if (allocated(Tdomain%sSubdomain(p)%prop_field)) &
+                deallocate(Tdomain%sSubdomain(p)%prop_field)
+            allocate(Tdomain%sSubdomain(p)%prop_field(Tdomain%sSubdomain(b)%n_prop))
+            do k = 1, Tdomain%sSubdomain(b)%n_prop
+                Tdomain%sSubdomain(p)%prop_field(k)%propFilePath = &
+                    Tdomain%sSubdomain(b)%prop_field(k)%propFilePath
+            end do
+            if (Tdomain%rank==0) write(*,*) "PML material", p, &
+                "inherits FILE definition from base", b, "deftype", Tdomain%sSubdomain(b)%deftype
+        end do
+    end subroutine inherit_pml_material_from_base
 
     subroutine read_material_spec(Tdomain)
         use sdomain
@@ -194,7 +238,7 @@ contains
         type(domain), intent(inout)   :: Tdomain
         character(Len=MAX_FILE_SIZE)  :: fnamef, buffer
         integer                       :: i, n_aus, npml
-        integer                       :: rg, fid, assocMat
+        integer                       :: rg, fid
         character                     :: material_type
 
         rg = Tdomain%rank
@@ -260,7 +304,7 @@ contains
                         Tdomain%sSubdomain(i)%pml_width(1), &
                         Tdomain%sSubdomain(i)%pml_pos(2), &
                         Tdomain%sSubdomain(i)%pml_width(2), &
-                        assocMat
+                        Tdomain%sSubdomain(i)%assoc_mat
                 endif
             enddo
         endif

@@ -75,6 +75,7 @@ module ssubdomains
         real(fpp), dimension(0:2) :: pml_pos, pml_width
         integer :: npow
         real(fpp) :: Apow
+        integer :: assoc_mat = -1 ! base (non-PML) material this PML was extruded from (-1 = none)
 
         !! Boundaries for material initialisation from file
         real(fpp), dimension(0:2) :: MinBound_Loc, MaxBound_Loc
