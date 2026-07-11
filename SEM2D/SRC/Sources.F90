@@ -30,6 +30,11 @@ module ssources
        real(fpp) :: Xsource,Zsource, tau_b,cutoff_freq,amplitude,sigma
        type(elem_source), dimension(:), pointer :: Elem
        logical :: located_here
+       ! Running time integral int(f dt) for the pressure source (i_type_source=7):
+       ! p=-VelPhi and the source enters at the phi-acceleration level, so injecting the
+       ! integral makes the pressure equal f(t) (cf. SEM3D Newmark.f90 type-7). Unused by
+       ! the other source types.
+       real(fpp) :: time_integral = 0._fpp
     end type Source
 
 contains

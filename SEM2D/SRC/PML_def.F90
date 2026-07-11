@@ -38,7 +38,8 @@ subroutine PML_definition (Tdomain)
         Tdomain%specel(n)%PML = .false.
         Tdomain%specel(n)%CPML = .false.
         Tdomain%specel(n)%ADEPML = .false.
-        if (Tdomain%sSubDomain(mat)%material_type == "P" ) then
+        if (Tdomain%sSubDomain(mat)%material_type == "P" .or. &
+            Tdomain%sSubDomain(mat)%material_type == "L") then
             Tdomain%specel(n)%PML = .true.
             select case (Tdomain%pml_type)
             case (1)

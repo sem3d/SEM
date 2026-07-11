@@ -79,8 +79,11 @@ subroutine SourcePosition(Tdomain)
                 call source_space_gaussian(Tdomain, Tdomain%sSource(nsour))
             else if (Tdomain%sSource(nsour)%i_type_source == 3) then ! fluidpulse (fluid)
                 call source_excit_fluid(Tdomain, Tdomain%sSource(nsour))
-            else if (Tdomain%sSource(nsour)%i_type_source == 7) then ! pressure: not available in 2D
-                stop "source type 7 (pressure) is not implemented for the 2D fluid -- use type 3 (fluidpulse)"
+            else if (Tdomain%sSource(nsour)%i_type_source == 7) then ! pressure source (fluid)
+                ! Same spatial weighting as fluidpulse (type 3, ExtForce into the phi
+                ! equation, comp 0); the time integral is applied in Compute_external_forces
+                ! so that the pressure equals f(t). Mirrors SEM3D source type 7.
+                call source_excit_fluid(Tdomain, Tdomain%sSource(nsour))
             endif
         end if
     enddo

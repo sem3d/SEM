@@ -651,6 +651,14 @@ struct Material2D {
                    xpos(0.), xwidth(0.), zpos(0.), zwidth(0.), assoc(-1) {}
 };
 
+// PML char, homogeneous with the 3D convention (material.h: 'P'->DM_SOLID_CG_PML,
+// 'L'->DM_FLUID_CG_PML). The solver (Domain.F90) treats both as PML and flags 'L'
+// (and legacy 'P' with vs==0) as acoustic. Fluid base => 'L', solid base => 'P'.
+static inline bool is_pml_char(char c) { return c=='P' || c=='L'; }
+static inline char pml_char_for(const Material2D& base) {
+    return (base.type=='F' || base.vs==0.) ? 'L' : 'P';
+}
+
 // mater.in (2D) -- identical to SEM3D:
 //   n_mat
 //   <type> <Vp> <Vs> <Rho> <Qk> <Qmu>      (n_mat lines)
@@ -821,7 +829,7 @@ int RectMesh2D::get_mat(vector<Material2D>& mats, int layer, bool W, bool E, boo
     if (it != pml_cache.end()) return it->second;
 
     Material2D m = mats[layer];   // copy base properties (vp/vs/rho)
-    m.type   = 'P';               // 2D PML is always 'P'; fluid PML => Sspeed==0 (from base)
+    m.type   = pml_char_for(mats[layer]); // 'L' if fluid base, else 'P' (homogene 3D)
     m.is_pml = true;
     m.npow = npow;  m.apow = apow;
     m.assoc = layer;
@@ -1017,9 +1025,9 @@ struct PmlExtruder2D {
         map<int,int>::iterator it=matcache.find(key);
         if (it!=matcache.end()) return it->second;
         Material2D m = mats[base];          // base properties (vp/vs/rho/qp/qs)
-        // 2D PML is always type 'P'; the solver treats it as acoustic (fluid) when
-        // Sspeed==0, which is inherited from a fluid base (vs=0). No 'L' char in 2D.
-        m.type = 'P';
+        // 'L' for a fluid base, 'P' for a solid base (homogene avec le 3D). The solver
+        // flags 'L' (and legacy 'P' with Sspeed==0) as acoustic PML.
+        m.type = pml_char_for(mats[base]);
         m.is_pml=true;
         m.npow=spec.npow; m.apow=spec.apow; m.assoc=base;
         // carry the source material's borders (for corners) and overlay this side's
@@ -1036,9 +1044,29 @@ struct PmlExtruder2D {
     }
 
     void emit_quad(int i0, int i1, int o0, int o1, int mat) {
-        int q[4] = { i0, i1, o1, o0 };      // around the quad; check_orient fixes winding
+        int ids[4] = { i0, i1, o1, o0 };
+        // Canonicalize this axis-aligned extruded quad so the local xi-edge (n0->n1) runs
+        // along +x and the eta-edge (n0->n3) along +z -- matching RectMesh2D and the solver's
+        // PML setup, which computes dx=|x[n1]-x[n0]|, dz=|z[n3]-z[n0]| and divides by them in
+        // pow() (define_arr.F90). A raw extruded boundary edge is axis-aligned VERTICAL, so the
+        // naive order {i0,i1,o1,o0} + check_orient (CCW winding ONLY) leaves the xi-edge along z
+        // -> dx=0 -> 1/dx=Inf -> NaN across the whole PML. Slot by coordinate (same trick as the
+        // 3D emit_hex) to fix orientation, not just winding.
+        double xmn=mesh.m_px[ids[0]], xmx=xmn, zmn=mesh.m_py[ids[0]], zmx=zmn;
+        for (int k=1;k<4;++k) {
+            double x=mesh.m_px[ids[k]], z=mesh.m_py[ids[k]];
+            if(x<xmn)xmn=x; if(x>xmx)xmx=x; if(z<zmn)zmn=z; if(z>zmx)zmx=z;
+        }
+        double midx=0.5*(xmn+xmx), midz=0.5*(zmn+zmx);
+        static const int slot_of[4]={0,1,3,2};   // (bx + 2*bz) -> CCW slot, xi along +x
+        int q[4]={-1,-1,-1,-1};
+        for (int k=0;k<4;++k) {
+            int bx = mesh.m_px[ids[k]]>midx;
+            int bz = mesh.m_py[ids[k]]>midz;
+            q[slot_of[bx + 2*bz]] = ids[k];
+        }
+        for (int k=0;k<4;++k) if(q[k]<0){ printf("ERR: degenerate extruded PML quad (non axis-aligned corner)\n"); exit(1); }
         Quad4* qd = new Quad4(q);
-        qd->check_orient(mesh.m_px, mesh.m_py);
         mesh.m_quads.push_back(qd);
         mesh.m_mat1.push_back(mat);
     }
@@ -1107,7 +1135,7 @@ struct PmlExtruder2D {
 
 static bool mats_have_pml_2d(const vector<Material2D>& mats)
 {
-    for (size_t k=0;k<mats.size();++k) if (mats[k].type=='P') return true;
+    for (size_t k=0;k<mats.size();++k) if (is_pml_char(mats[k].type)) return true;
     return false;
 }
 
@@ -1122,7 +1150,7 @@ static void derive_pml_descriptors_2d(Mesh2D& mesh, vector<Material2D>& mats)
     map<int,int> node_interior_mat;
     for(size_t e=0;e<nq;++e){
         int mat=mesh.m_mat1[e];
-        bool pml = (mat>=0 && mat<(int)nmat && mats[mat].type=='P');
+        bool pml = (mat>=0 && mat<(int)nmat && is_pml_char(mats[mat].type));
         Quad* q=mesh.m_quads[e];
         for(int i=0;i<q->get_nb_nodes();++i){
             int nd=q->get_node_id(i);

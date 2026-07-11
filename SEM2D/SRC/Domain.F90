@@ -144,7 +144,8 @@ subroutine read_material_file(Tdomain)
         Tdomain%sSubDomain(i)%NGLLx = Tdomain%ngll
         Tdomain%sSubDomain(i)%NGLLz = Tdomain%ngll
         Tdomain%sSubDomain(i)%n_loc_dim = 1
-        if (Tdomain%sSubDomain(i)%material_type == "P" )  then
+        if (Tdomain%sSubDomain(i)%material_type == "P" .or. &
+            Tdomain%sSubDomain(i)%material_type == "L")  then
             npml = npml + 1
         endif
         if (Tdomain%sSubDomain(i)%material_type == "F" )  then
@@ -166,7 +167,8 @@ subroutine read_material_file(Tdomain)
         Tdomain%any_PML = .true.
         read(13,*); read(13,*)
         do i = 0,Tdomain%n_mat-1
-            if (Tdomain%sSubdomain(i)%material_type == "P" ) then
+            if (Tdomain%sSubdomain(i)%material_type == "P" .or. &
+                Tdomain%sSubdomain(i)%material_type == "L") then
                 ! Format unifie avec SEM3D : npow Apow posX widthX posY widthY posZ widthZ mat.
                 ! Les directions d'attenuation (Px/Left/Pz/Down) sont deduites du signe des largeurs
                 ! d'extrusion (widthX pour X, widthZ pour Z ; posY/widthY ignores en 2D).
@@ -196,8 +198,12 @@ subroutine read_material_file(Tdomain)
         ! Checks if the current element is on acoustic part of the domain
         if (Tdomain%sSubdomain(mat)%material_type .EQ. "F") then
            Tdomain%specel(i)%acoustic = .true.
+        elseif (Tdomain%sSubdomain(mat)%material_type .EQ. "L") then
+           ! fluid PML: char 'L' homogeneise avec le 3D (DM_FLUID_CG_PML)
+           Tdomain%specel(i)%acoustic = .true.
         elseif ((Tdomain%sSubdomain(mat)%material_type .EQ. "P") .AND. &
                 (Tdomain%sSubdomain(mat)%Sspeed .EQ. 0.)) then
+            ! legacy : PML fluide ecrite 'P' avec Sspeed==0 (fichiers anciens)
             Tdomain%specel(i)%acoustic = .true.
         else
            Tdomain%specel(i)%acoustic = .false.

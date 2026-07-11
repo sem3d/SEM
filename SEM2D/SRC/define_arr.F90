@@ -215,9 +215,18 @@ subroutine define_arrays(Tdomain)
             ! powOmc is set to 1 because it produces better absorbtion on the cases we have studied.
             powOmc = 1
             if (Tdomain%sSubDomain(mat)%Px) then
-                ! Computation of dx : the horizontal length of the PML element
-                idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
-                idef = Tdomain%specel(n)%Iglobnum (ngllx-1,0); dx = abs (Tdomain%GlobCoord (0,idef) -dx);
+                ! dx : horizontal length of the PML element, as the x-EXTENT over its 4 corners.
+                ! Order-independent: robust to the quad's node winding. The old form
+                ! |x(Iglobnum(ngllx-1,0)) - x(Iglobnum(0,0))| assumes the local xi-edge runs along
+                ! +x; a rotated/imported element makes it 0 -> 1/dx = Inf in pow() -> NaN. Identical
+                ! to the old value for a correctly-ordered element. (cf. 3D pml.F90, which is robust
+                ! by construction: it uses the descriptor pml_width, not element-local geometry.)
+                dx = maxval(Tdomain%GlobCoord(0, [Tdomain%specel(n)%Iglobnum(0,0), &
+                        Tdomain%specel(n)%Iglobnum(ngllx-1,0), Tdomain%specel(n)%Iglobnum(0,ngllz-1), &
+                        Tdomain%specel(n)%Iglobnum(ngllx-1,ngllz-1)])) &
+                   - minval(Tdomain%GlobCoord(0, [Tdomain%specel(n)%Iglobnum(0,0), &
+                        Tdomain%specel(n)%Iglobnum(ngllx-1,0), Tdomain%specel(n)%Iglobnum(0,ngllz-1), &
+                        Tdomain%specel(n)%Iglobnum(ngllx-1,ngllz-1)]))
                 if (Tdomain%sSubDomain(mat)%Left) then
                     do i = 0,ngllx-1
                         ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(ngllx-1-i))
@@ -265,9 +274,14 @@ subroutine define_arrays(Tdomain)
                 wx = 0.
             endif
             if (Tdomain%sSubDomain(mat)%Pz) then
-                ! Computation of dx : the vertical heigth of the PML element
-                idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (1,idef)
-                idef = Tdomain%specel(n)%Iglobnum (0,ngllz-1); dx = abs (Tdomain%GlobCoord (1,idef) -dx)
+                ! dx : vertical height of the PML element, as the z-EXTENT over its 4 corners
+                ! (order-independent; see the Px block above for the rationale).
+                dx = maxval(Tdomain%GlobCoord(1, [Tdomain%specel(n)%Iglobnum(0,0), &
+                        Tdomain%specel(n)%Iglobnum(ngllx-1,0), Tdomain%specel(n)%Iglobnum(0,ngllz-1), &
+                        Tdomain%specel(n)%Iglobnum(ngllx-1,ngllz-1)])) &
+                   - minval(Tdomain%GlobCoord(1, [Tdomain%specel(n)%Iglobnum(0,0), &
+                        Tdomain%specel(n)%Iglobnum(ngllx-1,0), Tdomain%specel(n)%Iglobnum(0,ngllz-1), &
+                        Tdomain%specel(n)%Iglobnum(ngllx-1,ngllz-1)]))
                 if (Tdomain%sSubDomain(mat)%Down) then
                     do j = 0,ngllz-1
                         rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(ngllz-1-j))

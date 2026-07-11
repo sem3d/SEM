@@ -89,6 +89,8 @@ contains
 
         call write_constant_fields(Tdomain, fid, irenum, nnodes)
 
+        call write_material_fields(Tdomain, fid, irenum, nnodes)
+
         call h5fclose_f(fid, hdferr)
 
         if (rg==0) call write_master_xdmf(Tdomain)
@@ -369,10 +371,13 @@ contains
         character (len=MAX_FILE_SIZE) :: fnamef
         integer   :: i, nn, ne
         real(fpp) :: time
+        logical   :: sa, fa
         call semname_xdmf(rg, fnamef)
 
         nn = nnodes
         ne = Tdomain%n_quad
+        sa = has_aniso_solid_2d(Tdomain)   ! this rank has solid-aniso (Cij) output?
+        fa = has_aniso_fluid_2d(Tdomain)   ! this rank has fluid-aniso (rho_ij/kappa) output?
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
         write(61,"(a)") '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
@@ -453,6 +458,24 @@ contains
 !            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
 !                '">geometry',rg,'.h5:/Jac</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! Material properties (time-independent, from the geometry h5)
+            call write_xdmf_mat_attr(61, "Lambda",  rg, nn)
+            call write_xdmf_mat_attr(61, "Mu",      rg, nn)
+            call write_xdmf_mat_attr(61, "Density", rg, nn)
+            if (sa) then
+                call write_xdmf_mat_attr(61, "C11", rg, nn)
+                call write_xdmf_mat_attr(61, "C22", rg, nn)
+                call write_xdmf_mat_attr(61, "C33", rg, nn)
+                call write_xdmf_mat_attr(61, "C12", rg, nn)
+                call write_xdmf_mat_attr(61, "C13", rg, nn)
+                call write_xdmf_mat_attr(61, "C23", rg, nn)
+            end if
+            if (fa) then
+                call write_xdmf_mat_attr(61, "rho11", rg, nn)
+                call write_xdmf_mat_attr(61, "rho22", rg, nn)
+                call write_xdmf_mat_attr(61, "rho12", rg, nn)
+                call write_xdmf_mat_attr(61, "Kappa", rg, nn)
+            end if
             write(61,"(a)") '</Grid>'
             ! XXX inexact pour l'instant
             time = time+Tdomain%TimeD%time_snapshots
@@ -462,6 +485,17 @@ contains
         write(61,"(a)") '</Xdmf>'
         close(61)
     end subroutine write_xdmf
+
+    !! \brief Emit one XDMF node-scalar Attribute referencing geometry<rg>.h5:/<name>.
+    subroutine write_xdmf_mat_attr(unit, name, rg, nn)
+        implicit none
+        integer, intent(in) :: unit, rg, nn
+        character(len=*), intent(in) :: name
+        write(unit,"(a)") '<Attribute Name="'//trim(name)//'" Center="Node" AttributeType="Scalar">'
+        write(unit,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" NumberType="Float" Precision="8" Dimensions="', &
+            nn,'">geometry',rg,'.h5:/'//trim(name)//'</DataItem>'
+        write(unit,"(a)") '</Attribute>'
+    end subroutine write_xdmf_mat_attr
 
     subroutine write_constant_fields(Tdomain, fid, irenum, nnodes)
         implicit none
@@ -528,6 +562,133 @@ contains
         deallocate(mass,jac,locmass)
 
     end subroutine write_constant_fields
+
+    !! \brief Write one time-independent per-node scalar field into the geometry h5.
+    !! Mirrors the Mass/Jac pattern in write_constant_fields (create + write + close).
+    subroutine write_node_scalar(Tdomain, fid, name, nnodes, values)
+        implicit none
+        type (domain), intent(in) :: Tdomain
+        integer(HID_T), intent(in) :: fid
+        character(len=*), intent(in) :: name
+        integer, intent(in) :: nnodes
+        real(fpp), dimension(0:nnodes-1), intent(in) :: values
+        integer(HID_T) :: dset_id
+        integer(HSIZE_T), dimension(1) :: dims
+        integer :: hdferr
+        call create_dset(fid, trim(name), H5T_IEEE_F64LE, nnodes, dset_id)
+        dims(1) = Tdomain%n_glob_points
+        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, dims, hdferr)
+        call h5dclose_f(dset_id, hdferr)
+    end subroutine write_node_scalar
+
+    !! \brief Write material properties as time-independent per-node scalar fields.
+    !! Always: Lambda, Mu, Density (isotropic moduli + rho; for aniso elements these are
+    !! the isotropic projection filled in define_arr). Solid aniso: Cij (6 indep comps,
+    !! Voigt 2D 1=xx,2=zz,3=xz). Fluid aniso: rho11/rho22/rho12 (inverse-density tensor)
+    !! + Kappa (=1/invKappa2d). Mirrors SEM3D snapshots.F90 material output.
+    subroutine write_material_fields(Tdomain, fid, irenum, nnodes)
+        implicit none
+        type (domain), intent(inout) :: Tdomain
+        integer(HID_T), intent(in) :: fid
+        integer, dimension(:), intent(in), allocatable :: irenum
+        integer, intent(in) :: nnodes
+        !
+        real(fpp), dimension(:), allocatable :: lamb, mu, dens
+        real(fpp), dimension(:), allocatable :: c11,c22,c33,c12,c13,c23
+        real(fpp), dimension(:), allocatable :: rho11,rho22,rho12,kappa
+        logical :: has_solid_aniso, has_fluid_aniso
+        integer :: n, i, k, idx, ngllx, ngllz
+
+        allocate(lamb(0:nnodes-1), mu(0:nnodes-1), dens(0:nnodes-1))
+        lamb=0._fpp; mu=0._fpp; dens=0._fpp
+
+        has_solid_aniso = has_aniso_solid_2d(Tdomain)
+        has_fluid_aniso = has_aniso_fluid_2d(Tdomain)
+        if (has_solid_aniso) then
+            allocate(c11(0:nnodes-1),c22(0:nnodes-1),c33(0:nnodes-1), &
+                     c12(0:nnodes-1),c13(0:nnodes-1),c23(0:nnodes-1))
+            c11=0._fpp;c22=0._fpp;c33=0._fpp;c12=0._fpp;c13=0._fpp;c23=0._fpp
+        end if
+        if (has_fluid_aniso) then
+            allocate(rho11(0:nnodes-1),rho22(0:nnodes-1),rho12(0:nnodes-1),kappa(0:nnodes-1))
+            rho11=0._fpp;rho22=0._fpp;rho12=0._fpp;kappa=0._fpp
+        end if
+
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngllx = Tdomain%specel(n)%ngllx
+            ngllz = Tdomain%specel(n)%ngllz
+            do k = 0,ngllz-1
+                do i = 0,ngllx-1
+                    idx = irenum(Tdomain%specel(n)%Iglobnum(i,k))
+                    lamb(idx) = Tdomain%specel(n)%Lambda(i,k)
+                    mu(idx)   = Tdomain%specel(n)%Mu(i,k)
+                    dens(idx) = Tdomain%specel(n)%Density(i,k)
+                    if (has_solid_aniso .and. allocated(Tdomain%specel(n)%Cij2d)) then
+                        c11(idx)=Tdomain%specel(n)%Cij2d(1,1,i,k)
+                        c22(idx)=Tdomain%specel(n)%Cij2d(2,2,i,k)
+                        c33(idx)=Tdomain%specel(n)%Cij2d(3,3,i,k)
+                        c12(idx)=Tdomain%specel(n)%Cij2d(1,2,i,k)
+                        c13(idx)=Tdomain%specel(n)%Cij2d(1,3,i,k)
+                        c23(idx)=Tdomain%specel(n)%Cij2d(2,3,i,k)
+                    end if
+                    if (has_fluid_aniso .and. allocated(Tdomain%specel(n)%IDensTensor2d)) then
+                        rho11(idx)=Tdomain%specel(n)%IDensTensor2d(1,1,i,k)
+                        rho22(idx)=Tdomain%specel(n)%IDensTensor2d(2,2,i,k)
+                        rho12(idx)=Tdomain%specel(n)%IDensTensor2d(1,2,i,k)
+                        if (Tdomain%specel(n)%invKappa2d(i,k) /= 0._fpp) &
+                            kappa(idx)=1._fpp/Tdomain%specel(n)%invKappa2d(i,k)
+                    end if
+                end do
+            end do
+        end do
+
+        call write_node_scalar(Tdomain, fid, "Lambda",  nnodes, lamb)
+        call write_node_scalar(Tdomain, fid, "Mu",      nnodes, mu)
+        call write_node_scalar(Tdomain, fid, "Density", nnodes, dens)
+        deallocate(lamb, mu, dens)
+        if (has_solid_aniso) then
+            call write_node_scalar(Tdomain, fid, "C11", nnodes, c11)
+            call write_node_scalar(Tdomain, fid, "C22", nnodes, c22)
+            call write_node_scalar(Tdomain, fid, "C33", nnodes, c33)
+            call write_node_scalar(Tdomain, fid, "C12", nnodes, c12)
+            call write_node_scalar(Tdomain, fid, "C13", nnodes, c13)
+            call write_node_scalar(Tdomain, fid, "C23", nnodes, c23)
+            deallocate(c11,c22,c33,c12,c13,c23)
+        end if
+        if (has_fluid_aniso) then
+            call write_node_scalar(Tdomain, fid, "rho11", nnodes, rho11)
+            call write_node_scalar(Tdomain, fid, "rho22", nnodes, rho22)
+            call write_node_scalar(Tdomain, fid, "rho12", nnodes, rho12)
+            call write_node_scalar(Tdomain, fid, "Kappa", nnodes, kappa)
+            deallocate(rho11,rho22,rho12,kappa)
+        end if
+    end subroutine write_material_fields
+
+    !! Does this rank have any solid-aniso (Cij2d) / fluid-aniso (IDensTensor2d) output element?
+    logical function has_aniso_solid_2d(Tdomain)
+        type (domain), intent(in) :: Tdomain
+        integer :: n
+        has_aniso_solid_2d = .false.
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            if (allocated(Tdomain%specel(n)%Cij2d)) then
+                has_aniso_solid_2d = .true.; return
+            end if
+        end do
+    end function has_aniso_solid_2d
+
+    logical function has_aniso_fluid_2d(Tdomain)
+        type (domain), intent(in) :: Tdomain
+        integer :: n
+        has_aniso_fluid_2d = .false.
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            if (allocated(Tdomain%specel(n)%IDensTensor2d)) then
+                has_aniso_fluid_2d = .true.; return
+            end if
+        end do
+    end function has_aniso_fluid_2d
 
 
     !! \brief subroutine calculant le rotationel d'un champ de vitesse
