@@ -80,7 +80,7 @@ subroutine read_input (Tdomain)
     type (domain), intent (INOUT) :: Tdomain
 
     ! local variables
-    integer :: i, n_aus
+    integer :: i, n_aus, outflag
     logical :: logic_scheme
 
     character(Len=MAX_FILE_SIZE) :: fnamef
@@ -124,6 +124,24 @@ subroutine read_input (Tdomain)
     !Tdomain%TimeD%ntrace = config%traces_interval ! XXX
     Tdomain%TimeD%time_snapshots = config%snap_interval
     Tdomain%capt_loc_type = config%capt_loc_type
+
+    ! Setup output variables (snapshots/capteurs)
+    Tdomain%nReqOut = 0
+    do i = 0, OUT_LAST
+        outflag = config%out_variables(i+1)
+        Tdomain%out_var_snap(i) = 0
+        Tdomain%out_var_capt(i) = 0
+        if (outflag==1 .or. outflag==3) then
+            Tdomain%out_var_snap(i) = 1
+        endif
+        if (outflag==1 .or. outflag==2) then
+            Tdomain%out_var_capt(i) = 1
+            Tdomain%nReqOut = Tdomain%nReqOut + OUT_VAR_DIMS_2D(i)
+        endif
+    end do
+    Tdomain%traces_format = config%traces_format
+    Tdomain%stations = config%stations
+
     logic_scheme = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
     if(.not. logic_scheme) then
         stop "Both acceleration and velocity schemes: no compatibility, chose only one."

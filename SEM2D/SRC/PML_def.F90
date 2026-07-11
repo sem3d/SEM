@@ -206,6 +206,32 @@ subroutine PML_definition (Tdomain)
     deallocate (Logical_CPML_Vertices)
     deallocate (Logical_ADEPML_Vertices)
 
+    ! Define PML vertices that need to communicate (split-field DumpMass + Forces1/2). Done
+    ! AFTER sVertex%PML is set above. A PML vertex shared across ranks must sum its split
+    ! DumpMass (setup) and Forces1/Forces2 (each step) with the neighbour -- otherwise its
+    ! corrector (Correction_Vertex_PML_Veloc) uses incomplete values. Vertices have no coherency.
+    do n = 0, Tdomain%n_communications-1
+        block
+            integer :: n_pml_vertices, k
+            integer, dimension(:), allocatable :: VertexPML_List
+            allocate (VertexPML_List(0:Tdomain%sWall(n)%n_vertices))
+            n_pml_vertices = 0
+            do k = 0, Tdomain%sWall(n)%n_vertices-1
+                nv = Tdomain%sWall(n)%Vertex_List(k)
+                if (Tdomain%sVertex(nv)%PML .and. (.not. Tdomain%sVertex(nv)%CPML) &
+                                            .and. (.not. Tdomain%sVertex(nv)%ADEPML)) then
+                    VertexPML_List(n_pml_vertices) = nv
+                    n_pml_vertices = n_pml_vertices + 1
+                endif
+            enddo
+            Tdomain%sWall(n)%n_pml_vertices = n_pml_vertices
+            allocate (Tdomain%sWall(n)%VertexPML_List(0:max(n_pml_vertices-1,0)))
+            if (n_pml_vertices > 0) &
+                Tdomain%sWall(n)%VertexPML_List(0:n_pml_vertices-1) = VertexPML_List(0:n_pml_vertices-1)
+            deallocate (VertexPML_List)
+        end block
+    enddo
+
     return
 end subroutine PML_definition
 

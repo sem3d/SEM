@@ -263,6 +263,14 @@ subroutine Newmark (Tdomain)
                 i_stock = i_stock + ngll - 2
             enddo
 
+            ! PML vertices: split Forces1/Forces2 (no coherency; 1 row each)
+            do nv = 0, Tdomain%sWall(i_proc)%n_pml_vertices - 1
+                nv_aus = Tdomain%sWall(i_proc)%VertexPML_List(nv)
+                Tdomain%sWall(i_proc)%Send_data_2(i_stock,0:1)   = Tdomain%sVertex(nv_aus)%Forces1(0:1)
+                Tdomain%sWall(i_proc)%Send_data_2(i_stock+1,0:1) = Tdomain%sVertex(nv_aus)%Forces2(0:1)
+                i_stock = i_stock + 2
+            enddo
+
             tag_send = i_send * Tdomain%MPI_var%n_proc +Tdomain%MPI_var%my_rank + 900
             tag_receive = Tdomain%MPI_var%my_rank * Tdomain%MPI_var%n_proc + i_send + 900
 
@@ -325,6 +333,15 @@ subroutine Newmark (Tdomain)
                     enddo
                 endif
                 i_stock = i_stock + ngll - 2
+            enddo
+            ! PML vertices: sum the split Forces1/Forces2 across ranks
+            do nv = 0, Tdomain%sWall(i_proc)%n_pml_vertices - 1
+                nv_aus = Tdomain%sWall(i_proc)%VertexPML_List(nv)
+                Tdomain%sVertex(nv_aus)%Forces1(0:1) = Tdomain%sVertex(nv_aus)%Forces1(0:1) + &
+                    Tdomain%sWall(i_proc)%Receive_data_2(i_stock,0:1)
+                Tdomain%sVertex(nv_aus)%Forces2(0:1) = Tdomain%sVertex(nv_aus)%Forces2(0:1) + &
+                    Tdomain%sWall(i_proc)%Receive_data_2(i_stock+1,0:1)
+                i_stock = i_stock + 2
             enddo
         enddo
 

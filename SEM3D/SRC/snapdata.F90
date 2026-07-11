@@ -25,7 +25,7 @@ module msnapdata
         integer :: ncells
         integer :: nelems
         ! Nodes fields
-        real(fpp), dimension(:,:), allocatable :: displ, veloc, accel
+        real(fpp), dimension(:,:), allocatable :: displ, veloc, accel, rotat
         real(fpp), dimension(:)  , allocatable :: press_n
         real(fpp), dimension(:,:), allocatable :: grad_La_n
         real(fpp), dimension(:,:), allocatable :: grad_Mu_n

@@ -228,17 +228,35 @@ contains
         !
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: fid, displ_id, veloc_id, press_id, accel_id, rotat_id
+        integer(HID_T) :: P_energy_id, K_energy_id, eps_vol_id
+        integer(HID_T) :: eps_dev_xx_id, eps_dev_zz_id, eps_dev_xz_id
+        integer(HID_T) :: sig_dev_xx_id, sig_dev_zz_id, sig_dev_xz_id
+        integer(HID_T) :: dUxdx_id, dUxdz_id, dUzdx_id, dUzdz_id
+        integer(HID_T) :: L_energy_id, S_energy_id, R_energy_id
+
         integer(HSIZE_T), dimension(2) :: dims
         integer(HSIZE_T), dimension(1) :: dimr
         real(fpp), dimension(:,:),allocatable :: displ, veloc, accel, field_rotat
         real(fpp), dimension(:), allocatable :: press, rotat
+        real(fpp), dimension(:), allocatable :: P_energy, K_energy, eps_vol
+        real(fpp), dimension(:), allocatable :: eps_dev_xx, eps_dev_zz, eps_dev_xz
+        real(fpp), dimension(:), allocatable :: sig_dev_xx, sig_dev_zz, sig_dev_xz
+        real(fpp), dimension(:), allocatable :: dUxdx, dUxdz, dUzdx, dUzdz
+        real(fpp), dimension(:), allocatable :: L_energy, S_energy, R_energy
+
         real(fpp), dimension(:,:,:),allocatable :: field_displ, field_veloc, field_accel
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
-        integer :: ngllx, ngllz, idx
+        integer :: ngllx, ngllz, idx, mat
         integer :: i, k, n
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes
+        real(fpp), dimension(0:1,0:1) :: invgrad_ij
+        real(fpp) :: dUx_dxi, dUx_deta, dUz_dxi, dUz_deta
+        real(fpp) :: DXX, DXZ, DZX, DZZ
+        real(fpp) :: eps_xx, eps_zz, eps_xz, eps_v
+        real(fpp) :: sig_xx, sig_zz, sig_xz, sig_mean
+        real(fpp), dimension(3) :: strain_v, stress_v
 
         call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
@@ -256,20 +274,65 @@ contains
         call create_dset_2d(fid, "displ", H5T_IEEE_F64LE, 3, nnodes, displ_id)
         call create_dset_2d(fid, "veloc", H5T_IEEE_F64LE, 3, nnodes, veloc_id)
         call create_dset_2d(fid, "accel", H5T_IEEE_F64LE, 3, nnodes, accel_id)
-        call create_dset(fid, "pressure", H5T_IEEE_F64LE, nnodes, press_id)
         call create_dset(fid, "rotat", H5T_IEEE_F64LE, nnodes, rotat_id)
 
-        ! Constroction des Vhat continus au niveau des Vertexs (stockes dans Vertex%V0)
-!        if (Tdomain%type_elem==GALERKIN_HDG_RP .OR. Tdomain%type_elem==COUPLE_CG_HDG) &
-!            call project_Vhat_Vertex(Tdomain)
+        if (Tdomain%out_var_snap(OUT_PRESSION) == 1) then
+            call create_dset(fid, "pressure", H5T_IEEE_F64LE, nnodes, press_id)
+            allocate(press(0:nnodes-1)); press = 0.0_fpp
+        endif
+        if (Tdomain%out_var_snap(OUT_ENERGYP) == 1) then
+            call create_dset(fid, "P_energy", H5T_IEEE_F64LE, nnodes, P_energy_id)
+            allocate(P_energy(0:nnodes-1)); P_energy = 0.0_fpp
+        endif
+        if (Tdomain%out_var_snap(OUT_ENERGYK) == 1) then
+            call create_dset(fid, "K_energy", H5T_IEEE_F64LE, nnodes, K_energy_id)
+            allocate(K_energy(0:nnodes-1)); K_energy = 0.0_fpp
+        endif
+        if (Tdomain%out_var_snap(OUT_EPS_VOL) == 1) then
+            call create_dset(fid, "eps_vol", H5T_IEEE_F64LE, nnodes, eps_vol_id)
+            allocate(eps_vol(0:nnodes-1)); eps_vol = 0.0_fpp
+        endif
+        if (Tdomain%out_var_snap(OUT_EPS_DEV) == 1) then
+            call create_dset(fid, "eps_dev_xx", H5T_IEEE_F64LE, nnodes, eps_dev_xx_id)
+            call create_dset(fid, "eps_dev_zz", H5T_IEEE_F64LE, nnodes, eps_dev_zz_id)
+            call create_dset(fid, "eps_dev_xz", H5T_IEEE_F64LE, nnodes, eps_dev_xz_id)
+            allocate(eps_dev_xx(0:nnodes-1)); eps_dev_xx = 0.0_fpp
+            allocate(eps_dev_zz(0:nnodes-1)); eps_dev_zz = 0.0_fpp
+            allocate(eps_dev_xz(0:nnodes-1)); eps_dev_xz = 0.0_fpp
+        endif
+        if (Tdomain%out_var_snap(OUT_STRESS_DEV) == 1) then
+            call create_dset(fid, "sig_dev_xx", H5T_IEEE_F64LE, nnodes, sig_dev_xx_id)
+            call create_dset(fid, "sig_dev_zz", H5T_IEEE_F64LE, nnodes, sig_dev_zz_id)
+            call create_dset(fid, "sig_dev_xz", H5T_IEEE_F64LE, nnodes, sig_dev_xz_id)
+            allocate(sig_dev_xx(0:nnodes-1)); sig_dev_xx = 0.0_fpp
+            allocate(sig_dev_zz(0:nnodes-1)); sig_dev_zz = 0.0_fpp
+            allocate(sig_dev_xz(0:nnodes-1)); sig_dev_xz = 0.0_fpp
+        endif
+        if (Tdomain%out_var_snap(OUT_DUDX) == 1) then
+            call create_dset(fid, "dUxdx", H5T_IEEE_F64LE, nnodes, dUxdx_id)
+            call create_dset(fid, "dUxdz", H5T_IEEE_F64LE, nnodes, dUxdz_id)
+            call create_dset(fid, "dUzdx", H5T_IEEE_F64LE, nnodes, dUzdx_id)
+            call create_dset(fid, "dUzdz", H5T_IEEE_F64LE, nnodes, dUzdz_id)
+            allocate(dUxdx(0:nnodes-1)); dUxdx = 0.0_fpp
+            allocate(dUxdz(0:nnodes-1)); dUxdz = 0.0_fpp
+            allocate(dUzdx(0:nnodes-1)); dUzdx = 0.0_fpp
+            allocate(dUzdz(0:nnodes-1)); dUzdz = 0.0_fpp
+        endif
+        if (Tdomain%out_var_snap(OUT_ENERGYD) == 1) then
+            call create_dset(fid, "L_energy", H5T_IEEE_F64LE, nnodes, L_energy_id)
+            call create_dset(fid, "S_energy", H5T_IEEE_F64LE, nnodes, S_energy_id)
+            call create_dset(fid, "R_energy", H5T_IEEE_F64LE, nnodes, R_energy_id)
+            allocate(L_energy(0:nnodes-1)); L_energy = 0.0_fpp
+            allocate(S_energy(0:nnodes-1)); S_energy = 0.0_fpp
+            allocate(R_energy(0:nnodes-1)); R_energy = 0.0_fpp
+        endif
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
         allocate(accel(0:2,0:nnodes-1))
-        allocate(press(0:nnodes-1))
         allocate(rotat(0:nnodes-1))
         allocate(valence(0:nnodes-1))
-        allocate(field_rotat(0:0,0:0)) ! Pour eviter warning faux positif du compilo.
+        allocate(field_rotat(0:0,0:0))
 
         ngllx = 0
         ngllz = 0
@@ -304,12 +367,102 @@ contains
                     idx = irenum(Tdomain%specel(n)%Iglobnum(i,k))
                     valence(idx) = valence(idx)+1
                     displ(0:1,idx) = field_displ(i,k,:)
-                    ! veloc/accel are allocated (0:2,:) (3-comp for the XDMF vector output) but
-                    ! field_veloc/accel are 2-comp -> use (0:1) on the RHS too (the 3rd comp
-                    ! stays 0). A flat veloc(:,idx) is a size-3 vs size-2 mismatch (-fcheck trap).
                     veloc(0:1,idx) = veloc(0:1,idx)+field_veloc(i,k,:)
                     accel(0:1,idx) = accel(0:1,idx)+field_accel(i,k,:)
                     rotat(idx) = rotat(idx)+field_rotat(i,k)
+
+                    mat = Tdomain%specel(n)%mat_index
+                    ! Kinetic energy
+                    if (allocated(K_energy)) then
+                        K_energy(idx) = K_energy(idx) + 0.5_fpp * Tdomain%specel(n)%Density(i,k) * (field_veloc(i,k,0)**2 + field_veloc(i,k,1)**2)
+                    endif
+
+                    if ((.not. Tdomain%specel(n)%acoustic) .and. (.not. Tdomain%specel(n)%PML)) then
+                        ! Physical derivatives
+                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
+                        dUx_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
+                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,1))
+                        dUz_deta = sum(field_displ(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,k))
+
+                        invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)
+                        DXX = invgrad_ij(0,0)*dUx_dxi + invgrad_ij(0,1)*dUx_deta
+                        DXZ = invgrad_ij(1,0)*dUx_dxi + invgrad_ij(1,1)*dUx_deta
+                        DZX = invgrad_ij(0,0)*dUz_dxi + invgrad_ij(0,1)*dUz_deta
+                        DZZ = invgrad_ij(1,0)*dUz_dxi + invgrad_ij(1,1)*dUz_deta
+
+                        if (allocated(dUxdx)) then
+                            dUxdx(idx) = dUxdx(idx) + DXX
+                            dUxdz(idx) = dUxdz(idx) + DXZ
+                            dUzdx(idx) = dUzdx(idx) + DZX
+                            dUzdz(idx) = dUzdz(idx) + DZZ
+                        endif
+
+                        eps_xx = DXX
+                        eps_zz = DZZ
+                        eps_xz = 0.5_fpp * (DXZ + DZX)
+                        eps_v = eps_xx + eps_zz
+
+                        if (allocated(eps_vol)) then
+                            eps_vol(idx) = eps_vol(idx) + eps_v
+                        endif
+
+                        if (allocated(eps_dev_xx)) then
+                            eps_dev_xx(idx) = eps_dev_xx(idx) + (eps_xx - 0.5_fpp * eps_v)
+                            eps_dev_zz(idx) = eps_dev_zz(idx) + (eps_zz - 0.5_fpp * eps_v)
+                            eps_dev_xz(idx) = eps_dev_xz(idx) + eps_xz
+                        endif
+
+                        if (allocated(Tdomain%specel(n)%Cij2d)) then
+                            strain_v = (/ eps_xx, eps_zz, 2.0_fpp * eps_xz /)
+                            stress_v = matmul(Tdomain%specel(n)%Cij2d(:,:,i,k), strain_v)
+                            sig_xx = stress_v(1)
+                            sig_zz = stress_v(2)
+                            sig_xz = stress_v(3)
+                        else
+                            sig_xx = Tdomain%specel(n)%Lambda(i,k) * eps_v + 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * eps_xx
+                            sig_zz = Tdomain%specel(n)%Lambda(i,k) * eps_v + 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * eps_zz
+                            sig_xz = 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * eps_xz
+                        endif
+                        sig_mean = 0.5_fpp * (sig_xx + sig_zz)
+
+                        if (allocated(press)) then
+                            press(idx) = press(idx) - sig_mean
+                        endif
+
+                        if (allocated(sig_dev_xx)) then
+                            sig_dev_xx(idx) = sig_dev_xx(idx) + (sig_xx - sig_mean)
+                            sig_dev_zz(idx) = sig_dev_zz(idx) + (sig_zz - sig_mean)
+                            sig_dev_xz(idx) = sig_dev_xz(idx) + sig_xz
+                        endif
+
+                        if (allocated(P_energy)) then
+                            P_energy(idx) = P_energy(idx) + 0.5_fpp * (sig_xx * eps_xx + sig_zz * eps_zz + 2.0_fpp * sig_xz * eps_xz)
+                        endif
+
+                        if (allocated(L_energy)) then
+                            L_energy(idx) = L_energy(idx) + Tdomain%specel(n)%Mu(i,k)/2.0_fpp * (DXZ - DZX)**2
+                            S_energy(idx) = S_energy(idx) + (0.5_fpp * Tdomain%specel(n)%Lambda(i,k) + Tdomain%specel(n)%Mu(i,k)) * eps_v**2
+                            R_energy(idx) = R_energy(idx) + 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * DXZ * DZX - 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * eps_xx * eps_zz
+                        endif
+                    else if (Tdomain%specel(n)%acoustic) then
+                        if (allocated(press)) then
+                            if (allocated(Tdomain%specel(n)%IDensTensor2d)) then
+                                sig_mean = field_veloc(i,k,0) ! VelPhi = -p
+                            else
+                                dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
+                                dUx_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
+                                dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,1))
+                                dUz_deta = sum(field_displ(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,k))
+
+                                invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)
+                                DXX = invgrad_ij(0,0)*dUx_dxi + invgrad_ij(0,1)*dUx_deta
+                                DZZ = invgrad_ij(1,0)*dUz_dxi + invgrad_ij(1,1)*dUz_deta
+                                eps_v = DXX + DZZ
+                                sig_mean = -Tdomain%specel(n)%Lambda(i,k) * eps_v
+                            endif
+                            press(idx) = press(idx) - sig_mean
+                        endif
+                    endif
                 end do
             end do
         end do
@@ -319,6 +472,31 @@ contains
                 veloc(:,i) = veloc(:,i)/valence(i)
                 accel(:,i) = accel(:,i)/valence(i)
                 rotat(i) = rotat(i)/valence(i)
+                if (allocated(press)) press(i) = press(i)/valence(i)
+                if (allocated(P_energy)) P_energy(i) = P_energy(i)/valence(i)
+                if (allocated(K_energy)) K_energy(i) = K_energy(i)/valence(i)
+                if (allocated(eps_vol)) eps_vol(i) = eps_vol(i)/valence(i)
+                if (allocated(eps_dev_xx)) then
+                    eps_dev_xx(i) = eps_dev_xx(i)/valence(i)
+                    eps_dev_zz(i) = eps_dev_zz(i)/valence(i)
+                    eps_dev_xz(i) = eps_dev_xz(i)/valence(i)
+                endif
+                if (allocated(sig_dev_xx)) then
+                    sig_dev_xx(i) = sig_dev_xx(i)/valence(i)
+                    sig_dev_zz(i) = sig_dev_zz(i)/valence(i)
+                    sig_dev_xz(i) = sig_dev_xz(i)/valence(i)
+                endif
+                if (allocated(dUxdx)) then
+                    dUxdx(i) = dUxdx(i)/valence(i)
+                    dUxdz(i) = dUxdz(i)/valence(i)
+                    dUzdx(i) = dUzdx(i)/valence(i)
+                    dUzdz(i) = dUzdz(i)/valence(i)
+                endif
+                if (allocated(L_energy)) then
+                    L_energy(i) = L_energy(i)/valence(i)
+                    S_energy(i) = S_energy(i)/valence(i)
+                    R_energy(i) = R_energy(i)/valence(i)
+                endif
             else
                 write(*,*) "Elem",i," non traite"
             end if
@@ -328,13 +506,73 @@ contains
         call h5dwrite_f(accel_id, H5T_NATIVE_DOUBLE, accel, dims, hdferr)
         call h5dwrite_f(rotat_id, H5T_NATIVE_DOUBLE, rotat, dimr, hdferr)
 
+        if (allocated(press)) call h5dwrite_f(press_id, H5T_NATIVE_DOUBLE, press, dimr, hdferr)
+        if (allocated(P_energy)) call h5dwrite_f(P_energy_id, H5T_NATIVE_DOUBLE, P_energy, dimr, hdferr)
+        if (allocated(K_energy)) call h5dwrite_f(K_energy_id, H5T_NATIVE_DOUBLE, K_energy, dimr, hdferr)
+        if (allocated(eps_vol)) call h5dwrite_f(eps_vol_id, H5T_NATIVE_DOUBLE, eps_vol, dimr, hdferr)
+        if (allocated(eps_dev_xx)) then
+            call h5dwrite_f(eps_dev_xx_id, H5T_NATIVE_DOUBLE, eps_dev_xx, dimr, hdferr)
+            call h5dwrite_f(eps_dev_zz_id, H5T_NATIVE_DOUBLE, eps_dev_zz, dimr, hdferr)
+            call h5dwrite_f(eps_dev_xz_id, H5T_NATIVE_DOUBLE, eps_dev_xz, dimr, hdferr)
+        endif
+        if (allocated(sig_dev_xx)) then
+            call h5dwrite_f(sig_dev_xx_id, H5T_NATIVE_DOUBLE, sig_dev_xx, dimr, hdferr)
+            call h5dwrite_f(sig_dev_zz_id, H5T_NATIVE_DOUBLE, sig_dev_zz, dimr, hdferr)
+            call h5dwrite_f(sig_dev_xz_id, H5T_NATIVE_DOUBLE, sig_dev_xz, dimr, hdferr)
+        endif
+        if (allocated(dUxdx)) then
+            call h5dwrite_f(dUxdx_id, H5T_NATIVE_DOUBLE, dUxdx, dimr, hdferr)
+            call h5dwrite_f(dUxdz_id, H5T_NATIVE_DOUBLE, dUxdz, dimr, hdferr)
+            call h5dwrite_f(dUzdx_id, H5T_NATIVE_DOUBLE, dUzdx, dimr, hdferr)
+            call h5dwrite_f(dUzdz_id, H5T_NATIVE_DOUBLE, dUzdz, dimr, hdferr)
+        endif
+        if (allocated(L_energy)) then
+            call h5dwrite_f(L_energy_id, H5T_NATIVE_DOUBLE, L_energy, dimr, hdferr)
+            call h5dwrite_f(S_energy_id, H5T_NATIVE_DOUBLE, S_energy, dimr, hdferr)
+            call h5dwrite_f(R_energy_id, H5T_NATIVE_DOUBLE, R_energy, dimr, hdferr)
+        endif
+
         call h5dclose_f(displ_id, hdferr)
         call h5dclose_f(veloc_id, hdferr)
         call h5dclose_f(accel_id, hdferr)
-        call h5dclose_f(press_id, hdferr)
+        if (Tdomain%out_var_snap(OUT_PRESSION) == 1) call h5dclose_f(press_id, hdferr)
+        if (Tdomain%out_var_snap(OUT_ENERGYP) == 1) call h5dclose_f(P_energy_id, hdferr)
+        if (Tdomain%out_var_snap(OUT_ENERGYK) == 1) call h5dclose_f(K_energy_id, hdferr)
+        if (Tdomain%out_var_snap(OUT_EPS_VOL) == 1) call h5dclose_f(eps_vol_id, hdferr)
+        if (Tdomain%out_var_snap(OUT_EPS_DEV) == 1) then
+            call h5dclose_f(eps_dev_xx_id, hdferr)
+            call h5dclose_f(eps_dev_zz_id, hdferr)
+            call h5dclose_f(eps_dev_xz_id, hdferr)
+        endif
+        if (Tdomain%out_var_snap(OUT_STRESS_DEV) == 1) then
+            call h5dclose_f(sig_dev_xx_id, hdferr)
+            call h5dclose_f(sig_dev_zz_id, hdferr)
+            call h5dclose_f(sig_dev_xz_id, hdferr)
+        endif
+        if (Tdomain%out_var_snap(OUT_DUDX) == 1) then
+            call h5dclose_f(dUxdx_id, hdferr)
+            call h5dclose_f(dUxdz_id, hdferr)
+            call h5dclose_f(dUzdx_id, hdferr)
+            call h5dclose_f(dUzdz_id, hdferr)
+        endif
+        if (Tdomain%out_var_snap(OUT_ENERGYD) == 1) then
+            call h5dclose_f(L_energy_id, hdferr)
+            call h5dclose_f(S_energy_id, hdferr)
+            call h5dclose_f(R_energy_id, hdferr)
+        endif
         call h5dclose_f(rotat_id, hdferr)
         call h5fclose_f(fid, hdferr)
+
+        if (allocated(press)) deallocate(press)
+        if (allocated(P_energy)) deallocate(P_energy)
+        if (allocated(K_energy)) deallocate(K_energy)
+        if (allocated(eps_vol)) deallocate(eps_vol)
+        if (allocated(eps_dev_xx)) deallocate(eps_dev_xx, eps_dev_zz, eps_dev_xz)
+        if (allocated(sig_dev_xx)) deallocate(sig_dev_xx, sig_dev_zz, sig_dev_xz)
+        if (allocated(dUxdx)) deallocate(dUxdx, dUxdz, dUzdx, dUzdz)
+        if (allocated(L_energy)) deallocate(L_energy, S_energy, R_energy)
         deallocate(displ,veloc,valence,rotat)
+
 
         call write_xdmf(Tdomain, rg, isort, nnodes)
     end subroutine save_field_h5
@@ -434,6 +672,41 @@ contains
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/rotat'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
+
+            if (Tdomain%out_var_snap(OUT_PRESSION) == 1) then
+                call write_xdmf_res_scalar(61, "Pressure", i, rg, nn, "pressure")
+            endif
+            if (Tdomain%out_var_snap(OUT_ENERGYP) == 1) then
+                call write_xdmf_res_scalar(61, "P_energy", i, rg, nn, "P_energy")
+            endif
+            if (Tdomain%out_var_snap(OUT_ENERGYK) == 1) then
+                call write_xdmf_res_scalar(61, "K_energy", i, rg, nn, "K_energy")
+            endif
+            if (Tdomain%out_var_snap(OUT_EPS_VOL) == 1) then
+                call write_xdmf_res_scalar(61, "eps_vol", i, rg, nn, "eps_vol")
+            endif
+            if (Tdomain%out_var_snap(OUT_EPS_DEV) == 1) then
+                call write_xdmf_res_scalar(61, "eps_dev_xx", i, rg, nn, "eps_dev_xx")
+                call write_xdmf_res_scalar(61, "eps_dev_zz", i, rg, nn, "eps_dev_zz")
+                call write_xdmf_res_scalar(61, "eps_dev_xz", i, rg, nn, "eps_dev_xz")
+            endif
+            if (Tdomain%out_var_snap(OUT_STRESS_DEV) == 1) then
+                call write_xdmf_res_scalar(61, "sig_dev_xx", i, rg, nn, "sig_dev_xx")
+                call write_xdmf_res_scalar(61, "sig_dev_zz", i, rg, nn, "sig_dev_zz")
+                call write_xdmf_res_scalar(61, "sig_dev_xz", i, rg, nn, "sig_dev_xz")
+            endif
+            if (Tdomain%out_var_snap(OUT_DUDX) == 1) then
+                call write_xdmf_res_scalar(61, "dUxdx", i, rg, nn, "dUxdx")
+                call write_xdmf_res_scalar(61, "dUxdz", i, rg, nn, "dUxdz")
+                call write_xdmf_res_scalar(61, "dUzdx", i, rg, nn, "dUzdx")
+                call write_xdmf_res_scalar(61, "dUzdz", i, rg, nn, "dUzdz")
+            endif
+            if (Tdomain%out_var_snap(OUT_ENERGYD) == 1) then
+                call write_xdmf_res_scalar(61, "L_energy", i, rg, nn, "L_energy")
+                call write_xdmf_res_scalar(61, "S_energy", i, rg, nn, "S_energy")
+                call write_xdmf_res_scalar(61, "R_energy", i, rg, nn, "R_energy")
+            endif
+
 
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
@@ -723,6 +996,18 @@ contains
 
         return
     end subroutine compute_rotational
+
+    subroutine write_xdmf_res_scalar(unit, name, isort, rg, nn, dataset_name)
+        implicit none
+        integer, intent(in) :: unit, isort, rg, nn
+        character(len=*), intent(in) :: name, dataset_name
+        write(unit,"(a)") '<Attribute Name="'//trim(name)//'" Center="Node" AttributeType="Scalar">'
+        write(unit,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+        write(unit,"(a,I4.4,a,I4.4,a)") 'Rsem',isort,'/sem_field.',rg,'.h5:/'//trim(dataset_name)
+        write(unit,"(a)") '</DataItem>'
+        write(unit,"(a)") '</Attribute>'
+    end subroutine write_xdmf_res_scalar
+
 
 end module msnapshots
 

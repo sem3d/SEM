@@ -29,6 +29,7 @@ module sdomain
     use communication_object
     use semdatafiles
     use constants
+    use, intrinsic :: ISO_C_BINDING, only : C_PTR
 
     type :: domain
        ! Communicateur pour tous les processus SEM
@@ -55,6 +56,12 @@ module sdomain
        integer :: nCapt
        integer, dimension (:,:), pointer :: elems_capteurs, faces_capteurs
        integer, dimension (:),   pointer :: type_capteurs
+       integer, dimension(0:OUT_LAST) :: out_var_capt
+       integer, dimension(0:OUT_LAST) :: out_var_snap
+       integer                        :: nReqOut
+       integer                        :: traces_format
+       logical                        :: has_station
+       type(C_PTR)                    :: stations
 
 
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file, station_file, material_file

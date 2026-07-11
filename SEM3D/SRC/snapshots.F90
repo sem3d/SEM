@@ -237,6 +237,11 @@ contains
             call write_2d_var_vecn(outputs, parent_id, "accel", outputs%accel)
         end if
 
+        ! ROTATION
+        if (out_variables(OUT_ROTAT) == 1) then
+            call write_2d_var_vecn(outputs, parent_id, "rotat", outputs%rotat)
+        end if
+
 #ifdef CPML
 #ifdef DEBUG_CPML
 !        write(*,*) "R1X:", maxval(outputs%R1_x), shape(outputs%R1_x), outputs%nnodes
@@ -675,7 +680,8 @@ contains
             flag_gradU = (out_flags(OUT_ENERGYP)     + &
                           out_flags(OUT_ENERGYK)     + &
                           out_flags(OUT_DUDX)        + &
-                          out_flags(OUT_EPS_VOL)) /= 0
+                          out_flags(OUT_EPS_VOL)     + &
+                          out_flags(OUT_ROTAT)) /= 0
         else
             flag_gradU = (out_flags(OUT_PRESSION)    + &
                           out_flags(OUT_ENERGYP)     + &
@@ -684,12 +690,14 @@ contains
                           out_flags(OUT_EPS_VOL)     + &
                           out_flags(OUT_EPS_DEV)     + &
                           out_flags(OUT_STRESS_DEV)  + &
-                          out_flags(OUT_ENERGYD)   )/= 0
+                          out_flags(OUT_ENERGYD)     + &
+                          out_flags(OUT_ROTAT)   )/= 0
         endif
         ! sortie par noeud
         if (out_flags(OUT_DEPLA     ) == 1) allocate(outputs%displ(0:2,0:nnodes-1))
         if (out_flags(OUT_VITESSE   ) == 1) allocate(outputs%veloc(0:2,0:nnodes-1))
         if (out_flags(OUT_ACCEL     ) == 1) allocate(outputs%accel(0:2,0:nnodes-1))
+        if (out_flags(OUT_ROTAT     ) == 1) allocate(outputs%rotat(0:2,0:nnodes-1))
         if (out_flags(OUT_PRESSION  ) == 1) allocate(outputs%press_n(0:nnodes-1))
         if (out_flags(OUT_DUDX      ) == 1) allocate(outputs%dUdX(0:8,0:nnodes-1))
         ! sortie par element
@@ -705,6 +713,7 @@ contains
         if (out_flags(OUT_DEPLA     ) == 1) outputs%displ      = 0.
         if (out_flags(OUT_VITESSE   ) == 1) outputs%veloc      = 0.
         if (out_flags(OUT_ACCEL     ) == 1) outputs%accel      = 0.
+        if (out_flags(OUT_ROTAT     ) == 1) outputs%rotat      = 0.
         if (out_flags(OUT_ENERGYP   ) == 1) outputs%P_energy   = 0.
         if (out_flags(OUT_ENERGYK   ) == 1) outputs%K_energy   = 0.
         if (out_flags(OUT_DUDX      ) == 1) outputs%dUdX       = 0.
@@ -759,6 +768,7 @@ contains
         if (out_flags(OUT_DEPLA     ) == 1) deallocate(fields%displ)
         if (out_flags(OUT_VITESSE   ) == 1) deallocate(fields%veloc)
         if (out_flags(OUT_ACCEL     ) == 1) deallocate(fields%accel)
+        if (out_flags(OUT_ROTAT     ) == 1) deallocate(fields%rotat)
         if (out_flags(OUT_ENERGYP   ) == 1) deallocate(fields%P_energy)
         if (out_flags(OUT_ENERGYK   ) == 1) deallocate(fields%K_energy)
         if (out_flags(OUT_DUDX      ) == 1) deallocate(fields%dUdX)
@@ -921,6 +931,7 @@ contains
         logical :: nl_flag
 
         integer :: cell_start
+        real(fpp), dimension(:,:,:,:), allocatable :: rotat_elem
 
         nl_flag=Tdomain%nl_flag
         nnodes = outputs%nnodes
@@ -957,12 +968,14 @@ contains
                     deallocate(fieldP,fieldU,fieldV,fieldA)
                     deallocate(eps_vol,eps_dev,sig_dev,dUdX)
                     deallocate(P_energy,K_energy,D_energy)
+                    deallocate(rotat_elem)
                 endif
                 allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                 allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                 allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                 allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
+                allocate(rotat_elem(0:2,0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                 allocate(K_energy(0:ngll-1,0:ngll-1,0:ngll-1))
@@ -1007,6 +1020,20 @@ contains
 
             bnum = el%lnum/VCHUNK
             ee = mod(el%lnum,VCHUNK)
+            if (out_variables(OUT_ROTAT) == 1) then
+                select case(domain_type)
+                    case (DM_SOLID_CG)
+                        call compute_element_curl(ngll, Tdomain%sdom%hprime, Tdomain%sdom%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                    case (DM_FLUID_CG)
+                        call compute_element_curl(ngll, Tdomain%fdom%hprime, Tdomain%fdom%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                    case (DM_SOLID_CG_PML)
+                        call compute_element_curl(ngll, Tdomain%spmldom%hprime, Tdomain%spmldom%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                    case (DM_FLUID_CG_PML)
+                        call compute_element_curl(ngll, Tdomain%fpmldom%hprime, Tdomain%fpmldom%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                    case (DM_SOLID_DG)
+                        call compute_element_curl(ngll, Tdomain%sdomdg%hprime, Tdomain%sdomdg%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                end select
+            endif
             allocate(jac(0:ngll-1,0:ngll-1,0:ngll-1))
             jac (:,:,:) = 0.0d0
             do k = 0, ngll-1
@@ -1033,6 +1060,9 @@ contains
                         if (out_variables(OUT_DEPLA)    == 1) outputs%displ(0:2,ind) = fieldU(i,j,k,0:2)
                         if (out_variables(OUT_VITESSE)  == 1) outputs%veloc(0:2,ind) = fieldV(i,j,k,0:2)
                         if (out_variables(OUT_ACCEL)    == 1) outputs%accel(0:2,ind) = fieldA(i,j,k,0:2)
+                        if (out_variables(OUT_ROTAT)    == 1) then
+                            outputs%rotat(0:2,ind) = rotat_elem(0:2,i,j,k)
+                        endif
                         if (out_variables(OUT_PRESSION) == 1) outputs%press_n(ind)   = fieldP(i,j,k)
                         if (out_variables(OUT_DUDX) == 1) outputs%dUdX(0:8,ind) = dUdX(i,j,k,0:8)
 !                       ajout dUdX
@@ -1089,6 +1119,7 @@ contains
             deallocate(fieldP,fieldU,fieldV,fieldA)
             deallocate(eps_vol,eps_dev,sig_dev,dUdX)
             deallocate(P_energy,K_energy,D_energy)
+            deallocate(rotat_elem)
         endif
 
         if (outputs%rank==0) then
@@ -1247,6 +1278,7 @@ contains
             if (out_variables(OUT_DEPLA)    == 1) call write_xdmf_attr_vector_nodes("Displ",      nn, i, group, "displ"     )
             if (out_variables(OUT_VITESSE)  == 1) call write_xdmf_attr_vector_nodes("Veloc",      nn, i, group, "veloc"     )
             if (out_variables(OUT_ACCEL)    == 1) call write_xdmf_attr_vector_nodes("Accel",      nn, i, group, "accel"     )
+            if (out_variables(OUT_ROTAT)    == 1) call write_xdmf_attr_vector_nodes("Rotat",      nn, i, group, "rotat"     )
             if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_nodes("Press_gll",  nn, i, group, "press_gll" )
             if (out_variables(OUT_PRESSION) == 1) call write_xdmf_attr_scalar_cells("Press_elem", ne, i, group, "press_elem")
             if (out_variables(OUT_EPS_VOL)  == 1) call write_xdmf_attr_scalar_cells("eps_vol",    ne, i, group, "eps_vol"   )
@@ -2156,6 +2188,28 @@ contains
 #endif
 
     end subroutine write_constant_fields
+
+    subroutine compute_element_curl(ngll, hprime, InvGrad, fieldV, rotat_elem)
+        use deriv3d, only : physical_part_deriv
+        implicit none
+        integer, intent(in) :: ngll
+        real(fpp), dimension(0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: fieldV
+        real(fpp), dimension(0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: rotat_elem
+
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dVx_dx, dVx_dy, dVx_dz
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dVy_dx, dVy_dy, dVy_dz
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dVz_dx, dVz_dy, dVz_dz
+
+        call physical_part_deriv(ngll, hprime, InvGrad, fieldV(:,:,:,0), dVx_dx, dVx_dy, dVx_dz)
+        call physical_part_deriv(ngll, hprime, InvGrad, fieldV(:,:,:,1), dVy_dx, dVy_dy, dVy_dz)
+        call physical_part_deriv(ngll, hprime, InvGrad, fieldV(:,:,:,2), dVz_dx, dVz_dy, dVz_dz)
+
+        rotat_elem(0,:,:,:) = dVz_dy - dVy_dz
+        rotat_elem(1,:,:,:) = dVx_dz - dVz_dx
+        rotat_elem(2,:,:,:) = dVy_dx - dVx_dy
+    end subroutine compute_element_curl
 
 end module msnapshots
 

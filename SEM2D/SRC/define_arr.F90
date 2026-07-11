@@ -458,8 +458,9 @@ subroutine define_arrays(Tdomain)
     ! Communications for PML
     if (Tdomain%any_PML) then
         do i_proc = 0, Tdomain%n_communications - 1
-            allocate (Tdomain%sWall(i_proc)%Send_data_2(0:Tdomain%sWall(i_proc)%n_points_pml-1,0:1))
-            allocate (Tdomain%sWall(i_proc)%Receive_data_2(0:Tdomain%sWall(i_proc)%n_points_pml-1,0:1))
+            ! buffer = PML faces (DumpMass, ngll-2 rows each) + PML vertices (DumpMass, 1 row each)
+            allocate (Tdomain%sWall(i_proc)%Send_data_2(0:Tdomain%sWall(i_proc)%n_points_pml+Tdomain%sWall(i_proc)%n_pml_vertices-1,0:1))
+            allocate (Tdomain%sWall(i_proc)%Receive_data_2(0:Tdomain%sWall(i_proc)%n_points_pml+Tdomain%sWall(i_proc)%n_pml_vertices-1,0:1))
             Tdomain%sWall(i_proc)%Send_data_2 = 0;Tdomain%sWall(i_proc)%Receive_data_2 = 0
             i_send = Tdomain%Communication_list (i_proc)
             i_stock = 0
@@ -475,13 +476,19 @@ subroutine define_arrays(Tdomain)
                 endif
                 i_stock = i_stock + ngll - 2
             enddo
+            ! PML vertices: split DumpMass(0:1)
+            do nf = 0, Tdomain%sWall(i_proc)%n_pml_vertices - 1
+                nv_aus = Tdomain%sWall(i_proc)%VertexPML_List(nf)
+                Tdomain%sWall(i_proc)%Send_data_2(i_stock,0:1) = Tdomain%sVertex(nv_aus)%DumpMass(0:1)
+                i_stock = i_stock + 1
+            enddo
 
             tag_send = i_send * Tdomain%MPI_var%n_proc +Tdomain%MPI_var%my_rank + 600
             tag_receive = Tdomain%MPI_var%my_rank * Tdomain%MPI_var%n_proc + i_send + 600
-            if (Tdomain%sWall(i_proc)%n_points_pml > 0) then
-                call MPI_SEND (Tdomain%sWall(i_proc)%Send_data_2,2*Tdomain%sWall(i_proc)%n_points_pml, &
+            if (Tdomain%sWall(i_proc)%n_points_pml + Tdomain%sWall(i_proc)%n_pml_vertices > 0) then
+                call MPI_SEND (Tdomain%sWall(i_proc)%Send_data_2,2*(Tdomain%sWall(i_proc)%n_points_pml+Tdomain%sWall(i_proc)%n_pml_vertices), &
                     MPI_DOUBLE_PRECISION, i_send, tag_send, Tdomain%communicateur, ierr )
-                call MPI_RECV (Tdomain%sWall(i_proc)%Receive_data_2, 2*Tdomain%sWall(i_proc)%n_points_pml, &
+                call MPI_RECV (Tdomain%sWall(i_proc)%Receive_data_2, 2*(Tdomain%sWall(i_proc)%n_points_pml+Tdomain%sWall(i_proc)%n_pml_vertices), &
                     MPI_DOUBLE_PRECISION, i_send, tag_receive, Tdomain%communicateur, status, ierr )
             endif
 
@@ -499,6 +506,13 @@ subroutine define_arrays(Tdomain)
                     enddo
                 endif
                 i_stock = i_stock + ngll - 2
+            enddo
+            ! PML vertices: sum the split DumpMass across ranks (before DumpVx/DumpVz below)
+            do nf = 0, Tdomain%sWall(i_proc)%n_pml_vertices - 1
+                nv_aus = Tdomain%sWall(i_proc)%VertexPML_List(nf)
+                Tdomain%sVertex(nv_aus)%DumpMass(0:1) = Tdomain%sVertex(nv_aus)%DumpMass(0:1) + &
+                    Tdomain%sWall(i_proc)%Receive_data_2(i_stock,0:1)
+                i_stock = i_stock + 1
             enddo
             deallocate (Tdomain%sWall(i_proc)%Send_data_2)
             deallocate (Tdomain%sWall(i_proc)%Receive_data_2)
@@ -676,7 +690,8 @@ subroutine define_arrays(Tdomain)
     do i_proc = 0, Tdomain%n_communications-1
         nv_aus = Tdomain%sWall(i_proc)%n_points
         if (Tdomain%any_PML) then
-            nv_aus = nv_aus + 2*Tdomain%sWall(i_proc)%n_points_pml
+            ! + PML faces (Forces1+Forces2, 2*(ngll-2) each) + PML vertices (Forces1+Forces2, 2 each)
+            nv_aus = nv_aus + 2*Tdomain%sWall(i_proc)%n_points_pml + 2*Tdomain%sWall(i_proc)%n_pml_vertices
         endif
         ! Modif of the dimensions of the following arrays by S. Terrana the 22/11/2013
         allocate (Tdomain%sWall(i_proc)%Send_data_2(0:nv_aus-1,0:4))

@@ -499,12 +499,13 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, K_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: D_energy
         real(fpp), dimension(:,:,:,:), allocatable :: dUdX
+        real(fpp), dimension(:,:,:,:), allocatable :: rotat_elem
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real(fpp), dimension(:), allocatable :: GLLc
         logical :: nl_flag
-        integer :: nComp
+        integer :: nComp, bnum, ee
 
         ! Verification : le capteur est il gere par le proc. ?
 
@@ -526,6 +527,7 @@ contains
         allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         ! tot energy 5
         allocate(dUdX(0:ngll-1,0:ngll-1,0:ngll-1,0:8))
+        allocate(rotat_elem(0:2,0:ngll-1,0:ngll-1,0:ngll-1))
         allocate(eps_dev_pl(0:ngll-1,0:ngll-1,0:ngll-1,0:6))
         allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
         allocate(outx(0:ngll-1))
@@ -559,6 +561,9 @@ contains
             end if
         end do
 
+        bnum = Tdomain%specel(n_el)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n_el)%lnum,VCHUNK)
+
         ! On recupere les variables de l'element associe au capteur.
         select case(Tdomain%specel(n_el)%domain)
             case (DM_SOLID_DG)
@@ -581,6 +586,21 @@ contains
             case default
               stop "unknown domain"
         end select
+
+        if (out_variables(OUT_ROTAT) == 1) then
+            select case(Tdomain%specel(n_el)%domain)
+                case (DM_SOLID_CG)
+                    call compute_element_curl(ngll, Tdomain%sdom%hprime, Tdomain%sdom%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                case (DM_FLUID_CG)
+                    call compute_element_curl(ngll, Tdomain%fdom%hprime, Tdomain%fdom%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                case (DM_SOLID_CG_PML)
+                    call compute_element_curl(ngll, Tdomain%spmldom%hprime, Tdomain%spmldom%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                case (DM_FLUID_CG_PML)
+                    call compute_element_curl(ngll, Tdomain%fpmldom%hprime, Tdomain%fpmldom%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+                case (DM_SOLID_DG)
+                    call compute_element_curl(ngll, Tdomain%sdomdg%hprime, Tdomain%sdomdg%InvGrad_(:,:,:,:,:,bnum,ee), fieldV, rotat_elem)
+            end select
+        endif
 
         ! On interpole le DOF a la position du capteur.
 
@@ -667,6 +687,13 @@ contains
                         grandeur(ioff:ioff+nComp) = grandeur (ioff:ioff+nComp) + weight*D_energy(i,j,k,:)
                     end if
 
+                    if (out_variables(OUT_ROTAT) == 1) then
+                        ioff = offset(OUT_ROTAT)
+                        grandeur(ioff)   = grandeur(ioff)   + weight*rotat_elem(0,i,j,k)
+                        grandeur(ioff+1) = grandeur(ioff+1) + weight*rotat_elem(1,i,j,k)
+                        grandeur(ioff+2) = grandeur(ioff+2) + weight*rotat_elem(2,i,j,k)
+                    end if
+
                 enddo
             enddo
         enddo
@@ -692,6 +719,7 @@ contains
         deallocate(sig_dev)
         deallocate(grandeur)
         deallocate(dUdX)
+        deallocate(rotat_elem)
         deallocate(outx)
         deallocate(outy)
         deallocate(outz)
@@ -911,6 +939,28 @@ contains
         n_el = emin
         return
     end subroutine trouve_capteur
+
+    subroutine compute_element_curl(ngll, hprime, InvGrad, fieldV, rotat_elem)
+        use deriv3d, only : physical_part_deriv
+        implicit none
+        integer, intent(in) :: ngll
+        real(fpp), dimension(0:ngll-1), intent(in) :: hprime
+        real(fpp), dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: fieldV
+        real(fpp), dimension(0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: rotat_elem
+
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dVx_dx, dVx_dy, dVx_dz
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dVy_dx, dVy_dy, dVy_dz
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dVz_dx, dVz_dy, dVz_dz
+
+        call physical_part_deriv(ngll, hprime, InvGrad, fieldV(:,:,:,0), dVx_dx, dVx_dy, dVx_dz)
+        call physical_part_deriv(ngll, hprime, InvGrad, fieldV(:,:,:,1), dVy_dx, dVy_dy, dVy_dz)
+        call physical_part_deriv(ngll, hprime, InvGrad, fieldV(:,:,:,2), dVz_dx, dVz_dy, dVz_dz)
+
+        rotat_elem(0,:,:,:) = dVz_dy - dVy_dz
+        rotat_elem(1,:,:,:) = dVx_dz - dVz_dx
+        rotat_elem(2,:,:,:) = dVy_dx - dVx_dy
+    end subroutine compute_element_curl
 
 end module Mcapteur
 

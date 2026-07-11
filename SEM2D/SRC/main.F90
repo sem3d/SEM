@@ -31,7 +31,7 @@ end program main
 
 subroutine  sem()
     use sdomain
-    !use mCapteur
+    use mCapteur
     use semdatafiles
     use mpi
     use msnapshots
@@ -141,6 +141,8 @@ subroutine  sem()
     ! initialisation des temps
     Tdomain%TimeD%rtime = 0
     Tdomain%TimeD%NtimeMin = 0
+
+    call create_capteurs (Tdomain)
     ! Nombre d'iterations pour schemas en temps iteratifs
     if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT) then
         n_it_max = 0
@@ -268,6 +270,8 @@ subroutine  sem()
         ! sauvegarde des vitesses
         if (Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime)
 
+        if (Tdomain%has_station) call save_capteur(Tdomain, ntime)
+
 
         if (i_snap==0) then
             isort=isort+1  ! a faire avant le save_checkpoint
@@ -290,6 +294,8 @@ subroutine  sem()
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! FIN BOUCLE DE CALCUL EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    if (Tdomain%has_station) call flushAllCapteurs(Tdomain)
 
     call END_SEM(Tdomain, ntime)
     call MPI_Finalize  (ierr)
