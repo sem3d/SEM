@@ -259,6 +259,7 @@ contains
 
     subroutine create_traces_h5_skel(Tdomain)
         use HDF5
+        use sem_git_version, only : SEM_GIT_HASH, SEM_GIT_DIRTY
         implicit none
         type (domain), intent(inout) :: TDomain
         type(tCapteur),pointer :: capteur
@@ -271,6 +272,9 @@ contains
 
         call semname_tracefile_h5(Tdomain%Mpi_var%my_rank, fnamef)
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
+        call write_attr_string(fid, "Code", "SEM2D")
+        call write_attr_string(fid, "GitHash", SEM_GIT_HASH)
+        call write_attr_string(fid, "GitStatus", SEM_GIT_DIRTY)
         call create_capteur_descriptions(Tdomain, fid)
 
         n_out = Tdomain%nReqOut+1

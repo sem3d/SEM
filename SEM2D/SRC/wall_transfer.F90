@@ -53,6 +53,10 @@ subroutine wall_transfer (Tdomain)
             if (.not. allocated(Tdomain%sVertex(nf)%Double_Value)) then
                 allocate (Tdomain%sVertex(nf)%Double_Value(0:1))
             end if
+            if (.not. allocated(Tdomain%sVertex(nf)%Double_Value1)) then
+                allocate (Tdomain%sVertex(nf)%Double_Value1(0:1))
+                allocate (Tdomain%sVertex(nf)%Double_Value2(0:1))
+            end if
         enddo
     enddo
 

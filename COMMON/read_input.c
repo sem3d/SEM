@@ -241,6 +241,7 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         else if (cmp(scanner,"gradla")) err=expect_eq_int(scanner, &(config->out_variables[12]),1);
         else if (cmp(scanner,"gradmu")) err=expect_eq_int(scanner, &(config->out_variables[13]),1);
         else if (cmp(scanner,"enD")) err=expect_eq_int(scanner, &(config->out_variables[14]),1);
+        else if (cmp(scanner,"rot")) err=expect_eq_int(scanner, &(config->out_variables[15]),1);
 
         if (err<=0) return 0;
         if (!expect_eos(scanner)) { return 0; }
@@ -936,6 +937,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[12] = 0; // Grad Lambda
     cfg->out_variables[13] = 0; // Grad Mu
     cfg->out_variables[14] = 0; // Energy decomposed
+    cfg->out_variables[15] = 0; // Rotat
 
     cfg->nl_flag = 0; // calcul nonlineaire
 
@@ -989,12 +991,13 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
+    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
            cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
            cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
            cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8],\
            cfg->out_variables[9], cfg->out_variables[10],cfg->out_variables[11],\
-           cfg->out_variables[12],cfg->out_variables[13],cfg->out_variables[14]);
+           cfg->out_variables[12],cfg->out_variables[13],cfg->out_variables[14],\
+           cfg->out_variables[15]);
     printf("Nonlinear analysis : %d\n",cfg->nl_flag);
     printf("Mirror : use %d\n", cfg->use_mirror);
     if (cfg->use_mirror) {

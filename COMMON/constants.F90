@@ -130,7 +130,8 @@ MODULE constants
     integer, parameter :: OUT_GRAD_LA      = 12
     integer, parameter :: OUT_GRAD_MU      = 13
     integer, parameter :: OUT_ENERGYD      = 14
-    integer, parameter :: OUT_LAST=14  ! Numero de la derniere variable
+    integer, parameter :: OUT_ROTAT        = 15
+    integer, parameter :: OUT_LAST=15  ! Numero de la derniere variable
     character(len=10), dimension(0:OUT_LAST) :: OUT_VAR_NAMES = (/ &
         "EnergyP   ", &
         "EnergyK   ", &
@@ -146,8 +147,11 @@ MODULE constants
         "DUDX      ", &
         "GradLambda", &
         "GradMu    ", &
-        "EnergyD   " /)
-    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9, 3, 3, 3 /)
+        "EnergyD   ", &
+        "Rotat     " /)
+    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6, 5, 6, 9, 3, 3, 3, 3 /)
+    integer, parameter, dimension(0:OUT_LAST) :: OUT_VAR_DIMS_2D = (/ 1, 1, 1, 2, 2, 2, 1, 3, 3, 5, 3, 4, 2, 2, 3, 1 /)
+
 
     integer, parameter :: CPT_INTERP = 0
     integer, parameter :: CPT_ENERGY = 1

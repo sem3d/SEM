@@ -579,18 +579,6 @@ contains
     end subroutine semname_xdmf_master
 
 
-!--------- Fichiers log/debug ---------------------
-    !! Nom du fichier contenant le nombre de processeurs ayant genere une sortie
-    subroutine semname_nb_proc(isort,fnamef)
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        integer, intent(in) :: isort
-        character(Len=MAX_FILE_SIZE) :: temp
-        call semname_snap_result_dir(isort, temp)
-        fnamef = pjoin(temp, "Nb_proc")
-    end subroutine semname_nb_proc
-
-
     !!fichier unv 2d 3d
     subroutine semname_unv_fichier (fichier,fnamef)
         !SEMFILE ? sunv%fileId R XXX

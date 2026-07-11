@@ -457,6 +457,14 @@ subroutine define_arrays(Tdomain)
 
     ! Communications for PML
     if (Tdomain%any_PML) then
+        ! Snapshot PML-vertex DumpMass before the wall loop (corner vertices sit on 2+ walls;
+        ! sending the live value would re-send neighbour contributions already accumulated).
+        do i_proc = 0, Tdomain%n_communications - 1
+            do nf = 0, Tdomain%sWall(i_proc)%n_pml_vertices - 1
+                nv_aus = Tdomain%sWall(i_proc)%VertexPML_List(nf)
+                Tdomain%sVertex(nv_aus)%Double_Value1(0:1) = Tdomain%sVertex(nv_aus)%DumpMass(0:1)
+            enddo
+        enddo
         do i_proc = 0, Tdomain%n_communications - 1
             ! buffer = PML faces (DumpMass, ngll-2 rows each) + PML vertices (DumpMass, 1 row each)
             allocate (Tdomain%sWall(i_proc)%Send_data_2(0:Tdomain%sWall(i_proc)%n_points_pml+Tdomain%sWall(i_proc)%n_pml_vertices-1,0:1))
@@ -479,7 +487,7 @@ subroutine define_arrays(Tdomain)
             ! PML vertices: split DumpMass(0:1)
             do nf = 0, Tdomain%sWall(i_proc)%n_pml_vertices - 1
                 nv_aus = Tdomain%sWall(i_proc)%VertexPML_List(nf)
-                Tdomain%sWall(i_proc)%Send_data_2(i_stock,0:1) = Tdomain%sVertex(nv_aus)%DumpMass(0:1)
+                Tdomain%sWall(i_proc)%Send_data_2(i_stock,0:1) = Tdomain%sVertex(nv_aus)%Double_Value1(0:1)
                 i_stock = i_stock + 1
             enddo
 

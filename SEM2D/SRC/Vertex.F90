@@ -26,6 +26,9 @@ module svertices
        real(fpp), dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
        real(fpp), dimension (:), allocatable :: Displ, Veloc, Forces, Accel, V0
        real(fpp), dimension (:), allocatable :: Double_Value
+       ! Pre-exchange snapshots of split-field values (DumpMass in setup, Forces1/Forces2 in
+       ! the time loop) so corner vertices shared by 3+ ranks are not double-counted across walls.
+       real(fpp), dimension (:), allocatable :: Double_Value1, Double_Value2
        integer :: Iglobnum_Vertex
 
 #ifdef MKA3D

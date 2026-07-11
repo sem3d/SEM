@@ -79,7 +79,26 @@ message(STATUS "${CMAKE_CXX_FLAGS}")
 
 set(SEMCOMMON ${SEMDIR}/COMMON)
 
+# Git hash + dirty status baked into the binary at build time (see
+# COMMON/GenerateGitVersion.cmake), so results are traceable back to the exact code that
+# produced them even when the executable is run from outside the repo. Depending on
+# .git/HEAD and .git/index makes this re-run on every build after a commit/checkout, not
+# only at cmake-configure time.
+set(SEM_GIT_VERSION_SRC ${PROJECT_BINARY_DIR}/sem_git_version.F90)
+set(SEM_GIT_VERSION_DEPS ${SEMCOMMON}/sem_git_version.F90.in ${SEMCOMMON}/GenerateGitVersion.cmake)
+if(EXISTS ${SEMDIR}/.git)
+  list(APPEND SEM_GIT_VERSION_DEPS ${SEMDIR}/.git/HEAD ${SEMDIR}/.git/index)
+endif()
+add_custom_command(
+  OUTPUT ${SEM_GIT_VERSION_SRC}
+  COMMAND ${CMAKE_COMMAND} -DSEMDIR=${SEMDIR} -DSEMCOMMON=${SEMCOMMON} -DDST=${SEM_GIT_VERSION_SRC}
+          -P ${SEMCOMMON}/GenerateGitVersion.cmake
+  DEPENDS ${SEM_GIT_VERSION_DEPS}
+  COMMENT "Recording git hash into sem_git_version.F90"
+)
+
 set(SEM_SRC
+  ${SEM_GIT_VERSION_SRC}
   ${SEMCOMMON}/sem_c_bindings.F90
   ${SEMCOMMON}/semdatafiles.F90
   ${SEMCOMMON}/protrep.f90

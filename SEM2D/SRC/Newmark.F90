@@ -210,6 +210,13 @@ subroutine Newmark (Tdomain)
                 nv_aus = Tdomain%sWall(n)%Vertex_List(nv)
                 Tdomain%sVertex(nv_aus)%Double_Value(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1)
             enddo
+            ! Snapshot PML-vertex split forces (corner vertices sit on 2+ walls: sending the
+            ! live value would re-send neighbour contributions already accumulated).
+            do nv = 0, Tdomain%sWall(n)%n_pml_vertices-1
+                nv_aus = Tdomain%sWall(n)%VertexPML_List(nv)
+                Tdomain%sVertex(nv_aus)%Double_Value1(0:1) = Tdomain%sVertex(nv_aus)%Forces1(0:1)
+                Tdomain%sVertex(nv_aus)%Double_Value2(0:1) = Tdomain%sVertex(nv_aus)%Forces2(0:1)
+            enddo
         enddo
 
 
@@ -266,8 +273,8 @@ subroutine Newmark (Tdomain)
             ! PML vertices: split Forces1/Forces2 (no coherency; 1 row each)
             do nv = 0, Tdomain%sWall(i_proc)%n_pml_vertices - 1
                 nv_aus = Tdomain%sWall(i_proc)%VertexPML_List(nv)
-                Tdomain%sWall(i_proc)%Send_data_2(i_stock,0:1)   = Tdomain%sVertex(nv_aus)%Forces1(0:1)
-                Tdomain%sWall(i_proc)%Send_data_2(i_stock+1,0:1) = Tdomain%sVertex(nv_aus)%Forces2(0:1)
+                Tdomain%sWall(i_proc)%Send_data_2(i_stock,0:1)   = Tdomain%sVertex(nv_aus)%Double_Value1(0:1)
+                Tdomain%sWall(i_proc)%Send_data_2(i_stock+1,0:1) = Tdomain%sVertex(nv_aus)%Double_Value2(0:1)
                 i_stock = i_stock + 2
             enddo
 
@@ -547,9 +554,6 @@ subroutine Newmark (Tdomain)
         enddo
 
     endif   ! if Velocity Scheme
-
-
-
 
     return
 end subroutine Newmark
