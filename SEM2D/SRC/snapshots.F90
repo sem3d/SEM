@@ -304,8 +304,11 @@ contains
                     idx = irenum(Tdomain%specel(n)%Iglobnum(i,k))
                     valence(idx) = valence(idx)+1
                     displ(0:1,idx) = field_displ(i,k,:)
-                    veloc(0:1,idx) = veloc(:,idx)+field_veloc(i,k,:)
-                    accel(0:1,idx) = accel(:,idx)+field_accel(i,k,:)
+                    ! veloc/accel are allocated (0:2,:) (3-comp for the XDMF vector output) but
+                    ! field_veloc/accel are 2-comp -> use (0:1) on the RHS too (the 3rd comp
+                    ! stays 0). A flat veloc(:,idx) is a size-3 vs size-2 mismatch (-fcheck trap).
+                    veloc(0:1,idx) = veloc(0:1,idx)+field_veloc(i,k,:)
+                    accel(0:1,idx) = accel(0:1,idx)+field_accel(i,k,:)
                     rotat(idx) = rotat(idx)+field_rotat(i,k)
                 end do
             end do

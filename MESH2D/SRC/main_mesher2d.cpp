@@ -286,7 +286,12 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
                 int local_node_num = info.m_node_map[quad->get_node_id(k)];
                 if (local_node_num>=0) {
                     Comm_proc& comm = info.m_comm[m_procs[qn]];
-                    comm.m_vertices_map[quad->get_node_id(k)] = local_node_num;
+                    // Store the VERTEX index, not the local NODE index. For Quad4 they coincide,
+                    // but for Quad8 the node numbering includes mid-edge nodes while the vertex
+                    // numbering skips them (see m_vert_map comment) -> using the node index here
+                    // sends an out-of-range vertex id to the solver (wall_transfer). This loop
+                    // only reaches principal nodes, which are always in m_vert_map.
+                    comm.m_vertices_map[quad->get_node_id(k)] = info.m_vert_map[local_node_num];
                 }
                 // Check edges
                 edge_idx_t e = quad->get_edge_from_node(k);
@@ -403,11 +408,10 @@ void Mesh2D::check_cell_orient()
 
 void Mesh2D::partition_metis(int nproc)
 {
-    if (m_quads.size() > 0 && m_quads[0]->get_nb_nodes() == 8) {
-        printf("Error : not yet implemented\n");
-        exit(1);
-    }
-
+    // High-order (Quad8) partitions like Quad4: the METIS dual graph below uses only the 4
+    // principal (corner) nodes (is_intermediate_node -> skipped), and the per-proc build
+    // (gather_proc_info/write_proc_file) carries the mid-edge control nodes as geometry-only
+    // local nodes -- exactly the 3D Hexa27 pattern (meshpart.cpp). No special handling needed.
     idx_t options[METIS_NOPTIONS];
     idx_t ne = m_quads.size();
     idx_t nn = m_px.size();
@@ -986,6 +990,12 @@ struct PmlExtruder2D {
     vector<MatInfo2D> minfo;
     map<int,int> matcache;              // (base<<4|flags) -> material index
     map<pair<int,int>,int> newnode;     // (orig node, layer) -> new node id
+    // Quad8 (2nd-order) support: mid-edge nodes are placed at arithmetic midpoints (exact
+    // for a straight axis-aligned PML box) and deduplicated BY COORDINATE, so a mid-edge
+    // shared between two PML elements -- or with the interior element on the boundary edge
+    // -- becomes the same node (conforming mesh). Seeded with all existing mesh nodes.
+    map<pair<long long,long long>,int> coordmap;
+    double ctol;                        // coordinate rounding tolerance for dedup
 
     PmlExtruder2D(Mesh2D& m, vector<Material2D>& mt, const PmlSpec2D& s):mesh(m),mats(mt),spec(s) {
         minfo.resize(mats.size());
@@ -1043,15 +1053,13 @@ struct PmlExtruder2D {
         return idx;
     }
 
-    void emit_quad(int i0, int i1, int o0, int o1, int mat) {
-        int ids[4] = { i0, i1, o1, o0 };
-        // Canonicalize this axis-aligned extruded quad so the local xi-edge (n0->n1) runs
-        // along +x and the eta-edge (n0->n3) along +z -- matching RectMesh2D and the solver's
-        // PML setup, which computes dx=|x[n1]-x[n0]|, dz=|z[n3]-z[n0]| and divides by them in
-        // pow() (define_arr.F90). A raw extruded boundary edge is axis-aligned VERTICAL, so the
-        // naive order {i0,i1,o1,o0} + check_orient (CCW winding ONLY) leaves the xi-edge along z
-        // -> dx=0 -> 1/dx=Inf -> NaN across the whole PML. Slot by coordinate (same trick as the
-        // 3D emit_hex) to fix orientation, not just winding.
+    // Order the 4 corner node ids of an axis-aligned extruded quad into canonical SEM order:
+    // c[0]=(min x,min z), c[1]=(max x,min z), c[2]=(max x,max z), c[3]=(min x,max z) -- CCW,
+    // local xi-edge (c0->c1) along +x, eta-edge (c0->c3) along +z. Matches RectMesh2D and the
+    // solver's PML setup (define_arr.F90 computes dx=|x[c1]-x[c0]|, dz=|z[c3]-z[c0]| and divides
+    // by them in pow(); a raw extruded boundary edge is axis-vertical, so an un-canonicalized
+    // winding would give dx=0 -> 1/dx=Inf -> NaN). Same trick as the 3D emit_hex.
+    void canonical_corners(const int ids[4], int c[4]) {
         double xmn=mesh.m_px[ids[0]], xmx=xmn, zmn=mesh.m_py[ids[0]], zmx=zmn;
         for (int k=1;k<4;++k) {
             double x=mesh.m_px[ids[k]], z=mesh.m_py[ids[k]];
@@ -1059,14 +1067,56 @@ struct PmlExtruder2D {
         }
         double midx=0.5*(xmn+xmx), midz=0.5*(zmn+zmx);
         static const int slot_of[4]={0,1,3,2};   // (bx + 2*bz) -> CCW slot, xi along +x
-        int q[4]={-1,-1,-1,-1};
+        for (int k=0;k<4;++k) c[k]=-1;
         for (int k=0;k<4;++k) {
             int bx = mesh.m_px[ids[k]]>midx;
             int bz = mesh.m_py[ids[k]]>midz;
-            q[slot_of[bx + 2*bz]] = ids[k];
+            c[slot_of[bx + 2*bz]] = ids[k];
         }
-        for (int k=0;k<4;++k) if(q[k]<0){ printf("ERR: degenerate extruded PML quad (non axis-aligned corner)\n"); exit(1); }
-        Quad4* qd = new Quad4(q);
+        for (int k=0;k<4;++k) if(c[k]<0){ printf("ERR: degenerate extruded PML quad (non axis-aligned corner)\n"); exit(1); }
+    }
+
+    void emit_quad(int i0, int i1, int o0, int o1, int mat) {
+        int ids[4]={i0,i1,o1,o0}, c[4];
+        canonical_corners(ids, c);
+        Quad4* qd = new Quad4(c);
+        mesh.m_quads.push_back(qd);
+        mesh.m_mat1.push_back(mat);
+    }
+
+    // ---- Quad8 (2nd-order) mid-edge nodes, deduplicated by coordinate --------------------
+    pair<long long,long long> ckey(double x,double z) const {
+        return make_pair((long long)floor(x/ctol+0.5),(long long)floor(z/ctol+0.5));
+    }
+    // Seed the coord dedup map with every existing mesh node so extruded mid-edges coincide
+    // with the interior element's boundary mid-node (conforming interface).
+    void seed_coordmap() {
+        double lox=mesh.m_px[0],hix=lox,loz=mesh.m_py[0],hiz=loz;
+        for(size_t k=0;k<mesh.m_px.size();++k){
+            lox=min(lox,mesh.m_px[k]); hix=max(hix,mesh.m_px[k]);
+            loz=min(loz,mesh.m_py[k]); hiz=max(hiz,mesh.m_py[k]);
+        }
+        ctol=1e-6*max(hix-lox,hiz-loz); if(ctol<=0.) ctol=1e-9;
+        coordmap.clear();
+        for(size_t k=0;k<mesh.m_px.size();++k) coordmap[ckey(mesh.m_px[k],mesh.m_py[k])]=(int)k;
+    }
+    int coord_node(double x,double z){
+        pair<long long,long long> k=ckey(x,z);
+        map<pair<long long,long long>,int>::iterator it=coordmap.find(k);
+        if(it!=coordmap.end()) return it->second;
+        int id=mesh.m_px.size(); mesh.m_px.push_back(x); mesh.m_py.push_back(z); coordmap[k]=id;
+        return id;
+    }
+    int mid_node(int a,int b){ return coord_node(0.5*(mesh.m_px[a]+mesh.m_px[b]),0.5*(mesh.m_py[a]+mesh.m_py[b])); }
+
+    void emit_quad8(int i0, int i1, int o0, int o1, int mat) {
+        int ids[4]={i0,i1,o1,o0}, c[4];
+        canonical_corners(ids, c);
+        // Quad8 node order (serendipity, see shape8.F90): 4 corners CCW, then edge mid-nodes
+        // bottom(c0-c1), right(c1-c2), top(c2-c3), left(c3-c0). Straight box -> arithmetic mids.
+        int conn[8]={ c[0],c[1],c[2],c[3],
+                      mid_node(c[0],c[1]), mid_node(c[1],c[2]), mid_node(c[2],c[3]), mid_node(c[3],c[0]) };
+        Quad8* qd = new Quad8(conn);
         mesh.m_quads.push_back(qd);
         mesh.m_mat1.push_back(mat);
     }
@@ -1074,6 +1124,7 @@ struct PmlExtruder2D {
     void extrude_side(int side) {
         int nlay = spec.n[side];
         if (nlay<=0) return;
+        bool order8 = (!mesh.m_quads.empty() && mesh.m_quads[0]->get_nb_nodes()==8);
         int axis = (side==P2_XM||side==P2_XP) ? 0 : 1;
         double sgn = (side==P2_XM||side==P2_ZM) ? -1. : 1.;
         newnode.clear();
@@ -1095,7 +1146,8 @@ struct PmlExtruder2D {
         size_t nq0 = mesh.m_quads.size();
         for(size_t e=0;e<nq0;++e) {
             Quad* q=mesh.m_quads[e];
-            if (q->get_nb_nodes()!=4) { printf("ERR: 2D PML extrusion supports only Quad4\n"); exit(1); }
+            if (q->get_nb_nodes()!=4 && q->get_nb_nodes()!=8) {
+                printf("ERR: 2D PML extrusion supports only Quad4 or Quad8 (got %d nodes)\n", q->get_nb_nodes()); exit(1); }
             // element extent along axis
             double emin=coord(q->get_node_id(0),axis), emax=emin;
             for(int k=1;k<4;++k){ double c=coord(q->get_node_id(k),axis); if(c<emin)emin=c; if(c>emax)emax=c; }
@@ -1125,12 +1177,15 @@ struct PmlExtruder2D {
                 int i1=(l==1)?b:newpt(b,l-1,axis,delta);
                 int o0=newpt(a,l,axis,delta);
                 int o1=newpt(b,l,axis,delta);
-                emit_quad(i0,i1,o0,o1,mat);
+                if (order8) emit_quad8(i0,i1,o0,o1,mat); else emit_quad(i0,i1,o0,o1,mat);
             }
         }
     }
 
-    void run() { for(int s=0;s<P2_NSIDES;++s) extrude_side(s); }
+    void run() {
+        if (!mesh.m_quads.empty() && mesh.m_quads[0]->get_nb_nodes()==8) seed_coordmap();
+        for(int s=0;s<P2_NSIDES;++s) extrude_side(s);
+    }
 };
 
 static bool mats_have_pml_2d(const vector<Material2D>& mats)

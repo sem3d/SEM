@@ -106,6 +106,33 @@ private:
     double apow;
     // (original boundary node, layer) -> extruded node id
     map<pair<index_t,int>, index_t> newnode;
+    // Hexa27 (2nd-order) support: the 19 non-corner nodes (12 edges + 6 faces + 1 center) of an
+    // extruded hex are placed at min/mid/max coordinates (exact for a straight axis-aligned box)
+    // and deduplicated BY COORDINATE, so nodes shared between PML hexes -- or with the interior
+    // Hexa27 on the boundary face -- become the same node (conforming). Seeded with all existing
+    // mesh nodes. Corners keep the extruded_node ids (never go through this map).
+    struct C3 { long long x,y,z; bool operator<(const C3&o)const{ return x<o.x||(x==o.x&&(y<o.y||(y==o.y&&z<o.z))); } };
+    map<C3,index_t> coordmap;
+    double ctol;
+    C3 ckey(double x,double y,double z) const {
+        return C3{ (long long)floor(x/ctol+0.5),(long long)floor(y/ctol+0.5),(long long)floor(z/ctol+0.5) };
+    }
+    void seed_coordmap() {
+        double lo[3],hi[3];
+        for(int a=0;a<3;++a){ lo[a]=coord(0,a); hi[a]=lo[a]; }
+        for(size_t k=0;k<mesh.n_vertices();++k) for(int a=0;a<3;++a){
+            double c=coord((index_t)k,a); if(c<lo[a])lo[a]=c; if(c>hi[a])hi[a]=c; }
+        ctol=1e-6*std::max(hi[0]-lo[0],std::max(hi[1]-lo[1],hi[2]-lo[2])); if(ctol<=0.) ctol=1e-9;
+        coordmap.clear();
+        for(size_t k=0;k<mesh.n_vertices();++k)
+            coordmap[ckey(coord((index_t)k,0),coord((index_t)k,1),coord((index_t)k,2))]=(index_t)k;
+    }
+    index_t coord_node(double x,double y,double z){
+        C3 k=ckey(x,y,z); map<C3,index_t>::iterator it=coordmap.find(k);
+        if(it!=coordmap.end()) return it->second;
+        index_t id=mesh.add_node(x,y,z); coordmap[k]=id; return id;
+    }
+    void emit_hex27(const index_t nodes8[8], int mat);
 
     double coord(index_t node, int axis) const {
         if (axis==0) return mesh.m_xco[node];
@@ -225,14 +252,52 @@ void PmlExtruder::emit_hex(const index_t nodes8[8], int mat)
     mesh.add_elem(mat, el);
 }
 
+// Emit a 27-node hex from the 8 extruded corners: reuse the corners (SEM slots 0-7) and
+// generate the 12 edge-mids + 6 face-centers + 1 body-center at their min/mid/max positions,
+// deduplicated by coordinate (conforming). SIG27[k] = (sx,sy,sz) in {0=min,1=mid,2=max},
+// matching the SEM Hexa27 node order decoded from shape27.F90 (shape27_func).
+void PmlExtruder::emit_hex27(const index_t nodes8[8], int mat)
+{
+    static const int SIG27[27][3] = {
+        {0,0,0},{2,0,0},{2,2,0},{0,2,0},{0,0,2},{2,0,2},{2,2,2},{0,2,2},         // 0-7 corners
+        {1,0,0},{2,1,0},{1,2,0},{0,1,0},{0,0,1},{2,0,1},{2,2,1},{0,2,1},         // 8-15 edges
+        {1,0,2},{2,1,2},{1,2,2},{0,1,2},                                        // 16-19 edges
+        {1,1,0},{1,0,1},{2,1,1},{1,2,1},{0,1,1},{1,1,2},                        // 20-25 faces
+        {1,1,1}                                                                 // 26 center
+    };
+    double mn[3], mx[3];
+    for(int a=0;a<3;++a) { mn[a]=coord(nodes8[0],a); mx[a]=mn[a]; }
+    for(int i=1;i<8;++i) for(int a=0;a<3;++a) {
+        double c=coord(nodes8[i],a); if(c<mn[a])mn[a]=c; if(c>mx[a])mx[a]=c;
+    }
+    double mid[3]; for(int a=0;a<3;++a) mid[a]=0.5*(mn[a]+mx[a]);
+    // canonical corners (SEM order 0-7) -- reuse the extruded node ids (never re-dedup)
+    static const int slot_of[8] = {0,1,3,2,4,5,7,6};
+    index_t corner[8]; for(int k=0;k<8;++k) corner[k]=-1;
+    for(int i=0;i<8;++i) {
+        int bx=coord(nodes8[i],0)>mid[0], by=coord(nodes8[i],1)>mid[1], bz=coord(nodes8[i],2)>mid[2];
+        corner[slot_of[bx | (by<<1) | (bz<<2)]] = nodes8[i];
+    }
+    for(int k=0;k<8;++k) if(corner[k]<0){ printf("ERR: degenerate extruded hex27 corner\n"); exit(1); }
+    double v3[3][3];
+    for(int a=0;a<3;++a){ v3[a][0]=mn[a]; v3[a][1]=mid[a]; v3[a][2]=mx[a]; }
+    Elem el(27);
+    for(int k=0;k<27;++k) {
+        if (k<8) el.v[k]=corner[k];
+        else el.v[k]=coord_node(v3[0][SIG27[k][0]], v3[1][SIG27[k][1]], v3[2][SIG27[k][2]]);
+    }
+    mesh.add_elem(mat, el);
+}
+
 void PmlExtruder::extrude_side(int side, int n, double step_override, double ratio)
 {
     if (n<=0) return;
-    if (mesh.nodes_per_elem()!=8) {
-        printf("ERR: PML extrusion only supports 8-node hexahedra (got %d control nodes)\n",
+    if (mesh.nodes_per_elem()!=8 && mesh.nodes_per_elem()!=27) {
+        printf("ERR: PML extrusion supports only 8- or 27-node hexahedra (got %d control nodes)\n",
                mesh.nodes_per_elem());
         exit(1);
     }
+    bool order27 = (mesh.nodes_per_elem()==27);
     int axis = SIDE_GEOM[side].axis;
     double sgn = SIDE_GEOM[side].sign;
     newnode.clear(); // extruded nodes are per-side (a (node,layer) key means a
@@ -307,7 +372,7 @@ void PmlExtruder::extrude_side(int side, int n, double step_override, double rat
                 nodes8[k]   = (l==1) ? bf.f[k] : extruded_node(bf.f[k], l-1, axis, sgn*off[l-1]);
                 nodes8[k+4] = extruded_node(bf.f[k], l, axis, sgn*off[l]);
             }
-            emit_hex(nodes8, mat);
+            if (order27) emit_hex27(nodes8, mat); else emit_hex(nodes8, mat);
         }
     }
 }
@@ -318,6 +383,7 @@ void PmlExtruder::run(const PmlSpec& spec)
 {
     npow = spec.npow;
     apow = pml_apow_from_rc(npow, spec.Rc);
+    if (mesh.nodes_per_elem()==27) seed_coordmap();
     for(int side=0; side<PML_NSIDES; ++side) {
         extrude_side(side, spec.n[side], spec.step[side], spec.ratio[side]);
     }

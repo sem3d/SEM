@@ -255,7 +255,12 @@ subroutine allocate_domain (Tdomain)
      ! Putting a flag for Continuous-Discontinuous interface :
      i = Tdomain%sFace(n)%Near_Element(0)
      j = Tdomain%sFace(n)%Near_Element(1)
-     if ( (j.NE.-1) .AND. (Tdomain%specel(i)%type_DG .NE. Tdomain%specel(j)%type_DG)) then
+     ! Nested guard: Fortran .AND. does NOT short-circuit, so a flat
+     ! "(j/=-1) .and. (specel(i)..specel(j)..)" evaluates specel(j) even when j==-1
+     ! (boundary / cross-proc faces) -> specel(-1) out-of-bounds. Harmless garbage read in
+     ! -O (discarded by the .and.), but a real fault under -fcheck. i is always valid.
+     if (j.NE.-1) then
+      if (Tdomain%specel(i)%type_DG .NE. Tdomain%specel(j)%type_DG) then
         write(*,*) "Changing CG-HDG for face : ",n
         deallocate(Tdomain%sFace(n)%Veloc,Tdomain%sFace(n)%Forces)
         allocate(Tdomain%sFace(n)%Veloc (0:ngll-1,0:1))
@@ -280,6 +285,7 @@ subroutine allocate_domain (Tdomain)
         !allocate(Tdomain%sFace(n)%Coeff_Integr(0:ngll-1))
         !call get_iminimax(Tdomain%specel(j),i,imin,imax)
         !Tdomain%sFace(n)%Coeff_Integr(:) = Tdomain%specel(j)%Coeff_Integr_Faces(imin:imax)
+      endif
      endif
   enddo
 
