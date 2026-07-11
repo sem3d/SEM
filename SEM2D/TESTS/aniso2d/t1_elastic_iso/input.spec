@@ -56,4 +56,15 @@ capteurs "UU" {
 out_variables {
     dis = 1;
     vel = 1;
+    acc = 1;
+    pre = 1;
+    enP = 1;
+    enK = 1;
+    evol = 1;
+    edev = 1;
+    sdev = 1;
+    dudx = 1;
+    enD = 1;
+    eTotal = 1;
+    rot = 1;
 };
