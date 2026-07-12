@@ -23,13 +23,20 @@
 !! BtN = unit normal OUTWARD FROM THE FLUID * line-Jacobian * 1D GLL weight (mirror of
 !! SEM3D SF_BtN orientation), covering face-interior nodes AND endpoint vertices.
 !!
-!! Limits: single MPI rank (interface must lie on one rank); CG non-PML interfaces.
+!! MPI: bit-exact on any number of ranks. The mesher keeps the S-F interface off partition
+!! cuts (heavy solid<->fluid edge weight), so only interface VERTICES at cut crossings are
+!! cross-rank. (B.5) sf_augment_walls puts the fluid vertex copy in the comm walls (mass +
+!! Forces summed by the standard exchanges); sf_exchange_ftos sums the post-exchange FtoS
+!! force delta at shared interface solid vertices. Validated np1==np4 to ~1e-14.
+!!
+!! Limits: CG non-PML interfaces (the interface faces themselves are not in a PML layer).
 !! ============================================================================
 module solid_fluid_coupling_2d
 
     use constants
     use sdomain
     use selement
+    use mpi
     implicit none
 
 
@@ -41,6 +48,20 @@ module solid_fluid_coupling_2d
     end type sfpair_t
     type(sfpair_t), allocatable :: sfp(:)
     integer :: n_sfp = 0
+
+    ! (B.5) cross-rank coupling. The S-F interface is never a partition cut (the mesher gives
+    ! solid<->fluid dual-graph edges a heavy weight), so interface FACES stay on one rank; only
+    ! interface VERTICES where a partition cut crosses the interface line are shared. For those:
+    !   (i)  the fluid-side copy vflu is appended to the comm walls (sf_augment_walls), so the
+    !        standard mass + per-step Forces exchanges sum its contributions across ranks;
+    !   (ii) the FtoS force delta -- applied AFTER the main exchange -- is summed with a small
+    !        dedicated exchange (sf_exchange_ftos) over the interface SOLID vertices.
+    type sfwall_t
+        integer :: n = 0
+        integer, allocatable :: pos(:)   ! positions of interface-solid vertices in sWall%Vertex_List
+    end type sfwall_t
+    type(sfwall_t), allocatable :: sfw(:)               ! (0:n_communications-1)
+    real(fpp), allocatable :: ftos_acc(:,:)             ! (0:1, 0:n_vertex-1) local FtoS delta, per step
 
 contains
 
@@ -186,6 +207,11 @@ contains
             deallocate(Tdomain%sVertex)
             Tdomain%sVertex => newv
             Tdomain%n_vertex = oldnv + nvsplit
+            ! (i) append each fluid-side vertex copy vflu=vmap(nv) to every comm wall that lists
+            ! the original interface vertex nv (now the solid-side vsol). Both ranks iterate their
+            ! matched-order Vertex_List, so appended vflu stay position-matched across the pair.
+            ! wall_transfer (after the split) sizes the exchange buffers from the new n_vertices.
+            call sf_augment_walls(Tdomain, vmap)
             deallocate(vmap)
             ! fill the endpoint vertex pairs (solid face keeps Vsol, fluid face has Vflu)
             do kk = 1, n_sfp
@@ -197,6 +223,96 @@ contains
         end block
     end subroutine split_sf_interface_faces
 
+
+    !-----------------------------------------------------------------------
+    !> (i) Append the fluid-side vertex copies to the comm walls. vmap(nv) is the new fluid
+    !! vertex index for a split interface vertex nv (or <0). For every wall listing nv, append
+    !! vmap(nv) at the end (kept in the order the wall's Vertex_List is scanned, so paired ranks
+    !! agree). Original entries keep their positions -> other position-matched exchanges (PML
+    !! handshake, regular vertex Forces) are undisturbed.
+    subroutine sf_augment_walls(Tdomain, vmap)
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: vmap(0:)
+        integer :: w, q, nw, cnt, add
+        integer, allocatable :: newlist(:)
+        do w = 0, Tdomain%n_communications-1
+            nw = Tdomain%sWall(w)%n_vertices
+            cnt = 0
+            do q = 0, nw-1
+                if (vmap(Tdomain%sWall(w)%Vertex_List(q)) >= 0) cnt = cnt + 1
+            end do
+            if (cnt == 0) cycle
+            allocate(newlist(0:nw+cnt-1))
+            newlist(0:nw-1) = Tdomain%sWall(w)%Vertex_List(0:nw-1)
+            add = nw
+            do q = 0, nw-1
+                if (vmap(Tdomain%sWall(w)%Vertex_List(q)) >= 0) then
+                    newlist(add) = vmap(Tdomain%sWall(w)%Vertex_List(q)); add = add + 1
+                end if
+            end do
+            deallocate(Tdomain%sWall(w)%Vertex_List)
+            allocate(Tdomain%sWall(w)%Vertex_List(0:nw+cnt-1))
+            Tdomain%sWall(w)%Vertex_List(:) = newlist(:)
+            Tdomain%sWall(w)%n_vertices = nw + cnt
+            deallocate(newlist)
+        end do
+    end subroutine sf_augment_walls
+
+    !-----------------------------------------------------------------------
+    !> (ii) Record, per comm wall, the positions of interface SOLID vertices in Vertex_List, and
+    !! allocate the FtoS delta accumulator. Call once, after the walls are final (post-split /
+    !! wall_transfer). is_sf_vertex is set symmetrically by the split on both ranks that share an
+    !! interface vertex, so the recorded positions are position-matched across the pair.
+    subroutine sf_build_comm(Tdomain)
+        type(domain), intent(inout) :: Tdomain
+        integer :: w, q, nw, cnt
+        if (Tdomain%n_communications <= 0 .or. n_sfp == 0) return
+        allocate(sfw(0:Tdomain%n_communications-1))
+        do w = 0, Tdomain%n_communications-1
+            nw = Tdomain%sWall(w)%n_vertices
+            cnt = 0
+            do q = 0, nw-1
+                if (Tdomain%sVertex(Tdomain%sWall(w)%Vertex_List(q))%is_sf_vertex) cnt = cnt + 1
+            end do
+            sfw(w)%n = cnt
+            allocate(sfw(w)%pos(0:max(cnt-1,0)))
+            cnt = 0
+            do q = 0, nw-1
+                if (Tdomain%sVertex(Tdomain%sWall(w)%Vertex_List(q))%is_sf_vertex) then
+                    sfw(w)%pos(cnt) = q; cnt = cnt + 1
+                end if
+            end do
+        end do
+        allocate(ftos_acc(0:1, 0:Tdomain%n_vertex-1)); ftos_acc = 0._fpp
+    end subroutine sf_build_comm
+
+    !> (ii) Sum the FtoS force delta across ranks at shared interface solid vertices. Call right
+    !! after sf_ftos, before the deferred solid-interface correction. Each rank applied only its
+    !! own BtN.VelPhi; this adds the neighbour's, so the deferred corrector sees the full load.
+    subroutine sf_exchange_ftos(Tdomain)
+        type(domain), intent(inout) :: Tdomain
+        integer :: w, k, nv, partner, ierr, cnt, st(MPI_STATUS_SIZE)
+        real(fpp), allocatable :: sbuf(:,:), rbuf(:,:)
+        if (.not. allocated(sfw)) return
+        do w = 0, Tdomain%n_communications-1
+            cnt = sfw(w)%n
+            if (cnt == 0) cycle
+            allocate(sbuf(0:1,0:cnt-1), rbuf(0:1,0:cnt-1)); rbuf = 0._fpp
+            do k = 0, cnt-1
+                nv = Tdomain%sWall(w)%Vertex_List(sfw(w)%pos(k))
+                sbuf(0:1,k) = ftos_acc(0:1, nv)
+            end do
+            partner = Tdomain%Communication_list(w)
+            call MPI_Sendrecv(sbuf, 2*cnt, MPI_DOUBLE_PRECISION, partner, 830, &
+                              rbuf, 2*cnt, MPI_DOUBLE_PRECISION, partner, 830, &
+                              Tdomain%communicateur, st, ierr)
+            do k = 0, cnt-1
+                nv = Tdomain%sWall(w)%Vertex_List(sfw(w)%pos(k))
+                Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + rbuf(0:1,k)
+            end do
+            deallocate(sbuf, rbuf)
+        end do
+    end subroutine sf_exchange_ftos
 
     !-----------------------------------------------------------------------
     !> (B.4) Compute BtN = normal(solid->fluid) * lineJac * GLLw at every interface-face node
@@ -229,6 +345,7 @@ contains
         end do
         if (Tdomain%Mpi_var%my_rank == 0) &
             write(*,'(a,i0,a)') ' [sf] coupling built on ', n_sfp, ' face pairs'
+        call sf_build_comm(Tdomain)   ! (ii) cross-rank FtoS exchange tables
     end subroutine build_sf_coupling
 
     !> StoF: inject the solid normal velocity into the fluid RHS. Call AFTER assembly,
@@ -267,6 +384,7 @@ contains
         type(domain), intent(inout) :: Tdomain
         integer :: m, p, ngll, fsol, fflu
         real(fpp) :: vphi
+        if (allocated(ftos_acc)) ftos_acc = 0._fpp   ! (ii) reset this step's local FtoS delta
         do m = 1, n_sfp
             ngll = sfp(m)%ngll; fsol = sfp(m)%fsol; fflu = sfp(m)%fflu
             do p = 1, ngll-2
@@ -287,6 +405,11 @@ contains
         vphi = Tdomain%sVertex(vf)%Veloc(0)                ! NEW VelPhi at the fluid vertex
         Tdomain%sVertex(vs)%Forces(0) = Tdomain%sVertex(vs)%Forces(0) - btn(0)*vphi
         Tdomain%sVertex(vs)%Forces(1) = Tdomain%sVertex(vs)%Forces(1) - btn(1)*vphi
+        ! (ii) record the local delta so shared interface solid vertices can sum it across ranks
+        if (allocated(ftos_acc)) then
+            ftos_acc(0,vs) = ftos_acc(0,vs) - btn(0)*vphi
+            ftos_acc(1,vs) = ftos_acc(1,vs) - btn(1)*vphi
+        end if
     end subroutine ftos_vertex
 
 end module solid_fluid_coupling_2d

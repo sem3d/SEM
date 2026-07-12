@@ -541,6 +541,7 @@ subroutine Newmark (Tdomain)
         ! pressure load to the solid interface FORCES -> deferred standard correction of the
         ! solid interface faces/vertices (M^-1 and dt applied by the correctors themselves).
         call sf_ftos(Tdomain)
+        call sf_exchange_ftos(Tdomain)   ! sum the post-exchange FtoS delta at cross-rank interface vertices
         do nf = 0, Tdomain%n_face-1
             if (.not. Tdomain%sFace(nf)%is_sf_iface) cycle
             if (Tdomain%specel(Tdomain%sFace(nf)%Near_Element(0))%acoustic) cycle
