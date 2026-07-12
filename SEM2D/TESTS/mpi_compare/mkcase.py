@@ -11,8 +11,9 @@ Domain: [0,500] x [0,300], base grid 10 x 6 (dx=dz=50). Coupling cases: solid to
 on-boundary source/receiver is injected/read inconsistently across MPI ranks -- see
 plan 2026-07-09_sf-coupling-2d-solution-plan.md -- which is a harness pitfall, not a bug).
 
-    python3 mkcase.py --dir DIR --phys solid|fluid|fluid_aniso|sf_iso|sf_aniso \\
-                      --mesh onthefly|quad4|quad8 --pml 0|1 --nprocs N
+    python3 mkcase.py --dir DIR \\
+        --phys solid|solid_aniso|fluid|fluid_aniso|sf_iso|sf_aniso|sf_aniso_solid|sf_aniso_fluid \\
+        --mesh onthefly|quad4|quad8 --pml 0|1 --nprocs N
 """
 import argparse
 import os
@@ -30,11 +31,11 @@ FLUID = ("F", 1500.0, 0.0, 1000.0)
 
 
 def is_coupling(phys):
-    return phys in ("sf_iso", "sf_aniso")
+    return phys in ("sf_iso", "sf_aniso", "sf_aniso_solid", "sf_aniso_fluid")
 
 
 def is_aniso(phys):
-    return phys in ("solid_aniso", "fluid_aniso", "sf_aniso")
+    return phys in ("solid_aniso", "fluid_aniso", "sf_aniso", "sf_aniso_solid", "sf_aniso_fluid")
 
 
 # ---------------------------------------------------------------- external meshes
@@ -161,6 +162,20 @@ def write_materialspec(d, phys):
             '  spacedef = file;\n  filename0 = "Cstar_solid.h5";\n};\n'
             'material 1 {\n  domain = fluid;\n  deftype = Fluid_Aniso;\n'
             '  spacedef = file;\n  filename0 = "Cstar_fluid.h5";\n};\n')
+    elif phys == "sf_aniso_solid":
+        # coupling with ONLY the solid side aniso-from-file; fluid (material 1) stays
+        # plain isotropic (deftype defaults to -1/legacy when absent from material.spec).
+        write_cstar_solid(os.path.join(d, "Cstar_solid.h5"))
+        open(os.path.join(d, "material.spec"), "w").write(
+            'material 0 {\n  domain = solid;\n  deftype = Hooke_Aniso;\n'
+            '  spacedef = file;\n  filename0 = "Cstar_solid.h5";\n};\n')
+    elif phys == "sf_aniso_fluid":
+        # coupling with ONLY the fluid side aniso-from-file; solid (material 0) stays
+        # plain isotropic.
+        write_cstar_fluid(os.path.join(d, "Cstar_fluid.h5"))
+        open(os.path.join(d, "material.spec"), "w").write(
+            'material 1 {\n  domain = fluid;\n  deftype = Fluid_Aniso;\n'
+            '  spacedef = file;\n  filename0 = "Cstar_fluid.h5";\n};\n')
 
 
 # ---------------------------------------------------------------- input.spec, capteurs
@@ -200,7 +215,8 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--dir", required=True)
     p.add_argument("--phys", required=True,
-                   choices=["solid", "solid_aniso", "fluid", "fluid_aniso", "sf_iso", "sf_aniso"])
+                   choices=["solid", "solid_aniso", "fluid", "fluid_aniso",
+                            "sf_iso", "sf_aniso", "sf_aniso_solid", "sf_aniso_fluid"])
     p.add_argument("--mesh", required=True, choices=["onthefly", "quad4", "quad8"])
     p.add_argument("--pml", type=int, default=0)
     p.add_argument("--nprocs", type=int, default=1)

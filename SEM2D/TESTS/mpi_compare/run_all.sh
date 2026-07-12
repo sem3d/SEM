@@ -23,7 +23,7 @@ RTOL=${RTOL:-1e-6}      # pass threshold; non-PML should be ~1e-12, PML is loose
 work="$here/_work"
 rm -rf "$work"; mkdir -p "$work"
 
-PHYS="solid solid_aniso fluid fluid_aniso sf_iso sf_aniso"
+PHYS="solid solid_aniso fluid fluid_aniso sf_iso sf_aniso_solid sf_aniso_fluid sf_aniso"
 MESHES="onthefly quad4 quad8"
 
 run_one() { # dir nprocs
