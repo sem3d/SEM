@@ -12,7 +12,7 @@ snapshots {
     snap_interval = 1.0e-6;
 };
 
-save_traces = true;
+save_traces = true;    # text (.vel) + h5 (capteurs {} + traces_format below)
 station_file = "stations.txt";
 traces_format = hdf5;
 

@@ -5,6 +5,7 @@ run_name = "Square_Absorbing_BC";
 sim_time = 2.;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
+dim = 2;
 ngll = 5;   # NGLL commun a tout le domaine (lu depuis input.spec, comme en 3D)
 
 snapshots {
@@ -16,10 +17,26 @@ snapshots {
     select box =  100 -100 -100 150 500 500;
 };
 
-# Description des capteurs
+# Description des capteurs -- h5 (capteurs {} below, traces_format). Legacy .vel writer is
+# disabled in the solver; save_traces still gates all trace output.
+# STATUS (2026-07-12): input.spec parse bugs fixed (added dim=2; 2D source coords/dir). The
+# example still does NOT run end-to-end: (a) the shipped mesh4spec.0000 is an obsolete ASCII
+# format -- the current solver needs an HDF5 mesh (regenerate via mesher2D with current-format
+# mat.dat/mater.in/mesh.input); (b) with a regenerated mesh, the DG path (dg_strong/godunov +
+# absorbing) crashes at runtime -- a separate DG-solver bug, out of scope here.
 save_traces = true;
 station_file = "capteurs.dat";
 traces_format=hdf5;
+
+out_variables {
+    vel = 1;
+};
+
+capteurs "REC" {
+    type = points;
+    file = "capteurs.dat";
+    period = 1;
+};
 
 
 # Fichier protection reprise
@@ -30,13 +47,12 @@ restart_iter=370;
 
 # introduce a source
 source {
-    # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
-    coords = 0. 0. 0.;
-    # the numbers before the labels are here to help convert from previous input.spec format
+    # 2D coordinates (x z); domain is [-100,500] x [-100,500]
+    coords = 0. 0.;
     # Type (1.Impulse, 2.moment Tensor, 3.fluidpulse)
     type = impulse;
-    # Direction 0.x,1.y ou 2.z (only for Impulse)
-    dir = x;
+    # Direction as a 2D vector (x z), like the other SEM2D decks
+    dir = 1. 0.;
     # Function 1.gaussian,2.ricker,3.tf_heaviside,4.gabor,5.file,6.spice_bench,7.sinus
     func = ricker;
     tau = .5;

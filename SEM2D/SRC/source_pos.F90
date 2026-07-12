@@ -16,6 +16,7 @@ subroutine SourcePosition(Tdomain)
     use sdomain
     use constants
     use mlocations2d
+    use mpi
     implicit none
     type (domain), intent (INOUT) :: Tdomain
 
@@ -47,6 +48,13 @@ subroutine SourcePosition(Tdomain)
             eta  = coordloc(1,i)
             if (xi<(-1-EPS) .or. eta<(-1-EPS)) inside = .false.
             if (xi>( 1+EPS) .or. eta>( 1+EPS)) inside = .false.
+            ! Fluid sources (fluidpulse=3, pressure=7) inject into the potential equation, so
+            ! they MUST land in an acoustic element. Skip solid candidates (mirror SEM3D
+            ! SourcePosition is_solid -> reject) so a neighbouring fluid element is chosen
+            ! instead of silently injecting into a solid.
+            if ((Tdomain%sSource(nsour)%i_type_source == 3 .or. &
+                 Tdomain%sSource(nsour)%i_type_source == 7) .and. &
+                inside .and. (.not. Tdomain%specel(n_el)%acoustic)) inside = .false.
             if (inside) then
                 write (*,'(a,i5,a,i4,a,f10.5,a,f10.5,a,i10,a,f20.17,a,f20.17,a)') " Source ", nsour, " : found on proc. ", Tdomain%Mpi_var%my_rank,     &
                                                                                   ", (xc, zc) : (", xc, ", ", zc, ") <=> (element, xi, eta) : (", n_el, &
@@ -86,6 +94,29 @@ subroutine SourcePosition(Tdomain)
                 call source_excit_fluid(Tdomain, Tdomain%sSource(nsour))
             endif
         end if
+
+        ! Fail loudly if this source was located on NO rank: outside the mesh, or a fluid
+        ! source (type 3/7) overlapping only solid elements (rejected in the loop above).
+        ! Mirrors SEM3D SourcePosition ("not on any processor") -- do not silently drop it.
+        block
+            integer :: loc_i, any_i, ierr
+            loc_i = 0; if (Tdomain%sSource(nsour)%located_here) loc_i = 1
+            call MPI_Allreduce(loc_i, any_i, 1, MPI_INTEGER, MPI_MAX, &
+                               Tdomain%communicateur, ierr)
+            if (any_i == 0) then
+                if (Tdomain%Mpi_var%my_rank == 0) then
+                    write(*,'(a,i0,a,i0,a,g0,a,g0,a)') " ERROR: source ", nsour, &
+                        " (type ", Tdomain%sSource(nsour)%i_type_source, ") at (", &
+                        Tdomain%sSource(nsour)%xsource, ", ", &
+                        Tdomain%sSource(nsour)%zsource, ") was not located in any element."
+                    if (Tdomain%sSource(nsour)%i_type_source == 3 .or. &
+                        Tdomain%sSource(nsour)%i_type_source == 7) &
+                        write(*,'(a)') "   (fluid source: it must lie inside a FLUID/acoustic region)"
+                end if
+                call MPI_Barrier(Tdomain%communicateur, ierr)
+                stop 1
+            end if
+        end block
     enddo
 end subroutine SourcePosition
 

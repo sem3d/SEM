@@ -189,7 +189,10 @@ def write_inputspec(path, phys, pml):
         'mesh_file = "mesh4spec";\nmat_file = "material.input";\ndim=2;\nngll=5;\n\n'
         + pml_block +
         'snapshots {\n    save_snap = false;\n    snap_interval = 0.05;\n};\n\n'
+        # save_traces gates all output; text (.vel legacy) + h5 (capteurs {} + traces_format)
         'save_traces = true;\nstation_file = "capteurs.dat";\ntraces_format=hdf5;\n\n'
+        'out_variables {\n    dis = 1;\n    vel = 1;\n};\n\n'
+        'capteurs "REC" {\n    type = points;\n    file = "capteurs.dat";\n    period = 1;\n};\n\n'
         'source {\n    coords = %g %g;\n    type = %s;\n    dir = 1. 0.;\n'
         '    func = ricker;\n    tau = .3;\n    freq = 4.;\n};\n\n' % (sx, sz, stype) +
         'time_scheme {\n    accel_scheme = false;\n    veloc_scheme = true;\n'

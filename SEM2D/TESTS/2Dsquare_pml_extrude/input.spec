@@ -17,10 +17,22 @@ snapshots {
     snap_interval = 0.02;
 };
 
-# Description des capteurs
+# Description des capteurs -- text (.vel, legacy) AND h5 (capteurs {} below, traces_format).
+# save_traces gates ALL trace output; traces_format selects the capteur format (text/hdf5).
 save_traces = true;
 station_file = "capteurs.dat";
 traces_format=hdf5;
+
+out_variables {
+    dis = 1;
+    vel = 1;
+};
+
+capteurs "REC" {
+    type = points;
+    file = "capteurs.dat";
+    period = 1;
+};
 
 # Fichier protection reprise
 prorep=false;

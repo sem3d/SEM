@@ -351,9 +351,13 @@ contains
                 if (allocated(field_veloc)) deallocate(field_veloc)
                 if (allocated(field_accel)) deallocate(field_accel)
                 if (allocated(field_rotat)) deallocate(field_rotat)
-                allocate(field_displ(0:ngllx-1,0:ngllz-1,2))
-                allocate(field_veloc(0:ngllx-1,0:ngllz-1,2))
-                allocate(field_accel(0:ngllx-1,0:ngllz-1,2))
+                ! 3rd dim MUST be 0:1 (not "2" -> bounds 1:2): the gather routines
+                ! (assumed-shape 0:), compute_rotational (explicit 0:1) and every direct
+                ! access below index it 0-based. With bounds 1:2, field_*(i,k,0) is
+                ! out of bounds (crash under -fcheck) and (i,k,1) reads the wrong component.
+                allocate(field_displ(0:ngllx-1,0:ngllz-1,0:1))
+                allocate(field_veloc(0:ngllx-1,0:ngllz-1,0:1))
+                allocate(field_accel(0:ngllx-1,0:ngllz-1,0:1))
                 allocate(field_rotat(0:ngllx-1,0:ngllz-1))
             endif
 
@@ -612,13 +616,14 @@ contains
         character (len=MAX_FILE_SIZE) :: fnamef
         integer   :: i, nn, ne
         real(fpp) :: time
-        logical   :: sa, fa
+        logical   :: sa, fa, hf
         call semname_xdmf(rg, fnamef)
 
         nn = nnodes
         ne = Tdomain%n_quad
         sa = has_aniso_solid_2d(Tdomain)   ! this rank has solid-aniso (Cij) output?
-        fa = has_aniso_fluid_2d(Tdomain)   ! this rank has fluid-aniso (rho_ij/kappa) output?
+        fa = has_aniso_fluid_2d(Tdomain)   ! this rank has fluid-aniso (rho_ij) output?
+        hf = has_fluid_2d(Tdomain)         ! this rank has any fluid (Kappa) output?
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
         write(61,"(a)") '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
@@ -750,8 +755,8 @@ contains
                 call write_xdmf_mat_attr(61, "rho11", rg, nn)
                 call write_xdmf_mat_attr(61, "rho22", rg, nn)
                 call write_xdmf_mat_attr(61, "rho12", rg, nn)
-                call write_xdmf_mat_attr(61, "Kappa", rg, nn)
             end if
+            if (hf) call write_xdmf_mat_attr(61, "Kappa", rg, nn)
             write(61,"(a)") '</Grid>'
             ! XXX inexact pour l'instant
             time = time+Tdomain%TimeD%time_snapshots
@@ -872,7 +877,8 @@ contains
         real(fpp), dimension(:), allocatable :: lamb, mu, dens
         real(fpp), dimension(:), allocatable :: c11,c22,c33,c12,c13,c23
         real(fpp), dimension(:), allocatable :: rho11,rho22,rho12,kappa
-        logical :: has_solid_aniso, has_fluid_aniso
+        logical :: has_solid_aniso, has_fluid_aniso, has_fluid
+
         integer :: n, i, k, idx, ngllx, ngllz
 
         allocate(lamb(0:nnodes-1), mu(0:nnodes-1), dens(0:nnodes-1))
@@ -880,14 +886,21 @@ contains
 
         has_solid_aniso = has_aniso_solid_2d(Tdomain)
         has_fluid_aniso = has_aniso_fluid_2d(Tdomain)
+        has_fluid       = has_fluid_2d(Tdomain)   ! any acoustic (iso OR aniso) element?
         if (has_solid_aniso) then
             allocate(c11(0:nnodes-1),c22(0:nnodes-1),c33(0:nnodes-1), &
                      c12(0:nnodes-1),c13(0:nnodes-1),c23(0:nnodes-1))
             c11=0._fpp;c22=0._fpp;c33=0._fpp;c12=0._fpp;c13=0._fpp;c23=0._fpp
         end if
         if (has_fluid_aniso) then
-            allocate(rho11(0:nnodes-1),rho22(0:nnodes-1),rho12(0:nnodes-1),kappa(0:nnodes-1))
-            rho11=0._fpp;rho22=0._fpp;rho12=0._fpp;kappa=0._fpp
+            allocate(rho11(0:nnodes-1),rho22(0:nnodes-1),rho12(0:nnodes-1))
+            rho11=0._fpp;rho22=0._fpp;rho12=0._fpp
+        end if
+        ! Kappa is written for EVERY fluid (iso or aniso): iso fluid carries kappa in Lambda
+        ! (mu=0 displacement formulation); aniso fluid in 1/invKappa2d. Matches SEM3D (Kappa
+        ! always present in the geometry file).
+        if (has_fluid) then
+            allocate(kappa(0:nnodes-1)); kappa=0._fpp
         end if
 
         do n = 0,Tdomain%n_elem-1
@@ -912,8 +925,14 @@ contains
                         rho11(idx)=Tdomain%specel(n)%IDensTensor2d(1,1,i,k)
                         rho22(idx)=Tdomain%specel(n)%IDensTensor2d(2,2,i,k)
                         rho12(idx)=Tdomain%specel(n)%IDensTensor2d(1,2,i,k)
-                        if (Tdomain%specel(n)%invKappa2d(i,k) /= 0._fpp) &
-                            kappa(idx)=1._fpp/Tdomain%specel(n)%invKappa2d(i,k)
+                    end if
+                    if (has_fluid .and. Tdomain%specel(n)%acoustic) then
+                        if (allocated(Tdomain%specel(n)%invKappa2d)) then
+                            if (Tdomain%specel(n)%invKappa2d(i,k) /= 0._fpp) &
+                                kappa(idx)=1._fpp/Tdomain%specel(n)%invKappa2d(i,k)   ! aniso/potential fluid
+                        else
+                            kappa(idx)=Tdomain%specel(n)%Lambda(i,k)                  ! iso fluid: kappa = bulk = Lambda
+                        end if
                     end if
                 end do
             end do
@@ -936,8 +955,11 @@ contains
             call write_node_scalar(Tdomain, fid, "rho11", nnodes, rho11)
             call write_node_scalar(Tdomain, fid, "rho22", nnodes, rho22)
             call write_node_scalar(Tdomain, fid, "rho12", nnodes, rho12)
+            deallocate(rho11,rho22,rho12)
+        end if
+        if (has_fluid) then
             call write_node_scalar(Tdomain, fid, "Kappa", nnodes, kappa)
-            deallocate(rho11,rho22,rho12,kappa)
+            deallocate(kappa)
         end if
     end subroutine write_material_fields
 
@@ -965,6 +987,19 @@ contains
             end if
         end do
     end function has_aniso_fluid_2d
+
+    !! Does this rank have any fluid (acoustic) output element -- iso OR aniso?
+    logical function has_fluid_2d(Tdomain)
+        type (domain), intent(in) :: Tdomain
+        integer :: n
+        has_fluid_2d = .false.
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            if (Tdomain%specel(n)%acoustic) then
+                has_fluid_2d = .true.; return
+            end if
+        end do
+    end function has_fluid_2d
 
 
     !! \brief subroutine calculant le rotationel d'un champ de vitesse

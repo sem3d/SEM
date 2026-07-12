@@ -8,6 +8,10 @@ A correct MPI partition reproduces the serial result to round-off (~1e-12). Colu
 peak amplitude is below --floor are treated as noise and skipped (their reldiff is
 meaningless). Exit code 0 if every non-noise column is within --rtol, else 1.
 
+Traces are read from the HDF5 station files (`capteurs.NNNN.h5`, one per rank -- each
+receiver written by whichever rank owns it, so we merge across ranks by dataset name).
+Falls back to the legacy ASCII `rec_*.vel` files if no h5 is present.
+
     python3 compare_mpi.py runA/traces runB/traces [--rtol 1e-9] [--floor 1e-11]
 """
 import argparse
@@ -18,8 +22,26 @@ import sys
 import numpy as np
 
 
+def _load_h5(d):
+    """dict receiver_name -> (ntime, ncol) array from every capteurs.*.h5 in dir d.
+    A receiver dataset is 2D (col0 = time); *_pos, Variables and Energy* are skipped."""
+    import h5py
+    out = {}
+    for f in sorted(glob.glob(os.path.join(d, "capteurs.*.h5"))):
+        with h5py.File(f, "r") as h:
+            for name, dset in h.items():
+                if getattr(dset, "ndim", 0) != 2:
+                    continue
+                if name.endswith("_pos") or name.startswith("Energy") or name == "Variables":
+                    continue
+                out[name] = dset[()]
+    return out
+
+
 def load(d):
-    """dict rec_name -> (ntime, ncol) array, from rec_*.vel text files (skip prot copies)."""
+    """Receiver traces from h5 station files, or legacy rec_*.vel if no h5 present."""
+    if glob.glob(os.path.join(d, "capteurs.*.h5")):
+        return _load_h5(d)
     out = {}
     for f in sorted(glob.glob(os.path.join(d, "rec_*.vel"))):
         if "prot" in f:
@@ -32,7 +54,7 @@ def compare(dirA, dirB, rtol=1e-9, floor=1e-11):
     A, B = load(dirA), load(dirB)
     common = sorted(set(A) & set(B))
     if not common:
-        print("  no common rec_*.vel traces found in the two dirs")
+        print("  no common receiver traces found in the two dirs")
         return False, []
     rows, worst, ok = [], 0.0, True
     for name in common:

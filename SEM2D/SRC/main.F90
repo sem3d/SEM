@@ -116,7 +116,10 @@ subroutine  sem()
         call SourcePosition(Tdomain)
     endif
 
-    if (Tdomain%logicD%save_trace ) then
+    ! Legacy ASCII (.vel) receiver output DISABLED (kept for reference): traces now go through
+    ! the station/capteurs h5/txt path (create_capteurs above, gated by save_traces). Flip the
+    ! `.false.` here and at the save_trace call in the time loop to re-enable the .vel files.
+    if (.false. .and. Tdomain%logicD%save_trace ) then
         if (rg == 0) write (*,*) "Computing receivers parameters and locations"
         call ReceiverPosition(Tdomain)
     endif
@@ -142,7 +145,11 @@ subroutine  sem()
     Tdomain%TimeD%rtime = 0
     Tdomain%TimeD%NtimeMin = 0
 
-    call create_capteurs (Tdomain)
+    ! Traces are gated by save_traces (as in SEM3D drive_sem.f90): if it is false, no
+    ! receiver output is produced at all -- neither the legacy ASCII (.vel) below nor the
+    ! station/capteurs h5/txt here. traces_format then selects the capteur format.
+    Tdomain%has_station = .false.
+    if (Tdomain%logicD%save_trace) call create_capteurs (Tdomain)
     ! Nombre d'iterations pour schemas en temps iteratifs
     if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT) then
         n_it_max = 0
@@ -263,8 +270,9 @@ subroutine  sem()
         if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime)
 
 
-        ! sauvegarde des vitesses
-        if (Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime)
+        ! sauvegarde des vitesses -- legacy ASCII (.vel) writer DISABLED (kept for reference;
+        ! see the ReceiverPosition guard above). h5/txt traces come from save_capteur below.
+        if (.false. .and. Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime)
 
         if (Tdomain%has_station) call save_capteur(Tdomain, ntime)
 
