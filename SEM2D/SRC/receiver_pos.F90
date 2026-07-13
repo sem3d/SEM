@@ -237,6 +237,7 @@ end subroutine dump_trace
 subroutine read_receiver_file(Tdomain)
     use sdomain
     use semdatafiles
+    use sem_c_config
     implicit none
     type(domain), intent(inout) :: Tdomain
     real(fpp) :: xrec, zrec
@@ -245,9 +246,43 @@ subroutine read_receiver_file(Tdomain)
     character(Len=256) :: line
     integer :: i, ios
     real(fpp) :: val1, val2
+    type(C_PTR) :: station_next
+    type(sem_station), pointer :: station_ptr
 
     if (.not. Tdomain%logicD%save_trace) then
         return
+    end if
+
+    ! Receivers may come from the SEM3D-style `capteurs "NAME" { type=points; file=...; }`
+    ! block (expanded to a station list by the common C parser, which already reads 2 columns
+    ! when dim=2) or from the SEM2D-only top-level `station_file`. Prefer the station list.
+    if (C_ASSOCIATED(Tdomain%stations)) then
+        Tdomain%n_receivers = 0
+        station_next = Tdomain%stations
+        do while (C_ASSOCIATED(station_next))
+            call c_f_pointer(station_next, station_ptr)
+            Tdomain%n_receivers = Tdomain%n_receivers + 1
+            station_next = station_ptr%next
+        end do
+        allocate (Tdomain%sReceiver(0:Tdomain%n_receivers-1))
+        ! The C parser prepends, so walking the list yields file order reversed; fill backwards.
+        station_next = Tdomain%stations
+        i = Tdomain%n_receivers - 1
+        do while (C_ASSOCIATED(station_next))
+            call c_f_pointer(station_next, station_ptr)
+            Tdomain%sReceiver(i)%Xrec = station_ptr%coords(1)
+            Tdomain%sReceiver(i)%Zrec = station_ptr%coords(2)
+            Tdomain%sReceiver(i)%name = fromcstr(station_ptr%name)
+            i = i - 1
+            station_next = station_ptr%next
+        end do
+        return
+    end if
+
+    if (len_trim(Tdomain%station_file) == 0) then
+        write(*,*) "ERROR: save_traces is on but no receivers were defined."
+        write(*,*) "  Set station_file = ""...""; or a capteurs block in input.spec."
+        stop 1
     end if
 
     call semname_read_inputmesh_parametrage(Tdomain%station_file,fnamef)
