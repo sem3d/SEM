@@ -89,22 +89,37 @@ contains
     !-----------------------------------------------------------------------
     !> Bilinear interpolation of a uniform-grid property pf onto the GLL points
     !! of element specel (mirror of SEM3D interpolate_elem_field, 2D).
-    subroutine interpolate_elem_field_2d(Tdomain, specel, pf, field)
+    subroutine interpolate_elem_field_2d(Tdomain, specel, mat, pf, field)
         type(domain), intent(in)            :: Tdomain
         type(element), intent(in)           :: specel
+        type(Subdomain), intent(in)         :: mat
         type(PropertyField2d), intent(in)   :: pf
         real(fpp), dimension(0:specel%ngllx-1,0:specel%ngllz-1), intent(out) :: field
         integer :: i, j, n, idef
         integer, dimension(0:1) :: ii
         real(fpp), dimension(0:1) :: xx, aa
         real(fpp) :: pos, val
+        logical :: pml
 
+        pml = is_pml_mat(mat)
         do j = 0, specel%ngllz-1
             do i = 0, specel%ngllx-1
                 idef  = specel%Iglobnum(i,j)
                 xx(0) = Tdomain%GlobCoord(0, idef)
                 xx(1) = Tdomain%GlobCoord(1, idef)
                 do n = 0, 1
+                    ! Traitement PML : on echantillonne au bord de la PML uniquement.
+                    ! Clamping the coordinate to the face freezes the field along the PML
+                    ! depth axis (it still varies transversally), so each PML GLL inherits
+                    ! the value of the interior GLL it was extruded from.
+                    if (pml) then
+                        if (mat%pml_width(n) > 0._fpp) then
+                            if (xx(n) > mat%pml_pos(n)) xx(n) = mat%pml_pos(n)
+                        end if
+                        if (mat%pml_width(n) < 0._fpp) then
+                            if (xx(n) < mat%pml_pos(n)) xx(n) = mat%pml_pos(n)
+                        end if
+                    end if
                     pos   = (xx(n) - pf%MinBound(n)) / pf%step(n)
                     ii(n) = floor(pos)
                     if (ii(n) < 0)            ii(n) = 0
@@ -168,7 +183,7 @@ contains
                         ngllz = Tdomain%specel(n)%ngllz
                         if (allocated(fld)) deallocate(fld)
                         allocate(fld(0:ngllx-1,0:ngllz-1))
-                        call interpolate_elem_field_2d(Tdomain, Tdomain%specel(n), pf, fld)
+                        call interpolate_elem_field_2d(Tdomain, Tdomain%specel(n), Tdomain%sSubDomain(mat), pf, fld)
                         if (ecol(c) < 0) then                 ! Rho -> Density
                             Tdomain%specel(n)%Density(:,:) = fld
                         else
@@ -212,7 +227,7 @@ contains
                         ngllz = Tdomain%specel(n)%ngllz
                         if (allocated(fld)) deallocate(fld)
                         allocate(fld(0:ngllx-1,0:ngllz-1))
-                        call interpolate_elem_field_2d(Tdomain, Tdomain%specel(n), pf, fld)
+                        call interpolate_elem_field_2d(Tdomain, Tdomain%specel(n), Tdomain%sSubDomain(mat), pf, fld)
                         select case (c)
                         case (1)  ! iRho11
                             Tdomain%specel(n)%IDensTensor2d(1,1,:,:) = fld

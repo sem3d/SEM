@@ -36,9 +36,25 @@ module ssubdomains
        integer :: n_prop = 0                 ! number of properties in the Cstar file
        character(len=256) :: prop_file = ""  ! path to the Cstar.h5 (or binary) material file
 
+       ! PML extrusion geometry (from material.input; mirror of SEM3D subdomain).
+       ! pml_pos(n) is the coordinate of the PML face on axis n (0=x, 1=z); pml_width(n)
+       ! is the signed extrusion width (0 = axis not absorbing). Used to freeze the
+       ! heterogeneous material at the face -- see interpolate_elem_field_2d.
+       integer   :: assoc_mat = -1                     ! base material the PML was extruded from
+       real(fpp), dimension(0:1) :: pml_pos   = 0._fpp
+       real(fpp), dimension(0:1) :: pml_width = 0._fpp
+
     end type Subdomain
 
 contains
+
+    !>
+    !! \brief True for an extruded-PML subdomain ("P" = PML, "L" = filtering PML).
+    !<
+    logical function is_pml_mat(S)
+        type (Subdomain), intent(in) :: S
+        is_pml_mat = (S%material_type == "P") .or. (S%material_type == "L")
+    end function is_pml_mat
 
     !>
     !! \brief

@@ -185,6 +185,14 @@ subroutine read_material_file(Tdomain)
                 Tdomain%sSubdomain(i)%Left = (wX <  0._fpp)
                 Tdomain%sSubdomain(i)%Pz   = (wZ /= 0._fpp)
                 Tdomain%sSubdomain(i)%Down = (wZ <  0._fpp)
+                ! Face position and signed width per axis (0=x, 1=z), plus the base material
+                ! this PML was extruded from: needed to inherit a heterogeneous material and
+                ! freeze it at the face (cf. SEM3D). posY/widthY are ignored in 2D.
+                Tdomain%sSubdomain(i)%pml_pos(0)   = pX
+                Tdomain%sSubdomain(i)%pml_width(0) = wX
+                Tdomain%sSubdomain(i)%pml_pos(1)   = pZ
+                Tdomain%sSubdomain(i)%pml_width(1) = wZ
+                Tdomain%sSubdomain(i)%assoc_mat    = assocMat
                 ! CPML/FPML : Filtering et les parametres freq/k ne sont plus dans material.input
                 ! (format 3D). PML standard par defaut ; le type PML vient de input.spec (pml_type).
                 Tdomain%sSubdomain(i)%Filtering = .false.
@@ -386,7 +394,40 @@ subroutine read_material_file(Tdomain)
     ! overlay anisotropic-from-file metadata from material.spec
     call read_material_aniso_spec(Tdomain)
 
+    ! an extruded PML whose base is a FILE material must read the same field (frozen at
+    ! the face), not a homogeneous placeholder -- must run after read_material_aniso_spec
+    call inherit_pml_material_from_base(Tdomain)
+
 end subroutine read_material_file
+
+!---------------------------------------------------------------------------
+subroutine inherit_pml_material_from_base(Tdomain)
+    ! Port of SEM3D read_input.f90::inherit_pml_material_from_base. An extruded PML is
+    ! declared MATERIAL_CONSTANT in material.input, so it would never enter the file-material
+    ! path and its elements would fall back to the subdomain's nominal Vp/Vs/Rho. Copy the
+    ! base's file definition so read_aniso_material_2d picks the PML up; interpolate_elem_field_2d
+    ! then freezes the sampling at pml_pos, giving each PML GLL the field value of the face
+    ! point it was extruded from. Keep the PML's own geometry (pml_pos/width, npow, Apow)
+    ! and its nominal Vp/Vs/Rho (still used by the absorbing profile fallback).
+    implicit none
+    type(domain), intent(inout) :: Tdomain
+    integer :: p, b
+
+    do p = 0, Tdomain%n_mat-1
+        if (.not. is_pml_mat(Tdomain%sSubDomain(p))) cycle
+        b = Tdomain%sSubDomain(p)%assoc_mat
+        if (b < 0 .or. b > Tdomain%n_mat-1) cycle
+        if (Tdomain%sSubDomain(b)%material_definition /= 1) cycle   ! base is not a FILE material
+        Tdomain%sSubDomain(p)%material_definition = 1
+        Tdomain%sSubDomain(p)%deftype             = Tdomain%sSubDomain(b)%deftype
+        Tdomain%sSubDomain(p)%n_prop              = Tdomain%sSubDomain(b)%n_prop
+        Tdomain%sSubDomain(p)%prop_file           = Tdomain%sSubDomain(b)%prop_file
+        if (Tdomain%Mpi_var%my_rank == 0) &
+            write(*,'(a,i0,a,i0,a,i0)') ' [aniso/PML] PML material ', p, &
+                ' inherits FILE definition from base ', b, ' deftype ', &
+                Tdomain%sSubDomain(b)%deftype
+    end do
+end subroutine inherit_pml_material_from_base
 
 !---------------------------------------------------------------------------
 subroutine read_material_aniso_spec(Tdomain)
