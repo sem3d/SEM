@@ -14,6 +14,7 @@
 module ssources
 
     use constants
+    use semdatafiles, only : MAX_FILE_SIZE
 
     type :: elem_source
        integer :: nr
@@ -35,6 +36,11 @@ module ssources
        ! integral makes the pressure equal f(t) (cf. SEM3D Newmark.f90 type-7). Unused by
        ! the other source types.
        real(fpp) :: time_integral = 0._fpp
+       ! SOURCE FROM EXTERNAL FILE (i_time_function=5): time-amplitude table, 2 columns
+       ! ("t ampli") and one sample per line, read by read_source_file.
+       character(len=MAX_FILE_SIZE) :: time_file
+       integer :: Nt
+       real(fpp), dimension(:), pointer :: ampli, time
     end type Source
 
 contains
@@ -60,11 +66,78 @@ contains
             CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
         case (3)
             CompSource = 1
+        case (5)
+            CompSource = Source_File (time,Sour)
         end select
         CompSource = Sour%amplitude*CompSource
 
         return
     end function CompSource
+
+    !>
+    !! \brief Reads the time-amplitude table of a func=file source (i_time_function=5).
+    !! Two columns ("t ampli"), one sample per line. Port of SEM3D Modules/Sources.f90.
+    !<
+    subroutine read_source_file(Sour)
+
+        type(Source), intent(inout) :: Sour
+        integer   :: nb_time_step, i
+        real(fpp) :: tr, trr
+
+        i = 0 ; nb_time_step = 0
+
+        ! count
+        open(10,file=Sour%time_file,action="read",status="old")
+        do
+            read(10,*,end=100) tr, trr
+            i = i + 1
+        end do
+100     close(10)
+        nb_time_step = i
+
+        if (nb_time_step < 2) then
+            write(*,*) "ERROR: source time_file '", trim(Sour%time_file), "' yielded ", &
+                       nb_time_step, " sample(s)."
+            write(*,*) "  Expected 2 columns (t ampli) and one sample per line."
+            stop 1
+        end if
+
+        allocate(Sour%time(0:nb_time_step-1),Sour%ampli(0:nb_time_step-1))
+        Sour%Nt = nb_time_step
+
+        open(10,file=Sour%time_file,action="read",status="old")
+        do i=0, Sour%Nt-1
+            read(10,*,end=101) Sour%time(i),Sour%ampli(i)
+        end do
+101     close(10)
+
+    end subroutine read_source_file
+
+    !>
+    !! \brief Linear interpolation in the time-amplitude table: zero before the first sample,
+    !! held at the last amplitude after the last one. Port of SEM3D Modules/Sources.f90.
+    !<
+    real(fpp) function Source_File(tt,Sour)
+
+        type(Source), intent(in) :: Sour
+        real(fpp), intent(in)    :: tt
+        integer :: i
+
+        if (tt < Sour%time(0)) then
+            Source_File = 0.
+        else if (tt >= Sour%time(Sour%Nt-1)) then
+            Source_File = Sour%ampli(Sour%Nt-1)
+        else
+            i = 1
+            do while (tt > Sour%time(i))
+                i = i + 1
+            end do
+            Source_File = Sour%ampli(i-1) + (tt-Sour%time(i-1)) &
+                          * (Sour%ampli(i)-Sour%ampli(i-1)) / (Sour%time(i)-Sour%time(i-1))
+        endif
+        return
+
+    end function Source_File
 
     !>
     !! \fn function Gaussian (time, tau, f0)

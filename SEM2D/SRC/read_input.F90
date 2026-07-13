@@ -33,6 +33,9 @@ subroutine create_sem2d_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%i_type_source = src%type
         ! Comportement temporel
         Tdomain%Ssource(nsrc)%i_time_function = src%func
+        if (src%func .eq. 5) then ! func=file: table read later, in main (mesh-independent)
+            Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
+        end if
         Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
         Tdomain%Ssource(nsrc)%tau_b = src%tau ! func=1,2,3,4,5
         !Tdomain%Ssource(nsrc)%fh = src%band  ! func=3

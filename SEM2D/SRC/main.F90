@@ -49,7 +49,7 @@ subroutine  sem()
 
     type (domain), target  :: Tdomain
     integer :: ntime,i_snap, ierr
-    integer :: isort
+    integer :: isort, nsrc
     character(len=MAX_FILE_SIZE) :: fnamef
     integer :: getpid, pid
 
@@ -114,6 +114,14 @@ subroutine  sem()
     if (Tdomain%logicD%any_source) then
         if (rg == 0) write (*,*) "Computing point-source parameters and location"
         call SourcePosition(Tdomain)
+        ! source time dependence read from a file (func=file), cf. SEM3D drive_sem.f90
+        do nsrc = 0, Tdomain%n_source-1
+            if (Tdomain%sSource(nsrc)%i_time_function == 5) then
+                if (rg == 0) write (*,*) "Reading source time file: ", &
+                    trim(Tdomain%sSource(nsrc)%time_file)
+                call read_source_file(Tdomain%sSource(nsrc))
+            endif
+        end do
     endif
 
     ! Legacy ASCII (.vel) receiver output DISABLED (kept for reference): traces now go through
