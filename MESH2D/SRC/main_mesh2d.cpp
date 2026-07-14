@@ -455,6 +455,11 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
     assert(m_quads.size() > 0);
     MeshProcInfo info(m_quads[0]->get_nb_nodes());
     gather_proc_info(info, rk);
+
+    printf("%04d : number of elements = %d\n", rk, info.n_elements());
+    printf("%04d : number of edges = %d\n", rk, info.n_edges());
+    printf("%04d : number of vertices = %d\n", rk, info.n_vertices());
+
     h5h_write_attr_int(fid, "ndim", 2);
     //m_nprocs=1;
     h5h_write_attr_int(fid, "n_processors", m_nprocs);
@@ -504,6 +509,10 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
         h5h_write_dset(grp, "edges", comm.m_edges);
         h5h_write_dset(grp, "coherency", comm.m_coherency);
         H5Gclose(grp);
+        
+        printf("Comm:%d->%d : E/V : (%d,%d)\n", rk, it->first,
+               (int)comm.m_edges.size(), (int)comm.m_vertices.size());
+
         comm_count++;
     }
 
@@ -523,6 +532,25 @@ int main(int argc, char** argv)
 
     Mesh2D mesh;
     mesh.read_mesh(fmesh);
+
+    // Print global mesh summary
+    printf("\n--- Global Mesh Summary ---\n");
+    printf("Total elements in the plane: %zu\n", mesh.m_quads.size());
+    printf("Total nodes in the plane: %zu\n", mesh.m_px.size());
+    
+    // Count elements per material
+    {
+        std::map<int, int> mat_counts;
+        for (size_t i = 0; i < mesh.m_mat1.size(); ++i) {
+            mat_counts[mesh.m_mat1[i]]++;
+        }
+        printf("Elements per material:\n");
+        for (auto const& pair : mat_counts) {
+            printf("  Material %2d: %d elements\n", pair.first, pair.second);
+        }
+    }
+    printf("---------------------------\n\n");
+
     if (nproc>1) mesh.partition_metis(nproc);
 
     string basename = fmesh;

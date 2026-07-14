@@ -485,6 +485,11 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
     assert(m_quads.size() > 0);
     MeshProcInfo info(m_quads[0]->get_nb_nodes());
     gather_proc_info(info, rk);
+
+    printf("%04d : number of elements = %d\n", rk, info.n_elements());
+    printf("%04d : number of edges = %d\n", rk, info.n_edges());
+    printf("%04d : number of vertices = %d\n", rk, info.n_vertices());
+
     h5h_write_attr_int(fid, "ndim", 2);
     //m_nprocs=1;
     h5h_write_attr_int(fid, "n_processors", m_nprocs);
@@ -554,6 +559,10 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
         h5h_write_dset_empty(grp, "edges", comm.m_edges);
         h5h_write_dset_empty(grp, "coherency", comm.m_coherency);
         H5Gclose(grp);
+        
+        printf("Comm:%d->%d : E/V : (%d,%d)\n", rk, it->first,
+               (int)comm.m_edges.size(), (int)comm.m_vertices.size());
+
         comm_count++;
     }
 
@@ -675,12 +684,15 @@ static void read_materials_2d(const char* fname, vector<Material2D>& mats)
     getData_line(&buffer, &n, f);
     sscanf(buffer, "%d", &nmat);
     if (nmat<=0 || nmat>1000) {printf("ERR: bad material count %d in %s\n", nmat, fname); exit(1);}
+    printf("Reading Materials\n");
     for(int k=0;k<nmat;++k) {
         Material2D m;
         getData_line(&buffer, &n, f);
         int c = sscanf(buffer, " %c %lf %lf %lf %lf %lf",
                        &m.type, &m.vp, &m.vs, &m.rho, &m.qp, &m.qs);
         if (c<4) {printf("ERR: material line %d in %s has too few fields (%d)\n", k, fname, c); exit(1);}
+        printf("mat=%2ld : t=%c vp=%lf vs=%lf rho=%lf Qp=%lf Qmu=%lf\n", (long)mats.size(),
+               m.type, m.vp, m.vs, m.rho, m.qp, m.qs);
         mats.push_back(m);
     }
     if(buffer) free(buffer);
@@ -695,6 +707,7 @@ static void read_materials_2d(const char* fname, vector<Material2D>& mats)
 //   <npow Apow posX widthX posY widthY posZ widthZ mat>                (one per 'P', in order)
 static void write_materials_2d(const char* fname, const vector<Material2D>& mats)
 {
+    printf("Writing Materials\n");
     FILE* f = fopen(fname, "w");
     if (!f) {printf("ERR: cannot write %s\n", fname); exit(1);}
     fprintf(f, "%ld\n", mats.size());
@@ -702,17 +715,22 @@ static void write_materials_2d(const char* fname, const vector<Material2D>& mats
     for(size_t k=0;k<mats.size();++k) {
         const Material2D& m = mats[k];
         fprintf(f, "%c %g %g %g %g %g\n", m.type, m.vp, m.vs, m.rho, m.qp, m.qs);
+        printf("mat=%2ld : t=%c vp=%lf vs=%lf rho=%lf Qp=%lf Qmu=%lf\n", (long)k,
+               m.type, m.vp, m.vs, m.rho, m.qp, m.qs);
         if (m.is_pml) npml++;
     }
     if (npml>0) {
         fprintf(f, "# PML properties\n");
         fprintf(f, "# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat\n");
+        printf("\nReading PML descriptions:\n");
         for(size_t k=0;k<mats.size();++k) {
             const Material2D& m = mats[k];
             if (!m.is_pml) continue;
             // posY/widthY are always 0 in 2D.
             fprintf(f, "%d %g %g %g %g %g %g %g %d\n",
                     m.npow, m.apow, m.xpos, m.xwidth, 0., 0., m.zpos, m.zwidth, m.assoc);
+            printf("mat=%2d : npow=%2d apow=%3.0lf  PX=%5.1lf WX=%5.1lf PY=%5.1lf WY=%5.1lf PZ=%5.1lf WZ=%5.1lf M=%d\n",
+                   (int)k, m.npow, m.apow, m.xpos, m.xwidth, 0., 0., m.zpos, m.zwidth, m.assoc);
         }
     }
     fclose(f);
@@ -1303,12 +1321,15 @@ int main(int argc, char** argv)
         if (err > 0 && config.mesh_file) {
             basename = config.mesh_file;
         }
+        dump_config(&config);
     }
 
+    printf("-------------------------------------------------\n");
     printf("-------------------------------------------------\n");
     printf("-----                                       -----\n");
     printf("----- Construction of input files for SEM2D -----\n");
     printf("-----                                       -----\n");
+    printf("-------------------------------------------------\n");
     printf("-------------------------------------------------\n");
 
     printf("\n   --> How many procs for the run ?\n");
@@ -1347,6 +1368,24 @@ int main(int argc, char** argv)
     } else if (choice==1 && access("pml.input", F_OK)==0) {
         printf("WARNING: pml.input ignored for 'on the fly' meshes (PML comes from mat.dat)\n");
     }
+
+    // Print global mesh summary
+    printf("\n--- Global Mesh Summary ---\n");
+    printf("Total elements in the plane: %zu\n", mesh.m_quads.size());
+    printf("Total nodes in the plane: %zu\n", mesh.m_px.size());
+    
+    // Count elements per material
+    {
+        std::map<int, int> mat_counts;
+        for (size_t i = 0; i < mesh.m_mat1.size(); ++i) {
+            mat_counts[mesh.m_mat1[i]]++;
+        }
+        printf("Elements per material:\n");
+        for (auto const& pair : mat_counts) {
+            printf("  Material %2d: %d elements\n", pair.first, pair.second);
+        }
+    }
+    printf("---------------------------\n\n");
 
     if (NPROCS>1) mesh.partition_metis(NPROCS);
 
