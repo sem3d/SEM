@@ -58,6 +58,10 @@ subroutine  sem()
 
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
     real(kind=4) :: t_fin, t_ini
+    double precision :: t_wall_ini, t_wall_fin
+    double precision :: my_cpu_time_d, my_cpu_sq
+    double precision :: min_cpu, max_cpu, sum_cpu, sum_cpu_sq
+    double precision :: avg_cpu, var_cpu, std_cpu
     integer :: interrupt, rg, code, protection, n_it_max
 
     pid = getpid()
@@ -67,35 +71,62 @@ subroutine  sem()
 
     call START_SEM(Tdomain)
 
+    call CPU_TIME(t_ini)
+    t_wall_ini = MPI_Wtime()
+
     rg = Tdomain%Mpi_var%my_rank
+    if (rg == 0) then
+        write(*,*)
+        write(*,*) "****************************************************************************"
+        write(*,*) "****************************************************************************"
+        write(*,*) "****************************************************************************"
+        write(*,*) "**************************                          ************************"
+        write(*,*) "**************************     SEM - 2D VERSION     ************************"
+        write(*,*) "**************************                          ************************"
+        write(*,*) "****************************************************************************"
+        write(*,*) "****************************************************************************"
+        write(*,*) "****************************************************************************"
+        write(*,*)
+        
+        print*
+        print*
+        print*, "****************************************************************************"
+        print*, "********************                                     *******************"
+        print*, "********************      RUN PREPARATION : INPUT DATA,  *******************"
+        print*, "********************     ELEMENTAL AND GLOBAL MACHINERY  *******************"
+        print*, "********************                                     *******************"
+        print*, "****************************************************************************"
+        print*
+    end if
+
     if (rg == 0) call create_sem_output_directories()
     call MPI_Barrier (Tdomain%communicateur, ierr)
 
     !lecture du fichier de donnee
-    if (rg == 0) write (*,*) "Read input.spec"
+    if (rg == 0) write (*,*) "--> READING INPUT PARAMETERS AND DATA"
     call read_input (Tdomain)
 
     !lecture du fichier de maillage unv avec conversion en fichier sem2D
-    if (rg == 0) write (*,*) "Define mesh properties"
+    if (rg == 0) write (*,*) "--> DEFINING MESH PROPERTIES"
     call read_mesh_h5(Tdomain)
 
     ! mesh deformation (for testing purposes)
     !call rotate_mesh(Tdomain)
     !call random_mesh_deformation(Tdomain)
 
-    if (rg == 0) write (*,*) "Checks the inputs and the mesh"
+    if (rg == 0) write (*,*) "--> CHECKING INPUTS AND MESH"
     call check_inputs_and_mesh (Tdomain)
 
-    if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
+    if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE WEIGHTS AND ZEROES"
     call compute_GLL (Tdomain)
 
-    if (rg == 0) write (*,*) "Split solid-fluid interface faces (separate DOFs)"
+    if (rg == 0) write (*,*) "--> SPLITTING SOLID-FLUID INTERFACE FACES (SEPARATE DOFS)"
     call split_sf_interface_faces (Tdomain)
 
-    if (rg == 0) write (*,*) "Define a global numbering for the collocation points"
+    if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)
 
-    if (rg == 0) write (*,'(x,a,i1,a)') "Computing shape",Tdomain%n_nodes," functions within thier derivatives"
+    if (rg == 0) write (*,'(a,i1,a)') "--> COMPUTING SHAPE ",Tdomain%n_nodes," FUNCTIONS AND THEIR DERIVATIVES"
     if  (Tdomain%n_nodes == 4) then
         call shape4(TDomain)   ! Linear interpolation
     else if (Tdomain%n_nodes == 8) then
@@ -105,14 +136,14 @@ subroutine  sem()
         stop
     endif
 
-    if (rg == 0) write (*,*) " Compute Courant parameter"
+    if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETERS"
     call compute_Courant (Tdomain)
 
-    if (rg == 0) write (*,*) "Attribute Boundary Conditions and PML properties"
+    if (rg == 0) write (*,*) "--> DEFINING BOUNDARY CONDITIONS AND PML PROPERTIES"
     call PML_definition (Tdomain)
 
     if (Tdomain%logicD%any_source) then
-        if (rg == 0) write (*,*) "Computing point-source parameters and location"
+        if (rg == 0) write (*,*) "--> COMPUTING POINT-SOURCE PARAMETERS AND LOCATION"
         call SourcePosition(Tdomain)
         ! source time dependence read from a file (func=file), cf. SEM3D drive_sem.f90
         do nsrc = 0, Tdomain%n_source-1
@@ -132,21 +163,21 @@ subroutine  sem()
         call ReceiverPosition(Tdomain)
     endif
 
-    if (rg ==0 .and. Tdomain%logicD%super_object) write(*,*) "Define Fault properties"
+    if (rg ==0 .and. Tdomain%logicD%super_object) write(*,*) "--> DEFINING FAULT PROPERTIES"
     if (Tdomain%logicD%super_object_local_present) then
         if (Tdomain%n_fault > 0) call define_fault_properties (Tdomain)
     endif
 
-    if (rg == 0) write (*,*) " Allocate fields"
+    if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
     call allocate_domain (Tdomain)
 
-    if (rg == 0) write (*,*) "Compute tranfer quantities"
+    if (rg == 0) write (*,*) "--> COMPUTING WALL TRANSFER QUANTITIES"
     call wall_transfer (Tdomain)
 
-    if (rg == 0) write (*,*) " Compute mass matrix and internal forces coefficients"
+    if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS"
     call define_arrays (Tdomain)
 
-    if (rg == 0) write (*,*) " Build solid-fluid interface coupling"
+    if (rg == 0) write (*,*) "--> BUILDING SOLID-FLUID INTERFACE COUPLING"
     call build_sf_coupling (Tdomain)
 
     ! initialisation des temps
@@ -164,6 +195,18 @@ subroutine  sem()
     elseif (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT_ITER) then
         n_it_max = 1
     endif
+
+    if (rg == 0) then
+        print*
+        print*
+        print*, "****************************************************************************"
+        print*, "*****************                                          *****************"
+        print*, "*****************  INITIALIZATION OF IN/OUT INTERACTIONS:  *****************"
+        print*, "*****************     RESTART, SNAPSHOTS, RECEIVERS        *****************"
+        print*, "*****************                                          *****************"
+        print*, "****************************************************************************"
+        print*
+    end if
 
     isort = 1
 
@@ -187,7 +230,7 @@ subroutine  sem()
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
         Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
-        if (rg==0) write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
+        if (rg==0) write(*,*) "--> SNAPSHOTS RECORDED EVERY ", Tdomain%timeD%nsnap, " iterations"
     endif
 
 
@@ -197,6 +240,21 @@ subroutine  sem()
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! BOUCLE DE CALCUL EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if (rg == 0) then
+        print*
+        print*
+        print*, "****************************************************************************"
+        print*, "************************                                 *******************"
+        print*, "************************        TIME STEPPING            *******************"
+        print*, "************************                                 *******************"
+        print*, "****************************************************************************"
+        print*
+        print*,"--> Duration of the run: ",Tdomain%TimeD%Duration
+        print*,"--> Time step size: ",Tdomain%TimeD%dtmin
+        print*,"--> Number of time steps: ",Tdomain%TimeD%ntimeMax
+        print*
+    end if
+
     call CPU_TIME( t_ini )
     protection = 0
     interrupt = 0
@@ -223,6 +281,10 @@ subroutine  sem()
                 call Midpoint_impl_semi_impl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             endif
         endif
+
+        if (rg == 0 .and. mod(ntime, 20) == 0) then
+            print *, ' Iteration  =  ', ntime, '    temps  = ', Tdomain%TimeD%rtime
+        end if
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then
             interrupt=1
@@ -259,7 +321,9 @@ subroutine  sem()
 
         if (i_snap == 0) then
 
-            if (rg==0 .and. display_iter==1) write(*,*) "Snapshot:",isort," iteration=", ntime, " tps=", Tdomain%TimeD%rtime
+            if (rg==0 .and. display_iter==1) then
+                write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
+            endif
             call save_field_h5(Tdomain, rg, isort)
 
             ! Sortie Energie totale du systeme
@@ -309,13 +373,34 @@ subroutine  sem()
 
     if (Tdomain%has_station) call flushAllCapteurs(Tdomain)
 
+    call CPU_TIME(t_fin)
+    t_wall_fin = MPI_Wtime()
+    my_cpu_time_d = dble(t_fin - t_ini)
+    my_cpu_sq = my_cpu_time_d * my_cpu_time_d
+
+    call MPI_Reduce(my_cpu_time_d, min_cpu, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, Tdomain%communicateur, ierr)
+    call MPI_Reduce(my_cpu_time_d, max_cpu, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, Tdomain%communicateur, ierr)
+    call MPI_Reduce(my_cpu_time_d, sum_cpu, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+    call MPI_Reduce(my_cpu_sq, sum_cpu_sq, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+
     call END_SEM(Tdomain, ntime)
     call MPI_Finalize  (ierr)
 
-    if (rg == 0) write (*,*) "Execution completed"
-    if (rg == 0) close(78)
-    if (rg == 0) call CPU_TIME( t_fin )
-    if (rg == 0) write (*,*) "CPU Time for computation : ", t_fin - t_ini
+    if (rg == 0) then
+        avg_cpu = sum_cpu / dble(Tdomain%Mpi_var%n_proc)
+        var_cpu = (sum_cpu_sq - (sum_cpu * sum_cpu) / dble(Tdomain%Mpi_var%n_proc)) / dble(Tdomain%Mpi_var%n_proc)
+        if (var_cpu < 0.d0) var_cpu = 0.d0
+        std_cpu = sqrt(var_cpu)
+
+        write (*,*) "Execution completed"
+        write (*,*) "Wall Time for computation : ", t_wall_fin - t_wall_ini
+        write (*,*) "CPU Time stats across ", Tdomain%Mpi_var%n_proc, " process(es):"
+        write (*,*) "  Min CPU Time : ", min_cpu
+        write (*,*) "  Max CPU Time : ", max_cpu
+        write (*,*) "  Avg CPU Time : ", avg_cpu
+        write (*,*) "  Std Dev CPU  : ", std_cpu
+        close(78)
+    endif
 
 end subroutine sem
 

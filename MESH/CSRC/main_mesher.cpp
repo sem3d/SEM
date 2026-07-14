@@ -293,6 +293,7 @@ int main(int argc, char**argv)
     mesh.define_associated_materials();
 
     mesh.generate_output(NPROCS, &config);
+    printf("Mesher process finished OK\n");
     return 0;
 }
 

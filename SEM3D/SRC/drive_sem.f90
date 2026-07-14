@@ -37,9 +37,16 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer :: rg, nb_procs, ntime
     integer :: isort, ierr
     real(kind=8), parameter :: max_time_left=900
+    real(kind=4) :: t_ini, t_fin
+    double precision :: t_wall_ini, t_wall_fin
+    double precision :: my_cpu_time_d, my_cpu_sq
+    double precision :: min_cpu, max_cpu, sum_cpu, sum_cpu_sq
+    double precision :: avg_cpu, var_cpu, std_cpu
 
     call MPI_Init (ierr)
     Tdomain%time_0 = MPI_Wtime();
+    call CPU_TIME(t_ini)
+    t_wall_ini = MPI_Wtime()
 
 !----------------------------------------------------------------------------------------------!
 !------------------------------------    COMMUNICATORS  ---------------------------------------!
@@ -93,6 +100,31 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
         enddo
         
         call TIME_STEPPING(Tdomain,isort,ntime)
+
+        call CPU_TIME(t_fin)
+        t_wall_fin = MPI_Wtime()
+        my_cpu_time_d = dble(t_fin - t_ini)
+        my_cpu_sq = my_cpu_time_d * my_cpu_time_d
+
+        call MPI_Reduce(my_cpu_time_d, min_cpu, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, Tdomain%communicateur, ierr)
+        call MPI_Reduce(my_cpu_time_d, max_cpu, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, Tdomain%communicateur, ierr)
+        call MPI_Reduce(my_cpu_time_d, sum_cpu, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+        call MPI_Reduce(my_cpu_sq, sum_cpu_sq, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+
+        if (rg == 0) then
+            avg_cpu = sum_cpu / dble(nb_procs)
+            var_cpu = (sum_cpu_sq - (sum_cpu * sum_cpu) / dble(nb_procs)) / dble(nb_procs)
+            if (var_cpu < 0.d0) var_cpu = 0.d0
+            std_cpu = sqrt(var_cpu)
+
+            write(*,*) "Execution completed"
+            write(*,*) "Wall Time for computation : ", t_wall_fin - t_wall_ini
+            write(*,*) "CPU Time stats across ", nb_procs, " process(es):"
+            write(*,*) "  Min CPU Time : ", min_cpu
+            write(*,*) "  Max CPU Time : ", max_cpu
+            write(*,*) "  Avg CPU Time : ", avg_cpu
+            write(*,*) "  Std Dev CPU  : ", std_cpu
+        endif
 
  !---------------------------------------------------------------------------------------------!
  !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!

@@ -1396,6 +1396,7 @@ int main(int argc, char** argv)
         mesh.write_proc_file(fname, k);
     }
     if(buffer){free(buffer); buffer=NULL;}
+    printf("Mesher process finished OK\n");
     return 0;
 }
 

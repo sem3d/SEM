@@ -562,6 +562,7 @@ int main(int argc, char** argv)
         snprintf(fname, 1024,"%s.%04d.h5", argv[3], k);
         mesh.write_proc_file(fname, k);
     }
+    printf("Mesher process finished OK\n");
 }
 
 /* Local Variables:                                                        */
