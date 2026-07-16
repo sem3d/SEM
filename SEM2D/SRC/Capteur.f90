@@ -468,6 +468,9 @@ contains
         real(fpp)                                  :: eps_xx, eps_zz, eps_xz, eps_v
         real(fpp)                                  :: sig_xx, sig_zz, sig_xz, sig_mean
         real(fpp), dimension(3)                    :: strain_v, stress_v
+        real(fpp), dimension(:,:,:), allocatable   :: physU, physV, physA
+        real(fpp)                                  :: dphi_dxi, dphi_deta, dVelphi_dxi, dVelphi_deta
+        real(fpp)                                  :: v_x, v_z, a_x, a_z, p_val
 
         n_el = capteur%n_el
         if((n_el==-1) .OR. (capteur%numproc/=Tdomain%Mpi_var%my_rank)) return
@@ -484,6 +487,9 @@ contains
         allocate(fieldU(0:ngllx-1,0:ngllz-1,0:1))
         allocate(fieldV(0:ngllx-1,0:ngllz-1,0:1))
         allocate(fieldA(0:ngllx-1,0:ngllz-1,0:1))
+        allocate(physU(0:ngllx-1,0:ngllz-1,0:1))
+        allocate(physV(0:ngllx-1,0:ngllz-1,0:1))
+        allocate(physA(0:ngllx-1,0:ngllz-1,0:1))
         allocate(eps_vol(0:ngllx-1,0:ngllz-1))
         allocate(P_energy(0:ngllx-1,0:ngllz-1))
         allocate(K_energy(0:ngllx-1,0:ngllz-1))
@@ -539,16 +545,32 @@ contains
 
         do j = 0,ngllz-1
             do i = 0,ngllx-1
-                ! Calcul de l'énergie cinétique
-                K_energy(i,j) = 0.5_fpp * Tdomain%specel(n_el)%Density(i,j) * (fieldV(i,j,0)**2 + fieldV(i,j,1)**2)
+                if (Tdomain%specel(n_el)%acoustic .and. allocated(Tdomain%specel(n_el)%IDensTensor2d)) then
+                    dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                    dphi_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
+                    invgrad_ij = Tdomain%specel(n_el)%InvGrad(i,j,:,:)
+                    v_x = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
+                    v_z = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
 
-                if (Tdomain%specel(n_el)%acoustic) then
-                    ! Cas Fluide (Potentiel ou déplacement)
-                    if (allocated(Tdomain%specel(n_el)%IDensTensor2d)) then
-                        ! Fluide-anisotrope (Velocity potential field): p = -VelPhi = -veloc(0)
-                        fieldP(i,j) = -fieldV(i,j,0)
-                    else
-                        ! Fluide-isotrope (displacement-based): p = -lambda * div(U)
+                    dVelphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldV(:,j,0))
+                    dVelphi_deta = sum(fieldV(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
+                    a_x = invgrad_ij(0,0)*dVelphi_dxi + invgrad_ij(0,1)*dVelphi_deta
+                    a_z = invgrad_ij(1,0)*dVelphi_dxi + invgrad_ij(1,1)*dVelphi_deta
+
+                    K_energy(i,j) = 0.5_fpp * Tdomain%specel(n_el)%Density(i,j) * (v_x**2 + v_z**2)
+                    fieldP(i,j) = -Tdomain%specel(n_el)%Density(i,j) * fieldV(i,j,0)
+                    P_energy(i,j) = 0.5_fpp * fieldP(i,j)**2 * Tdomain%specel(n_el)%invKappa2d(i,j)
+
+                    physU(i,j,0) = 0.0_fpp
+                    physU(i,j,1) = 0.0_fpp
+                    physV(i,j,0) = v_x
+                    physV(i,j,1) = v_z
+                    physA(i,j,0) = a_x
+                    physA(i,j,1) = a_z
+                else
+                    K_energy(i,j) = 0.5_fpp * Tdomain%specel(n_el)%Density(i,j) * (fieldV(i,j,0)**2 + fieldV(i,j,1)**2)
+
+                    if (Tdomain%specel(n_el)%acoustic) then
                         dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
                         dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
                         dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))
@@ -560,57 +582,64 @@ contains
                         eps_v = DXX + DZZ
                         eps_vol(i,j) = eps_v
                         fieldP(i,j) = -Tdomain%specel(n_el)%Lambda(i,j) * eps_v
-                    endif
-                else
-                    ! Cas Solide (Élastique)
-                    dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
-                    dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
-                    dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))
-                    dUz_deta = sum(fieldU(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,j))
-
-                    invgrad_ij = Tdomain%specel(n_el)%InvGrad(i,j,:,:)
-                    DXX = invgrad_ij(0,0)*dUx_dxi + invgrad_ij(0,1)*dUx_deta
-                    DXZ = invgrad_ij(1,0)*dUx_dxi + invgrad_ij(1,1)*dUx_deta
-                    DZX = invgrad_ij(0,0)*dUz_dxi + invgrad_ij(0,1)*dUz_deta
-                    DZZ = invgrad_ij(1,0)*dUz_dxi + invgrad_ij(1,1)*dUz_deta
-
-                    dUdX(i,j,0) = DXX
-                    dUdX(i,j,1) = DXZ
-                    dUdX(i,j,2) = DZX
-                    dUdX(i,j,3) = DZZ
-
-                    eps_xx = DXX
-                    eps_zz = DZZ
-                    eps_xz = 0.5_fpp * (DXZ + DZX)
-                    eps_v = eps_xx + eps_zz
-                    eps_vol(i,j) = eps_v
-
-                    eps_dev(i,j,0) = eps_xx - 0.5_fpp * eps_v
-                    eps_dev(i,j,1) = eps_zz - 0.5_fpp * eps_v
-                    eps_dev(i,j,2) = eps_xz
-
-                    if (allocated(Tdomain%specel(n_el)%Cij2d)) then
-                        strain_v = (/ eps_xx, eps_zz, 2.0_fpp * eps_xz /)
-                        stress_v = matmul(Tdomain%specel(n_el)%Cij2d(:,:,i,j), strain_v)
-                        sig_xx = stress_v(1)
-                        sig_zz = stress_v(2)
-                        sig_xz = stress_v(3)
+                        P_energy(i,j) = 0.5_fpp * fieldP(i,j)**2 / Tdomain%specel(n_el)%Lambda(i,j)
                     else
-                        sig_xx = Tdomain%specel(n_el)%Lambda(i,j) * eps_v + 2.0_fpp * Tdomain%specel(n_el)%Mu(i,j) * eps_xx
-                        sig_zz = Tdomain%specel(n_el)%Lambda(i,j) * eps_v + 2.0_fpp * Tdomain%specel(n_el)%Mu(i,j) * eps_zz
-                        sig_xz = 2.0_fpp * Tdomain%specel(n_el)%Mu(i,j) * eps_xz
+                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                        dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
+                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))
+                        dUz_deta = sum(fieldU(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,j))
+
+                        invgrad_ij = Tdomain%specel(n_el)%InvGrad(i,j,:,:)
+                        DXX = invgrad_ij(0,0)*dUx_dxi + invgrad_ij(0,1)*dUx_deta
+                        DXZ = invgrad_ij(1,0)*dUx_dxi + invgrad_ij(1,1)*dUx_deta
+                        DZX = invgrad_ij(0,0)*dUz_dxi + invgrad_ij(0,1)*dUz_deta
+                        DZZ = invgrad_ij(1,0)*dUz_dxi + invgrad_ij(1,1)*dUz_deta
+
+                        dUdX(i,j,0) = DXX
+                        dUdX(i,j,1) = DXZ
+                        dUdX(i,j,2) = DZX
+                        dUdX(i,j,3) = DZZ
+
+                        eps_xx = DXX
+                        eps_zz = DZZ
+                        eps_xz = 0.5_fpp * (DXZ + DZX)
+                        eps_v = eps_xx + eps_zz
+                        eps_vol(i,j) = eps_v
+
+                        eps_dev(i,j,0) = eps_xx - 0.5_fpp * eps_v
+                        eps_dev(i,j,1) = eps_zz - 0.5_fpp * eps_v
+                        eps_dev(i,j,2) = eps_xz
+
+                        if (allocated(Tdomain%specel(n_el)%Cij2d)) then
+                            strain_v = (/ eps_xx, eps_zz, 2.0_fpp * eps_xz /)
+                            stress_v = matmul(Tdomain%specel(n_el)%Cij2d(:,:,i,j), strain_v)
+                            sig_xx = stress_v(1)
+                            sig_zz = stress_v(2)
+                            sig_xz = stress_v(3)
+                        else
+                            sig_xx = Tdomain%specel(n_el)%Lambda(i,j) * eps_v + 2.0_fpp * Tdomain%specel(n_el)%Mu(i,j) * eps_xx
+                            sig_zz = Tdomain%specel(n_el)%Lambda(i,j) * eps_v + 2.0_fpp * Tdomain%specel(n_el)%Mu(i,j) * eps_zz
+                            sig_xz = 2.0_fpp * Tdomain%specel(n_el)%Mu(i,j) * eps_xz
+                        endif
+
+                        sig_mean = 0.5_fpp * (sig_xx + sig_zz)
+                        sig_dev(i,j,0) = sig_xx - sig_mean
+                        sig_dev(i,j,1) = sig_zz - sig_mean
+                        sig_dev(i,j,2) = sig_xz
+
+                        fieldP(i,j) = -sig_mean
+                        P_energy(i,j) = 0.5_fpp * (sig_xx * eps_xx + sig_zz * eps_zz + 2.0_fpp * sig_xz * eps_xz)
                     endif
 
-                    sig_mean = 0.5_fpp * (sig_xx + sig_zz)
-                    sig_dev(i,j,0) = sig_xx - sig_mean
-                    sig_dev(i,j,1) = sig_zz - sig_mean
-                    sig_dev(i,j,2) = sig_xz
-
-                    fieldP(i,j) = -sig_mean
-                    P_energy(i,j) = 0.5_fpp * (sig_xx * eps_xx + sig_zz * eps_zz + 2.0_fpp * sig_xz * eps_xz)
+                    physU(i,j,:) = fieldU(i,j,:)
+                    physV(i,j,:) = fieldV(i,j,:)
+                    physA(i,j,:) = fieldA(i,j,:)
                 endif
             end do
         end do
+        fieldU = physU
+        fieldV = physV
+        fieldA = physA
 
         ! Interpolation à la position curviligne du capteur
         do i = 0,ngllx - 1
@@ -700,6 +729,9 @@ contains
         deallocate(fieldU)
         deallocate(fieldV)
         deallocate(fieldA)
+        deallocate(physU)
+        deallocate(physV)
+        deallocate(physA)
         deallocate(fieldP)
         deallocate(P_energy)
         deallocate(K_energy)
@@ -756,6 +788,7 @@ contains
         real(fpp) :: eps_xx, eps_zz, eps_xz, eps_v
         real(fpp) :: sig_xx, sig_zz, sig_xz, sig_mean
         real(fpp), dimension(3) :: strain_v, stress_v
+        real(fpp) :: v_x, v_z, p_val, dphi_dxi, dphi_deta
         real(fpp), dimension(0:1,0:1) :: invgrad_ij
 
         if(capteur%type /= CPT_ENERGY) return
@@ -795,14 +828,41 @@ contains
 
             do j = 0,ngllz-1
                 do i = 0,ngllx-1
-                    K_energy(i,j) = 0.5_fpp * el%Density(i,j) * (fieldV(i,j,0)**2 + fieldV(i,j,1)**2)
+                    if (el%acoustic .and. allocated(el%IDensTensor2d)) then
+                        dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                        dphi_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
+                        invgrad_ij = el%InvGrad(i,j,:,:)
+                        v_x = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
+                        v_z = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
 
-                    if (el%acoustic) then
-                        P_energy(i,j) = 0d0 ! Pas d'énergie potentielle standard
-                        L_energy(i,j) = 0d0
-                        S_energy(i,j) = 0d0
-                        R_energy(i,j) = 0d0
+                        K_energy(i,j) = 0.5_fpp * el%Density(i,j) * (v_x**2 + v_z**2)
+                        p_val = -el%Density(i,j) * fieldV(i,j,0)
+                        P_energy(i,j) = 0.5_fpp * p_val**2 * el%invKappa2d(i,j)
+
+                        L_energy(i,j) = 0.0_fpp
+                        S_energy(i,j) = 0.0_fpp
+                        R_energy(i,j) = 0.0_fpp
+                    elseif (el%acoustic) then
+                        K_energy(i,j) = 0.5_fpp * el%Density(i,j) * (fieldV(i,j,0)**2 + fieldV(i,j,1)**2)
+
+                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                        dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
+                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))
+                        dUz_deta = sum(fieldU(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,j))
+
+                        invgrad_ij = el%InvGrad(i,j,:,:)
+                        DXX = invgrad_ij(0,0)*dUx_dxi + invgrad_ij(0,1)*dUx_deta
+                        DZZ = invgrad_ij(1,0)*dUz_dxi + invgrad_ij(1,1)*dUz_deta
+                        eps_v = DXX + DZZ
+                        p_val = -el%Lambda(i,j) * eps_v
+                        P_energy(i,j) = 0.5_fpp * p_val**2 / el%Lambda(i,j)
+
+                        L_energy(i,j) = 0.0_fpp
+                        S_energy(i,j) = 0.0_fpp
+                        R_energy(i,j) = 0.0_fpp
                     else
+                        K_energy(i,j) = 0.5_fpp * el%Density(i,j) * (fieldV(i,j,0)**2 + fieldV(i,j,1)**2)
+
                         dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
                         dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
                         dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))

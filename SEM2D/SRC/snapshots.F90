@@ -257,6 +257,8 @@ contains
         real(fpp) :: eps_xx, eps_zz, eps_xz, eps_v
         real(fpp) :: sig_xx, sig_zz, sig_xz, sig_mean
         real(fpp), dimension(3) :: strain_v, stress_v
+        real(fpp) :: dphi_dxi, dphi_deta, dVelphi_dxi, dVelphi_deta
+        real(fpp) :: v_x, v_z, a_x, a_z, p_val
 
         call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
@@ -370,15 +372,38 @@ contains
                 do i = 0,ngllx-1
                     idx = irenum(Tdomain%specel(n)%Iglobnum(i,k))
                     valence(idx) = valence(idx)+1
-                    displ(0:1,idx) = field_displ(i,k,:)
-                    veloc(0:1,idx) = veloc(0:1,idx)+field_veloc(i,k,:)
-                    accel(0:1,idx) = accel(0:1,idx)+field_accel(i,k,:)
+                    if (Tdomain%specel(n)%acoustic .and. allocated(Tdomain%specel(n)%IDensTensor2d)) then
+                        dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
+                        dphi_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
+                        invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)
+                        v_x = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
+                        v_z = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
+
+                        dVelphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_veloc(:,k,0))
+                        dVelphi_deta = sum(field_veloc(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
+                        a_x = invgrad_ij(0,0)*dVelphi_dxi + invgrad_ij(0,1)*dVelphi_deta
+                        a_z = invgrad_ij(1,0)*dVelphi_dxi + invgrad_ij(1,1)*dVelphi_deta
+
+                        displ(0:1,idx) = 0.0_fpp
+                        veloc(0,idx) = veloc(0,idx) + v_x
+                        veloc(1,idx) = veloc(1,idx) + v_z
+                        accel(0,idx) = accel(0,idx) + a_x
+                        accel(1,idx) = accel(1,idx) + a_z
+                    else
+                        displ(0:1,idx) = field_displ(i,k,:)
+                        veloc(0:1,idx) = veloc(0:1,idx)+field_veloc(i,k,:)
+                        accel(0:1,idx) = accel(0:1,idx)+field_accel(i,k,:)
+                    endif
                     rotat(idx) = rotat(idx)+field_rotat(i,k)
 
                     mat = Tdomain%specel(n)%mat_index
                     ! Kinetic energy
                     if (allocated(K_energy)) then
-                        K_energy(idx) = K_energy(idx) + 0.5_fpp * Tdomain%specel(n)%Density(i,k) * (field_veloc(i,k,0)**2 + field_veloc(i,k,1)**2)
+                        if (Tdomain%specel(n)%acoustic .and. allocated(Tdomain%specel(n)%IDensTensor2d)) then
+                            K_energy(idx) = K_energy(idx) + 0.5_fpp * Tdomain%specel(n)%Density(i,k) * (v_x**2 + v_z**2)
+                        else
+                            K_energy(idx) = K_energy(idx) + 0.5_fpp * Tdomain%specel(n)%Density(i,k) * (field_veloc(i,k,0)**2 + field_veloc(i,k,1)**2)
+                        endif
                     endif
 
                     if ((.not. Tdomain%specel(n)%acoustic) .and. (.not. Tdomain%specel(n)%PML)) then
@@ -449,22 +474,31 @@ contains
                             R_energy(idx) = R_energy(idx) + 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * DXZ * DZX - 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * eps_xx * eps_zz
                         endif
                     else if (Tdomain%specel(n)%acoustic) then
-                        if (allocated(press)) then
-                            if (allocated(Tdomain%specel(n)%IDensTensor2d)) then
-                                sig_mean = field_veloc(i,k,0) ! VelPhi = -p
-                            else
-                                dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
-                                dUx_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
-                                dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,1))
-                                dUz_deta = sum(field_displ(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,k))
-
-                                invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)
-                                DXX = invgrad_ij(0,0)*dUx_dxi + invgrad_ij(0,1)*dUx_deta
-                                DZZ = invgrad_ij(1,0)*dUz_dxi + invgrad_ij(1,1)*dUz_deta
-                                eps_v = DXX + DZZ
-                                sig_mean = -Tdomain%specel(n)%Lambda(i,k) * eps_v
+                        if (allocated(Tdomain%specel(n)%IDensTensor2d)) then
+                            p_val = -Tdomain%specel(n)%Density(i,k) * field_veloc(i,k,0)
+                            if (allocated(press)) then
+                                press(idx) = press(idx) + p_val
                             endif
-                            press(idx) = press(idx) - sig_mean
+                            if (allocated(P_energy)) then
+                                P_energy(idx) = P_energy(idx) + 0.5_fpp * p_val**2 * Tdomain%specel(n)%invKappa2d(i,k)
+                            endif
+                        else
+                            dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
+                            dUx_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
+                            dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,1))
+                            dUz_deta = sum(field_displ(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,k))
+
+                            invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)
+                            DXX = invgrad_ij(0,0)*dUx_dxi + invgrad_ij(0,1)*dUx_deta
+                            DZZ = invgrad_ij(1,0)*dUz_dxi + invgrad_ij(1,1)*dUz_deta
+                            eps_v = DXX + DZZ
+                            p_val = -Tdomain%specel(n)%Lambda(i,k) * eps_v
+                            if (allocated(press)) then
+                                press(idx) = press(idx) + p_val
+                            endif
+                            if (allocated(P_energy)) then
+                                P_energy(idx) = P_energy(idx) + 0.5_fpp * p_val**2 / Tdomain%specel(n)%Lambda(i,k)
+                            endif
                         endif
                     endif
                 end do
@@ -1017,6 +1051,11 @@ contains
         real(fpp), dimension(0:ngllx-1,0:ngllz-1,0:1), intent (IN):: field_veloc
         real(fpp), dimension(0:ngllx-1,0:ngllz-1), intent (INOUT) :: field_rotat
         integer :: mat
+
+        if (Tdomain%specel(nel)%acoustic) then
+            field_rotat = 0.0_fpp
+            return
+        endif
 
         mat = Tdomain%specel(nel)%mat_index
 
