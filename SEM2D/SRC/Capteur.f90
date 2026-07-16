@@ -470,6 +470,7 @@ contains
         real(fpp), dimension(3)                    :: strain_v, stress_v
         real(fpp), dimension(:,:,:), allocatable   :: physU, physV, physA
         real(fpp)                                  :: dphi_dxi, dphi_deta, dVelphi_dxi, dVelphi_deta
+        real(fpp)                                  :: dphi_dx, dphi_dz, dVelphi_dx, dVelphi_dz
         real(fpp)                                  :: v_x, v_z, a_x, a_z, p_val
 
         n_el = capteur%n_el
@@ -549,16 +550,22 @@ contains
                     dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
                     dphi_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
                     invgrad_ij = Tdomain%specel(n_el)%InvGrad(i,j,:,:)
-                    v_x = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
-                    v_z = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
+                    dphi_dx = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
+                    dphi_dz = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
+
+                    v_x = Tdomain%specel(n_el)%IDensTensor2d(1,1,i,j)*dphi_dx + Tdomain%specel(n_el)%IDensTensor2d(1,2,i,j)*dphi_dz
+                    v_z = Tdomain%specel(n_el)%IDensTensor2d(2,1,i,j)*dphi_dx + Tdomain%specel(n_el)%IDensTensor2d(2,2,i,j)*dphi_dz
 
                     dVelphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldV(:,j,0))
                     dVelphi_deta = sum(fieldV(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
-                    a_x = invgrad_ij(0,0)*dVelphi_dxi + invgrad_ij(0,1)*dVelphi_deta
-                    a_z = invgrad_ij(1,0)*dVelphi_dxi + invgrad_ij(1,1)*dVelphi_deta
+                    dVelphi_dx = invgrad_ij(0,0)*dVelphi_dxi + invgrad_ij(0,1)*dVelphi_deta
+                    dVelphi_dz = invgrad_ij(1,0)*dVelphi_dxi + invgrad_ij(1,1)*dVelphi_deta
 
-                    K_energy(i,j) = 0.5_fpp * Tdomain%specel(n_el)%Density(i,j) * (v_x**2 + v_z**2)
-                    fieldP(i,j) = -Tdomain%specel(n_el)%Density(i,j) * fieldV(i,j,0)
+                    a_x = Tdomain%specel(n_el)%IDensTensor2d(1,1,i,j)*dVelphi_dx + Tdomain%specel(n_el)%IDensTensor2d(1,2,i,j)*dVelphi_dz
+                    a_z = Tdomain%specel(n_el)%IDensTensor2d(2,1,i,j)*dVelphi_dx + Tdomain%specel(n_el)%IDensTensor2d(2,2,i,j)*dVelphi_dz
+
+                    K_energy(i,j) = 0.5_fpp * (v_x * dphi_dx + v_z * dphi_dz)
+                    fieldP(i,j) = -fieldV(i,j,0)
                     P_energy(i,j) = 0.5_fpp * fieldP(i,j)**2 * Tdomain%specel(n_el)%invKappa2d(i,j)
 
                     physU(i,j,0) = 0.0_fpp
@@ -789,6 +796,7 @@ contains
         real(fpp) :: sig_xx, sig_zz, sig_xz, sig_mean
         real(fpp), dimension(3) :: strain_v, stress_v
         real(fpp) :: v_x, v_z, p_val, dphi_dxi, dphi_deta
+        real(fpp) :: dphi_dx, dphi_dz
         real(fpp), dimension(0:1,0:1) :: invgrad_ij
 
         if(capteur%type /= CPT_ENERGY) return
@@ -832,11 +840,14 @@ contains
                         dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
                         dphi_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
                         invgrad_ij = el%InvGrad(i,j,:,:)
-                        v_x = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
-                        v_z = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
+                        dphi_dx = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
+                        dphi_dz = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
 
-                        K_energy(i,j) = 0.5_fpp * el%Density(i,j) * (v_x**2 + v_z**2)
-                        p_val = -el%Density(i,j) * fieldV(i,j,0)
+                        v_x = el%IDensTensor2d(1,1,i,j)*dphi_dx + el%IDensTensor2d(1,2,i,j)*dphi_dz
+                        v_z = el%IDensTensor2d(2,1,i,j)*dphi_dx + el%IDensTensor2d(2,2,i,j)*dphi_dz
+
+                        K_energy(i,j) = 0.5_fpp * (v_x * dphi_dx + v_z * dphi_dz)
+                        p_val = -fieldV(i,j,0)
                         P_energy(i,j) = 0.5_fpp * p_val**2 * el%invKappa2d(i,j)
 
                         L_energy(i,j) = 0.0_fpp

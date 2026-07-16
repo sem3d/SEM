@@ -258,6 +258,7 @@ contains
         real(fpp) :: sig_xx, sig_zz, sig_xz, sig_mean
         real(fpp), dimension(3) :: strain_v, stress_v
         real(fpp) :: dphi_dxi, dphi_deta, dVelphi_dxi, dVelphi_deta
+        real(fpp) :: dphi_dx, dphi_dz, dVelphi_dx, dVelphi_dz
         real(fpp) :: v_x, v_z, a_x, a_z, p_val
 
         call create_dir_sorties(Tdomain, rg, isort)
@@ -376,13 +377,19 @@ contains
                         dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
                         dphi_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
                         invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)
-                        v_x = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
-                        v_z = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
+                        dphi_dx = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
+                        dphi_dz = invgrad_ij(1,0)*dphi_dxi + invgrad_ij(1,1)*dphi_deta
+
+                        v_x = Tdomain%specel(n)%IDensTensor2d(1,1,i,k)*dphi_dx + Tdomain%specel(n)%IDensTensor2d(1,2,i,k)*dphi_dz
+                        v_z = Tdomain%specel(n)%IDensTensor2d(2,1,i,k)*dphi_dx + Tdomain%specel(n)%IDensTensor2d(2,2,i,k)*dphi_dz
 
                         dVelphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_veloc(:,k,0))
                         dVelphi_deta = sum(field_veloc(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
-                        a_x = invgrad_ij(0,0)*dVelphi_dxi + invgrad_ij(0,1)*dVelphi_deta
-                        a_z = invgrad_ij(1,0)*dVelphi_dxi + invgrad_ij(1,1)*dVelphi_deta
+                        dVelphi_dx = invgrad_ij(0,0)*dVelphi_dxi + invgrad_ij(0,1)*dVelphi_deta
+                        dVelphi_dz = invgrad_ij(1,0)*dVelphi_dxi + invgrad_ij(1,1)*dVelphi_deta
+
+                        a_x = Tdomain%specel(n)%IDensTensor2d(1,1,i,k)*dVelphi_dx + Tdomain%specel(n)%IDensTensor2d(1,2,i,k)*dVelphi_dz
+                        a_z = Tdomain%specel(n)%IDensTensor2d(2,1,i,k)*dVelphi_dx + Tdomain%specel(n)%IDensTensor2d(2,2,i,k)*dVelphi_dz
 
                         displ(0:1,idx) = 0.0_fpp
                         veloc(0,idx) = veloc(0,idx) + v_x
@@ -400,7 +407,7 @@ contains
                     ! Kinetic energy
                     if (allocated(K_energy)) then
                         if (Tdomain%specel(n)%acoustic .and. allocated(Tdomain%specel(n)%IDensTensor2d)) then
-                            K_energy(idx) = K_energy(idx) + 0.5_fpp * Tdomain%specel(n)%Density(i,k) * (v_x**2 + v_z**2)
+                            K_energy(idx) = K_energy(idx) + 0.5_fpp * (v_x * dphi_dx + v_z * dphi_dz)
                         else
                             K_energy(idx) = K_energy(idx) + 0.5_fpp * Tdomain%specel(n)%Density(i,k) * (field_veloc(i,k,0)**2 + field_veloc(i,k,1)**2)
                         endif
@@ -475,7 +482,7 @@ contains
                         endif
                     else if (Tdomain%specel(n)%acoustic) then
                         if (allocated(Tdomain%specel(n)%IDensTensor2d)) then
-                            p_val = -Tdomain%specel(n)%Density(i,k) * field_veloc(i,k,0)
+                            p_val = -field_veloc(i,k,0)
                             if (allocated(press)) then
                                 press(idx) = press(idx) + p_val
                             endif
