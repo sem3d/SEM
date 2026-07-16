@@ -14,6 +14,7 @@
 module ssources
 
     use constants
+    use stf_helpers
     implicit none
 
     type :: Source
@@ -70,45 +71,38 @@ contains
 
         select case (Sour%i_time_function)
         case (1)
-            CompSource = Gaussian (time, Sour%ts, Sour%tau_b)
+            CompSource = Gaussian_3D (time, Sour%ts, Sour%tau_b)
         case (2)
-            CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
+            CompSource = Ricker_3D (time,Sour%tau_b,Sour%cutoff_freq)
         case (3)
             CompSource = Sour%timefunc(ntime)
         case (4)
-            !   developpement de la source du benchmark can1
             CompSource = Gabor (time,Sour%tau_b,Sour%cutoff_freq,Sour%gamma,Sour%ts)
         case (5)
             CompSource = Source_File (time,Sour)
             !CompSource = Source_File2 (ntime,Sour)
         case (6)
-            ! Source benchmark spice M0*(1-(1+(t/T)**gamma)exp(-(t/T)**gamma)) avec T=1/freq
-            CompSource = Source_Spice_Bench(time, Sour)
+            CompSource = Source_Spice_Bench_math(time, Sour%ts, Sour%cutoff_freq, Sour%gamma)
         case (7)
-            ! Sinus, pour test. param : tau, cutoff_freq
-            CompSource = Source_sinewave(time, Sour)
+            CompSource = Source_sinewave_math(time, Sour%ts, Sour%cutoff_freq)
         case (8)
-            ! Square. Param : tau, ts, gamma
-            CompSource = Source_square(time, Sour)
+            CompSource = Source_square_math(time, Sour%ts, Sour%tau_b, Sour%gamma)
         case (9)
-            ! Square. Param : ts, gamma
-            CompSource = Source_tanh(time, Sour)
+            CompSource = Source_tanh_math(time, Sour%ts, Sour%gamma)
         case (10)
-            ! Square. Param : ts, gamma
 #ifdef CPML
-            CompSource = Ricker(time, Sour%tau_b, Sour%cutoff_freq)
+            CompSource = Ricker_3D(time, Sour%tau_b, Sour%cutoff_freq)
 #else
             CompSource = Ricker_fl(time, Sour%tau_b, Sour%cutoff_freq)
 #endif
         case (11)
-            ! fonction de triangle
             CompSource = Triangle(time, Sour%tau_b)
         case (12)
-            ! Heaviside Step Function (Kausel-2006)
             CompSource = HSF(time, Sour%tau_b)
         case(13)
-            !Double-M wavelet (Al Shaer et al 2008)
-            CompSource = DM(time, Sour%tau_b,Sour%Q,Sour%X,Sour%Y,Sour%L,Sour%v,Sour%d,Sour%a)
+            CompSource = DM(time,Sour%tau_b,Sour%Q,Sour%X,Sour%Y,Sour%L,Sour%v,Sour%d,Sour%a)
+        case (16)
+            CompSource = Ormsby(time, Sour%tau_b, Sour%fh)
         case(15)
             !Extended source - modified 22/03/17 by Filippo and Elif
             CompSource = Source_File (time,Sour)
@@ -120,78 +114,7 @@ contains
     end function CompSource
 
 
-    real(fpp) function Source_Spice_Bench(time, Sour)
-        implicit none
-        type(source), intent(in) :: Sour
-        real(fpp), intent(in) :: time
-        !
-        real(fpp) :: T, k, s
 
-        if (time<Sour%ts) then
-            Source_Spice_Bench = 0d0
-            return
-        end if
-
-        T = 1./Sour%cutoff_freq
-        k = Sour%gamma
-        if (k<1d0) k=1d0
-
-        s = ((time-Sour%ts)/T)**k
-
-        Source_Spice_Bench = (1-(1+s)*exp(-s))
-
-       ! write(99,*) time, Source_Spice_Bench
-         
-        return
-    end function Source_Spice_Bench
-
-    real(fpp) function Source_tanh(time, Sour)
-        implicit none
-        type(source), intent(in) :: Sour
-        real(fpp), intent(in) :: time
-        !
-        real(fpp) :: k,t0
-
-        t0 = Sour%ts
-        k = Sour%gamma
-
-        Source_tanh = 0.5d0*(tanh(k*(time-t0))+1d0)
-        return
-    end function Source_tanh
-
-    real(fpp) function Source_square(t, Sour)
-        implicit none
-        ! A smoothed square
-        type(source), intent(in) :: Sour
-        real(fpp), intent(in) :: t
-        !
-        real(fpp) :: dt,t0,k,w0,winf
-
-        dt = Sour%tau_b
-        t0 = Sour%ts
-        k = Sour%gamma
-
-        ! Primitive : (log(cosh(k*(t-t0)))-log(cosh(k*(t0+dt-t))))/k
-        w0 = (log(cosh(k*(-t0)))-log(cosh(k*(t0+dt))))/k
-        winf = dt
-
-        Source_square = (tanh(k*(t-t0))+tanh(k*(t0+dt-t)))/(winf-w0)
-        return
-    end function Source_square
-
-    real(fpp) function Source_sinewave(time, Sour)
-        implicit none
-        type(source), intent(in) :: Sour
-        real(fpp), intent(in) :: time
-        !
-        real(fpp) :: f0, t0
-
-        f0 = Sour%cutoff_freq
-        t0 = Sour%ts
-
-        Source_sinewave = sin(2*M_PI*f0*(time-t0))
-        return
-    end function Source_sinewave
 
 
     real(fpp) function Source_File(tt,Sour)
@@ -301,150 +224,7 @@ contains
     !   modif pour benchmark can2
     !-------------------------------------------------
 
-    real(fpp) function Gaussian (time,ts,tau)
-        implicit none
-        real(fpp), intent(in) :: tau, time, ts
 
-        if ( (time-ts) < 8*tau ) then
-            Gaussian = -2*(time-ts) * exp (-(time-ts)**2/tau**2)
-        else
-            Gaussian = 0.
-        endif
-
-        return
-    end function Gaussian
-
-    ! ################################################
-    !>
-    !! \fn function Ricker (time,tau,f0)
-    !! \brief
-    !!
-    !! \param real time
-    !! \param real tau
-    !! \param real f0
-    !<
-
-
-
-
-    real(fpp) function Triangle (time,tau)
-        implicit none
-        !
-
-         real(fpp), intent(in) :: time, tau
-
-         !! tau = coefficient of pression
-
-         if ( time < 0.005 ) then
-              Triangle = - time * tau * ( 1e10 )
-         elseif ( time < 0.01 ) then
-              Triangle = - ( -time + 0.01 ) * tau * ( 1e10 )
-         else
-              Triangle = 0.
-         endif
-
-         return
-    end function Triangle
-
-   ! ###############################################################################
-
-    real(fpp) function HSF (time, tau)
-        implicit none
-        ! HEAVISIDE STEP FUNCTION (KAUSEL-2006)
-        real(fpp), intent(in) :: time, tau
-
-        if ( time < 0.00000001 ) then
-            HSF =0.
-        endif
-        if ( time == 0. ) then
-            HSF = -0.5 * tau
-        endif
-        if ( time > 0.00000001 ) then
-            HSF = -1 * tau
-        endif
-        return
-    end function HSF
-
-
-
-    real(fpp) function DM (time, tau,Q,X,Y,L,v,d,a)
-        implicit none
-        ! DoubleM (Al Shaer et al 2008)
-        real(fpp), intent(in) :: time, tau,Q,X,Y,L,v,d,a
-
-        DM = Q*Y/2*((X)**(((v*(time-tau)-a)**2/d**2))+(X)**(((v*(time-tau)-a-L)**2/d**2)))
-
-        return
-    end function DM
-
-    ! ############################################################################
-
-    real(fpp) function Ricker (time,tau,f0)
-        implicit none
-        !
-        real(fpp), intent(in) :: time, tau, f0
-        real(fpp) :: sigma, alpha
-
-        alpha = -1d0*M_PI**2*f0**2
-        if ( time < 2.5*tau ) then
-            sigma = alpha * (time-tau)**2
-            Ricker = 2d0*alpha*(1 + 2*sigma) * exp(sigma)
-        else
-            Ricker = 0.
-        endif
-
-        return
-    end function Ricker
-
-    ! #################################################
-
-    real(fpp) function Gabor (time,tau,fp,gamma,ts)
-        implicit none
-        !
-        real(fpp), intent(in) :: time, tau, fp, gamma, ts
-        !
-        real(fpp) :: sigma
-        real(fpp) ::  xomega,  xval1, xval2
-        xomega  = M_PI*0.5
-
-        if ( time < 32. ) then
-            sigma = 2. * M_PI * fp * (time-ts)
-            xval1 = cos(sigma + xomega)
-            sigma = sigma/gamma
-            sigma = sigma**2
-            if ( sigma < 100. ) then
-                xval2 = exp(-sigma)
-            else
-                xval2 = 0.
-            endif
-            Gabor = xval2*xval1*tau
-        else
-            Gabor = 0.
-        endif
-
-        !       print*,' Gabor ',time, Gabor
-        return
-    end function Gabor
-
-    !----------------------------------------------------
-    !----------------------------------------------------
-    real(fpp) function Ricker_Fl(time,tau,f0)
-        implicit none
-        ! Ricker function for pressure wave: the same as the previous one, but with
-        !    one time derivative to be coherent
-        real(fpp),intent(in)  :: time, tau, f0
-        !
-        real(fpp) :: alpha,sigma,Ricker
-
-        alpha = -1d0*M_PI**2*f0**2
-        if ( time < 2.5*tau ) then
-            sigma = alpha * (time-tau)**2
-            Ricker = 2d0*alpha*(1 + 2*sigma) * exp(sigma)
-            Ricker_fl = 2d0*alpha*(time-tau)*Ricker + 8d0*alpha*alpha*(time-tau)*exp(sigma)
-        else
-            Ricker_fl = 0.
-        endif
-    end function Ricker_Fl
 
 end module ssources
 

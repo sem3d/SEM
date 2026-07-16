@@ -14,6 +14,7 @@
 module ssources
 
     use constants
+    use stf_helpers
     use semdatafiles, only : MAX_FILE_SIZE
 
     type :: elem_source
@@ -41,6 +42,7 @@ module ssources
        character(len=MAX_FILE_SIZE) :: time_file
        integer :: Nt
        real(fpp), dimension(:), pointer :: ampli, time
+       real(fpp), dimension(0:3) :: fh
     end type Source
 
 contains
@@ -61,13 +63,15 @@ contains
         CompSource = 0.
         select case (Sour%i_time_function)
         case (1)
-            CompSource = Gaussian (time,Sour%tau_b,Sour%cutoff_freq)
+            CompSource = Gaussian_2D (time,Sour%tau_b,Sour%cutoff_freq)
         case (2)
-            CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
+            CompSource = Ricker_2D (time,Sour%tau_b,Sour%cutoff_freq)
         case (3)
             CompSource = 1
         case (5)
             CompSource = Source_File (time,Sour)
+        case (16)
+            CompSource = Ormsby (time,Sour%tau_b,Sour%fh)
         end select
         CompSource = Sour%amplitude*CompSource
 
@@ -138,52 +142,6 @@ contains
         return
 
     end function Source_File
-
-    !>
-    !! \fn function Gaussian (time, tau, f0)
-    !! \brief
-    !!
-    !! \param real time
-    !! \param real tau
-    !! \param real f0
-    !<
-    real(fpp) function Gaussian (time, tau, f0)
-
-        real(fpp) :: tau,time,f0
-        real(fpp) :: sigma,pi
-
-        pi = Acos(-1.)
-        sigma = pi * f0 * (time - tau )
-        sigma = sigma **2
-
-        Gaussian = (time-tau) * exp (-sigma)
-
-        return
-    end function Gaussian
-
-    !>
-    !! \fn function Ricker (time,tau,f0)
-    !! \brief
-    !!
-    !! \param real time
-    !! \param real tau
-    !! \param real f0
-    !<
-    real(fpp) function Ricker (time,tau,f0)
-
-        real(fpp) :: time, tau, f0
-        real(fpp) :: sigma,pi
-
-        pi = Acos(-1.)
-        sigma = pi * f0 * (time - tau )
-        sigma = sigma **2
-
-        Ricker = (1-2 * sigma) *exp (-sigma)
-        if(sigma>50.) then   !Ajout Gsa 0508
-            Ricker = 0.
-        endif
-        return
-    end function Ricker
 
 
 

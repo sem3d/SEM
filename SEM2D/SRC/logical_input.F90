@@ -19,7 +19,7 @@ module logical_input
        logical :: save_trace,save_snapshots,save_deformation, save_fault_trace
        logical :: run_restart, save_restart
        logical :: any_source, super_object, super_object_local_present
-       logical :: compEnerg, Lamb_test, post_proc
+       logical :: compEnerg, Lamb_test, post_proc, MPML
     end type Logical_array
 
 

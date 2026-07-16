@@ -40,7 +40,7 @@ subroutine define_arrays(Tdomain)
     real(fpp), dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real(fpp), dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
     real(fpp), dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z
-    real(fpp), dimension (:,:), allocatable :: duux,duuz,wx_prime,wz_prime
+    real(fpp), dimension (:,:), allocatable :: duux,duuz,wx_prime,wz_prime,temp_PMLx
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
@@ -118,6 +118,7 @@ subroutine define_arrays(Tdomain)
         allocate (Whei (0:ngllx-1,0:ngllz-1))
         allocate (wx (0:ngllx-1,0:ngllz-1))
         allocate (wz (0:ngllx-1,0:ngllz-1))
+        allocate (temp_PMLx (0:ngllx-1,0:ngllz-1))
         allocate (wx_prime (0:ngllx-1,0:ngllz-1))
         allocate (wz_prime (0:ngllx-1,0:ngllz-1))
         allocate (OmegaCutx (0:ngllx-1,0:ngllz-1))
@@ -325,8 +326,11 @@ subroutine define_arrays(Tdomain)
                         !                  * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif
-            else
-                wz = 0.
+            endif
+            if (Tdomain%logicD%MPML) then
+                temp_PMLx = wx
+                wx = wx + Tdomain%MPML_coeff * wz
+                wz = wz + Tdomain%MPML_coeff * temp_PMLx
             endif
             Id = 1
 
@@ -374,7 +378,7 @@ subroutine define_arrays(Tdomain)
 
         endif
         deallocate(xix,xiz,etax,etaz,Id,wx,wz,OmegaCutx,OmegaCutz,du_du_x,du_du_z, &
-                   duux,duuz,wx_prime,wz_prime,Whei,RKmod,Jac,Rmu,Rlam)
+                   duux,duuz,wx_prime,wz_prime,Whei,RKmod,Jac,Rmu,Rlam,temp_PMLx)
 
     enddo
 

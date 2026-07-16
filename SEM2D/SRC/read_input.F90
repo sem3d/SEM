@@ -38,7 +38,7 @@ subroutine create_sem2d_sources(Tdomain, config)
         end if
         Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
         Tdomain%Ssource(nsrc)%tau_b = src%tau ! func=1,2,3,4,5
-        !Tdomain%Ssource(nsrc)%fh = src%band  ! func=3
+        Tdomain%Ssource(nsrc)%fh = src%band
         !Tdomain%Ssource(nsrc)%gamma = src%gamma ! func=4
         !Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
         Tdomain%Ssource(nsrc)%amplitude = src%amplitude
@@ -114,6 +114,11 @@ subroutine read_input (Tdomain)
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%pml_type = config%pml_type
+    Tdomain%logicD%MPML = .false.
+    Tdomain%MPML_coeff = config%mpml
+    if (config%mpml /= 0.0_fpp) then
+        Tdomain%logicD%MPML = .true.
+    endif
     !if(Tdomain%pml_type .ne. 0) Tdomain%type_bc = DG_BC_REFL ! Use same default behavior than CG
     Tdomain%logicD%save_trace = config%save_traces .ne. 0
     Tdomain%logicD%save_snapshots = config%save_snap .ne. 0

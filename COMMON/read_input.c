@@ -111,6 +111,7 @@ const keyword_t kw_source_func[] = {
     { 13, "dm" },
     { 14, "analytic", },
     { 15, "fault_file" },
+    { 16, "ormsby" },
 };
 
 const keyword_t kw_mirror_type[] = {

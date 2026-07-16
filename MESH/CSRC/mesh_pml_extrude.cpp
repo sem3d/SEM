@@ -8,6 +8,7 @@
 #include "mesh_common.h"
 #include "meshbase.h"
 #include "material.h"
+#include "pml_helpers.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -145,7 +146,7 @@ private:
     void seed_materials();
     int  get_or_make_pml(int src_mat, int side, double pos, double width, int axis);
     index_t extruded_node(index_t orig, int layer, int axis, double offset);
-    void extrude_side(int side, int n, double step_override, double ratio);
+    void extrude_side(int side, int n, double step_override, double ratio, const std::string& law);
     void emit_hex(const index_t nodes8[8], int mat);
 };
 
@@ -289,7 +290,7 @@ void PmlExtruder::emit_hex27(const index_t nodes8[8], int mat)
     mesh.add_elem(mat, el);
 }
 
-void PmlExtruder::extrude_side(int side, int n, double step_override, double ratio)
+void PmlExtruder::extrude_side(int side, int n, double step_override, double ratio, const std::string& law)
 {
     if (n<=0) return;
     if (mesh.nodes_per_elem()!=8 && mesh.nodes_per_elem()!=27) {
@@ -300,22 +301,14 @@ void PmlExtruder::extrude_side(int side, int n, double step_override, double rat
     bool order27 = (mesh.nodes_per_elem()==27);
     int axis = SIDE_GEOM[side].axis;
     double sgn = SIDE_GEOM[side].sign;
-    newnode.clear(); // extruded nodes are per-side (a (node,layer) key means a
-                     // different point on each side); within-side dedup keeps corners conforming
+    // bbox along axis
+    double lo=coord(0,axis), hi=lo;
+    for(size_t k=1;k<mesh.n_vertices();++k) { double c=coord((index_t)k,axis); if(c<lo)lo=c; if(c>hi)hi=c; }
+    double ext=hi-lo; if(ext<=0.){printf("ERR: degenerate mesh\n");exit(1);}
+    double plane=(sgn<0.)?lo:hi;
+    double tol=1e-6*ext;
 
-    // Current global bbox along axis
-    double lo=coord(0,axis), hi=lo, ext=0.;
-    for(size_t k=0;k<mesh.n_vertices();++k) {
-        double c=coord((index_t)k,axis);
-        if (c<lo) lo=c; if (c>hi) hi=c;
-    }
-    ext = hi-lo; if (ext<=0.) { printf("ERR: degenerate mesh along axis %d\n", axis); exit(1); }
-    double plane = (sgn<0.) ? lo : hi;
-    double tol = 1e-6*ext;
-
-    // Collect boundary faces on this side; determine step.
-    // The optional pml.input value is the TOTAL PML thickness on this side -> per-layer
-    // step = total/n. When omitted, the boundary element size is used (conforming PML).
+    // Find boundary faces
     struct BFace { index_t f[4]; int mat; };
     vector<BFace> faces;
     double tstep=0.;
@@ -346,22 +339,12 @@ void PmlExtruder::extrude_side(int side, int n, double step_override, double rat
     // Total PML thickness on this side: explicit if given, else n boundary elements.
     double total = (step_override>0.) ? step_override : tstep*n;
     // Per-layer cumulative offsets off[0..n] (off[0]=0, off[n]=total).
-    // Uniform when ratio==1; otherwise a geometric progression h_L = h1*ratio^(L-1),
-    // with h1 = total*(r-1)/(r^n-1) so the layers grade from fine (near the domain)
-    // to coarse (outer) while summing exactly to total.
-    vector<double> off(n+1, 0.);
-    if (fabs(ratio-1.) < 1e-9) {
-        for(int l=1;l<=n;++l) off[l] = total*l/n;
-    } else {
-        double rn = pow(ratio, n);
-        double h1 = total*(ratio-1.)/(rn-1.);
-        double h = h1;
-        for(int l=1;l<=n;++l) { off[l] = off[l-1] + h; h *= ratio; }
-    }
-    assert(fabs(off[n]-total) < 1e-9*total); // geometric series must reconstruct the total
+    vector<double> off = compute_pml_offsets(n, total, law, ratio);
+    
+    assert(fabs(off[n]-total) < 1e-9*total);
     double width = sgn*off[n];
-    printf("Side %d: %zu boundary faces, %d layers, total=%g ratio=%g (h1=%g h_n=%g)\n",
-           side, faces.size(), n, total, ratio, off[1], off[n]-off[n-1]);
+    printf("Side %d: %zu boundary faces, %d layers, total=%g law=%s ratio=%g (h1=%g h_n=%g)\n",
+           side, faces.size(), n, total, law.c_str(), ratio, off[1], off[n]-off[n-1]);
 
     for(size_t i=0;i<faces.size();++i) {
         const BFace& bf = faces[i];
@@ -385,7 +368,7 @@ void PmlExtruder::run(const PmlSpec& spec)
     apow = pml_apow_from_rc(npow, spec.Rc);
     if (mesh.nodes_per_elem()==27) seed_coordmap();
     for(int side=0; side<PML_NSIDES; ++side) {
-        extrude_side(side, spec.n[side], spec.step[side], spec.ratio[side]);
+        extrude_side(side, spec.n[side], spec.step[side], spec.ratio[side], spec.law[side]);
     }
 }
 

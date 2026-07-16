@@ -21,6 +21,8 @@
 #include "metis.h"
 #include "h5helper.h"
 #include "read_unv.hpp"
+#include "read_pml_input.hpp"
+#include "pml_helpers.hpp"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "../../COMMON/read_input.h"
@@ -953,49 +955,20 @@ void handle_on_the_fly(Mesh2D& mesh)
 // x-column. y-/y+ are 3D-only and rejected.
 enum Pml2Side { P2_XM=0, P2_XP, P2_ZM, P2_ZP, P2_NSIDES };
 
-struct PmlSpec2D {
-    int    n[P2_NSIDES];
-    double step[P2_NSIDES];
-    int    npow;
-    double apow;          // computed from Rc: (npow+1)/2 * ln(1/Rc)
-    double Rc, omegac, kc;
-    PmlSpec2D():npow(2),apow(pml_apow_from_rc(2,1e-3)),Rc(1e-3),omegac(0.),kc(0.) {
-        for(int k=0;k<P2_NSIDES;++k){ n[k]=0; step[k]=0.; }
-    }
-    bool any() const { for(int k=0;k<P2_NSIDES;++k) if(n[k]>0) return true; return false; }
-};
+inline int side_2d_to_common(int side) {
+    if (side == P2_XM) return 0;
+    if (side == P2_XP) return 1;
+    if (side == P2_ZM) return 4;
+    if (side == P2_ZP) return 5;
+    return -1;
+}
 
-static bool read_pml_input_2d(const char* fname, PmlSpec2D& spec)
+static bool read_pml_input_2d(const char* fname, CommonPmlSpec& spec)
 {
-    FILE* f = fopen(fname, "r");
-    if (!f) return false;
-    char* buffer=NULL; size_t n=0;
-    while (true) {
-        getData_line(&buffer, &n, f);
-        if (!buffer || buffer[0]==0) break;
-        char tok[64]={0};
-        if (sscanf(buffer, "%63s", tok)!=1) continue;
-        if (!strcmp(tok,"pmlparams")) {
-            sscanf(buffer, "%*s %d %lf %lf %lf", &spec.npow, &spec.Rc, &spec.omegac, &spec.kc);
-            spec.apow = pml_apow_from_rc(spec.npow, spec.Rc);
-            continue;
-        }
-        int nn=0; double step=0.;  // step = optional TOTAL PML thickness on this side
-        int c = sscanf(buffer, "%*s %d %lf", &nn, &step);
-        int s=-1;
-        if (!strcmp(tok,"x-")) s=P2_XM;
-        else if (!strcmp(tok,"x+")) s=P2_XP;
-        else if (!strcmp(tok,"z-")) s=P2_ZM;
-        else if (!strcmp(tok,"z+")) s=P2_ZP;
-        else if (!strcmp(tok,"y-") || !strcmp(tok,"y+")) {
-            printf("ERR pml.input: side '%s' is 3D-only; 2D has no y axis\n", tok); exit(1);
-        } else { printf("ERR pml.input: unknown side '%s'\n", tok); exit(1); }
-        if (c<1 || nn<0) { printf("ERR pml.input: bad count for '%s'\n", tok); exit(1); }
-        spec.n[s]=nn; spec.step[s]=(c>=2)?step:0.;
-    }
-    if (buffer) free(buffer);
-    printf("Read pml.input: x-=%d x+=%d z-=%d z+=%d\n",
-           spec.n[P2_XM], spec.n[P2_XP], spec.n[P2_ZM], spec.n[P2_ZP]);
+    bool ok = read_common_pml_input(fname, spec, true);
+    if (!ok) return false;
+    printf("Read pml.input: x-=%d x+=%d z-=%d z+=%d (npow=%d Rc=%g)\n",
+           spec.n[0], spec.n[1], spec.n[4], spec.n[5], spec.npow, spec.Rc);
     return true;
 }
 
@@ -1004,7 +977,7 @@ struct MatInfo2D { int base; bool W,E,D,U; MatInfo2D():base(-1),W(false),E(false
 struct PmlExtruder2D {
     Mesh2D& mesh;
     vector<Material2D>& mats;
-    const PmlSpec2D& spec;
+    const CommonPmlSpec& spec;
     vector<MatInfo2D> minfo;
     map<int,int> matcache;              // (base<<4|flags) -> material index
     map<pair<int,int>,int> newnode;     // (orig node, layer) -> new node id
@@ -1015,7 +988,7 @@ struct PmlExtruder2D {
     map<pair<long long,long long>,int> coordmap;
     double ctol;                        // coordinate rounding tolerance for dedup
 
-    PmlExtruder2D(Mesh2D& m, vector<Material2D>& mt, const PmlSpec2D& s):mesh(m),mats(mt),spec(s) {
+    PmlExtruder2D(Mesh2D& m, vector<Material2D>& mt, const CommonPmlSpec& s):mesh(m),mats(mt),spec(s) {
         minfo.resize(mats.size());
         for(size_t k=0;k<mats.size();++k) {
             MatInfo2D& mi=minfo[k];
@@ -1029,12 +1002,12 @@ struct PmlExtruder2D {
 
     double coord(int node, int axis) const { return axis==0 ? mesh.m_px[node] : mesh.m_py[node]; }
 
-    int newpt(int orig, int layer, int axis, double delta) {
+    int newpt(int orig, int layer, int axis, double offset_val) {
         pair<int,int> key(orig,layer);
         map<pair<int,int>,int>::iterator it=newnode.find(key);
         if (it!=newnode.end()) return it->second;
         double x=mesh.m_px[orig], y=mesh.m_py[orig];
-        if (axis==0) x += delta*layer; else y += delta*layer;
+        if (axis==0) x += offset_val; else y += offset_val;
         int id = mesh.m_px.size();
         mesh.m_px.push_back(x); mesh.m_py.push_back(y);
         newnode[key]=id;
@@ -1057,7 +1030,7 @@ struct PmlExtruder2D {
         // flags 'L' (and legacy 'P' with Sspeed==0) as acoustic PML.
         m.type = pml_char_for(mats[base]);
         m.is_pml=true;
-        m.npow=spec.npow; m.apow=spec.apow; m.assoc=base;
+        m.npow=spec.npow; m.apow=pml_apow_from_rc(spec.npow, spec.Rc); m.assoc=base;
         // carry the source material's borders (for corners) and overlay this side's
         m.xpos=mats[src_mat].xpos; m.xwidth=mats[src_mat].xwidth;
         m.zpos=mats[src_mat].zpos; m.zwidth=mats[src_mat].zwidth;
@@ -1140,7 +1113,8 @@ struct PmlExtruder2D {
     }
 
     void extrude_side(int side) {
-        int nlay = spec.n[side];
+        int s_common = side_2d_to_common(side);
+        int nlay = spec.n[s_common];
         if (nlay<=0) return;
         bool order8 = (!mesh.m_quads.empty() && mesh.m_quads[0]->get_nb_nodes()==8);
         int axis = (side==P2_XM||side==P2_XP) ? 0 : 1;
@@ -1157,9 +1131,8 @@ struct PmlExtruder2D {
         static const int EDGE[4][2]={{0,1},{1,2},{3,2},{0,3}};
         struct BEdge { int a,b,mat; };
         vector<BEdge> edges;
-        // The optional pml.input value is the TOTAL PML thickness on this side -> per-layer
-        // step = total/nlay. When omitted, the boundary element size is used.
-        double step = (spec.step[side]>0.) ? spec.step[side]/nlay : 0.;
+        // The optional pml.input value is the TOTAL PML thickness on this side
+        double total_thick = spec.step[s_common];
         double tstep=0.;
         size_t nq0 = mesh.m_quads.size();
         for(size_t e=0;e<nq0;++e) {
@@ -1174,7 +1147,7 @@ struct PmlExtruder2D {
                 if (fabs(coord(a,axis)-plane)<=tol && fabs(coord(b,axis)-plane)<=tol) {
                     double th=emax-emin;
                     if (tstep<=0.) tstep=th;
-                    else if (step<=0. && fabs(th-tstep)>1e-3*tstep) {
+                    else if (total_thick<=0. && fabs(th-tstep)>1e-3*tstep) {
                         printf("ERR: boundary elements on side %d non-uniform (%g vs %g); set explicit total PML thickness\n",
                                side, th, tstep); exit(1);
                     }
@@ -1183,18 +1156,21 @@ struct PmlExtruder2D {
             }
         }
         if (edges.empty()) { printf("WARNING: no boundary edges on side %d, skipped\n", side); return; }
-        if (step<=0.) step=tstep;
-        double delta=sgn*step;
-        double width=delta*nlay;   // signed total PML thickness on this side
-        printf("Side %d: %zu boundary edges, %d layers, step=%g\n", side, edges.size(), nlay, step);
+        if (total_thick<=0.) total_thick = tstep*nlay;
+        double width = sgn*total_thick;   // signed total PML thickness on this side
+        
+        std::vector<double> off = compute_pml_offsets(nlay, total_thick, spec.law[s_common], spec.ratio[s_common]);
+        
+        printf("Side %d: %zu boundary edges, %d layers, total_thick=%g law=%s ratio=%g\n",
+               side, edges.size(), nlay, total_thick, spec.law[s_common].c_str(), spec.ratio[s_common]);
         for(size_t i=0;i<edges.size();++i) {
             int mat = get_or_make_pml(edges[i].mat, side, plane, width, axis);
             int a=edges[i].a, b=edges[i].b;
             for(int l=1;l<=nlay;++l) {
-                int i0=(l==1)?a:newpt(a,l-1,axis,delta);
-                int i1=(l==1)?b:newpt(b,l-1,axis,delta);
-                int o0=newpt(a,l,axis,delta);
-                int o1=newpt(b,l,axis,delta);
+                int i0=(l==1)?a:newpt(a,l-1,axis,sgn*off[l-1]);
+                int i1=(l==1)?b:newpt(b,l-1,axis,sgn*off[l-1]);
+                int o0=newpt(a,l,axis,sgn*off[l]);
+                int o1=newpt(b,l,axis,sgn*off[l]);
                 if (order8) emit_quad8(i0,i1,o0,o1,mat); else emit_quad(i0,i1,o0,o1,mat);
             }
         }
@@ -1270,7 +1246,7 @@ static void handle_imported_materials(Mesh2D& mesh)
         if (access("pml.input", F_OK)==0)
             printf("WARNING: pml.input ignored (the mesh already declares PML materials in mater.in)\n");
     } else {
-        PmlSpec2D spec;
+        CommonPmlSpec spec;
         if (read_pml_input_2d("pml.input", spec) && spec.any()) {
             printf("Extruding 2D PML layers onto imported mesh...\n");
             PmlExtruder2D ex(mesh, mats, spec);

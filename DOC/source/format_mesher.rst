@@ -145,25 +145,27 @@ Format du fichier
 
 Une ligne par côté à traiter, les lignes de commentaire commençant par ``#`` ::
 
-  # <côté>  <nb d'éléments>  [épaisseur totale optionnelle]
-  x- 3
-  x+ 3 250.     # 3 couches réparties sur 250 m d'épaisseur totale
-  y- 3
-  y+ 3
-  z- 3          # z+ absent => surface libre en haut
+  # Format standardisé (3D ou 2D) :
+  # <côté> [épaisseur totale] [nb d'éléments] [ratio/exposant] [loi]
+  #
+  # Note : En 2D, l'ancien format "<côté> [nb d'éléments] [épaisseur totale]" reste aussi supporté par compatibilité.
+  #
+  x- 250. 3 1.2 geom       # 3 couches sur 250m d'épaisseur totale, progressant géométriquement avec un ratio de 1.2
+  x+ 250. 3 2.0 power      # progressant avec une loi de puissance (power-law) d'exposant 2.0 (finesse proche du domaine)
+  y- 250. 3 3.0 linear     # progressant linéairement avec un ratio de taille d'élément final/initial de 3.0
+  y+ 250. 3 1.0 geom       # ratio=1.0 ou loi omise => maillage homogène (constant)
+  z- 3                    # sans épaisseur (épaisseur auto d'une couche de bord par élément)
 
 - **côté** : ``x-`` ``x+`` ``y-`` ``y+`` ``z-`` ``z+`` (un côté absent = pas de PML).
-- **nb d'éléments** : nombre de couches d'éléments PML extrudées sur ce côté.
-- **épaisseur totale** (optionnelle) : épaisseur totale de la PML sur ce côté,
-  répartie sur les ``nb d'éléments`` couches (chaque couche fait donc
-  épaisseur/nb). Si omise, chaque couche prend la taille de l'élément de bord
-  (PML conforme au maillage), avec vérification d'uniformité : si les éléments
-  du bord n'ont pas tous la même taille, il faut fournir une épaisseur explicite.
+- **épaisseur totale** : épaisseur totale de la PML sur ce côté.
+- **nb d'éléments** : nombre de couches d'éléments PML.
+- **ratio** (optionnel, défaut 1.0) : ratio de progression géométrique (geom), d'exposant de puissance (power), ou ratio de taille d'élément final/initial (linear).
+- **loi** (optionnelle, défaut "geom") : type de loi de répartition : ``geom`` (géométrique), ``power`` (power-law) ou ``linear`` (linéaire).
 
 En 2D, on peut de plus préciser les paramètres d'atténuation communs à toutes
 les PML créées ::
 
-  pmlparams <npow> <Apow>   # défaut : 2 10.
+  pmlparams <npow> <Rc> <omegac> <kc>
 
 (Les PML utilisent le type choisi dans ``input.spec`` via la section
 ``pml_infos { pml_type = PML|CPML|... }``.)
@@ -177,11 +179,10 @@ rencontre la face ``y-`` d'une colonne PML déjà créée en ``x``, elle produit
 matériau PML de coin combinant les directions (par ex. ``W+S``). Il n'y a rien à
 déclarer pour les coins.
 
-Limitations (v1)
+Limitations (v2)
 ----------------
 
-- Seuls les éléments à 8 nœuds (Hexa8 en 3D) et à 4 nœuds (Quad4 en 2D) sont
-  supportés (Hexa27 / Quad8 : erreur explicite).
+- Les éléments à 8 nœuds (Hexa8 en 3D), 27 nœuds (Hexa27 en 3D), 4 nœuds (Quad4 en 2D) et 8 nœuds (Quad8 en 2D) sont pleinement supportés.
 - Le côté choisi doit être un plan aligné sur un axe (il coïncide avec le plan
   de la boîte englobante de ce côté) ; une surface non plane (topographie) ne
   peut pas être extrudée.

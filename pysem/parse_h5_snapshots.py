@@ -79,6 +79,30 @@ class SnapshotsSEM3D(object):
 
         print("Rank {:d} - file range {}".format(self.rank,self.snapfile['np']))
 
+        # Git and dimension info detection
+        self.is_2d = False
+        self.git_hash = "unknown"
+        self.git_status = "unknown"
+        if self.snapfile['nc'] > 0:
+            try:
+                with hf.File(self.snapfile['geo'][0], 'r') as h5f:
+                    code_attr = h5f.attrs.get("Code", b"SEM3D")
+                    if isinstance(code_attr, bytes):
+                        code_attr = code_attr.decode("utf-8")
+                    self.is_2d = (code_attr == "SEM2D")
+                    
+                    git_hash = h5f.attrs.get("GitHash", b"unknown")
+                    if isinstance(git_hash, bytes):
+                        git_hash = git_hash.decode("utf-8")
+                    self.git_hash = git_hash
+                    
+                    git_status = h5f.attrs.get("GitStatus", b"unknown")
+                    if isinstance(git_status, bytes):
+                        git_status = git_status.decode("utf-8")
+                    self.git_status = git_status
+            except Exception as e:
+                print("Warning: Could not read attributes from geometry file: {}".format(e))
+
         self.flag['static']  = []
         self.flag['dynamic'] = []
         
@@ -130,13 +154,15 @@ class SnapshotsSEM3D(object):
                 lnodes = h5f["Nodes"][...].round(decimals=6)
                 lconnect = h5f["Elements"][...]
                 lnelems = lconnect.shape[0]
-                hconnect = lnodes[lconnect].reshape((-1,3),order='C')
+                ndim = lnodes.shape[1]
+                ncorners = lconnect.shape[1]
+                hconnect = lnodes[lconnect].reshape((-1,ndim),order='C')
                 hconnect = np.array([hashlib.md5(i).digest() for i in hconnect]).reshape(-1)
                 
-                for _ in range(8):
+                for _ in range(ncorners):
                     _,lnode, gnode = np.intersect1d(hconnect,self.ghashn,
                         assume_unique=False, return_indices=True)
-                    lconnect[np.unravel_index(lnode,shape=(lnelems,8),order='C')] = gnode
+                    lconnect[np.unravel_index(lnode,shape=(lnelems,ncorners),order='C')] = gnode
                     hconnect[lnode] = None
 
                 if "/ElementsGlob" not in h5f:

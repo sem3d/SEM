@@ -41,6 +41,7 @@ module sdomain
        integer :: n_elem, n_face, n_vertex, n_source, n_glob_nodes, n_line ,n_receivers, n_mortar
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
        integer :: type_timeInteg, type_elem, type_flux, type_bc, pml_type, capt_loc_type, Implicitness
+       real(fpp) :: MPML_coeff
        integer :: ngll  ! nombre de points de Gauss par direction (lu depuis input.spec, commun a tout le domaine)
 
        integer, dimension (:), pointer :: Line_index, Communication_list

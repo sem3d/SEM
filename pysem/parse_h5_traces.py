@@ -69,7 +69,10 @@ class SEM3DMonitor(object):
                 self.data[k][:,:,c] = data[:,[v[i]+1 for i in self.comp[k]]]
                 
     def add_position(self,data,c):
-        self.set_coord(c,data[0],data[1],data[2])
+        if len(data) == 2:
+            self.set_coord(c,data[0],0.,data[1])
+        else:
+            self.set_coord(c,data[0],data[1],data[2])
             
     def set_coord(self,c,x,y,z):
         self.pos[str(c)] = np.array([x,y,z])
@@ -223,6 +226,46 @@ def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**
         fls = glob.glob(osj(wkd,'*.h5'))
         fn = fls[0]
         f = h5py.File(fn,"r+")
+        
+        # Git and dimension info detection
+        code_attr = f.attrs.get("Code", b"SEM3D")
+        if isinstance(code_attr, bytes):
+            code_attr = code_attr.decode("utf-8")
+        is_2d = (code_attr == "SEM2D")
+        
+        git_hash = f.attrs.get("GitHash", b"unknown")
+        if isinstance(git_hash, bytes):
+            git_hash = git_hash.decode("utf-8")
+            
+        git_status = f.attrs.get("GitStatus", b"unknown")
+        if isinstance(git_status, bytes):
+            git_status = git_status.decode("utf-8")
+            
+        if is_2d:
+            cmp_dict = [{'p':0}]
+            cmp_dict.append({'x':0,'z':1})
+            cmp_dict.append({'xx':0,'zz':1,'xz':2})
+            local_components = {
+                'Pressure':cmp_dict[0],
+                'Displ':cmp_dict[1],
+                'Veloc':cmp_dict[1],
+                'Accel':cmp_dict[1],
+                'StressDev':cmp_dict[2],
+                'EpsDev':cmp_dict[2]
+            }
+        else:
+            cmp_dict = [{'p':0}]
+            cmp_dict.append({'x':0,'y':1,'z':2})
+            cmp_dict.append({'xx':0,'yy':1,'zz':2,'xy':3,'xz':4,'yz':5})
+            local_components = {
+                'Pressure':cmp_dict[0],
+                'Displ':cmp_dict[1],
+                'Veloc':cmp_dict[1],
+                'Accel':cmp_dict[1],
+                'StressDev':cmp_dict[2],
+                'EpsDev':cmp_dict[2]
+            }
+            
         tmp = [tuple(a.split()) for a in f['Variables'][...].tolist()]
         var_avl = OrderedDict({})
         var_ok = OrderedDict({'Time':0})
@@ -245,7 +288,7 @@ def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**
         cmp_ok = {}
         for k in var_ok.keys():
             if k!='Time':
-                cmp_ok[k] = [components[k][c] for c in rdr if c in components[k]]
+                cmp_ok[k] = [local_components[k][c] for c in rdr if c in local_components[k]]
                 cmp_ok[k].sort()
         
         if 'all' in nam:
@@ -253,6 +296,9 @@ def ParseSEM3DH5Traces(wkd='./',fmt='h5',var=[''],rdr=['x','y','z'],nam='all',**
         cpts = {}
         for n in nam:
             cpt = SEM3DMonitor(name=n,fmt=fmt,var=var_ok,var_avl=var_avl,comp=cmp_ok)
+            cpt.is_2d = is_2d
+            cpt.git_hash = git_hash
+            cpt.git_status = git_status
             flag=False
             for ds in f.items():
                 if 'Variables' not in ds[0]:
