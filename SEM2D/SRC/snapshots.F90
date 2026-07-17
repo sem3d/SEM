@@ -375,7 +375,16 @@ contains
                     idx = irenum(Tdomain%specel(n)%Iglobnum(i,k))
                     valence(idx) = valence(idx)+1
                     if (Tdomain%specel(n)%acoustic .and. allocated(Tdomain%specel(n)%IDensTensor2d)) then
-                        dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
+                        ! Pointwise (strong-form) derivative at node i needs row i of the
+                        ! GLL differentiation matrix D: (df/dxi)_i = sum_m D(i,m) f(m).
+                        ! hTprimex holds D directly (hTprimex(m,i)=D(m,i)), so slicing
+                        ! hTprimex(:,i) extracts COLUMN i = D(:,i), i.e. sum_m D(m,i) f(m) --
+                        ! the transpose of what's needed. hprimex=TRANSPOSE(hTprimex), so
+                        ! hprimex(:,i) = D(i,:) is the correct row. The z-direction below
+                        ! already uses the transposed variant (hprimez(:,k) = D_z(k,:)) and
+                        ! was correct; only the x-direction used the untransposed matrix --
+                        ! see 2026-07-17 fluid-aniso pixelated-vx investigation.
+                        dphi_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * field_displ(:,k,0))
                         dphi_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
                         invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)
                         dphi_dx = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
@@ -384,7 +393,7 @@ contains
                         v_x = Tdomain%specel(n)%IDensTensor2d(1,1,i,k)*dphi_dx + Tdomain%specel(n)%IDensTensor2d(1,2,i,k)*dphi_dz
                         v_z = Tdomain%specel(n)%IDensTensor2d(2,1,i,k)*dphi_dx + Tdomain%specel(n)%IDensTensor2d(2,2,i,k)*dphi_dz
 
-                        dVelphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_veloc(:,k,0))
+                        dVelphi_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * field_veloc(:,k,0))
                         dVelphi_deta = sum(field_veloc(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
                         dVelphi_dx = invgrad_ij(0,0)*dVelphi_dxi + invgrad_ij(0,1)*dVelphi_deta
                         dVelphi_dz = invgrad_ij(1,0)*dVelphi_dxi + invgrad_ij(1,1)*dVelphi_deta
@@ -414,10 +423,11 @@ contains
                     endif
 
                     if ((.not. Tdomain%specel(n)%acoustic) .and. (.not. Tdomain%specel(n)%PML)) then
-                        ! Physical derivatives
-                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
+                        ! Physical derivatives. hprimex (not hTprimex) -- see 2026-07-17
+                        ! fluid-aniso pixelated-vx investigation note above.
+                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * field_displ(:,k,0))
                         dUx_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
-                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,1))
+                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * field_displ(:,k,1))
                         dUz_deta = sum(field_displ(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,k))
 
                         invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)
@@ -490,9 +500,9 @@ contains
                                 P_energy(idx) = P_energy(idx) + 0.5_fpp * p_val**2 * Tdomain%specel(n)%invKappa2d(i,k)
                             endif
                         else
-                            dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,0))
+                            dUx_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * field_displ(:,k,0))
                             dUx_deta = sum(field_displ(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,k))
-                            dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * field_displ(:,k,1))
+                            dUz_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * field_displ(:,k,1))
                             dUz_deta = sum(field_displ(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,k))
 
                             invgrad_ij = Tdomain%specel(n)%InvGrad(i,k,:,:)

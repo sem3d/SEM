@@ -547,7 +547,11 @@ contains
         do j = 0,ngllz-1
             do i = 0,ngllx-1
                 if (Tdomain%specel(n_el)%acoustic .and. allocated(Tdomain%specel(n_el)%IDensTensor2d)) then
-                    dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                    ! hTprimex(:,i) extracts column i of D (=sum_m D(m,i) f(m)), the
+                    ! transpose of what a pointwise derivative at node i needs (row i).
+                    ! hprimex=TRANSPOSE(hTprimex) gives the correct row via the same (:,i)
+                    ! slice -- see 2026-07-17 fluid-aniso pixelated-vx investigation.
+                    dphi_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,0))
                     dphi_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
                     invgrad_ij = Tdomain%specel(n_el)%InvGrad(i,j,:,:)
                     dphi_dx = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
@@ -556,7 +560,7 @@ contains
                     v_x = Tdomain%specel(n_el)%IDensTensor2d(1,1,i,j)*dphi_dx + Tdomain%specel(n_el)%IDensTensor2d(1,2,i,j)*dphi_dz
                     v_z = Tdomain%specel(n_el)%IDensTensor2d(2,1,i,j)*dphi_dx + Tdomain%specel(n_el)%IDensTensor2d(2,2,i,j)*dphi_dz
 
-                    dVelphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldV(:,j,0))
+                    dVelphi_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldV(:,j,0))
                     dVelphi_deta = sum(fieldV(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
                     dVelphi_dx = invgrad_ij(0,0)*dVelphi_dxi + invgrad_ij(0,1)*dVelphi_deta
                     dVelphi_dz = invgrad_ij(1,0)*dVelphi_dxi + invgrad_ij(1,1)*dVelphi_deta
@@ -578,9 +582,9 @@ contains
                     K_energy(i,j) = 0.5_fpp * Tdomain%specel(n_el)%Density(i,j) * (fieldV(i,j,0)**2 + fieldV(i,j,1)**2)
 
                     if (Tdomain%specel(n_el)%acoustic) then
-                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,0))
                         dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
-                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))
+                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,1))
                         dUz_deta = sum(fieldU(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,j))
 
                         invgrad_ij = Tdomain%specel(n_el)%InvGrad(i,j,:,:)
@@ -591,9 +595,9 @@ contains
                         fieldP(i,j) = -Tdomain%specel(n_el)%Lambda(i,j) * eps_v
                         P_energy(i,j) = 0.5_fpp * fieldP(i,j)**2 / Tdomain%specel(n_el)%Lambda(i,j)
                     else
-                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,0))
                         dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
-                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))
+                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,1))
                         dUz_deta = sum(fieldU(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,j))
 
                         invgrad_ij = Tdomain%specel(n_el)%InvGrad(i,j,:,:)
@@ -837,7 +841,8 @@ contains
             do j = 0,ngllz-1
                 do i = 0,ngllx-1
                     if (el%acoustic .and. allocated(el%IDensTensor2d)) then
-                        dphi_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                        ! see hprimex/hTprimex note above (2026-07-17 investigation)
+                        dphi_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,0))
                         dphi_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
                         invgrad_ij = el%InvGrad(i,j,:,:)
                         dphi_dx = invgrad_ij(0,0)*dphi_dxi + invgrad_ij(0,1)*dphi_deta
@@ -856,9 +861,9 @@ contains
                     elseif (el%acoustic) then
                         K_energy(i,j) = 0.5_fpp * el%Density(i,j) * (fieldV(i,j,0)**2 + fieldV(i,j,1)**2)
 
-                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,0))
                         dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
-                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))
+                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,1))
                         dUz_deta = sum(fieldU(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,j))
 
                         invgrad_ij = el%InvGrad(i,j,:,:)
@@ -874,9 +879,9 @@ contains
                     else
                         K_energy(i,j) = 0.5_fpp * el%Density(i,j) * (fieldV(i,j,0)**2 + fieldV(i,j,1)**2)
 
-                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,0))
+                        dUx_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,0))
                         dUx_deta = sum(fieldU(i,:,0) * Tdomain%sSubdomain(mat)%hprimez(:,j))
-                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hTprimex(:,i) * fieldU(:,j,1))
+                        dUz_dxi = sum(Tdomain%sSubdomain(mat)%hprimex(:,i) * fieldU(:,j,1))
                         dUz_deta = sum(fieldU(i,:,1) * Tdomain%sSubdomain(mat)%hprimez(:,j))
 
                         invgrad_ij = el%InvGrad(i,j,:,:)
