@@ -16,15 +16,28 @@ subroutine Compute_external_forces (Tdomain,timelocal)
     real(fpp), intent (INOUT)          :: timelocal
     real(fpp), dimension(0:1)          :: Fext
     real(fpp)                          :: srcval
-    integer  :: n, ns, ncc, ngllx, ngllz, i, j, np, nDG
+    integer  :: n, ns, ncc, ngllx, ngllz, i, j, np, nDG, nmat0
+    logical  :: use_time_integral
 
     do n = 0, Tdomain%n_source-1
         ! Time factor for this source at this step. Type 7 (pressure) injects the running
         ! time integral int(f dt) instead of f(t): p=-VelPhi and the source enters at the
         ! phi-acceleration level, so the integral makes the pressure equal f(t) (mirrors
-        ! SEM3D Newmark.f90 type-7). All other types inject f(t) directly. Accumulate ONCE
-        ! per source per step, before the element loop.
-        if (Tdomain%sSource(n)%i_type_source == 7) then
+        ! SEM3D Newmark.f90 type-7). Type 3 (fluidpulse) routed to the moment-tensor
+        ! (displacement-vector) iso-acoustic path (source_excit_fluid) ALSO needs the
+        ! integral: M0=kappa*deltaV requires the injected VOLUME (integral of the declared
+        ! rate f(t)), not the rate itself, whereas the potential-fluid phi equation takes
+        ! f(t) directly as a rate term -- see 2026-07-17 fluid-aniso velocity investigation.
+        ! Accumulate ONCE per source per step, before the element loop.
+        use_time_integral = (Tdomain%sSource(n)%i_type_source == 7)
+        if (Tdomain%sSource(n)%i_type_source == 3 .and. Tdomain%sSource(n)%ine > 0) then
+            nmat0 = Tdomain%specel(Tdomain%sSource(n)%Elem(0)%nr)%mat_index
+            if (.not. (Tdomain%sSubdomain(nmat0)%deftype == MATDEF_FLUID_ANISO .or. &
+                       Tdomain%sSubdomain(nmat0)%deftype == CSTAR_FLUID)) then
+                use_time_integral = .true.
+            endif
+        endif
+        if (use_time_integral) then
             Tdomain%sSource(n)%time_integral = Tdomain%sSource(n)%time_integral &
                 + CompSource(Tdomain%sSource(n), timelocal) * Tdomain%TimeD%dtmin
             srcval = Tdomain%sSource(n)%time_integral

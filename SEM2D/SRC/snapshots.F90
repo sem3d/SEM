@@ -368,6 +368,7 @@ contains
             call gather_elem_veloc(Tdomain, n, field_veloc, .true.)
             call gather_elem_accel(Tdomain, n, field_accel)
             call compute_rotational(Tdomain,n,ngllx,ngllz,field_veloc,field_rotat)
+            mat = Tdomain%specel(n)%mat_index
 
             do k = 0,ngllz-1
                 do i = 0,ngllx-1
@@ -403,7 +404,6 @@ contains
                     endif
                     rotat(idx) = rotat(idx)+field_rotat(i,k)
 
-                    mat = Tdomain%specel(n)%mat_index
                     ! Kinetic energy
                     if (allocated(K_energy)) then
                         if (Tdomain%specel(n)%acoustic .and. allocated(Tdomain%specel(n)%IDensTensor2d)) then
