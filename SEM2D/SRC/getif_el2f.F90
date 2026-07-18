@@ -4,7 +4,7 @@
 !!
 !>
 !!\file getif_el2f.F90
-!!\brief Asure la sommation des forces pour évaluer la force exercée sur les faces
+!!\brief Asure la sommation des forces pour ï¿½valuer la force exercï¿½e sur les faces
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -128,29 +128,35 @@ subroutine getInternalF_PML_el2f (Tdomain, n_elem, n_face, w_face, logic)
                 Tdomain%specel(n_elem)%Forces2 (0,1:ngll-2,0:1)
         endif
     else
+        ! Interior face points only (1:ngll-2) -- corners are assembled separately at
+        ! the vertex level. The coherent (logic=.true.) branch above, and the non-PML
+        ! getInternalF_el2f sibling, both already exclude i=0/ngll-1 here; this branch
+        ! wrongly included them (0:ngll-1), double-counting the shared corner Force on
+        ! any face with reversed coherency -- see 2026-07-17 PML-interface velocity
+        ! spike investigation.
         if (w_face == 0 ) then
-            do i = 0,ngll-1
+            do i = 1,ngll-2
                 Tdomain%sFace(n_face)%Forces1 (i,0:1) = Tdomain%sFace(n_face)%Forces1 (i,0:1) + &
                     Tdomain%specel(n_elem)%Forces1 (ngll-1-i, 0,0:1)
                 Tdomain%sFace(n_face)%Forces2 (i,0:1) = Tdomain%sFace(n_face)%Forces2 (i,0:1) + &
                     Tdomain%specel(n_elem)%Forces2 (ngll-1-i, 0,0:1)
             enddo
         else if (w_face == 1 ) then
-            do i = 0,ngll-1
+            do i = 1,ngll-2
                 Tdomain%sFace(n_face)%Forces1 (i,0:1) = Tdomain%sFace(n_face)%Forces1 (i,0:1) + &
                     Tdomain%specel(n_elem)%Forces1 (ngllx-1,ngll-1-i,0:1)
                 Tdomain%sFace(n_face)%Forces2 (i,0:1) = Tdomain%sFace(n_face)%Forces2 (i,0:1) + &
                     Tdomain%specel(n_elem)%Forces2 (ngllx-1,ngll-1-i,0:1)
             enddo
         else if (w_face == 2 ) then
-            do i = 0,ngll-1
+            do i = 1,ngll-2
                 Tdomain%sFace(n_face)%Forces1 (i,0:1) = Tdomain%sFace(n_face)%Forces1 (i,0:1) + &
                     Tdomain%specel(n_elem)%Forces1 (ngll-1-i, ngllz-1,0:1)
                 Tdomain%sFace(n_face)%Forces2 (i,0:1) = Tdomain%sFace(n_face)%Forces2 (i,0:1) + &
                     Tdomain%specel(n_elem)%Forces2 (ngll-1-i, ngllz-1,0:1)
             enddo
         else
-            do i = 0,ngll-1
+            do i = 1,ngll-2
                 Tdomain%sFace(n_face)%Forces1 (i,0:1) = Tdomain%sFace(n_face)%Forces1 (i,0:1 ) + &
                     Tdomain%specel(n_elem)%Forces1 (0,ngll-1-i,0:1)
                 Tdomain%sFace(n_face)%Forces2 (i,0:1) = Tdomain%sFace(n_face)%Forces2 (i,0:1 ) + &
