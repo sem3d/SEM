@@ -468,6 +468,7 @@ contains
         real(fpp)                                  :: eps_xx, eps_zz, eps_xz, eps_v
         real(fpp)                                  :: sig_xx, sig_zz, sig_xz, sig_mean
         real(fpp), dimension(3)                    :: strain_v, stress_v
+        real(fpp)                                  :: Ctmp(3,3)
         real(fpp), dimension(:,:,:), allocatable   :: physU, physV, physA
         real(fpp)                                  :: dphi_dxi, dphi_deta, dVelphi_dxi, dVelphi_deta
         real(fpp)                                  :: dphi_dx, dphi_dz, dVelphi_dx, dVelphi_dz
@@ -622,8 +623,9 @@ contains
                         eps_dev(i,j,2) = eps_xz
 
                         if (allocated(Tdomain%specel(n_el)%Cij2d)) then
+                            Ctmp = Tdomain%specel(n_el)%Cij2d(:,:,i,j)
                             strain_v = (/ eps_xx, eps_zz, 2.0_fpp * eps_xz /)
-                            stress_v = matmul(Tdomain%specel(n_el)%Cij2d(:,:,i,j), strain_v)
+                            stress_v = matmul(Ctmp, strain_v)
                             sig_xx = stress_v(1)
                             sig_zz = stress_v(2)
                             sig_xz = stress_v(3)
@@ -800,6 +802,7 @@ contains
         real(fpp) :: sig_xx, sig_zz, sig_xz, sig_mean
         real(fpp), dimension(3) :: strain_v, stress_v
         real(fpp) :: v_x, v_z, p_val, dphi_dxi, dphi_deta
+        real(fpp) :: Ctmp(3,3)
         real(fpp) :: dphi_dx, dphi_dz
         real(fpp), dimension(0:1,0:1) :: invgrad_ij
 
@@ -896,8 +899,9 @@ contains
                         eps_v = eps_xx + eps_zz
 
                         if (allocated(el%Cij2d)) then
+                            Ctmp = el%Cij2d(:,:,i,j)
                             strain_v = (/ eps_xx, eps_zz, 2.0_fpp * eps_xz /)
-                            stress_v = matmul(el%Cij2d(:,:,i,j), strain_v)
+                            stress_v = matmul(Ctmp, strain_v)
                             sig_xx = stress_v(1)
                             sig_zz = stress_v(2)
                             sig_xz = stress_v(3)

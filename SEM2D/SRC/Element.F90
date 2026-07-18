@@ -981,6 +981,51 @@ contains
 
     ! ###########################################################
     !>
+    !! \brief CPML prediction for the fluid velocity-potential domain
+    !!  (isotropic CPML absorbing a potential fluid interior).
+    !!  VelPhi (component 0) predictions are mapped to physical gradients,
+    !!  convoluted, and stored in Elem%Stress(:,:,0:1) as weak fluxes.
+    !<
+    subroutine Prediction_Elem_CPML_VelPhi (Elem, alpha, bega, dt, Vxloc, Hmatz, HTmat)
+        implicit none
+        type (Element), intent (INOUT) :: Elem
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: HTmat
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: Hmatz
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) :: Vxloc
+        real(fpp), intent (IN) :: bega, dt, alpha
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: dV_dxi, dV_deta
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0, s1, v_x_weak, v_z_weak
+        integer :: ngllx, ngllz
+
+        ngllx = Elem%ngllx; ngllz = Elem%ngllz
+
+        ! Predict VelPhi (component 0) in the element interior
+        Vxloc(1:ngllx-2,1:ngllz-2) = (0.5+alpha) * Elem%Veloc(:,:,0) + dt*(0.5-bega)*Elem%Accel(:,:,0) &
+                                   + (0.5-alpha) * Elem%V0(:,:,0)
+
+        dV_dxi  = MATMUL (HTmat, Vxloc)
+        dV_deta = MATMUL (Vxloc, Hmatz)
+
+        ! Weak physical derivatives (scaled by -W * J)
+        s0 = Elem%Acoeff(:,:,12) * dV_dxi + Elem%Acoeff(:,:,13) * dV_deta
+        s1 = Elem%Acoeff(:,:,14) * dV_dxi + Elem%Acoeff(:,:,15) * dV_deta
+
+        ! Update velocity gradient convolutions
+        Elem%PsiVxx(:,:) = Elem%Bx(:,:) * Elem%PsiVxx(:,:) - Elem%Ax(:,:) * s0
+        Elem%PsiVzz(:,:) = Elem%Bz(:,:) * Elem%PsiVzz(:,:) - Elem%Az(:,:) * s1
+
+        ! Stretched weak gradients
+        v_x_weak = Elem%PsiVxx - s0
+        v_z_weak = Elem%PsiVzz - s1
+
+        ! Weak-form fluid equivalent stress (flux) components
+        Elem%Stress(:,:,0) = Elem%IDensTensor2d(1,1,:,:) * v_x_weak + Elem%IDensTensor2d(1,2,:,:) * v_z_weak
+        Elem%Stress(:,:,1) = Elem%IDensTensor2d(2,1,:,:) * v_x_weak + Elem%IDensTensor2d(2,2,:,:) * v_z_weak
+        return
+    end subroutine Prediction_Elem_CPML_VelPhi
+
+    ! ###########################################################
+    !>
     !! \brief Split-field PML internal force for the fluid velocity-potential domain.
     !!  Scalar analogue of compute_InternalForces_PML_Elem: F = d_xi(sxi) + d_eta(seta),
     !!  split by OUTER derivative into Forces1 (d_xi, damped x) and Forces2 (d_eta, damped z),
@@ -998,8 +1043,35 @@ contains
         Elem%Forces1(:,:,1) = 0._fpp
         Elem%Forces2(:,:,1) = 0._fpp
         Elem%Forces = Elem%Forces1 + Elem%Forces2
-        return
-    end subroutine compute_InternalForcesFl_PML_Elem
+     end subroutine compute_InternalForcesFl_PML_Elem
+
+    ! ###########################################################
+    !>
+    !! \brief CPML internal force calculation for fluid elements.
+    !!  Updates the stress convolutions and projects the weak stresses into
+    !!  the force vector Forces(:,:,0).
+    !<
+    subroutine compute_InternalForcesFl_CPML_Elem (Elem, hprime, hTprime, hprimez, hTprimez)
+        implicit none
+        type (Element), intent (INOUT) :: Elem
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
+        real(fpp), dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+        real(fpp), dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0, s1
+
+        ! Update stress convolutions
+        Elem%PsiSxxx(:,:) = Elem%Bx(:,:) * Elem%PsiSxxx(:,:) - Elem%Ax(:,:) * &
+                          ( Elem%Acoeff(:,:,12) * MATMUL(hTprime, Elem%Stress(:,:,0)) &
+                          + Elem%Acoeff(:,:,13) * MATMUL(Elem%Stress(:,:,0), hprimez) )
+        Elem%PsiSzzz(:,:) = Elem%Bz(:,:) * Elem%PsiSzzz(:,:) - Elem%Az(:,:) * &
+                          ( Elem%Acoeff(:,:,14) * MATMUL(hTprime, Elem%Stress(:,:,1)) &
+                          + Elem%Acoeff(:,:,15) * MATMUL(Elem%Stress(:,:,1), hprimez) )
+
+        ! Compute force component 0
+        s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,1)
+        s1 = Elem%Acoeff(:,:,13) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,15) * Elem%Stress(:,:,1)
+        Elem%Forces(:,:,0) = MATMUL(hprime, s0) + MATMUL(s1, hTprimez) + Elem%PsiSxxx + Elem%PsiSzzz
+        Elem%Forces(:,:,1) = 0._fpp
+    end subroutine compute_InternalForcesFl_CPML_Elem
 
 
 

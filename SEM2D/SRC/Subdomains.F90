@@ -67,12 +67,12 @@ contains
 
         type (Subdomain) :: S
 
-        S%DMu = S%Sspeed**2 * S%Ddensity
-        S%DLambda = (S%Pspeed**2 - 2 * S%Sspeed **2 ) * S%Ddensity
-
-        ! Check Case Fluid (Acoustic)
-        if ((S%material_type == "F") .AND. (S%Sspeed .NE. 0.)) then
-           STOP "Error in material input file : Fluids must have S-speed equal to 0. "
+        if (S%material_type == "F" .or. S%material_type == "L") then
+            S%DMu = 0._fpp
+            S%DLambda = S%Pspeed**2 * S%Ddensity
+        else
+            S%DMu = S%Sspeed**2 * S%Ddensity
+            S%DLambda = (S%Pspeed**2 - 2 * S%Sspeed **2 ) * S%Ddensity
         endif
 
     end subroutine Lame_coefficients

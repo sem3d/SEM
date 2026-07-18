@@ -73,14 +73,9 @@ contains
     logical function sf_needs_split(Tdomain, e0, e1) result(res)
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: e0, e1
-        integer :: eflu, dfl
         logical :: a0, a1
-        res = .false.
         a0 = Tdomain%specel(e0)%acoustic; a1 = Tdomain%specel(e1)%acoustic
-        if (a0 .eqv. a1) return
-        if (a0) then; eflu = e0; else; eflu = e1; end if
-        dfl = Tdomain%sSubDomain(Tdomain%specel(eflu)%mat_index)%deftype
-        res = (dfl == MATDEF_FLUID_ANISO .or. dfl == CSTAR_FLUID)
+        res = (a0 .neqv. a1)
     end function sf_needs_split
 
     !-----------------------------------------------------------------------

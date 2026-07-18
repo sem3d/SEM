@@ -260,6 +260,7 @@ contains
         real(fpp) :: dphi_dxi, dphi_deta, dVelphi_dxi, dVelphi_deta
         real(fpp) :: dphi_dx, dphi_dz, dVelphi_dx, dVelphi_dz
         real(fpp) :: v_x, v_z, a_x, a_z, p_val
+        real(fpp) :: Ctmp(3,3)
 
         call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
@@ -459,8 +460,9 @@ contains
                         endif
 
                         if (allocated(Tdomain%specel(n)%Cij2d)) then
+                            Ctmp = Tdomain%specel(n)%Cij2d(:,:,i,k)
                             strain_v = (/ eps_xx, eps_zz, 2.0_fpp * eps_xz /)
-                            stress_v = matmul(Tdomain%specel(n)%Cij2d(:,:,i,k), strain_v)
+                            stress_v = matmul(Ctmp, strain_v)
                             sig_xx = stress_v(1)
                             sig_zz = stress_v(2)
                             sig_xz = stress_v(3)

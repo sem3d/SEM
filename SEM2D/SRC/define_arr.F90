@@ -41,6 +41,7 @@ subroutine define_arrays(Tdomain)
     real(fpp), dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
     real(fpp), dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z
     real(fpp), dimension (:,:), allocatable :: duux,duuz,wx_prime,wz_prime,temp_PMLx
+    real(fpp) :: Ctmp(3,3)
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
@@ -75,7 +76,8 @@ subroutine define_arrays(Tdomain)
         if (allocated(Tdomain%specel(n)%Cij2d)) then                 ! elastic aniso
             do j = 0, ngllz - 1
                 do i = 0, ngllx - 1
-                    call project_iso_cij2d(Tdomain%specel(n)%Cij2d(:,:,i,j), &
+                    Ctmp = Tdomain%specel(n)%Cij2d(:,:,i,j)
+                    call project_iso_cij2d(Ctmp, &
                                            Tdomain%specel(n)%Lambda(i,j), &
                                            Tdomain%specel(n)%Mu(i,j))
                     ! Density already set from Cstar Rho by read_aniso_material_2d
@@ -96,7 +98,36 @@ subroutine define_arrays(Tdomain)
                     Tdomain%specel(n)%Lambda(i,j)  = 1._fpp / ik
                 enddo
             enddo
-        else                                                         ! isotropic
+        else if (Tdomain%specel(n)%acoustic) then                    ! fluid iso
+            if (.not. allocated(Tdomain%specel(n)%IDensTensor2d)) &
+                allocate(Tdomain%specel(n)%IDensTensor2d(2,2,0:ngllx-1,0:ngllz-1))
+            if (.not. allocated(Tdomain%specel(n)%invKappa2d)) &
+                allocate(Tdomain%specel(n)%invKappa2d(0:ngllx-1,0:ngllz-1))
+            if (.not. allocated(Tdomain%specel(n)%Phi)) &
+                allocate(Tdomain%specel(n)%Phi(1:ngllx-2,1:ngllz-2))
+            if (.not. allocated(Tdomain%specel(n)%VelPhi)) &
+                allocate(Tdomain%specel(n)%VelPhi(1:ngllx-2,1:ngllz-2))
+            if (.not. allocated(Tdomain%specel(n)%ForcesFl)) &
+                allocate(Tdomain%specel(n)%ForcesFl(0:ngllx-1,0:ngllz-1))
+            Tdomain%specel(n)%IDensTensor2d = 0._fpp
+            Tdomain%specel(n)%invKappa2d     = 0._fpp
+            Tdomain%specel(n)%Phi            = 0._fpp
+            Tdomain%specel(n)%VelPhi         = 0._fpp
+            Tdomain%specel(n)%ForcesFl       = 0._fpp
+
+            do j = 0, ngllz - 1
+                do i = 0, ngllx - 1
+                    Tdomain%specel(n)%Density(i,j) = Tdomain%sSubDomain(mat)%Ddensity
+                    Tdomain%specel(n)%Lambda(i,j)  = Tdomain%sSubDomain(mat)%DLambda
+                    Tdomain%specel(n)%Mu(i,j)      = 0._fpp
+                    Tdomain%specel(n)%IDensTensor2d(1,1,i,j) = 1._fpp / Tdomain%specel(n)%Density(i,j)
+                    Tdomain%specel(n)%IDensTensor2d(2,2,i,j) = 1._fpp / Tdomain%specel(n)%Density(i,j)
+                    Tdomain%specel(n)%IDensTensor2d(1,2,i,j) = 0._fpp
+                    Tdomain%specel(n)%IDensTensor2d(2,1,i,j) = 0._fpp
+                    Tdomain%specel(n)%invKappa2d(i,j) = 1._fpp / (Tdomain%specel(n)%Density(i,j) * Tdomain%sSubDomain(mat)%Pspeed**2)
+                enddo
+            enddo
+        else                                                         ! isotropic solid
             do j = 0, ngllz - 1
                 do i = 0, ngllx - 1
                     Tdomain%specel(n)%Density(i,j) = Tdomain%sSubDomain(mat)%Ddensity
