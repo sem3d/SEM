@@ -3,6 +3,7 @@
 *.tmp
 *.dep
 \#*\#
+*_work*
 TAGS
 DOC/build
 BUILD
