@@ -43,6 +43,7 @@ contains
         use dom_fluid
         use dom_solidpml
         use dom_fluidpml
+        use m_irons_dtcrit
         use mpi
         implicit none
         type (Domain), intent (INOUT) :: Tdomain
@@ -156,6 +157,8 @@ contains
             write (*,*) "Your dt min is zero : verify it"
             stop
         endif
+
+        call compute_irons_dtcrit(Tdomain, rg)
 
         return
     end subroutine Compute_Courant

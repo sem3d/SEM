@@ -51,6 +51,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/SolidDG/calcul_forces_solid_dg.F90
     ${PRJ}/SRC/SolidDG/dom_solid_dg.F90
     ${PRJ}/SRC/compute_GLL.f90
+    ${PRJ}/SRC/irons_dtcrit.F90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/define_arrays.F90
     ${PRJ}/SRC/define_Neumann_properties.f90

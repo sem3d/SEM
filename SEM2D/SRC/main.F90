@@ -44,6 +44,7 @@ subroutine  sem()
     use solid_fluid_coupling_2d
     use smidpoint
     use srungekutta
+    use m_irons_dtcrit
 
     implicit none
 
@@ -176,6 +177,9 @@ subroutine  sem()
 
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS"
     call define_arrays (Tdomain)
+
+    if (rg == 0) write (*,*) "--> COMPUTING RIGOROUS DT_CRIT (IRONS-TREHARNE EIGENVALUE BOUND)"
+    call compute_irons_dtcrit (Tdomain)
 
     if (rg == 0) write (*,*) "--> BUILDING SOLID-FLUID INTERFACE COUPLING"
     call build_sf_coupling (Tdomain)

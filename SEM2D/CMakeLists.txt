@@ -31,6 +31,7 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/compute_GLL.F90
     ${PRJ}/SRC/Compute_external_forces.F90
     ${PRJ}/SRC/courant.F90
+    ${PRJ}/SRC/irons_dtcrit.F90
     ${PRJ}/SRC/build_prop_files_2d.F90
     ${PRJ}/SRC/define_arr.F90
     ${PRJ}/SRC/define_fault_properties.F90
