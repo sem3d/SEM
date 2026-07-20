@@ -294,11 +294,13 @@ subroutine Newmark (Tdomain)
             tag_send = i_send * Tdomain%MPI_var%n_proc +Tdomain%MPI_var%my_rank + 900
             tag_receive = Tdomain%MPI_var%my_rank * Tdomain%MPI_var%n_proc + i_send + 900
 
-            call MPI_SEND (Tdomain%sWall(i_proc)%Send_data_2,2* Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION, i_send, &
-                tag_send, Tdomain%communicateur, ierr )
-
-            call MPI_RECV (Tdomain%sWall(i_proc)%Receive_data_2, 2* Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION, i_send, &
-                tag_receive, Tdomain%communicateur, status, ierr )
+            ! ponytail: separate blocking MPI_SEND+MPI_RECV deadlocks once Send_data_2
+            ! exceeds the MPI eager-message threshold (two mutual partners both send
+            ! first). MPI_SENDRECV is deadlock-safe regardless of message size -- same
+            ! pattern already used for PML exchanges in PML_def.F90:169,268.
+            call MPI_SENDRECV (Tdomain%sWall(i_proc)%Send_data_2, 2*Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION, i_send, tag_send, &
+                Tdomain%sWall(i_proc)%Receive_data_2, 2*Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION, i_send, tag_receive, &
+                Tdomain%communicateur, status, ierr )
 
             i_stock = 0
             do nf = 0, Tdomain%sWall(i_proc)%n_faces - 1
