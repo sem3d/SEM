@@ -38,22 +38,34 @@ contains
         real(fpp) :: zc, dt_min_order, dt_courant_irons_order
         integer :: n_skipped, n_not_converged, n_total, n_skipped_g, n_not_converged_g, n_total_g
         logical :: converged
+        real(fpp), dimension(:), allocatable :: dt_elem_loc
+        integer :: n_included
+        real(fpp) :: dt_sum_loc, dt_max_loc
 
         rg = Tdomain%Mpi_Var%my_rank
         n_total = Tdomain%n_elem
         n_skipped = 0
         n_not_converged = 0
         dt_loc = huge(1._fpp)
+        dt_sum_loc = 0._fpp
+        dt_max_loc = 0._fpp
+        n_included = 0
+        allocate(dt_elem_loc(0:Tdomain%n_elem-1))
 
         do n = 0, Tdomain%n_elem - 1
             if (Tdomain%specel(n)%PML .or. Tdomain%specel(n)%type_DG /= GALERKIN_CONT) then
                 n_skipped = n_skipped + 1
+                dt_elem_loc(n) = -1._fpp ! marks "excluded" for report_local_order_requirements
                 cycle
             end if
             mat = Tdomain%specel(n)%mat_index
             call irons_element_dt(Tdomain, n, mat, dt_elem, converged)
             if (.not. converged) n_not_converged = n_not_converged + 1
             dt_loc = min(dt_loc, dt_elem)
+            dt_sum_loc = dt_sum_loc + dt_elem
+            dt_max_loc = max(dt_max_loc, dt_elem)
+            n_included = n_included + 1
+            dt_elem_loc(n) = dt_elem
         end do
 
         call MPI_AllReduce(dt_loc, dt_min, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
@@ -82,6 +94,28 @@ contains
             write (*,*) "[Irons dt_crit] elements not converged in", IRONS_MAX_ITER, "iters: ", n_not_converged_g
         end if
 
+        ! Phase 1 diagnostic (does not change the simulation): if the mesh has
+        ! a small minority of elements dragging dt_min down for everyone, this
+        ! reports how many elements would need which modified-equation order
+        ! to tolerate a larger, more "typical" dt - and an IDEALIZED (best
+        ! case, ignoring the local-time-stepping neighbourhood-growth
+        ! overhead a real regional implementation would add) speedup
+        ! estimate. See conversation notes on "Fase 2" for what a real
+        ! regional (neighbourhood-truncated) implementation would need.
+        block
+            real(fpp) :: dt_sum_g, dt_max_g, dt_mean
+            integer :: n_included_g
+            call MPI_AllReduce(dt_sum_loc, dt_sum_g, 1, MPI_DOUBLE_PRECISION, MPI_SUM, Tdomain%communicateur, ierr)
+            call MPI_AllReduce(dt_max_loc, dt_max_g, 1, MPI_DOUBLE_PRECISION, MPI_MAX, Tdomain%communicateur, ierr)
+            call MPI_AllReduce(n_included, n_included_g, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur, ierr)
+            if (n_included_g > 0) then
+                dt_mean = dt_sum_g / real(n_included_g,fpp)
+                call report_local_order_requirements(Tdomain, dt_elem_loc, "mean", dt_mean, dt_min, 5)
+                call report_local_order_requirements(Tdomain, dt_elem_loc, "max (best case)", dt_max_g, dt_min, 5)
+            end if
+        end block
+        deallocate(dt_elem_loc)
+
         if (Tdomain%TimeD%modified) then
             mm = Tdomain%TimeD%modified_order
             zc = ModifiedEquationZCrit(mm)
@@ -106,6 +140,77 @@ contains
             endif
         end if
     end subroutine compute_irons_dtcrit
+
+    !> Phase 1 diagnostic: for a candidate dt_target, classify every local
+    !! (order-1-basis) element by the minimum modified-equation order m in
+    !! [1,max_order] such that z_crit(m) >= 4*(dt_target/dt_elem)^2, i.e.
+    !! the smallest order that would let that element tolerate dt_target
+    !! (elements with dt_elem >= dt_target already need no help: order 1).
+    !! Reports the histogram (reduced across ranks) and an IDEALIZED
+    !! speedup estimate cost_baseline/cost_regional = (dt_target/dt_min) *
+    !! n_total / sum(m_e) - a best-case bound that ignores the cost of the
+    !! neighbourhood growth a real regional (Fase 2) implementation would
+    !! need to pay at the boundary of the "needs boost" region.
+    subroutine report_local_order_requirements(Tdomain, dt_elem_loc, label, dt_target, dt_min, max_order)
+        use sdomain
+        use mpi
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        real(fpp), dimension(0:Tdomain%n_elem-1), intent(in) :: dt_elem_loc
+        character(len=*), intent(in) :: label
+        real(fpp), intent(in) :: dt_target, dt_min
+        integer, intent(in) :: max_order
+
+        integer :: n, m, rg, ierr
+        integer, dimension(0:10) :: hist_loc, hist_g ! index 0 = "impossible within max_order"
+        integer :: m_needed, sum_m_loc, sum_m_g, n_total_loc, n_total_g
+        real(fpp) :: need_ratio, zc
+
+        rg = Tdomain%Mpi_Var%my_rank
+        hist_loc = 0
+        sum_m_loc = 0
+        n_total_loc = 0
+
+        do n = 0, Tdomain%n_elem - 1
+            if (dt_elem_loc(n) < 0._fpp) cycle ! PML/DG-skipped, not part of this diagnostic
+            n_total_loc = n_total_loc + 1
+            if (dt_elem_loc(n) >= dt_target) then
+                m_needed = 1
+            else
+                need_ratio = 4._fpp * (dt_target/dt_elem_loc(n))**2
+                m_needed = 0 ! 0 = impossible within max_order
+                do m = 1, max_order
+                    zc = ModifiedEquationZCrit(m)
+                    if (zc >= need_ratio) then
+                        m_needed = m
+                        exit
+                    end if
+                end do
+            end if
+            if (m_needed == 0) then
+                hist_loc(0) = hist_loc(0) + 1
+                sum_m_loc = sum_m_loc + max_order ! conservative: would need > max_order
+            else
+                if (m_needed <= 10) hist_loc(m_needed) = hist_loc(m_needed) + 1
+                sum_m_loc = sum_m_loc + m_needed
+            end if
+        end do
+
+        call MPI_AllReduce(hist_loc, hist_g, 11, MPI_INTEGER, MPI_SUM, Tdomain%communicateur, ierr)
+        call MPI_AllReduce(sum_m_loc, sum_m_g, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur, ierr)
+        call MPI_AllReduce(n_total_loc, n_total_g, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur, ierr)
+
+        if (rg == 0 .and. n_total_g > 0) then
+            write (*,*) "[Irons order-diag] target dt = ", trim(label), " = ", dt_target
+            write (*,*) "[Irons order-diag]   order 1 (no boost needed): ", hist_g(1), " / ", n_total_g
+            do m = 2, min(max_order,10)
+                if (hist_g(m) > 0) write (*,*) "[Irons order-diag]   order ", m, " needed: ", hist_g(m)
+            end do
+            if (hist_g(0) > 0) write (*,*) "[Irons order-diag]   IMPOSSIBLE within order ", max_order, ": ", hist_g(0)
+            write (*,*) "[Irons order-diag]   idealized best-case speedup (Fase 2, no truncation overhead) = ", &
+                (real(n_total_g,fpp)/real(sum_m_g,fpp)) * (dt_target/dt_min)
+        end if
+    end subroutine report_local_order_requirements
 
     !> Per-element critical dt: dispatches to the solid or acoustic
     !! matrix-free power iteration depending on Elem%acoustic.
