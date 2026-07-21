@@ -142,6 +142,61 @@ subroutine check_mesh(Tdomain)
     enddo
 
 end subroutine check_mesh
+
+!>
+!!\brief Subroutine check_modified_newmark() stops the run if
+!! newmark_modified is requested on a mesh/config it does not support.
+!! The modified-equation scheme (NewmarkModified.F90) is a linear,
+!! matrix-free eigenvalue-based extension of EXPLICIT central-difference
+!! Newmark (beta=0, gamma=0.5): its k=1 term is only mathematically
+!! equivalent to one classic-Newmark step under that specific
+!! parametrization (see NewmarkModified.F90's header), so any other
+!! alpha/beta/gamma silently gives wrong physics rather than an error at
+!! the numerics level - must be caught here. Also incompatible with PML
+!! memory variables (real, time-persistent convolution state, not a
+!! stateless linear operator), fault/friction nonlinearity, and
+!! solid-fluid interfaces (ApplyA_global does not include the sf_stof/
+!! sf_ftos coupling terms). Must run after PML_definition (which sets
+!! specel%PML), so it is called separately from check_inputs_and_mesh
+!! (which runs before the mesh's PML flags are known).
+!<
+subroutine check_modified_newmark(Tdomain)
+    use sdomain
+    implicit none
+
+    type(domain), intent(in) :: Tdomain
+    integer :: n
+    logical :: has_pml, has_sf_iface
+
+    if (.not. Tdomain%TimeD%modified) return
+
+    if (Tdomain%TimeD%beta /= 0._fpp .or. Tdomain%TimeD%gamma /= 0.5_fpp) then
+        STOP "ERROR : newmark_modified=true requires explicit central-difference Newmark (beta=0, gamma=0.5) in time_scheme - its k=1 term is only equivalent to classic Newmark under that parametrization."
+    endif
+
+    has_pml = .false.
+    do n = 0, Tdomain%n_elem - 1
+        if (Tdomain%specel(n)%PML) has_pml = .true.
+    enddo
+
+    if (has_pml) then
+        STOP "ERROR : newmark_modified=true does not support PML/CPML elements. Remove PML from the mesh or disable newmark_modified."
+    endif
+
+    if (Tdomain%n_fault > 0) then
+        STOP "ERROR : newmark_modified=true does not support fault elements. Remove faults from the mesh or disable newmark_modified."
+    endif
+
+    has_sf_iface = .false.
+    do n = 0, Tdomain%n_face - 1
+        if (Tdomain%sFace(n)%is_sf_iface) has_sf_iface = .true.
+    enddo
+
+    if (has_sf_iface) then
+        STOP "ERROR : newmark_modified=true does not support solid-fluid interfaces. Use a single-medium mesh or disable newmark_modified."
+    endif
+end subroutine check_modified_newmark
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

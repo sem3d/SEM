@@ -20,6 +20,8 @@ module sem_c_config
        integer(C_INT) :: implicitness
        integer(C_INT) :: accel_scheme
        integer(C_INT) :: veloc_scheme
+       integer(C_INT) :: newmark_modified
+       integer(C_INT) :: newmark_modified_order
        real(C_DOUBLE) :: sim_time
        real(C_DOUBLE) :: alpha
        real(C_DOUBLE) :: beta

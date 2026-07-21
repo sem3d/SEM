@@ -22,13 +22,20 @@ contains
     !! reduces the global critical dt across ranks, and prints the report.
     !! Called once at startup, after define_arrays (main.F90), so that
     !! Elem%Jacob/Density/invKappa2d/Acoeff/AcoeffFl are already built.
+    !!
+    !! If Tdomain%TimeD%modified (newmark_modified=true in input.spec), the
+    !! order-m bound (see ModifiedEquationZCrit) DRIVES the real dtmin used
+    !! by the simulation, overriding the courant.F90 heuristic set earlier
+    !! in the startup sequence - order 1 (classic Newmark's own eigenvalue
+    !! bound) leaves dtmin untouched otherwise, matching prior behaviour.
     subroutine compute_irons_dtcrit(Tdomain)
         use sdomain
         use mpi
         implicit none
         type(domain), intent(inout) :: Tdomain
-        integer :: n, mat, ierr, rg
+        integer :: n, mat, ierr, rg, mm
         real(fpp) :: dt_loc, dt_elem, dt_min, dt_used, ratio, dt_courant_irons
+        real(fpp) :: zc, dt_min_order, dt_courant_irons_order
         integer :: n_skipped, n_not_converged, n_total, n_skipped_g, n_not_converged_g, n_total_g
         logical :: converged
 
@@ -73,6 +80,30 @@ contains
             write (*,*) "[Irons dt_crit] ratio dt_heuristico_usado / dt_Irons_com_courant = ", ratio
             write (*,*) "[Irons dt_crit] elements skipped (PML/DG): ", n_skipped_g, " / ", n_total_g
             write (*,*) "[Irons dt_crit] elements not converged in", IRONS_MAX_ITER, "iters: ", n_not_converged_g
+        end if
+
+        if (Tdomain%TimeD%modified) then
+            mm = Tdomain%TimeD%modified_order
+            zc = ModifiedEquationZCrit(mm)
+            dt_min_order = dt_min * sqrt(zc/4._fpp)
+            dt_courant_irons_order = Tdomain%TimeD%courant * dt_min_order
+
+            if (rg == 0) then
+                write (*,*) "[Irons dt_crit] newmark_modified_order = ", mm, "  z_crit = ", zc
+                write (*,*) "[Irons dt_crit] order-m eigen-based dt (driving the simulation) = ", dt_min_order
+                write (*,*) "[Irons dt_crit] order-m eigen-based dt with courant safety factor = ", dt_courant_irons_order
+            end if
+
+            do mat = 0, Tdomain%n_mat - 1
+                Tdomain%sSubdomain(mat)%Dt = dt_courant_irons_order
+            enddo
+            Tdomain%TimeD%dtmin = dt_courant_irons_order
+            if (Tdomain%TimeD%dtmin > 0) then
+                Tdomain%TimeD%ntimeMax = int(Tdomain%TimeD%duration/Tdomain%TimeD%dtmin)
+            else
+                write (*,*) "Your dt min is zero : verify it"
+                stop
+            endif
         end if
     end subroutine compute_irons_dtcrit
 
@@ -255,6 +286,78 @@ contains
         Tdomain%specel(n)%Forces(:,:,0:1) = saved_forces
         omega = sqrt(max(best_lambda,tiny(1._fpp)))
     end subroutine irons_power_iteration_acoustic
+
+    !> S(z) = sum_{k=1}^m 2*(-z)^k/(2k)!, the modified-equation amplification
+    !! term for SolverClass.NewmarkModified/NewmarkModified.F90's order-m
+    !! recursion (single mode A*v=-omega^2*v, z=(omega*dt)^2). Stability
+    !! (bounded, oscillatory roots) holds iff S(z) in [-4,0].
+    function ModifiedEquationS(z, m) result(s)
+        implicit none
+        real(fpp), intent(in) :: z
+        integer, intent(in) :: m
+        real(fpp) :: s
+        integer :: k
+        s = 0._fpp
+        do k = 1, m
+            s = s + 2._fpp*(-z)**k/fact2k(k)
+        end do
+    end function ModifiedEquationS
+
+    !> Smallest positive z where S(z) exits [-4,0]: coarse forward scan
+    !! (step 0.01) to bracket the crossing, then bisection. z_crit(1)=4
+    !! recovers the plain-leapfrog CFL bound dt=2/omega_max. Order does NOT
+    !! increase z_crit monotonically: [4, 12, 7.57, 21.48, 9.53] for m=1..5
+    !! (odd orders are less stable than their even neighbours) - verified
+    !! against direct scalar time-stepping in the labcorrea/FEM MATLAB
+    !! prototype (StabilityClass.ModifiedEquationZCrit).
+    function ModifiedEquationZCrit(m) result(zc)
+        implicit none
+        integer, intent(in) :: m
+        real(fpp) :: zc
+        real(fpp) :: dz, z, zlo, zhi, zmid
+        integer :: it
+
+        dz = 0.01_fpp
+        z = 0._fpp
+        do while (mod_eq_viol(z,m) <= 0._fpp)
+            z = z + dz
+            if (z > 1000._fpp) then
+                write(*,*) "ModifiedEquationZCrit: no instability boundary found up to z=1000 for order m=", m
+                stop
+            endif
+        end do
+
+        zlo = z - dz; zhi = z
+        do it = 1, 100
+            zmid = 0.5_fpp*(zlo+zhi)
+            if (mod_eq_viol(zmid,m) <= 0._fpp) then
+                zlo = zmid
+            else
+                zhi = zmid
+            endif
+        end do
+        zc = 0.5_fpp*(zlo+zhi)
+    end function ModifiedEquationZCrit
+
+    function mod_eq_viol(z, m) result(v)
+        implicit none
+        real(fpp), intent(in) :: z
+        integer, intent(in) :: m
+        real(fpp) :: v, s
+        s = ModifiedEquationS(z,m)
+        v = max(s, -4._fpp-s)
+    end function mod_eq_viol
+
+    function fact2k(k) result(f)
+        implicit none
+        integer, intent(in) :: k
+        real(fpp) :: f
+        integer :: i
+        f = 1._fpp
+        do i = 2, 2*k
+            f = f * real(i,fpp)
+        end do
+    end function fact2k
 
 end module m_irons_dtcrit
 

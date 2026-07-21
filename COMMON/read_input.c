@@ -264,6 +264,8 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 
 	if (cmp(scanner,"accel_scheme")) err=expect_eq_bool(scanner, &config->accel_scheme, 1);
 	else if (cmp(scanner,"veloc_scheme")) err=expect_eq_bool(scanner, &config->veloc_scheme, 1);
+	else if (cmp(scanner,"newmark_modified")) err=expect_eq_bool(scanner, &config->newmark_modified, 1);
+	else if (cmp(scanner,"newmark_modified_order")) err=expect_eq_int(scanner, &config->newmark_modified_order, 1);
 	else if (cmp(scanner,"alpha")) err=expect_eq_float(scanner, &config->alpha,1);
 	else if (cmp(scanner,"beta")) err=expect_eq_float(scanner, &config->beta,1);
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
@@ -916,6 +918,8 @@ void init_sem_config(sem_config_t* cfg)
     memset(cfg, 0, sizeof(sem_config_t));
     // Valeurs par defaut
     cfg->courant = 0.2;
+    cfg->newmark_modified = 0;
+    cfg->newmark_modified_order = 1;
     cfg->n_group_outputs = 32;
     cfg->ngll = 5;
     cfg->fmax = 1.0;

@@ -20,6 +20,8 @@ module stimeparam
        integer :: ntimeMax,nsnap,ncheck,NtimeMin,iter_reprise
        integer :: prot_m0,prot_m1,prot_m2
        logical :: acceleration_scheme, velocity_scheme
+       logical :: modified            ! use the matrix-free modified-equation Newmark instead of classic
+       integer :: modified_order      ! modified-equation order m, only used if modified
        real(fpp) :: alpha, beta, gamma
        real(fpp) :: duration
        real(fpp) :: dtmin,rtime,Time_snapshots

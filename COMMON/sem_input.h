@@ -128,6 +128,8 @@ typedef struct {
     int implicitness;
     int accel_scheme;
     int veloc_scheme;
+    int newmark_modified;       // use the matrix-free modified-equation Newmark instead of classic (default: false)
+    int newmark_modified_order; // modified-equation order m, only used if newmark_modified (default: 1)
     double sim_time;
     double alpha;
     double beta;

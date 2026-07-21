@@ -20,6 +20,7 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/Domain.F90
     ${PRJ}/SRC/orientation.F90
     ${PRJ}/SRC/Newmark.F90
+    ${PRJ}/SRC/NewmarkModified.F90
     ${PRJ}/SRC/Midpoint.F90
     ${PRJ}/SRC/PML_def.F90
     ${PRJ}/SRC/allocate_domain.F90

@@ -102,6 +102,8 @@ subroutine read_input (Tdomain)
     Tdomain%Implicitness   = config%implicitness
     Tdomain%TimeD%acceleration_scheme = config%accel_scheme .ne. 0
     Tdomain%TimeD%velocity_scheme = config%veloc_scheme .ne. 0
+    Tdomain%TimeD%modified = config%newmark_modified .ne. 0
+    Tdomain%TimeD%modified_order = config%newmark_modified_order
     Tdomain%TimeD%duration = config%sim_time
     Tdomain%TimeD%alpha = config%alpha
     Tdomain%TimeD%beta = config%beta

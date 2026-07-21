@@ -41,6 +41,7 @@ subroutine  sem()
     use treceivers
     use sglobal_energy
     use snewmark
+    use snewmark_modified
     use solid_fluid_coupling_2d
     use smidpoint
     use srungekutta
@@ -142,6 +143,7 @@ subroutine  sem()
 
     if (rg == 0) write (*,*) "--> DEFINING BOUNDARY CONDITIONS AND PML PROPERTIES"
     call PML_definition (Tdomain)
+    call check_modified_newmark (Tdomain)
 
     if (Tdomain%logicD%any_source) then
         if (rg == 0) write (*,*) "--> COMPUTING POINT-SOURCE PARAMETERS AND LOCATION"
@@ -272,7 +274,11 @@ subroutine  sem()
         end if
 
         if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK) then
-            call Newmark (Tdomain)
+            if (Tdomain%TimeD%modified) then
+                call NewmarkModified (Tdomain)
+            else
+                call Newmark (Tdomain)
+            endif
         else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
             call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
         else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
