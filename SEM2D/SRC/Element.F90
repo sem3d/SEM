@@ -58,6 +58,12 @@ module selement
 
        real(fpp) :: dist_max !!Ajout Gsa 03/10 - taille caracteristique de l'element
 
+       ! Regional modified-equation Newmark (per-element correction gate):
+       ! true for elements selected by select_modified_region (irons_dtcrit.F90)
+       ! as needing the order-m correction to stay stable at the chosen dt, plus
+       ! their geometric buffer neighbours. See NewmarkModified.F90.
+       logical :: modified = .false.
+
        ! DG
        integer :: type_DG
        logical :: acoustic
@@ -85,6 +91,7 @@ contains
         el%acoustic = .false.
         el%OUTPUT = .true.
         el%dist_max = 0.0
+        el%modified = .false.
         el%type_DG = GALERKIN_CONT
 
     end subroutine init_element

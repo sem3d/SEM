@@ -21,6 +21,10 @@ module svertices
 
        logical :: PML, Abs, reflex, CPML, ADEPML, is_computed
        logical :: is_sf_vertex = .false.   ! diagnostic: interface endpoint (solid+fluid mix)
+       ! Regional modified-equation Newmark: true only if EVERY element
+       ! touching this vertex is %modified (see select_modified_region,
+       ! irons_dtcrit.F90).
+       logical :: modified = .false.
        integer :: Glob_Numbering, mat_index, Type_DG
        real(fpp) :: MassMat, CoeffAssem
        real(fpp), dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2

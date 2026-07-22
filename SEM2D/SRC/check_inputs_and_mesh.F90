@@ -170,6 +170,14 @@ subroutine check_modified_newmark(Tdomain)
 
     if (.not. Tdomain%TimeD%modified) return
 
+    ! Regional selection (select_modified_region, irons_dtcrit.F90) flags shared
+    ! faces/vertices per-rank from local element data only; a partition-boundary
+    ! face could then get inconsistent %modified on each side, desyncing that
+    ! shared DOF across ranks. Not handled yet -- restrict to single-rank runs.
+    if (Tdomain%Mpi_var%n_proc > 1) then
+        STOP "ERROR : newmark_modified=true (regional selection) does not support MPI (n_proc>1) yet -- run with a single process."
+    endif
+
     if (Tdomain%TimeD%beta /= 0._fpp .or. Tdomain%TimeD%gamma /= 0.5_fpp) then
         STOP "ERROR : newmark_modified=true requires explicit central-difference Newmark (beta=0, gamma=0.5) in time_scheme - its k=1 term is only equivalent to classic Newmark under that parametrization."
     endif

@@ -51,6 +51,11 @@ module sfaces
        ! solid_fluid_coupling_2d): standard face otherwise, but must not be
        ! flagged free-surface/absorbing despite Near_Element(1) = -1.
        logical :: is_sf_iface = .false.
+       ! Regional modified-equation Newmark: true only if EVERY element
+       ! touching this face is %modified (see select_modified_region,
+       ! irons_dtcrit.F90). Gates whether NewmarkModified adds the
+       ! correction to this face's Displ/Veloc.
+       logical :: modified = .false.
 
     end type face
 

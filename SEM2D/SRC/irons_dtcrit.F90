@@ -16,6 +16,16 @@ module m_irons_dtcrit
     integer, parameter :: IRONS_MAX_ITER = 2000
     real(fpp), parameter :: IRONS_RTOL = 1e-10_fpp
 
+    ! Regional modified-equation Newmark: fraction of (local, per-rank)
+    ! elements with the smallest critical dt that seed the "core" needing the
+    ! order-m correction, and the geometric buffer radius around each core
+    ! element (multiple of that element's dist_max) that also gets corrected
+    ! for a smooth order-1/order-m transition. ponytail: hardcoded rather than
+    ! wired into input.spec -- promote to a config key if these ever need
+    ! per-run tuning instead of the values agreed on 2026-07-22.
+    real(fpp), parameter :: MODIFIED_FRACTION = 0.05_fpp
+    real(fpp), parameter :: MODIFIED_BUFFER_MULT = 3.0_fpp
+
 contains
 
     !> Entry point: loops over all local (this-rank) CG, non-PML elements,
@@ -35,7 +45,7 @@ contains
         type(domain), intent(inout) :: Tdomain
         integer :: n, mat, ierr, rg, mm
         real(fpp) :: dt_loc, dt_elem, dt_min, dt_used, ratio, dt_courant_irons
-        real(fpp) :: zc, dt_min_order, dt_courant_irons_order
+        real(fpp) :: zc, dt_target_g, dt_courant_irons_order
         integer :: n_skipped, n_not_converged, n_total, n_skipped_g, n_not_converged_g, n_total_g
         logical :: converged
         real(fpp), dimension(:), allocatable :: dt_elem_loc
@@ -94,14 +104,12 @@ contains
             write (*,*) "[Irons dt_crit] elements not converged in", IRONS_MAX_ITER, "iters: ", n_not_converged_g
         end if
 
-        ! Phase 1 diagnostic (does not change the simulation): if the mesh has
+        ! Diagnostic only (does not change the simulation): if the mesh has
         ! a small minority of elements dragging dt_min down for everyone, this
         ! reports how many elements would need which modified-equation order
         ! to tolerate a larger, more "typical" dt - and an IDEALIZED (best
-        ! case, ignoring the local-time-stepping neighbourhood-growth
-        ! overhead a real regional implementation would add) speedup
-        ! estimate. See conversation notes on "Fase 2" for what a real
-        ! regional (neighbourhood-truncated) implementation would need.
+        ! case, ignoring the neighbourhood-growth overhead a truncated
+        ! regional implementation adds) speedup estimate.
         block
             real(fpp) :: dt_sum_g, dt_max_g, dt_mean
             integer :: n_included_g
@@ -114,18 +122,24 @@ contains
                 call report_local_order_requirements(Tdomain, dt_elem_loc, "max (best case)", dt_max_g, dt_min, 5)
             end if
         end block
-        deallocate(dt_elem_loc)
 
         if (Tdomain%TimeD%modified) then
+            ! Regional selection: the dt driving the simulation is now the
+            ! target derived from the "typical" elements (see
+            ! select_modified_region), NOT the single worst element -- only
+            ! the local MODIFIED_FRACTION worst elements (+ geometric buffer)
+            ! get flagged %modified and receive the order-m correction in
+            ! NewmarkModified; everyone else runs plain order-1 Newmark at
+            ! this larger dt.
             mm = Tdomain%TimeD%modified_order
+            call select_modified_region(Tdomain, dt_elem_loc, n_included, mm, dt_target_g)
             zc = ModifiedEquationZCrit(mm)
-            dt_min_order = dt_min * sqrt(zc/4._fpp)
-            dt_courant_irons_order = Tdomain%TimeD%courant * dt_min_order
+            dt_courant_irons_order = Tdomain%TimeD%courant * dt_target_g
 
             if (rg == 0) then
                 write (*,*) "[Irons dt_crit] newmark_modified_order = ", mm, "  z_crit = ", zc
-                write (*,*) "[Irons dt_crit] order-m eigen-based dt (driving the simulation) = ", dt_min_order
-                write (*,*) "[Irons dt_crit] order-m eigen-based dt with courant safety factor = ", dt_courant_irons_order
+                write (*,*) "[Irons dt_crit] regional target dt (order-1, drives the simulation) = ", dt_target_g
+                write (*,*) "[Irons dt_crit] regional target dt with courant safety factor = ", dt_courant_irons_order
             end if
 
             do mat = 0, Tdomain%n_mat - 1
@@ -139,9 +153,10 @@ contains
                 stop
             endif
         end if
+        deallocate(dt_elem_loc)
     end subroutine compute_irons_dtcrit
 
-    !> Phase 1 diagnostic: for a candidate dt_target, classify every local
+    !> Diagnostic only: for a candidate dt_target, classify every local
     !! (order-1-basis) element by the minimum modified-equation order m in
     !! [1,max_order] such that z_crit(m) >= 4*(dt_target/dt_elem)^2, i.e.
     !! the smallest order that would let that element tolerate dt_target
@@ -149,8 +164,8 @@ contains
     !! Reports the histogram (reduced across ranks) and an IDEALIZED
     !! speedup estimate cost_baseline/cost_regional = (dt_target/dt_min) *
     !! n_total / sum(m_e) - a best-case bound that ignores the cost of the
-    !! neighbourhood growth a real regional (Fase 2) implementation would
-    !! need to pay at the boundary of the "needs boost" region.
+    !! neighbourhood growth a truncated regional implementation needs to
+    !! pay at the boundary of the "needs boost" region.
     subroutine report_local_order_requirements(Tdomain, dt_elem_loc, label, dt_target, dt_min, max_order)
         use sdomain
         use mpi
@@ -207,7 +222,7 @@ contains
                 if (hist_g(m) > 0) write (*,*) "[Irons order-diag]   order ", m, " needed: ", hist_g(m)
             end do
             if (hist_g(0) > 0) write (*,*) "[Irons order-diag]   IMPOSSIBLE within order ", max_order, ": ", hist_g(0)
-            write (*,*) "[Irons order-diag]   idealized best-case speedup (Fase 2, no truncation overhead) = ", &
+            write (*,*) "[Irons order-diag]   idealized best-case speedup (no truncation overhead) = ", &
                 (real(n_total_g,fpp)/real(sum_m_g,fpp)) * (dt_target/dt_min)
         end if
     end subroutine report_local_order_requirements
@@ -463,6 +478,187 @@ contains
             f = f * real(i,fpp)
         end do
     end function fact2k
+
+    !> Pick which elements need the order-m correction (the local
+    !! worst MODIFIED_FRACTION by critical dt) plus a MODIFIED_BUFFER_MULT*
+    !! dist_max geometric ring around them, so NewmarkModified can add the
+    !! correction only there while the rest of the mesh runs plain order-1
+    !! Newmark at a LARGER dt (dt_target_g) instead of everyone paying for
+    !! the single worst element (the old dt_min-driven formula this
+    !! replaces). Single-rank only (enforced by check_modified_newmark) --
+    !! no shared rank-boundary face/vertex can end up disagreeing on
+    !! %modified between two ranks.
+    subroutine select_modified_region(Tdomain, dt_elem_loc, n_included, mm, dt_target_g)
+        use sdomain
+        use mpi
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        real(fpp), dimension(0:Tdomain%n_elem-1), intent(in) :: dt_elem_loc
+        integer, intent(in) :: n_included, mm
+        real(fpp), intent(out) :: dt_target_g
+
+        real(fpp), dimension(:), allocatable :: sorted_dt
+        real(fpp), dimension(:,:), allocatable :: centroid
+        logical, dimension(:), allocatable :: is_core
+        integer :: n, k, i, n_worst, ierr, n_valid, n_core, n_modified
+        real(fpp) :: dt_target_loc, zc, need_ratio, dist2, buf2
+        logical :: any_unstable, any_unstable_g
+
+        ! 1) Local target dt: sort the valid (non-PML/DG) critical dts
+        ! ascending; the boundary just past the worst MODIFIED_FRACTION is
+        ! the dt every "typical" (non-core) element already tolerates at
+        ! order 1.
+        allocate(sorted_dt(0:max(n_included,1)-1))
+        n_valid = 0
+        do n = 0, Tdomain%n_elem - 1
+            if (dt_elem_loc(n) < 0._fpp) cycle
+            sorted_dt(n_valid) = dt_elem_loc(n)
+            n_valid = n_valid + 1
+        end do
+
+        if (n_valid == 0) then
+            dt_target_loc = huge(1._fpp)
+        else
+            call quicksort_real(sorted_dt, 0, n_valid - 1)
+            if (n_valid == 1) then
+                dt_target_loc = sorted_dt(0)
+            else
+                n_worst = ceiling(MODIFIED_FRACTION * real(n_valid,fpp))
+                n_worst = max(1, min(n_worst, n_valid - 1))
+                dt_target_loc = sorted_dt(n_worst)
+            end if
+        end if
+        deallocate(sorted_dt)
+
+        call MPI_AllReduce(dt_target_loc, dt_target_g, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
+
+        ! 2) Flag "core": elements that cannot survive dt_target_g at order 1.
+        allocate(is_core(0:Tdomain%n_elem-1))
+        is_core = .false.
+        n_core = 0
+        do n = 0, Tdomain%n_elem - 1
+            Tdomain%specel(n)%modified = .false.
+            if (dt_elem_loc(n) < 0._fpp) cycle
+            if (dt_elem_loc(n) < dt_target_g) then
+                is_core(n) = .true.
+                Tdomain%specel(n)%modified = .true.
+                n_core = n_core + 1
+            end if
+        end do
+
+        ! 3) Refuse to run silently unstable: verify the configured order
+        ! actually stabilizes every core element at dt_target_g.
+        zc = ModifiedEquationZCrit(mm)
+        any_unstable = .false.
+        do n = 0, Tdomain%n_elem - 1
+            if (.not. is_core(n)) cycle
+            need_ratio = 4._fpp * (dt_target_g/dt_elem_loc(n))**2
+            if (zc < need_ratio) then
+                any_unstable = .true.
+                write(*,*) "[Irons dt_crit] WARNING: element ", n, " dt_elem=", dt_elem_loc(n), &
+                    " cannot be stabilized at dt_target=", dt_target_g, " by modified_order=", mm
+            end if
+        end do
+        call MPI_AllReduce(any_unstable, any_unstable_g, 1, MPI_LOGICAL, MPI_LOR, Tdomain%communicateur, ierr)
+        if (any_unstable_g) then
+            call MPI_Barrier(Tdomain%communicateur, ierr)
+            STOP "ERROR : newmark_modified regional selection -- modified_order too low for the elements it selected as core (see WARNING lines above). Raise newmark_modified_order or lower MODIFIED_FRACTION in irons_dtcrit.F90."
+        end if
+
+        ! 4) Geometric buffer: MODIFIED_BUFFER_MULT*dist_max(core) ring
+        ! around each core element also gets flagged, for a smooth
+        ! order-1/order-m transition instead of an abrupt one at the core
+        ! boundary.
+        call dist_max_elem(Tdomain)
+        allocate(centroid(0:1, 0:Tdomain%n_elem-1))
+        do n = 0, Tdomain%n_elem - 1
+            centroid(:,n) = element_centroid(Tdomain, n)
+        end do
+
+        do n = 0, Tdomain%n_elem - 1
+            if (Tdomain%specel(n)%modified) cycle  ! already core
+            do i = 0, Tdomain%n_elem - 1
+                if (.not. is_core(i)) cycle
+                buf2 = (MODIFIED_BUFFER_MULT * Tdomain%specel(i)%dist_max)**2
+                dist2 = (centroid(0,n)-centroid(0,i))**2 + (centroid(1,n)-centroid(1,i))**2
+                if (dist2 <= buf2) then
+                    Tdomain%specel(n)%modified = .true.
+                    exit
+                end if
+            end do
+        end do
+        deallocate(centroid, is_core)
+
+        ! 5) Derive face/vertex flags: modified only if EVERY touching
+        ! element is modified -- a shared DOF cannot be half-corrected.
+        do n = 0, Tdomain%n_face - 1
+            Tdomain%sFace(n)%modified = .true.
+        end do
+        do n = 0, Tdomain%n_vertex - 1
+            Tdomain%sVertex(n)%modified = .true.
+        end do
+        do n = 0, Tdomain%n_elem - 1
+            if (Tdomain%specel(n)%modified) cycle
+            do k = 0, 3
+                Tdomain%sFace(Tdomain%specel(n)%Near_Face(k))%modified = .false.
+                Tdomain%sVertex(Tdomain%specel(n)%Near_Vertex(k))%modified = .false.
+            end do
+        end do
+
+        n_modified = count(Tdomain%specel(:)%modified)
+        if (Tdomain%Mpi_var%my_rank == 0) then
+            write(*,*) "[Irons dt_crit] regional selection: ", n_core, " core element(s) (dt < target), ", &
+                n_modified, " total modified (core+buffer) / ", Tdomain%n_elem
+        end if
+    end subroutine select_modified_region
+
+    !> Element centroid (average of its Control_Nodes physical coordinates) --
+    !! cheap geometric proxy, consistent with dist_max_elem's own use of
+    !! Control_Nodes/Coord_nodes (no dependency on GLL/Jacobian being built).
+    function element_centroid(Tdomain, n) result(c)
+        use sdomain
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: n
+        real(fpp), dimension(0:1) :: c
+        integer :: i, ipoint
+
+        c = 0._fpp
+        do i = 0, Tdomain%n_nodes - 1
+            ipoint = Tdomain%specel(n)%Control_Nodes(i)
+            c = c + Tdomain%Coord_nodes(0:1, ipoint)
+        end do
+        c = c / real(Tdomain%n_nodes, fpp)
+    end function element_centroid
+
+    !> In-place ascending quicksort (Hoare partition) -- used to find the
+    !! MODIFIED_FRACTION percentile boundary in select_modified_region.
+    recursive subroutine quicksort_real(a, lo, hi)
+        implicit none
+        real(fpp), dimension(0:), intent(inout) :: a
+        integer, intent(in) :: lo, hi
+        integer :: i, j
+        real(fpp) :: pivot, tmp
+
+        if (lo >= hi) return
+        pivot = a((lo+hi)/2)
+        i = lo; j = hi
+        do
+            do while (a(i) < pivot)
+                i = i + 1
+            end do
+            do while (a(j) > pivot)
+                j = j - 1
+            end do
+            if (i <= j) then
+                tmp = a(i); a(i) = a(j); a(j) = tmp
+                i = i + 1; j = j - 1
+            end if
+            if (i > j) exit
+        end do
+        if (lo < j) call quicksort_real(a, lo, j)
+        if (i < hi) call quicksort_real(a, i, hi)
+    end subroutine quicksort_real
 
 end module m_irons_dtcrit
 
