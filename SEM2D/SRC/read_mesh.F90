@@ -214,8 +214,6 @@ subroutine read_mesh(tDomain)
 
     call read_material_file(Tdomain)
 
-    call read_receiver_file(Tdomain)
-
 end subroutine read_mesh
 
 

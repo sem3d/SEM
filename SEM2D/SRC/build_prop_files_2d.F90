@@ -359,7 +359,7 @@ contains
 
         nover = 0
         do n = 0, Tdomain%n_elem-1
-            if (.not. allocated(Tdomain%specel(n)%IDensTensor2d)) cycle   ! fluid-aniso only
+            if (.not. allocated(Tdomain%specel(n)%IDensTensor2d)) cycle   ! acoustic (fluid iso or aniso)
             mat = Tdomain%specel(n)%mat_index
             ! DG is genuinely unsupported.
             if (Tdomain%specel(n)%type_DG /= GALERKIN_CONT) then

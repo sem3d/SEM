@@ -86,19 +86,11 @@ subroutine SourcePosition(Tdomain)
             else if  (Tdomain%sSource(nsour)%i_type_source == 5) then
                 call source_space_gaussian(Tdomain, Tdomain%sSource(nsour))
             else if (Tdomain%sSource(nsour)%i_type_source == 3) then ! fluidpulse (fluid)
-                ! Shape coeffs are only used if the source lands on a plain (displacement-
-                ! vector) acoustic element -- see source_excit_fluid. Harmless no-op cost
-                ! otherwise; needed here since source_excit_fluid has no elem/n_nodes loop
-                ! context of its own before allocating ExtForce.
-                if (Tdomain%n_nodes == 4) call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
-                if (Tdomain%n_nodes == 8) call calc_shape8_coeffs(Tdomain, Tdomain%sSource(nsour))
                 call source_excit_fluid(Tdomain, Tdomain%sSource(nsour))
             else if (Tdomain%sSource(nsour)%i_type_source == 7) then ! pressure source (fluid)
                 ! Same spatial weighting as fluidpulse (type 3, ExtForce into the phi
                 ! equation, comp 0); the time integral is applied in Compute_external_forces
                 ! so that the pressure equals f(t). Mirrors SEM3D source type 7.
-                if (Tdomain%n_nodes == 4) call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
-                if (Tdomain%n_nodes == 8) call calc_shape8_coeffs(Tdomain, Tdomain%sSource(nsour))
                 call source_excit_fluid(Tdomain, Tdomain%sSource(nsour))
             endif
         end if
@@ -162,19 +154,12 @@ end subroutine source_excit_pulse
 
 ! ###########################################################
 !>
-!! \brief Fluid source for i_type_source = 3 (fluidpulse) / 7 (pressure). Routes by the
-!! TARGET element's formulation:
-!!   - fluid-aniso (velocity-potential, IDensTensor2d allocated): inject the Lagrange
-!!     weight into component 0 (the phi equation); component 1 stays 0. Compute_external_
-!!     forces adds CompSource(t)*ExtForce to Forces(:,:,0).
-!!   - plain isotropic acoustic (displacement-vector, mu=0 elastic scheme): an isotropic
-!!     monopole is NOT a nodal force -- it is an isotropic moment source
-!!     M_ij = kappa*delta_ij (kappa=Lambda here, mu=0), injected via the shape-function
-!!     gradient (same weak form as the explosive type-2 source / source_excit_moment;
-!!     requires calc_shape4/8_coeffs to have been called first). A plain component-0
-!!     nodal push would be a spurious x-directional force, not a pressure pulse, and its
-!!     amplitude would not be comparable across the two fluid formulations -- see the
-!!     2026-07-17 fluid-aniso velocity investigation (5-6 orders of magnitude mismatch).
+!! \brief Fluid source for i_type_source = 3 (fluidpulse) / 7 (pressure).
+!! Every acoustic element (isotropic "F"/"L" or fluid-aniso) is now solved with the
+!! same velocity-potential formulation (the mu=0 displacement-vector trick was removed
+!! for isotropic fluid in 8e0aaae7), so a single injection applies uniformly: the
+!! Lagrange weight goes into component 0 (the phi equation); component 1 stays 0.
+!! Compute_external_forces adds CompSource(t)*ExtForce to Forces(:,:,0).
 !<
 subroutine source_excit_fluid(Tdomain, src)
     use sdomain
@@ -186,8 +171,7 @@ subroutine source_excit_fluid(Tdomain, src)
     type(Subdomain), pointer :: mat
     type(Source), intent(inout) :: src
     integer :: n, i, j, ngllx, ngllz, nmat, nnelem
-    real(fpp) :: weta, wxi, dwdxi, dwdeta, kappa
-    real(fpp), dimension(0:1,0:1) :: InvGrad
+    real(fpp) :: weta, wxi
 
     do n = 0, src%ine-1
         nnelem = src%Elem(n)%nr
@@ -197,34 +181,14 @@ subroutine source_excit_fluid(Tdomain, src)
         ngllz = mat%ngllz
 
         allocate(src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
-        ! NB: check the subdomain's deftype (set during read_material_file, well before
-        ! SourcePosition runs), NOT allocated(specel%IDensTensor2d) -- that per-element
-        ! tensor is only allocated later in define_arrays, so it always reads .false. here.
-        if (mat%deftype == MATDEF_FLUID_ANISO .or. mat%deftype == CSTAR_FLUID) then
-            do j = 0,ngllz-1
-                call pol_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta, weta)
-                do i = 0,ngllx-1
-                    call pol_lagrange (ngllx, mat%GLLcx, i, src%Elem(n)%xi, wxi )
-                    src%Elem(n)%ExtForce (i,j,0) = wxi*weta   ! into the phi equation (component 0)
-                    src%Elem(n)%ExtForce (i,j,1) = 0._fpp
-                enddo
+        do j = 0,ngllz-1
+            call pol_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta, weta)
+            do i = 0,ngllx-1
+                call pol_lagrange (ngllx, mat%GLLcx, i, src%Elem(n)%xi, wxi )
+                src%Elem(n)%ExtForce (i,j,0) = wxi*weta   ! into the phi equation (component 0)
+                src%Elem(n)%ExtForce (i,j,1) = 0._fpp
             enddo
-        else
-            kappa = mat%DLambda
-            InvGrad = src%Elem(n)%Scoeff
-            do j = 0,ngllz-1
-                call pol_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta, weta)
-                call der_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta, dwdeta)
-                do i = 0,ngllx-1
-                    call pol_lagrange (ngllx, mat%GLLcx, i, src%Elem(n)%xi, wxi )
-                    call der_lagrange (ngllx, mat%GLLcx, i, src%Elem(n)%xi, dwdxi)
-                    src%Elem(n)%ExtForce (i,j,0) = kappa * &
-                        (InvGrad(0,0)*dwdxi*weta + InvGrad(0,1)*dwdeta*wxi)
-                    src%Elem(n)%ExtForce (i,j,1) = kappa * &
-                        (InvGrad(1,0)*dwdxi*weta + InvGrad(1,1)*dwdeta*wxi)
-                enddo
-            enddo
-        endif
+        enddo
     enddo
 
 end subroutine source_excit_fluid
