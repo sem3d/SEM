@@ -105,8 +105,8 @@ private:
     vector<MatInfo> minfo;
     int npow;
     double apow;
-    // (original boundary node, layer) -> extruded node id
-    map<pair<index_t,int>, index_t> newnode;
+    // (original boundary node, layer, axis) -> extruded node id
+    map<pair<index_t,pair<int,int> >, index_t> newnode;
     // Hexa27 (2nd-order) support: the 19 non-corner nodes (12 edges + 6 faces + 1 center) of an
     // extruded hex are placed at min/mid/max coordinates (exact for a straight axis-aligned box)
     // and deduplicated BY COORDINATE, so nodes shared between PML hexes -- or with the interior
@@ -212,8 +212,8 @@ int PmlExtruder::get_or_make_pml(int src_mat, int side, double pos, double width
 
 index_t PmlExtruder::extruded_node(index_t orig, int layer, int axis, double offset)
 {
-    pair<index_t,int> key(orig, layer);
-    map<pair<index_t,int>,index_t>::iterator it = newnode.find(key);
+    pair<index_t,pair<int,int> > key(orig, make_pair(layer, axis));
+    map<pair<index_t,pair<int,int> >,index_t>::iterator it = newnode.find(key);
     if (it!=newnode.end()) return it->second;
     double xyz[3]; set_coord(xyz, orig);
     xyz[axis] += offset; // absolute (already signed) offset of this layer plane
