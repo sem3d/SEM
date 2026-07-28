@@ -1,0 +1,11 @@
+src/pysem/.vscode/*
+src/pysem/**/.vscode/*
+src/pysem.egg-info/*
+src/pysem/__pycache__/*
+src/pysem/**/__pycache__/*
+.vscode/*
+*.vtu
+*.vtk
+venv/*
+.venv/*
+build/*

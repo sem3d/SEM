@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pysem"
+version = "0.1.0"
+authors = [
+  { name="Filippo Gatti", email="filippo.gatti@centralesupelec.fr" },
+]
+description = "Tools for SEM3D snapshot parsing and mesh conversion"
+readme = "README.md"
+requires-python = ">=3.11"
+
+# Tell Python that the dependencies are defined elsewhere
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+plotting = ["pyvista", "matplotlib", "ipywidgets"]
+rikpp = ["dask", "pyproj", "seaborn", "utm"]
+
+[project.scripts]
+parse-snapshots = "pysem.parse_sem3d_snapshots:main"
+parse-traces = "pysem.parse_sem3d_traces:main"
+generate-material = "pysem.generate_h5_materials:main"
+create-stations = "pysem.create_stations:main"
+create-source = "pysem.sem_stf:main"
+create-xmf = "pysem.create_xmf_from_mesh:main"
+create-material-input = "pysem.create_material_input:main"

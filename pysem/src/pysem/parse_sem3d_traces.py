@@ -543,10 +543,10 @@ def main():
     if options['plot']:
         if 'all' in options['names']:
             for n,st in stream.items():
-                st.Plot(**options,svf='plot.png')
+                st.Plot(**options,svf=True)
         else:
             for n in options['names']:
-                stream[n].Plot(**options,svf='plot.png')
+                stream[n].Plot(**options,svf=True)
 
 
 if __name__=='__main__':

@@ -9,7 +9,6 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 import argparse
 import numpy as np
-from scipy.signal import ricker
 import warnings
 
 
@@ -109,8 +108,8 @@ def spice_bench(vtm,ts,wd,k,tag=None,plot=False):
     return stf,sff
 
 
-if __name__== '__main__':
-    
+def main():
+
     parser = argparse.ArgumentParser(prefix_chars='@')
     parser.add_argument("@b", "@@btm",
                         type=float,
@@ -227,3 +226,6 @@ if __name__== '__main__':
         plt.legend()
         plt.savefig('compare_sff.png',bbox_inches='tight')
         plt.close()
+
+if __name__== '__main__':
+    main()

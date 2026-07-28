@@ -33,7 +33,7 @@ def write_stations(xg,fn='stations.txt'):
     xg=tuple([x.squeeze().reshape(-1,1) for x in xg])
     np.savetxt(fn,np.concatenate(xg,axis=-1),fmt='%10.5f',delimiter=' ')
 
-if __name__=='__main__':
+def main():
     parser = argparse.ArgumentParser(prefix_chars='@')
     parser.add_argument("@x","@@xlim", 
                         type=float, 
@@ -85,3 +85,6 @@ if __name__=='__main__':
     # write station file
     write_stations(grd,opt.ofnm)
     print("Station file {} has been created!".format(opt.ofnm))
+
+if __name__=='__main__':
+    main()

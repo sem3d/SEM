@@ -130,8 +130,8 @@ def write_xdmf(pfx,prop,mat,lims):
             fid.write('</Xdmf>\n')
             fid.close()
 
-if __name__=='__main__':
-    
+def main():
+
     parser = argparse.ArgumentParser(prefix_chars='@')
     parser.add_argument('@@prop',type=str,nargs='+',default= ['la','mu','ds','vp','vs'],help="list of properties to be generated")
     parser.add_argument('@@tag',type=str,default="linear_gradient",help="tag for material model")
@@ -175,3 +175,6 @@ if __name__=='__main__':
     write_h5(opt['pfx'],opt['prop'],mat,lims)
     write_xdmf(opt['pfx'],opt['prop'],mat,lims)
     print("Material files generated successfully!")
+
+if __name__=='__main__':
+    main()
