@@ -26,6 +26,12 @@ module selement
         ! Whether this element will be part of snapshot outputs
         logical :: OUTPUT
 
+        ! Regional modified-equation Newmark (per-element correction gate):
+        ! true for elements selected by select_modified_region (irons_dtcrit.F90)
+        ! as needing the order-m correction to stay stable at the chosen dt,
+        ! plus their geometric buffer neighbours. See NewmarkModified.f90.
+        logical :: modified = .false.
+
         ! These should not be used during the simulation, only at init time
         integer, dimension (:), allocatable :: Control_nodes
         integer, dimension (0:5) :: Near_Faces
@@ -55,6 +61,7 @@ contains
         el%domain = -1
         el%En_S_int = -1
         el%En_P_int = -1
+        el%modified = .false.
     end subroutine init_element
 
 end module selement

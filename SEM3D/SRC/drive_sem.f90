@@ -371,6 +371,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use msnapshots
     use msavecheckpoint
     use mtimestep
+    use snewmark_modified, only : NewmarkModified
     use semconfig !< pour config C
     use sem_c_bindings
     use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO
@@ -437,7 +438,11 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         !- Newmark reduced to leap-frog
         select case(Tdomain%TimeD%type_timeinteg)
         case (TIME_INTEG_NEWMARK)
-            call Newmark(Tdomain, ntime)
+            if (Tdomain%TimeD%modified) then
+                call NewmarkModified(Tdomain, ntime)
+            else
+                call Newmark(Tdomain, ntime)
+            end if
         case (TIME_INTEG_LDDRK64)
             call Timestep_LDDRK(Tdomain, ntime)
         end select

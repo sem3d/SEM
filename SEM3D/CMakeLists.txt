@@ -130,6 +130,7 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES_F})
 
 set(SEM3D_SOURCES_MAIN
     ${PRJ}/SRC/Newmark.f90
+    ${PRJ}/SRC/NewmarkModified.f90
     ${PRJ}/SRC/deallocate_domain.f90
     ${PRJ}/SRC/allocate_domain.f90
     ${PRJ}/SRC/drive_sem.f90

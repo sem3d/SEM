@@ -744,6 +744,8 @@ contains
         Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
         Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
         Tdomain%TimeD%velocity_scheme     = Tdomain%config%veloc_scheme .ne. 0
+        Tdomain%TimeD%modified            = Tdomain%config%newmark_modified .ne. 0
+        Tdomain%TimeD%modified_order      = Tdomain%config%newmark_modified_order
         Tdomain%TimeD%duration            = Tdomain%config%sim_time
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta

@@ -13,6 +13,8 @@ module stimeparam
     type :: time
 
        logical :: acceleration_scheme, velocity_scheme
+       logical :: modified              ! true if newmark_modified=1 in input.spec (regional modified-equation Newmark)
+       integer :: modified_order        ! modified-equation order m, only used if modified
        integer :: ntimeMax, NtimeMin, nSnap, ntrace, ncheck
        real(fpp) :: alpha, beta, gamma, duration, Time_snapshots, dtmin, rtime
        integer :: iter_reprise
