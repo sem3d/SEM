@@ -177,7 +177,7 @@ subroutine read_input (Tdomain)
     !endif
 
     Tdomain%bMailUnv = .false.
-    Tdomain%logicD%save_restart = .false.
+    Tdomain%logicD%save_restart = config%prorep_iter .ne. 0   ! idem SEM3D (read_input.F90:809)
     ! conversion dun maillage unv en maillage sem
     !read (11,*) Tdomain%bMailUnv
 
