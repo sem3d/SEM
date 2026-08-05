@@ -26,14 +26,14 @@ __status__ = "Beta"
 
 dirs_dict = {'x':0,'y':1,'z':2}
 trnsp = (2,1,0)
-prop_dict = {"la":"Lambda","mu":"Mu","ds":"Rho","vp":"Vp","vs":"Vs"}
-def base_smooth_heterogeneous(d,grd,nu=0.3):
+prop_dict = {"la":"Lambda","mu":"Mu","ds":"Rho","vp":"Vp","vs":"Vs","ka":"Kappa"}
+def base_smooth_heterogeneous(d,grd,nu=0.25,ds=2000.):
     z = grd[d]
     la = np.zeros_like(grd[d])
     mu = np.zeros_like(grd[d])
-    ds = np.full_like(grd[d],2000.).transpose(*trnsp)
-    
-    la = 20.*(80.0+0.45*np.abs(z)+\
+    ds = np.full_like(grd[d],ds).transpose(*trnsp)
+
+    la = (80.0+0.45*np.abs(z)+\
         35.0*np.exp(-(np.abs(z)-22.5)**2/150.0))*1.e6 # Mpa
     # la = 20.*(100.0+0.45*np.abs(z)+\
 #         50.0*np.exp(-(np.abs(z)-100.0)**2/1000.0))*1.e6 # Mpa
@@ -42,21 +42,23 @@ def base_smooth_heterogeneous(d,grd,nu=0.3):
     mu = mu.transpose(*trnsp)
     vp = np.sqrt((la+2.*mu)/ds)
     vs = np.sqrt(mu/ds)
-    return {'la':la,'mu':mu,'ds':ds,'vp':vp,'vs':vs}
+    ka = la+(2./3.)*mu
+    return {'la':la,'mu':mu,'ds':ds,'vp':vp,'vs':vs,'ka':ka}
 
-def linear_gradient(d,grd,nu=0.3):
+def linear_gradient(d,grd,nu=0.25,ds=2000.):
     z = grd[d]
     la = np.zeros_like(grd[d])
     mu = np.zeros_like(grd[d])
-    ds = np.full_like(grd[d],2000.).transpose(*trnsp)
-    
+    ds = np.full_like(grd[d],ds).transpose(*trnsp)
+
     la = (100.0+0.45*np.abs(z))*1.e6 # Mpa
     mu = 0.5*(1.-2.*nu)*la/nu
     la = la.transpose(*trnsp)
     mu = mu.transpose(*trnsp)
     vp = np.sqrt((la+2.*mu)/ds)
     vs = np.sqrt(mu/ds)
-    return {'la':la,'mu':mu,'ds':ds,'vp':vp,'vs':vs}
+    ka = la+(2./3.)*mu
+    return {'la':la,'mu':mu,'ds':ds,'vp':vp,'vs':vs,'ka':ka}
 
 func = {'base_smooth_heterogeneous':base_smooth_heterogeneous,
         'linear_gradient':linear_gradient}
@@ -68,9 +70,9 @@ def grid(lims):
     xg,yg,zg = np.meshgrid(xv,yv,zv,indexing='xy')
     return (xg,yg,zg)
 
-def gen_mat(model,dirs,prop,grd,nu=0.3):
+def gen_mat(model,dirs,prop,grd,nu=0.3,ds=2000.):
     d = dirs_dict[dirs]
-    mats = func[model.lower()](d,grd,nu)
+    mats = func[model.lower()](d,grd,nu,ds)
     return dict(tuple([(v,mats[v]) for v in prop]))
 
 def write_h5(pfx,prop,mat,lims,xdmf=True):
@@ -142,6 +144,7 @@ def main():
     parser.add_argument('@@step',type=float,nargs='*',default=[10,10,501],help="Numbers of points per direction [nx ny nz]")
     parser.add_argument('@@pfx',type=str,default="linear_gradient",help="File prefix")
     parser.add_argument('@@nu',type=float,default=0.3,help="Poisson's ratio")
+    parser.add_argument('@@ds',type=float,default=2000.0,help="Constant density value [kg/m3]")
     opt = parser.parse_args().__dict__
     
     assert len(opt['xlim'])==2
@@ -169,7 +172,7 @@ def main():
     grd = grid(lims)
     
     # generate model
-    mat = gen_mat(*model,opt['prop'],grd,opt['nu'])
+    mat = gen_mat(*model,opt['prop'],grd,opt['nu'],opt['ds'])
     
     # write hdf5 file
     write_h5(opt['pfx'],opt['prop'],mat,lims)
