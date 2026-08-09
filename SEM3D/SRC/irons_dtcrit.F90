@@ -18,7 +18,6 @@
 module m_irons_dtcrit
     use constants
     use m_mod_eq_zcrit
-    use m_cost_optimizer_common
     use m_modified_newmark_logger
     implicit none
 
@@ -475,79 +474,6 @@ contains
             end do
         end do
     end subroutine irons_domain_fluid
-
-    !> S(z) = sum_{k=1}^m 2*(-z)^k/(2k)!, the modified-equation amplification
-    !! term for NewmarkModified.f90's order-m recursion (single mode
-    !! A*v=-omega^2*v, z=(omega*dt)^2). Stability (bounded, oscillatory
-    !! roots) holds iff S(z) in [-4,0]. Pure math, ported verbatim from
-    !! SEM2D/SRC/irons_dtcrit.F90.
-    function ModifiedEquationS(z, m) result(s)
-        implicit none
-        real(fpp), intent(in) :: z
-        integer, intent(in) :: m
-        real(fpp) :: s
-        integer :: k
-        s = 0._fpp
-        do k = 1, m
-            s = s + 2._fpp*(-z)**k/fact2k(k)
-        end do
-    end function ModifiedEquationS
-
-    !> Smallest positive z where S(z) exits [-4,0]: coarse forward scan
-    !! (step 0.01) to bracket the crossing, then bisection. z_crit(1)=4
-    !! recovers the plain-leapfrog CFL bound dt=2/omega_max. Order does NOT
-    !! increase z_crit monotonically: [4, 12, 7.57, 21.48, 9.53] for m=1..5
-    !! (odd orders are less stable than their even neighbours) - verified
-    !! against direct scalar time-stepping in the labcorrea/FEM MATLAB
-    !! prototype (StabilityClass.ModifiedEquationZCrit).
-    function ModifiedEquationZCrit(m) result(zc)
-        implicit none
-        integer, intent(in) :: m
-        real(fpp) :: zc
-        real(fpp) :: dz, z, zlo, zhi, zmid
-        integer :: it
-
-        dz = 0.01_fpp
-        z = 0._fpp
-        do while (mod_eq_viol(z,m) <= 0._fpp)
-            z = z + dz
-            if (z > 1000._fpp) then
-                write(*,*) "ModifiedEquationZCrit: no instability boundary found up to z=1000 for order m=", m
-                stop
-            endif
-        end do
-
-        zlo = z - dz; zhi = z
-        do it = 1, 100
-            zmid = 0.5_fpp*(zlo+zhi)
-            if (mod_eq_viol(zmid,m) <= 0._fpp) then
-                zlo = zmid
-            else
-                zhi = zmid
-            endif
-        end do
-        zc = 0.5_fpp*(zlo+zhi)
-    end function ModifiedEquationZCrit
-
-    function mod_eq_viol(z, m) result(v)
-        implicit none
-        real(fpp), intent(in) :: z
-        integer, intent(in) :: m
-        real(fpp) :: v, s
-        s = ModifiedEquationS(z,m)
-        v = max(s, -4._fpp-s)
-    end function mod_eq_viol
-
-    function fact2k(k) result(f)
-        implicit none
-        integer, intent(in) :: k
-        real(fpp) :: f
-        integer :: i
-        f = 1._fpp
-        do i = 2, 2*k
-            f = f * real(i,fpp)
-        end do
-    end function fact2k
 
     !> Element centroid (average of its Control_nodes physical coordinates).
     function element_centroid3d(Tdomain, n) result(c)
