@@ -458,9 +458,9 @@ contains
                             eps_dev(i,j,k,0) = DXX - M_1_3 * divU
                             eps_dev(i,j,k,1) = DYY - M_1_3 * divU
                             eps_dev(i,j,k,2) = DZZ - M_1_3 * divU
-                            eps_dev(i,j,k,3) = (DXY + DYX)
-                            eps_dev(i,j,k,4) = (DZX + DXZ)
-                            eps_dev(i,j,k,5) = (DZY + DYZ)
+                            eps_dev(i,j,k,3) = 0.5 * (DZY + DYZ)
+                            eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
+                            eps_dev(i,j,k,5) = 0.5 * (DXY + DYX)
                         endif
                         ! DEVIATORIC STRESS
                         if (out_variables(OUT_STRESS_DEV) == 1) then

@@ -285,9 +285,9 @@ contains
                         eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) / 3
                         eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) / 3
                         eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) / 3
-                        eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
+                        eps_dev(i,j,k,3) = 0.5 * (DZY + DYZ)
                         eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
-                        eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
+                        eps_dev(i,j,k,5) = 0.5 * (DXY + DYX)
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
