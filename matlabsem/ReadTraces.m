@@ -31,8 +31,9 @@ for ifile = 1 : numel(files)
             end
         elseif strcmp(info.Datasets(j).Name, 'Energy')
             fi = sscanf(files(ifile).name,'capteurs.%d.h5')+1;
-            aux = h5read(h5name,['/' info.Datasets(j).Name]);
-            DataE(fi,:,:) = aux;
+            if fi == 1
+                aux = h5read(h5name,['/' info.Datasets(j).Name]);
+                DataE = aux;
             end
         else
             name = info.Datasets(j).Name;
@@ -44,69 +45,21 @@ for ifile = 1 : numel(files)
     end
 end
 %% create capteur structure
+labelsStr = strtrim(string(labels));
+baseNames = regexprep(labelsStr, '\s+\d+$', '');
+uniqueNames = unique(baseNames, 'stable');
+
 for ic = 1 : size(Data,1)
     100*ic/size(Data,1)
     capteur(ic).Name = capName{ic};
     capteur(ic).Pos = Pos(ic,:);
     aux = squeeze(Data(ic,:,:));
-    capteur(ic).Time = aux(1,1:subs:end);
-    aux(1,:) = [];
 
-    if any(labels == "EnergyP    1")
-        capteur(ic).EnergyP = aux(1,1:subs:end);
-        aux(1,:) = [];
-    end
-    if any(labels == "EnergyK    1")
-        capteur(ic).EnergyK = aux(1,1:subs:end);
-        aux(1,:) = [];
-    end
-    if any(labels == "Eps Vol    1")
-        capteur(ic).EpsVol = aux(1,1:subs:end);
-        aux(1,:) = [];
-    end
-    if any(labels == "Displ      1")
-        capteur(ic).Displ = aux(1:3,1:subs:end);
-        aux(1:3,:) = [];
-    end
-    if any(labels == "Veloc      1")
-        capteur(ic).Veloc = aux(1:3,1:subs:end);
-        aux(1:3,:) = [];
-    end
-    if any(labels == "Accel      1")
-        capteur(ic).Accel = aux(1:3,1:subs:end);
-        aux(1:3,:) = [];
-    end
-    if any(labels == "Pressure   1")
-        capteur(ic).Pressure = aux(1,1:subs:end);
-        aux(1,:) = [];
-    end  
-    if any(labels == "Eps Dev    1")
-        capteur(ic).EpsDev = aux(1:6,1:subs:end);
-        aux(1:6,:) = [];
-    end
-    if any(labels == "Stress Dev 1")
-        capteur(ic).StressDev = aux(1:6,1:subs:end);
-        aux(1:6,:) = [];
-    end
-    if any(labels == "Eps Dev Pl 1")
-        capteur(ic).EpsDevPl = aux(1:6,1:subs:end);
-        aux(1:6,:) = [];
-    end
-    if any(labels == "DUDX       1")
-        capteur(ic).DUDX = aux(1:9,1:subs:end);
-        aux(1:9,:) = [];
-    end
-    if any(labels == "GradLambda 1")
-        capteur(ic).GradLambda = aux(1:3,1:subs:end);
-        aux(1:3,:) = [];
-    end
-    if any(labels == "GradMu     1")
-        capteur(ic).GradMu = aux(1:3,1:subs:end);
-        aux(1:3,:) = [];
-    end
-    if any(labels == "EnergyD    1")
-        capteur(ic).EnergyD = aux(1:3,1:subs:end);
-        aux(1:3,:) = [];
+    for iv = 1 : numel(uniqueNames)
+        uName = uniqueNames(iv);
+        fieldName = char(strrep(uName, " ", ""));
+        idx = find(baseNames == uName);
+        capteur(ic).(fieldName) = aux(idx, 1:subs:end);
     end
 end
 
