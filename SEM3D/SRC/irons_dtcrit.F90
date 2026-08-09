@@ -475,6 +475,18 @@ contains
         end do
     end subroutine irons_domain_fluid
 
+    !> (2k)! -- used by NewmarkModified.f90's order-m coefficient recursion.
+    function fact2k(k) result(f)
+        implicit none
+        integer, intent(in) :: k
+        real(fpp) :: f
+        integer :: i
+        f = 1._fpp
+        do i = 2, 2*k
+            f = f * real(i,fpp)
+        end do
+    end function fact2k
+
     !> Element centroid (average of its Control_nodes physical coordinates).
     function element_centroid3d(Tdomain, n) result(c)
         use sdomain
