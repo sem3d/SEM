@@ -281,6 +281,12 @@ contains
 
         capteur=>listeCapteur
         do while (associated(capteur))
+            ! Energy is a single global (MPI-reduced) value: only rank 0 writes it,
+            ! so only rank 0's trace file should carry the dataset.
+            if (capteur%type == CPT_ENERGY .and. Tdomain%Mpi_var%my_rank /= 0) then
+                capteur=>capteur%suivant
+                cycle
+            endif
             dname = dset_capteur_name(capteur)
             if (capteur%type == CPT_ENERGY) then
                 n_out = 6
@@ -345,7 +351,7 @@ contains
             call H5Tclose_f(tid, hdferr)
         end if
         !
-        if(Tdomain%out_var_capt(OUT_TOTAL_ENERGY) == 1) then
+        if(Tdomain%out_var_capt(OUT_TOTAL_ENERGY) == 1 .and. Tdomain%Mpi_var%my_rank == 0) then
             dims(1) = size(energy_varnames)
             call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
             call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)

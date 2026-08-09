@@ -17,6 +17,9 @@
 #include "index.h"
 module m_irons_dtcrit
     use constants
+    use m_mod_eq_zcrit
+    use m_cost_optimizer_common
+    use m_modified_newmark_logger
     implicit none
 
     integer, parameter :: IRONS_MAX_ITER = 2000

@@ -107,63 +107,67 @@ contains
         ! sum_{k=2}^m c_k*A^k*depl(n).
         call seed_forces_from_un(Tdomain)
 
-        ! Only elem_active(m)/face_active(m)/vert_active(m) (== the
-        ! %modified set) ever get read back out of elem_corr/face_corr/
-        ! vert_corr (in the commit step below), so only those need zeroing.
-        do idx = 1, size(elem_active(m)%idx)
-            elem_corr(elem_active(m)%idx(idx))%u = 0._fpp
-        enddo
-        do idx = 1, size(face_active(m)%idx)
-            face_corr(face_active(m)%idx(idx))%u = 0._fpp
-        enddo
-        do idx = 1, size(vert_active(m)%idx)
-            vert_corr(vert_active(m)%idx(idx),0:1) = 0._fpp
-        enddo
+        ! Only elem_active(2)/face_active(2)/vert_active(2) (elements with
+        ! order >= 2) ever get read back out of elem_corr/face_corr/vert_corr
+        ! in the commit step below, so zero those.
+        if (allocated(elem_active) .and. size(elem_active) >= 2) then
+            do idx = 1, size(elem_active(2)%idx)
+                elem_corr(elem_active(2)%idx(idx))%u = 0._fpp
+            enddo
+            do idx = 1, size(face_active(2)%idx)
+                face_corr(face_active(2)%idx(idx))%u = 0._fpp
+            enddo
+            do idx = 1, size(vert_active(2)%idx)
+                vert_corr(vert_active(2)%idx(idx),0:1) = 0._fpp
+            enddo
+        endif
 
         do k = 1, m
             call apply_a_global(Tdomain, k, m)
             if (k >= 2) then
                 ck = 2._fpp*dt**(2*k)/fact2k(k)
-                do idx = 1, size(elem_active(m)%idx)
-                    n = elem_active(m)%idx(idx)
+                do idx = 1, size(elem_active(k)%idx)
+                    n = elem_active(k)%idx(idx)
                     elem_corr(n)%u = elem_corr(n)%u + ck*elem_forces_interior(Tdomain,n)
                 enddo
-                do idx = 1, size(face_active(m)%idx)
-                    n = face_active(m)%idx(idx)
+                do idx = 1, size(face_active(k)%idx)
+                    n = face_active(k)%idx(idx)
                     face_corr(n)%u = face_corr(n)%u + ck*Tdomain%sFace(n)%Forces
                 enddo
-                do idx = 1, size(vert_active(m)%idx)
-                    n = vert_active(m)%idx(idx)
+                do idx = 1, size(vert_active(k)%idx)
+                    n = vert_active(k)%idx(idx)
                     vert_corr(n,0:1) = vert_corr(n,0:1) + ck*Tdomain%sVertex(n)%Forces(0:1)
                 enddo
             endif
         enddo
 
-        ! Apply the correction (regional: only elem_active(m)/face_active(m)/
-        ! vert_active(m) == %modified -- everywhere else keeps the plain
-        ! base-Newmark result computed above untouched) and resync
-        ! Veloc = (Displ_new - depl(n))/dt EVERYWHERE so the next step's
-        ! classic-Newmark base call sees a consistent pair (a no-op resync
-        ! where corr=0, since base Newmark(beta=0,gamma=0.5) already
-        ! satisfies this identity on its own).
-        do idx = 1, size(elem_active(m)%idx)
-            n = elem_active(m)%idx(idx)
-            Tdomain%specel(n)%Displ = Tdomain%specel(n)%Displ + elem_corr(n)%u
-        enddo
+        ! Apply the correction to elements/faces/vertices with order >= 2
+        ! and resync Veloc = (Displ_new - depl(n))/dt EVERYWHERE so the next step's
+        ! classic-Newmark base call sees a consistent pair.
+        if (allocated(elem_active) .and. size(elem_active) >= 2) then
+            do idx = 1, size(elem_active(2)%idx)
+                n = elem_active(2)%idx(idx)
+                Tdomain%specel(n)%Displ = Tdomain%specel(n)%Displ + elem_corr(n)%u
+            enddo
+        endif
         do n = 0, Tdomain%n_elem - 1
             Tdomain%specel(n)%Veloc = (Tdomain%specel(n)%Displ - elem_un(n)%u)/dt
         enddo
-        do idx = 1, size(face_active(m)%idx)
-            n = face_active(m)%idx(idx)
-            Tdomain%sFace(n)%Displ = Tdomain%sFace(n)%Displ + face_corr(n)%u
-        enddo
+        if (allocated(face_active) .and. size(face_active) >= 2) then
+            do idx = 1, size(face_active(2)%idx)
+                n = face_active(2)%idx(idx)
+                Tdomain%sFace(n)%Displ = Tdomain%sFace(n)%Displ + face_corr(n)%u
+            enddo
+        endif
         do n = 0, Tdomain%n_face - 1
             Tdomain%sFace(n)%Veloc = (Tdomain%sFace(n)%Displ - face_un(n)%u)/dt
         enddo
-        do idx = 1, size(vert_active(m)%idx)
-            n = vert_active(m)%idx(idx)
-            Tdomain%sVertex(n)%Displ = Tdomain%sVertex(n)%Displ + vert_corr(n,0:1)
-        enddo
+        if (allocated(vert_active) .and. size(vert_active) >= 2) then
+            do idx = 1, size(vert_active(2)%idx)
+                n = vert_active(2)%idx(idx)
+                Tdomain%sVertex(n)%Displ = Tdomain%sVertex(n)%Displ + vert_corr(n,0:1)
+            enddo
+        endif
         do n = 0, Tdomain%n_vertex - 1
             Tdomain%sVertex(n)%Veloc = (Tdomain%sVertex(n)%Displ - vert_un(n,0:1))/dt
         enddo
@@ -173,7 +177,7 @@ contains
     !! has sized Displ/Veloc/Forces, so mold= copies the right shapes).
     subroutine ensure_scratch(Tdomain)
         implicit none
-        type(domain), intent(in) :: Tdomain
+        type(domain), intent(inout) :: Tdomain
         integer :: n
 
         if (scratch_ready) return
@@ -203,123 +207,351 @@ contains
         scratch_ready = .true.
     end subroutine ensure_scratch
 
-    !> Precompute, once, elem_hop (BFS graph-distance from the
-    !! %modified set, capped at mm-1) and the per-iteration index lists
-    !! elem_active(j)/face_active(j)/vert_active(j), j=1..mm -- see the
-    !! module-level comment above for why these must SHRINK with j rather
-    !! than use one fixed halo for every iteration.
+    !> Build regional halo using initial order mm for %modified elements.
     subroutine build_regional_halo(Tdomain, mm)
         implicit none
-        type(domain), intent(in) :: Tdomain
+        type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: mm
+        integer, dimension(:), allocatable :: elem_order
+        integer :: n
 
-        integer, dimension(:), allocatable :: queue, face_hop, vert_hop
-        integer :: qhead, qtail, n, k, nf, nv, e0, e1, j, d, hop_e0, hop_e1
-
-        allocate(elem_hop(0:Tdomain%n_elem-1))
-        allocate(face_hop(0:Tdomain%n_face-1))
-        allocate(vert_hop(0:Tdomain%n_vertex-1))
-        elem_hop = -1
-        face_hop = -1
-        vert_hop = -1
-
-        allocate(queue(0:Tdomain%n_elem-1))
-        qhead = 0; qtail = 0
+        allocate(elem_order(0:Tdomain%n_elem-1))
+        elem_order = 1
         do n = 0, Tdomain%n_elem - 1
             if (Tdomain%specel(n)%modified) then
-                elem_hop(n) = 0
+                elem_order(n) = mm
+            else
+                elem_order(n) = 1
+            end if
+        end do
+
+        call build_regional_halo_with_orders(Tdomain, elem_order)
+        deallocate(elem_order)
+    end subroutine build_regional_halo
+
+    !> Precompute elem_order, elem_hop and per-iteration index lists using pre-assigned
+    !! per-element orders, executing Distributed Multi-Source BFS across MPI partition boundaries.
+    subroutine build_regional_halo_with_orders(Tdomain, elem_order_in)
+        use mpi
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        integer, dimension(0:Tdomain%n_elem-1), intent(in) :: elem_order_in
+
+        integer, dimension(:), allocatable :: elem_order, face_order, vert_order
+        type(idx_list_t), dimension(:), allocatable :: vert_to_elems
+        integer :: n, k, nf, nv, e0, e1, j, req_m
+        integer :: max_m_local, max_m_global, ierr
+
+        allocate(elem_order(0:Tdomain%n_elem-1))
+        elem_order = elem_order_in
+
+        ! Resolve halos via Distributed BFS
+        call resolver_halos_from_orders(Tdomain, elem_order)
+
+        ! Determine global maximum order
+        max_m_local = maxval(elem_order)
+        if (Tdomain%Mpi_var%n_proc > 1) then
+            call MPI_ALLREDUCE(max_m_local, max_m_global, 1, MPI_INTEGER, MPI_MAX, Tdomain%communicateur, ierr)
+        else
+            max_m_global = max_m_local
+        end if
+
+        ! Update Tdomain%TimeD%modified_order
+        Tdomain%TimeD%modified_order = max_m_global
+
+        ! Flag elements as modified if order > 1
+        do n = 0, Tdomain%n_elem - 1
+            Tdomain%specel(n)%modified = (elem_order(n) > 1)
+        end do
+
+        ! Build vert_to_elems mapping for derived face/vert orders
+        allocate(vert_to_elems(0:Tdomain%n_vertex-1))
+        allocate(vert_order(0:Tdomain%n_vertex-1))
+        vert_order = 0
+
+        do n = 0, Tdomain%n_elem - 1
+            do k = 0, 3
+                nv = Tdomain%specel(n)%Near_Vertex(k)
+                vert_order(nv) = vert_order(nv) + 1
+            end do
+        end do
+        do nv = 0, Tdomain%n_vertex - 1
+            allocate(vert_to_elems(nv)%idx(vert_order(nv)))
+        end do
+        vert_order = 0
+        do n = 0, Tdomain%n_elem - 1
+            do k = 0, 3
+                nv = Tdomain%specel(n)%Near_Vertex(k)
+                vert_order(nv) = vert_order(nv) + 1
+                vert_to_elems(nv)%idx(vert_order(nv)) = n
+            end do
+        end do
+
+        ! Derived face_order and vert_order
+        allocate(face_order(0:Tdomain%n_face-1))
+        face_order = 1
+        vert_order = 1
+
+        do nf = 0, Tdomain%n_face - 1
+            e0 = Tdomain%sFace(nf)%Near_Element(0)
+            e1 = Tdomain%sFace(nf)%Near_Element(1)
+            req_m = elem_order(e0)
+            if (e1 > -1) req_m = max(req_m, elem_order(e1))
+            face_order(nf) = req_m
+        end do
+
+        do nv = 0, Tdomain%n_vertex - 1
+            req_m = 1
+            do j = 1, size(vert_to_elems(nv)%idx)
+                e0 = vert_to_elems(nv)%idx(j)
+                req_m = max(req_m, elem_order(e0))
+            end do
+            vert_order(nv) = req_m
+        end do
+
+        ! Store elem_hop for backward compatibility with apply_a_global
+        if (allocated(elem_hop)) deallocate(elem_hop)
+        allocate(elem_hop(0:Tdomain%n_elem-1))
+        do n = 0, Tdomain%n_elem - 1
+            elem_hop(n) = max_m_global - elem_order(n)
+        end do
+
+        ! Pack active lists for each iteration j = 1 .. max_m_global
+        if (allocated(elem_active)) deallocate(elem_active)
+        if (allocated(face_active)) deallocate(face_active)
+        if (allocated(vert_active)) deallocate(vert_active)
+        allocate(elem_active(max_m_global), face_active(max_m_global), vert_active(max_m_global))
+        do j = 1, max_m_global
+            call pack_indices_order(elem_order, j, elem_active(j)%idx)
+            call pack_indices_order(face_order, j, face_active(j)%idx)
+            call pack_indices_order(vert_order, j, vert_active(j)%idx)
+        end do
+
+        deallocate(face_order, vert_order, elem_order)
+        do nv = 0, Tdomain%n_vertex - 1
+            deallocate(vert_to_elems(nv)%idx)
+        end do
+        deallocate(vert_to_elems)
+    end subroutine build_regional_halo_with_orders
+
+    !> Distributed Multi-Source BFS: Resolves order halos (m_nbr >= m - 1)
+    !! across local mesh and MPI partition boundaries.
+    subroutine resolver_halos_from_orders(Tdomain, elem_order)
+        use mpi
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        integer, dimension(0:Tdomain%n_elem-1), intent(inout) :: elem_order
+
+        integer, dimension(:), allocatable :: queue
+        type(idx_list_t), dimension(:), allocatable :: vert_to_elems
+        integer, dimension(:), allocatable :: vert_order
+        integer :: qhead, qtail, qsize, n, k, nf, nv, e0, e1, j, m_elem, target_m
+        integer :: ierr, i_proc, i_send, req_m
+        integer :: nv_aus, n_face_pointed, n_faces, n_verts
+        logical :: local_work, global_work, updated
+
+        ! Shared buffers for MPI exchange of face and vertex orders
+        integer, dimension(:), allocatable :: send_buf, recv_buf
+        integer :: tag_send, tag_recv
+        integer, dimension(MPI_STATUS_SIZE) :: status
+
+        ! Build vert_to_elems mapping for quick node-neighbor queries
+        allocate(vert_to_elems(0:Tdomain%n_vertex-1))
+        allocate(vert_order(0:Tdomain%n_vertex-1))
+        vert_order = 0
+
+        ! Count elements per vertex
+        do n = 0, Tdomain%n_elem - 1
+            do k = 0, 3
+                nv = Tdomain%specel(n)%Near_Vertex(k)
+                vert_order(nv) = vert_order(nv) + 1
+            end do
+        end do
+        do nv = 0, Tdomain%n_vertex - 1
+            allocate(vert_to_elems(nv)%idx(vert_order(nv)))
+        end do
+        vert_order = 0
+        do n = 0, Tdomain%n_elem - 1
+            do k = 0, 3
+                nv = Tdomain%specel(n)%Near_Vertex(k)
+                vert_order(nv) = vert_order(nv) + 1
+                vert_to_elems(nv)%idx(vert_order(nv)) = n
+            end do
+        end do
+        deallocate(vert_order)
+
+        ! 2. Initialize BFS Queue
+        qsize = max(Tdomain%n_elem * 10, 100) ! generous size for reactivation
+        allocate(queue(0:qsize-1))
+        qhead = 0; qtail = 0
+
+        do n = 0, Tdomain%n_elem - 1
+            if (elem_order(n) > 1) then
                 queue(qtail) = n
                 qtail = qtail + 1
             end if
         end do
 
-        do while (qhead < qtail)
-            n = queue(qhead)
-            qhead = qhead + 1
-            d = elem_hop(n)
-            if (d >= mm - 1) cycle  ! do not expand past the widest ever-needed hop
-            do k = 0, 3
-                nf = Tdomain%specel(n)%Near_Face(k)
-                e0 = Tdomain%sFace(nf)%Near_Element(0)
-                e1 = Tdomain%sFace(nf)%Near_Element(1)
-                if (e0 == n) then
-                    if (e1 > -1) then
-                        if (elem_hop(e1) < 0) then
-                            elem_hop(e1) = d + 1
-                            queue(qtail) = e1; qtail = qtail + 1
+        ! 3. Outer Loop: Alternates Local BFS Queue and MPI Boundary Exchange
+        global_work = .true.
+        do while (global_work)
+            updated = .false.
+
+            ! --- Local BFS Queue Processing ---
+            do while (qhead < qtail)
+                n = queue(qhead)
+                qhead = qhead + 1
+                m_elem = elem_order(n)
+                target_m = m_elem - 1
+                if (target_m <= 1) cycle
+
+                ! Propagate to all elements sharing any vertex with element n
+                do k = 0, 3
+                    nv = Tdomain%specel(n)%Near_Vertex(k)
+                    do j = 1, size(vert_to_elems(nv)%idx)
+                        e0 = vert_to_elems(nv)%idx(j)
+                        if (elem_order(e0) < target_m) then
+                            elem_order(e0) = target_m
+                            updated = .true.
+                            if (qtail < qsize) then
+                                queue(qtail) = e0
+                                qtail = qtail + 1
+                            end if
                         end if
-                    end if
-                else
-                    if (elem_hop(e0) < 0) then
-                        elem_hop(e0) = d + 1
-                        queue(qtail) = e0; qtail = qtail + 1
-                    end if
-                end if
+                    end do
+                end do
             end do
+
+            ! Reset queue pointers once drained
+            qhead = 0
+            qtail = 0
+
+            ! --- MPI Boundary Exchange & Reactivation ---
+            if (Tdomain%Mpi_var%n_proc > 1) then
+                do i_proc = 0, Tdomain%n_communications - 1
+                    i_send = Tdomain%Communication_list(i_proc)
+                    n_faces = Tdomain%sWall(i_proc)%n_faces
+                    n_verts = Tdomain%sWall(i_proc)%n_vertices
+
+                    if (n_faces + n_verts == 0) cycle
+
+                    allocate(send_buf(n_faces + n_verts))
+                    allocate(recv_buf(n_faces + n_verts))
+
+                    ! Pack face max orders
+                    do nf = 0, n_faces - 1
+                        n_face_pointed = Tdomain%sWall(i_proc)%Face_List(nf)
+                        e0 = Tdomain%sFace(n_face_pointed)%Near_Element(0)
+                        e1 = Tdomain%sFace(n_face_pointed)%Near_Element(1)
+                        req_m = elem_order(e0)
+                        if (e1 > -1) req_m = max(req_m, elem_order(e1))
+                        send_buf(nf + 1) = req_m
+                    end do
+
+                    ! Pack vertex max orders
+                    do nv = 0, n_verts - 1
+                        nv_aus = Tdomain%sWall(i_proc)%Vertex_List(nv)
+                        req_m = 1
+                        do j = 1, size(vert_to_elems(nv_aus)%idx)
+                            e0 = vert_to_elems(nv_aus)%idx(j)
+                            req_m = max(req_m, elem_order(e0))
+                        end do
+                        send_buf(n_faces + nv + 1) = req_m
+                    end do
+
+                    tag_send = i_send * Tdomain%MPI_var%n_proc + Tdomain%MPI_var%my_rank + 850
+                    tag_recv = Tdomain%MPI_var%my_rank * Tdomain%MPI_var%n_proc + i_send + 850
+
+                    call MPI_SENDRECV(send_buf, n_faces + n_verts, MPI_INTEGER, i_send, tag_send, &
+                                      recv_buf, n_faces + n_verts, MPI_INTEGER, i_send, tag_recv, &
+                                      Tdomain%communicateur, status, ierr)
+
+                    ! Unpack face max orders & reactivate
+                    do nf = 0, n_faces - 1
+                        n_face_pointed = Tdomain%sWall(i_proc)%Face_List(nf)
+                        target_m = recv_buf(nf + 1) - 1
+                        if (target_m <= 1) cycle
+                        e0 = Tdomain%sFace(n_face_pointed)%Near_Element(0)
+                        if (elem_order(e0) < target_m) then
+                            elem_order(e0) = target_m
+                            updated = .true.
+                            if (qtail < qsize) then
+                                queue(qtail) = e0
+                                qtail = qtail + 1
+                            end if
+                        end if
+                        e1 = Tdomain%sFace(n_face_pointed)%Near_Element(1)
+                        if (e1 > -1) then
+                            if (elem_order(e1) < target_m) then
+                                elem_order(e1) = target_m
+                                updated = .true.
+                                if (qtail < qsize) then
+                                    queue(qtail) = e1
+                                    qtail = qtail + 1
+                                end if
+                            end if
+                        end if
+                    end do
+
+                    ! Unpack vertex max orders & reactivate
+                    do nv = 0, n_verts - 1
+                        nv_aus = Tdomain%sWall(i_proc)%Vertex_List(nv)
+                        target_m = recv_buf(n_faces + nv + 1) - 1
+                        if (target_m <= 1) cycle
+                        do j = 1, size(vert_to_elems(nv_aus)%idx)
+                            e0 = vert_to_elems(nv_aus)%idx(j)
+                            if (elem_order(e0) < target_m) then
+                                elem_order(e0) = target_m
+                                updated = .true.
+                                if (qtail < qsize) then
+                                    queue(qtail) = e0
+                                    qtail = qtail + 1
+                                end if
+                            end if
+                        end do
+                    end do
+
+                    deallocate(send_buf, recv_buf)
+                end do
+            end if
+
+            ! --- Check Global Consensus ---
+            local_work = updated .or. (qhead < qtail)
+            if (Tdomain%Mpi_var%n_proc > 1) then
+                call MPI_ALLREDUCE(local_work, global_work, 1, MPI_LOGICAL, MPI_LOR, Tdomain%communicateur, ierr)
+            else
+                global_work = local_work
+            end if
         end do
+
         deallocate(queue)
-
-        ! Derived face hop = min over its (1 or 2) neighbouring elements'
-        ! hop, treating "-1 / never reached" as +infinity unless both sides
-        ! are -1 (then the face itself is never reached either).
-        do nf = 0, Tdomain%n_face - 1
-            e0 = Tdomain%sFace(nf)%Near_Element(0)
-            e1 = Tdomain%sFace(nf)%Near_Element(1)
-            hop_e0 = elem_hop(e0)
-            if (e1 > -1) then
-                hop_e1 = elem_hop(e1)
-            else
-                hop_e1 = -1
-            end if
-            if (hop_e0 < 0) then
-                face_hop(nf) = hop_e1
-            else if (hop_e1 < 0) then
-                face_hop(nf) = hop_e0
-            else
-                face_hop(nf) = min(hop_e0, hop_e1)
-            end if
+        do nv = 0, Tdomain%n_vertex - 1
+            deallocate(vert_to_elems(nv)%idx)
         end do
+        deallocate(vert_to_elems)
+    end subroutine resolver_halos_from_orders
 
-        ! Derived vertex hop = min over every element touching that vertex.
-        do n = 0, Tdomain%n_elem - 1
-            d = elem_hop(n)
-            if (d < 0) cycle
-            do k = 0, 3
-                nv = Tdomain%specel(n)%Near_Vertex(k)
-                if (vert_hop(nv) < 0 .or. d < vert_hop(nv)) vert_hop(nv) = d
-            end do
-        end do
-
-        allocate(elem_active(mm), face_active(mm), vert_active(mm))
-        do j = 1, mm
-            call pack_indices(elem_hop, mm - j, elem_active(j)%idx)
-            call pack_indices(face_hop, mm - j, face_active(j)%idx)
-            call pack_indices(vert_hop, mm - j, vert_active(j)%idx)
-        end do
-        deallocate(face_hop, vert_hop)
-    end subroutine build_regional_halo
-
-    !> Indices n (0-based) with 0 <= hop(n) <= dmax.
-    subroutine pack_indices(hop, dmax, idx)
+    !> Indices n (0-based) with order(n) >= target_order.
+    subroutine pack_indices_order(order_arr, target_order, idx)
         implicit none
-        integer, dimension(0:), intent(in) :: hop
-        integer, intent(in) :: dmax
+        integer, dimension(0:), intent(in) :: order_arr
+        integer, intent(in) :: target_order
         integer, dimension(:), allocatable, intent(out) :: idx
         integer :: n, cnt
 
         cnt = 0
-        do n = 0, size(hop) - 1
-            if (hop(n) >= 0 .and. hop(n) <= dmax) cnt = cnt + 1
+        do n = 0, size(order_arr) - 1
+            if (order_arr(n) >= target_order) cnt = cnt + 1
         end do
         allocate(idx(cnt))
         cnt = 0
-        do n = 0, size(hop) - 1
-            if (hop(n) >= 0 .and. hop(n) <= dmax) then
+        do n = 0, size(order_arr) - 1
+            if (order_arr(n) >= target_order) then
                 cnt = cnt + 1
                 idx(cnt) = n
             end if
         end do
-    end subroutine pack_indices
+    end subroutine pack_indices_order
 
     !> Copy the snapshot depl(n) into Forces (element interior + face +
     !! vertex) - mirrors Prediction_Elem/Face/Vertex_Veloc's "Forces:=Displ"

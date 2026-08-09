@@ -11,6 +11,9 @@
 !<
 module m_irons_dtcrit
     use constants
+    use m_mod_eq_zcrit
+    use m_cost_optimizer_common
+    use m_modified_newmark_logger
     implicit none
 
     integer, parameter :: IRONS_MAX_ITER = 2000
@@ -124,22 +127,23 @@ contains
         end block
 
         if (Tdomain%TimeD%modified) then
-            ! Regional selection: the dt driving the simulation is now the
-            ! target derived from the "typical" elements (see
-            ! select_modified_region), NOT the single worst element -- only
-            ! the local MODIFIED_FRACTION worst elements (+ geometric buffer)
-            ! get flagged %modified and receive the order-m correction in
-            ! NewmarkModified; everyone else runs plain order-1 Newmark at
-            ! this larger dt.
-            mm = Tdomain%TimeD%modified_order
-            call select_modified_region(Tdomain, dt_elem_loc, n_included, mm, dt_target_g)
-            zc = ModifiedEquationZCrit(mm)
+            block
+                use snewmark_modified, only : build_regional_halo_with_orders
+                integer, dimension(:), allocatable :: elem_order_opt
+                if (rg == 0) call log_header_modified_newmark("2D")
+                allocate(elem_order_opt(0:Tdomain%n_elem-1))
+                call optimize_cost_and_orders(Tdomain, dt_elem_loc, dt_target_g, elem_order_opt)
+                call build_regional_halo_with_orders(Tdomain, elem_order_opt)
+                deallocate(elem_order_opt)
+            end block
+
+            zc = get_zcrit(Tdomain%TimeD%modified_order)
             dt_courant_irons_order = Tdomain%TimeD%courant * dt_target_g
 
             if (rg == 0) then
-                write (*,*) "[Irons dt_crit] newmark_modified_order = ", mm, "  z_crit = ", zc
-                write (*,*) "[Irons dt_crit] regional target dt (order-1, drives the simulation) = ", dt_target_g
-                write (*,*) "[Irons dt_crit] regional target dt with courant safety factor = ", dt_courant_irons_order
+                write (*,*) "[Irons dt_crit] optimal max_modified_order = ", Tdomain%TimeD%modified_order, "  z_crit = ", zc
+                write (*,*) "[Irons dt_crit] optimal target dt (drives the simulation) = ", dt_target_g
+                write (*,*) "[Irons dt_crit] optimal target dt with courant safety factor = ", dt_courant_irons_order
             end if
 
             do mat = 0, Tdomain%n_mat - 1
@@ -408,65 +412,115 @@ contains
     end subroutine irons_power_iteration_acoustic
 
     !> S(z) = sum_{k=1}^m 2*(-z)^k/(2k)!, the modified-equation amplification
-    !! term for SolverClass.NewmarkModified/NewmarkModified.F90's order-m
-    !! recursion (single mode A*v=-omega^2*v, z=(omega*dt)^2). Stability
-    !! (bounded, oscillatory roots) holds iff S(z) in [-4,0].
-    function ModifiedEquationS(z, m) result(s)
+    !> Speedup & Cost Optimization: Evaluates candidate target time steps dt_target
+    !! (global percentiles of dt_elem_loc), determines minimum required element orders m_i,
+    !! resolves halos via Distributed BFS, and selects the (dt_target, {m_i}) configuration
+    !! that minimizes total computational cost C = (1 / dt_target) * sum(m_i).
+    subroutine optimize_cost_and_orders(Tdomain, dt_elem_loc, dt_target_opt, elem_order_opt)
+        use sdomain
+        use mpi
+        use snewmark_modified, only : resolver_halos_from_orders
         implicit none
-        real(fpp), intent(in) :: z
-        integer, intent(in) :: m
-        real(fpp) :: s
-        integer :: k
-        s = 0._fpp
-        do k = 1, m
-            s = s + 2._fpp*(-z)**k/fact2k(k)
+
+        type(domain), intent(inout) :: Tdomain
+        real(fpp), dimension(0:Tdomain%n_elem-1), intent(in) :: dt_elem_loc
+        real(fpp), intent(out) :: dt_target_opt
+        integer, dimension(0:Tdomain%n_elem-1), intent(out) :: elem_order_opt
+
+        integer :: n, i, c, ierr, rg, n_procs, n_local, n_global
+        integer :: cand_idx, m_candidate, feasible_loc, feasible_g
+        real(fpp) :: r_req, local_cost, global_cost, total_cost, min_cost
+        real(fpp) :: dt_target_cand
+        logical :: cand_feasible
+
+        integer, dimension(:), allocatable :: recv_counts, displs
+        real(fpp), dimension(:), allocatable :: dt_global, dt_candidates
+        integer, dimension(:), allocatable :: m_base_local, m_work_local
+
+        integer, parameter :: NUM_PERCENTILES = 10
+        real(fpp), dimension(NUM_PERCENTILES), parameter :: PERCENTILES = &
+            (/ 0.00_fpp, 0.02_fpp, 0.05_fpp, 0.10_fpp, 0.20_fpp, 0.30_fpp, 0.40_fpp, 0.50_fpp, 0.70_fpp, 0.90_fpp /)
+
+        rg = Tdomain%Mpi_Var%my_rank
+        n_procs = Tdomain%Mpi_Var%n_proc
+        n_local = Tdomain%n_elem
+
+        allocate(m_base_local(0:n_local-1))
+        allocate(m_work_local(0:n_local-1))
+
+        allocate(recv_counts(0:n_procs-1))
+        allocate(displs(0:n_procs-1))
+        call MPI_Allgather(n_local, 1, MPI_INTEGER, recv_counts, 1, MPI_INTEGER, Tdomain%communicateur, ierr)
+
+        displs(0) = 0
+        do i = 1, n_procs - 1
+            displs(i) = displs(i-1) + recv_counts(i-1)
         end do
-    end function ModifiedEquationS
+        n_global = sum(recv_counts)
 
-    !> Smallest positive z where S(z) exits [-4,0]: coarse forward scan
-    !! (step 0.01) to bracket the crossing, then bisection. z_crit(1)=4
-    !! recovers the plain-leapfrog CFL bound dt=2/omega_max. Order does NOT
-    !! increase z_crit monotonically: [4, 12, 7.57, 21.48, 9.53] for m=1..5
-    !! (odd orders are less stable than their even neighbours) - verified
-    !! against direct scalar time-stepping in the labcorrea/FEM MATLAB
-    !! prototype (StabilityClass.ModifiedEquationZCrit).
-    function ModifiedEquationZCrit(m) result(zc)
-        implicit none
-        integer, intent(in) :: m
-        real(fpp) :: zc
-        real(fpp) :: dz, z, zlo, zhi, zmid
-        integer :: it
+        allocate(dt_global(0:n_global-1))
+        call MPI_Allgatherv(dt_elem_loc, n_local, MPI_DOUBLE_PRECISION, &
+                            dt_global, recv_counts, displs, MPI_DOUBLE_PRECISION, &
+                            Tdomain%communicateur, ierr)
 
-        dz = 0.01_fpp
-        z = 0._fpp
-        do while (mod_eq_viol(z,m) <= 0._fpp)
-            z = z + dz
-            if (z > 1000._fpp) then
-                write(*,*) "ModifiedEquationZCrit: no instability boundary found up to z=1000 for order m=", m
-                stop
-            endif
+        if (rg == 0) then
+            call quicksort_real(dt_global, 0, n_global - 1)
+        end if
+        call MPI_Bcast(dt_global, n_global, MPI_DOUBLE_PRECISION, 0, Tdomain%communicateur, ierr)
+
+        allocate(dt_candidates(1:NUM_PERCENTILES))
+        do c = 1, NUM_PERCENTILES
+            cand_idx = min(n_global - 1, max(0, int(PERCENTILES(c) * real(n_global, fpp))))
+            dt_candidates(c) = dt_global(cand_idx)
         end do
 
-        zlo = z - dz; zhi = z
-        do it = 1, 100
-            zmid = 0.5_fpp*(zlo+zhi)
-            if (mod_eq_viol(zmid,m) <= 0._fpp) then
-                zlo = zmid
+        deallocate(dt_global, recv_counts, displs)
+
+        min_cost = huge(1._fpp)
+        dt_target_opt = dt_candidates(1)
+        elem_order_opt = 1
+
+        do c = 1, NUM_PERCENTILES
+            dt_target_cand = dt_candidates(c)
+
+            call compute_element_base_orders(dt_elem_loc, dt_target_cand, m_base_local, cand_feasible)
+
+            ! Check global feasibility across all MPI ranks
+            feasible_loc = merge(1, 0, cand_feasible)
+            call MPI_Allreduce(feasible_loc, feasible_g, 1, MPI_INTEGER, MPI_MIN, Tdomain%communicateur, ierr)
+            if (feasible_g == 0) then
+                if (rg == 0) call log_candidate_eval(c, dt_target_cand, 0._fpp, 0._fpp, .false., .false.)
+                cycle
+            end if
+
+            m_work_local = m_base_local
+            call resolver_halos_from_orders(Tdomain, m_work_local)
+
+            local_cost = 0._fpp
+            do n = 0, n_local - 1
+                local_cost = local_cost + real(m_work_local(n), fpp)
+            end do
+
+            call MPI_Allreduce(local_cost, global_cost, 1, MPI_DOUBLE_PRECISION, MPI_SUM, Tdomain%communicateur, ierr)
+
+            total_cost = (1._fpp / dt_target_cand) * global_cost
+
+            if (total_cost < min_cost) then
+                min_cost = total_cost
+                dt_target_opt = dt_target_cand
+                elem_order_opt = m_work_local
+                if (rg == 0) call log_candidate_eval(c, dt_target_cand, global_cost, total_cost, .true., .true.)
             else
-                zhi = zmid
-            endif
+                if (rg == 0) call log_candidate_eval(c, dt_target_cand, global_cost, total_cost, .false., .true.)
+            end if
         end do
-        zc = 0.5_fpp*(zlo+zhi)
-    end function ModifiedEquationZCrit
 
-    function mod_eq_viol(z, m) result(v)
-        implicit none
-        real(fpp), intent(in) :: z
-        integer, intent(in) :: m
-        real(fpp) :: v, s
-        s = ModifiedEquationS(z,m)
-        v = max(s, -4._fpp-s)
-    end function mod_eq_viol
+        deallocate(dt_candidates, m_base_local, m_work_local)
+
+        if (rg == 0) then
+            call log_optimal_selection(dt_target_opt, min_cost, 0._fpp, 1.0_fpp)
+        end if
+    end subroutine optimize_cost_and_orders
 
     function fact2k(k) result(f)
         implicit none
@@ -630,35 +684,6 @@ contains
         end do
         c = c / real(Tdomain%n_nodes, fpp)
     end function element_centroid
-
-    !> In-place ascending quicksort (Hoare partition) -- used to find the
-    !! MODIFIED_FRACTION percentile boundary in select_modified_region.
-    recursive subroutine quicksort_real(a, lo, hi)
-        implicit none
-        real(fpp), dimension(0:), intent(inout) :: a
-        integer, intent(in) :: lo, hi
-        integer :: i, j
-        real(fpp) :: pivot, tmp
-
-        if (lo >= hi) return
-        pivot = a((lo+hi)/2)
-        i = lo; j = hi
-        do
-            do while (a(i) < pivot)
-                i = i + 1
-            end do
-            do while (a(j) > pivot)
-                j = j - 1
-            end do
-            if (i <= j) then
-                tmp = a(i); a(i) = a(j); a(j) = tmp
-                i = i + 1; j = j - 1
-            end if
-            if (i > j) exit
-        end do
-        if (lo < j) call quicksort_real(a, lo, j)
-        if (i < hi) call quicksort_real(a, i, hi)
-    end subroutine quicksort_real
 
 end module m_irons_dtcrit
 

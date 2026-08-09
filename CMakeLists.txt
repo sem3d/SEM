@@ -118,6 +118,9 @@ set(SEM_SRC
   ${SEMCOMMON}/intset.F90
   ${SEMCOMMON}/invariants.f90
   ${SEMCOMMON}/stf_helpers.F90
+  ${SEMCOMMON}/mod_eq_zcrit.F90
+  ${SEMCOMMON}/cost_optimizer_common.F90
+  ${SEMCOMMON}/modified_newmark_logger.F90
 )
 
 set(SEM_SRC_C

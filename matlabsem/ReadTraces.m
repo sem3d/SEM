@@ -33,6 +33,7 @@ for ifile = 1 : numel(files)
             fi = sscanf(files(ifile).name,'capteurs.%d.h5')+1;
             aux = h5read(h5name,['/' info.Datasets(j).Name]);
             DataE(fi,:,:) = aux;
+            end
         else
             name = info.Datasets(j).Name;
             cap = regexp(name,'_','split');
