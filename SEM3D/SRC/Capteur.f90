@@ -312,7 +312,18 @@ contains
 
         capteur=>listeCapteur
         do while (associated(capteur))
+            ! Energy is a single global (MPI-reduced) value: only rank 0 writes it,
+            ! so only rank 0's trace file should carry the dataset.
+            if (capteur%type == CPT_ENERGY .and. Tdomain%rank /= 0) then
+                capteur=>capteur%suivant
+                cycle
+            endif
             dname = dset_capteur_name(capteur)
+            if (capteur%type == CPT_ENERGY) then
+                n_out = 6
+            else
+                n_out = Tdomain%nReqOut+1
+            endif
             call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
                 int(n_out,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
             call h5dclose_f(dset_id, hdferr)
@@ -371,7 +382,7 @@ contains
             call H5Tclose_f(tid, hdferr)
         end if
         !
-        if(Tdomain%out_var_capt(OUT_TOTAL_ENERGY) == 1) then
+        if(Tdomain%out_var_capt(OUT_TOTAL_ENERGY) == 1 .and. Tdomain%rank == 0) then
             dims(1) = size(energy_varnames)
             call H5Tcopy_f(H5T_FORTRAN_S1, tid, hdferr)
             call H5Tset_size_f(tid, 12_HSIZE_T, hdferr)
@@ -754,6 +765,7 @@ contains
         integer :: bnum, ee
         real(fpp), dimension(:,:,:), allocatable :: jac
         real(fpp) :: elem_P_En, elem_K_En
+        integer :: ierr
         real(fpp), dimension(0:2) :: elem_D_En
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
@@ -835,32 +847,28 @@ contains
             local_sum_S_energy = local_sum_S_energy + elem_D_En(1)
             local_sum_R_energy = local_sum_R_energy + elem_D_En(2)
         enddo
-        ! !TOTO, take out this part and put only local values (total values on post-processing)
-        ! call MPI_ALLREDUCE(local_sum_K_energy, global_sum_K_energy, 1, MPI_DOUBLE_PRECISION, &
-        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
-        ! call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
-        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
-        ! call MPI_ALLREDUCE(local_sum_R_energy, global_sum_R_energy, 1, MPI_DOUBLE_PRECISION, &
-        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
-        ! call MPI_ALLREDUCE(local_sum_C_energy, global_sum_C_energy, 1, MPI_DOUBLE_PRECISION, &
-        !                    MPI_SUM, Tdomain%communicateur_global, ierr)
+        call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur, ierr)
+        call MPI_ALLREDUCE(local_sum_K_energy, global_sum_K_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur, ierr)
+        call MPI_ALLREDUCE(local_sum_L_energy, global_sum_L_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur, ierr)
+        call MPI_ALLREDUCE(local_sum_S_energy, global_sum_S_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur, ierr)
+        call MPI_ALLREDUCE(local_sum_R_energy, global_sum_R_energy, 1, MPI_DOUBLE_PRECISION, &
+                           MPI_SUM, Tdomain%communicateur, ierr)
 
-        global_sum_P_energy = local_sum_P_energy
-        global_sum_K_energy = local_sum_K_energy
-        global_sum_L_energy = local_sum_L_energy
-        global_sum_S_energy = local_sum_S_energy
-        global_sum_R_energy = local_sum_R_energy
-
-        ! Sauvegarde des valeurs dans le capteur.
-        i = capteur%icache+1
-        capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-        capteur%valuecache(2,i) = global_sum_P_energy
-        capteur%valuecache(3,i) = global_sum_K_energy
-        capteur%valuecache(4,i) = global_sum_L_energy
-        capteur%valuecache(5,i) = global_sum_S_energy
-        capteur%valuecache(6,i) = global_sum_R_energy
-        !capteur%valuecache(7,i) = global_sum_P_energy + global_sum_K_energy 
-        capteur%icache = i
+        ! Sauvegarde des valeurs dans le capteur (rank 0 seulement : valeur globale reduite).
+        if (Tdomain%rank == 0) then
+            i = capteur%icache+1
+            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+            capteur%valuecache(2,i) = global_sum_P_energy
+            capteur%valuecache(3,i) = global_sum_K_energy
+            capteur%valuecache(4,i) = global_sum_L_energy
+            capteur%valuecache(5,i) = global_sum_S_energy
+            capteur%valuecache(6,i) = global_sum_R_energy
+            capteur%icache = i
+        endif
 
         ! Deallocation.
         if(allocated(jac)) deallocate(jac)
