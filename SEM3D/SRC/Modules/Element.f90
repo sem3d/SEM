@@ -27,9 +27,10 @@ module selement
         logical :: OUTPUT
 
         ! Regional modified-equation Newmark (per-element correction gate):
-        ! true for elements selected by select_modified_region (irons_dtcrit.F90)
-        ! as needing the order-m correction to stay stable at the chosen dt,
-        ! plus their geometric buffer neighbours. See NewmarkModified.f90.
+        ! true for elements with elem_order>1 as chosen by
+        ! optimize_cost_and_orders (irons_dtcrit.F90), i.e. needing the
+        ! order-m correction to stay stable at the chosen dt, plus their
+        ! halo-growth neighbours. See NewmarkModified.f90.
         logical :: modified = .false.
 
         ! These should not be used during the simulation, only at init time

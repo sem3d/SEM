@@ -8,10 +8,12 @@
 !! SEM3D (see docs/superpowers/specs/2026-07-28-newmark-modified-sem3d-design.md
 !! and SEM2D/SRC/NewmarkModified.F90 for the reference derivation). Only
 !! sdom/fdom (non-PML, non-DG) DOFs flagged %modified (core+buffer, see
-!! SEM3D/SRC/irons_dtcrit.F90's select_modified_region) receive the order-m
-!! correction; spmldom/fpmldom/sdomdg elements and solid-fluid-interface
-!! DOFs keep running through the classic Newmark call below, untouched.
-!! Mono-rank only (enforced at startup by irons_dtcrit.F90).
+!! SEM3D/SRC/irons_dtcrit.F90's optimize_cost_and_orders) receive the
+!! order-m correction, graded per DOF (dof_corrected_sdom/fdom); spmldom/
+!! fpmldom/sdomdg elements and solid-fluid-interface DOFs keep running
+!! through the classic Newmark call below, untouched. MPI-safe: order-halo
+!! growth (resolver_halos_from_orders_3d) and the correction's own halo
+!! exchange (apply_a_regional below) both propagate across rank boundaries.
 !!
 !! depl(n+1) = 2*depl(n) - depl(n-1) + dt^2*Minv*(Fext-K*depl(n))
 !!           + sum_{k=2}^m c_k * A^k * depl(n),   A = -Minv*K,
@@ -42,6 +44,13 @@ module snewmark_modified
     ! (A^(k-1)*depl(n) -> A^k*depl(n)); corr = accumulated sum_{k=2}^m c_k*A^k*depl(n).
     real(fpp), dimension(:,:), allocatable, save :: sdom_un, sdom_w, sdom_wout, sdom_corr
     real(fpp), dimension(:), allocatable, save :: fdom_un, fdom_w, fdom_wout, fdom_corr
+    ! Cross-rank exchange scratch for apply_a_regional: zero-padded copies of
+    ! sdom_wout/fdom_wout restricted to this iteration's dof_touched_* set
+    ! (xchg, sent) and the neighbours' matching contribution (recv, summed
+    ! back in) -- see apply_a_regional's comment on why the exchange cannot
+    ! reuse sdom_wout/fdom_wout directly.
+    real(fpp), dimension(:,:), allocatable, save :: sdom_wout_xchg, sdom_wout_recv
+    real(fpp), dimension(:), allocatable, save :: fdom_wout_xchg, fdom_wout_recv
     logical, save :: scratch_ready = .false.
 
 contains
@@ -60,6 +69,12 @@ contains
         allocate(fdom_w(0:Tdomain%fdom%nglltot-1))
         allocate(fdom_wout(0:Tdomain%fdom%nglltot-1))
         allocate(fdom_corr(0:Tdomain%fdom%nglltot-1))
+        if (Tdomain%Comm_data%ncomm > 0) then
+            allocate(sdom_wout_xchg(0:Tdomain%sdom%nglltot-1, 0:2))
+            allocate(sdom_wout_recv(0:Tdomain%sdom%nglltot-1, 0:2))
+            allocate(fdom_wout_xchg(0:Tdomain%fdom%nglltot-1))
+            allocate(fdom_wout_recv(0:Tdomain%fdom%nglltot-1))
+        end if
         scratch_ready = .true.
     end subroutine ensure_scratch
 
@@ -101,11 +116,15 @@ contains
 
             if (k >= 2) then
                 ck = 2._fpp*dt**(2*k)/fact2k(k)
+                ! Gate by this DOF's own correction order, not the global mm
+                ! -- a DOF whose neighbourhood only needs order 3 stops
+                ! accumulating terms once k exceeds 3, even while other
+                ! (higher-order) DOFs keep going through k=mm.
                 do idx = 0, Tdomain%sdom%nglltot - 1
-                    if (dof_corrected_sdom(idx)) sdom_corr(idx,:) = sdom_corr(idx,:) + ck*sdom_wout(idx,:)
+                    if (k <= dof_corrected_sdom(idx)) sdom_corr(idx,:) = sdom_corr(idx,:) + ck*sdom_wout(idx,:)
                 end do
                 do idx = 0, Tdomain%fdom%nglltot - 1
-                    if (dof_corrected_fdom(idx)) fdom_corr(idx) = fdom_corr(idx) + ck*fdom_wout(idx)
+                    if (k <= dof_corrected_fdom(idx)) fdom_corr(idx) = fdom_corr(idx) + ck*fdom_wout(idx)
                 end do
             end if
 
@@ -130,12 +149,12 @@ contains
         ! Veloc = (Depla_new - depl(n))/dt there so the next step's
         ! classic-Newmark base call sees a consistent pair again.
         do idx = 0, Tdomain%sdom%nglltot - 1
-            if (.not. dof_corrected_sdom(idx)) cycle
+            if (dof_corrected_sdom(idx) < 2) cycle
             Tdomain%sdom%champs(0)%Depla(idx,:) = Tdomain%sdom%champs(0)%Depla(idx,:) + sdom_corr(idx,:)
             Tdomain%sdom%champs(0)%Veloc(idx,:) = (Tdomain%sdom%champs(0)%Depla(idx,:) - sdom_un(idx,:)) / dt
         end do
         do idx = 0, Tdomain%fdom%nglltot - 1
-            if (.not. dof_corrected_fdom(idx)) cycle
+            if (dof_corrected_fdom(idx) < 2) cycle
             Tdomain%fdom%champs(0)%Phi(idx) = Tdomain%fdom%champs(0)%Phi(idx) + fdom_corr(idx)
             Tdomain%fdom%champs(0)%VelPhi(idx) = (Tdomain%fdom%champs(0)%Phi(idx) - fdom_un(idx)) / dt
         end do
@@ -145,13 +164,13 @@ contains
     !! overwrite sdom_wout/fdom_wout with A*w, restricted to
     !! block_active_sdom(jiter)/block_active_fdom(jiter) (whole blocks --
     !! calcul_forces_iso/aniso/fluid only ever operate on a full VCHUNK
-    !! block, there is no per-element call in SEM3D). No MPI exchange
-    !! (mono-rank only, enforced at startup by irons_dtcrit.F90). No
-    !! external forcing (Compute_external_forces is NOT called) -- this is a
-    !! pure linear operator application, chainable to get A^2*w, etc.
+    !! block, there is no per-element call in SEM3D). No external forcing
+    !! (Compute_external_forces is NOT called) -- this is a pure linear
+    !! operator application, chainable to get A^2*w, etc.
     subroutine apply_a_regional(Tdomain, jiter)
         use m_calcul_forces
         use m_calcul_forces_fluid
+        use scomm
         implicit none
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: jiter
@@ -243,6 +262,65 @@ contains
                 end do
             end do
             deallocate(FFl, Phi)
+        end if
+
+        ! Sum -K*w contributions from neighbouring ranks at every
+        ! partition-boundary DOF touched this iteration. dof_touched_*(jiter)
+        ! is a strict subset of the mesh (the shrinking halo), and a DOF
+        ! outside it must keep its stale value from a previous iteration
+        ! untouched -- so it cannot go through Comm_data%IGiveS/IGiveF
+        ! directly (that exchanges the WHOLE partition boundary, and
+        ! comm_take_data's take-is-a-sum would add a neighbour's leftover
+        ! value into a DOF nothing here touched this iteration). Instead,
+        ! copy only the touched DOFs into a zero-padded scratch buffer, sum
+        ! that across ranks, and add the result back into sdom_wout/fdom_wout
+        ! at exactly those DOFs (an untouched DOF is 0 on every rank, so it
+        ! contributes nothing to the sum).
+        if (Tdomain%Comm_data%ncomm > 0) then
+            sdom_wout_xchg = 0._fpp
+            fdom_wout_xchg = 0._fpp
+            associate (idxs => dof_touched_sdom(jiter)%idx)
+                do idx = 1, size(idxs)
+                    sdom_wout_xchg(idxs(idx),:) = sdom_wout(idxs(idx),:)
+                end do
+            end associate
+            associate (idxs => dof_touched_fdom(jiter)%idx)
+                do idx = 1, size(idxs)
+                    fdom_wout_xchg(idxs(idx)) = fdom_wout(idxs(idx))
+                end do
+            end associate
+
+            do n = 0, Tdomain%Comm_data%ncomm - 1
+                k = 0
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveS, sdom_wout_xchg, k)
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveF, fdom_wout_xchg, k)
+                Tdomain%Comm_data%Data(n)%nsend = k
+            end do
+
+            call exchange_sem_var(Tdomain, 871, Tdomain%Comm_data)
+
+            sdom_wout_recv = 0._fpp
+            fdom_wout_recv = 0._fpp
+            do n = 0, Tdomain%Comm_data%ncomm - 1
+                k = 0
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%IGiveS, sdom_wout_recv, k)
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%IGiveF, fdom_wout_recv, k)
+            end do
+
+            associate (idxs => dof_touched_sdom(jiter)%idx)
+                do idx = 1, size(idxs)
+                    sdom_wout(idxs(idx),:) = sdom_wout(idxs(idx),:) + sdom_wout_recv(idxs(idx),:)
+                end do
+            end associate
+            associate (idxs => dof_touched_fdom(jiter)%idx)
+                do idx = 1, size(idxs)
+                    fdom_wout(idxs(idx)) = fdom_wout(idxs(idx)) + fdom_wout_recv(idxs(idx))
+                end do
+            end associate
         end if
 
         ! A*w = Minv*(accumulated -K*w); MassMat is already 1/M (see

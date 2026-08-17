@@ -19,38 +19,28 @@ module m_irons_dtcrit
     use constants
     use m_mod_eq_zcrit
     use m_modified_newmark_logger
+    use m_cost_optimizer_common
     implicit none
 
     integer, parameter :: IRONS_MAX_ITER = 2000
     real(fpp), parameter :: IRONS_RTOL = 1e-10_fpp
 
-    ! Regional modified-equation Newmark: BFS graph-distance (face-adjacency
-    ! hops) from each element to the nearest %modified element, capped at
-    ! modified_order-1, plus the per-element size/centroid proxies used to
-    ! grow the geometric buffer ring in select_modified_region. See
-    ! SEM2D/SRC/irons_dtcrit.F90's module-level comment on elem_hop for why
-    ! this must exist (correctness of the shrinking-halo matrix-free
-    ! iteration in NewmarkModified.f90's apply_a_regional).
+    ! Regional modified-equation Newmark: elem_hop(n) = mm - elem_order(n),
+    ! the per-element correction order chosen by optimize_cost_and_orders
+    ! (already grown to a consistent halo, including across rank boundaries,
+    ! by resolver_halos_from_orders_3d), re-expressed as a hop-from-deepest
+    ! distance so derive_block_and_dof_activation's elem_hop(n)<=dmax check
+    ! is algebraically identical to elem_order(n)>=j. See
+    ! SEM2D/SRC/irons_dtcrit.F90's module-level comment on elem_hop for the
+    ! shrinking-halo correctness argument this mirrors.
     integer, dimension(:), allocatable, save :: elem_hop
-    real(fpp), dimension(:), allocatable, save :: elem_dist_max
-    real(fpp), dimension(:,:), allocatable, save :: elem_centroid3d_arr
 
-    ! Regional modified-equation Newmark: fraction of (local, single-rank)
-    ! elements with the smallest critical dt that seed the "core" needing the
-    ! order-m correction, and the geometric buffer radius around each core
-    ! element (multiple of that element's dist_max proxy) that also gets
-    ! corrected for a smooth order-1/order-m transition. ponytail: hardcoded
-    ! rather than wired into input.spec, same as SEM2D's irons_dtcrit.F90 --
-    ! promote to a config key if these ever need per-run tuning.
-    real(fpp), parameter :: MODIFIED_FRACTION = 0.05_fpp
-    real(fpp), parameter :: MODIFIED_BUFFER_MULT = 3.0_fpp
-
-    ! Per-domain block/DOF activation derived by select_modified_region:
+    ! Per-domain block/DOF activation derived by derive_block_and_dof_activation:
     ! block_active_*(j)%idx = block indices touched by apply_a_regional's
     ! j-th (of mm) matrix-free iteration (>=1 element in that block has
-    ! hop<=mm-j); dof_corrected_* = DOFs receiving the correction (mm-th
-    ! iteration only, i.e. the final core+buffer set), false for any DOF
-    ! shared with a non-modified element or a solid-fluid interface.
+    ! hop<=mm-j); dof_corrected_* (declared further below) is each DOF's own
+    ! correction order, capped at 1 (excluded) for any DOF shared with an
+    ! order-1 element or a solid-fluid interface.
     type :: idx_list_t
         integer, dimension(:), allocatable :: idx
     end type idx_list_t
@@ -63,7 +53,13 @@ module m_irons_dtcrit
     ! disturbing untouched DOFs, which must keep their previous iteration's
     ! value (required by the shrinking-halo invariant).
     type(idx_list_t), dimension(:), allocatable, save :: dof_touched_sdom, dof_touched_fdom
-    logical, dimension(:), allocatable, save :: dof_corrected_sdom, dof_corrected_fdom
+    ! dof_corrected_*(idx) = correction order for this DOF: MIN(elem_order)
+    ! over every sdom/fdom element touching it (0 would mean "excluded",
+    ! but the floor is 1 -- a DOF shared with any order-1 element gets no
+    ! k=2.. correction, same as before this was graded, see
+    ! derive_block_and_dof_activation). NewmarkModified.f90's correction
+    ! loop gates each k=2..m term by k <= dof_corrected_*(idx).
+    integer, dimension(:), allocatable, save :: dof_corrected_sdom, dof_corrected_fdom
 
 contains
 
@@ -105,7 +101,7 @@ contains
 
         ! Scatter per-domain-local dt back into the global-element-indexed
         ! array via specel(n)%domain/%lnum (lnum is 0-based within that
-        ! element's domain) -- needed by select_modified_region later.
+        ! element's domain) -- needed by optimize_cost_and_orders later.
         do n = 0, Tdomain%n_elem - 1
             dom = Tdomain%specel(n)%domain
             if (dom == DM_SOLID_CG) then
@@ -168,9 +164,6 @@ contains
         end block
 
         if (Tdomain%TimeD%modified) then
-            if (Tdomain%nb_procs > 1) then
-                STOP "ERROR : newmark_modified=true does not support MPI (n_proc>1) yet -- run with a single process."
-            end if
             ! No beta/gamma parametrization check here (unlike SEM2D's
             ! NewmarkModified.F90): SEM3D's newmark_corrector_solid/fluid
             ! hardcode the explicit leapfrog update (Veloc += dt*Forces;
@@ -181,14 +174,46 @@ contains
             ! reuses for its k=1 term is always exactly the leapfrog step
             ! this recursion assumes, regardless of the input.spec values.
 
-            mm = Tdomain%TimeD%modified_order
-            call select_modified_region(Tdomain, dt_elem_loc, n_covered, mm, dt_target_g)
+            block
+                integer, dimension(:), allocatable :: elem_order_opt
+                integer :: mm_loc
+                if (rg == 0) call log_header_modified_newmark("3D")
+                allocate(elem_order_opt(0:Tdomain%n_elem-1))
+                call optimize_cost_and_orders(Tdomain, dt_elem_loc, dt_target_g, elem_order_opt)
+                ! maxval(elem_order_opt) is only this rank's own local
+                ! elements -- every rank must agree on the SAME mm (it sizes
+                ! block_active_*(mm)/dof_touched_*(mm) and drives
+                ! NewmarkModified's "do k=1,mm" loop; a per-rank-different mm
+                ! desyncs apply_a_regional's cross-rank exchange, which then
+                ! deadlocks the first rank still iterating once its faster
+                ! neighbour has moved past NewmarkModified entirely).
+                mm_loc = maxval(elem_order_opt)
+                call MPI_AllReduce(mm_loc, mm, 1, MPI_INTEGER, MPI_MAX, Tdomain%communicateur, ierr)
+                Tdomain%TimeD%modified_order = mm
+                do n = 0, Tdomain%n_elem - 1
+                    Tdomain%specel(n)%modified = (elem_order_opt(n) > 1)
+                end do
+                ! elem_hop(n) = mm - elem_order_opt(n), directly from the
+                ! optimizer's already cross-rank-consistent per-element
+                ! orders (resolver_halos_from_orders_3d already grew them
+                ! correctly) -- elem_hop(n)<=dmax in
+                ! derive_block_and_dof_activation is algebraically identical
+                ! to elem_order(n)>=j for dmax=mm-j, so no other change is
+                ! needed there.
+                if (allocated(elem_hop)) deallocate(elem_hop)
+                allocate(elem_hop(0:Tdomain%n_elem-1))
+                do n = 0, Tdomain%n_elem - 1
+                    elem_hop(n) = mm - elem_order_opt(n)
+                end do
+                call derive_block_and_dof_activation(Tdomain, mm, elem_order_opt)
+                deallocate(elem_order_opt)
+            end block
             dt_courant_irons_order = Tdomain%TimeD%courant * dt_target_g
 
             if (rg == 0) then
-                write (*,*) "[Irons dt_crit] newmark_modified_order = ", mm
-                write (*,*) "[Irons dt_crit] regional target dt (order-1, drives the simulation) = ", dt_target_g
-                write (*,*) "[Irons dt_crit] regional target dt with courant safety factor = ", dt_courant_irons_order
+                write (*,*) "[Irons dt_crit] optimal newmark_modified_order = ", mm
+                write (*,*) "[Irons dt_crit] optimal target dt (drives the simulation) = ", dt_target_g
+                write (*,*) "[Irons dt_crit] optimal target dt with courant safety factor = ", dt_courant_irons_order
             end if
 
             if (dt_courant_irons_order <= 0._fpp) then
@@ -487,227 +512,376 @@ contains
         end do
     end function fact2k
 
-    !> Element centroid (average of its Control_nodes physical coordinates).
-    function element_centroid3d(Tdomain, n) result(c)
+    !> Point (Control_nodes/Coord_nodes global index) -> touching-elements
+    !! reverse map, used by resolver_halos_from_orders_3d's local BFS
+    !! (see its own docstring for why corner-node adjacency, not
+    !! Near_Faces, is the right graph to walk).
+    subroutine build_point_to_elems(Tdomain, point_to_elems)
         use sdomain
         implicit none
         type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: n
-        real(fpp), dimension(0:2) :: c
-        integer :: i, ipoint, nnodes
-        nnodes = size(Tdomain%specel(n)%Control_nodes)
-        c = 0._fpp
-        do i = 0, nnodes - 1
-            ipoint = Tdomain%specel(n)%Control_nodes(i)
-            c = c + Tdomain%Coord_nodes(0:2, ipoint)
-        end do
-        c = c / real(nnodes, fpp)
-    end function element_centroid3d
+        type(idx_list_t), dimension(:), allocatable, intent(out) :: point_to_elems
+        integer, dimension(:), allocatable :: point_count
+        integer :: n, i, p, nnodes, ipoint
 
-    !> Element size proxy: max pairwise distance between Control_nodes
-    !! (cheap O(n_nodes^2) with n_nodes = 8 or 27, computed once at startup).
-    !! No SEM3D equivalent of SEM2D's dist_max field exists, so this is
-    !! computed directly instead of reusing a stored value.
-    function element_dist_max3d(Tdomain, n) result(dmax)
-        use sdomain
-        implicit none
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: n
-        real(fpp) :: dmax
-        integer :: i, j, nnodes, ip, jp
-        real(fpp) :: d
-        nnodes = size(Tdomain%specel(n)%Control_nodes)
-        dmax = 0._fpp
-        do i = 0, nnodes - 2
-            ip = Tdomain%specel(n)%Control_nodes(i)
-            do j = i+1, nnodes - 1
-                jp = Tdomain%specel(n)%Control_nodes(j)
-                d = sqrt(sum((Tdomain%Coord_nodes(0:2,ip) - Tdomain%Coord_nodes(0:2,jp))**2))
-                if (d > dmax) dmax = d
+        allocate(point_count(0:Tdomain%n_glob_nodes-1))
+        point_count = 0
+        do n = 0, Tdomain%n_elem - 1
+            nnodes = size(Tdomain%specel(n)%Control_nodes)
+            do i = 0, nnodes - 1
+                ipoint = Tdomain%specel(n)%Control_nodes(i)
+                point_count(ipoint) = point_count(ipoint) + 1
             end do
         end do
-    end function element_dist_max3d
+        allocate(point_to_elems(0:Tdomain%n_glob_nodes-1))
+        do p = 0, Tdomain%n_glob_nodes - 1
+            allocate(point_to_elems(p)%idx(point_count(p)))
+        end do
+        point_count = 0
+        do n = 0, Tdomain%n_elem - 1
+            nnodes = size(Tdomain%specel(n)%Control_nodes)
+            do i = 0, nnodes - 1
+                ipoint = Tdomain%specel(n)%Control_nodes(i)
+                point_count(ipoint) = point_count(ipoint) + 1
+                point_to_elems(ipoint)%idx(point_count(ipoint)) = n
+            end do
+        end do
+        deallocate(point_count)
+    end subroutine build_point_to_elems
 
-    !> Precompute elem_hop(n) = graph-distance (face-adjacency hops) from
-    !! element n to the nearest %modified element, capped at mm-1, -1 if
-    !! never reached. Mirrors SEM2D's build_regional_halo but walks up to 6
-    !! faces per (hex) element instead of 4, via sFace%elem_0/elem_1 (SEM3D
-    !! faces store the two neighbouring LOCAL element numbers directly,
-    !! unlike SEM2D's sFace%Near_Element which SEM3D has no equivalent of).
-    subroutine build_regional_halo3d(Tdomain, mm)
-        use sdomain
+    subroutine free_point_to_elems(point_to_elems, n_glob_nodes)
         implicit none
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: mm
+        type(idx_list_t), dimension(:), allocatable, intent(inout) :: point_to_elems
+        integer, intent(in) :: n_glob_nodes
+        integer :: p
+        do p = 0, n_glob_nodes - 1
+            deallocate(point_to_elems(p)%idx)
+        end do
+        deallocate(point_to_elems)
+    end subroutine free_point_to_elems
+
+    !> Growth of a per-element order array: propagates target_m =
+    !! elem_order(n)-1 to every element sharing a corner control-node with n
+    !! (via build_point_to_elems) within this rank, so a
+    !! shrinking-halo iteration is never handed a neighbour more than one
+    !! order below what it needs. Also propagates across rank boundaries:
+    !! each partition-boundary sdom/fdom DOF's order requirement (max over
+    !! the local elements touching it) is exchanged via the same
+    !! Comm_data%IGiveS/IGiveF index lists comm_forces (Newmark.f90) uses
+    !! for Veloc/ForcesFl, merged by MAX (comm_take_data_max_1) instead of
+    !! SUM since every rank owning that DOF must agree on the largest order
+    !! asked for, not their total. Alternates local BFS and boundary
+    !! exchange (mirrors SEM2D's resolver_halos_from_orders) until neither
+    !! finds anything left to raise, globally (MPI_Allreduce(LOR)).
+    subroutine resolver_halos_from_orders_3d(Tdomain, elem_order)
+        use sdomain
+        use mpi
+        use scomm
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        integer, dimension(0:Tdomain%n_elem-1), intent(inout) :: elem_order
+
+        type(idx_list_t), dimension(:), allocatable :: point_to_elems
         integer, dimension(:), allocatable :: queue
-        integer :: qhead, qtail, n, k, nf, e0, e1, other, d
+        integer :: qhead, qtail, qsize, n, i, j, ipoint, other, m_elem, target_m, nnodes
+        real(fpp), dimension(:), allocatable :: dof_order_sdom, dof_order_fdom
+        integer :: bnum, ee, ix, iy, iz, ngll, idx, k, ierr
+        logical :: local_work, global_work
 
-        if (allocated(elem_hop)) deallocate(elem_hop)
-        allocate(elem_hop(0:Tdomain%n_elem-1))
-        elem_hop = -1
+        call build_point_to_elems(Tdomain, point_to_elems)
 
-        allocate(queue(0:Tdomain%n_elem-1))
+        qsize = max(Tdomain%n_elem * 10, 100) ! generous size for reactivation
+        allocate(queue(0:qsize-1))
         qhead = 0; qtail = 0
         do n = 0, Tdomain%n_elem - 1
-            if (Tdomain%specel(n)%modified) then
-                elem_hop(n) = 0
+            if (elem_order(n) > 1) then
                 queue(qtail) = n
                 qtail = qtail + 1
             end if
         end do
 
-        do while (qhead < qtail)
-            n = queue(qhead)
-            qhead = qhead + 1
-            d = elem_hop(n)
-            if (d >= mm - 1) cycle  ! do not expand past the widest ever-needed hop
-            do k = 0, 5
-                nf = Tdomain%specel(n)%Near_Faces(k)
-                e0 = Tdomain%sFace(nf)%elem_0
-                e1 = Tdomain%sFace(nf)%elem_1
-                if (e0 == n) then
-                    other = e1
-                else
-                    other = e0
-                end if
-                if (other < 0) cycle  ! domain/mesh boundary, no neighbour on this side
-                if (elem_hop(other) < 0) then
-                    elem_hop(other) = d + 1
-                    queue(qtail) = other; qtail = qtail + 1
-                end if
-            end do
-        end do
-        deallocate(queue)
-    end subroutine build_regional_halo3d
+        if (Tdomain%sdom%nglltot > 0) allocate(dof_order_sdom(0:Tdomain%sdom%nglltot-1))
+        if (Tdomain%fdom%nglltot > 0) allocate(dof_order_fdom(0:Tdomain%fdom%nglltot-1))
 
-    !> Pick which sdom/fdom elements need the order-m correction (worst
-    !! MODIFIED_FRACTION by critical dt, pooled across both domains) plus a
-    !! MODIFIED_BUFFER_MULT*dist_max geometric ring around them. Single-rank
-    !! only (enforced by the caller) -- dt_target_g is simply the local
-    !! value, no AllReduce needed (unlike SEM2D, which supports MPI here).
-    subroutine select_modified_region(Tdomain, dt_elem_loc, n_included, mm, dt_target_g)
+        global_work = .true.
+        do while (global_work)
+            ! --- Local BFS over shared corner control-nodes ---
+            do while (qhead < qtail)
+                n = queue(qhead)
+                qhead = qhead + 1
+                m_elem = elem_order(n)
+                target_m = m_elem - 1
+                if (target_m <= 1) cycle
+                nnodes = size(Tdomain%specel(n)%Control_nodes)
+                do i = 0, nnodes - 1
+                    ipoint = Tdomain%specel(n)%Control_nodes(i)
+                    do j = 1, size(point_to_elems(ipoint)%idx)
+                        other = point_to_elems(ipoint)%idx(j)
+                        if (elem_order(other) < target_m) then
+                            elem_order(other) = target_m
+                            if (qtail < qsize) then
+                                queue(qtail) = other
+                                qtail = qtail + 1
+                            end if
+                        end if
+                    end do
+                end do
+            end do
+            qhead = 0; qtail = 0
+            local_work = .false.
+
+            ! --- MPI boundary exchange & reactivation ---
+            if (Tdomain%Comm_data%ncomm > 0) then
+                if (allocated(dof_order_sdom)) then
+                    dof_order_sdom = 1._fpp
+                    ngll = Tdomain%sdom%ngll
+                    do n = 0, Tdomain%n_elem - 1
+                        if (Tdomain%specel(n)%domain /= DM_SOLID_CG) cycle
+                        bnum = Tdomain%specel(n)%lnum / VCHUNK
+                        ee = mod(Tdomain%specel(n)%lnum, VCHUNK)
+                        do iz = 0, ngll-1
+                            do iy = 0, ngll-1
+                                do ix = 0, ngll-1
+                                    idx = Tdomain%sdom%Idom_(ix,iy,iz,bnum,ee)
+                                    dof_order_sdom(idx) = max(dof_order_sdom(idx), real(elem_order(n), fpp))
+                                end do
+                            end do
+                        end do
+                    end do
+                end if
+                if (allocated(dof_order_fdom)) then
+                    dof_order_fdom = 1._fpp
+                    ngll = Tdomain%fdom%ngll
+                    do n = 0, Tdomain%n_elem - 1
+                        if (Tdomain%specel(n)%domain /= DM_FLUID_CG) cycle
+                        bnum = Tdomain%specel(n)%lnum / VCHUNK
+                        ee = mod(Tdomain%specel(n)%lnum, VCHUNK)
+                        do iz = 0, ngll-1
+                            do iy = 0, ngll-1
+                                do ix = 0, ngll-1
+                                    idx = Tdomain%fdom%Idom_(ix,iy,iz,bnum,ee)
+                                    dof_order_fdom(idx) = max(dof_order_fdom(idx), real(elem_order(n), fpp))
+                                end do
+                            end do
+                        end do
+                    end do
+                end if
+
+                do n = 0, Tdomain%Comm_data%ncomm - 1
+                    k = 0
+                    if (allocated(dof_order_sdom)) &
+                        call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                            Tdomain%Comm_data%Data(n)%IGiveS, dof_order_sdom, k)
+                    if (allocated(dof_order_fdom)) &
+                        call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                            Tdomain%Comm_data%Data(n)%IGiveF, dof_order_fdom, k)
+                    Tdomain%Comm_data%Data(n)%nsend = k
+                end do
+
+                call exchange_sem_var(Tdomain, 870, Tdomain%Comm_data)
+
+                do n = 0, Tdomain%Comm_data%ncomm - 1
+                    k = 0
+                    if (allocated(dof_order_sdom)) &
+                        call comm_take_data_max_1(Tdomain%Comm_data%Data(n)%Take, &
+                            Tdomain%Comm_data%Data(n)%IGiveS, dof_order_sdom, k)
+                    if (allocated(dof_order_fdom)) &
+                        call comm_take_data_max_1(Tdomain%Comm_data%Data(n)%Take, &
+                            Tdomain%Comm_data%Data(n)%IGiveF, dof_order_fdom, k)
+                end do
+
+                ! Raise local elements touching a boundary DOF whose merged
+                ! order requires one more hop out from it than they have.
+                if (allocated(dof_order_sdom)) then
+                    ngll = Tdomain%sdom%ngll
+                    do n = 0, Tdomain%n_elem - 1
+                        if (Tdomain%specel(n)%domain /= DM_SOLID_CG) cycle
+                        bnum = Tdomain%specel(n)%lnum / VCHUNK
+                        ee = mod(Tdomain%specel(n)%lnum, VCHUNK)
+                        target_m = 0
+                        do iz = 0, ngll-1
+                            do iy = 0, ngll-1
+                                do ix = 0, ngll-1
+                                    idx = Tdomain%sdom%Idom_(ix,iy,iz,bnum,ee)
+                                    target_m = max(target_m, int(dof_order_sdom(idx)) - 1)
+                                end do
+                            end do
+                        end do
+                        if (target_m > elem_order(n)) then
+                            elem_order(n) = target_m
+                            local_work = .true.
+                            if (qtail < qsize) then
+                                queue(qtail) = n
+                                qtail = qtail + 1
+                            end if
+                        end if
+                    end do
+                end if
+                if (allocated(dof_order_fdom)) then
+                    ngll = Tdomain%fdom%ngll
+                    do n = 0, Tdomain%n_elem - 1
+                        if (Tdomain%specel(n)%domain /= DM_FLUID_CG) cycle
+                        bnum = Tdomain%specel(n)%lnum / VCHUNK
+                        ee = mod(Tdomain%specel(n)%lnum, VCHUNK)
+                        target_m = 0
+                        do iz = 0, ngll-1
+                            do iy = 0, ngll-1
+                                do ix = 0, ngll-1
+                                    idx = Tdomain%fdom%Idom_(ix,iy,iz,bnum,ee)
+                                    target_m = max(target_m, int(dof_order_fdom(idx)) - 1)
+                                end do
+                            end do
+                        end do
+                        if (target_m > elem_order(n)) then
+                            elem_order(n) = target_m
+                            local_work = .true.
+                            if (qtail < qsize) then
+                                queue(qtail) = n
+                                qtail = qtail + 1
+                            end if
+                        end if
+                    end do
+                end if
+            end if
+
+            local_work = local_work .or. (qhead < qtail)
+            call MPI_Allreduce(local_work, global_work, 1, MPI_LOGICAL, MPI_LOR, Tdomain%communicateur, ierr)
+        end do
+
+        if (allocated(dof_order_sdom)) deallocate(dof_order_sdom)
+        if (allocated(dof_order_fdom)) deallocate(dof_order_fdom)
+        deallocate(queue)
+        call free_point_to_elems(point_to_elems, Tdomain%n_glob_nodes)
+    end subroutine resolver_halos_from_orders_3d
+
+    !> Speedup & Cost Optimization: evaluates candidate target time steps
+    !! dt_target (global percentiles of dt_elem_loc), determines minimum
+    !! required element orders m_i, resolves halos via
+    !! resolver_halos_from_orders_3d, and selects the (dt_target, {m_i})
+    !! configuration that minimizes total computational cost
+    !! C = (1 / dt_target) * sum(m_i). Ported from SEM2D/SRC/irons_dtcrit.F90.
+    subroutine optimize_cost_and_orders(Tdomain, dt_elem_loc, dt_target_opt, elem_order_opt)
         use sdomain
+        use mpi
         implicit none
+
         type(domain), intent(inout) :: Tdomain
         real(fpp), dimension(0:Tdomain%n_elem-1), intent(in) :: dt_elem_loc
-        integer, intent(in) :: n_included, mm
-        real(fpp), intent(out) :: dt_target_g
+        real(fpp), intent(out) :: dt_target_opt
+        integer, dimension(0:Tdomain%n_elem-1), intent(out) :: elem_order_opt
 
-        real(fpp), dimension(:), allocatable :: sorted_dt
-        logical, dimension(:), allocatable :: is_core
-        integer :: n, i, n_worst, n_valid, n_core, n_modified
-        real(fpp) :: dt_target, zc, need_ratio, dist2, buf2
-        logical :: any_unstable
+        integer :: n, i, c, ierr, rg, n_procs, n_local, n_global
+        integer :: cand_idx, feasible_loc, feasible_g
+        real(fpp) :: local_cost, global_cost, total_cost, min_cost
+        real(fpp) :: dt_target_cand
+        logical :: cand_feasible
 
-        ! 1) Target dt: sort valid critical dts ascending; the boundary just
-        ! past the worst MODIFIED_FRACTION is the dt every "typical"
-        ! (non-core) element already tolerates at order 1.
-        allocate(sorted_dt(0:max(n_included,1)-1))
-        n_valid = 0
-        do n = 0, Tdomain%n_elem - 1
-            if (dt_elem_loc(n) < 0._fpp) cycle
-            sorted_dt(n_valid) = dt_elem_loc(n)
-            n_valid = n_valid + 1
+        integer, dimension(:), allocatable :: recv_counts, displs
+        real(fpp), dimension(:), allocatable :: dt_global, dt_candidates
+        integer, dimension(:), allocatable :: m_base_local, m_work_local
+
+        integer, parameter :: NUM_PERCENTILES = 10
+        real(fpp), dimension(NUM_PERCENTILES), parameter :: PERCENTILES = &
+            (/ 0.00_fpp, 0.02_fpp, 0.05_fpp, 0.10_fpp, 0.20_fpp, 0.30_fpp, 0.40_fpp, 0.50_fpp, 0.70_fpp, 0.90_fpp /)
+
+        rg = Tdomain%rank
+        n_procs = Tdomain%nb_procs
+        n_local = Tdomain%n_elem
+
+        allocate(m_base_local(0:n_local-1))
+        allocate(m_work_local(0:n_local-1))
+
+        allocate(recv_counts(0:n_procs-1))
+        allocate(displs(0:n_procs-1))
+        call MPI_Allgather(n_local, 1, MPI_INTEGER, recv_counts, 1, MPI_INTEGER, Tdomain%communicateur, ierr)
+
+        displs(0) = 0
+        do i = 1, n_procs - 1
+            displs(i) = displs(i-1) + recv_counts(i-1)
         end do
-        if (n_valid == 0) then
-            dt_target = huge(1._fpp)
-        else
-            call quicksort_real(sorted_dt, 0, n_valid - 1)
-            if (n_valid == 1) then
-                dt_target = sorted_dt(0)
-            else
-                n_worst = ceiling(MODIFIED_FRACTION * real(n_valid,fpp))
-                n_worst = max(1, min(n_worst, n_valid - 1))
-                dt_target = sorted_dt(n_worst)
-            end if
+        n_global = sum(recv_counts)
+
+        allocate(dt_global(0:n_global-1))
+        call MPI_Allgatherv(dt_elem_loc, n_local, MPI_DOUBLE_PRECISION, &
+                            dt_global, recv_counts, displs, MPI_DOUBLE_PRECISION, &
+                            Tdomain%communicateur, ierr)
+
+        if (rg == 0) then
+            call quicksort_real(dt_global, 0, n_global - 1)
         end if
-        deallocate(sorted_dt)
-        dt_target_g = dt_target  ! mono-rank: local == global, no AllReduce needed
+        call MPI_Bcast(dt_global, n_global, MPI_DOUBLE_PRECISION, 0, Tdomain%communicateur, ierr)
 
-        ! 2) Flag "core": elements that cannot survive dt_target_g at order 1.
-        allocate(is_core(0:Tdomain%n_elem-1))
-        is_core = .false.
-        n_core = 0
-        do n = 0, Tdomain%n_elem - 1
-            Tdomain%specel(n)%modified = .false.
-            if (dt_elem_loc(n) < 0._fpp) cycle
-            if (dt_elem_loc(n) < dt_target_g) then
-                is_core(n) = .true.
-                Tdomain%specel(n)%modified = .true.
-                n_core = n_core + 1
+        allocate(dt_candidates(1:NUM_PERCENTILES))
+        do c = 1, NUM_PERCENTILES
+            cand_idx = min(n_global - 1, max(0, int(PERCENTILES(c) * real(n_global, fpp))))
+            dt_candidates(c) = dt_global(cand_idx)
+        end do
+
+        deallocate(dt_global, recv_counts, displs)
+
+        min_cost = huge(1._fpp)
+        dt_target_opt = dt_candidates(1)
+        elem_order_opt = 1
+
+        do c = 1, NUM_PERCENTILES
+            dt_target_cand = dt_candidates(c)
+
+            call compute_element_base_orders(dt_elem_loc, dt_target_cand, m_base_local, cand_feasible)
+
+            ! Check global feasibility across all MPI ranks
+            feasible_loc = merge(1, 0, cand_feasible)
+            call MPI_Allreduce(feasible_loc, feasible_g, 1, MPI_INTEGER, MPI_MIN, Tdomain%communicateur, ierr)
+            if (feasible_g == 0) then
+                if (rg == 0) call log_candidate_eval(c, dt_target_cand, 0._fpp, 0._fpp, .false., .false.)
+                cycle
             end if
-        end do
 
-        ! 3) Refuse to run silently unstable: verify the configured order
-        ! actually stabilizes every core element at dt_target_g.
-        zc = ModifiedEquationZCrit(mm)
-        any_unstable = .false.
-        do n = 0, Tdomain%n_elem - 1
-            if (.not. is_core(n)) cycle
-            need_ratio = 4._fpp * (dt_target_g/dt_elem_loc(n))**2
-            if (zc < need_ratio) then
-                any_unstable = .true.
-                write(*,*) "[Irons dt_crit] WARNING: element ", n, " dt_elem=", dt_elem_loc(n), &
-                    " cannot be stabilized at dt_target=", dt_target_g, " by modified_order=", mm
-            end if
-        end do
-        if (any_unstable) then
-            STOP "ERROR : newmark_modified regional selection -- modified_order too low for the elements it selected as core (see WARNING lines above). Raise newmark_modified_order or lower MODIFIED_FRACTION in irons_dtcrit.F90."
-        end if
+            m_work_local = m_base_local
+            call resolver_halos_from_orders_3d(Tdomain, m_work_local)
 
-        ! 4) Geometric buffer: MODIFIED_BUFFER_MULT*dist_max(core) ring
-        ! around each core element also gets flagged, for a smooth
-        ! order-1/order-m transition instead of an abrupt one at the core
-        ! boundary.
-        if (allocated(elem_dist_max)) deallocate(elem_dist_max)
-        if (allocated(elem_centroid3d_arr)) deallocate(elem_centroid3d_arr)
-        allocate(elem_dist_max(0:Tdomain%n_elem-1))
-        allocate(elem_centroid3d_arr(0:2, 0:Tdomain%n_elem-1))
-        elem_dist_max = 0._fpp
-        do n = 0, Tdomain%n_elem - 1
-            elem_centroid3d_arr(:,n) = element_centroid3d(Tdomain, n)
-            if (is_core(n)) elem_dist_max(n) = element_dist_max3d(Tdomain, n)
-        end do
-        do n = 0, Tdomain%n_elem - 1
-            if (Tdomain%specel(n)%modified) cycle  ! already core
-            do i = 0, Tdomain%n_elem - 1
-                if (.not. is_core(i)) cycle
-                buf2 = (MODIFIED_BUFFER_MULT * elem_dist_max(i))**2
-                dist2 = sum((elem_centroid3d_arr(:,n) - elem_centroid3d_arr(:,i))**2)
-                if (dist2 <= buf2) then
-                    Tdomain%specel(n)%modified = .true.
-                    exit
-                end if
+            local_cost = 0._fpp
+            do n = 0, n_local - 1
+                local_cost = local_cost + real(m_work_local(n), fpp)
             end do
+
+            call MPI_Allreduce(local_cost, global_cost, 1, MPI_DOUBLE_PRECISION, MPI_SUM, Tdomain%communicateur, ierr)
+
+            total_cost = (1._fpp / dt_target_cand) * global_cost
+
+            if (total_cost < min_cost) then
+                min_cost = total_cost
+                dt_target_opt = dt_target_cand
+                elem_order_opt = m_work_local
+                if (rg == 0) call log_candidate_eval(c, dt_target_cand, global_cost, total_cost, .true., .true.)
+            else
+                if (rg == 0) call log_candidate_eval(c, dt_target_cand, global_cost, total_cost, .false., .true.)
+            end if
         end do
-        deallocate(is_core)
 
-        ! 5) Build the BFS halo now that %modified is final.
-        call build_regional_halo3d(Tdomain, mm)
+        deallocate(dt_candidates, m_base_local, m_work_local)
 
-        ! 6) Derive block_active(j) per domain and dof_corrected (mm only).
-        call derive_block_and_dof_activation(Tdomain, mm)
-
-        n_modified = count(Tdomain%specel(:)%modified)
-        write(*,*) "[Irons dt_crit] regional selection: ", n_core, " core element(s) (dt < target), ", &
-            n_modified, " total modified (core+buffer) / ", Tdomain%n_elem
-    end subroutine select_modified_region
+        if (rg == 0) then
+            call log_optimal_selection(dt_target_opt, min_cost, 0._fpp, 1.0_fpp)
+        end if
+    end subroutine optimize_cost_and_orders
 
     !> For each domain (sdom, fdom) and each iteration j=1..mm, build the
     !! list of block indices touched (>=1 element with hop<=mm-j maps into
     !! that block) -- the force kernels (calcul_forces_iso/aniso,
     !! calcul_forces_fluid) only ever run on a whole block, so this is the
     !! coarsest granularity "regional" activation can use for them. Also
-    !! builds dof_corrected (mm-th iteration only): a DOF is corrected only
-    !! if every element touching it (via Idom_) is %modified, and it is not
-    !! part of a solid-fluid interface (those coexist untouched, same as
-    !! PML/CPML/DG which are never %modified in the first place since
-    !! compute_irons_dtcrit only fills dt_elem_loc for sdom/fdom).
-    subroutine derive_block_and_dof_activation(Tdomain, mm)
+    !! builds dof_corrected: each DOF's own correction order, MIN(elem_order)
+    !! over every element touching it (via Idom_) -- 1 (excluded) for any DOF
+    !! shared with an order-1 element or a solid-fluid interface (those
+    !! coexist untouched, same as PML/CPML/DG which are never %modified in
+    !! the first place since compute_irons_dtcrit only fills dt_elem_loc for
+    !! sdom/fdom).
+    subroutine derive_block_and_dof_activation(Tdomain, mm, elem_order)
         use sdomain
         implicit none
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: mm
+        integer, dimension(0:Tdomain%n_elem-1), intent(in) :: elem_order
         integer :: n, j, dom, bnum, ee, i, jy, k, idx, dmax
         logical, dimension(:), allocatable :: block_touched
         logical, dimension(:), allocatable :: dof_touched_mask
@@ -790,17 +964,21 @@ contains
             end if
         end do
 
-        ! dof_corrected: start from "every owning element modified", derived
-        ! by clearing every DOF touched by a non-modified sdom/fdom element.
+        ! dof_corrected: per-DOF correction order = MIN(elem_order) over
+        ! every sdom/fdom element touching that DOF -- generalizes the old
+        ! true/false gate ("every owning element modified, or none") to a
+        ! per-DOF order ceiling. A DOF shared with any order-1 element is
+        ! capped at 1 (no k=2.. term applied there, same as the old
+        ! "false"); a DOF whose every owner shares the same order m reduces
+        ! to the old "true" (gets every k=2..m term).
         if (allocated(dof_corrected_sdom)) deallocate(dof_corrected_sdom)
         if (allocated(dof_corrected_fdom)) deallocate(dof_corrected_fdom)
         allocate(dof_corrected_sdom(0:Tdomain%sdom%nglltot-1))
         allocate(dof_corrected_fdom(0:Tdomain%fdom%nglltot-1))
-        dof_corrected_sdom = .true.
-        dof_corrected_fdom = .true.
+        dof_corrected_sdom = mm
+        dof_corrected_fdom = mm
 
         do n = 0, Tdomain%n_elem - 1
-            if (Tdomain%specel(n)%modified) cycle
             dom = Tdomain%specel(n)%domain
             if (dom /= DM_SOLID_CG .and. dom /= DM_FLUID_CG) cycle
             bnum = Tdomain%specel(n)%lnum / VCHUNK
@@ -809,7 +987,8 @@ contains
                 do k = 0, Tdomain%sdom%ngll - 1
                     do jy = 0, Tdomain%sdom%ngll - 1
                         do i = 0, Tdomain%sdom%ngll - 1
-                            dof_corrected_sdom(Tdomain%sdom%Idom_(i,jy,k,bnum,ee)) = .false.
+                            idx = Tdomain%sdom%Idom_(i,jy,k,bnum,ee)
+                            dof_corrected_sdom(idx) = min(dof_corrected_sdom(idx), elem_order(n))
                         end do
                     end do
                 end do
@@ -817,7 +996,8 @@ contains
                 do k = 0, Tdomain%fdom%ngll - 1
                     do jy = 0, Tdomain%fdom%ngll - 1
                         do i = 0, Tdomain%fdom%ngll - 1
-                            dof_corrected_fdom(Tdomain%fdom%Idom_(i,jy,k,bnum,ee)) = .false.
+                            idx = Tdomain%fdom%Idom_(i,jy,k,bnum,ee)
+                            dof_corrected_fdom(idx) = min(dof_corrected_fdom(idx), elem_order(n))
                         end do
                     end do
                 end do
@@ -829,10 +1009,10 @@ contains
         ! surf1%map(i) refer to the same physical interface point on the
         ! solid/fluid sides respectively, so surf0%nbtot == surf1%nbtot.
         do idx = 0, Tdomain%SF%intSolFlu%surf0%nbtot - 1
-            dof_corrected_sdom(Tdomain%SF%intSolFlu%surf0%map(idx)) = .false.
+            dof_corrected_sdom(Tdomain%SF%intSolFlu%surf0%map(idx)) = 1
         end do
         do idx = 0, Tdomain%SF%intSolFlu%surf1%nbtot - 1
-            dof_corrected_fdom(Tdomain%SF%intSolFlu%surf1%map(idx)) = .false.
+            dof_corrected_fdom(Tdomain%SF%intSolFlu%surf1%map(idx)) = 1
         end do
     end subroutine derive_block_and_dof_activation
 
@@ -852,34 +1032,6 @@ contains
             end if
         end do
     end subroutine pack_true_indices
-
-    !> In-place ascending quicksort (Hoare partition) -- used to find the
-    !! MODIFIED_FRACTION percentile boundary in select_modified_region.
-    recursive subroutine quicksort_real(a, lo, hi)
-        implicit none
-        real(fpp), dimension(0:), intent(inout) :: a
-        integer, intent(in) :: lo, hi
-        integer :: i, j
-        real(fpp) :: pivot, tmp
-        if (lo >= hi) return
-        pivot = a((lo+hi)/2)
-        i = lo; j = hi
-        do
-            do while (a(i) < pivot)
-                i = i + 1
-            end do
-            do while (a(j) > pivot)
-                j = j - 1
-            end do
-            if (i <= j) then
-                tmp = a(i); a(i) = a(j); a(j) = tmp
-                i = i + 1; j = j - 1
-            end if
-            if (i > j) exit
-        end do
-        if (lo < j) call quicksort_real(a, lo, j)
-        if (i < hi) call quicksort_real(a, i, hi)
-    end subroutine quicksort_real
 
 end module m_irons_dtcrit
 

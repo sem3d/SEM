@@ -199,35 +199,18 @@ contains
         allocate(vert_un(0:Tdomain%n_vertex-1,0:1))
         allocate(vert_corr(0:Tdomain%n_vertex-1,0:1))
 
-        ! m<2 never reaches the correction loop (early return in
-        ! NewmarkModified) so the halo is never read -- skip building it.
-        if (Tdomain%TimeD%modified_order >= 2) &
-            call build_regional_halo(Tdomain, Tdomain%TimeD%modified_order)
+        ! elem_active/face_active/vert_active/elem_hop (graded per-element
+        ! orders) are already built by compute_irons_dtcrit's call to
+        ! build_regional_halo_with_orders (irons_dtcrit.F90), which always
+        ! runs before the time loop starts whenever Tdomain%TimeD%modified is
+        ! true -- the only condition under which NewmarkModified (and hence
+        ! this routine) is ever called (main.F90). Re-deriving it here from
+        ! Tdomain%specel(n)%modified would flatten every modified element to
+        ! the same uniform max order, discarding the cost-optimizer's
+        ! per-element grading -- do not rebuild it.
 
         scratch_ready = .true.
     end subroutine ensure_scratch
-
-    !> Build regional halo using initial order mm for %modified elements.
-    subroutine build_regional_halo(Tdomain, mm)
-        implicit none
-        type(domain), intent(inout) :: Tdomain
-        integer, intent(in) :: mm
-        integer, dimension(:), allocatable :: elem_order
-        integer :: n
-
-        allocate(elem_order(0:Tdomain%n_elem-1))
-        elem_order = 1
-        do n = 0, Tdomain%n_elem - 1
-            if (Tdomain%specel(n)%modified) then
-                elem_order(n) = mm
-            else
-                elem_order(n) = 1
-            end if
-        end do
-
-        call build_regional_halo_with_orders(Tdomain, elem_order)
-        deallocate(elem_order)
-    end subroutine build_regional_halo
 
     !> Precompute elem_order, elem_hop and per-iteration index lists using pre-assigned
     !! per-element orders, executing Distributed Multi-Source BFS across MPI partition boundaries.

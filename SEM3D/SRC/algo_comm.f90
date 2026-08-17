@@ -117,6 +117,24 @@ contains
         end do
     end subroutine comm_take_data_1
 
+    !> Same packing as comm_take_data_1, but merges by max instead of sum --
+    !! for exchanging a per-DOF requirement (e.g. modified-equation order)
+    !! where every rank touching a shared DOF must agree on the largest
+    !! value asked for, not their sum.
+    subroutine comm_take_data_max_1(take, itake, data, pos)
+        real(fpp), dimension(0:), intent(in) :: take
+        integer, dimension(0:), intent(in) :: itake
+        real(fpp), dimension(0:), intent(inout)  :: data
+        integer, intent(inout) :: pos
+        !
+        integer :: i, idx
+        do i=0,size(itake)-1
+            idx = itake(i)
+            data(idx) = max(data(idx), take(pos))
+            pos = pos + 1
+        end do
+    end subroutine comm_take_data_max_1
+
     subroutine comm_take_data_2(take, itake, data, pos)
         real(fpp), dimension(0:), intent(in) :: take
         integer, dimension(0:), intent(in) :: itake

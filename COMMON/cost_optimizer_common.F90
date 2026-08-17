@@ -9,7 +9,7 @@ contains
     !> Algoritmo In-Place Quicksort para arrays de números reais real(fpp)
     recursive subroutine quicksort_real(a, first, last)
         implicit none
-        real(fpp), dimension(:), intent(inout) :: a
+        real(fpp), dimension(0:), intent(inout) :: a
         integer, intent(in) :: first, last
         integer :: i, j
         real(fpp) :: x, temp
