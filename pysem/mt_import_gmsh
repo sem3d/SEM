@@ -182,7 +182,65 @@ class Gmsh(object):
 
     def handle_hexa27(self, num, nodes, tags):
         self.mesh.hexa27.append(nodes)
-    
+
+    def _quad_is_convex(self, quad):
+        pts = [self.mesh.points.get_nodes()[n] for n in quad]
+
+        def cross(o, a, b):
+            return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0])
+        signs = [cross(pts[i], pts[i-1], pts[(i+1) % 4]) for i in range(4)]
+        return all(s > 0 for s in signs) or all(s < 0 for s in signs)
+
+    def merge_stray_triangles(self):
+        """Gmsh's recombine algorithm sometimes leaves a quad split as two
+        triangles sharing an edge instead of merging it. SEM2D needs an
+        all-quad mesh, so re-fuse any such pair (same material) into a Quad4
+        -- but only if the 4 nodes are actually in convex position, otherwise
+        the "quad" would be concave/crossed and rejected by the SEM2D mesher."""
+        if not self.mesh.tri3:
+            return
+        edge_map = {}
+        for i, tri in enumerate(self.mesh.tri3):
+            for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
+                edge_map.setdefault(frozenset((a, b)), []).append(i)
+        used = set()
+        n_merged = 0
+        n_rejected = 0
+        for edge, tris in edge_map.items():
+            if len(tris) != 2:
+                continue
+            i, j = tris
+            if i in used or j in used or self.tri3_mat[i] != self.tri3_mat[j]:
+                continue
+            t1, t2 = self.mesh.tri3[i], self.mesh.tri3[j]
+            apex1 = next(n for n in t1 if n not in edge)
+            apex2 = next(n for n in t2 if n not in edge)
+            a, b = tuple(edge)
+            quad = (apex1, a, apex2, b)
+            if not self._quad_is_convex(quad):
+                n_rejected += 1
+                continue
+            self.mesh.quad4.append(quad)
+            self.quad4_mat.append(self.tri3_mat[i])
+            used.add(i)
+            used.add(j)
+            n_merged += 1
+        if used:
+            self.mesh.tri3 = [t for i, t in enumerate(self.mesh.tri3) if i not in used]
+            self.tri3_mat = [m for i, m in enumerate(self.tri3_mat) if i not in used]
+        print("Merged {} triangle pairs into quads, rejected {} non-convex pairs, "
+              "{} triangles left over".format(n_merged, n_rejected, len(self.mesh.tri3)))
+
+    def drop_stray_triangles(self):
+        """Discard any tri3 that couldn't be merged into a valid quad,
+        leaving a gap in the mesh at those spots instead of an invalid element."""
+        if not self.mesh.tri3:
+            return
+        print("Dropping {} leftover triangles (mesh will have gaps there)".format(
+            len(self.mesh.tri3)))
+        self.mesh.tri3 = []
+        self.tri3_mat = []
+
     def save(self, fname):
         f = h5py.File(fname, "w")
         self.mesh.write_nodes(f)
@@ -237,7 +295,7 @@ class Gmsh(object):
 
 def main():
     parser = argparse.ArgumentParser(description="Conversion gmsh vers hdf5 (sem/mka)")
-    parser.add_argument("-p", help="Use physical volume as material", dest="mat", default=0, action="store_const", const=1)
+    parser.add_argument("-p", help="Use physical volume as material", dest="mat", default=0, action="store_const", const=0)
     parser.add_argument("-c", help="Use color as material", dest="mat", action="store_const", const=2)
     parser.add_argument("input", help="input file in msh format")
     parser.add_argument("output", help="output file (HDF5)")
@@ -246,6 +304,8 @@ def main():
     mesh = Gmsh()
     mesh.tag_mat = opt.mat
     mesh.read(open(opt.input,'r'))
+    mesh.merge_stray_triangles()
+    mesh.drop_stray_triangles()
     mesh.save(opt.output)
 
         

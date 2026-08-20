@@ -27,11 +27,18 @@ contains
                 " Candidate #", c, " | dt_target = ", dt_target, &
                 " | INVIÁVEL (exige ordem m > 20)"
         else if (is_optimal) then
-            write(*, fmt='(A,I2,A,1PE12.5,A,F10.1,A,1PE12.5,A)') &
+            ! 0P before the weight field resets the 1P scale factor set by
+            ! the dt_target E-edit -- Fortran's P scale factor persists to
+            ! every later numeric edit descriptor in the same write, not
+            ! just the one it precedes, so without it F10.1 silently
+            ! multiplied weight by 10 for display (never affected the
+            ! actual cost/selection logic, which reads weight/cost directly
+            ! as passed in, not through this format).
+            write(*, fmt='(A,I2,A,1PE12.5,A,0PF10.1,A,1PE12.5,A)') &
                 " Candidate #", c, " | dt_target = ", dt_target, &
                 " | Peso Malha = ", weight, " | Custo = ", cost, " [MELHOR]"
         else
-            write(*, fmt='(A,I2,A,1PE12.5,A,F10.1,A,1PE12.5)') &
+            write(*, fmt='(A,I2,A,1PE12.5,A,0PF10.1,A,1PE12.5)') &
                 " Candidate #", c, " | dt_target = ", dt_target, &
                 " | Peso Malha = ", weight, " | Custo = ", cost
         end if
