@@ -61,7 +61,7 @@ FIELD_TO_ENGLISH = {
     'EpsDev': 'DeviatoricStrain',
     'EpsDevPl': 'PlasticDeviatoricStrain',
     'StressDev': 'DeviatoricStress',
-    'EnergyD': 'DissipatedEnergy',
+    'EnergyD': 'DecomposedEnergy',
     'DUDX': 'DisplacementGradient',
     'GradLambda': 'LambdaGradient',
     'GradMu': 'MuGradient',
