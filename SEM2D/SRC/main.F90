@@ -64,6 +64,7 @@ subroutine  sem()
     double precision :: my_cpu_time_d, my_cpu_sq
     double precision :: min_cpu, max_cpu, sum_cpu, sum_cpu_sq
     double precision :: avg_cpu, var_cpu, std_cpu
+    double precision :: t_loop_0, el_h, eta_h
     integer :: interrupt, rg, code, protection, n_it_max
 
     pid = getpid()
@@ -262,6 +263,7 @@ subroutine  sem()
     end if
 
     call CPU_TIME( t_ini )
+    t_loop_0 = MPI_Wtime()
     protection = 0
     interrupt = 0
     do ntime= Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
@@ -293,7 +295,14 @@ subroutine  sem()
         endif
 
         if (rg == 0 .and. mod(ntime, 20) == 0) then
-            print *, ' Iteration  =  ', ntime, '    temps  = ', Tdomain%TimeD%rtime
+            el_h  = (MPI_Wtime() - t_loop_0)/3600.d0
+            eta_h = 0.d0
+            if (ntime > Tdomain%TimeD%NtimeMin) &
+                eta_h = el_h * dble(Tdomain%TimeD%NtimeMax-1-ntime) &
+                             / dble(ntime - Tdomain%TimeD%NtimeMin)
+            write(*,'(a,i8,a,es13.6,a,f8.2,a,f8.2,a)') &
+                ' Iteration = ', ntime, '   temps = ', Tdomain%TimeD%rtime, &
+                '   elapsed = ', el_h, ' h   ETA = ', eta_h, ' h'
         end if
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then
@@ -332,7 +341,7 @@ subroutine  sem()
         if (i_snap == 0) then
 
             if (rg==0 .and. display_iter==1) then
-                write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
+                write(*,'(a34,i6.6,a8,es13.6)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
             endif
             call save_field_h5(Tdomain, rg, isort)
 

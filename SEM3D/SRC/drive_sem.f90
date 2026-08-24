@@ -388,6 +388,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     integer :: protection
     integer :: interrupt
     logical :: sortie_capteur
+    double precision :: t_loop_0, el_h, eta_h
     double precision :: time_now
     integer :: time_now_s
     real(kind=8) :: remaining_time
@@ -420,6 +421,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 
 !- end of run flag
     interrupt = 0
+    t_loop_0 = MPI_Wtime()
 
 !---------------------------------------------------------!
 !--------------------  LOOP UPON TIME  -------------------!
@@ -447,7 +449,14 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
             call Timestep_LDDRK(Tdomain, ntime)
         end select
         if (Tdomain%rank==0 .and. mod(ntime,20)==0) then
-            print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
+            el_h  = (MPI_Wtime() - t_loop_0)/3600.d0
+            eta_h = 0.d0
+            if (ntime > Tdomain%TimeD%NtimeMin) &
+                eta_h = el_h * dble(Tdomain%TimeD%NtimeMax-1-ntime) &
+                             / dble(ntime - Tdomain%TimeD%NtimeMin)
+            write(*,'(a,i8,a,es13.6,a,f8.2,a,f8.2,a)') &
+                ' Iteration = ', ntime, '   temps = ', Tdomain%TimeD%rtime, &
+                '   elapsed = ', el_h, ' h   ETA = ', eta_h, ' h'
         end if
 
 !---------------------------------------------------------!
@@ -565,7 +574,7 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
 
     rg = Tdomain%rank
     if(rg == 0)then
-        write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
+        write(*,'(a34,i6.6,a8,es13.6)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
     endif
     call save_field_h5(Tdomain, isort, Tdomain%SnapData)
     isort = isort + 1  ! a faire avant le save_checkpoint
