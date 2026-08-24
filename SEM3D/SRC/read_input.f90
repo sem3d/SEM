@@ -792,7 +792,11 @@ contains
             if (outflag==1 .or. outflag==2) then
                 ! For traces
                 Tdomain%out_var_capt(i) = 1
-                Tdomain%nReqOut = Tdomain%nReqOut + OUT_VAR_DIMS_3D(i)
+                ! OUT_TOTAL_ENERGY is written by the 'energy' capteur and skipped in the
+                ! 'Variables' labels: it must not reserve columns in the station traces.
+                if (i /= OUT_TOTAL_ENERGY) then
+                    Tdomain%nReqOut = Tdomain%nReqOut + OUT_VAR_DIMS_3D(i)
+                end if
             endif
         end do
 

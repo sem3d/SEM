@@ -522,7 +522,9 @@ contains
         out_variables(:) = Tdomain%out_var_capt(:)
         offset = 0
         do i = 0,size(out_variables)-2
-            if (out_variables(i) == 1) then
+            ! OUT_TOTAL_ENERGY is skipped here as in the 'Variables' labels: it is
+            ! written by the 'energy' capteur, not per station.
+            if (out_variables(i) == 1 .and. i /= OUT_TOTAL_ENERGY) then
                 offset(i+1) = offset(i) + OUT_VAR_DIMS_2D(i)
             else
                 offset(i+1) = offset(i)
