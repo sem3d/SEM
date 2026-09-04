@@ -380,23 +380,26 @@ contains
                         ! ELASTIC-VISCOELASTIC MODULA
                         if (out_variables(OUT_ENERGYP) == 1 .or. &
                             out_variables(OUT_ENERGYK) == 1 .or. &
+                            out_variables(OUT_ENERGYD) == 1 .or. &
                             out_variables(OUT_STRESS_DEV) == 1) then
-                            if (dom%aniso) then
-                                CC = dom%Cij_(:,i,j,k,bnum,ee)
-                            else
-                                xmu     = dom%Mu_    (i,j,k,bnum,ee)
-                                xlambda = dom%Lambda_(i,j,k,bnum,ee)
-                                xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
-                                xeps_vol = DXX + DYY + DZZ
-                                if (dom%n_sls>0) then
-                                    onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
-                                    onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
-                                    xmu    = xmu * onemSbeta
-                                    xkappa = xkappa * onemPbeta
-                                endif
-                                x2mu       = two * xmu
-                                xlambda2mu = xlambda + x2mu
-                            end if
+                            if (dom%aniso) CC = dom%Cij_(:,i,j,k,bnum,ee)
+                            ! dom%Mu_/dom%Lambda_ hold the true isotropic moduli for
+                            ! isotropic elements, and the nearest-isotropic projection of
+                            ! the full tensor (set in init_material_tensor_solid) for aniso
+                            ! ones -- so the energy decomposition below (isotropic-only
+                            ! formula) stays valid in both cases.
+                            xmu     = dom%Mu_    (i,j,k,bnum,ee)
+                            xlambda = dom%Lambda_(i,j,k,bnum,ee)
+                            xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
+                            xeps_vol = DXX + DYY + DZZ
+                            if (dom%n_sls>0) then
+                                onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
+                                onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
+                                xmu    = xmu * onemSbeta
+                                xkappa = xkappa * onemPbeta
+                            endif
+                            x2mu       = two * xmu
+                            xlambda2mu = xlambda + x2mu
                         endif
                         ! P-ENERGY
                         if (out_variables(OUT_ENERGYP) == 1) then
@@ -488,23 +491,23 @@ contains
                             endif
                         endif
                         ! ENERGY DECOMPOSITION
+                        ! Isotropic-only formula; for aniso elements xmu/xlambda are the
+                        ! nearest-isotropic projection of the full tensor (see comment
+                        ! above), not the exact anisotropic energy -- P-ENERGY above
+                        ! stays exact via CC.
                         if (out_variables(OUT_ENERGYD) == 1) then
-                            !if (dom%aniso) then
-                            !    D_energy(i,j,k,:) = 0.
-                            !else
-                                comp1 =  xmu/2.0d0 * (                  &
-                                                       (DZY - DYZ)**2d0  &
-                                                     + (DXZ - DZX)**2d0  &
-                                                     + (DYX - DXY)**2d0  &
-                                                     )
-                                comp2 = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
-                                comp3 = 2.0d0*xmu*(DXY*DYX + DXZ*DZX + DYZ*DZY) &
-                                        -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
-                                D_energy(i,j,k,:) = 0d0
-                                D_energy(i,j,k,0) = comp1
-                                D_energy(i,j,k,1) = comp2
-                                D_energy(i,j,k,2) = comp3
-                            !end if
+                            comp1 =  xmu/2.0d0 * (                  &
+                                                   (DZY - DYZ)**2d0  &
+                                                 + (DXZ - DZX)**2d0  &
+                                                 + (DYX - DXY)**2d0  &
+                                                 )
+                            comp2 = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
+                            comp3 = 2.0d0*xmu*(DXY*DYX + DXZ*DZX + DYZ*DZY) &
+                                    -2.0d0*xmu*(DXX*DYY + DXX*DZZ + DYY*DZZ)
+                            D_energy(i,j,k,:) = 0d0
+                            D_energy(i,j,k,0) = comp1
+                            D_energy(i,j,k,1) = comp2
+                            D_energy(i,j,k,2) = comp3
                         end if
                     end if
                     if (nl_flag) then
@@ -658,21 +661,22 @@ contains
                     ind = dom%Idom_(i,j,k,bnum,ee)
                     xeps_vol = dUx_dx + dUy_dy + dUz_dz
 
-                    if (dom%aniso) then
-                        CC = dom%Cij_(:,i,j,k,bnum,ee)
-                        xdensity = dom%Density_ (i,j,k,bnum,ee)
-                    else
-                        xmu     = dom%Mu_    (i,j,k,bnum,ee)
-                        xlambda = dom%Lambda_(i,j,k,bnum,ee)
-                        xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
-                        xdensity = dom%Density_ (i,j,k,bnum,ee)
-                        if (dom%n_sls>0) then
-                            onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
-                            onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
-                            xmu    = xmu * onemSbeta
-                            xkappa = xkappa * onemPbeta
-                        endif
-                    end if
+                    if (dom%aniso) CC = dom%Cij_(:,i,j,k,bnum,ee)
+                    ! dom%Mu_/dom%Lambda_ hold the true isotropic moduli for isotropic
+                    ! elements, and the nearest-isotropic projection of the full tensor
+                    ! (set in init_material_tensor_solid) for aniso ones -- so D_energy
+                    ! below (isotropic-only formula) stays a valid approximation in both
+                    ! cases, while P_energy for aniso elements uses the exact tensor.
+                    xmu     = dom%Mu_    (i,j,k,bnum,ee)
+                    xlambda = dom%Lambda_(i,j,k,bnum,ee)
+                    xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
+                    xdensity = dom%Density_ (i,j,k,bnum,ee)
+                    if (dom%n_sls>0) then
+                        onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
+                        onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
+                        xmu    = xmu * onemSbeta
+                        xkappa = xkappa * onemPbeta
+                    endif
 
                     if ( dom%aniso) then
                         P_energy(i,j,k)   = 0
@@ -705,7 +709,6 @@ contains
                         P_energy(i,j,k) = 0.5d0*U
                     else
                         P_energy(i,j,k)   = 0
-                        D_energy(i,j,k,:) = 0
                         !PAPER: The Energy Partitioning and the Diffusive Character of the Seismic Coda, Shapiro et al, 2000
                         P_energy(i,j,k) = xmu/2.0d0 * ( &
                                     (dUz_dy - dUy_dz)**2d0  &
@@ -714,14 +717,16 @@ contains
                                     + ((0.5d0*xlambda) + xmu) * xeps_vol**2d0 &
                                     + 2.0d0*xmu*(dUx_dy*dUy_dx + dUx_dz*dUz_dx + dUy_dz*dUz_dy) &
                                     -2.0d0*xmu*(dUx_dx*dUy_dy + dUx_dx*dUz_dz + dUy_dy*dUz_dz)
-                        D_energy(i,j,k,0) = xmu/2.0d0 * ( &
-                                    (dUz_dy - dUy_dz)**2d0  &
-                                    + (dUx_dz - dUz_dx)**2d0  &
-                                    + (dUy_dx - dUx_dy)**2d0)
-                        D_energy(i,j,k,1) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0 
-                        D_energy(i,j,k,2) =  2.0d0*xmu*(dUx_dy*dUy_dx + dUx_dz*dUz_dx + dUy_dz*dUz_dy) &
-                                    -2.0d0*xmu*(dUx_dx*dUy_dy + dUx_dx*dUz_dz +dUy_dy*dUz_dz)
                     end if
+                    ! Decomposition itself is isotropic-only in both branches (uses the
+                    ! projected xmu/xlambda for aniso elements -- see comment above).
+                    D_energy(i,j,k,0) = xmu/2.0d0 * ( &
+                                (dUz_dy - dUy_dz)**2d0  &
+                                + (dUx_dz - dUz_dx)**2d0  &
+                                + (dUy_dx - dUx_dy)**2d0)
+                    D_energy(i,j,k,1) = ((0.5d0*xlambda) + xmu) * xeps_vol**2d0
+                    D_energy(i,j,k,2) =  2.0d0*xmu*(dUx_dy*dUy_dx + dUx_dz*dUz_dx + dUy_dz*dUz_dy) &
+                                -2.0d0*xmu*(dUx_dx*dUy_dy + dUx_dx*dUz_dz +dUy_dy*dUz_dz)
                     K_energy(i,j,k) = 0.5d0*xdensity*(fieldV(i,j,k,0)**2.0d0 + fieldV(i,j,k,1)**2.0d0 + fieldV(i,j,k,2)**2.0d0)
                 enddo
             enddo

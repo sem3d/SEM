@@ -776,6 +776,9 @@ contains
         if(capteur%type /= CPT_ENERGY) return
         local_sum_P_energy = 0d0
         local_sum_K_energy = 0d0
+        local_sum_L_energy = 0d0
+        local_sum_S_energy = 0d0
+        local_sum_R_energy = 0d0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
