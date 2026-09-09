@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Le os traces H5 de uma simulacao SEM (capteurs), salva a energia global como
-no GetCapteurs.py, e exporta cada variavel presente no H5 ('Variables') no seu
-proprio arquivo .mat (nome em ingles), sem reamostrar em nenhuma grade
-particular. Nao inclui o calculo dos corretores de homogeneizacao (isso fica
-em GetCapteurs.py) -- so a leitura/exportacao generica dos traces.
+Reads H5 traces from a SEM simulation (capteurs/receivers), saves the global energy
+similarly to GetCapteurs.py, and exports each variable present in H5 ('Variables') into
+its own .mat file (English name), without resampling onto any particular grid.
+Does not include homogenization corrector calculations (handled in GetCapteurs.py)
+-- only generic trace reading/export.
 
-Funciona tanto para SEM2D quanto SEM3D: o layout de colunas vem direto do
-dataset 'Variables' de cada arquivo H5, entao o numero de componentes por
-campo (2D: x,z; 3D: x,y,z) nao precisa ser conhecido de antemao.
+Works for both SEM2D and SEM3D: the column layout comes directly from the
+'Variables' dataset in each H5 file, so the number of components per
+field (2D: x,z; 3D: x,y,z) does not need to be known in advance.
 """
 
 import itertools
@@ -19,7 +19,7 @@ import h5py
 import numpy as np
 import hdf5storage
 
-# Diretorio com os capteurs*.h5, arquivo de estacoes e destino dos .mat -- edite aqui.
+# Directory with capteurs*.h5 files, stations file, and .mat output destination -- edit here.
 traces_dir = './traces/'
 stations_path = os.path.join(traces_dir, os.pardir, 'stations.txt')
 out_dir = traces_dir
@@ -34,11 +34,11 @@ def parse_index(dataset_name):
         return None
 
 
-# 'Variables' e diretamente o cabecalho das colunas de cada dataset de estacao: uma
-# entrada por componente, no formato "<nome><espacos><indice da componente>" (ex.:
-# "Displ      1", "Displ      2", "Displ      3"). O layout dos campos (nome, largura)
-# sai direto dai -- sem precisar manter uma lista hardcoded sincronizada a mao toda vez
-# que o simulador muda as variaveis de saida.
+# 'Variables' is directly the column header of each station dataset: one
+# entry per component, in the format "<name><spaces><component index>" (e.g.,
+# "Displ      1", "Displ      2", "Displ      3"). The field layout (name, width)
+# comes directly from it -- without needing to manually maintain a hardcoded
+# list whenever the simulator changes output variables.
 FIELD_LABEL_RE = re.compile(r'^(.*\S)\s+\d+$')
 
 
@@ -48,8 +48,8 @@ def parse_field_layout(labels):
     return [(name, len(list(group))) for name, group in itertools.groupby(names)]
 
 
-# Traducao em ingles dos nomes de campo, usada para nomear os .mat de saida.
-# Um campo ausente deste dicionario mantem o nome original (ver mais abaixo).
+# English translation of field names, used to name the output .mat files.
+# Any field missing from this dictionary keeps its original name (see below).
 FIELD_TO_ENGLISH = {
     'EnergyP': 'PotentialEnergy',
     'EnergyK': 'KineticEnergy',
@@ -73,8 +73,8 @@ with open(stations_path, 'r', encoding='utf-8') as f:
 
 files = sorted(f for f in os.listdir(traces_dir) if f.startswith('capteurs') and f.endswith('.h5'))
 
-# Descobre o layout ('Variables') e o numero de passos de tempo (apos subamostragem)
-# sem ler todos os dados -- so olha metadados do primeiro arquivo que tiver o necessario.
+# Discover the layout ('Variables') and the number of time steps (after subsampling)
+# without reading all data -- only inspects metadata of the first file containing them.
 labels = None
 num_time = None
 for fname in files:
@@ -92,18 +92,18 @@ for fname in files:
         break
 
 if labels is None or num_time is None:
-    raise RuntimeError("'Variables' nao encontrado, ou nenhum dataset de estacao nos arquivos H5")
+    raise RuntimeError("'Variables' not found, or no station dataset in H5 files")
 
-# coun comeca em 0: a coluna 0 dos dados JA e a primeira variavel declarada em
-# 'Variables' (tipicamente 'Time'), nao uma coluna implicita antes dela.
+# coun starts at 0: column 0 of the data is ALREADY the first variable declared in
+# 'Variables' (typically 'Time'), not an implicit column before it.
 offsets = {}
 coun = 0
 for field_name, width in parse_field_layout(labels):
     offsets[field_name] = (coun, width)
     coun += width
 
-# Le direto em arrays indexados pelo numero da estacao (0-based, o N em "UU_N"),
-# sem passar por uma lista intermediaria de dicts nem por um sort no final.
+# Read directly into arrays indexed by station number (0-based, the N in "UU_N"),
+# without going through an intermediate list of dicts or sorting at the end.
 N = line_count
 Time = np.empty((N, num_time))
 fields = {name: np.empty((N, num_time, width) if width > 1 else (N, num_time))
@@ -114,7 +114,7 @@ DataE = []
 capcount = 1
 for fname in files:
     with h5py.File(os.path.join(traces_dir, fname), 'r') as f:
-        print("Lendo", fname)
+        print("Reading", fname)
         for dataset_name in sorted(f.keys()):
             if dataset_name in ('Variables', 'Energy_Variables') or dataset_name.endswith('_pos'):
                 continue
@@ -127,8 +127,8 @@ for fname in files:
             print(f'{capcount}/{line_count}')
             capcount += 1
             row = cap_index
-            # .copy() mantido de proposito: sem ele, algumas estacoes voltaram com
-            # tamanho inconsistente em execucoes anteriores.
+            # .copy() kept intentionally: without it, some stations returned with
+            # inconsistent sizes in previous runs.
             aux = f[dataset_name][::subs, :].copy()
             Time[row] = aux[:, 0]
             for field_name, (offset, width) in offsets.items():
@@ -137,15 +137,15 @@ for fname in files:
 
 missing = np.flatnonzero(~filled)
 if missing.size:
-    raise RuntimeError(f"Faltam {missing.size} estacoes (ids 0-based, ex.: {missing[:10].tolist()})")
+    raise RuntimeError(f"Missing {missing.size} stations (0-based IDs, e.g.: {missing[:10].tolist()})")
 
 ttime = Time[0]
 
 os.makedirs(out_dir, exist_ok=True)
 
-# hdf5storage.write() nao sobrescreve de forma limpa um .mat corrompido/incompleto de uma
-# rodada anterior (falha com "bad object header version number") -- apaga antes de escrever.
-output_names = ['VarEnergia.mat'] + [f'{FIELD_TO_ENGLISH.get(name, name)}.mat' for name in fields]
+# hdf5storage.write() does not cleanly overwrite a corrupted/incomplete .mat from a
+# previous run (fails with "bad object header version number") -- remove before writing.
+output_names = ['ModelEnergy.mat'] + [f'{FIELD_TO_ENGLISH.get(name, name)}.mat' for name in fields]
 for output_name in output_names:
     try:
         os.remove(os.path.join(out_dir, output_name))
@@ -153,17 +153,17 @@ for output_name in output_names:
         pass
 
 if DataE:
-    print("Salvando a energia")
-    hdf5storage.write({'E': DataE}, '.', os.path.join(out_dir, 'VarEnergia.mat'), matlab_compatible=True)
+    print("Saving energy")
+    hdf5storage.write({'E': DataE}, '.', os.path.join(out_dir, 'ModelEnergy.mat'), matlab_compatible=True)
 
-# Um arquivo .mat por variavel presente no H5, nomeado em ingles
+# One .mat file per variable present in H5, named in English
 for field_name, data in fields.items():
     english_name = FIELD_TO_ENGLISH.get(field_name, field_name)
-    print(f"Salvando {english_name}.mat")
+    print(f"Saving {english_name}.mat")
     hdf5storage.write(
         {'Time': ttime, english_name: data},
         '.', os.path.join(out_dir, f'{english_name}.mat'),
         matlab_compatible=True,
     )
 
-print("Exportacao concluida!")
+print("Export completed!")
