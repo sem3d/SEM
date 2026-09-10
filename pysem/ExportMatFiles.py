@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Reads H5 traces from a SEM simulation (capteurs/receivers), saves the global energy
-similarly to GetCapteurs.py, and exports each variable present in H5 ('Variables') into
-its own .mat file (English name), without resampling onto any particular grid.
-Does not include homogenization corrector calculations (handled in GetCapteurs.py)
--- only generic trace reading/export.
+exports receiver names and coordinates into Positions.mat,
+and exports each variable present in H5 ('Variables') into its own .mat file (English name),
+without resampling onto any particular grid.
 
 Works for both SEM2D and SEM3D: the column layout comes directly from the
 'Variables' dataset in each H5 file, so the number of components per
@@ -47,9 +46,6 @@ def parse_field_layout(labels):
              for lab in labels]
     return [(name, len(list(group))) for name, group in itertools.groupby(names)]
 
-
-# English translation of field names, used to name the output .mat files.
-# Any field missing from this dictionary keeps its original name (see below).
 FIELD_TO_ENGLISH = {
     'EnergyP': 'PotentialEnergy',
     'EnergyK': 'KineticEnergy',
@@ -73,14 +69,20 @@ with open(stations_path, 'r', encoding='utf-8') as f:
 
 files = sorted(f for f in os.listdir(traces_dir) if f.startswith('capteurs') and f.endswith('.h5'))
 
-# Discover the layout ('Variables') and the number of time steps (after subsampling)
-# without reading all data -- only inspects metadata of the first file containing them.
+# Discover the layout ('Variables'), the number of time steps (after subsampling),
+# and the position vector dimension without reading all data.
 labels = None
 num_time = None
+pos_dim = None
 for fname in files:
     with h5py.File(os.path.join(traces_dir, fname), 'r') as f:
         if labels is None and 'Variables' in f:
             labels = [lab.decode('utf-8').strip() for lab in f['Variables'][:]]
+        if pos_dim is None:
+            for dataset_name in f.keys():
+                if dataset_name.endswith('_pos') and dataset_name != 'Energy_pos':
+                    pos_dim = f[dataset_name].shape[0]
+                    break
         if num_time is None:
             for dataset_name in f.keys():
                 if dataset_name in ('Variables', 'Energy_Variables', 'Energy') or dataset_name.endswith('_pos'):
@@ -88,7 +90,7 @@ for fname in files:
                 if parse_index(dataset_name) is not None:
                     num_time = len(range(0, f[dataset_name].shape[0], subs))
                     break
-    if labels is not None and num_time is not None:
+    if labels is not None and num_time is not None and pos_dim is not None:
         break
 
 if labels is None or num_time is None:
@@ -108,6 +110,8 @@ N = line_count
 Time = np.empty((N, num_time))
 fields = {name: np.empty((N, num_time, width) if width > 1 else (N, num_time))
           for name, (offset, width) in offsets.items()}
+names = np.empty(N, dtype=object)
+positions = np.full((N, pos_dim if pos_dim is not None else 3), np.inf)
 filled = np.zeros(N, dtype=bool)
 DataE = []
 
@@ -127,6 +131,10 @@ for fname in files:
             print(f'{capcount}/{line_count}')
             capcount += 1
             row = cap_index
+            names[row] = dataset_name
+            pos_dset = dataset_name + '_pos'
+            if pos_dset in f:
+                positions[row] = f[pos_dset][:]
             # .copy() kept intentionally: without it, some stations returned with
             # inconsistent sizes in previous runs.
             aux = f[dataset_name][::subs, :].copy()
@@ -145,7 +153,7 @@ os.makedirs(out_dir, exist_ok=True)
 
 # hdf5storage.write() does not cleanly overwrite a corrupted/incomplete .mat from a
 # previous run (fails with "bad object header version number") -- remove before writing.
-output_names = ['ModelEnergy.mat'] + [f'{FIELD_TO_ENGLISH.get(name, name)}.mat' for name in fields]
+output_names = ['ModelEnergy.mat', 'Positions.mat'] + [f'{FIELD_TO_ENGLISH.get(name, name)}.mat' for name in fields]
 for output_name in output_names:
     try:
         os.remove(os.path.join(out_dir, output_name))
@@ -155,6 +163,13 @@ for output_name in output_names:
 if DataE:
     print("Saving energy")
     hdf5storage.write({'E': DataE}, '.', os.path.join(out_dir, 'ModelEnergy.mat'), matlab_compatible=True)
+
+print("Saving Positions.mat")
+hdf5storage.write(
+    {'Name': names, 'Pos': positions},
+    '.', os.path.join(out_dir, 'Positions.mat'),
+    matlab_compatible=True,
+)
 
 # One .mat file per variable present in H5, named in English
 for field_name, data in fields.items():
