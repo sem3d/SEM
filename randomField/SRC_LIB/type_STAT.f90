@@ -15,7 +15,7 @@ module type_STAT
             !nDim independent
         integer :: nDim = -1
         integer :: corrMod = -1 !1 for Gaussian
-        integer :: margiFirst = -1 !1 for Gaussian, 2 for Lognormal
+        integer :: margiFirst = -1 !1 for Gaussian, 2 for Lognormal, 3 for Gamma, 4 for Weibull, 5 for Uniform
         integer :: method = -1 !1 for Isotropic, 2 for Shinozuka, 3 for Randomization, 4 for FFT
         integer :: Nmc = -1
         logical :: init = .false.

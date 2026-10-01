@@ -488,8 +488,8 @@ contains
                         endif
 
                         if (allocated(L_energy)) then
-                            L_energy(idx) = L_energy(idx) + Tdomain%specel(n)%Mu(i,k)/2.0_fpp * (DXZ - DZX)**2
-                            S_energy(idx) = S_energy(idx) + (0.5_fpp * Tdomain%specel(n)%Lambda(i,k) + Tdomain%specel(n)%Mu(i,k)) * eps_v**2
+                            L_energy(idx) = L_energy(idx) + (0.5_fpp * Tdomain%specel(n)%Lambda(i,k) + Tdomain%specel(n)%Mu(i,k)) * eps_v**2
+                            S_energy(idx) = S_energy(idx) + Tdomain%specel(n)%Mu(i,k)/2.0_fpp * (DXZ - DZX)**2
                             R_energy(idx) = R_energy(idx) + 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * DXZ * DZX - 2.0_fpp * Tdomain%specel(n)%Mu(i,k) * eps_xx * eps_zz
                         endif
                     else if (Tdomain%specel(n)%acoustic) then

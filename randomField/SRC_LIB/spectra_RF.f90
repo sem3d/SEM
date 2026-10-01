@@ -13,35 +13,104 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine set_kMaxND(corrMod, kMax);
+    subroutine set_kMaxND(corrMod, kMax, hurst_nu_in, sphere_D_in);
         implicit none
         !INPUT
         integer, intent(in) :: corrMod;
-        !double precision,   dimension(:),  intent(in), optional :: corrL;
+        double precision, optional, intent(in) :: hurst_nu_in, sphere_D_in
 
         !OUTPUT
         double precision, dimension(:),   intent(out) :: kMax;
 
         !LOCAL VARIABLES
         integer          :: nDim
+        double precision :: nu, sphere_D, a, val
 
         nDim = size(kMax)
+        nu = 0.5d0
+        if(present(hurst_nu_in)) nu = hurst_nu_in
+        if(nu <= 0.0d0) nu = 0.5d0
+
+        sphere_D = 1.0d0
+        if(present(sphere_D_in)) sphere_D = sphere_D_in
+        if(sphere_D <= 0.0d0) sphere_D = 1.0d0
 
         select case(corrMod)
             case(cm_GAUSSIAN)
                 select case(nDim)
                     case(1)
-                        kMax(:) = 6.457D0; !Value to cover 99% Spectra area
+                        kMax(:) = 6.457D0 !Value to cover 99% Spectra area
                     case(2)
-                        kMax(:) = 7.035D0; !Value to cover 99% Spectra area
+                        kMax(:) = 7.035D0
                     case(3)
-                        kMax(:) = 7.355D0; !Value to cover 99% Spectra area
+                        kMax(:) = 7.355D0
                 end select
-            !case(cm_VONKALMAN)
+
+            case(cm_COS)
+                kMax(:) = 12.0D0
+
+            case(cm_KARMAN)
+                select case(nDim)
+                    case(1)
+                        a = 2.0d0 * sqrt(PI) * exp(log_gamma(nu + 0.5d0) - log_gamma(nu))
+                        val = a * sqrt(max(1.0d0, (0.01d0)**(-1.0d0/max(0.05d0, nu)) - 1.0d0))
+                        kMax(:) = max(8.0d0, min(val, 80.0d0))
+                    case(2)
+                        a = 2.0d0 * sqrt(max(0.01d0, nu))
+                        val = a * sqrt(max(1.0d0, (0.01d0)**(-1.0d0/max(0.05d0, nu)) - 1.0d0))
+                        kMax(:) = max(8.0d0, min(val, 50.0d0))
+                    case(3)
+                        a = (6.0d0 * sqrt(PI) * exp(log_gamma(nu + 1.5d0) - log_gamma(nu)))**(1.0d0/3.0d0)
+                        val = a * sqrt(max(1.0d0, (0.01d0)**(-1.0d0/max(0.05d0, nu + 0.5d0)) - 1.0d0))
+                        kMax(:) = max(8.0d0, min(val, 40.0d0))
+                end select
+
+            case(cm_EXPONENTIAL)
+                select case(nDim)
+                    case(1)
+                        kMax(:) = 50.0D0
+                    case(2)
+                        kMax(:) = 14.14D0
+                    case(3)
+                        kMax(:) = 14.0D0
+                end select
+
+            case(cm_POWERLAW)
+                select case(nDim)
+                    case(1)
+                        kMax(:) = 10.43D0
+                    case(2)
+                        kMax(:) = 7.5D0
+                    case(3)
+                        kMax(:) = 6.13D0
+                end select
+
+            case(cm_LOWPASS)
+                select case(nDim)
+                    case(1)
+                        kMax(:) = PI
+                    case(2)
+                        kMax(:) = 2.0D0
+                    case(3)
+                        kMax(:) = 1.5D0 * PI
+                end select
+
+            case(cm_TRIANGULAR)
+                select case(nDim)
+                    case(1)
+                        kMax(:) = PI
+                    case(2)
+                        kMax(:) = 1.5D0 * PI
+                    case(3)
+                        kMax(:) = 2.0D0 * PI
+                end select
+
+            case(cm_MONODISPERSE)
+                kMax(:) = 20.0D0 * PI / sphere_D
+
+            case default
+                kMax(:) = 10.0D0
         end select
-
-        !write(get_fileId(),*) "kMax = ", kMax
-
 
     end subroutine set_kMaxND
 
@@ -69,7 +138,7 @@ contains
 
         if(allocated(RDF%kPoints)) deallocate(RDF%kPoints)
 
-        call set_kMaxND(RDF%corrMod, RDF%kMax) !Defining kMax according to corrMod
+        call set_kMaxND(RDF%corrMod, RDF%kMax, RDF%hurst_nu, RDF%sphere_D) !Defining kMax according to corrMod
         call wLog(" RDF%kMax = ")
         call wLog(RDF%kMax)
 
@@ -126,7 +195,7 @@ contains
                 end if
 
                 !Copy kPoints changing the sign
-                do i = 2, size(kSign,1)
+                do i = 1, size(kSign,1)
                     countInit = (i-1)*kN_unsigned + 1
                     countEnd  = countInit + kN_unsigned - 1
                     do j = 1, RDF%nDim
@@ -176,18 +245,17 @@ contains
     subroutine set_SkVec(RDF, corrL_in);
         implicit none
 
-        !OBS: corrL is supposed = 1. The complete formula is RDF%SkVec = product(corrL) * exp(-dot_product(kVector**2, corrL_effec**2)/(4.0d0*pi))
-
         !INPUT OUTPUT
         type(RF) :: RDF
         double precision, dimension(:), optional, intent(in) :: corrL_in
         !LOCAL
-        integer :: i, freqK = 6
+        integer :: i, j, freqK = 6
         double precision, dimension(RDF%nDim) :: corrL
-        double precision,parameter :: nu=0.1d0 ! < 1.0!!
-        double precision :: vm
-        double precision, dimension(1) :: bes_i,dbes_i,bes_k,dbes_k
-        double precision, dimension(:), allocatable :: kk2
+        double precision, dimension(:), allocatable :: kk2, z_k
+        double precision :: nu, a, prefactor, prod_corrL
+        double precision :: eta_p, D_p
+        logical :: use_vw
+
         corrL(:) = 1.0D0
         if(present(corrL_in)) corrL = corrL_in
         write(*,*) 'correlation length',corrL
@@ -196,54 +264,270 @@ contains
         if(allocated(RDF%SkVec)) deallocate(RDF%SkVec)
         allocate(RDF%SkVec(size(RDF%kPoints,2)))
 
+        prod_corrL = product(corrL(1:RDF%nDim))
+
+        allocate(kk2(size(RDF%SkVec,1)))
+        allocate(z_k(size(RDF%SkVec,1)))
+        kk2(:) = 0.0d0
+        do i = 1, size(RDF%kPoints, 1)
+            kk2(:) = kk2(:) + (RDF%kPoints(i,:) * corrL(min(i, RDF%nDim)))**2.0D0
+        end do
+        z_k(:) = sqrt(kk2(:))
 
         call wLog("RDF%corrMod")
         call wLog(RDF%corrMod)
 
-        !write(*,*) "Inside set_SkVec, corrL = ", corrL
-
         select case(RDF%corrMod)
 
             case(cm_GAUSSIAN)
-                RDF%SkVec(:) = 1.0D0
                 if(RDF%rang == 0) write(*,*) "Gaussian Correlation Model"
                 call wLog("cm_GAUSSIAN")
-                do i = 1, RDF%nDim
-                    RDF%SkVec(:) = RDF%SkVec(:) * corrL(i) * exp(-((RDF%kPoints(i,:)**2.0D0) * (corrL(i)**2.0D0))/(4.0d0*pi))
-                end do
-                !call DispCarvalhol(RDF%SkVec, "RDF%SkVec")
+                RDF%SkVec(:) = prod_corrL * exp(-(z_k(:)**2.0d0) / (4.0d0 * PI))
+
             case(cm_COS)
                 call wLog("cm_COS")
-                RDF%SkVec = 0
-                if(size(RDF%SkVec)>freqK) then
-                    RDF%SkVec(freqK) = 1
+                RDF%SkVec = 0.0d0
+                if(size(RDF%SkVec) > freqK) then
+                    RDF%SkVec(freqK) = 1.0d0
                     call wLog("kPoint used in cosinus CM: ")
                     call wLog(RDF%kPoints(:,freqK))
                     if(RDF%rang == 0) write(*,*) "kPoint used in cosinus CM: ", RDF%kPoints(:,freqK)
                 else
                     stop ("When using the cosinus correlation Model you should have more than 'freqK' kPoints")
                 end if
+
             case(cm_KARMAN)
                 call wLog("cm_KARMAN")
-                
-                allocate(kk2(size(RDF%SkVec,1)))
-                kk2(:) = 0.0d0
-                do i = 1, RDF%nDim
-                    kk2(:) = kk2(:)+(RDF%kPoints(i,:)*corrL(i))**2.0D0
-                enddo
+                nu = RDF%hurst_nu
+                if(nu <= 0.0d0) nu = 0.5d0
 
-                ! BESSEL FUNCTION
-                call ikv(nu,1.0d-10,vm,bes_i,dbes_i,bes_k,dbes_k)
-                ! GENERATE PSD
+                select case(RDF%nDim)
+                    case(1)
+                        a = 2.0d0 * sqrt(PI) * exp(log_gamma(nu + 0.5d0) - log_gamma(nu))
+                        prefactor = corrL(1) / (2.0d0 * PI)
+                        RDF%SkVec(:) = prefactor / ((1.0d0 + (z_k(:)/a)**2.0D0)**(nu + 0.5d0))
+                    case(2)
+                        a = 2.0d0 * sqrt(nu)
+                        prefactor = prod_corrL / (4.0d0 * PI)
+                        RDF%SkVec(:) = prefactor / ((1.0d0 + (z_k(:)/a)**2.0D0)**(nu + 1.0d0))
+                    case(3)
+                        a = (6.0d0 * sqrt(PI) * exp(log_gamma(nu + 1.5d0) - log_gamma(nu)))**(1.0d0/3.0d0)
+                        prefactor = prod_corrL / (6.0d0 * PI**2)
+                        RDF%SkVec(:) = prefactor / ((1.0d0 + (z_k(:)/a)**2.0D0)**(nu + 1.5d0))
+                end select
+
+            case(cm_EXPONENTIAL)
+                call wLog("cm_EXPONENTIAL")
+                select case(RDF%nDim)
+                    case(1)
+                        a = 2.0d0
+                        prefactor = corrL(1) / (2.0d0 * PI)
+                        RDF%SkVec(:) = prefactor / (1.0d0 + (z_k(:)/a)**2.0D0)
+                    case(2)
+                        a = sqrt(2.0d0)
+                        prefactor = prod_corrL / (4.0d0 * PI)
+                        RDF%SkVec(:) = prefactor / ((1.0d0 + (z_k(:)/a)**2.0D0)**1.5d0)
+                    case(3)
+                        a = 6.0d0**(1.0d0/3.0d0)
+                        prefactor = prod_corrL / (6.0d0 * PI**2)
+                        RDF%SkVec(:) = prefactor / ((1.0d0 + (z_k(:)/a)**2.0D0)**2.0d0)
+                end select
+
+            case(cm_POWERLAW)
+                call wLog("cm_POWERLAW")
+                select case(RDF%nDim)
+                    case(1)
+                        a = PI / 2.0d0
+                        prefactor = corrL(1) / (2.0d0 * PI)
+                        RDF%SkVec(:) = prefactor * (1.0d0 + z_k(:)/a) * exp(-z_k(:)/a)
+                    case(2)
+                        prefactor = prod_corrL / (4.0d0 * PI)
+                        do j = 1, size(RDF%SkVec, 1)
+                            if (z_k(j) < 1.0d-8) then
+                                RDF%SkVec(j) = prefactor
+                            else
+                                RDF%SkVec(j) = prefactor * z_k(j) * BESSK1(z_k(j))
+                            end if
+                        end do
+                    case(3)
+                        a = (3.0d0 * PI / 4.0d0)**(1.0d0/3.0d0)
+                        prefactor = prod_corrL / (6.0d0 * PI**2)
+                        RDF%SkVec(:) = prefactor * exp(-z_k(:)/a)
+                end select
+
+            case(cm_LOWPASS)
+                call wLog("cm_LOWPASS")
                 RDF%SkVec(:) = 0.0d0
-                do i = 1, RDF%nDim
-                    RDF%SkVec(:) = RDF%SkVec(:) + corrL(i)**2 !& 
-                enddo
-                RDF%SkVec(:) = 4.0d0*pi*nu/(bes_k(1)*(1.0d0+kk2(:))**(nu+1.5d0))*RDF%SkVec(:) 
-                deallocate(kk2)
+                select case(RDF%nDim)
+                    case(1)
+                        a = PI
+                        prefactor = corrL(1) / (2.0d0 * PI)
+                        where (z_k(:) <= a) RDF%SkVec(:) = prefactor
+                    case(2)
+                        a = 2.0d0
+                        prefactor = prod_corrL / (2.0d0 * PI**2)
+                        where (z_k(:) <= a) RDF%SkVec(:) = prefactor
+                    case(3)
+                        a = 1.5d0 * PI
+                        prefactor = (2.0d0 * prod_corrL) / (9.0d0 * PI**4)
+                        where (z_k(:) <= a) RDF%SkVec(:) = prefactor
+                end select
+
+            case(cm_TRIANGULAR)
+                call wLog("cm_TRIANGULAR")
+                RDF%SkVec(:) = 0.0d0
+                select case(RDF%nDim)
+                    case(1)
+                        a = PI
+                        prefactor = corrL(1) / (2.0d0 * PI)
+                        where (z_k(:) <= a) RDF%SkVec(:) = prefactor * (1.0d0 - z_k(:)/a)
+                    case(2)
+                        a = 1.5d0 * PI
+                        prefactor = prod_corrL / (2.0d0 * PI**2)
+                        where (z_k(:) <= a) RDF%SkVec(:) = prefactor * (1.0d0 - z_k(:)/a)
+                    case(3)
+                        a = 2.0d0 * PI
+                        prefactor = (3.0d0 * prod_corrL) / (8.0d0 * PI**4)
+                        where (z_k(:) <= a) RDF%SkVec(:) = prefactor * (1.0d0 - z_k(:)/a)
+                end select
+
+            case(cm_MONODISPERSE)
+                call wLog("cm_MONODISPERSE")
+                eta_p = RDF%sphere_eta
+                if (eta_p <= 0.0d0 .or. eta_p >= 0.74d0) eta_p = 0.2d0
+                D_p = RDF%sphere_D
+                if (D_p <= 0.0d0) D_p = 1.0d0
+                use_vw = RDF%use_verlet_weis
+
+                do j = 1, size(RDF%SkVec, 1)
+                    RDF%SkVec(j) = eval_monodisperse_psd(z_k(j), RDF%nDim, eta_p, D_p, use_vw)
+                end do
+
+            case default
+                write(*,*) "ERROR - Unknown correlation model ID in set_SkVec: ", RDF%corrMod
+                stop ("Unknown correlation model ID in set_SkVec")
+
         end select
 
+        deallocate(kk2)
+        deallocate(z_k)
+
     end subroutine set_SkVec
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    ! Helper: Evaluates Power Spectral Density for Monodisperse Spheres (Percus-Yevick + Verlet-Weis)
+    !-----------------------------------------------------------------------------------------------
+    function eval_monodisperse_psd(k_in, nDim, eta_in, D_in, use_vw_in) result(phi_out)
+        implicit none
+        double precision, intent(in) :: k_in, eta_in, D_in
+        integer,          intent(in) :: nDim
+        logical,          intent(in) :: use_vw_in
+        double precision             :: phi_out
+
+        ! Local variables
+        double precision :: k_val, eta, D, R, u, S_py, S_tot, m_k, rho
+        double precision :: eta_w, D_w, R_w, rho_w, l1, l2, c_val
+        double precision :: g_cs, g_py, A, mu, denom, I_cos, I_sin, dh
+        double precision :: j1_2u, c2d, j1_val
+
+        k_val = abs(k_in)
+        eta = eta_in
+        D = D_in
+        R = D / 2.0d0
+
+        select case(nDim)
+            case(1)
+                rho = eta / D
+                u = k_val * D / 2.0d0
+                if (u < 1.0d-6) then
+                    m_k = D
+                else
+                    m_k = D * sin(u) / u
+                end if
+                S_tot = (1.0d0 - eta**2) / max(1.0d-8, (1.0d0 - 2.0d0*eta*cos(k_val*D) + eta**2))
+                phi_out = rho * (m_k**2) * S_tot / (2.0d0 * PI * eta * (1.0d0 - eta))
+
+            case(2)
+                rho = eta / (PI * R**2)
+                u = k_val * R
+                if (u < 1.0d-6) then
+                    m_k = PI * R**2
+                    c2d = -PI * (R**2) * (1.0d0 + 2.0d0*eta) / ((1.0d0 - eta)**3)
+                else
+                    j1_val = bessel_j1(u)
+                    m_k = 2.0d0 * PI * (R**2) * j1_val / u
+                    j1_2u = bessel_j1(2.0d0 * u)
+                    c2d = -2.0d0 * PI * (R**2) * (j1_2u / u) * &
+                          ((1.0d0 + eta)/((1.0d0 - eta)**3) - (3.0d0*eta/((1.0d0 - eta)**3)) * (j1_2u / (2.0d0*u)))
+                end if
+                S_tot = max(1.0d-8, 1.0d0 / (1.0d0 - rho * c2d))
+                phi_out = rho * (m_k**2) * S_tot / ((2.0d0 * PI)**2 * eta * (1.0d0 - eta))
+
+            case(3)
+                rho = 3.0d0 * eta / (4.0d0 * PI * R**3)
+                if (use_vw_in .and. eta > 0.05d0) then
+                    eta_w = eta * (1.0d0 - eta / 16.0d0)
+                    D_w   = D * (eta_w / eta)**(1.0d0 / 3.0d0)
+                    R_w   = D_w / 2.0d0
+                    rho_w = 3.0d0 * eta_w / (4.0d0 * PI * R_w**3)
+                else
+                    eta_w = eta
+                    D_w   = D
+                    R_w   = R
+                    rho_w = rho
+                end if
+
+                l1 = (1.0d0 + 2.0d0*eta_w)**2 / ((1.0d0 - eta_w)**4)
+                l2 = -(1.0d0 + eta_w/2.0d0)**2 / ((1.0d0 - eta_w)**4)
+
+                u = k_val * R_w
+                if (u < 1.0d-6) then
+                    c_val = -8.0d0 * PI * (R_w**3) / 3.0d0 * ((4.0d0 + eta_w)*l1 + 18.0d0*eta_w*l2)
+                else
+                    c_val = -4.0d0 * PI * (R_w**3) / (u**3) * ( &
+                        l1 * (sin(2.0d0*u) - 2.0d0*u*cos(2.0d0*u)) + &
+                        3.0d0*eta_w*l2/u * (4.0d0*u*sin(2.0d0*u) + (2.0d0 - 4.0d0*u**2)*cos(2.0d0*u) - 2.0d0) + &
+                        eta_w*l1/(2.0d0*u**3) * ((6.0d0*u**2 - 3.0d0 - 2.0d0*u**4)*cos(2.0d0*u) + &
+                        (4.0d0*u**3 - 6.0d0*u)*sin(2.0d0*u) + 3.0d0) )
+                end if
+                S_py = 1.0d0 / max(1.0d-8, 1.0d0 - rho_w * c_val)
+
+                if (use_vw_in .and. eta > 0.05d0) then
+                    g_cs = (1.0d0 - eta/2.0d0) / ((1.0d0 - eta)**3)
+                    g_py = (1.0d0 + eta_w/2.0d0) / ((1.0d0 - eta_w)**2)
+                    A    = D * (g_cs - g_py)
+                    mu   = (24.0d0 * (A / D) / (eta_w * g_py)) / D
+
+                    denom = 4.0d0 * mu**4 + k_val**4
+                    I_cos = mu * (2.0d0 * mu**2 + k_val**2) / denom
+                    I_sin = k_val * (2.0d0 * mu**2 - k_val**2) / denom
+
+                    if (k_val < 1.0d-8) then
+                        dh = 4.0d0 * PI * A * (D * I_cos + I_sin)
+                    else
+                        dh = (4.0d0 * PI * A / k_val) * (sin(k_val * D) * I_cos + cos(k_val * D) * I_sin)
+                    end if
+                    S_tot = max(1.0d-8, S_py + rho * dh)
+                else
+                    S_tot = S_py
+                end if
+
+                ! Form factor of physical sphere
+                u = k_val * R
+                if (u < 1.0d-6) then
+                    m_k = 4.0d0 * PI * (R**3) / 3.0d0
+                else
+                    m_k = 4.0d0 * PI * (R**3) * (sin(u) - u * cos(u)) / (u**3)
+                end if
+
+                phi_out = rho * (m_k**2) * S_tot / ((2.0d0 * PI)**3 * eta * (1.0d0 - eta))
+
+            case default
+                phi_out = 0.0d0
+        end select
+
+    end function eval_monodisperse_psd
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
@@ -277,6 +561,8 @@ contains
         select case(corrMod)
         case(cm_GAUSSIAN)
             rMax(:) = 2*pi*corrL_effec(:); !CRITERIA STILL TO BE TESTED
+        case default
+            rMax(:) = 4.0d0 * pi * corrL_effec(:)
         end select
 
         deallocate(corrL_effec)

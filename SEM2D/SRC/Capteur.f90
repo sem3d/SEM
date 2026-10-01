@@ -919,8 +919,8 @@ contains
                             sig_xz = 2.0_fpp * el%Mu(i,j) * eps_xz
                         endif
 
-                        L_energy(i,j) = el%Mu(i,j)/2.0_fpp * (DXZ - DZX)**2
-                        S_energy(i,j) = (0.5_fpp * el%Lambda(i,j) + el%Mu(i,j)) * eps_v**2
+                        L_energy(i,j) = (0.5_fpp * el%Lambda(i,j) + el%Mu(i,j)) * eps_v**2
+                        S_energy(i,j) = el%Mu(i,j)/2.0_fpp * (DXZ - DZX)**2
                         R_energy(i,j) = 2.0_fpp * el%Mu(i,j) * DXZ * DZX - 2.0_fpp * el%Mu(i,j) * eps_xx * eps_zz
 
                         P_energy(i,j) = 0.5_fpp * (sig_xx * eps_xx + sig_zz * eps_zz + 2.0_fpp * sig_xz * eps_xz)

@@ -12,6 +12,7 @@ module randomFieldND
     use common_variables_RF
     use writeResultFile_RF
     use fftw3
+    use rosemblat
     !use blas
     implicit none
 
@@ -148,32 +149,25 @@ contains
         double precision, dimension(1:, 1:), intent(inout) :: randField;
 
         !LOCAL VARIABLES
-        double precision :: normalVar, normalAvg
-        integer          :: error, code
-
-        normalVar = 1.0D0
-        normalAvg = 0.0D0
+        integer          :: code
 
         select case (margiFirst)
         case(fom_GAUSSIAN)
-            normalVar = fieldVar
-            normalAvg = fieldAvg
+            call transform_Gaussian(fieldAvg, fieldVar, randField)
         case(fom_LOGNORMAL)
-            if(fieldAvg <= 0.0D0) then
-                write(*,*) ""
-                write(*,*) "ERROR - when using lognormal fieldAvg should be a positive number"
-                call MPI_ABORT(MPI_COMM_WORLD, error, code)
-            end if
-            normalVar = log(1 + fieldVar/(fieldAvg**2))
-            normalAvg = log(fieldAvg) - normalVar/2
+            call transform_Lognormal(fieldAvg, fieldVar, randField)
+        case(fom_GAMMA)
+            call transform_Gamma(fieldAvg, fieldVar, randField)
+        case(fom_WEIBULL)
+            call transform_Weibull(fieldAvg, fieldVar, randField)
+        case(fom_UNIFORM)
+            call transform_Uniform(fieldAvg, fieldVar, randField)
+        case default
+            write(*,*) ""
+            write(*,*) "ERROR - Unknown marginal distribution ID in multiVariateTransformation:"
+            write(*,*) "margiFirst = ", margiFirst
+            call MPI_ABORT(MPI_COMM_WORLD, 1, code)
         end select
-
-        randField(:,:) = randField(:,:) * sqrt(normalVar) &
-            + normalAvg;
-
-        if (margiFirst == fom_LOGNORMAL) then
-            randField(:,:) = exp(randField(:,:))
-        end if
 
     end subroutine multiVariateTransformation
 
@@ -216,7 +210,7 @@ contains
         call set_SkVec(RDF)
 
         allocate(SkMat(size(RDF%SkVec),1))
-        SkMat(:,1) = RDF%SkVec
+        SkMat(:,1) = sqrt(RDF%SkVec)
 
         !call wLog(" RDF%kPoints = ")
         !call wLog(RDF%kPoints)
@@ -308,8 +302,7 @@ contains
 
                 write(*,*) "   cos(k*x + phi) "
                 k_x_phi(1:xDelta,:) =cos(k_x_phi(1:xDelta,:))
-                write(*,*) "   sqrt(Sk) "
-                SkMat = sqrt(SkMat)
+                ! SkMat is already precomputed as sqrt(RDF%SkVec)
 
                 call wLog(" shape(k_x_phi) = ")
                 call wLog(shape(k_x_phi))
@@ -413,7 +406,33 @@ contains
 !
         call init_random_seed(RDF%seed)
 
-        if (RDF%nDim == 2) then
+        if (RDF%nDim == 1) then
+            allocate(psiN   (RDF%kNTotal));
+            allocate(gammaN (RDF%kNTotal));
+            do k = 1, RDF%Nmc
+                if(RDF%calculate(k)) then
+                    call random_number(psiN(:))
+                    call random_number(gammaN(:))
+                    psiN   = 2.0d0*pi*psiN
+                    gammaN = sqrt(12.0d0)*(gammaN - 0.5d0)
+
+                    do j = 1, RDF%kNTotal
+                        rVec = [RDF%kPoints(1,j)]
+                        call DGEMM ( "T", "N", size(RDF%randField,1), 1, RDF%nDim, &
+                            1.0d0, RDF%xPoints, RDF%nDim, rVec, RDF%nDim, 0.0d0, dgemm_mult, size(RDF%randField,1))
+                        RDF%randField(:,k) = sqrt(2.0d0 * RDF%SkVec(j)) * gammaN(j) &
+                                            * cos(                           &
+                                            dgemm_mult                &
+                                            + psiN(j)                 &
+                                            )                          &
+                                            + RDF%randField(:,k)
+                    end do
+                else
+                    RDF%randField(:,k) = 0.0d0
+                end if
+            end do
+
+        else if (RDF%nDim == 2) then
             allocate(psiN   (RDF%kNTotal));
             allocate(thetaN (RDF%kNTotal));
             allocate(gammaN (RDF%kNTotal));
@@ -425,7 +444,7 @@ contains
                     call random_number(thetaN(:))
                     call random_number(gammaN(:))
                     psiN   = 2d0*pi*psiN
-                    thetaN = 2d0*pi*psiN
+                    thetaN = 2d0*pi*thetaN
                     gammaN = 2d0*pi*gammaN
 
                     do j = 1, RDF%kNTotal
@@ -463,7 +482,7 @@ contains
                     call random_number(psiN(:))
 
                     psiN   = 2*pi*psiN
-                    thetaN = 2*pi*psiN
+                    thetaN = 2*pi*thetaN
                     phiN   = pi*phiN
                     gammaN = sqrt(12.0)*(gammaN -0.5d0)
 
@@ -809,6 +828,7 @@ contains
         call wLog(" Inside allocate_randField")
         call wLog("     IN xNStep = ")
         call wLog(xNStep)
+        if(RDF%nDim == 1) RDF%RF_1D(1:xNStep(1)) => randField(:,1)
         if(RDF%nDim == 2) RDF%RF_2D(1:xNStep(1),1:xNStep(2)) => randField(:,1)
         if(RDF%nDim == 3) RDF%RF_3D(1:xNStep(1),1:xNStep(2),1:xNStep(3)) => randField(:,1)
     end subroutine associate_randField
@@ -818,13 +838,14 @@ contains
     !---------------------------------------------------------------------------------
     !---------------------------------------------------------------------------------
     subroutine normalize_randField(randField, minPos, maxPos, &
-                                   nDim, Nmc, loc_Comm, RF_2D, RF_3D)
+                                   nDim, Nmc, loc_Comm, RF_1D, RF_2D, RF_3D)
         implicit none
         !INPUT OUTPUT
         double precision, dimension(:,:), intent(inout) :: randField
         !INPUT
         integer, dimension(:), intent(in) :: minPos, maxPos
         integer, intent(in) :: nDim, loc_Comm, Nmc !OBS Nmc, was setted manually in the caller
+        double precision, dimension(:), intent(in), optional :: RF_1D
         double precision, dimension(:,:), intent(in), optional :: RF_2D
         double precision, dimension(:,:,:), intent(in), optional :: RF_3D
         !LOCAL
@@ -836,7 +857,9 @@ contains
         integer :: i
         integer(kind=8) :: xNTotal, xNLocal
 
-        if(nDim == 2 .and. (.not. present(RF_2D))) then
+        if(nDim == 1 .and. (.not. present(RF_1D))) then
+            write(*,*) "ERROR on normalize_randField nDim = 1 and RF_1D not present"
+        else if(nDim == 2 .and. (.not. present(RF_2D))) then
             write(*,*) "ERROR on normalize_randField nDim = 2 and RF_2D not present"
         else if(nDim == 3 .and. (.not. present(RF_3D))) then
             write(*,*) "ERROR on normalize_randField nDim = 3 and RF_3D not present"
@@ -855,6 +878,7 @@ contains
 
 
         !AVERAGE---------------------------------------------------------
+        if(nDim == 1) sumRF(:) = sum(RF_1D(minPos(1):maxPos(1)))
         if(nDim == 2) sumRF(:) = sum(RF_2D(minPos(1):maxPos(1), &
                                            minPos(2):maxPos(2)))
         if(nDim == 3) sumRF(:) = sum(RF_3D(minPos(1):maxPos(1), &
@@ -875,6 +899,7 @@ contains
         end do
 
         !Verifying Average
+        if(nDim == 1) sumRF(:) = sum(RF_1D(minPos(1):maxPos(1)))
         if(nDim == 2) sumRF(:) = sum(RF_2D(minPos(1):maxPos(1), &
                                            minPos(2):maxPos(2)))
         if(nDim == 3) sumRF(:) = sum(RF_3D(minPos(1):maxPos(1), &
@@ -889,6 +914,7 @@ contains
 
 
         !STANDARD DEVIATION-----------------------------------------------------
+        if(nDim == 1) sumRFsquare(:) = sum((RF_1D(minPos(1):maxPos(1)))**2.0D0)
         if(nDim == 2) sumRFsquare(:) = sum((RF_2D(minPos(1):maxPos(1), &
                                                   minPos(2):maxPos(2)) &
                                                   )**2.0D0)
@@ -909,6 +935,7 @@ contains
         end do
 
         !Verifying Standard Deviation
+        if(nDim == 1) sumRFsquare(:) = sum((RF_1D(minPos(1):maxPos(1)))**2.0D0)
         if(nDim == 2) sumRFsquare(:) = sum((RF_2D(minPos(1):maxPos(1), &
                                                   minPos(2):maxPos(2)) &
                                                   )**2.0D0)

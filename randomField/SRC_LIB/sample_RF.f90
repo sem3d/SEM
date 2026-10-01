@@ -452,12 +452,14 @@ contains
             type(IPT_RF), intent(in) :: IPT
 
             !LOCAL
+            double precision, dimension(:), pointer :: RF_1D
             double precision, dimension(:, :), pointer :: RF_2D
             double precision, dimension(:, :, :), pointer :: RF_3D
             integer, dimension(IPT%nDim) :: minP, maxP, overlapNPoints
             integer, dimension(IPT%nDim) :: xNStep_Glob
 
 
+            if(IPT%nDim == 1) RF_1D(1:xNStep(1)) => randField(:,1)
             if(IPT%nDim == 2) RF_2D(1:xNStep(1),1:xNStep(2)) => randField(:,1)
             if(IPT%nDim == 3) RF_3D(1:xNStep(1),1:xNStep(2),1:xNStep(3)) => randField(:,1)
 
@@ -470,7 +472,10 @@ contains
             where(IPT%coords == IPT%nFields - 1) maxP = xNStep
             if(.not. IPT%extLoc) maxP = xNStep
 
-            if(IPT%nDim == 2) then
+            if(IPT%nDim == 1) then
+                call normalize_randField(randField, minP, maxP, &
+                                         IPT%nDim, 1, IPT%loc_Comm, RF_1D=RF_1D)
+            else if(IPT%nDim == 2) then
                 call normalize_randField(randField, minP, maxP, &
                                          IPT%nDim, 1, IPT%loc_Comm, RF_2D=RF_2D)
             else if(IPT%nDim == 3) then
@@ -499,6 +504,7 @@ contains
             build_times(7) = MPI_Wtime() !Writing Sample Time
 
 
+            if(associated(RF_1D)) nullify(RF_1D)
             if(associated(RF_2D)) nullify(RF_2D)
             if(associated(RF_3D)) nullify(RF_3D)
 

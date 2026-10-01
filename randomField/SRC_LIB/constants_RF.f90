@@ -14,12 +14,20 @@ module constants_RF
                           RANDOMIZATION = 3, &
                           FFT = 4
     !Correlation Model
-    integer, parameter :: cm_GAUSSIAN = 1, &
-                          cm_COS = 2,      &
-                          cm_KARMAN = 3
+    integer, parameter :: cm_GAUSSIAN     = 1, &
+                          cm_COS          = 2, &
+                          cm_KARMAN       = 3, &
+                          cm_EXPONENTIAL  = 4, &
+                          cm_POWERLAW     = 5, &
+                          cm_LOWPASS      = 6, &
+                          cm_TRIANGULAR   = 7, &
+                          cm_MONODISPERSE = 8
     !First-order Marginal Density
-    integer, parameter :: fom_GAUSSIAN = 1, &
-                          fom_LOGNORMAL = 2
+    integer, parameter :: fom_GAUSSIAN  = 1, &
+                          fom_LOGNORMAL = 2, &
+                          fom_GAMMA     = 3, &
+                          fom_WEIBULL   = 4, &
+                          fom_UNIFORM   = 5
     !Mesh Mode
     integer, parameter :: msh_AUTO = 1, msh_UNV = 2
 

@@ -26,7 +26,7 @@ module type_RF
         double precision   :: fieldAvg = -1, fieldVar = -1;
         double precision   :: prep_CPU_Time, gen_CPU_Time, loc_CPU_Time, trans_CPU_Time
         integer :: corrMod = -1 !1 for Gaussian
-        integer :: margiFirst = -1 !1 for Gaussian, 2 for Lognormal
+        integer :: margiFirst = -1 !1 for Gaussian, 2 for Lognormal, 3 for Gamma, 4 for Weibull, 5 for Uniform
         integer :: method = -1 !1 for Isotropic, 2 for Shinozuka, 3 for Randomization, 4 for FFT
         integer :: Nmc = -1
         logical :: init = .false.
@@ -43,11 +43,16 @@ module type_RF
         integer, dimension(:,:), allocatable :: neighSeed
         !double precision, dimension(:), allocatable :: xMaxGlob, xMinGlob;
         double precision, dimension(:,:), allocatable :: neighRange;
-        !double precision, dimension(:), allocatable :: xMaxExt, xMinExt;
+        double precision :: hurst_nu = 0.5d0
+        double precision :: sphere_eta = 0.2d0
+        double precision :: sphere_D = 1.0d0
+        logical          :: use_verlet_weis = .true.
         double precision, pointer :: xPoints(:,:)
         double precision, pointer :: randField(:,:)
+        double precision, dimension(:)      , pointer :: RF_1D => null()
         double precision, dimension(:,:)    , pointer :: RF_2D
         double precision, dimension(:,:,:)  , pointer :: RF_3D
+        double precision, dimension(:,:)      , pointer :: xPoints_1D => null()
         double precision, dimension(:,:,:)    , pointer :: xPoints_2D
         double precision, dimension(:,:,:,:)  , pointer :: xPoints_3D
         logical, dimension(:), allocatable :: calculate
@@ -100,6 +105,10 @@ module type_RF
             RF_a%method      = IPT%method
             RF_a%seedStart   = IPT%seedStart
             RF_a%corrL       = IPT%corrL
+            RF_a%hurst_nu        = IPT%hurst_nu
+            RF_a%sphere_eta      = IPT%sphere_eta
+            RF_a%sphere_D        = IPT%sphere_D
+            RF_a%use_verlet_weis = IPT%use_verlet_weis
             !RF_a%independent = IPT%independent
             RF_a%seedStart   = IPT%seedStart
 

@@ -560,6 +560,23 @@ contains
 
     end function getLine
 
+    !-----------------------------------------------------------------------------------------------
+    function has_Tag(dataTable, tagName) result(found)
+        implicit none
+        character(len=*), dimension(:,:), intent(in) :: dataTable
+        character(len=*),                 intent(in) :: tagName
+        logical :: found
+        integer :: i
+
+        found = .false.
+        do i = 1, size(dataTable, 2)
+            if (trim(dataTable(1, i)) == trim(tagName)) then
+                found = .true.
+                exit
+            end if
+        end do
+    end function has_Tag
+
 end module readFile_RF
 !! Local Variables:
 !! mode: f90

@@ -4,6 +4,7 @@ module type_inputRF
     use readFile_RF
     use readUNV_RF
     use systemUt_RF
+    use constants_RF
 
     implicit none
 
@@ -45,9 +46,13 @@ module type_inputRF
         double precision   :: fieldAvg = -1, fieldVar = -1;
         double precision, dimension(:), allocatable :: corrL_in, overlap_in
         integer :: corrMod = -1 !1 for Gaussian
-        integer :: margiFirst = -1 !1 for Gaussian, 2 for Lognormal
+        integer :: margiFirst = -1 !1 for Gaussian, 2 for Lognormal, 3 for Gamma, 4 for Weibull, 5 for Uniform
         integer :: method = -1 !1 for Isotropic, 2 for Shinozuka, 3 for Randomization, 4 for FFT
         integer :: Nmc = -1, seedStart
+        double precision :: hurst_nu = 0.5d0
+        double precision :: sphere_eta = 0.2d0
+        double precision :: sphere_D = 1.0d0
+        logical          :: use_verlet_weis = .true.
         integer, dimension(:), allocatable :: nFields
         integer :: localizationLevel = -1, nTotalFields = -1
         logical :: global
@@ -156,7 +161,7 @@ contains
             double precision, intent(in)   :: fieldAvg, fieldVar
             double precision, dimension(:), intent(in) :: corrL_in, overlap_in
             integer, intent(in) :: corrMod!1 for Gaussian
-            integer, intent(in) :: margiFirst!1 for Gaussian, 2 for Lognormal
+            integer, intent(in) :: margiFirst!1 for Gaussian, 2 for Lognormal, 3 for Gamma, 4 for Weibull, 5 for Uniform
             integer, intent(in) :: method!1 for Isotropic, 2 for Shinozuka, 3 for Randomization, 4 for FFT
             integer, intent(in) :: Nmc, seedStart
             integer, dimension(:), intent(in) :: nFields
@@ -254,7 +259,7 @@ contains
             double precision, intent(in)   :: fieldAvg, fieldVar
             double precision, dimension(:), intent(in) :: corrL_in
             integer, intent(in) :: corrMod!1 for Gaussian
-            integer, intent(in) :: margiFirst!1 for Gaussian, 2 for Lognormal
+            integer, intent(in) :: margiFirst!1 for Gaussian, 2 for Lognormal, 3 for Gamma, 4 for Weibull, 5 for Uniform
             integer, intent(in) :: seedStart
 
             !LOCAL
@@ -269,7 +274,7 @@ contains
             overlap_in = 0.0D0
             nFields = 1
 #ifdef MAKELOG
-            stop("init_IPT_RF_std cannot be used if MAKELOG is activated")
+            stop "init_IPT_RF_std cannot be used if MAKELOG is activated"
 #endif
             call MPI_COMM_RANK(comm, rang, code)
             call MPI_COMM_SIZE(comm, nb_procs, code)
@@ -595,7 +600,7 @@ contains
 
                         if(VP_VS_RHO_flag == 1) then
                             if(trim(adjustl(prop(prop_count)%name)) == "Lambda") then
-                                prop(prop_count)%avg = 2d0*RHO*VS**2d0
+                                prop(prop_count)%avg = RHO*(VP**2d0 - 2d0*VS**2d0)
                             else if(trim(adjustl(prop(prop_count)%name)) == "Kappa") then
                                 prop(prop_count)%avg = RHO*(VP**2d0 - 4d0*(VS**2d0)/3d0)
                             else if(trim(adjustl(prop(prop_count)%name)) == "Mu") then
@@ -827,6 +832,11 @@ contains
             call read_DataTable(dataTable, "localizationLevel", IPT%localizationLevel)
             call read_DataTable(dataTable, "overlap", IPT%overlap_in)
 
+            if (has_Tag(dataTable, "hurst_nu"))        call read_DataTable(dataTable, "hurst_nu", IPT%hurst_nu)
+            if (has_Tag(dataTable, "sphere_eta"))      call read_DataTable(dataTable, "sphere_eta", IPT%sphere_eta)
+            if (has_Tag(dataTable, "sphere_D"))        call read_DataTable(dataTable, "sphere_D", IPT%sphere_D)
+            if (has_Tag(dataTable, "use_verlet_weis")) call read_DataTable(dataTable, "use_verlet_weis", IPT%use_verlet_weis)
+
             deallocate(dataTable)
 
         end subroutine read_generation_input
@@ -955,13 +965,14 @@ contains
             type(IPT_RF), intent(in)  :: IPT
             !LOCAL
             integer :: i
+            integer :: mpi_code
 
             !Input Validation
             if(IPT%Nmc < 1) then
                write(*,*) ""
                write(*,*) "ERROR - Number of events should be a positive integer"
                write(*,*) "IPT%Nmc = ", IPT%Nmc
-               stop (" ")
+               call MPI_ABORT(MPI_COMM_WORLD, 1, mpi_code)
             end if
 
             if((IPT%nDim_gen < 1) .or. (IPT%nDim_mesh < 1) .or. (IPT%nDim_gen /= IPT%nDim_mesh)) then
@@ -969,27 +980,56 @@ contains
                write(*,*) "ERROR - nDim should be a positive integer and should be the same in both mesh and generation files"
                write(*,*) "IPT%nDim_gen  = ", IPT%nDim_gen
                write(*,*) "IPT%nDim_mesh = ", IPT%nDim_mesh
-               stop (" ")
+               call MPI_ABORT(MPI_COMM_WORLD, 1, mpi_code)
             end if
 
             do i = 1, IPT%nDim_gen
                if(IPT%corrL_in(i) <= 0.0d0) then
                    write(*,*) ""
                    write(*,*) "ERROR - corrL_in should be a positive number greater than 0.0"
-                   stop (" ")
+                   call MPI_ABORT(MPI_COMM_WORLD, 1, mpi_code)
                end if
             end do
 
             if(any(IPT%nFields < 1)) then
                write(*,*) ""
                write(*,*) "ERROR - IPT%nFields should be a positive non-zero value vector"
-               stop (" ")
+               call MPI_ABORT(MPI_COMM_WORLD, 1, mpi_code)
             end if
 
             if(IPT%localizationLevel == 0 .and. any(IPT%nFields /=1)) then
                write(*,*) ""
                write(*,*) "ERROR - If locLevel = 0 IPT%nFields should have only ones"
-               stop (" ")
+               call MPI_ABORT(MPI_COMM_WORLD, 1, mpi_code)
+            end if
+
+            !Validation of Marginal Distribution (margiFirst), fieldVar and fieldAvg
+            if(IPT%margiFirst < fom_GAUSSIAN .or. IPT%margiFirst > fom_UNIFORM) then
+               write(*,*) ""
+               write(*,*) "ERROR - Invalid marginal distribution (margiFirst)."
+               write(*,*) "Valid options are: 1 (Gaussian), 2 (Lognormal), 3 (Gamma), 4 (Weibull), 5 (Uniform)"
+               write(*,*) "Given IPT%margiFirst = ", IPT%margiFirst
+               call MPI_ABORT(MPI_COMM_WORLD, 1, mpi_code)
+            end if
+
+            if(IPT%fieldVar <= 0.0d0) then
+               write(*,*) ""
+               write(*,*) "ERROR - fieldVar must be a strictly positive number (> 0.0)."
+               write(*,*) "Given IPT%fieldVar = ", IPT%fieldVar
+               call MPI_ABORT(MPI_COMM_WORLD, 1, mpi_code)
+            end if
+
+            if(IPT%margiFirst == fom_LOGNORMAL .or. &
+               IPT%margiFirst == fom_GAMMA .or. &
+               IPT%margiFirst == fom_WEIBULL) then
+               if(IPT%fieldAvg <= 0.0d0) then
+                  write(*,*) ""
+                  write(*,*) "ERROR - For Lognormal (2), Gamma (3), or Weibull (4) distributions,"
+                  write(*,*) "fieldAvg must be a strictly positive number (> 0.0)."
+                  write(*,*) "Given IPT%margiFirst = ", IPT%margiFirst
+                  write(*,*) "Given IPT%fieldAvg   = ", IPT%fieldAvg
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpi_code)
+               end if
             end if
 
         end subroutine validate_input
