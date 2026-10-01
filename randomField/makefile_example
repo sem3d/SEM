@@ -12,6 +12,8 @@ EXEC  = randomField.exe
 EXEC2 = statistics.exe
 LIB1 = libRF.a
 FC   = mpif90
+CC   = mpicc
+CFLAGS = -g -O1
 
 FFLAGS = -g -O1  -ffree-line-length-none -cpp 
 # Other flags
@@ -22,6 +24,12 @@ FFLAGS = -g -O1  -ffree-line-length-none -cpp
 #### FROM THIS POINT ON THE USER SHOULD NOT MODIFY
 RM := rm -rf
 
+#Path to the randomField directory, relative to the build directory
+RFDIR = ../sem-ecp/randomField
+
+#All dcdflib sources (cdfgam, used by Rosemblat.f90, needs several of them)
+DCDF_OBJ = $(patsubst $(RFDIR)/dcdflib/src/%.f,./%.o,$(wildcard $(RFDIR)/dcdflib/src/*.f))
+
 #Specifying the sources "f90" and "f"
 SRCS = $(wildcard *.f90 *.f) 
 
@@ -29,6 +37,7 @@ SRCS = $(wildcard *.f90 *.f)
 #OBJS = $(SRCS:.f90=.o) #SYNTAX NOT WORKING
 
 RF_OBJ += ./main_RandomField.o \
+./Rosemblat.o \
 ./randomFieldND.o \
 ./spectra_RF.o \
 ./writeResultFile_RF.o \
@@ -43,15 +52,10 @@ RF_OBJ += ./main_RandomField.o \
 ./calls_RF.o \
 ./ranlib.o \
 ./rnglib.o \
-./ipmpar.o \
-./spmpar.o \
-./cumnor.o \
-./devlpl.o \
-./stvaln.o \
-./dinvnr.o \
-./cdfnor.o
+$(DCDF_OBJ)
 
-LIB_OBJ += ./randomFieldND.o \
+LIB_OBJ += ./Rosemblat.o \
+./randomFieldND.o \
 ./spectra_RF.o \
 ./writeResultFile_RF.o \
 ./mesh_RF.o \
@@ -65,13 +69,7 @@ LIB_OBJ += ./randomFieldND.o \
 ./calls_RF.o \
 ./ranlib.o \
 ./rnglib.o \
-./ipmpar.o \
-./spmpar.o \
-./cumnor.o \
-./devlpl.o \
-./stvaln.o \
-./dinvnr.o \
-./cdfnor.o
+$(DCDF_OBJ)
 
 STAT_OBJ += ./main_Stat.o \
 ./statistics_RF.o \
@@ -91,7 +89,8 @@ COMM_OBJ += ./charFunctions.o \
 ./dger.o \
 ./systemUt_RF.o \
 ./special_functions.o \
-./fftw3.o
+./fftw3.o \
+./hdf5_compat.o
 
 #./type_TEST.o \
 #./test_func_RF.o \
@@ -158,7 +157,8 @@ sample_RF.o          : constants_RF.o \
                        topography_RF.o \
 		       write_Log_File.o \
 		       writeResultFile_RF.o			           
-randomFieldND.o      : constants_RF.o \
+randomFieldND.o      : Rosemblat.o \
+                       constants_RF.o \
                        common_variables_RF.o \
                        displayCarvalhol.o \
 		       dgemm.o \
@@ -246,35 +246,42 @@ cdfnor.o             : dinvnr.o \
 		       spmpar.o \
 		       cumnor.o
 # Making all the ".o" from the ".f90"
-%.o: ../sem-ecp/randomField/SRC_EXE/%.f90
+%.o: $(RFDIR)/SRC_EXE/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 		
-%.o: ../sem-ecp/randomField/SRC_LIB/%.f90
+%.o: $(RFDIR)/SRC_LIB/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
-%.o: ../sem-ecp/randomField/BLAS/%.f90
+%.o: $(RFDIR)/SRC_LIB/%.c
+	@echo 'Building file: $<'
+	@echo 'Invoking: C Compiler'
+	$(CC) $(CFLAGS) -o "$@" -c "$<"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+%.o: $(RFDIR)/BLAS/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 	
-%.o: ../sem-ecp/randomField/RANDLIB/%.f90
+%.o: $(RFDIR)/RANDLIB/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '	
 	
-%.o: ../sem-ecp/randomField/dcdflib/src/%.f
+%.o: $(RFDIR)/dcdflib/src/%.f
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
