@@ -218,8 +218,8 @@ contains
         end if
 
         if (out_variables(OUT_ENERGYD) == 1) then
-            call write_1d_var_c(outputs, parent_id, "L_energy", outputs%D_energy(0,:))
-            call write_1d_var_c(outputs, parent_id, "S_energy", outputs%D_energy(1,:))
+            call write_1d_var_c(outputs, parent_id, "L_energy", outputs%D_energy(1,:))
+            call write_1d_var_c(outputs, parent_id, "S_energy", outputs%D_energy(0,:))
             call write_1d_var_c(outputs, parent_id, "R_energy", outputs%D_energy(2,:))
         end if
 

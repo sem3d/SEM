@@ -848,8 +848,8 @@ contains
             end select
             local_sum_P_energy = local_sum_P_energy + elem_P_En
             local_sum_K_energy = local_sum_K_energy + elem_K_En
-            local_sum_L_energy = local_sum_L_energy + elem_D_En(0)
-            local_sum_S_energy = local_sum_S_energy + elem_D_En(1)
+            local_sum_L_energy = local_sum_L_energy + elem_D_En(1)
+            local_sum_S_energy = local_sum_S_energy + elem_D_En(0)
             local_sum_R_energy = local_sum_R_energy + elem_D_En(2)
         enddo
         call MPI_ALLREDUCE(local_sum_P_energy, global_sum_P_energy, 1, MPI_DOUBLE_PRECISION, &
