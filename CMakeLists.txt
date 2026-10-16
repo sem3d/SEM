@@ -58,12 +58,12 @@ endif (OPT_MPI)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+if (CMAKE_Fortran_COMPILER_ID MATCHES "^Intel")
   # FLAGS ifort :
   # -fpp : preprocesseur
   # -allow nofpp_comments : indique au preprocesseur de ne pas traiter specialement les commentaires fortran
   #                         ceci permet de caser des directives openmp dans des macros
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -mkl=sequential -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpp -allow nofpp_comments ${EXTRA_IFORT_FLAGS}")
   set(USE_MKL TRUE)
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "NVHPC")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Mpreprocess ")
@@ -145,11 +145,11 @@ endif(CEAUSER STREQUAL "CEAUSER-NOTFOUND")
 set(FTM_SOURCES ${SEMCOMMON}/libmpi_fantome.f90)
 # This command is used to find a library. A cache entry named by <VAR> is created to store the result of this command. If the library is found the result is stored in the variable and the search will not be repeated unless the variable is cleared. If nothing is found, the re
 # On veut compiler les .f90 avec le preprocesseur cpp
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+if (CMAKE_Fortran_COMPILER_ID MATCHES "^Intel")
   set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
-else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+else (CMAKE_Fortran_COMPILER_ID MATCHES "^Intel")
   set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
-endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+endif (CMAKE_Fortran_COMPILER_ID MATCHES "^Intel")
 
 
 set(SEM_EXTRA_LIBS)
