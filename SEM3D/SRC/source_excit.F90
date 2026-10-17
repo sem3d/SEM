@@ -156,6 +156,7 @@ contains
                 end do
             enddo
         enddo
+        src%ExtForce = src%spatial_weight * src%ExtForce
     end subroutine source_excit_moment
 
     subroutine source_excit(Tdomain,rank)

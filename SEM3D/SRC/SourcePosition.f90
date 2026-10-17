@@ -10,150 +10,200 @@
 !! \date
 !!
 !<
-
+!! Locate physical sources, then expand CG moments into owned element entries.
 subroutine SourcePosition (Tdomain)
     use sdomain
     use ssources
     use mpi
     use mshape8
     use mshape27
-    use mlocations3d
     implicit none
-    type (domain), intent(inout) :: Tdomain
-    !
-    integer :: rg, ierr, nnodes
-    integer :: n_src, i,j
-    real(fpp) :: xs,ys,zs,xi,eta,zeta
-    real(fpp), dimension(0:2,0:2) :: LocInvGrad
-    real(fpp), dimension(:,:), allocatable :: coord
-    real(fpp) :: R
-    integer :: src_proc, nmax, n_el, nb_src_inproc, dom
-    integer, parameter :: NMAXEL=20
-    integer, dimension(NMAXEL) :: elems
-    real(fpp), dimension(0:2,NMAXEL) :: coordloc
-    real(fpp), parameter :: EPSD = 1D-10
-    real(fpp) :: EPS
-    type(source), dimension(:), allocatable :: ssource_temp
-    logical, dimension(:), allocatable :: src_inproc
-    logical :: inside, is_fluid, is_solid
+    type(domain), intent(inout) :: Tdomain
+    type(source), allocatable :: local_sources(:), candidates(:)
+    type(source) :: item
+    real(fpp), allocatable :: coord(:,:)
+    real(fpp) :: point(0:2), ref(0:2), jac(0:2,0:2), invjac(0:2,0:2)
+    real(fpp) :: eps_x, scale, det, local_weight, total_weight
+    real(fpp), parameter :: EPS_REF=1e-10_fpp
+    integer :: ns, el, j, axis, dom, nlocal, ncand, i, rg, ierr, owner, proposed
+    integer :: local_counts(2), global_counts(2)
+    logical :: ok, fluid_source, solid_element, inside
 
     rg = Tdomain%rank
-    nb_src_inproc = 0
-    nnodes = Tdomain%n_nodes
-    allocate(coord(0:2, 0:nnodes-1))
-    allocate(src_inproc(0:Tdomain%n_source-1))
-    src_inproc = .false.
-    EPS=EPSD*Tdomain%dxmax
-    do n_src = 0, Tdomain%n_source-1
-        xs = Tdomain%Ssource(n_src)%Xsource
-        ys = Tdomain%Ssource(n_src)%Ysource
-        zs = Tdomain%Ssource(n_src)%Zsource
-
-        ! On trouve les elements autour de la source
-        nmax = NMAXEL
-        call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
-        n_el = -1
- 
-        do i=1,nmax
+    nlocal = 0
+    allocate(local_sources(0:max(1,Tdomain%n_source)-1), candidates(0:7))
+    allocate(coord(0:2,0:Tdomain%n_nodes-1))
+    do ns=0,Tdomain%n_source-1
+        point = [Tdomain%sSource(ns)%Xsource,Tdomain%sSource(ns)%Ysource,Tdomain%sSource(ns)%Zsource]
+        fluid_source = Tdomain%sSource(ns)%i_type_source==3 .or. Tdomain%sSource(ns)%i_type_source==7
+        ncand = 0
+        ! Scan owned elements, with a tolerant physical bounding-box prefilter.
+        ! Unlike the old fixed candidate buffer this has no valence-dependent cap.
+        do el=0,Tdomain%n_elem-1
+            dom = Tdomain%specel(el)%domain
+            solid_element = dom==DM_SOLID_CG .or. dom==DM_SOLID_DG .or. dom==DM_SOLID_CG_PML
+            if (fluid_source .eqv. solid_element) cycle
+            do j=0,Tdomain%n_nodes-1
+                coord(:,j) = Tdomain%Coord_Nodes(:,Tdomain%specel(el)%Control_Nodes(j))
+            enddo
+            scale = maxval(maxval(coord,dim=2)-minval(coord,dim=2))
+            eps_x = max(EPS_REF*scale,64*epsilon(1._fpp)*max(1._fpp,maxval(abs(coord))))
             inside = .true.
-            xi   = coordloc(0,i)
-            eta  = coordloc(1,i)
-            zeta = coordloc(2,i)
-
-            if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
-            if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
-            if (inside) then
-                n_el = elems(i)
-                exit
-            end if
-        end do
-
-        ! On ignore une source fluide dans le domaine solide
-        if (n_el/=-1) then
-            dom = Tdomain%specel(n_el)%domain
-            if (dom==DM_SOLID_CG .or. dom==DM_SOLID_DG .or. dom==DM_SOLID_CG_PML) then
-                is_fluid = .false.
-                is_solid = .true.
+            do axis=0,2
+                if (point(axis)<minval(coord(axis,:))-eps_x .or. &
+                    point(axis)>maxval(coord(axis,:))+eps_x) inside=.false.
+            enddo
+            if (.not.inside) cycle
+            if (Tdomain%n_nodes==8) then
+                call shape8_global2local(coord,point(0),point(1),point(2),ref(0),ref(1),ref(2),ok)
             else
-                is_fluid = .true.
-                is_solid = .false.
-            end if
-            ! fluid sources: 3 (fluidpulse) and 7 (pressure). Reject them in a solid,
-            ! and reject any non-fluid source type in a fluid.
-            if((Tdomain%sSource(n_src)%i_type_source == 3 .or. &
-                Tdomain%sSource(n_src)%i_type_source == 7) .and. is_solid) n_el = -1
-            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. &
-               Tdomain%sSource(n_src)%i_type_source /= 7 .and. is_fluid) n_el = -1
-        endif
+                call shape27_global2local(coord,point(0),point(1),point(2),ref(0),ref(1),ref(2),ok)
+            endif
+            if (.not.ok) cycle
+            if (any(abs(ref)>1._fpp+EPS_REF)) cycle
+            do axis=0,2
+                if (abs(abs(ref(axis))-1._fpp)<=EPS_REF) ref(axis)=sign(1._fpp,ref(axis))
+            enddo
+            if (Tdomain%n_nodes==8) then
+                call shape8_local2jacob(coord,ref(0),ref(1),ref(2),jac)
+            else
+                call shape27_local2jacob(coord,ref(0),ref(1),ref(2),jac)
+            endif
+            det = dot_product(jac(0,:),cross(jac(1,:),jac(2,:)))
+            if (det<=0._fpp) then
+                write(*,*) 'ERROR: nonpositive source-element Jacobian',ns,el,det
+                call MPI_Abort(Tdomain%communicateur,1,ierr)
+                stop 1
+            endif
+            invjac=jac
+            call invert_3d(invjac,det)
+            item=Tdomain%sSource(ns)
+            item%elem=el
+            item%proc=rg
+            item%refcoord=ref
+            item%InvGrad=invjac
+            item%spatial_weight=1._fpp
+            if (item%i_type_source==2 .and. dom==DM_SOLID_CG) &
+                item%spatial_weight=cone_fraction(jac,invjac,ref)
+            call append(candidates,ncand,item)
+        enddo
 
-        Tdomain%Ssource(n_src)%elem = n_el
-        if (n_el/=-1) then
-            Tdomain%sSource(n_src)%proc = rg
-        else
-            Tdomain%sSource(n_src)%proc = -1
-        end if
-        ! On trouve le processeur qui contient la src
-        call MPI_AllReduce(Tdomain%sSource(n_src)%proc, src_proc, 1, MPI_INTEGER, &
-                           MPI_MAX, Tdomain%communicateur, ierr)
-
-        if (src_proc==-1) then
-            if (rg==0) then
-                write(*,*) "The source at (", xs, ys, zs, ") doesn't appear to be on any processor"
-                write(*,*) "Please verify that the source location is within the computation domain"
-                write(*,*) "And the source type (solid, or fluid) is in accordance with its location"
-
-                write(*,*) "ALSO PRINTING n_el and proc   ", n_el, Tdomain%sSource(n_src)%proc
-
-            end if
+        local_counts=0
+        do i=0,ncand-1
+            if (Tdomain%specel(candidates(i)%elem)%domain==DM_SOLID_CG) then
+                local_counts(1)=local_counts(1)+1
+            else
+                local_counts(2)=local_counts(2)+1
+            endif
+        enddo
+        call MPI_Allreduce(local_counts,global_counts,2,MPI_INTEGER,MPI_SUM,Tdomain%communicateur,ierr)
+        if (sum(global_counts)==0) then
+            if (rg==0) write(*,*) 'ERROR: source not found in a compatible element',ns,point
+            call MPI_Abort(Tdomain%communicateur,1,ierr)
             stop 1
         endif
 
-        if (rg==src_proc) then
-            n_el = Tdomain%sSource(n_src)%elem
-            do j = 0, nnodes-1
-                coord(0:2, j) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n_el)%Control_Nodes(j))
-            enddo
-            if (nnodes==27) then
-                call shape27_local2jacob(coord, xi, eta, zeta, LocInvGrad)
-            else if (nnodes==8) then
-                call shape8_local2jacob(coord, xi, eta, zeta, LocInvGrad)
+        if (Tdomain%sSource(ns)%i_type_source==2 .and. global_counts(1)>0) then
+            if (global_counts(2)>0) then
+                if (rg==0) write(*,*) 'ERROR: CG moment on mixed CG/DG/PML interface is unsupported',ns
+                call MPI_Abort(Tdomain%communicateur,1,ierr)
+                stop 1
             endif
-            Tdomain%sSource(n_src)%refcoord(0) = xi
-            Tdomain%sSource(n_src)%refcoord(1) = eta
-            Tdomain%sSource(n_src)%refcoord(2) = zeta
-            if (Tdomain%config%verbose_level .gt. 1) then
-                write(*,*) "Found source", n_src, "on proc", src_proc
-                write(*,*) "Source local coordinates:", Tdomain%sSource(n_src)%refcoord
-                write(*,*) "From position", xs, ys, zs
-            end if
-            call invert_3d (LocInvGrad, R)
-            Tdomain%sSource(n_src)%InvGrad(0:2,0:2) = LocInvGrad(0:2,0:2)
-            src_inproc(n_src) = .true.
-            nb_src_inproc = nb_src_inproc +1
+            local_weight=0._fpp
+            do i=0,ncand-1
+                local_weight=local_weight+candidates(i)%spatial_weight
+            enddo
+            call MPI_Allreduce(local_weight,total_weight,1,MPI_DOUBLE_PRECISION,MPI_SUM,Tdomain%communicateur,ierr)
+            if (total_weight<=0._fpp) then
+                call MPI_Abort(Tdomain%communicateur,1,ierr)
+                stop 1
+            endif
+            do i=0,ncand-1
+                item=candidates(i)
+                item%spatial_weight=item%spatial_weight/total_weight
+                call append(local_sources,nlocal,item)
+                if (Tdomain%config%verbose_level>1) &
+                    write(*,*) 'Source contribution',ns,'rank',rg,'elem',item%elem,'ref',item%refcoord, &
+                               'weight',item%spatial_weight
+            enddo
+            if (rg==0 .and. Tdomain%config%verbose_level>1) &
+                write(*,*) 'CG moment incident elements',global_counts(1),'raw cone fraction',total_weight
+        else
+            ! Point forces and acoustic monopoles retain exactly one global owner.
+            ! DG retains its existing one-sided source convention.
+            proposed=-1
+            if (ncand>0) proposed=rg
+            call MPI_Allreduce(proposed,owner,1,MPI_INTEGER,MPI_MAX,Tdomain%communicateur,ierr)
+            if (rg==owner) then
+                item=candidates(0)
+                item%spatial_weight=1._fpp
+                call append(local_sources,nlocal,item)
+                if (Tdomain%config%verbose_level>1) then
+                    write(*,*) 'Found source',ns,'on proc',owner
+                    write(*,*) 'Source local coordinates:',item%refcoord
+                endif
+            endif
         endif
     enddo
+    deallocate(Tdomain%sSource)
+    Tdomain%n_source=nlocal
+    Tdomain%logicD%any_source=nlocal>0
+    if (nlocal>0) then
+        allocate(Tdomain%sSource(0:nlocal-1))
+        Tdomain%sSource=local_sources(0:nlocal-1)
+    endif
+contains
+    subroutine append(buffer,n,value)
+        type(source), allocatable, intent(inout) :: buffer(:)
+        integer, intent(inout) :: n
+        type(source), intent(in) :: value
+        type(source), allocatable :: grown(:)
+        if (n==size(buffer)) then
+            allocate(grown(0:2*size(buffer)-1))
+            grown(0:n-1)=buffer
+            call move_alloc(grown,buffer)
+        endif
+        buffer(n)=value
+        n=n+1
+    end subroutine append
 
-    ! Reallocation des vecteurs de sources ne comprenant que les sources
-    ! reellement presentes dans le domaine traitee par le processeur
-    i = 0
-    if (nb_src_inproc>0) then
-        allocate(ssource_temp(0:nb_src_inproc-1))
-        do n_src = 0, Tdomain%n_source-1
-            if (src_inproc(n_src)) then
-                ssource_temp(i) = Tdomain%sSource(n_src)
-                i = i+1
+    function cross(a,b) result(c)
+        real(fpp), intent(in) :: a(0:2),b(0:2)
+        real(fpp) :: c(0:2)
+        c=[a(1)*b(2)-a(2)*b(1),a(2)*b(0)-a(0)*b(2),a(0)*b(1)-a(1)*b(0)]
+    end function cross
+
+    function cone_fraction(jac,invjac,ref) result(w)
+        real(fpp), intent(in) :: jac(0:2,0:2),invjac(0:2,0:2),ref(0:2)
+        real(fpp) :: w,u(0:2),v(0:2),z(0:2),nu,nv,nz,denom,cosang
+        integer :: active(3),n,a
+        n=0
+        do a=0,2
+            if (abs(ref(a))==1._fpp) then
+                n=n+1
+                active(n)=a
             endif
         enddo
-        deallocate(Tdomain%sSource)
-        allocate(Tdomain%sSource(0:nb_src_inproc-1))
-        Tdomain%sSource = ssource_temp
-        deallocate(ssource_temp)
-    else ! No source in current proc
-        Tdomain%logicD%any_source = .false.
-        deallocate(Tdomain%sSource)
-    endif
-    Tdomain%n_source = nb_src_inproc
-
+        select case(n)
+        case(0)
+            w=1._fpp
+        case(1)
+            w=0.5_fpp
+        case(2)
+            ! jac rows are physical tangent rays; inverse columns are normals.
+            u=-sign(1._fpp,ref(active(1)))*invjac(:,active(1))
+            v=-sign(1._fpp,ref(active(2)))*invjac(:,active(2))
+            cosang=dot_product(u,v)/sqrt(dot_product(u,u)*dot_product(v,v))
+            w=(M_PI-acos(max(-1._fpp,min(1._fpp,cosang))))/(2*M_PI)
+        case(3)
+            u=-sign(1._fpp,ref(0))*jac(0,:)
+            v=-sign(1._fpp,ref(1))*jac(1,:)
+            z=-sign(1._fpp,ref(2))*jac(2,:)
+            nu=sqrt(dot_product(u,u)); nv=sqrt(dot_product(v,v)); nz=sqrt(dot_product(z,z))
+            denom=nu*nv*nz+dot_product(u,v)*nz+dot_product(v,z)*nu+dot_product(z,u)*nv
+            w=2*atan2(abs(dot_product(u,cross(v,z))),denom)/(4*M_PI)
+        end select
+    end function cone_fraction
 end subroutine SourcePosition
 
 !! Local Variables:

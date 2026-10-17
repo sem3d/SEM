@@ -18,6 +18,7 @@ module ssources
     implicit none
 
     type :: Source
+       real(fpp) :: spatial_weight = 1._fpp ! normalized owned-element contribution
        ! GENERAL PARAMETERS (see SourcePosition.f90-Source.f90)
        integer                     :: proc                      ! source belonging processor
        integer                     :: elem                      ! source belonging elem

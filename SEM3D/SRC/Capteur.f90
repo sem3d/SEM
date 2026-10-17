@@ -907,7 +907,7 @@ contains
         real(fpp), parameter :: EPSD = 1D-10, EPSN = 0.1D0
         real(fpp) :: EPS
         real(fpp), dimension(0:2, 0:Tdomain%n_nodes-1) :: coordl
-        real(fpp) :: dist, xc0, yc0, zc0
+        real(fpp) :: dist, xc0, yc0, zc0, best_ref(0:2)
 
         EPS=EPSD*Tdomain%dxmax
         nmax = NMAXEL
@@ -916,6 +916,7 @@ contains
         ! On calcule la distance entre la station et la maille (0 si interieur)
         dmin = 1e20
         emin = -1
+        best_ref = 0._fpp
         do i=1,nmax
             xi   = coordloc(0,i)
             eta  = coordloc(1,i)
@@ -948,12 +949,16 @@ contains
             if (dist<dmin) then
                 dmin = dist
                 emin = iel
+                best_ref = [xi, eta, zeta]
             endif
             if (flag .and. Tdomain%rank<40) then
                 write(*,*) "CPT:", i, Tdomain%rank, xi, eta, zeta, inside, dist
             end if
         end do
         n_el = emin
+        xi = best_ref(0)
+        eta = best_ref(1)
+        zeta = best_ref(2)
         return
     end subroutine trouve_capteur
 
