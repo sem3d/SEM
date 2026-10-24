@@ -264,6 +264,7 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"beta")) err=expect_eq_float(scanner, &config->beta,1);
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
 	else if (cmp(scanner,"courant")) err=expect_eq_float(scanner, &config->courant,1);
+	else if (cmp(scanner,"dt")) err=expect_eq_float(scanner, &config->fixed_dt,1);
 	else if (cmp(scanner,"implicitness")) err=expect_eq_keyword(scanner, kw_type_implicitness, &config->implicitness);
 	else if (cmp(scanner,"type_time_integration")) err=expect_eq_keyword(scanner, kw_type_integration, &config->type_timeinteg);
 

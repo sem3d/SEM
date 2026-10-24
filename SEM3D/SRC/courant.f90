@@ -149,11 +149,29 @@ contains
 
         if (rg == 0 ) write (*,*) "For Courant =",courant," the time step is now ",dt_min,dt
 
+        ! Pas de temps impose (time_scheme { dt = ...; }) : il ne depend plus du modele,
+        ! ce qui rend J derivable par rapport aux parametres materiaux.
+        ! Le Courant sert alors de borne de stabilite.
+        if (Tdomain%config%fixed_dt > 0) then
+            if (Tdomain%config%fixed_dt > dt) then
+                if (rg == 0) write (*,*) "Imposed dt ", Tdomain%config%fixed_dt, &
+                    " exceeds the stability bound courant*dt_min = ", dt
+                stop 1
+            end if
+            dt = Tdomain%config%fixed_dt
+            if (rg == 0) write (*,*) "Imposed time step: ", dt
+        end if
+
         !! Affectation a tous les materiaux
         !!
         Tdomain%TimeD%dtmin = dt
         if (Tdomain%TimeD%dtmin > 0) then
-            Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+            if (Tdomain%config%fixed_dt > 0) then
+                ! Arrondi : un Duration multiple de dt donne exactement Duration/dt pas
+                Tdomain%TimeD%ntimeMax = nint (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+            else
+                Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+            end if
         else
             write (*,*) "Your dt min is zero : verify it"
             stop
