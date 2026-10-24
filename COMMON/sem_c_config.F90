@@ -118,6 +118,8 @@ module sem_c_config
 
        !! Pas de temps impose (0 : calcule par la condition de Courant)
        real(C_DOUBLE) :: fixed_dt
+       !! Sortie des deformations a chaque pas (inversion par etat adjoint)
+       integer(C_INT) :: save_strain
     end type sem_config
 
 

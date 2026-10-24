@@ -79,6 +79,7 @@ set(SEM3D_SOURCES_F
 #    ${PRJ}/SRC/boundary_conditions_init.f90
 
     ${PRJ}/SRC/snapshots.F90
+    ${PRJ}/SRC/strain_output.F90
 
     ${PRJ}/SRC/build_prop_files.F90
 
