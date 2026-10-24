@@ -923,8 +923,10 @@ contains
         real(fpp) :: EPS
         real(fpp), dimension(0:2, 0:Tdomain%n_nodes-1) :: coordl
         real(fpp) :: dist, xc0, yc0, zc0
+        real(fpp) :: ximin, etamin, zetamin
 
         EPS=EPSD*Tdomain%dxmax
+        ximin = 0d0; etamin = 0d0; zetamin = 0d0
         nmax = NMAXEL
         call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
         n_el = -1
@@ -963,12 +965,20 @@ contains
             if (dist<dmin) then
                 dmin = dist
                 emin = iel
+                ! Les coordonnees locales doivent etre celles de l''element retenu,
+                ! pas celles du dernier candidat (station sur un sommet, une arete ou une face)
+                ximin = xi
+                etamin = eta
+                zetamin = zeta
             endif
             if (flag .and. Tdomain%rank<40) then
                 write(*,*) "CPT:", i, Tdomain%rank, xi, eta, zeta, inside, dist
             end if
         end do
         n_el = emin
+        xi = ximin
+        eta = etamin
+        zeta = zetamin
         return
     end subroutine trouve_capteur
 
