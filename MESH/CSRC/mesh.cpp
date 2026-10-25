@@ -308,7 +308,7 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.zpos, mat.zwidth, mat.associated_material);
 
     }
-
+    fclose(f);
 }
 
 void Mesh3D::read_mesh_file(const std::string& fname)
