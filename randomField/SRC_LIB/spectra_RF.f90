@@ -205,7 +205,13 @@ contains
 
             case(FFT)
                 RDF%kNStep(:) = find_xNStep(xMaxExt = RDF%xRange, xStep=xStep)
-                RDF%kDelta(:) = 2.0D0*PI/(periodMult*RDF%xRange)
+                ! gen_Std_Gauss_FFT synthesises with FFTW_REDFT01 (DCT-III) of length
+                ! n = kNStep: mode j is cos(pi*j*(m+1/2)/n), i.e. wavenumber
+                ! pi*j/(n*xStep) = j*pi/(xRange+xStep). The former 2*pi/(periodMult*xRange)
+                ! evaluated the spectrum at 2/1.1 = 1.82 times the true wavenumber and
+                ! stretched every correlation length by 1.82 (exp. and Gaussian
+                ! models checked on the generated fields).
+                RDF%kDelta(:) = PI/(RDF%xRange + xStep)
                 RDF%kMax(:)   = ((RDF%kNStep(:) - 1) * RDF%kDelta(:))/1.0D0
                 RDF%kNTotal   = product(int(RDF%kNStep,8));
 

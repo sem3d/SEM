@@ -20,10 +20,25 @@
 #include "earth_mesh.h"
 #include "mesh_pml_extrude.h"
 
-static bool mesh_has_pml_materials(const Mesh3D& mesh)
+// True only if some ELEMENT uses a PML material. PML materials declared in a material.input
+// left over from a previous extrusion (re-read when there is no mater.in) have no elements
+// in the imported mesh: they are dropped here so that pml.input is extruded again instead of
+// re-writing the stale descriptors.
+static bool mesh_has_pml_materials(Mesh3D& mesh)
 {
+    for (size_t e=0;e<mesh.m_mat.size();++e)
+        if (is_dm_pml(mesh.m_materials[mesh.m_mat[e]].domain())) return true;
+    size_t n0 = mesh.m_materials.size();
+    while (!mesh.m_materials.empty() && is_dm_pml(mesh.m_materials.back().domain()))
+        mesh.m_materials.pop_back();
+    if (mesh.m_materials.size()<n0)
+        printf("WARNING: %zu PML materials without elements (stale material.input) dropped; extruding pml.input\n",
+               n0-mesh.m_materials.size());
     for (size_t k=0;k<mesh.m_materials.size();++k)
-        if (is_dm_pml(mesh.m_materials[k].domain())) return true;
+        if (is_dm_pml(mesh.m_materials[k].domain())) {
+            printf("ERR: unused PML material %zu between interior materials in material.input\n", k);
+            exit(1);
+        }
     return false;
 }
 

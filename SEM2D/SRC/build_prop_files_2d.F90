@@ -187,6 +187,11 @@ contains
                         if (ecol(c) < 0) then                 ! Rho -> Density
                             Tdomain%specel(n)%Density(:,:) = fld
                         else
+                            ! TODO(convention): SEM2D expects engineering Voigt here (C(3,3)=mu,
+                            ! homofft elastic_dump_convention=1), but SEM3D's solid kernel uses
+                            ! Kelvin/Mandel (C44=2mu, convention=0). Plan: mirror 3D by converting
+                            ! Kelvin->Voigt once at this read (C13,C23 /sqrt(2); C33 /2), keyed on the
+                            ! Cstar.h5 `tensor_convention` attribute, so homofft always dumps Kelvin.
                             Tdomain%specel(n)%Cij2d(erow(c),ecol(c),:,:) = fld
                             Tdomain%specel(n)%Cij2d(ecol(c),erow(c),:,:) = fld  ! symmetric
                         end if

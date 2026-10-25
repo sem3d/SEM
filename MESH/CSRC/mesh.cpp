@@ -301,7 +301,7 @@ void Mesh3D::write_materials_v2(const std::string& str)
         const Material& mat = m_materials[k];
 
         if (!mat.is_pml()) continue;
-        fprintf(f, "%d %g %8.1lf %8.1lf %8.1lf %8.1lf %8.1lf %8.1lf %2d\n",
+        fprintf(f, "%d %g %.10g %.10g %.10g %.10g %.10g %.10g %2d\n",
                 mat.npow, mat.apow,
                 mat.xpos, mat.xwidth,
                 mat.ypos, mat.ywidth,

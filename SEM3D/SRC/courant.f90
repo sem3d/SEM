@@ -158,7 +158,7 @@ contains
             stop
         endif
 
-        call compute_irons_dtcrit(Tdomain, rg)
+        if (Tdomain%TimeD%modified) call compute_irons_dtcrit(Tdomain, rg)
 
         return
     end subroutine Compute_Courant
