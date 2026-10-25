@@ -258,7 +258,7 @@ contains
         integer :: iheader, icode, ndeg, len_int, len_real
         real(4) :: rxel, ryel, rzel, xs, ys, zs, xs_whole_domain, ys_whole_domain, zs_whole_domain
         integer :: len
-        integer, dimension(2) :: ix, iy, iz
+        integer,  dimension(0:1) :: ix, iy, iz
         integer :: cx, cy, cz
         integer :: mapping(22)
 
