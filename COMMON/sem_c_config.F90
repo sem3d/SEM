@@ -120,6 +120,8 @@ module sem_c_config
        real(C_DOUBLE) :: fixed_dt
        !! Sortie des deformations a chaque pas (inversion par etat adjoint)
        integer(C_INT) :: save_strain
+       !! Periode (en pas de temps) de la sortie des deformations
+       integer(C_INT) :: strain_period
     end type sem_config
 
 

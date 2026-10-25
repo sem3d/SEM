@@ -15,6 +15,8 @@
 !!  - strain.RRRR.bin : flux binaire float64, un enregistrement (npts,6) par pas de temps,
 !!    composantes xx, yy, zz, xy, xz, yz du tenseur des deformations.
 !! Comme pour les traces, l''enregistrement k (k = 0, 1, ...) contient le champ au temps (k+1)*dt.
+!! Avec "strain_period = p;", seul un pas sur p est ecrit : l''enregistrement j contient le champ
+!! au temps (j+1)*p*dt (attribut period du fichier de geometrie).
 !<
 #include "index.h"
 #include "optims.h"
@@ -31,6 +33,7 @@ module mstrain_output
     integer, save :: strain_unit
     logical, save :: strain_open = .false.
     integer, save :: npts = 0
+    integer, save :: period = 1, nstep = 0
     integer, allocatable, dimension(:), save :: elems
     real(kind=8), allocatable, dimension(:,:), save :: buffer
 
@@ -110,6 +113,9 @@ contains
         call write_attr_real(fid, "dt", Tdomain%TimeD%dtmin)
         call write_attr_int(fid, "ngll", ngll)
         call write_attr_int(fid, "npts", npts)
+        period = max(1, Tdomain%config%strain_period)
+        nstep = 0
+        call write_attr_int(fid, "period", period)
         call h5fclose_f(fid, hdferr)
         deallocate(coords, weight, elem_of_pt)
 
@@ -129,6 +135,8 @@ contains
         real(fpp) :: DXX, DXY, DXZ, DYX, DYY, DYZ, DZX, DZY, DZZ
 
         if (.not. strain_open) return
+        nstep = nstep + 1
+        if (mod(nstep, period) /= 0) return
         !$acc update host(Tdomain%sdom%champs(0)%Depla) async(2) wait(1)
         !$acc wait(2)
         ngll = Tdomain%sdom%ngll
