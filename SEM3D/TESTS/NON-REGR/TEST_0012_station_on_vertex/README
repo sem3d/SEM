@@ -1,0 +1,52 @@
+Description
+===========
+
+Nprocs : 1 puis 2
+
+Verifie la localisation des capteurs places exactement sur un sommet, une
+arete ou une face partages par plusieurs elements (trouve_capteur doit
+renvoyer les coordonnees locales de l'element retenu).
+
+Maillage
+--------
+
+Commande ::
+
+  mesher < mesh.input
+
+Un cube de 400x400x400, mailles de 50m, 5 pt de gauss par maille.
+Surface libre en z=0, PML sur les cotes et au fond.
+
+Source
+------
+
+pulse en (110,130,-90) selon x, forme d'onde ricker (5 Hz)
+
+Duree simu : 0.6
+
+Capteurs
+--------
+
+Deplacements, par paires : le capteur exactement sur la position, puis un
+jumeau decale de 1 mm vers l'interieur d'un element.
+
+- UU_0000 / UU_0001 : sommet (200,200,-50), partage par 8 elements
+- UU_0002 / UU_0003 : arete (225,200,-50), partagee par 4 elements
+- UU_0004 / UU_0005 : face (225,213,-50), partagee par 2 elements
+- UU_0006 / UU_0007 : interieur (213,237,-163), temoin
+- UU_0008 : sommet (300,200,-100), sans jumeau (sert au test sur 2 processus)
+
+Traces au format texte (traces/UU_000k.txt) : t, ux, uy, uz.
+
+Validation
+----------
+
+1. Pour chaque paire, les deux traces doivent coincider. Ecart relatif
+   max|u - u'| / max|u'| attendu < 1e-3 (mesure : 3.4e-5 sommet,
+   3.7e-5 arete, 3.7e-5 face, 6.0e-5 interieur). Sans la correction :
+   2.0 sommet, 0.94 arete, 0.80 face.
+
+2. Relancer sur 2 processus (premiere ligne de mesh.input a 2, puis mesher
+   et mpirun -n 2) : les traces doivent etre identiques a celles du calcul
+   sur 1 processus (mesure : identiques au bit pres). Sans la correction,
+   le resultat depend du decoupage : UU_0008 differe (ecart relatif 1.0).
