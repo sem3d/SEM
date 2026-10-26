@@ -214,6 +214,7 @@ alpha             réel                        Paramètre :math:`\alpha` d'inté
 beta              réel                        Paramètre :math:`\beta` d'intégration de Newmark
 gamma             réel                        Paramètre :math:`\gamma` d'intégration de Newmark
 courant           réel     0.2                Nombre de Courant. Le calcul du pas de temps en dépend.
+dt                réel     0                  Pas de temps imposé (0 : calculé à partir du Courant). Il ne dépend alors plus du modèle ; le calcul s'arrête s'il dépasse courant × dt_min.
 ================  =======  =================  ===========================================================
 
 Section ``source``
