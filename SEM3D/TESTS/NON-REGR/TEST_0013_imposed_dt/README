@@ -1,0 +1,57 @@
+Description
+===========
+
+Nprocs : 1
+
+Verifie le pas de temps impose : time_scheme { dt = ...; }. Le pas de
+temps ne doit plus dependre du modele, le Courant sert de borne de
+stabilite.
+
+Maillage
+--------
+
+Commande ::
+
+  mesher < mesh.input
+
+Un cube de 400x400x400, mailles de 50m, 5 pt de gauss par maille.
+Surface libre en z=0, PML sur les cotes et au fond.
+
+Source
+------
+
+pulse en (110,130,-90) selon x, forme d'onde ricker (5 Hz)
+
+Duree simu : 0.6
+
+Pas de temps : courant = 0.2 donne dt = 8.6336582e-4 (694 pas).
+input.spec impose dt = 8e-4.
+
+Capteurs
+--------
+
+Deplacements : UU_0000 (213,237,-163), a l'interieur d'un element.
+
+Validation
+----------
+
+1. sem3d.log doit contenir ::
+
+     Imposed time step:    8.0000000000000004E-004
+     --> Time step size:    8.0000000000000004E-004
+     --> Number of time steps:          750
+
+   0.6/8e-4 vaut 749.99999 en double : 750 verifie l'arrondi.
+
+2. Passer Vp de 2000 a 2020 dans mater.in et relancer : la borne de
+   Courant change (8.548e-4) mais le pas de temps (8e-4) et le nombre de
+   pas (750) restent les memes. Seules les traces changent.
+
+3. Mettre dt = 1e-3 dans input.spec : le calcul s'arrete (code 1) avec le
+   message ::
+
+     Imposed dt    1.0000000000000000E-003  exceeds the stability bound courant*dt_min =    8.6336582323004907E-004
+
+4. Supprimer la ligne dt : comportement inchange, dt = 8.6336582e-4,
+   694 pas, traces identiques au bit pres a celles d'un SEM3D qui n'a pas
+   cette option.
