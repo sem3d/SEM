@@ -19,24 +19,24 @@ subroutine SourcePosition (Tdomain)
     use mshape27
     use mlinalg
     use mlocations3d
+    use msource_select
     implicit none
     type (domain), intent(inout) :: Tdomain
     !
     integer :: rg, ierr, nnodes
-    integer :: n_src, i,j
+    integer :: n_src, i,j,k
     real(fpp) :: xs,ys,zs,xi,eta,zeta
     real(fpp), dimension(0:2,0:2) :: LocInvGrad
     real(fpp), dimension(:,:), allocatable :: coord
     real(fpp) :: R
-    integer :: src_proc, nmax, n_el, nb_src_inproc, dom
+    integer :: src_proc, nmax, n_el, nb_src_inproc
     integer, parameter :: NMAXEL=20
-    integer, dimension(NMAXEL) :: elems
+    integer, dimension(NMAXEL) :: elems, doms
     real(fpp), dimension(0:2,NMAXEL) :: coordloc
     real(fpp), parameter :: EPSD = 1D-10
     real(fpp) :: EPS
     type(source), dimension(:), allocatable :: ssource_temp
     logical, dimension(:), allocatable :: src_inproc
-    logical :: inside, is_fluid, is_solid
 
     rg = Tdomain%rank
     nb_src_inproc = 0
@@ -54,34 +54,21 @@ subroutine SourcePosition (Tdomain)
         nmax = NMAXEL
         call find_location(Tdomain, xs, ys, zs, nmax, elems, coordloc, n_src)
         n_el = -1
- 
+
+        ! Premier element qui contient la source et dont le domaine convient
+        ! (source fluide dans un element fluide, sinon solide). Un point sur une
+        ! frontiere a plusieurs candidats : on ne s''arrete pas au premier.
         do i=1,nmax
-            inside = .true.
-            xi   = coordloc(0,i)
-            eta  = coordloc(1,i)
-            zeta = coordloc(2,i)
-
-            if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
-            if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
-            if (inside) then
-                n_el = elems(i)
-                exit
-            end if
+            doms(i) = Tdomain%specel(elems(i))%domain
         end do
-
-        ! On ignore une source fluide dans le domaine solide
-        if (n_el/=-1) then
-            dom = Tdomain%specel(n_el)%domain
-            if (dom==DM_SOLID_CG .or. dom==DM_SOLID_DG .or. dom==DM_SOLID_CG_PML) then
-                is_fluid = .false.
-                is_solid = .true.
-            else
-                is_fluid = .true.
-                is_solid = .false.
-            end if
-            if(Tdomain%sSource(n_src)%i_type_source == 3 .and. is_solid) n_el = -1
-            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. is_fluid) n_el = -1
-        endif
+        k = select_source_candidate(nmax, coordloc(:,1:nmax), doms(1:nmax), &
+            Tdomain%sSource(n_src)%i_type_source == 3, EPS)
+        if (k > 0) then
+            n_el = elems(k)
+            xi   = coordloc(0,k)
+            eta  = coordloc(1,k)
+            zeta = coordloc(2,k)
+        end if
 
         Tdomain%Ssource(n_src)%elem = n_el
         if (n_el/=-1) then

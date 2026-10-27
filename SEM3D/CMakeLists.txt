@@ -38,6 +38,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/SourcePosition.f90
+    ${PRJ}/SRC/source_select.f90
     ${PRJ}/SRC/Modules/Edge.f90
     ${PRJ}/SRC/Modules/Comm.f90
     ${PRJ}/SRC/Modules/Neumann.f90
@@ -240,6 +241,12 @@ target_sources(sem3d.exe PRIVATE "${SEM3D_SOURCES}" "${SEM_COMMON_SRC_C}")
 add_executable(test_pointlist
   ${SEMCOMMON}/pointlist.f90
   ${PRJ}/TESTS/UNITS/test_pointlist.f90
+)
+
+add_executable(test_source_select
+  ${SEMCOMMON}/constants.F90
+  ${PRJ}/SRC/source_select.f90
+  ${PRJ}/TESTS/UNITS/test_source_select.f90
 )
 
 add_executable(test_index

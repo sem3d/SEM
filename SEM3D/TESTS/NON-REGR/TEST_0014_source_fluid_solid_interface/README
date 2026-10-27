@@ -1,0 +1,55 @@
+Description
+===========
+
+Nprocs : 1
+
+Verifie qu'une source posee exactement sur l'interface entre un fluide et
+un solide est portee par un element du bon type : un element solide pour
+une force (impulse), un element fluide pour une source de pression
+(fluidpulse). Avant la correction, seul le premier element trouve etait
+essaye et la source etait rejetee s'il n'etait pas du bon type.
+
+Maillage
+--------
+
+Commande ::
+
+  mesher < mesh.input
+
+Un cube de 400x400x400, mailles de 50m, 5 pt de gauss par maille.
+Couche fluide de 200 m (Vp 1500) sur une couche solide de 200 m
+(Vp 2000, Vs 1000) : interface en z=-200. Surface libre en z=0, PML sur
+les cotes et au fond.
+
+Source
+------
+
+pulse en (213,237,-200), sur l'interface, selon x, forme d'onde ricker
+(5 Hz)
+
+Duree simu : 0.6
+
+Capteurs
+--------
+
+Deplacements, dans le solide : UU_0000 (130,290,-320), UU_0001 (310,120,-260)
+
+Traces au format texte (traces/UU_000k.txt) : t, ux, uy, uz.
+
+Validation
+----------
+
+1. Le calcul doit aller a son terme. Sans la correction, il s'arrete avec ::
+
+     The source at (213. 237. -200.) doesn't appear to be on any processor
+
+2. Deplacer la source de 1 mm dans le solide (coords = 213. 237. -200.001;)
+   et relancer : les traces doivent coincider avec celles de la source sur
+   l'interface. Ecart relatif max|u - u'| / max|u'| attendu < 1e-3
+   (mesure : 3.3e-5).
+
+3. Remplacer la source par une source de pression (type = fluidpulse;
+   sans dir) sur l'interface : le calcul allait deja a son terme avant la
+   correction et les traces doivent etre inchangees (mesure : identiques
+   au bit pres). Elles doivent coincider avec celles d'une source de
+   pression decalee de 1 mm dans le fluide (z = -199.999 ; mesure : 2.6e-5).
