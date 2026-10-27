@@ -7,6 +7,7 @@
 #define MESH_GRID_H
 
 #include <cstdio>
+#include <cstdint>
 #include "meshbase.h"
 
 // Describe directions of presence of PML elements
