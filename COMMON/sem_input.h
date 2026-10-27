@@ -226,6 +226,9 @@ typedef struct {
     int surface_find;
     surface_t *surface;
 
+    // Pas de temps impose (0 : calcule par la condition de Courant)
+    double fixed_dt;
+
 } sem_config_t;
 
 

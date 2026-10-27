@@ -115,6 +115,9 @@ module sem_c_config
        integer(C_INT) :: nsurface
        integer(C_INT) :: surface_find
        type(C_PTR)    :: surface
+
+       !! Pas de temps impose (0 : calcule par la condition de Courant)
+       real(C_DOUBLE) :: fixed_dt
     end type sem_config
 
 
