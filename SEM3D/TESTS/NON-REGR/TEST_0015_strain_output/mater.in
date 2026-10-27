@@ -1,0 +1,9 @@
+# This file only serves in the automatic meshing case
+#
+# Number of non-PML materials
+1
+#
+# Material Properties
+# Type, Vp, Vs, Rho, Q_kappa, Q_mu
+#
+S  2000.00  1000.00   2000. 0.0 0.0
