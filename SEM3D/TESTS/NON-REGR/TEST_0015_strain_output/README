@@ -1,0 +1,68 @@
+Description
+===========
+
+Nprocs : 1 et 2
+
+Verifie la sortie des deformations : save_strain = true; et
+strain_period = p;. Le tenseur des deformations est ecrit a chaque point
+de Gauss des elements solides hors PML, dans strain/strain_geom.RRRR.h5
+(geometrie, poids) et strain/strain.RRRR.bin (float64, un enregistrement
+(npts,6) par sortie, composantes xx yy zz xy xz yz).
+
+Maillage
+--------
+
+Commande ::
+
+  mesher < mesh.input
+
+Un cube de 200x200x200, mailles de 50m (64 elements), 5 pt de gauss par
+maille. Surface libre en z=0, PML sur les cotes et au fond.
+
+Source
+------
+
+pulse en (60,70,-40) selon x, forme d'onde ricker (5 Hz, tau 0.2)
+
+Duree simu : 0.4, dt = 8.6336582e-4, 463 pas.
+
+Volume de sortie : 8000 points, 384 Ko par pas, 170 Mo pour strain_period = 1.
+
+Capteurs
+--------
+
+Deplacements : UU_0000 en (125,125,-125), centre d'un element et point de
+Gauss, et UU_0001 a UU_0006 a +-1 m selon x, y puis z.
+
+Validation
+----------
+
+1. sem3d.log contient ::
+
+     --> STRAIN OUTPUT:           64  elements,         8000  points on rank 0
+
+   strain_geom.0000.h5 a les attributs dt, ngll = 5, npts = 8000,
+   period = 1. La somme de weight (w_i w_j w_k |J|) vaut le volume du
+   cube, 8e6. strain.0000.bin contient 463 enregistrements.
+
+2. Deformation au point (125,125,-125) (chercher le point dans coords)
+   comparee a la difference finie centree des traces :
+   eps_ab = (dU_b/dx_a + dU_a/dx_b)/2, avec
+   dU/dx = (UU_0001 - UU_0002)/2, dU/dy = (UU_0003 - UU_0004)/2,
+   dU/dz = (UU_0005 - UU_0006)/2.
+   L'enregistrement k correspond a la ligne k (en partant de 0) des
+   traces. Ecart relatif max sur les 6 composantes : 1.6e-4 (erreur de la
+   difference finie, pas de 1 m). Avec un decalage d'une ligne l'ecart
+   passe a 3.6e-2.
+
+3. Mettre strain_period = 2 : 231 enregistrements, attribut period = 2,
+   l'enregistrement j est identique au bit pres a l'enregistrement 2j+1
+   de strain_period = 1 (ligne 2j+1 des traces).
+
+4. Mettre 2 dans mesh.input (2 processus) : un couple de fichiers par
+   rang, somme des weight = 8e6, deformation au point de controle egale a
+   celle du calcul sur 1 processus (ecart relatif 3.5e-15).
+
+5. Traces identiques au bit pres avec et sans save_strain. Sans
+   save_strain, pas de repertoire strain et traces identiques au bit pres
+   a celles d'un SEM3D qui n'a pas cette option.

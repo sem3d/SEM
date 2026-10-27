@@ -140,6 +140,8 @@ restart_iter      entier   n/a                Numéro de la protection pour repr
 run_name          chaîne   ""                 Titre de la simulation
 snapshots         section  n/a                Description des paramètres de sauvegarde des snapshots
 save_traces       bool     false              Activation des capteurs
+save_strain       bool     false              Sortie des déformations dans les éléments solides (voir ci-dessous)
+strain_period     entier   1                  Sortie des déformations tous les ``strain_period`` pas de temps
 sim_time          réel     aucune             Durée (temps physique) de la simulation
 source            section  n/a                Description d'une source (peut apparaître plusieurs fois)
 traces_interval   entier                      Interval de sortie des capteurs en nombre d'itérations
@@ -167,6 +169,22 @@ model             kw        --                 CUB|homo|prem|3D_berkeley
 neumann           bool                         .
 traces_interval   entier                       .
 ================  ========  =================  ===========================================================
+
+Sortie des déformations
+-----------------------
+
+Avec ``save_strain = true;``, le tenseur des déformations est écrit aux points de Gauss de
+chaque élément solide hors PML (domaine ``DM_SOLID_CG``), sans assemblage entre éléments.
+Cette sortie sert au calcul des noyaux de sensibilité par la méthode de l'état adjoint.
+Chaque processus écrit deux fichiers dans le répertoire ``strain`` :
+
+- ``strain_geom.RRRR.h5`` : jeux de données ``coords`` (npts, 3), ``weight`` (npts) égal à
+  :math:`w_i w_j w_k |J|` et ``elem`` (npts), attributs ``dt``, ``ngll``, ``npts`` et ``period`` ;
+- ``strain.RRRR.bin`` : flux binaire de réels double précision, un enregistrement (npts, 6)
+  par sortie, composantes xx, yy, zz, xy, xz, yz.
+
+Comme pour les traces, l'enregistrement :math:`j` (à partir de 0) contient le champ au temps
+:math:`(j+1)\,p\,dt`, où :math:`p` vaut ``strain_period``.
 
 Section ``amortissement``
 =========================

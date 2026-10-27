@@ -259,6 +259,7 @@ end subroutine RUN_PREPARED
 subroutine RUN_INIT_INTERACT(Tdomain,isort)
     use sdomain
     use mCapteur
+    use mstrain_output
     use semdatafiles
     use sem_mpi
     use mloadcheckpoint
@@ -324,6 +325,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
 !- eventual outputs at receivers, and their properties
     info_capteur = 0
     if(Tdomain%logicD%save_trace) call create_capteurs(Tdomain)
+    if(Tdomain%config%save_strain /= 0) call init_strain_output(Tdomain)
 
     if(info_capteur /= 0) Tdomain%logicD%save_trace = .false.
 
@@ -336,6 +338,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use sdomain
     use scomm
     use mCapteur
+    use mstrain_output
     use semdatafiles
     use sem_mpi
     use msnapshots
@@ -521,6 +524,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         if (sortie_capteur) then
             call save_capteur(Tdomain, ntime)
         end if
+        if (Tdomain%config%save_strain /= 0) call save_strain_output(Tdomain)
 
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
@@ -552,6 +556,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
     call flushAllCapteurs(Tdomain)
+    call close_strain_output()
 
     call stop_sf_coupling(Tdomain)
     call stop_domain_solid(Tdomain, Tdomain%sdom)

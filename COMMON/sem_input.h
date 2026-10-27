@@ -228,6 +228,10 @@ typedef struct {
 
     // Pas de temps impose (0 : calcule par la condition de Courant)
     double fixed_dt;
+    // Sortie des deformations a chaque pas (inversion par etat adjoint)
+    int save_strain;
+    // Periode (en pas de temps) de la sortie des deformations
+    int strain_period;
 
 } sem_config_t;
 

@@ -853,6 +853,8 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
 	else if (cmp(scanner,"snapshots")) err=expect_snapshots(scanner, config);
 	else if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);
+	else if (cmp(scanner,"save_strain")) err=expect_eq_bool(scanner, &config->save_strain,1);
+	else if (cmp(scanner,"strain_period")) err=expect_eq_int(scanner, &config->strain_period,1);
 	else if (cmp(scanner,"sim_time")) err=expect_eq_float(scanner, &config->sim_time,1);
 	else if (cmp(scanner,"source")) err=expect_source(scanner, config);
 	else if (cmp(scanner,"extended_source")) err=expect_extended_source(scanner, config);
